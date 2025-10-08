@@ -1,5 +1,5 @@
 use crate::{
-  diesel::{BoolExpressionMethods, OptionalExtension, PgExpressionMethods},
+  diesel::{BoolExpressionMethods, OptionalExtension, PgExpressionMethods, SelectableHelper},
   newtypes::{CommunityId, DbUrl, MultiCommunityId, PersonId},
   source::{
     community::Community,
@@ -311,9 +311,9 @@ impl ApubActor for MultiCommunity {
     let conn = &mut get_conn(pool).await?;
     let mut q = multi_community::table
       .inner_join(instance::table)
-      .into_boxed()
       .filter(lower(multi_community::name).eq(name.to_lowercase()))
-      .select(multi_community::all_columns);
+      .select(MultiCommunity::as_select())
+      .into_boxed();
     if !include_deleted {
       q = q.filter(multi_community::deleted.eq(false))
     }
