@@ -531,7 +531,7 @@ test("Enforce site ban federation for local user", async () => {
     true,
     true,
   );
-  expect(banAlpha.banned).toBe(true);
+  expect(banAlpha.person_view.banned).toBe(true);
 
   // alpha ban should be federated to beta
   let alphaUserOnBeta1 = await waitUntil(
@@ -554,7 +554,7 @@ test("Enforce site ban federation for local user", async () => {
     false,
     true,
   );
-  expect(unBanAlpha.banned).toBe(false);
+  expect(unBanAlpha.person_view.banned).toBe(false);
 
   // existing alpha post should be restored on beta
   betaBanRes = await waitUntil(
@@ -612,7 +612,7 @@ test("Enforce site ban federation for federated user", async () => {
     true,
     true,
   );
-  expect(banAlphaOnBeta.banned).toBe(true);
+  expect(banAlphaOnBeta.person_view.banned).toBe(true);
 
   // existing alpha post should be removed on beta
   let betaRemovedPost = await getPost(beta, searchBeta1.post.id);
