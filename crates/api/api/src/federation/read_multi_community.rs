@@ -13,15 +13,11 @@ pub async fn read_multi_community(
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<GetMultiCommunityResponse>> {
-  if data.name.is_none() && data.id.is_none() {
-    Err(LemmyErrorType::NoIdGiven)?
-  }
-  let id = match data.id {
-    Some(id) => id,
-    None => {
-      let name = data.name.clone().expect("name was already checked");
+  let id = match (data.id, &data.name) {
+    (Some(id), _) => id,
+    (_, Some(name)) => {
       resolve_ap_identifier::<ApubMultiCommunity, MultiCommunity>(
-        &name,
+        name,
         &context,
         &local_user_view,
         true,
@@ -29,6 +25,7 @@ pub async fn read_multi_community(
       .await?
       .id
     }
+    _ => Err(LemmyErrorType::NoIdGiven)?,
   };
   get_multi_community(id, &context, local_user_view).await
 }
