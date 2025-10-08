@@ -138,7 +138,7 @@ async fn get_feed_data(
   let title = format!("{} - {}", site_view.site.name, listing_type);
   let link = context.settings().get_protocol_and_hostname();
   let items = create_post_items(posts, context.settings())?;
-  Ok(send_feed_response(title, link, items, site_view))
+  Ok(send_feed_response(title, link, None, items, site_view))
 }
 
 async fn get_feed_user(
@@ -176,7 +176,9 @@ async fn get_feed_user(
   let title = format!("{} - {}", site_view.site.name, person.name);
   let link = person.ap_id.to_string();
   let items = create_post_items(posts, context.settings())?;
-  Ok(send_feed_response(title, link, items, site_view))
+  Ok(send_feed_response(
+    title, link, person.bio, items, site_view,
+  ))
 }
 
 /// Takes a user/community name either in the format `name` or `name@example.com`. Splits
@@ -218,7 +220,13 @@ async fn get_feed_community(
   let title = format!("{} - {}", site_view.site.name, community.name);
   let link = community.ap_id.to_string();
   let items = create_post_items(posts, context.settings())?;
-  Ok(send_feed_response(title, link, items, site_view))
+  Ok(send_feed_response(
+    title,
+    link,
+    community.description,
+    items,
+    site_view,
+  ))
 }
 
 async fn get_feed_multi_community(
@@ -246,7 +254,13 @@ async fn get_feed_multi_community(
   let title = format!("{} - {}", site_view.site.name, multi_community.name);
   let link = multi_community.ap_id.to_string();
   let items = create_post_items(posts, context.settings())?;
-  Ok(send_feed_response(title, link, items, site_view))
+  Ok(send_feed_response(
+    title,
+    link,
+    multi_community.description,
+    items,
+    site_view,
+  ))
 }
 
 async fn get_feed_front(
@@ -273,12 +287,13 @@ async fn get_feed_front(
   let title = format!("{} - Subscribed", site_view.site.name);
   let link = context.settings().get_protocol_and_hostname();
   let items = create_post_items(posts, context.settings())?;
-  Ok(send_feed_response(title, link, items, site_view))
+  Ok(send_feed_response(title, link, None, items, site_view))
 }
 
 fn send_feed_response(
   title: String,
   link: String,
+  description: Option<String>,
   items: Vec<Item>,
   site_view: SiteView,
 ) -> HttpResponse {
@@ -290,8 +305,9 @@ fn send_feed_response(
     ..Default::default()
   };
 
-  if let Some(site_desc) = site_view.site.description {
-    channel.set_description(markdown_to_html(&site_desc));
+  let description = description.or(site_view.site.description);
+  if let Some(desc) = description {
+    channel.set_description(markdown_to_html(&desc));
   }
 
   HttpResponse::Ok()
@@ -323,7 +339,7 @@ async fn get_feed_notifs(
   let title = format!("{} - Notifications", site_view.site.name);
   let link = format!("{protocol_and_hostname}/notifications");
   let items = create_reply_and_mention_items(notifications, &context)?;
-  Ok(send_feed_response(title, link, items, site_view))
+  Ok(send_feed_response(title, link, None, items, site_view))
 }
 
 /// Gets your ModeratorView modlog
@@ -350,7 +366,7 @@ async fn get_feed_modlog(
   let title = format!("{} - Modlog", local_user.person.name);
   let link = format!("{protocol_and_hostname}/modlog");
   let items = create_modlog_items(modlog, context.settings())?;
-  Ok(send_feed_response(title, link, items, site_view))
+  Ok(send_feed_response(title, link, None, items, site_view))
 }
 
 fn create_reply_and_mention_items(
