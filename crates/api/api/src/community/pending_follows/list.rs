@@ -34,8 +34,8 @@ pub async fn get_pending_follows_list(
   )
   .await?;
 
-  let next_page = items.last().map(|x| x.to_cursor());
-  let prev_page = items.first().map(|x| x.to_cursor());
+  let next_page = items.last().map(PaginationCursorBuilder::to_cursor);
+  let prev_page = items.first().map(PaginationCursorBuilder::to_cursor);
 
   Ok(Json(ListCommunityPendingFollowsResponse {
     items,
