@@ -11,7 +11,7 @@ use crate::{
   },
   traits::{Crud, Likeable, Saveable},
   utils::{
-    functions::{coalesce, hot_rank, lower},
+    functions::{coalesce, hot_rank},
     get_conn,
     validate_like,
     DbPool,
@@ -193,7 +193,7 @@ impl Comment {
   ) -> LemmyResult<Option<Self>> {
     let conn = &mut get_conn(pool).await?;
     comment::table
-      .filter(lower(comment::ap_id).eq(object_id.to_lowercase()))
+      .filter(comment::ap_id.eq(object_id))
       .first(conn)
       .await
       .optional()
