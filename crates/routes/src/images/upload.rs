@@ -216,7 +216,7 @@ pub async fn do_upload_image(
     .await
     // Dont check for status code here and dont call `error_for_status()`. If the upload failed,
     // this is handled below as `images.files` is empty.
-    .with_lemmy_type(LemmyErrorType::InvalidImageUpload(
+    .with_lemmy_type(LemmyErrorType::PictrsInvalidImageUpload(
       "HTTP request to pict-rs failed".to_string(),
     ))?;
 
@@ -241,7 +241,7 @@ pub async fn do_upload_image(
   let image = images
     .files
     .pop()
-    .ok_or(LemmyErrorType::InvalidImageUpload(images.msg))?;
+    .ok_or(LemmyErrorType::PictrsInvalidImageUpload(images.msg))?;
 
   let url = image.image_url(&context.settings().get_protocol_and_hostname())?;
   Ok(UploadImageResponse {
