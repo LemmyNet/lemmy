@@ -1,11 +1,15 @@
 use crate::multi_community::get_multi;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
-use lemmy_api_utils::{context::LemmyContext, utils::slur_regex};
+use lemmy_api_utils::{
+  context::LemmyContext,
+  utils::{check_local_user_valid, slur_regex},
+};
 use lemmy_db_schema::{
-  source::multi_community::{MultiCommunity, MultiCommunityInsertForm},
+  source::multi_community::{MultiCommunity, MultiCommunityFollowForm, MultiCommunityInsertForm},
   traits::Crud,
 };
+use lemmy_db_schema_file::enums::CommunityFollowerState;
 use lemmy_db_views_community::api::{CreateMultiCommunity, GetMultiCommunityResponse};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
@@ -20,6 +24,7 @@ pub async fn create_multi_community(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<GetMultiCommunityResponse>> {
+  check_local_user_valid(&local_user_view)?;
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   is_valid_display_name(&data.name)?;
 
@@ -47,5 +52,14 @@ pub async fn create_multi_community(
     )
   };
   let multi = MultiCommunity::create(&mut context.pool(), &form).await?;
-  get_multi(multi.id, context).await
+
+  // You follow your own community
+  let follow_form = MultiCommunityFollowForm {
+    multi_community_id: multi.id,
+    person_id: local_user_view.person.id,
+    follow_state: CommunityFollowerState::Accepted,
+  };
+  MultiCommunity::follow(&mut context.pool(), &follow_form).await?;
+
+  get_multi(multi.id, context, Some(local_user_view)).await
 }

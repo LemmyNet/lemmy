@@ -19,8 +19,7 @@ pub async fn get_site(
 ) -> LemmyResult<Json<GetSiteResponse>> {
   // This data is independent from the user account so we can cache it across requests
   static CACHE: CacheLock<GetSiteResponse> = LazyLock::new(build_cache);
-  let mut site_response = CACHE
-    .try_get_with((), read_site(&context))
+  let mut site_response = Box::pin(CACHE.try_get_with((), read_site(&context)))
     .await
     .map_err(|e| anyhow::anyhow!("Failed to construct site response: {e}"))?;
 

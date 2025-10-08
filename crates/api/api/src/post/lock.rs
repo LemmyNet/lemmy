@@ -3,6 +3,7 @@ use actix_web::web::Json;
 use lemmy_api_utils::{
   build_response::build_post_response,
   context::LemmyContext,
+  notify::notify_mod_action,
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_community_mod_action,
 };
@@ -65,7 +66,8 @@ pub async fn lock_post(
     locked: Some(locked),
     reason: data.reason.clone(),
   };
-  ModLockPost::create(&mut context.pool(), &form).await?;
+  let action = ModLockPost::create(&mut context.pool(), &form).await?;
+  notify_mod_action(action, post.creator_id, &context);
 
   ActivityChannel::submit_activity(
     SendActivityData::LockPost(

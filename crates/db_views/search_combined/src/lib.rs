@@ -39,6 +39,7 @@ use {
   lemmy_db_views_local_user::LocalUserView,
 };
 
+pub mod api;
 #[cfg(feature = "full")]
 pub mod impls;
 

@@ -6,8 +6,6 @@ pub use lemmy_db_schema::{
 pub use lemmy_db_schema_file::enums::{PostListingMode, PostNotificationsMode};
 pub use lemmy_db_views_post::{
   api::{
-    GetPost,
-    GetPostResponse,
     GetPosts,
     GetPostsResponse,
     GetSiteMetadata,
@@ -18,7 +16,7 @@ pub use lemmy_db_views_post::{
   },
   PostView,
 };
-
+pub use lemmy_db_views_search_combined::api::{GetPost, GetPostResponse};
 pub mod actions {
   pub use lemmy_db_views_post::api::{
     CreatePost,

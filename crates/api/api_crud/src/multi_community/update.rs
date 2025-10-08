@@ -2,7 +2,7 @@ use super::{check_multi_community_creator, send_federation_update};
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use chrono::Utc;
-use lemmy_api_utils::context::LemmyContext;
+use lemmy_api_utils::{context::LemmyContext, utils::check_local_user_valid};
 use lemmy_db_schema::{
   source::multi_community::{MultiCommunity, MultiCommunityUpdateForm},
   traits::Crud,
@@ -18,6 +18,7 @@ pub async fn update_multi_community(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
+  check_local_user_valid(&local_user_view)?;
   check_multi_community_creator(data.id, &local_user_view, &context).await?;
 
   let form = MultiCommunityUpdateForm {

@@ -1,8 +1,7 @@
 use crate::CustomEmojiView;
-use lemmy_db_schema::newtypes::CustomEmojiId;
+use lemmy_db_schema::newtypes::{CustomEmojiId, DbUrl};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-use url::Url;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
@@ -11,8 +10,7 @@ use url::Url;
 pub struct CreateCustomEmoji {
   pub category: String,
   pub shortcode: String,
-  #[cfg_attr(feature = "ts-rs", ts(type = "string"))]
-  pub image_url: Url,
+  pub image_url: DbUrl,
   pub alt_text: String,
   pub keywords: Vec<String>,
 }
@@ -36,14 +34,14 @@ pub struct DeleteCustomEmoji {
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// Edit  a custom emoji.
+/// Edit a custom emoji.
 pub struct EditCustomEmoji {
   pub id: CustomEmojiId,
-  pub category: String,
-  #[cfg_attr(feature = "ts-rs", ts(type = "string"))]
-  pub image_url: Url,
-  pub alt_text: String,
-  pub keywords: Vec<String>,
+  pub category: Option<String>,
+  pub shortcode: Option<String>,
+  pub image_url: Option<DbUrl>,
+  pub alt_text: Option<String>,
+  pub keywords: Option<Vec<String>>,
 }
 
 #[skip_serializing_none]

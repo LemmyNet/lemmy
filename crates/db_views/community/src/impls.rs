@@ -26,6 +26,7 @@ use lemmy_db_schema::{
         my_community_actions_join,
         my_instance_communities_actions_join,
         my_local_user_admin_join,
+        my_multi_community_follower_join,
       },
     },
     seconds_to_pg_interval,
@@ -207,37 +208,57 @@ impl CommunityQuery<'_> {
 }
 
 impl MultiCommunityView {
-  pub async fn read(pool: &mut DbPool<'_>, id: MultiCommunityId) -> LemmyResult<Self> {
+  #[diesel::dsl::auto_type(no_type_alias)]
+  fn joins(person_id: Option<PersonId>) -> _ {
+    let my_multi_community_follower_join: my_multi_community_follower_join =
+      my_multi_community_follower_join(person_id);
+
+    multi_community::table
+      .inner_join(person::table)
+      .left_join(my_multi_community_follower_join)
+  }
+
+  pub async fn read(
+    pool: &mut DbPool<'_>,
+    id: MultiCommunityId,
+    my_person_id: Option<PersonId>,
+  ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
-    Ok(
-      multi_community::table
-        .find(id)
-        .inner_join(person::table)
-        .get_result(conn)
-        .await?,
-    )
+
+    Self::joins(my_person_id)
+      .filter(multi_community::id.eq(id))
+      .select(Self::as_select())
+      .first(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
   pub async fn list(
     pool: &mut DbPool<'_>,
-    owner_id: Option<PersonId>,
-    followed_by: Option<PersonId>,
+    creator_id: Option<PersonId>,
+    my_person_id: Option<PersonId>,
+    followed_only: bool,
   ) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
-    let mut query = multi_community::table
-      .left_join(multi_community_follow::table)
-      .inner_join(person::table)
-      .select(multi_community::all_columns)
+
+    let mut query = Self::joins(my_person_id)
+      .select(Self::as_select())
+      // TODO this needs proper limit / paging at some point
+      .limit(limit_fetch(None)?)
       .into_boxed();
-    if let Some(owner_id) = owner_id {
-      query = query.filter(multi_community::creator_id.eq(owner_id));
+
+    if let Some(creator_id) = creator_id {
+      query = query.filter(multi_community::creator_id.eq(creator_id));
     }
-    if let Some(followed_by) = followed_by {
-      query = query.filter(multi_community_follow::person_id.eq(followed_by));
+
+    if followed_only {
+      if let Some(my_person_id) = my_person_id {
+        query = query.filter(multi_community_follow::person_id.eq(my_person_id));
+      }
     }
+
     query
-      .select(MultiCommunityView::as_select())
-      .load::<MultiCommunityView>(conn)
+      .load(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
@@ -558,26 +579,23 @@ mod tests {
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
-    let form = PersonInsertForm::test_form(data.instance.id, "tom");
-    let person2 = Person::create(pool, &form).await?;
+    let tom_form = PersonInsertForm::test_form(data.instance.id, "tom");
+    let tom = Person::create(pool, &tom_form).await?;
 
-    let form = MultiCommunityInsertForm::new(
+    let multi_1_form = MultiCommunityInsertForm::new(
       data.local_user.person_id,
       data.instance.id,
       "multi2".to_string(),
       String::new(),
     );
-    let multi = MultiCommunity::create(pool, &form).await?;
-    let form = MultiCommunityInsertForm::new(
-      person2.id,
-      person2.instance_id,
-      "multi2".to_string(),
-      String::new(),
-    );
-    let multi2 = MultiCommunity::create(pool, &form).await?;
+    let multi = MultiCommunity::create(pool, &multi_1_form).await?;
+
+    let multi_2_form =
+      MultiCommunityInsertForm::new(tom.id, tom.instance_id, "multi2".to_string(), String::new());
+    let multi2 = MultiCommunity::create(pool, &multi_2_form).await?;
 
     // list all multis
-    let list_all = MultiCommunityView::list(pool, None, None)
+    let list_all = MultiCommunityView::list(pool, None, None, false)
       .await?
       .iter()
       .map(|m| m.multi.id)
@@ -585,25 +603,40 @@ mod tests {
     assert_eq!(list_all, HashSet::from([multi.id, multi2.id]));
 
     // list multis by owner
-    let list_owner = MultiCommunityView::list(pool, Some(data.local_user.person_id), None).await?;
+    let list_owner = MultiCommunityView::list(
+      pool,
+      Some(data.local_user.person_id),
+      Some(data.local_user.person_id),
+      false,
+    )
+    .await?;
     assert_eq!(list_owner.len(), 1);
     assert_eq!(list_owner[0].multi.id, multi.id);
+    assert_eq!(list_owner[0].follow_state, None);
 
-    // list multis followed by user
-    let form = MultiCommunityFollowForm {
+    // Tegan follows multi2
+    let follow_form = MultiCommunityFollowForm {
       multi_community_id: multi2.id,
       person_id: data.local_user.person_id,
       follow_state: CommunityFollowerState::Accepted,
     };
-    MultiCommunity::follow(pool, &form).await?;
+    MultiCommunity::follow(pool, &follow_form).await?;
+
+    // list multis followed by user, followed_only
     let list_followed =
-      MultiCommunityView::list(pool, None, Some(data.local_user.person_id)).await?;
+      MultiCommunityView::list(pool, None, Some(data.local_user.person_id), true).await?;
     assert_eq!(list_followed.len(), 1);
     assert_eq!(list_followed[0].multi.id, multi2.id);
+    assert_eq!(list_followed[0].owner.id, tom.id);
+    assert_eq!(
+      list_followed[0].follow_state,
+      Some(CommunityFollowerState::Accepted)
+    );
 
+    // Unfollow, and make sure its removed
     MultiCommunity::unfollow(pool, data.local_user.person_id, multi2.id).await?;
     let list_followed =
-      MultiCommunityView::list(pool, None, Some(data.local_user.person_id)).await?;
+      MultiCommunityView::list(pool, None, Some(data.local_user.person_id), true).await?;
     assert_eq!(list_followed.len(), 0);
 
     cleanup(data, pool).await?;
