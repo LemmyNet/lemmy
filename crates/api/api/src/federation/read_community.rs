@@ -14,7 +14,7 @@ use lemmy_db_views_community::{
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::error::LemmyResult;
 
 pub async fn get_community(
   data: Query<GetCommunity>,
@@ -23,18 +23,13 @@ pub async fn get_community(
 ) -> LemmyResult<Json<GetCommunityResponse>> {
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
 
-  if data.name.is_none() && data.id.is_none() {
-    Err(LemmyErrorType::NoIdGiven)?
-  }
-
   check_private_instance(&local_user_view, &local_site)?;
 
   let local_user = local_user_view.as_ref().map(|u| &u.local_user);
 
-  let community_id = match data.id {
-    Some(id) => id,
-    None => {
-      let name = data.name.clone().unwrap_or_else(|| "main".to_string());
+  let community_id = match data.0 {
+    GetCommunity::Id(id) => id,
+    GetCommunity::Name(name) => {
       resolve_ap_identifier::<ApubCommunity, Community>(&name, &context, &local_user_view, true)
         .await?
         .id

@@ -168,16 +168,14 @@ pub struct FollowCommunity {
   pub follow: bool,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
+#[serde(untagged)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-// TODO make this into a tagged enum
-/// Get a community. Must provide either an id, or a name.
-pub struct GetCommunity {
-  pub id: Option<CommunityId>,
-  /// Example: star_trek , or star_trek@xyz.tld
-  pub name: Option<String>,
+#[cfg_attr(feature = "ts-rs", ts(export))]
+/// Get a community. Must provide either an id, or a name (eg star_trek or star_trek@xyz.tld).
+pub enum GetCommunity {
+  Name(String),
+  Id(CommunityId),
 }
 
 #[skip_serializing_none]
