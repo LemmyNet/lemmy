@@ -4,15 +4,17 @@ use lemmy_db_schema::source::{
   person::Person,
   tag::TagsView,
 };
+use lemmy_db_schema_file::enums::CommunityFollowerState;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
-  diesel::{Queryable, Selectable},
+  diesel::{NullableExpressionMethods, Queryable, Selectable},
   lemmy_db_schema::utils::queries::selects::{
     community_post_tags_fragment,
     local_user_community_can_mod,
   },
+  lemmy_db_schema_file::schema::multi_community_follow,
 };
 
 pub mod api;
@@ -54,6 +56,12 @@ pub struct CommunityView {
 pub struct MultiCommunityView {
   #[cfg_attr(feature = "full", diesel(embed))]
   pub multi: MultiCommunity,
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = multi_community_follow::follow_state.nullable()
+    )
+  )]
+  pub follow_state: Option<CommunityFollowerState>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub owner: Person,
 }

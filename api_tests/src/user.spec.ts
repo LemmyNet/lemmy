@@ -251,7 +251,7 @@ test("Make sure banned user can delete their account", async () => {
     true,
     false,
   );
-  expect(banUser.banned).toBe(true);
+  expect(banUser.person_view.banned).toBe(true);
 
   // Make sure post is there
   let postAfterBan = await getPost(alpha, postId);

@@ -12,6 +12,7 @@ use lemmy_utils::error::LemmyResult;
 pub async fn get_multi_community(
   data: Query<GetMultiCommunity>,
   context: Data<LemmyContext>,
+  local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<GetMultiCommunityResponse>> {
   let local_site = SiteView::read_local(&mut context.pool()).await?;
 
