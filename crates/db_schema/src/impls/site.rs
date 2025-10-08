@@ -5,7 +5,7 @@ use crate::{
     site::{Site, SiteInsertForm, SiteUpdateForm},
   },
   traits::Crud,
-  utils::{functions::lower, get_conn, DbPool},
+  utils::{get_conn, DbPool},
 };
 use diesel::{dsl::insert_into, ExpressionMethods, OptionalExtension, QueryDsl};
 use diesel_async::RunQueryDsl;
@@ -80,7 +80,7 @@ impl Site {
     let conn = &mut get_conn(pool).await?;
 
     site::table
-      .filter(lower(site::ap_id).eq(object_id.to_lowercase()))
+      .filter(site::ap_id.eq(object_id))
       .first(conn)
       .await
       .optional()

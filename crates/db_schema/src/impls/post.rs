@@ -13,7 +13,7 @@ use crate::{
   },
   traits::{Crud, Likeable, Saveable},
   utils::{
-    functions::{coalesce, hot_rank, lower, scaled_rank},
+    functions::{coalesce, hot_rank, scaled_rank},
     get_conn,
     now,
     validate_like,
@@ -251,7 +251,7 @@ impl Post {
   ) -> LemmyResult<Option<Self>> {
     let conn = &mut get_conn(pool).await?;
     post::table
-      .filter(lower(post::ap_id).eq(object_id.to_lowercase()))
+      .filter(post::ap_id.eq(object_id))
       .filter(post::scheduled_publish_time_at.is_null())
       .first(conn)
       .await
