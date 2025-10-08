@@ -6,6 +6,7 @@ use lemmy_db_views_community::{
   impls::CommunityQuery,
   MultiCommunityView,
 };
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 
@@ -15,8 +16,10 @@ pub async fn get_multi_community(
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<GetMultiCommunityResponse>> {
   let local_site = SiteView::read_local(&mut context.pool()).await?;
+  let my_person_id = local_user_view.map(|l| l.person.id);
 
-  let multi_community_view = MultiCommunityView::read(&mut context.pool(), data.id).await?;
+  let multi_community_view =
+    MultiCommunityView::read(&mut context.pool(), data.id, my_person_id).await?;
 
   let communities = CommunityQuery {
     multi_community_id: Some(data.id),

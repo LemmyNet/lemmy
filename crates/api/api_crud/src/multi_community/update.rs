@@ -21,6 +21,7 @@ pub async fn update_multi_community(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<MultiCommunityResponse>> {
   let multi_community_id = data.id;
+  let my_person_id = local_user_view.person.id;
   check_local_user_valid(&local_user_view)?;
   check_multi_community_creator(multi_community_id, &local_user_view, &context).await?;
 
@@ -35,7 +36,7 @@ pub async fn update_multi_community(
   send_federation_update(multi, local_user_view, &context).await?;
 
   let multi_community_view =
-    MultiCommunityView::read(&mut context.pool(), multi_community_id).await?;
+    MultiCommunityView::read(&mut context.pool(), multi_community_id, Some(my_person_id)).await?;
 
   Ok(Json(MultiCommunityResponse {
     multi_community_view,

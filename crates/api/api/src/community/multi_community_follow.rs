@@ -24,7 +24,7 @@ pub async fn follow_multi_community(
 ) -> LemmyResult<Json<MultiCommunityResponse>> {
   check_local_user_valid(&local_user_view)?;
   let multi_community_id = data.multi_community_id;
-  let person_id = local_user_view.person.id;
+  let my_person_id = local_user_view.person.id;
   let multi = MultiCommunity::read(&mut context.pool(), multi_community_id).await?;
 
   let follow_state = if multi.local {
@@ -34,14 +34,14 @@ pub async fn follow_multi_community(
   };
   let form = MultiCommunityFollowForm {
     multi_community_id,
-    person_id,
+    person_id: my_person_id,
     follow_state,
   };
 
   if data.follow {
     MultiCommunity::follow(&mut context.pool(), &form).await?;
   } else {
-    MultiCommunity::unfollow(&mut context.pool(), person_id, multi_community_id).await?;
+    MultiCommunity::unfollow(&mut context.pool(), my_person_id, multi_community_id).await?;
   }
 
   if !multi.local {
@@ -52,7 +52,7 @@ pub async fn follow_multi_community(
   }
 
   let multi_community_view =
-    MultiCommunityView::read(&mut context.pool(), multi_community_id).await?;
+    MultiCommunityView::read(&mut context.pool(), multi_community_id, Some(my_person_id)).await?;
 
   Ok(Json(MultiCommunityResponse {
     multi_community_view,
