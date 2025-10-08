@@ -203,6 +203,12 @@ pub struct LtreeDef(pub String);
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct DbUrl(pub(crate) Box<Url>);
 
+impl DbUrl {
+  pub fn to_lowercase(&self) -> String {
+    self.as_str().to_lowercase()
+  }
+}
+
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(DieselNewType))]
 /// The report combined id
