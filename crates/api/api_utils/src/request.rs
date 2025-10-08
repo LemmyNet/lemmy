@@ -17,7 +17,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_post::api::{LinkMetadata, OpenGraphData};
 use lemmy_utils::{
-  error::{FederationError, LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult, UntranslatedError},
   settings::structs::{PictrsImageMode, Settings},
   REQWEST_TIMEOUT,
   VERSION,
@@ -65,7 +65,7 @@ pub async fn fetch_link_metadata(
   if !cfg!(debug_assertions) {
     // TODO: Replace with IpAddr::is_global() once stabilized
     //       https://doc.rust-lang.org/std/net/enum.IpAddr.html#method.is_global
-    let domain = url.domain().ok_or(FederationError::UrlWithoutDomain)?;
+    let domain = url.domain().ok_or(UntranslatedError::UrlWithoutDomain)?;
     let invalid_ip = lookup_host((domain.to_owned(), 80))
       .await?
       .any(|addr| match addr.ip() {

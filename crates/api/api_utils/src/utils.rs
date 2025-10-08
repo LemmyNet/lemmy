@@ -60,7 +60,14 @@ use lemmy_db_views_site::{
   SiteView,
 };
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
+  error::{
+    LemmyError,
+    LemmyErrorExt,
+    LemmyErrorExt2,
+    LemmyErrorType,
+    LemmyResult,
+    UntranslatedError,
+  },
   rate_limit::{ActionType, BucketConfig},
   settings::{structs::PictrsImageMode, SETTINGS},
   spawn_try_task,
@@ -997,7 +1004,7 @@ pub fn send_webmention(post: Post, community: &Community) {
         {
           Err(WebmentionError::NoEndpointDiscovered(_)) => Ok(()),
           Ok(_) => Ok(()),
-          Err(e) => Err(e).with_lemmy_type(LemmyErrorType::CouldntSendWebmention),
+          Err(e) => Err(e).with_lemmy_type(UntranslatedError::CouldntSendWebmention.into()),
         }
       });
     }
@@ -1040,9 +1047,12 @@ pub async fn update_post_tags(
 pub async fn get_multi_community(
   id: MultiCommunityId,
   context: &LemmyContext,
+  local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<GetMultiCommunityResponse>> {
   let local_site = SiteView::read_local(&mut context.pool()).await?;
-  let multi_community_view = MultiCommunityView::read(&mut context.pool(), id).await?;
+  let my_person_id = local_user_view.map(|l| l.person.id);
+  let multi_community_view =
+    MultiCommunityView::read(&mut context.pool(), id, my_person_id).await?;
   let communities = CommunityQuery {
     multi_community_id: Some(multi_community_view.multi.id),
     ..Default::default()

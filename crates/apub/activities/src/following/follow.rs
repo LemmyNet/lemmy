@@ -25,7 +25,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility};
 use lemmy_db_views_community_person_ban::CommunityPersonBanView;
-use lemmy_utils::error::{FederationError, LemmyError, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult, UntranslatedError};
 use url::Url;
 
 impl Follow {
@@ -85,7 +85,7 @@ impl Activity for Follow {
       Right(Right(m)) => m.local,
     };
     if !object_local {
-      return Err(FederationError::InvalidFollow("Not a local object".to_string()).into());
+      return Err(UntranslatedError::InvalidFollow("Not a local object".to_string()).into());
     }
 
     // Handle remote community following a local community
@@ -97,7 +97,7 @@ impl Activity for Follow {
       }
     }
 
-    let person = actor.left().ok_or(FederationError::InvalidFollow(
+    let person = actor.left().ok_or(UntranslatedError::InvalidFollow(
       "Groups can only follow public groups".to_string(),
     ))?;
     InstanceActions::check_ban(&mut context.pool(), person.id, person.instance_id).await?;
@@ -115,7 +115,7 @@ impl Activity for Follow {
           if [Some("kbin"), Some("mbin")].contains(&instance.software.as_deref()) {
             // TODO: change this to a minimum version check once private communities are supported
             return Err(
-              FederationError::InvalidFollow("No private community support".to_string()).into(),
+              UntranslatedError::InvalidFollow("No private community support".to_string()).into(),
             );
           }
         }

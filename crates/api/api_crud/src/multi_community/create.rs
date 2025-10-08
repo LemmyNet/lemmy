@@ -5,9 +5,10 @@ use lemmy_api_utils::{
   utils::{check_local_user_valid, get_multi_community, slur_regex},
 };
 use lemmy_db_schema::{
-  source::multi_community::{MultiCommunity, MultiCommunityInsertForm},
+  source::multi_community::{MultiCommunity, MultiCommunityFollowForm, MultiCommunityInsertForm},
   traits::{ApubActor, Crud},
 };
+use lemmy_db_schema_file::enums::CommunityFollowerState;
 use lemmy_db_views_community::api::{CreateMultiCommunity, GetMultiCommunityResponse};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
@@ -46,5 +47,14 @@ pub async fn create_multi_community(
     )
   };
   let multi = MultiCommunity::create(&mut context.pool(), &form).await?;
-  get_multi_community(multi.id, &context).await
+
+  // You follow your own community
+  let follow_form = MultiCommunityFollowForm {
+    multi_community_id: multi.id,
+    person_id: local_user_view.person.id,
+    follow_state: CommunityFollowerState::Accepted,
+  };
+  MultiCommunity::follow(&mut context.pool(), &follow_form).await?;
+
+  get_multi_community(multi.id, &context, Some(local_user_view)).await
 }

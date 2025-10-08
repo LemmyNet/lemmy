@@ -26,7 +26,7 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::enums::CommunityVisibility;
 use lemmy_db_views_community_follower::CommunityFollowerView;
 use lemmy_utils::{
-  error::{FederationError, LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult, UntranslatedError},
   FEDERATION_CONTEXT,
 };
 use serde::Deserialize;
@@ -59,7 +59,7 @@ pub async fn shared_inbox(
   // consider the activity broken and move on.
   timeout(INCOMING_ACTIVITY_TIMEOUT, receive_fut)
     .await
-    .with_lemmy_type(FederationError::InboxTimeout.into())?
+    .with_lemmy_type(UntranslatedError::InboxTimeout.into())?
 }
 
 struct Dummy;

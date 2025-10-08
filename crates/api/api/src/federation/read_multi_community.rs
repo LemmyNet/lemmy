@@ -30,5 +30,5 @@ pub async fn read_multi_community(
       .id
     }
   };
-  get_multi_community(id, &context).await
+  get_multi_community(id, &context, local_user_view).await
 }
