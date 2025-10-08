@@ -18,6 +18,8 @@ use lemmy_db_schema_file::schema::{
   image_details,
   instance_actions,
   local_user,
+  multi_community,
+  multi_community_follow,
   person,
   person_actions,
   post,
@@ -166,6 +168,19 @@ pub fn my_local_user_admin_join(my_person_id: Option<PersonId>) -> _ {
       .nullable()
       .eq(my_person_id)
       .and(local_user::admin.eq(true)),
+  )
+}
+
+#[diesel::dsl::auto_type]
+pub fn my_multi_community_follower_join(my_person_id: Option<PersonId>) -> _ {
+  multi_community_follow::table.on(
+    multi_community_follow::multi_community_id
+      .eq(multi_community::id)
+      .and(
+        multi_community_follow::person_id
+          .nullable()
+          .eq(my_person_id),
+      ),
   )
 }
 

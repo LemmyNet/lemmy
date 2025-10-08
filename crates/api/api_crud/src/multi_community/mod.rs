@@ -56,9 +56,12 @@ async fn send_federation_update(
 async fn get_multi(
   id: MultiCommunityId,
   context: Data<LemmyContext>,
+  local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<GetMultiCommunityResponse>> {
   let local_site = SiteView::read_local(&mut context.pool()).await?;
-  let multi_community_view = MultiCommunityView::read(&mut context.pool(), id).await?;
+  let my_person_id = local_user_view.map(|l| l.person.id);
+  let multi_community_view =
+    MultiCommunityView::read(&mut context.pool(), id, my_person_id).await?;
   let communities = CommunityQuery {
     multi_community_id: Some(multi_community_view.multi.id),
     ..Default::default()
