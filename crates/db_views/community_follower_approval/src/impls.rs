@@ -1,10 +1,11 @@
 use crate::PendingFollowerView;
 use diesel::{
-  dsl::{count, exists, not},
+  dsl::{count, exists, sql},
+  pg::sql_types::Array,
   select,
+  sql_types::Integer,
   BoolExpressionMethods,
   ExpressionMethods,
-  IntoSql,
   JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
@@ -26,6 +27,7 @@ use lemmy_db_schema_file::{
   schema::{community, community_actions, person},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use std::collections::HashMap;
 
 diesel::alias!(community_actions as follower_community_actions: FollowerCommunityActions,
 person as person_instance_check: PersonInstanceCheck,
@@ -68,29 +70,12 @@ impl PendingFollowerView {
     let conn = &mut get_conn(pool).await?;
     let limit = limit_fetch(limit)?;
 
-    // subquery to check if the community already has an accepted follower from the same instance
-    let ca_person_id = community_actions_instance_check.field(community_actions::person_id);
-    let ca_community_id = community_actions_instance_check.field(community_actions::community_id);
-    let ca_follow_state = community_actions_instance_check.field(community_actions::follow_state);
-    let p_person_id = person_instance_check.field(person::id);
-    let p_instance_id = person_instance_check.field(person::instance_id);
-
-    let is_new_instance = person_instance_check
-      .left_join(community_actions_instance_check.on(p_person_id.eq(ca_person_id)))
-      .into_boxed()
-      //.filter(person::instance_id.eq(p_instance_id))
-      //.filter(community::id.eq(ca_community_id))
-      .filter(ca_follow_state.eq(CommunityFollowerState::Accepted))
-      .select(1_i32.into_sql::<diesel::sql_types::Integer>());
-
-    // the main query
     let mut query = Self::joins()
       .filter(community_actions::became_moderator_at.is_not_null())
       .filter(community::visibility.eq(CommunityVisibility::Private))
       .select((
         person1_select(),
         community::all_columns,
-        not(exists(is_new_instance)),
         follower_community_actions
           .field(community_actions::follow_state)
           .nullable(),
@@ -115,22 +100,46 @@ impl PendingFollowerView {
     let paginated_query = paginate(query, SortDirection::Asc, cursor_data, None, page_back)
       .then_order_by(key::followed_at);
 
-    let res = paginated_query
-      .load::<(Person, Community, bool, Option<CommunityFollowerState>)>(conn)
-      .await?;
-    Ok(
-      res
-        .into_iter()
-        .map(
-          |(person, community, is_new_instance, follow_state)| PendingFollowerView {
-            person,
-            community,
-            is_new_instance,
-            follow_state,
-          },
-        )
-        .collect(),
-    )
+    let mut res: Vec<_> = paginated_query
+      .load::<(Person, Community, Option<CommunityFollowerState>)>(conn)
+      .await?
+      .into_iter()
+      .map(|(person, community, follow_state)| PendingFollowerView {
+        person,
+        community,
+        is_new_instance: false,
+        follow_state,
+      })
+      .collect();
+
+    // For all returned communities, get the list of approved follower instances
+    let community_ids: Vec<_> = res.iter().map(|r| r.community.id).collect();
+    let mut approved_follower_instances: HashMap<_, _> = community_actions::table
+      .inner_join(person::table.on(community_actions::person_id.eq(person::id)))
+      .inner_join(community::table)
+      .filter(community::id.eq_any(community_ids))
+      .filter(community_actions::follow_state.eq(CommunityFollowerState::Accepted))
+      .group_by(community::id)
+      .select((
+        community::id,
+        sql::<Array<Integer>>("array_agg(person.instance_id) instance_ids"),
+      ))
+      .load::<(CommunityId, Vec<InstanceId>)>(conn)
+      .await?
+      .into_iter()
+      .collect();
+
+    // Check if there is already an approved follower from the same instance. If not, frontends
+    // should show a warning because a malicious admin could leak private community data.
+    for r in &mut res {
+      let instance_ids = approved_follower_instances
+        .entry(r.community.id)
+        .or_insert(Vec::new());
+      if !instance_ids.contains(&r.person.instance_id) {
+        r.is_new_instance = true;
+      }
+    }
+    Ok(res)
   }
 
   pub async fn count_approval_required(
@@ -292,7 +301,7 @@ mod tests {
       pool,
     )
     .await;
-    assert!(dbg!(has_followers).is_ok());
+    assert!(has_followers.is_ok());
 
     Instance::delete(pool, local_instance.id).await?;
     Instance::delete(pool, remote_instance.id).await?;
