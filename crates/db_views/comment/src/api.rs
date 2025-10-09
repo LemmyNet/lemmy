@@ -88,7 +88,7 @@ pub struct GetComments {
   pub page_back: Option<bool>,
   pub limit: Option<i64>,
   /// Example: `star_trek`, or `star_trek@xyz.tld` or `12`
-  pub community_name_or_id: NameOrId<CommunityId>,
+  pub community_name_or_id: Option<NameOrId<CommunityId>>,
   pub post_id: Option<PostId>,
   pub parent_id: Option<CommentId>,
 }

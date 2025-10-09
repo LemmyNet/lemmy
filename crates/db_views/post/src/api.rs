@@ -124,8 +124,9 @@ pub struct GetPosts {
   /// IE 60 would give results for the past minute.
   /// Use Zero to override the local_site and local_user time_range.
   pub time_range_seconds: Option<i32>,
-  pub community_name_or_id: NameOrId<CommunityId>,
-  pub multi_community_id: Option<MultiCommunityId>,
+  /// Example: `star_trek`, or `star_trek@xyz.tld` or `12`
+  pub community_name_or_id: Option<NameOrId<CommunityId>>,
+  pub multi_community_name_or_id: Option<NameOrId<MultiCommunityId>>,
   pub show_hidden: Option<bool>,
   /// If true, then show the read posts (even if your user setting is to hide them)
   pub show_read: Option<bool>,

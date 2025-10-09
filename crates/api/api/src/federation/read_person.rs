@@ -1,4 +1,4 @@
-use crate::federation::resolve_person_id_from_id_or_username;
+use crate::federation::resolve_person_id;
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use lemmy_api_utils::{
@@ -26,9 +26,7 @@ pub async fn read_person(
 
   check_private_instance(&local_user_view, &local_site)?;
 
-  let person_details_id =
-    resolve_person_id_from_id_or_username(&data.person_name_or_id, &context, &local_user_view)
-      .await?;
+  let person_id = resolve_person_id(&data.person_name_or_id, &context, &local_user_view).await?;
 
   // You don't need to return settings for the user, since this comes back with GetSite
   // `my_user`
@@ -39,7 +37,7 @@ pub async fn read_person(
 
   let person_view = PersonView::read(
     &mut context.pool(),
-    person_details_id,
+    person_id,
     my_person_id,
     local_instance_id,
     is_admin,
@@ -47,7 +45,7 @@ pub async fn read_person(
   .await?;
   let moderates = CommunityModeratorView::for_person(
     &mut context.pool(),
-    person_details_id,
+    person_id,
     local_user_view.map(|l| l.local_user).as_ref(),
   )
   .await?;

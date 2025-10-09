@@ -1,10 +1,20 @@
 use crate::federation::fetcher::resolve_ap_identifier;
 use activitypub_federation::config::Data;
 use lemmy_api_utils::context::LemmyContext;
-use lemmy_apub_objects::objects::person::ApubPerson;
+use lemmy_apub_objects::objects::{
+  community::ApubCommunity,
+  multi_community::ApubMultiCommunity,
+  person::ApubPerson,
+};
 use lemmy_db_schema::{
-  newtypes::{CommunityId, NameOrId, PersonId},
-  source::{local_site::LocalSite, local_user::LocalUser, person::Person},
+  newtypes::{CommunityId, MultiCommunityId, NameOrId, PersonId},
+  source::{
+    community::Community,
+    local_site::LocalSite,
+    local_user::LocalUser,
+    multi_community::MultiCommunity,
+    person::Person,
+  },
 };
 use lemmy_db_schema_file::enums::{CommentSortType, ListingType, PostSortType};
 use lemmy_db_views_local_user::LocalUserView;
@@ -103,17 +113,53 @@ fn fetch_limit_with_default(
   )
 }
 
-async fn resolve_person_id_from_id_or_username(
-  person_name_or_id: &NameOrId<PersonId>,
+async fn resolve_person_id(
+  name_or_id: &NameOrId<PersonId>,
   context: &Data<LemmyContext>,
   local_user_view: &Option<LocalUserView>,
 ) -> LemmyResult<PersonId> {
-  Ok(match person_name_or_id {
+  Ok(match name_or_id {
     NameOrId::Id(id) => *id,
     NameOrId::Name(name) => {
       resolve_ap_identifier::<ApubPerson, Person>(name, context, local_user_view, true)
         .await?
         .id
+    }
+  })
+}
+
+async fn resolve_community_id(
+  name_or_id: &Option<NameOrId<CommunityId>>,
+  context: &Data<LemmyContext>,
+  local_user_view: &Option<LocalUserView>,
+) -> LemmyResult<Option<CommunityId>> {
+  Ok(match name_or_id {
+    Some(NameOrId::Id(id)) => Some(*id),
+    Some(NameOrId::Name(name)) => Some(
+      resolve_ap_identifier::<ApubCommunity, Community>(name, context, local_user_view, true)
+        .await?
+        .id,
+    ),
+    None => None,
+  })
+}
+
+async fn resolve_multi_community_id(
+  name_or_id: &NameOrId<MultiCommunityId>,
+  context: &Data<LemmyContext>,
+  local_user_view: &Option<LocalUserView>,
+) -> LemmyResult<MultiCommunityId> {
+  Ok(match name_or_id {
+    NameOrId::Id(id) => *id,
+    NameOrId::Name(name) => {
+      resolve_ap_identifier::<ApubMultiCommunity, MultiCommunity>(
+        name,
+        context,
+        local_user_view,
+        true,
+      )
+      .await?
+      .id
     }
   })
 }

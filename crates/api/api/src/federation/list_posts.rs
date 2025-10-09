@@ -1,17 +1,17 @@
 use crate::federation::{
   fetch_limit_with_default,
-  fetcher::resolve_ap_identifier,
   listing_type_with_default,
   post_sort_type_with_default,
   post_time_range_seconds_with_default,
+  resolve_community_id,
+  resolve_multi_community_id,
 };
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
-use lemmy_apub_objects::objects::community::ApubCommunity;
 use lemmy_db_schema::{
-  newtypes::{NameOrId, PostId},
-  source::{community::Community, keyword_block::LocalUserKeywordBlock, post::PostActions},
+  newtypes::PostId,
+  source::{keyword_block::LocalUserKeywordBlock, post::PostActions},
   traits::PaginationCursorBuilder,
 };
 use lemmy_db_views_local_user::LocalUserView;
@@ -33,15 +33,13 @@ pub async fn list_posts(
 
   check_private_instance(&local_user_view, &site_view.local_site)?;
 
-  let community_id = match &data.community_name_or_id {
-    NameOrId::Id(id) => Some(*id),
-    NameOrId::Name(name) => Some(
-      resolve_ap_identifier::<ApubCommunity, Community>(name, &context, &local_user_view, true)
-        .await?,
-    )
-    .map(|c| c.id),
+  let community_id =
+    resolve_community_id(&data.community_name_or_id, &context, &local_user_view).await?;
+  let multi_community_id = if let Some(name_or_id) = &data.multi_community_name_or_id {
+    Some(resolve_multi_community_id(name_or_id, &context, &local_user_view).await?)
+  } else {
+    None
   };
-  let multi_community_id = data.multi_community_id;
   let show_hidden = data.show_hidden;
   let show_read = data.show_read;
   // Show nsfw content if param is true, or if content_warning exists
