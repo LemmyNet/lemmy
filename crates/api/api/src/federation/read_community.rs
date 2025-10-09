@@ -33,7 +33,7 @@ pub async fn get_community(
   let community_id = match &data.name_or_id {
     NameOrId::Id(id) => *id,
     NameOrId::Name(name) => {
-      resolve_ap_identifier::<ApubCommunity, Community>(&name, &context, &local_user_view, true)
+      resolve_ap_identifier::<ApubCommunity, Community>(name, &context, &local_user_view, true)
         .await?
         .id
     }
