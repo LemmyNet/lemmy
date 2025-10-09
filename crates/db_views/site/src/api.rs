@@ -1,5 +1,4 @@
 use crate::SiteView;
-use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
   newtypes::{
     InstanceId,
@@ -64,7 +63,10 @@ pub struct AdminBlockInstanceParams {
   pub instance: String,
   pub block: bool,
   pub reason: String,
-  pub expires_at: Option<DateTime<Utc>>,
+  /// A time that the block will expire, in unix epoch seconds.
+  ///
+  /// An i64 unix timestamp is used for a simpler API client implementation.
+  pub expires_at: Option<i64>,
 }
 
 #[skip_serializing_none]
