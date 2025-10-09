@@ -3892,7 +3892,6 @@ name = "lemmy_db_views_site"
 version = "1.0.0-alpha.9"
 dependencies = [
  "anyhow",
- "chrono",
  "diesel",
  "diesel-async",
  "extism",
