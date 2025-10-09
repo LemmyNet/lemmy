@@ -8,18 +8,22 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::diesel_string_update,
 };
-use lemmy_db_views_community::api::UpdateMultiCommunity;
+use lemmy_db_views_community::{
+  api::{MultiCommunityResponse, UpdateMultiCommunity},
+  MultiCommunityView,
+};
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_site::api::SuccessResponse;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn update_multi_community(
   data: Json<UpdateMultiCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> LemmyResult<Json<SuccessResponse>> {
+) -> LemmyResult<Json<MultiCommunityResponse>> {
+  let multi_community_id = data.id;
+  let my_person_id = local_user_view.person.id;
   check_local_user_valid(&local_user_view)?;
-  check_multi_community_creator(data.id, &local_user_view, &context).await?;
+  check_multi_community_creator(multi_community_id, &local_user_view, &context).await?;
 
   let form = MultiCommunityUpdateForm {
     title: diesel_string_update(data.title.as_deref()),
@@ -27,9 +31,14 @@ pub async fn update_multi_community(
     deleted: data.deleted,
     updated_at: Some(Utc::now()),
   };
-  let multi = MultiCommunity::update(&mut context.pool(), data.id, &form).await?;
+  let multi = MultiCommunity::update(&mut context.pool(), multi_community_id, &form).await?;
 
   send_federation_update(multi, local_user_view, &context).await?;
 
-  Ok(Json(SuccessResponse::default()))
+  let multi_community_view =
+    MultiCommunityView::read(&mut context.pool(), multi_community_id, Some(my_person_id)).await?;
+
+  Ok(Json(MultiCommunityResponse {
+    multi_community_view,
+  }))
 }

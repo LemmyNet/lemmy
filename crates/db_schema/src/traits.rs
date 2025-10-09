@@ -215,16 +215,13 @@ pub trait ApubActor: Sized {
     object_id: &DbUrl,
   ) -> impl Future<Output = LemmyResult<Option<Self>>> + Send;
   /// - actor_name is the name of the community or user to read.
+  /// - domain if None only local actors are searched, if Some only actors from that domain
   /// - include_deleted, if true, will return communities or users that were deleted/removed
   fn read_from_name(
     pool: &mut DbPool<'_>,
     actor_name: &str,
+    domain: Option<&str>,
     include_deleted: bool,
-  ) -> impl Future<Output = LemmyResult<Option<Self>>> + Send;
-  fn read_from_name_and_domain(
-    pool: &mut DbPool<'_>,
-    actor_name: &str,
-    protocol_domain: &str,
   ) -> impl Future<Output = LemmyResult<Option<Self>>> + Send;
 
   fn generate_local_actor_url(name: &str, settings: &Settings) -> LemmyResult<DbUrl>;
