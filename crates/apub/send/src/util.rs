@@ -162,7 +162,7 @@ pub(crate) async fn get_actor_cached(
             .into(),
         )),
         ActorType::MultiCommunity => Left(Right(
-          MultiCommunity::read_from_ap_id(pool, &url)
+          MultiCommunity::read_from_apub_id(pool, &url)
             .await?
             .context("apub multi-comm not found")?
             .into(),

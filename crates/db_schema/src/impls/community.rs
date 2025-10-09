@@ -634,34 +634,24 @@ impl ApubActor for Community {
   async fn read_from_name(
     pool: &mut DbPool<'_>,
     community_name: &str,
+    domain: Option<&str>,
     include_deleted: bool,
   ) -> LemmyResult<Option<Self>> {
     let conn = &mut get_conn(pool).await?;
     let mut q = community::table
+      .inner_join(instance::table)
       .into_boxed()
-      .filter(community::local.eq(true))
-      .filter(lower(community::name).eq(community_name.to_lowercase()));
+      .filter(lower(community::name).eq(community_name.to_lowercase()))
+      .select(community::all_columns);
     if !include_deleted {
       q = q.filter(Self::hide_removed_and_deleted())
     }
+    if let Some(domain) = domain {
+      q = q.filter(lower(instance::domain).eq(domain.to_lowercase()))
+    } else {
+      q = q.filter(community::local.eq(true))
+    }
     q.first(conn)
-      .await
-      .optional()
-      .with_lemmy_type(LemmyErrorType::NotFound)
-  }
-
-  async fn read_from_name_and_domain(
-    pool: &mut DbPool<'_>,
-    community_name: &str,
-    for_domain: &str,
-  ) -> LemmyResult<Option<Self>> {
-    let conn = &mut get_conn(pool).await?;
-    community::table
-      .inner_join(instance::table)
-      .filter(lower(community::name).eq(community_name.to_lowercase()))
-      .filter(lower(instance::domain).eq(for_domain.to_lowercase()))
-      .select(community::all_columns)
-      .first(conn)
       .await
       .optional()
       .with_lemmy_type(LemmyErrorType::NotFound)

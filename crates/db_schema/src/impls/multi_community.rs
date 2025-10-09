@@ -1,5 +1,5 @@
 use crate::{
-  diesel::{BoolExpressionMethods, OptionalExtension, PgExpressionMethods},
+  diesel::{BoolExpressionMethods, OptionalExtension, PgExpressionMethods, SelectableHelper},
   newtypes::{CommunityId, DbUrl, MultiCommunityId, PersonId},
   source::{
     community::Community,
@@ -11,7 +11,7 @@ use crate::{
       MultiCommunityUpdateForm,
     },
   },
-  traits::Crud,
+  traits::{ApubActor, Crud},
   utils::{format_actor_url, functions::lower, get_conn, DbPool},
 };
 use diesel::{
@@ -25,6 +25,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::{
   community,
+  instance,
   multi_community,
   multi_community_entry,
   multi_community_follow,
@@ -69,28 +70,6 @@ impl Crud for MultiCommunity {
 }
 
 impl MultiCommunity {
-  pub async fn read_from_name(pool: &mut DbPool<'_>, multi_name: &str) -> LemmyResult<Self> {
-    let conn = &mut get_conn(pool).await?;
-    Ok(
-      multi_community::table
-        .filter(multi_community::local.eq(true))
-        .filter(multi_community::deleted.eq(false))
-        .filter(lower(multi_community::name).eq(multi_name.to_lowercase()))
-        .first(conn)
-        .await?,
-    )
-  }
-
-  pub async fn read_from_ap_id(pool: &mut DbPool<'_>, ap_id: &DbUrl) -> LemmyResult<Option<Self>> {
-    let conn = &mut get_conn(pool).await?;
-    multi_community::table
-      .filter(multi_community::ap_id.eq(ap_id))
-      .first(conn)
-      .await
-      .optional()
-      .with_lemmy_type(LemmyErrorType::NotFound)
-  }
-
   pub async fn create_entry(
     pool: &mut DbPool<'_>,
     id: MultiCommunityId,
@@ -306,6 +285,62 @@ impl MultiCommunity {
       .ok_or(LemmyErrorType::NotFound)?;
 
     format_actor_url(&self.name, domain, 'u', settings)
+  }
+}
+
+impl ApubActor for MultiCommunity {
+  async fn read_from_apub_id(
+    pool: &mut DbPool<'_>,
+    object_id: &DbUrl,
+  ) -> LemmyResult<Option<Self>> {
+    let conn = &mut get_conn(pool).await?;
+    multi_community::table
+      .filter(lower(multi_community::ap_id).eq(object_id.to_lowercase()))
+      .first(conn)
+      .await
+      .optional()
+      .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  async fn read_from_name(
+    pool: &mut DbPool<'_>,
+    name: &str,
+    domain: Option<&str>,
+    include_deleted: bool,
+  ) -> LemmyResult<Option<Self>> {
+    let conn = &mut get_conn(pool).await?;
+    let mut q = multi_community::table
+      .inner_join(instance::table)
+      .filter(lower(multi_community::name).eq(name.to_lowercase()))
+      .select(MultiCommunity::as_select())
+      .into_boxed();
+    if !include_deleted {
+      q = q.filter(multi_community::deleted.eq(false))
+    }
+    if let Some(domain) = domain {
+      q = q.filter(lower(instance::domain).eq(domain.to_lowercase()))
+    } else {
+      q = q.filter(multi_community::local.eq(true))
+    }
+    q.first(conn)
+      .await
+      .optional()
+      .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  fn actor_url(&self, settings: &Settings) -> LemmyResult<Url> {
+    let domain = self
+      .ap_id
+      .inner()
+      .domain()
+      .ok_or(LemmyErrorType::NotFound)?;
+
+    format_actor_url(&self.name, domain, 'm', settings)
+  }
+
+  fn generate_local_actor_url(name: &str, settings: &Settings) -> LemmyResult<DbUrl> {
+    let domain = settings.get_protocol_and_hostname();
+    Ok(Url::parse(&format!("{domain}/m/{name}"))?.into())
   }
 }
 

@@ -15,6 +15,7 @@ pub mod list_comments;
 pub mod list_person_content;
 pub mod list_posts;
 pub mod read_community;
+pub mod read_multi_community;
 pub mod read_person;
 pub mod resolve_object;
 pub mod search;

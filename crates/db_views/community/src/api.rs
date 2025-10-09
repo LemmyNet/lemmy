@@ -307,7 +307,8 @@ pub struct ListMultiCommunitiesResponse {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct GetMultiCommunity {
-  pub id: MultiCommunityId,
+  pub id: Option<MultiCommunityId>,
+  pub name: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
