@@ -1,7 +1,6 @@
 import {
   ApproveCommunityPendingFollower,
   BlockCommunity,
-  BlockCommunityResponse,
   CommunityId,
   CommunityVisibility,
   CreatePrivateMessageReport,
@@ -32,6 +31,8 @@ import {
   ListNotifications,
   ListNotificationsResponse,
   NotificationDataType,
+  NameOrId,
+  PersonResponse,
 } from "lemmy-js-client";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
 import { DeletePost } from "lemmy-js-client/dist/types/DeletePost";
@@ -52,7 +53,6 @@ import { RemovePost } from "lemmy-js-client/dist/types/RemovePost";
 import { ResolveObject } from "lemmy-js-client/dist/types/ResolveObject";
 import { Search } from "lemmy-js-client/dist/types/Search";
 import { Comment } from "lemmy-js-client/dist/types/Comment";
-import { BanPersonResponse } from "lemmy-js-client/dist/types/BanPersonResponse";
 import { BanPerson } from "lemmy-js-client/dist/types/BanPerson";
 import { BanFromCommunityResponse } from "lemmy-js-client/dist/types/BanFromCommunityResponse";
 import { BanFromCommunity } from "lemmy-js-client/dist/types/BanFromCommunity";
@@ -471,7 +471,7 @@ export async function banPersonFromSite(
   person_id: number,
   ban: boolean,
   remove_or_restore_data: boolean,
-): Promise<BanPersonResponse> {
+): Promise<PersonResponse> {
   // Make sure lemmy-beta/c/main is cached on lemmy_alpha
   let form: BanPerson = {
     person_id,
@@ -621,20 +621,10 @@ export async function editCommunity(
 
 export async function getCommunity(
   api: LemmyHttp,
-  id: number,
+  name_or_id: NameOrId<CommunityId>,
 ): Promise<GetCommunityResponse> {
   let form: GetCommunity = {
-    id,
-  };
-  return api.getCommunity(form);
-}
-
-export async function getCommunityByName(
-  api: LemmyHttp,
-  name: string,
-): Promise<CommunityResponse> {
-  let form: GetCommunity = {
-    name,
+    name_or_id,
   };
   return api.getCommunity(form);
 }
@@ -775,21 +765,21 @@ export async function saveUserSettings(
 
 export async function getPersonDetails(
   api: LemmyHttp,
-  person_id: number,
+  person_name_or_id: NameOrId<PersonId>,
 ): Promise<GetPersonDetailsResponse> {
   let form: GetPersonDetails = {
-    person_id: person_id,
+    person_name_or_id,
   };
   return api.getPersonDetails(form);
 }
 
 export async function listPersonContent(
   api: LemmyHttp,
-  person_id: number,
+  person_name_or_id: NameOrId<PersonId>,
   type_?: PersonContentType,
 ): Promise<ListPersonContentResponse> {
   let form: ListPersonContent = {
-    person_id,
+    person_name_or_id,
     type_,
   };
   return api.listPersonContent(form);
@@ -892,12 +882,12 @@ export async function reportPrivateMessage(
 export function getPosts(
   api: LemmyHttp,
   listingType?: ListingType,
-  community_id?: number,
+  community_name_or_id?: NameOrId<CommunityId>,
 ): Promise<GetPostsResponse> {
   let form: GetPosts = {
     type_: listingType,
     limit: 50,
-    community_id,
+    community_name_or_id,
   };
   return api.getPosts(form);
 }
@@ -918,7 +908,7 @@ export function blockCommunity(
   api: LemmyHttp,
   community_id: CommunityId,
   block: boolean,
-): Promise<BlockCommunityResponse> {
+): Promise<CommunityResponse> {
   let form: BlockCommunity = {
     community_id,
     block,
