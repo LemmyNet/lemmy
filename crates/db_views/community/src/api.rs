@@ -181,6 +181,7 @@ pub struct FollowCommunity {
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// Get a community. Must provide either an id, or a name (eg star_trek or star_trek@xyz.tld).
 pub struct GetCommunity {
+  /// Example: `star_trek`, or `star_trek@xyz.tld` or `12`
   pub name_or_id: NameOrId<CommunityId>,
 }
 

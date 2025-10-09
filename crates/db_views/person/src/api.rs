@@ -65,6 +65,7 @@ pub struct PersonResponse {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Gets a person's details.
 pub struct GetPersonDetails {
+  /// Example: `dessalines`, or `dessalines@xyz.tld`, or `12`
   pub person_name_or_id: NameOrId<PersonId>,
 }
 

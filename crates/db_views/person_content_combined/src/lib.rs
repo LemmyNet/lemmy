@@ -131,6 +131,7 @@ pub enum PersonContentCombinedView {
 /// Gets a person's content (posts and comments)
 pub struct ListPersonContent {
   pub type_: Option<PersonContentType>,
+  /// Example: `dessalines`, or `dessalines@xyz.tld`, or `12`
   pub person_name_or_id: NameOrId<PersonId>,
   pub page_cursor: Option<PaginationCursor>,
   pub page_back: Option<bool>,
