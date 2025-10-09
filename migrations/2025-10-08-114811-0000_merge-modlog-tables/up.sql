@@ -38,10 +38,13 @@ CREATE TABLE modlog (
     published_at timestamptz NOT NULL DEFAULT now()
 );
 
--- each mod action can have only one target
--- TODO: mod_ban_from_community and mod_transfer_community need to reference both community and user
+-- Most mod actions can have only one target. We could make this much more specific and state
+-- which exact column must be set for each kind but that would be excessive.
 ALTER TABLE modlog
-    ADD CHECK (num_nonnulls (target_person_id, target_community_id, target_post_id, target_comment_id, target_instance_id) = 1);
+    ADD CHECK (num_nonnulls (target_person_id, target_community_id, target_post_id, target_comment_id, target_instance_id) = 1
+        OR ((kind = 'ModBanFromCommunity'
+        OR kind = 'ModTransferCommunity')
+        AND num_nonnulls (target_person_id, target_community_id, target_post_id, target_comment_id, target_instance_id) = 2));
 
 -- copy old data to new table
 INSERT INTO modlog (kind, is_revert, mod_id, target_person_id, published_at)
