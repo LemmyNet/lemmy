@@ -3,22 +3,12 @@ use crate::{
   context::LemmyContext,
   request::{delete_image_alias, fetch_pictrs_proxied_image_details, purge_image_from_pictrs_url},
 };
-use actix_web::{http::header::Header, web::Json, HttpRequest};
+use actix_web::{http::header::Header, HttpRequest};
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
 use enum_map::{enum_map, EnumMap};
 use lemmy_db_schema::{
-  newtypes::{
-    CommentId,
-    CommunityId,
-    DbUrl,
-    InstanceId,
-    MultiCommunityId,
-    PersonId,
-    PostId,
-    PostOrCommentId,
-    TagId,
-  },
+  newtypes::{CommentId, CommunityId, DbUrl, InstanceId, PersonId, PostId, PostOrCommentId, TagId},
   source::{
     comment::{Comment, CommentActions},
     community::{Community, CommunityActions, CommunityUpdateForm},
@@ -45,11 +35,6 @@ use lemmy_db_schema::{
   utils::DbPool,
 };
 use lemmy_db_schema_file::enums::{FederationMode, RegistrationMode};
-use lemmy_db_views_community::{
-  api::GetMultiCommunityResponse,
-  impls::CommunityQuery,
-  MultiCommunityView,
-};
 use lemmy_db_views_community_follower::CommunityFollowerView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_community_person_ban::CommunityPersonBanView;
@@ -1042,27 +1027,6 @@ pub async fn update_post_tags(
   }
   PostTag::update(&mut context.pool(), post, tag_ids).await?;
   Ok(())
-}
-
-pub async fn get_multi_community(
-  id: MultiCommunityId,
-  context: &LemmyContext,
-  local_user_view: Option<LocalUserView>,
-) -> LemmyResult<Json<GetMultiCommunityResponse>> {
-  let local_site = SiteView::read_local(&mut context.pool()).await?;
-  let my_person_id = local_user_view.map(|l| l.person.id);
-  let multi_community_view =
-    MultiCommunityView::read(&mut context.pool(), id, my_person_id).await?;
-  let communities = CommunityQuery {
-    multi_community_id: Some(multi_community_view.multi.id),
-    ..Default::default()
-  }
-  .list(&local_site.site, &mut context.pool())
-  .await?;
-  Ok(Json(GetMultiCommunityResponse {
-    multi_community_view,
-    communities,
-  }))
 }
 
 #[cfg(test)]
