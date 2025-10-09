@@ -50,10 +50,11 @@ impl PendingFollowerView {
         )
         .and(community::id.eq(follower_community_actions.field(community_actions::community_id))),
     );
+    let person_join = person::table.on(community_actions::person_id.eq(person::id));
 
     community_actions::table
       .inner_join(community::table)
-      .inner_join(person::table.on(community_actions::person_id.eq(person::id)))
+      .inner_join(person_join)
       .inner_join(follower_community_actions_join)
       .inner_join(follower_join)
   }
@@ -107,22 +108,22 @@ impl PendingFollowerView {
       .map(|(person, community, follow_state)| PendingFollowerView {
         person,
         community,
-        is_new_instance: false,
+        is_new_instance: true,
         follow_state,
       })
       .collect();
 
     // For all returned communities, get the list of approved follower instances
+    // TODO: This should be merged into the main query above as a subquery
     let community_ids: Vec<_> = res.iter().map(|r| r.community.id).collect();
-    let mut approved_follower_instances: HashMap<_, _> = community_actions::table
+    let approved_follower_instances: HashMap<_, _> = community_actions::table
       .inner_join(person::table.on(community_actions::person_id.eq(person::id)))
-      .inner_join(community::table)
-      .filter(community::id.eq_any(community_ids))
+      .filter(community_actions::community_id.eq_any(community_ids))
       .filter(community_actions::follow_state.eq(CommunityFollowerState::Accepted))
-      .group_by(community::id)
+      .group_by(community_actions::community_id)
       .select((
-        community::id,
-        sql::<Array<Integer>>("array_agg(person.instance_id) instance_ids"),
+        community_actions::community_id,
+        sql::<Array<Integer>>("array_agg(distinct person.instance_id) instance_ids"),
       ))
       .load::<(CommunityId, Vec<InstanceId>)>(conn)
       .await?
@@ -132,11 +133,11 @@ impl PendingFollowerView {
     // Check if there is already an approved follower from the same instance. If not, frontends
     // should show a warning because a malicious admin could leak private community data.
     for r in &mut res {
-      let instance_ids = approved_follower_instances
-        .entry(r.community.id)
-        .or_insert(Vec::new());
-      if !instance_ids.contains(&r.person.instance_id) {
-        r.is_new_instance = true;
+      let instance_ids = approved_follower_instances.get(&r.community.id);
+      if let Some(instance_ids) = instance_ids {
+        if instance_ids.contains(&r.person.instance_id) {
+          r.is_new_instance = false;
+        }
       }
     }
     Ok(res)
