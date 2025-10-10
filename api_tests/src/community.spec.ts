@@ -36,8 +36,8 @@ import {
   randomString,
   assertCommunityFederation,
   listReports,
-  notFoundErrorStatusCode,
-  badRequestErrorStatusCode,
+  statusNotFound,
+  statusBadRequest,
 } from "./shared";
 import { AdminAllowInstanceParams } from "lemmy-js-client/dist/types/AdminAllowInstanceParams";
 import {
@@ -63,7 +63,7 @@ test("Create community", async () => {
   // A dupe check
   let prevName = communityRes.community_view.community.name;
   await expect(createCommunity(alpha, prevName)).rejects.toStrictEqual(
-    new LemmyError("already_exists", badRequestErrorStatusCode),
+    new LemmyError("already_exists", statusBadRequest),
   );
 
   // Cache the community on beta, make sure it has the other fields
@@ -402,7 +402,7 @@ test("Get community for different casing on domain", async () => {
   // A dupe check
   let prevName = communityRes.community_view.community.name;
   await expect(createCommunity(alpha, prevName)).rejects.toStrictEqual(
-    new LemmyError("already_exists", badRequestErrorStatusCode),
+    new LemmyError("already_exists", statusBadRequest),
   );
 
   // Cache the community on beta, make sure it has the other fields
@@ -605,12 +605,12 @@ test("Content in local-only community doesn't federate", async () => {
   // cant resolve the community from another instance
   await expect(
     resolveCommunity(beta, communityRes.ap_id),
-  ).rejects.toStrictEqual(new LemmyError("not_found", notFoundErrorStatusCode));
+  ).rejects.toStrictEqual(new LemmyError("not_found", statusNotFound));
 
   // create a post, also cant resolve it
   let postRes = await createPost(alpha, communityRes.id);
   await expect(resolvePost(beta, postRes.post_view.post)).rejects.toStrictEqual(
-    new LemmyError("not_found", notFoundErrorStatusCode),
+    new LemmyError("not_found", statusNotFound),
   );
 });
 

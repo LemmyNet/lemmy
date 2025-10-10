@@ -93,9 +93,9 @@ import { GetCommunityPendingFollowsCountI } from "lemmy-js-client/dist/other_typ
 
 export const fetchFunction = fetch;
 export const imageFetchLimit = 50;
-export const notFoundErrorStatusCode = 404;
-export const badRequestErrorStatusCode = 400;
-export const incorrectLoginErrorStatusCode = 401;
+export const statusNotFound = 404;
+export const statusBadRequest = 400;
+export const statusUnauthorized = 401;
 export const sampleImage =
   "https://i.pinimg.com/originals/df/5f/5b/df5f5b1b174a2b4b6026cc6c8f9395c1.jpg";
 export const sampleSite = "https://w3.org";
