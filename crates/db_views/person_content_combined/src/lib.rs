@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
-  newtypes::{NameOrId, PaginationCursor, PersonId},
+  newtypes::{NameOrId, PaginationCursor},
   source::{
     combined::person_content::PersonContentCombined,
     comment::{Comment, CommentActions},
@@ -132,7 +132,7 @@ pub enum PersonContentCombinedView {
 pub struct ListPersonContent {
   pub type_: Option<PersonContentType>,
   /// Example: `dessalines`, or `dessalines@xyz.tld`, or `12`
-  pub person_name_or_id: NameOrId<PersonId>,
+  pub person_name_or_id: NameOrId,
   pub page_cursor: Option<PaginationCursor>,
   pub page_back: Option<bool>,
   pub limit: Option<i64>,

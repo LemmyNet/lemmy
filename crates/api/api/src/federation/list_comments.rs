@@ -39,8 +39,11 @@ async fn list_comments_common(
 
   check_private_instance(&local_user_view, local_site)?;
 
-  let community_id =
-    resolve_community_id(&data.community_name_or_id, &context, &local_user_view).await?;
+  let community_id = if let Some(community_name_or_id) = &data.community_name_or_id {
+    Some(resolve_community_id(community_name_or_id, &context, &local_user_view).await?)
+  } else {
+    None
+  };
   let local_user = local_user_view.as_ref().map(|u| &u.local_user);
   let sort = Some(comment_sort_type_with_default(
     data.sort, local_user, local_site,

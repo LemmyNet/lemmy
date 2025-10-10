@@ -33,8 +33,11 @@ pub async fn list_posts(
 
   check_private_instance(&local_user_view, &site_view.local_site)?;
 
-  let community_id =
-    resolve_community_id(&data.community_name_or_id, &context, &local_user_view).await?;
+  let community_id = if let Some(community_name_or_id) = &data.community_name_or_id {
+    Some(resolve_community_id(community_name_or_id, &context, &local_user_view).await?)
+  } else {
+    None
+  };
   let multi_community_id = if let Some(name_or_id) = &data.multi_community_name_or_id {
     Some(resolve_multi_community_id(name_or_id, &context, &local_user_view).await?)
   } else {

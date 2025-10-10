@@ -113,13 +113,15 @@ fn fetch_limit_with_default(
   )
 }
 
+/// TODO: This and the following methods are all identical types so they should be changed together.
+/// It would be possible to merge them into a single generic method but thats too complicated.
 async fn resolve_person_id(
-  name_or_id: &NameOrId<PersonId>,
+  name_or_id: &NameOrId,
   context: &Data<LemmyContext>,
   local_user_view: &Option<LocalUserView>,
 ) -> LemmyResult<PersonId> {
   Ok(match name_or_id {
-    NameOrId::Id(id) => *id,
+    NameOrId::Id(id) => PersonId(*id),
     NameOrId::Name(name) => {
       resolve_ap_identifier::<ApubPerson, Person>(name, context, local_user_view, true)
         .await?
@@ -129,28 +131,27 @@ async fn resolve_person_id(
 }
 
 async fn resolve_community_id(
-  name_or_id: &Option<NameOrId<CommunityId>>,
+  name_or_id: &NameOrId,
   context: &Data<LemmyContext>,
   local_user_view: &Option<LocalUserView>,
-) -> LemmyResult<Option<CommunityId>> {
+) -> LemmyResult<CommunityId> {
   Ok(match name_or_id {
-    Some(NameOrId::Id(id)) => Some(*id),
-    Some(NameOrId::Name(name)) => Some(
+    NameOrId::Id(id) => CommunityId(*id),
+    NameOrId::Name(name) => {
       resolve_ap_identifier::<ApubCommunity, Community>(name, context, local_user_view, true)
         .await?
-        .id,
-    ),
-    None => None,
+        .id
+    }
   })
 }
 
 async fn resolve_multi_community_id(
-  name_or_id: &NameOrId<MultiCommunityId>,
+  name_or_id: &NameOrId,
   context: &Data<LemmyContext>,
   local_user_view: &Option<LocalUserView>,
 ) -> LemmyResult<MultiCommunityId> {
   Ok(match name_or_id {
-    NameOrId::Id(id) => *id,
+    NameOrId::Id(id) => MultiCommunityId(*id),
     NameOrId::Name(name) => {
       resolve_ap_identifier::<ApubMultiCommunity, MultiCommunity>(
         name,

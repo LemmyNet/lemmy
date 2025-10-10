@@ -520,7 +520,7 @@ impl PaginationCursor {
 #[serde(untagged)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
-pub enum NameOrId<T> {
+pub enum NameOrId {
   Name(String),
-  Id(T),
+  Id(i32),
 }

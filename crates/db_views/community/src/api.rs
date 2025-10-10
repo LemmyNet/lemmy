@@ -172,7 +172,7 @@ pub struct FollowCommunity {
 /// Get a community. Must provide either an id, or a name (eg star_trek or star_trek@xyz.tld).
 pub struct GetCommunity {
   /// Example: `star_trek`, or `star_trek@xyz.tld` or `12`
-  pub name_or_id: NameOrId<CommunityId>,
+  pub name_or_id: NameOrId,
 }
 
 #[skip_serializing_none]
@@ -312,7 +312,7 @@ pub struct ListMultiCommunitiesResponse {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct GetMultiCommunity {
-  pub name_or_id: NameOrId<MultiCommunityId>,
+  pub name_or_id: NameOrId,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

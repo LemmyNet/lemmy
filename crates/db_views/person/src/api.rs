@@ -66,7 +66,7 @@ pub struct PersonResponse {
 /// Gets a person's details.
 pub struct GetPersonDetails {
   /// Example: `dessalines`, or `dessalines@xyz.tld`, or `12`
-  pub person_name_or_id: NameOrId<PersonId>,
+  pub person_name_or_id: NameOrId,
 }
 
 #[skip_serializing_none]

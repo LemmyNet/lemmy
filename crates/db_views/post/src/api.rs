@@ -1,15 +1,6 @@
 use crate::PostView;
 use lemmy_db_schema::{
-  newtypes::{
-    CommunityId,
-    DbUrl,
-    LanguageId,
-    MultiCommunityId,
-    NameOrId,
-    PaginationCursor,
-    PostId,
-    TagId,
-  },
+  newtypes::{CommunityId, DbUrl, LanguageId, NameOrId, PaginationCursor, PostId, TagId},
   PostFeatureType,
 };
 use lemmy_db_schema_file::enums::{ListingType, PostNotificationsMode, PostSortType};
@@ -125,8 +116,8 @@ pub struct GetPosts {
   /// Use Zero to override the local_site and local_user time_range.
   pub time_range_seconds: Option<i32>,
   /// Example: `star_trek`, or `star_trek@xyz.tld` or `12`
-  pub community_name_or_id: Option<NameOrId<CommunityId>>,
-  pub multi_community_name_or_id: Option<NameOrId<MultiCommunityId>>,
+  pub community_name_or_id: Option<NameOrId>,
+  pub multi_community_name_or_id: Option<NameOrId>,
   pub show_hidden: Option<bool>,
   /// If true, then show the read posts (even if your user setting is to hide them)
   pub show_read: Option<bool>,

@@ -1,12 +1,5 @@
 use crate::{CommentSlimView, CommentView};
-use lemmy_db_schema::newtypes::{
-  CommentId,
-  CommunityId,
-  LanguageId,
-  NameOrId,
-  PaginationCursor,
-  PostId,
-};
+use lemmy_db_schema::newtypes::{CommentId, LanguageId, NameOrId, PaginationCursor, PostId};
 use lemmy_db_schema_file::enums::{CommentSortType, ListingType};
 use lemmy_db_views_vote::VoteView;
 use serde::{Deserialize, Serialize};
@@ -88,7 +81,7 @@ pub struct GetComments {
   pub page_back: Option<bool>,
   pub limit: Option<i64>,
   /// Example: `star_trek`, or `star_trek@xyz.tld` or `12`
-  pub community_name_or_id: Option<NameOrId<CommunityId>>,
+  pub community_name_or_id: Option<NameOrId>,
   pub post_id: Option<PostId>,
   pub parent_id: Option<CommentId>,
 }
