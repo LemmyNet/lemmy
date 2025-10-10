@@ -190,7 +190,7 @@ pub async fn register(
   if !local_site.site_setup
     || (!require_registration_application && !local_site.require_email_verification)
   {
-    let jwt = Claims::generate(user.local_user.id, req, &context).await?;
+    let jwt = Claims::generate(user.local_user.id, data.stay_logged_in, req, &context).await?;
     login_response.jwt = Some(jwt);
   } else {
     login_response.verify_email_sent = send_verification_email_if_required(
@@ -361,7 +361,7 @@ pub async fn authenticate_with_oauth(
               .ok_or(LemmyErrorType::RegistrationUsernameRequired)?;
 
             check_slurs(username, &slur_regex)?;
-            check_slurs_opt(&data.answer, &slur_regex)?;
+            check_slurs_opt(&tx_data.answer, &slur_regex)?;
 
             Person::check_username_taken(&mut conn.into(), username).await?;
 
@@ -393,7 +393,7 @@ pub async fn authenticate_with_oauth(
               && !local_user.accepted_application
               && !local_user.admin
             {
-              if let Some(answer) = data.answer.clone() {
+              if let Some(answer) = tx_data.answer.clone() {
                 // Create the registration application
                 RegistrationApplication::create(
                   &mut conn.into(),
@@ -431,7 +431,7 @@ pub async fn authenticate_with_oauth(
   };
 
   if !login_response.registration_created && !login_response.verify_email_sent {
-    let jwt = Claims::generate(local_user.id, req, &context).await?;
+    let jwt = Claims::generate(local_user.id, data.stay_logged_in, req, &context).await?;
     login_response.jwt = Some(jwt);
   }
 
