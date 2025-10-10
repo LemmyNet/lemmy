@@ -174,35 +174,24 @@ impl ApubActor for Person {
   async fn read_from_name(
     pool: &mut DbPool<'_>,
     from_name: &str,
+    domain: Option<&str>,
     include_deleted: bool,
   ) -> LemmyResult<Option<Self>> {
     let conn = &mut get_conn(pool).await?;
     let mut q = person::table
+      .inner_join(instance::table)
       .into_boxed()
-      .filter(person::local.eq(true))
-      .filter(lower(person::name).eq(from_name.to_lowercase()));
+      .filter(lower(person::name).eq(from_name.to_lowercase()))
+      .select(person::all_columns);
     if !include_deleted {
       q = q.filter(person::deleted.eq(false))
     }
+    if let Some(domain) = domain {
+      q = q.filter(lower(instance::domain).eq(domain.to_lowercase()))
+    } else {
+      q = q.filter(person::local.eq(true))
+    }
     q.first(conn)
-      .await
-      .optional()
-      .with_lemmy_type(LemmyErrorType::NotFound)
-  }
-
-  async fn read_from_name_and_domain(
-    pool: &mut DbPool<'_>,
-    person_name: &str,
-    for_domain: &str,
-  ) -> LemmyResult<Option<Self>> {
-    let conn = &mut get_conn(pool).await?;
-
-    person::table
-      .inner_join(instance::table)
-      .filter(lower(person::name).eq(person_name.to_lowercase()))
-      .filter(lower(instance::domain).eq(for_domain.to_lowercase()))
-      .select(person::all_columns)
-      .first(conn)
       .await
       .optional()
       .with_lemmy_type(LemmyErrorType::NotFound)

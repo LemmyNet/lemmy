@@ -14,7 +14,6 @@ use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 pub mod create;
 pub mod create_entry;
 pub mod delete_entry;
-pub mod get;
 pub mod list;
 pub mod update;
 

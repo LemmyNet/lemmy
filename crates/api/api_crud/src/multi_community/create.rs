@@ -6,7 +6,7 @@ use lemmy_api_utils::{
 };
 use lemmy_db_schema::{
   source::multi_community::{MultiCommunity, MultiCommunityFollowForm, MultiCommunityInsertForm},
-  traits::Crud,
+  traits::{ApubActor, Crud},
 };
 use lemmy_db_schema_file::enums::CommunityFollowerState;
 use lemmy_db_views_community::{
@@ -34,17 +34,13 @@ pub async fn create_multi_community(
 
   let slur_regex = slur_regex(&context).await?;
   check_slurs(&data.name, &slur_regex)?;
-  let ap_id = Url::parse(&format!(
-    "{}/m/{}",
-    context.settings().get_protocol_and_hostname(),
-    &data.name
-  ))?;
+  let ap_id = MultiCommunity::generate_local_actor_url(&data.name, context.settings())?;
   let following_url = Url::parse(&format!("{}/following", ap_id))?;
 
   let form = MultiCommunityInsertForm {
     title: data.title.clone(),
     description: data.description.clone(),
-    ap_id: Some(ap_id.into()),
+    ap_id: Some(ap_id),
     private_key: site_view.site.private_key,
     inbox_url: Some(site_view.site.inbox_url),
     following_url: Some(following_url.into()),

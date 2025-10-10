@@ -16,7 +16,7 @@ use lemmy_db_schema::{
     multi_community::{MultiCommunity, MultiCommunityInsertForm},
     person::Person,
   },
-  traits::Crud,
+  traits::{ApubActor, Crud},
 };
 use lemmy_db_schema_file::enums::ActorType;
 use lemmy_db_views_site::SiteView;
@@ -63,7 +63,7 @@ impl Object for ApubMultiCommunity {
     context: &Data<Self::DataType>,
   ) -> LemmyResult<Option<Self>> {
     Ok(
-      MultiCommunity::read_from_ap_id(&mut context.pool(), &object_id.into())
+      MultiCommunity::read_from_apub_id(&mut context.pool(), &object_id.into())
         .await?
         .map(Into::into),
     )

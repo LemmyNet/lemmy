@@ -1,6 +1,9 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
-use lemmy_api_utils::{context::LemmyContext, utils::is_admin};
+use lemmy_api_utils::{
+  context::LemmyContext,
+  utils::{check_expire_time, is_admin},
+};
 use lemmy_db_schema::{
   source::{
     federation_blocklist::{FederationBlockList, FederationBlockListForm},
@@ -20,6 +23,8 @@ pub async fn admin_block_instance(
 ) -> LemmyResult<Json<SuccessResponse>> {
   is_admin(&local_user_view)?;
 
+  let expires_at = check_expire_time(data.expires_at)?;
+
   let allowlist = Instance::allowlist(&mut context.pool()).await?;
   if !allowlist.is_empty() {
     Err(LemmyErrorType::CannotCombineFederationBlocklistAndAllowlist)?;
@@ -28,9 +33,10 @@ pub async fn admin_block_instance(
   let instance_id = Instance::read_or_create(&mut context.pool(), data.instance.clone())
     .await?
     .id;
+
   let form = FederationBlockListForm {
     instance_id,
-    expires_at: data.expires_at,
+    expires_at,
     updated_at: None,
   };
 
