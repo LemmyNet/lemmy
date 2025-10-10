@@ -13,6 +13,7 @@ use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
   diesel::{Queryable, Selectable},
+  lemmy_db_schema::utils::queries::selects::post_select_remove_deletes,
   lemmy_db_schema::utils::queries::selects::{
     creator_ban_expires_from_community,
     creator_banned_from_community,
@@ -37,7 +38,11 @@ pub mod impls;
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A post view.
 pub struct PostView {
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression = post_select_remove_deletes()
+    )
+  )]
   pub post: Post,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub creator: Person,
