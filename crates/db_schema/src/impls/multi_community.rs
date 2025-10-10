@@ -206,15 +206,11 @@ impl MultiCommunity {
 
     multi_community::table
       .inner_join(multi_community_entry::table.inner_join(community::table))
-      .left_join(person::table)
       .filter(
         community::removed
           .or(community::deleted)
           .is_distinct_from(true),
       )
-      // TODO question: you are joining to the person table to get local, but local already exists
-      // on multi-communities.
-      .filter(person::local)
       .filter(multi_community::name.eq(multi_name))
       .select(community::ap_id)
       .get_results(conn)
