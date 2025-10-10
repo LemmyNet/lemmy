@@ -167,10 +167,12 @@ impl PendingFollowerView {
     from_person_id: PersonId,
     community: &Community,
   ) -> LemmyResult<()> {
+    if community.visibility != CommunityVisibility::Private {
+      return Ok(());
+    }
     let conn = &mut get_conn(pool).await?;
     select(exists(
       Self::joins()
-        .filter(community::visibility.eq(CommunityVisibility::Private))
         .filter(community_actions::community_id.eq(community.id))
         .filter(community_actions::person_id.eq(from_person_id))
         .filter(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
