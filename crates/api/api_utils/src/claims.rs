@@ -1,6 +1,6 @@
 use crate::context::LemmyContext;
 use actix_web::{http::header::USER_AGENT, HttpRequest};
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Duration, Utc};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use lemmy_db_schema::{
   newtypes::LocalUserId,
@@ -41,19 +41,19 @@ impl Claims {
     context: &LemmyContext,
   ) -> LemmyResult<SensitiveString> {
     let hostname = context.settings().hostname.clone();
-    let timestamp_now = Utc::now().timestamp();
+    let now = Utc::now();
     let exp = if stay_logged_in.unwrap_or_default() {
       // Login doesnt expire
-      DateTime::<Utc>::MAX_UTC.timestamp()
+      DateTime::<Utc>::MAX_UTC
     } else {
       // Login expires after one week
-      timestamp_now + 7 * 24 * 60 * 60
+      now + Duration::weeks(1)
     };
     let my_claims = Claims {
       sub: user_id.0.to_string(),
       iss: hostname,
-      iat: timestamp_now,
-      exp,
+      iat: now.timestamp(),
+      exp: exp.timestamp(),
     };
 
     let secret = &context.secret().jwt_secret;
