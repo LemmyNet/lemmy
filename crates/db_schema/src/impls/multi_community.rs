@@ -5,6 +5,8 @@ use crate::{
     community::Community,
     multi_community::{
       MultiCommunity,
+      MultiCommunityEntry,
+      MultiCommunityEntryForm,
       MultiCommunityFollow,
       MultiCommunityFollowForm,
       MultiCommunityInsertForm,
@@ -15,11 +17,10 @@ use crate::{
   utils::{format_actor_url, functions::lower, get_conn, DbPool},
 };
 use diesel::{
-  dsl::{count, delete, exists, insert_into, not},
+  dsl::{delete, exists, insert_into, not},
   select,
   update,
   ExpressionMethods,
-  NullableExpressionMethods,
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
@@ -44,72 +45,43 @@ impl Crud for MultiCommunity {
   type UpdateForm = MultiCommunityUpdateForm;
   type IdType = MultiCommunityId;
 
-  async fn create(pool: &mut DbPool<'_>, form: &MultiCommunityInsertForm) -> LemmyResult<Self> {
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
-    Ok(
-      insert_into(multi_community::table)
-        .values(form)
-        .get_result(conn)
-        .await?,
-    )
+
+    insert_into(multi_community::table)
+      .values(form)
+      .get_result(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   async fn update(
     pool: &mut DbPool<'_>,
     id: MultiCommunityId,
-    form: &MultiCommunityUpdateForm,
+    form: &Self::UpdateForm,
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
-    Ok(
-      update(multi_community::table.find(id))
-        .set(form)
-        .get_result(conn)
-        .await?,
-    )
+
+    update(multi_community::table.find(id))
+      .set(form)
+      .get_result(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
 impl MultiCommunity {
-  pub async fn create_entry(
-    pool: &mut DbPool<'_>,
-    id: MultiCommunityId,
-    new_community: &Community,
-  ) -> LemmyResult<()> {
+  pub async fn upsert(pool: &mut DbPool<'_>, form: &MultiCommunityInsertForm) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
-    let count: i64 = multi_community::table
-      .left_join(multi_community_entry::table)
-      .filter(multi_community::id.eq(id))
-      .select(count(multi_community_entry::community_id.nullable()))
-      .first(conn)
-      .await?;
-    if count >= MULTI_COMMUNITY_ENTRY_LIMIT.into() {
-      return Err(LemmyErrorType::MultiCommunityEntryLimitReached.into());
-    }
 
-    insert_into(multi_community_entry::table)
-      .values((
-        multi_community_entry::multi_community_id.eq(id),
-        multi_community_entry::community_id.eq(new_community.id),
-      ))
-      .execute(conn)
-      .await?;
-    Ok(())
-  }
-
-  pub async fn delete_entry(
-    pool: &mut DbPool<'_>,
-    id: MultiCommunityId,
-    old_community: &Community,
-  ) -> LemmyResult<()> {
-    let conn = &mut get_conn(pool).await?;
-    delete(
-      multi_community_entry::table
-        .filter(multi_community_entry::multi_community_id.eq(id))
-        .filter(multi_community_entry::community_id.eq(old_community.id)),
-    )
-    .execute(conn)
-    .await?;
-    Ok(())
+    insert_into(multi_community::table)
+      .values(form)
+      .on_conflict(multi_community::ap_id)
+      .do_update()
+      .set(form)
+      .get_result(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   pub async fn follow(
@@ -117,18 +89,18 @@ impl MultiCommunity {
     form: &MultiCommunityFollowForm,
   ) -> LemmyResult<MultiCommunityFollow> {
     let conn = &mut get_conn(pool).await?;
-    Ok(
-      insert_into(multi_community_follow::table)
-        .values(form)
-        .on_conflict((
-          multi_community_follow::multi_community_id,
-          multi_community_follow::person_id,
-        ))
-        .do_update()
-        .set(form)
-        .get_result(conn)
-        .await?,
-    )
+
+    insert_into(multi_community_follow::table)
+      .values(form)
+      .on_conflict((
+        multi_community_follow::multi_community_id,
+        multi_community_follow::person_id,
+      ))
+      .do_update()
+      .set(form)
+      .get_result(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   pub async fn unfollow(
@@ -137,6 +109,7 @@ impl MultiCommunity {
     multi_community_id: MultiCommunityId,
   ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
+
     delete(
       multi_community_follow::table
         .filter(multi_community_follow::multi_community_id.eq(multi_community_id))
@@ -144,6 +117,7 @@ impl MultiCommunity {
     )
     .execute(conn)
     .await?;
+
     Ok(())
   }
 
@@ -152,31 +126,16 @@ impl MultiCommunity {
     multi_community_id: MultiCommunityId,
   ) -> LemmyResult<Vec<DbUrl>> {
     let conn = &mut get_conn(pool).await?;
+
     multi_community_follow::table
       .inner_join(person::table)
       .filter(multi_community_follow::multi_community_id.eq(multi_community_id))
       .select(person::inbox_url)
       .distinct()
-      .load(conn)
+      .get_results(conn)
       .await
       .optional()?
       .ok_or(LemmyErrorType::NotFound.into())
-  }
-
-  pub async fn upsert(
-    pool: &mut DbPool<'_>,
-    form: &MultiCommunityInsertForm,
-  ) -> LemmyResult<MultiCommunity> {
-    let conn = &mut get_conn(pool).await?;
-    Ok(
-      insert_into(multi_community::table)
-        .values(form)
-        .on_conflict(multi_community::ap_id)
-        .do_update()
-        .set(form)
-        .get_result(conn)
-        .await?,
-    )
   }
 
   /// Should be called in a transaction together with update() or upsert()
@@ -198,6 +157,7 @@ impl MultiCommunity {
     .returning(multi_community_entry::community_id)
     .get_results::<CommunityId>(conn)
     .await?;
+
     let removed: Vec<Community> = community::table
       .filter(community::id.eq_any(removed))
       .filter(not(community::local))
@@ -206,19 +166,19 @@ impl MultiCommunity {
 
     let forms = new_communities
       .iter()
-      .map(|k| {
-        (
-          multi_community_entry::multi_community_id.eq(id),
-          multi_community_entry::community_id.eq(k),
-        )
+      .map(|community_id| MultiCommunityEntryForm {
+        multi_community_id: id,
+        community_id: *community_id,
       })
       .collect::<Vec<_>>();
+
     let added: Vec<_> = insert_into(multi_community_entry::table)
       .values(forms)
       .on_conflict_do_nothing()
       .returning(multi_community_entry::community_id)
       .get_results::<CommunityId>(conn)
       .await?;
+
     let added: Vec<Community> = community::table
       .filter(community::id.eq_any(added))
       .filter(not(community::local))
@@ -238,53 +198,24 @@ impl MultiCommunity {
     Ok((added, removed, has_local_followers))
   }
 
-  pub async fn read_entry_ap_ids(
+  pub async fn read_community_ap_ids(
     pool: &mut DbPool<'_>,
     multi_name: &str,
   ) -> LemmyResult<Vec<DbUrl>> {
     let conn = &mut get_conn(pool).await?;
-    let entries = multi_community::table
+
+    multi_community::table
       .inner_join(multi_community_entry::table.inner_join(community::table))
-      .left_join(person::table)
       .filter(
         community::removed
           .or(community::deleted)
           .is_distinct_from(true),
       )
-      .filter(person::local)
       .filter(multi_community::name.eq(multi_name))
       .select(community::ap_id)
       .get_results(conn)
-      .await?;
-    Ok(entries)
-  }
-
-  pub async fn community_used_in_multiple(
-    pool: &mut DbPool<'_>,
-    multi_id: MultiCommunityId,
-    community_id: CommunityId,
-  ) -> LemmyResult<bool> {
-    let conn = &mut get_conn(pool).await?;
-    Ok(
-      select(exists(
-        multi_community::table
-          .inner_join(multi_community_entry::table)
-          .filter(multi_community::id.ne(multi_id))
-          .filter(multi_community_entry::community_id.eq(community_id)),
-      ))
-      .get_result(conn)
-      .await?,
-    )
-  }
-
-  pub fn format_url(&self, settings: &Settings) -> LemmyResult<Url> {
-    let domain = self
-      .ap_id
-      .inner()
-      .domain()
-      .ok_or(LemmyErrorType::NotFound)?;
-
-    format_actor_url(&self.name, domain, 'u', settings)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }
 
@@ -341,6 +272,67 @@ impl ApubActor for MultiCommunity {
   fn generate_local_actor_url(name: &str, settings: &Settings) -> LemmyResult<DbUrl> {
     let domain = settings.get_protocol_and_hostname();
     Ok(Url::parse(&format!("{domain}/m/{name}"))?.into())
+  }
+}
+
+impl MultiCommunityEntry {
+  pub async fn create(pool: &mut DbPool<'_>, form: &MultiCommunityEntryForm) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+
+    insert_into(multi_community_entry::table)
+      .values(form)
+      .get_result(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
+  }
+
+  pub async fn delete(pool: &mut DbPool<'_>, form: &MultiCommunityEntryForm) -> LemmyResult<usize> {
+    let conn = &mut get_conn(pool).await?;
+
+    delete(
+      multi_community_entry::table
+        .filter(multi_community_entry::multi_community_id.eq(form.multi_community_id))
+        .filter(multi_community_entry::community_id.eq(form.community_id)),
+    )
+    .execute(conn)
+    .await
+    .with_lemmy_type(LemmyErrorType::Deleted)
+  }
+
+  /// Make sure you aren't trying to insert more communities than the entry limit allows.
+  pub async fn check_entry_limit(
+    pool: &mut DbPool<'_>,
+    multi_community_id: MultiCommunityId,
+  ) -> LemmyResult<()> {
+    let conn = &mut get_conn(pool).await?;
+
+    let count: i64 = multi_community_entry::table
+      .filter(multi_community_entry::multi_community_id.eq(multi_community_id))
+      .count()
+      .get_result(conn)
+      .await?;
+
+    if count >= MULTI_COMMUNITY_ENTRY_LIMIT.into() {
+      Err(LemmyErrorType::MultiCommunityEntryLimitReached.into())
+    } else {
+      Ok(())
+    }
+  }
+
+  pub async fn community_used_in_multiple(
+    pool: &mut DbPool<'_>,
+    form: &MultiCommunityEntryForm,
+  ) -> LemmyResult<bool> {
+    let conn = &mut get_conn(pool).await?;
+
+    select(exists(
+      multi_community_entry::table
+        .filter(multi_community_entry::multi_community_id.ne(form.multi_community_id))
+        .filter(multi_community_entry::community_id.eq(form.community_id)),
+    ))
+    .get_result(conn)
+    .await
+    .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }
 
@@ -402,13 +394,14 @@ mod tests {
     let pool = &mut pool.into();
     let data = setup(pool).await?;
 
-    let multi_read_apub_empty = MultiCommunity::read_entry_ap_ids(pool, &data.multi.name).await?;
+    let multi_read_apub_empty =
+      MultiCommunity::read_community_ap_ids(pool, &data.multi.name).await?;
     assert!(multi_read_apub_empty.is_empty());
 
     let multi_entries = vec![data.community.id];
     MultiCommunity::update_entries(pool, data.multi.id, &multi_entries).await?;
 
-    let multi_read_apub = MultiCommunity::read_entry_ap_ids(pool, &data.multi.name).await?;
+    let multi_read_apub = MultiCommunity::read_community_ap_ids(pool, &data.multi.name).await?;
     assert_eq!(vec![data.community.ap_id], multi_read_apub);
 
     Instance::delete(pool, data.instance.id).await?;

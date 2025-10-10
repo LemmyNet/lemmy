@@ -36,6 +36,8 @@ import {
   randomString,
   assertCommunityFederation,
   listReports,
+  statusNotFound,
+  statusBadRequest,
 } from "./shared";
 import { AdminAllowInstanceParams } from "lemmy-js-client/dist/types/AdminAllowInstanceParams";
 import {
@@ -61,7 +63,7 @@ test("Create community", async () => {
   // A dupe check
   let prevName = communityRes.community_view.community.name;
   await expect(createCommunity(alpha, prevName)).rejects.toStrictEqual(
-    new LemmyError("community_already_exists"),
+    new LemmyError("already_exists", statusBadRequest),
   );
 
   // Cache the community on beta, make sure it has the other fields
@@ -400,7 +402,7 @@ test("Get community for different casing on domain", async () => {
   // A dupe check
   let prevName = communityRes.community_view.community.name;
   await expect(createCommunity(alpha, prevName)).rejects.toStrictEqual(
-    new LemmyError("community_already_exists"),
+    new LemmyError("already_exists", statusBadRequest),
   );
 
   // Cache the community on beta, make sure it has the other fields
@@ -603,12 +605,12 @@ test("Content in local-only community doesn't federate", async () => {
   // cant resolve the community from another instance
   await expect(
     resolveCommunity(beta, communityRes.ap_id),
-  ).rejects.toStrictEqual(new LemmyError("not_found"));
+  ).rejects.toStrictEqual(new LemmyError("not_found", statusNotFound));
 
   // create a post, also cant resolve it
   let postRes = await createPost(alpha, communityRes.id);
   await expect(resolvePost(beta, postRes.post_view.post)).rejects.toStrictEqual(
-    new LemmyError("not_found"),
+    new LemmyError("not_found", statusNotFound),
   );
 });
 
@@ -737,11 +739,11 @@ test("Multi-community", async () => {
 
   // add initial community
   let community1 = (await createCommunity(alpha)).community_view.community;
-  let success1 = await alpha.createMultiCommunityEntry({
+  let entryRes = await alpha.createMultiCommunityEntry({
     id: res.multi_community_view.multi.id,
     community_id: community1.id,
   });
-  expect(success1.success).toBeTruthy();
+  expect(entryRes.community_view.community.id).toBe(community1.id);
 
   // resolve over federation
   let betaMulti = (
@@ -771,11 +773,11 @@ test("Multi-community", async () => {
 
   // add community to multi
   let community2 = await resolveBetaCommunity(alpha);
-  let success2 = await alpha.createMultiCommunityEntry({
+  let entryRes2 = await alpha.createMultiCommunityEntry({
     id: res.multi_community_view.multi.id,
     community_id: community2!.community.id,
   });
-  expect(success2.success).toBeTruthy();
+  expect(entryRes2.community_view.community.id).toBe(community2?.community.id);
 
   // federated to beta
   betaRes = await waitUntil(

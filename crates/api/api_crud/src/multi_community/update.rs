@@ -23,7 +23,9 @@ pub async fn update_multi_community(
   let multi_community_id = data.id;
   let my_person_id = local_user_view.person.id;
   check_local_user_valid(&local_user_view)?;
-  check_multi_community_creator(multi_community_id, &local_user_view, &context).await?;
+
+  let orig_multi = MultiCommunity::read(&mut context.pool(), data.id).await?;
+  check_multi_community_creator(&orig_multi, &local_user_view)?;
 
   let form = MultiCommunityUpdateForm {
     title: diesel_string_update(data.title.as_deref()),
@@ -33,7 +35,7 @@ pub async fn update_multi_community(
   };
   let multi = MultiCommunity::update(&mut context.pool(), multi_community_id, &form).await?;
 
-  send_federation_update(multi, local_user_view, &context).await?;
+  send_federation_update(multi, local_user_view.person, &context)?;
 
   let multi_community_view =
     MultiCommunityView::read(&mut context.pool(), multi_community_id, Some(my_person_id)).await?;
