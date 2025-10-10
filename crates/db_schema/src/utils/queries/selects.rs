@@ -280,6 +280,59 @@ pub fn comment_select_remove_deletes() -> _ {
   )
 }
 
+/// Selects the post columns, but gives an empty string for content when
+/// deleted or removed, and you're not a mod/admin.
+#[diesel::dsl::auto_type]
+pub fn post_select_remove_deletes() -> _ {
+  let deleted_or_removed = post::deleted.or(post::removed);
+
+  // You can only view the content if it hasn't been removed, or you can mod.
+  let can_view_content = not(deleted_or_removed).or(local_user_can_mod_post());
+  let body = case_when(can_view_content, post::body).otherwise("");
+
+  (
+    post::id,
+    post::name,
+    post::url,
+    body,
+    post::creator_id,
+    post::community_id,
+    post::removed,
+    post::locked,
+    post::published_at,
+    post::updated_at,
+    post::deleted,
+    post::nsfw,
+    post::embed_title,
+    post::embed_description,
+    post::thumbnail_url,
+    post::ap_id,
+    post::local,
+    post::embed_video_url,
+    post::language_id,
+    post::featured_community,
+    post::featured_local,
+    post::url_content_type,
+    post::alt_text,
+    post::scheduled_publish_time_at,
+    post::comments,
+    post::score,
+    post::upvotes,
+    post::downvotes,
+    post::newest_comment_time_necro_at,
+    post::newest_comment_time_at,
+    post::hot_rank,
+    post::hot_rank_active,
+    post::controversy_rank,
+    post::scaled_rank,
+    post::report_count,
+    post::unresolved_report_count,
+    post::federation_pending,
+    post::embed_video_width,
+    post::embed_video_height,
+  )
+}
+
 #[diesel::dsl::auto_type]
 // Gets the post tags set on a specific post
 pub fn post_tags_fragment() -> _ {
