@@ -1,6 +1,14 @@
 use crate::{CommunityView, MultiCommunityView};
 use lemmy_db_schema::{
-  newtypes::{CommunityId, LanguageId, MultiCommunityId, PaginationCursor, PersonId, TagId},
+  newtypes::{
+    CommunityId,
+    LanguageId,
+    MultiCommunityId,
+    NameOrId,
+    PaginationCursor,
+    PersonId,
+    TagId,
+  },
   source::site::Site,
   CommunitySortType,
 };
@@ -158,16 +166,13 @@ pub struct FollowCommunity {
   pub follow: bool,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-// TODO make this into a tagged enum
-/// Get a community. Must provide either an id, or a name.
+#[cfg_attr(feature = "ts-rs", ts(export))]
+/// Get a community. Must provide either an id, or a name (eg star_trek or star_trek@xyz.tld).
 pub struct GetCommunity {
-  pub id: Option<CommunityId>,
-  /// Example: star_trek , or star_trek@xyz.tld
-  pub name: Option<String>,
+  /// Example: `star_trek`, or `star_trek@xyz.tld` or `12`
+  pub name_or_id: NameOrId,
 }
 
 #[skip_serializing_none]
@@ -307,8 +312,7 @@ pub struct ListMultiCommunitiesResponse {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct GetMultiCommunity {
-  pub id: Option<MultiCommunityId>,
-  pub name: Option<String>,
+  pub name_or_id: NameOrId,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

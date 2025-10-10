@@ -716,7 +716,7 @@ test("Community name with non-ascii chars", async () => {
   let postRes = await createPost(beta, betaCommunity1!.community.id);
 
   let form: GetPosts = {
-    community_name: fediName,
+    community_name_or_id: { Name: fediName },
   };
   let posts = await beta.getPosts(form);
   expect(posts.posts.length).toBe(1);
@@ -750,7 +750,7 @@ test("Multi-community", async () => {
   expect(betaMulti.multi.ap_id).toBe(res.multi_community_view.multi.ap_id);
 
   var betaRes = await waitUntil(
-    () => beta.getMultiCommunity({ id: betaMulti.multi.id }),
+    () => beta.getMultiCommunity({ name_or_id: { Id: betaMulti.multi.id } }),
     m => m.communities.length == 1,
   );
   expect(betaRes.communities[0].community.ap_id).toBe(community1.ap_id);
@@ -779,7 +779,7 @@ test("Multi-community", async () => {
 
   // federated to beta
   betaRes = await waitUntil(
-    () => beta.getMultiCommunity({ id: betaMulti.multi.id }),
+    () => beta.getMultiCommunity({ name_or_id: { Id: betaMulti.multi.id } }),
     m => m.communities.length == 2,
   );
   let ap_ids = betaRes.communities.map(c => c.community.ap_id);
@@ -790,7 +790,9 @@ test("Multi-community", async () => {
   let multi_post_listing = await waitUntil(
     () =>
       beta.getPosts({
-        multi_community_id: betaRes.multi_community_view.multi.id,
+        multi_community_name_or_id: {
+          Id: betaRes.multi_community_view.multi.id,
+        },
       }),
     p => p.posts.length == 1,
   );

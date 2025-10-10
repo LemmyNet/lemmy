@@ -514,3 +514,12 @@ impl PaginationCursor {
       .map_err(|_vec| LemmyErrorType::CouldntParsePaginationToken.into())
   }
 }
+
+/// Takes either a name or a numeric ID. For example `main`, `main@lemmy.ml` or `12`.
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
+pub enum NameOrId {
+  Name(String),
+  Id(i32),
+}

@@ -1,5 +1,8 @@
 use crate::PersonView;
-use lemmy_db_schema::{newtypes::PersonId, source::site::Site};
+use lemmy_db_schema::{
+  newtypes::{NameOrId, PersonId},
+  source::site::Site,
+};
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -57,16 +60,13 @@ pub struct PersonResponse {
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Gets a person's details.
-///
-/// Either person_id, or username are required.
 pub struct GetPersonDetails {
-  pub person_id: Option<PersonId>,
-  /// Example: dessalines , or dessalines@xyz.tld
-  pub username: Option<String>,
+  /// Example: `dessalines`, or `dessalines@xyz.tld`, or `12`
+  pub person_name_or_id: NameOrId,
 }
 
 #[skip_serializing_none]
