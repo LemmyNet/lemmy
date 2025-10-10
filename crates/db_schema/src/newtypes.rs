@@ -517,7 +517,6 @@ impl PaginationCursor {
 
 /// Takes either a name or a numeric ID. For example `main`, `main@lemmy.ml` or `12`.
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
-#[serde(untagged)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 pub enum NameOrId {
