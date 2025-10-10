@@ -22,6 +22,7 @@ import {
   getPosts,
   getComments,
   createComment,
+  getCommunityByName,
   waitUntil,
   alphaUrl,
   delta,
@@ -404,7 +405,8 @@ test("Get community for different casing on domain", async () => {
 
   // Cache the community on beta, make sure it has the other fields
   let communityName = `${communityRes.community_view.community.name}@LEMMY-ALPHA:8541`;
-  let betaCommunity = (await getCommunity(beta, communityName)).community_view;
+  let betaCommunity = (await getCommunityByName(beta, communityName))
+    .community_view;
   assertCommunityFederation(betaCommunity, communityRes.community_view);
 });
 
@@ -704,17 +706,17 @@ test("Community name with non-ascii chars", async () => {
   );
   expect(betaCommunity1?.community.name).toBe(name);
 
-  let alphaCommunity2 = await getCommunity(alpha, name);
+  let alphaCommunity2 = await getCommunityByName(alpha, name);
   expect(alphaCommunity2.community_view.community.name).toBe(name);
 
   let fediName = `${communityRes.community_view.community.name}@LEMMY-ALPHA:8541`;
-  let betaCommunity2 = await getCommunity(beta, fediName);
+  let betaCommunity2 = await getCommunityByName(beta, fediName);
   expect(betaCommunity2.community_view.community.name).toBe(name);
 
   let postRes = await createPost(beta, betaCommunity1!.community.id);
 
   let form: GetPosts = {
-    community_name_or_id: fediName,
+    community_name_or_id: { Name: fediName },
   };
   let posts = await beta.getPosts(form);
   expect(posts.posts.length).toBe(1);
@@ -748,7 +750,7 @@ test("Multi-community", async () => {
   expect(betaMulti.multi.ap_id).toBe(res.multi_community_view.multi.ap_id);
 
   var betaRes = await waitUntil(
-    () => beta.getMultiCommunity({ name_or_id: betaMulti.multi.id }),
+    () => beta.getMultiCommunity({ name_or_id: { Id: betaMulti.multi.id } }),
     m => m.communities.length == 1,
   );
   expect(betaRes.communities[0].community.ap_id).toBe(community1.ap_id);
@@ -777,7 +779,7 @@ test("Multi-community", async () => {
 
   // federated to beta
   betaRes = await waitUntil(
-    () => beta.getMultiCommunity({ name_or_id: betaMulti.multi.id }),
+    () => beta.getMultiCommunity({ name_or_id: { Id: betaMulti.multi.id } }),
     m => m.communities.length == 2,
   );
   let ap_ids = betaRes.communities.map(c => c.community.ap_id);
@@ -788,7 +790,9 @@ test("Multi-community", async () => {
   let multi_post_listing = await waitUntil(
     () =>
       beta.getPosts({
-        multi_community_name_or_id: betaRes.multi_community_view.multi.id,
+        multi_community_name_or_id: {
+          Id: betaRes.multi_community_view.multi.id,
+        },
       }),
     p => p.posts.length == 1,
   );

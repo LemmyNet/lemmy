@@ -36,8 +36,8 @@ importers:
         specifier: ^17.13.3
         version: 17.13.3
       lemmy-js-client:
-        specifier: 1.0.0-enum-for-api.5
-        version: 1.0.0-enum-for-api.5
+        specifier: 1.0.0-enum-for-api.6
+        version: 1.0.0-enum-for-api.6
       prettier:
         specifier: ^3.5.3
         version: 3.6.2
@@ -1656,8 +1656,8 @@ packages:
   keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
 
-  lemmy-js-client@1.0.0-enum-for-api.5:
-    resolution: {integrity: sha512-S2mvGmXP1JAMsNH6ksxJcEA31yMBSP0H7hnVzJ182/nLy84qvSXlBuVV2vxd+p14I1pue953DH+oU2+xjySfFg==}
+  lemmy-js-client@1.0.0-enum-for-api.6:
+    resolution: {integrity: sha512-L3xKahxlhSBtvDIFMaUoSWplf04HQ9lfze5NhBUHMwqW3/BXq5tlhcDGIGDBYiPxBZZgwMjphWyhlffJG5XnlQ==}
 
   leven@3.1.0:
     resolution: {integrity: sha512-qsda+H8jTaUaN/x5vzW2rzc+8Rw4TAQ/4KjB46IwK5VH+IlVeeeje/EoZRpiXvIqjFgK84QffqPztGI3VBLG1A==}
@@ -4399,7 +4399,7 @@ snapshots:
     dependencies:
       json-buffer: 3.0.1
 
-  lemmy-js-client@1.0.0-enum-for-api.5:
+  lemmy-js-client@1.0.0-enum-for-api.6:
     dependencies:
       '@tsoa/runtime': 6.6.0
     transitivePeerDependencies:

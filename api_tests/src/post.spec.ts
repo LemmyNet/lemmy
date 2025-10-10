@@ -1038,7 +1038,7 @@ test("Plugin test", async () => {
       "Java",
     ),
   ).rejects.toStrictEqual(
-    new LemmyError("plugin_error", 0, "We dont talk about Java"),
+    new LemmyError("plugin_error", 1, "We dont talk about Java"),
   );
 });
 

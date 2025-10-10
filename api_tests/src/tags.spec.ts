@@ -49,8 +49,9 @@ test("Create, and delete a community tag", async () => {
   expect(createRes.name).toBe(tagName);
   expect(createRes.community_id).toBe(communityId);
 
-  alphaCommunity = (await alpha.getCommunity({ name_or_id: communityId }))
-    .community_view;
+  alphaCommunity = (
+    await alpha.getCommunity({ name_or_id: { Id: communityId } })
+  ).community_view;
   expect(alphaCommunity.post_tags.length).toBe(1);
   // verify tag federated
 
@@ -61,8 +62,9 @@ test("Create, and delete a community tag", async () => {
   assertCommunityFederation(alphaCommunity, betaCommunity);
 
   // List tags
-  alphaCommunity = (await alpha.getCommunity({ name_or_id: communityId }))
-    .community_view;
+  alphaCommunity = (
+    await alpha.getCommunity({ name_or_id: { Id: communityId } })
+  ).community_view;
   expect(alphaCommunity.post_tags.length).toBe(1);
   expect(alphaCommunity.post_tags.find(t => t.id === createRes.id)?.name).toBe(
     tagName,
@@ -83,8 +85,9 @@ test("Create, and delete a community tag", async () => {
   expect(deleteRes.id).toBe(createRes.id);
 
   // Verify tag is deleted
-  alphaCommunity = (await alpha.getCommunity({ name_or_id: communityId }))
-    .community_view;
+  alphaCommunity = (
+    await alpha.getCommunity({ name_or_id: { Id: communityId } })
+  ).community_view;
   expect(
     alphaCommunity.post_tags.find(t => t.id === createRes.id),
   ).toBeUndefined();

@@ -31,8 +31,8 @@ import {
   ListNotifications,
   ListNotificationsResponse,
   NotificationDataType,
-  NameOrId,
   PersonResponse,
+  NameOrId,
 } from "lemmy-js-client";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
 import { DeletePost } from "lemmy-js-client/dist/types/DeletePost";
@@ -621,10 +621,20 @@ export async function editCommunity(
 
 export async function getCommunity(
   api: LemmyHttp,
-  name_or_id: NameOrId<CommunityId>,
+  id: number,
 ): Promise<GetCommunityResponse> {
   let form: GetCommunity = {
-    name_or_id,
+    name_or_id: { Id: id },
+  };
+  return api.getCommunity(form);
+}
+
+export async function getCommunityByName(
+  api: LemmyHttp,
+  name: string,
+): Promise<CommunityResponse> {
+  let form: GetCommunity = {
+    name_or_id: { Name: name },
   };
   return api.getCommunity(form);
 }
@@ -765,21 +775,21 @@ export async function saveUserSettings(
 
 export async function getPersonDetails(
   api: LemmyHttp,
-  person_name_or_id: NameOrId<PersonId>,
+  person_id: number,
 ): Promise<GetPersonDetailsResponse> {
   let form: GetPersonDetails = {
-    person_name_or_id,
+    person_name_or_id: { Id: person_id },
   };
   return api.getPersonDetails(form);
 }
 
 export async function listPersonContent(
   api: LemmyHttp,
-  person_name_or_id: NameOrId<PersonId>,
+  person_id: number,
   type_?: PersonContentType,
 ): Promise<ListPersonContentResponse> {
   let form: ListPersonContent = {
-    person_name_or_id,
+    person_name_or_id: { Id: person_id },
     type_,
   };
   return api.listPersonContent(form);
@@ -882,8 +892,12 @@ export async function reportPrivateMessage(
 export function getPosts(
   api: LemmyHttp,
   listingType?: ListingType,
-  community_name_or_id?: NameOrId<CommunityId>,
+  community_id?: number,
 ): Promise<GetPostsResponse> {
+  let community_name_or_id: NameOrId | undefined = undefined;
+  if (community_id) {
+    community_name_or_id = { Id: community_id };
+  }
   let form: GetPosts = {
     type_: listingType,
     limit: 50,
