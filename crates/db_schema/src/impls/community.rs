@@ -362,11 +362,12 @@ impl CommunityActions {
       .ok_or(UntranslatedError::CommunityHasNoFollowers.into())
   }
 
-  pub async fn approve_follower(
+  pub async fn approve_private_community_follower(
     pool: &mut DbPool<'_>,
     community_id: CommunityId,
     follower_id: PersonId,
     approver_id: PersonId,
+    state: CommunityFollowerState,
   ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
     let find_action = community_actions::table
@@ -374,7 +375,7 @@ impl CommunityActions {
       .filter(community_actions::followed_at.is_not_null());
     diesel::update(find_action)
       .set((
-        community_actions::follow_state.eq(CommunityFollowerState::Accepted),
+        community_actions::follow_state.eq(state),
         community_actions::follow_approver_id.eq(approver_id),
       ))
       .execute(conn)
