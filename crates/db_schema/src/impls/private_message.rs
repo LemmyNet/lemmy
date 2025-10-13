@@ -65,10 +65,9 @@ impl PrivateMessage {
 
   pub async fn read_from_apub_id(
     pool: &mut DbPool<'_>,
-    object_id: Url,
+    object_id: DbUrl,
   ) -> LemmyResult<Option<Self>> {
     let conn = &mut get_conn(pool).await?;
-    let object_id: DbUrl = object_id.into();
     private_message::table
       .filter(private_message::ap_id.eq(object_id))
       .first(conn)

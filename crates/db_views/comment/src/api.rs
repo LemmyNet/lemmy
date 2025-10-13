@@ -126,7 +126,7 @@ pub struct ListCommentLikes {
 pub struct LockComment {
   pub comment_id: CommentId,
   pub locked: bool,
-  pub reason: Option<String>,
+  pub reason: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -147,7 +147,7 @@ pub struct ListCommentLikesResponse {
 /// Purges a comment from the database. This will delete all content attached to that comment.
 pub struct PurgeComment {
   pub comment_id: CommentId,
-  pub reason: Option<String>,
+  pub reason: String,
 }
 
 #[skip_serializing_none]
@@ -158,7 +158,7 @@ pub struct PurgeComment {
 pub struct RemoveComment {
   pub comment_id: CommentId,
   pub removed: bool,
-  pub reason: Option<String>,
+  pub reason: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]

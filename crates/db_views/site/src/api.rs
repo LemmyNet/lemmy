@@ -1,5 +1,4 @@
 use crate::SiteView;
-use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
   newtypes::{
     InstanceId,
@@ -38,7 +37,6 @@ use lemmy_db_views_community_follower::CommunityFollowerView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
-use lemmy_db_views_post::PostView;
 use lemmy_db_views_readable_federation_state::ReadableFederationState;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -55,7 +53,7 @@ use {
 pub struct AdminAllowInstanceParams {
   pub instance: String,
   pub allow: bool,
-  pub reason: Option<String>,
+  pub reason: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
@@ -64,8 +62,11 @@ pub struct AdminAllowInstanceParams {
 pub struct AdminBlockInstanceParams {
   pub instance: String,
   pub block: bool,
-  pub reason: Option<String>,
-  pub expires_at: Option<DateTime<Utc>>,
+  pub reason: String,
+  /// A time that the block will expire, in unix epoch seconds.
+  ///
+  /// An i64 unix timestamp is used for a simpler API client implementation.
+  pub expires_at: Option<i64>,
 }
 
 #[skip_serializing_none]
@@ -523,8 +524,6 @@ pub struct SaveUserSettings {
   pub open_links_in_new_tab: Option<bool>,
   /// Enable infinite scroll
   pub infinite_scroll_enabled: Option<bool>,
-  /// Whether to allow keyboard navigation (for browsing and interacting with posts and comments).
-  pub enable_keyboard_navigation: Option<bool>,
   /// Whether user avatars or inline images in the UI that are gifs should be allowed to play or
   /// should be paused
   pub enable_animated_images: Option<bool>,
@@ -533,7 +532,7 @@ pub struct SaveUserSettings {
   /// Whether to auto-collapse bot comments.
   pub collapse_bot_comments: Option<bool>,
   /// Some vote display mode settings
-  pub show_scores: Option<bool>,
+  pub show_score: Option<bool>,
   pub show_upvotes: Option<bool>,
   pub show_downvotes: Option<VoteShow>,
   pub show_upvote_percentage: Option<bool>,
@@ -584,52 +583,6 @@ pub struct UserBlockInstanceCommunitiesParams {
 /// Verify your email.
 pub struct VerifyEmail {
   pub token: String,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// Gets your hidden posts.
-pub struct ListPersonHidden {
-  pub page_cursor: Option<PaginationCursor>,
-  pub page_back: Option<bool>,
-  pub limit: Option<i64>,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// You hidden posts response.
-pub struct ListPersonHiddenResponse {
-  pub hidden: Vec<PostView>,
-  /// the pagination cursor to use to fetch the next page
-  pub next_page: Option<PaginationCursor>,
-  pub prev_page: Option<PaginationCursor>,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// Gets your read posts.
-pub struct ListPersonRead {
-  pub page_cursor: Option<PaginationCursor>,
-  pub page_back: Option<bool>,
-  pub limit: Option<i64>,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// You read posts response.
-pub struct ListPersonReadResponse {
-  pub read: Vec<PostView>,
-  /// the pagination cursor to use to fetch the next page
-  pub next_page: Option<PaginationCursor>,
-  pub prev_page: Option<PaginationCursor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]

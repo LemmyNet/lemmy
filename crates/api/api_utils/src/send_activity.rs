@@ -43,10 +43,10 @@ pub enum SendActivityData {
   RemovePost {
     post: Post,
     moderator: Person,
-    reason: Option<String>,
+    reason: String,
     removed: bool,
   },
-  LockPost(Post, Person, bool, Option<String>),
+  LockPost(Post, Person, bool, String),
   FeaturePost(Post, Person, bool),
   CreateComment(Comment),
   UpdateComment(Comment),
@@ -55,9 +55,9 @@ pub enum SendActivityData {
     comment: Comment,
     moderator: Person,
     community: Community,
-    reason: Option<String>,
+    reason: String,
   },
-  LockComment(Comment, Person, bool, Option<String>),
+  LockComment(Comment, Person, bool, String),
   LikePostOrComment {
     object_id: DbUrl,
     actor: Person,
@@ -74,7 +74,7 @@ pub enum SendActivityData {
   RemoveCommunity {
     moderator: Person,
     community: Community,
-    reason: Option<String>,
+    reason: String,
     removed: bool,
   },
   AddModToCommunity {
@@ -92,7 +92,7 @@ pub enum SendActivityData {
   BanFromSite {
     moderator: Person,
     banned_user: Person,
-    reason: Option<String>,
+    reason: String,
     remove_or_restore_data: Option<bool>,
     ban: bool,
     expires_at: Option<i64>,

@@ -49,7 +49,7 @@ pub struct BanFromCommunity {
   /// Optionally remove or restore all their data. Useful for new troll accounts.
   /// If ban is true, then this means remove. If ban is false, it means restore.
   pub remove_or_restore_data: Option<bool>,
-  pub reason: Option<String>,
+  pub reason: String,
   /// A time that the ban will expire, in unix epoch seconds.
   ///
   /// An i64 unix timestamp is used for a simpler API client implementation.
@@ -72,16 +72,6 @@ pub struct BanFromCommunityResponse {
 pub struct BlockCommunity {
   pub community_id: CommunityId,
   pub block: bool,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// The block community response.
-pub struct BlockCommunityResponse {
-  pub community_view: CommunityView,
-  pub blocked: bool,
 }
 
 /// Parameter for setting community icon or banner. Can't use POST data here as it already contains
@@ -210,7 +200,7 @@ pub struct GetRandomCommunity {
 pub struct HideCommunity {
   pub community_id: CommunityId,
   pub hidden: bool,
-  pub reason: Option<String>,
+  pub reason: String,
 }
 
 #[skip_serializing_none]
@@ -248,7 +238,7 @@ pub struct ListCommunitiesResponse {
 /// Purges a community from the database. This will delete all content attached to that community.
 pub struct PurgeCommunity {
   pub community_id: CommunityId,
-  pub reason: Option<String>,
+  pub reason: String,
 }
 
 #[skip_serializing_none]
@@ -259,7 +249,7 @@ pub struct PurgeCommunity {
 pub struct RemoveCommunity {
   pub community_id: CommunityId,
   pub removed: bool,
-  pub reason: Option<String>,
+  pub reason: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
@@ -317,7 +307,8 @@ pub struct ListMultiCommunitiesResponse {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct GetMultiCommunity {
-  pub id: MultiCommunityId,
+  pub id: Option<MultiCommunityId>,
+  pub name: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -326,6 +317,13 @@ pub struct GetMultiCommunity {
 pub struct GetMultiCommunityResponse {
   pub multi_community_view: MultiCommunityView,
   pub communities: Vec<CommunityView>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+pub struct MultiCommunityResponse {
+  pub multi_community_view: MultiCommunityView,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]

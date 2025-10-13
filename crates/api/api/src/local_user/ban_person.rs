@@ -2,6 +2,7 @@ use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_utils::{
   context::LemmyContext,
+  notify::notify_mod_action,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_expire_time, is_admin, remove_or_restore_user_data},
 };
@@ -15,7 +16,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::{
-  api::{BanPerson, BanPersonResponse},
+  api::{BanPerson, PersonResponse},
   PersonView,
 };
 use lemmy_utils::{error::LemmyResult, utils::validation::is_valid_body_field};
@@ -24,7 +25,7 @@ pub async fn ban_from_site(
   data: Json<BanPerson>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> LemmyResult<Json<BanPersonResponse>> {
+) -> LemmyResult<Json<PersonResponse>> {
   let local_instance_id = local_user_view.person.instance_id;
   let my_person_id = local_user_view.person.id;
 
@@ -34,9 +35,7 @@ pub async fn ban_from_site(
   // Also make sure you're a higher admin than the target
   LocalUser::is_higher_admin_check(&mut context.pool(), my_person_id, vec![data.person_id]).await?;
 
-  if let Some(reason) = &data.reason {
-    is_valid_body_field(reason, false)?;
-  }
+  is_valid_body_field(&data.reason, false)?;
 
   let expires_at = check_expire_time(data.expires_at)?;
 
@@ -74,7 +73,8 @@ pub async fn ban_from_site(
     instance_id: local_user_view.person.instance_id,
   };
 
-  AdminBan::create(&mut context.pool(), &form).await?;
+  let action = AdminBan::create(&mut context.pool(), &form).await?;
+  notify_mod_action(action.clone(), data.person_id, &context);
 
   let person_view = PersonView::read(
     &mut context.pool(),
@@ -97,8 +97,5 @@ pub async fn ban_from_site(
     &context,
   )?;
 
-  Ok(Json(BanPersonResponse {
-    person_view,
-    banned: data.ban,
-  }))
+  Ok(Json(PersonResponse { person_view }))
 }

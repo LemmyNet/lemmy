@@ -32,20 +32,11 @@ pub struct BanPerson {
   /// Optionally remove or restore all their data. Useful for new troll accounts.
   /// If ban is true, then this means remove. If ban is false, it means restore.
   pub remove_or_restore_data: Option<bool>,
-  pub reason: Option<String>,
+  pub reason: String,
   /// A time that the ban will expire, in unix epoch seconds.
   ///
   /// An i64 unix timestamp is used for a simpler API client implementation.
   pub expires_at: Option<i64>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// A response for a banned person.
-pub struct BanPersonResponse {
-  pub person_view: PersonView,
-  pub banned: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
@@ -60,10 +51,9 @@ pub struct BlockPerson {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// The response for a person block.
-pub struct BlockPersonResponse {
+/// A person response for actions done to a person.
+pub struct PersonResponse {
   pub person_view: PersonView,
-  pub blocked: bool,
 }
 
 #[skip_serializing_none]
@@ -97,7 +87,7 @@ pub struct GetPersonDetailsResponse {
 /// Purges a person from the database. This will delete all content attached to that person.
 pub struct PurgePerson {
   pub person_id: PersonId,
-  pub reason: Option<String>,
+  pub reason: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]

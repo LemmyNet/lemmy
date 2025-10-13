@@ -276,9 +276,10 @@ pub enum CommunityNotificationsMode {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// Types of notifications which can be received in inbox
-pub enum NotificationTypes {
+pub enum NotificationType {
   Mention,
   Reply,
   Subscribed,
   PrivateMessage,
+  ModAction,
 }

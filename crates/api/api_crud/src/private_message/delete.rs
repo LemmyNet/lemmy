@@ -3,6 +3,7 @@ use actix_web::web::Json;
 use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
+  utils::check_local_user_valid,
 };
 use lemmy_db_schema::{
   source::private_message::{PrivateMessage, PrivateMessageUpdateForm},
@@ -20,6 +21,7 @@ pub async fn delete_private_message(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PrivateMessageResponse>> {
+  check_local_user_valid(&local_user_view)?;
   // Checking permissions
   let private_message_id = data.private_message_id;
   let orig_private_message = PrivateMessage::read(&mut context.pool(), private_message_id).await?;

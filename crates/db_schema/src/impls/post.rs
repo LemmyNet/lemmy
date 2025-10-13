@@ -247,10 +247,9 @@ impl Post {
 
   pub async fn read_from_apub_id(
     pool: &mut DbPool<'_>,
-    object_id: Url,
+    object_id: DbUrl,
   ) -> LemmyResult<Option<Self>> {
     let conn = &mut get_conn(pool).await?;
-    let object_id: DbUrl = object_id.into();
     post::table
       .filter(post::ap_id.eq(object_id))
       .filter(post::scheduled_publish_time_at.is_null())

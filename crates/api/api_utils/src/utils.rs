@@ -45,7 +45,14 @@ use lemmy_db_views_site::{
   SiteView,
 };
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
+  error::{
+    LemmyError,
+    LemmyErrorExt,
+    LemmyErrorExt2,
+    LemmyErrorType,
+    LemmyResult,
+    UntranslatedError,
+  },
   rate_limit::{ActionType, BucketConfig},
   settings::{structs::PictrsImageMode, SETTINGS},
   spawn_try_task,
@@ -275,6 +282,7 @@ pub async fn check_community_mod_action(
   allow_deleted: bool,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
+  check_local_user_valid(local_user_view)?;
   is_mod_or_admin(pool, local_user_view, community.id).await?;
   CommunityPersonBanView::check(pool, local_user_view.person.id, community.id).await?;
 
@@ -540,7 +548,7 @@ pub async fn remove_or_restore_user_data(
   mod_person_id: PersonId,
   banned_person_id: PersonId,
   removed: bool,
-  reason: &Option<String>,
+  reason: &str,
   context: &LemmyContext,
 ) -> LemmyResult<()> {
   let pool = &mut context.pool();
@@ -638,7 +646,7 @@ async fn create_modlog_entries_for_removed_or_restored_posts(
   mod_person_id: PersonId,
   post_ids: Vec<PostId>,
   removed: bool,
-  reason: &Option<String>,
+  reason: &str,
 ) -> LemmyResult<()> {
   // Build the forms
   let forms = post_ids
@@ -647,7 +655,7 @@ async fn create_modlog_entries_for_removed_or_restored_posts(
       mod_person_id,
       post_id,
       removed: Some(removed),
-      reason: reason.clone(),
+      reason: reason.to_string(),
     })
     .collect();
 
@@ -661,7 +669,7 @@ async fn create_modlog_entries_for_removed_or_restored_comments(
   mod_person_id: PersonId,
   comment_ids: Vec<CommentId>,
   removed: bool,
-  reason: &Option<String>,
+  reason: &str,
 ) -> LemmyResult<()> {
   // Build the forms
   let forms = comment_ids
@@ -670,7 +678,7 @@ async fn create_modlog_entries_for_removed_or_restored_comments(
       mod_person_id,
       comment_id,
       removed: Some(removed),
-      reason: reason.clone(),
+      reason: reason.to_string(),
     })
     .collect();
 
@@ -684,7 +692,7 @@ pub async fn remove_or_restore_user_data_in_community(
   mod_person_id: PersonId,
   banned_person_id: PersonId,
   remove: bool,
-  reason: &Option<String>,
+  reason: &str,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
   // These actions are only possible when removing, not restoring
@@ -981,7 +989,7 @@ pub fn send_webmention(post: Post, community: &Community) {
         {
           Err(WebmentionError::NoEndpointDiscovered(_)) => Ok(()),
           Ok(_) => Ok(()),
-          Err(e) => Err(e).with_lemmy_type(LemmyErrorType::CouldntSendWebmention),
+          Err(e) => Err(e).with_lemmy_type(UntranslatedError::CouldntSendWebmention.into()),
         }
       });
     }

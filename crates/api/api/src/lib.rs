@@ -11,6 +11,7 @@ use totp_rs::{Secret, TOTP};
 
 pub mod comment;
 pub mod community;
+pub mod federation;
 pub mod local_user;
 pub mod post;
 pub mod reports;

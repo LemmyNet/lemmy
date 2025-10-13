@@ -5,7 +5,7 @@ use lemmy_api_utils::{
   utils::{check_private_instance, local_user_view_from_jwt},
 };
 use lemmy_db_schema::{
-  source::{community::Community, person::Person},
+  source::{community::Community, multi_community::MultiCommunity, person::Person},
   traits::ApubActor,
   PersonContentType,
 };
@@ -58,6 +58,10 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     web::scope("/feeds")
       .route("/u/{user_name}.xml", web::get().to(get_feed_user))
       .route("/c/{community_name}.xml", web::get().to(get_feed_community))
+      .route(
+        "/c/{multi_name}.xml",
+        web::get().to(get_feed_multi_community),
+      )
       .route("/front/{jwt}.xml", web::get().to(get_feed_front))
       .route("/modlog/{jwt}.xml", web::get().to(get_feed_modlog))
       .route("/notifications/{jwt}.xml", web::get().to(get_feed_notifs))
@@ -120,7 +124,6 @@ async fn get_feed_data(
   limit: i64,
 ) -> Result<HttpResponse, Error> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
-
   check_private_instance(&None, &site_view.local_site)?;
 
   let posts = PostQuery {
@@ -132,39 +135,24 @@ async fn get_feed_data(
   .list(&site_view.site, &mut context.pool())
   .await?;
 
+  let title = format!("{} - {}", site_view.site.name, listing_type);
+  let link = context.settings().get_protocol_and_hostname();
   let items = create_post_items(posts, context.settings())?;
-
-  let mut channel = Channel {
-    namespaces: RSS_NAMESPACE.clone(),
-    title: format!("{} - {}", site_view.site.name, listing_type),
-    link: context.settings().get_protocol_and_hostname(),
-    items,
-    ..Default::default()
-  };
-
-  if let Some(site_desc) = site_view.site.description {
-    channel.set_description(&site_desc);
-  }
-
-  Ok(channel_to_http_res(channel))
+  Ok(send_feed_response(title, link, None, items, site_view))
 }
 
 async fn get_feed_user(
-  req: HttpRequest,
   info: web::Query<Params>,
+  name: web::Path<String>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
-  let user_name: String = req
-    .match_info()
-    .get("user_name")
-    .unwrap_or("none")
-    .parse()?;
+  let (name, domain) = split_name(&name);
 
-  let site_view = SiteView::read_local(&mut context.pool()).await?;
-  let person = Person::read_from_name(&mut context.pool(), &user_name, false)
+  let person = Person::read_from_name(&mut context.pool(), name, domain, false)
     .await?
     .ok_or(ErrorBadRequest("not_found"))?;
 
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
   check_private_instance(&None, &site_view.local_site)?;
 
   let content = PersonContentCombinedQuery {
@@ -185,30 +173,31 @@ async fn get_feed_user(
     .cloned()
     .collect::<Vec<PostView>>();
 
+  let title = format!("{} - {}", site_view.site.name, person.name);
+  let link = person.ap_id.to_string();
   let items = create_post_items(posts, context.settings())?;
-  let channel = Channel {
-    namespaces: RSS_NAMESPACE.clone(),
-    title: format!("{} - {}", site_view.site.name, person.name),
-    link: person.ap_id.to_string(),
-    items,
-    ..Default::default()
-  };
+  Ok(send_feed_response(
+    title, link, person.bio, items, site_view,
+  ))
+}
 
-  Ok(channel_to_http_res(channel))
+/// Takes a user/community name either in the format `name` or `name@example.com`. Splits
+/// it on `@` and returns a tuple of name and optional domain.
+fn split_name(name: &str) -> (&str, Option<&str>) {
+  if let Some(split) = name.split_once('@') {
+    (split.0, Some(split.1))
+  } else {
+    (name, None)
+  }
 }
 
 async fn get_feed_community(
-  req: HttpRequest,
   info: web::Query<Params>,
+  name: web::Path<String>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
-  let community_name: String = req
-    .match_info()
-    .get("community_name")
-    .unwrap_or("none")
-    .parse()?;
-  let site_view = SiteView::read_local(&mut context.pool()).await?;
-  let community = Community::read_from_name(&mut context.pool(), &community_name, false)
+  let (name, domain) = split_name(&name);
+  let community = Community::read_from_name(&mut context.pool(), name, domain, false)
     .await?
     .ok_or(ErrorBadRequest("not_found"))?;
 
@@ -216,6 +205,7 @@ async fn get_feed_community(
     return Err(ErrorBadRequest("not_found"));
   }
 
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
   check_private_instance(&None, &site_view.local_site)?;
 
   let posts = PostQuery {
@@ -227,21 +217,50 @@ async fn get_feed_community(
   .list(&site_view.site, &mut context.pool())
   .await?;
 
+  let title = format!("{} - {}", site_view.site.name, community.name);
+  let link = community.ap_id.to_string();
   let items = create_post_items(posts, context.settings())?;
-
-  let mut channel = Channel {
-    namespaces: RSS_NAMESPACE.clone(),
-    title: format!("{} - {}", site_view.site.name, community.name),
-    link: community.ap_id.to_string(),
+  Ok(send_feed_response(
+    title,
+    link,
+    community.description,
     items,
+    site_view,
+  ))
+}
+
+async fn get_feed_multi_community(
+  info: web::Query<Params>,
+  name: web::Path<String>,
+  context: web::Data<LemmyContext>,
+) -> Result<HttpResponse, Error> {
+  let (name, domain) = split_name(&name);
+  let multi_community = MultiCommunity::read_from_name(&mut context.pool(), name, domain, false)
+    .await?
+    .ok_or(ErrorBadRequest("not_found"))?;
+
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  check_private_instance(&None, &site_view.local_site)?;
+
+  let posts = PostQuery {
+    sort: Some(info.sort_type()?),
+    multi_community_id: Some(multi_community.id),
+    limit: Some(info.get_limit()),
     ..Default::default()
-  };
-
-  if let Some(community_desc) = community.description {
-    channel.set_description(markdown_to_html(&community_desc));
   }
+  .list(&site_view.site, &mut context.pool())
+  .await?;
 
-  Ok(channel_to_http_res(channel))
+  let title = format!("{} - {}", site_view.site.name, multi_community.name);
+  let link = multi_community.ap_id.to_string();
+  let items = create_post_items(posts, context.settings())?;
+  Ok(send_feed_response(
+    title,
+    link,
+    multi_community.description,
+    items,
+    site_view,
+  ))
 }
 
 async fn get_feed_front(
@@ -265,21 +284,35 @@ async fn get_feed_front(
   .list(&site_view.site, &mut context.pool())
   .await?;
 
-  let protocol_and_hostname = context.settings().get_protocol_and_hostname();
+  let title = format!("{} - Subscribed", site_view.site.name);
+  let link = context.settings().get_protocol_and_hostname();
   let items = create_post_items(posts, context.settings())?;
+  Ok(send_feed_response(title, link, None, items, site_view))
+}
+
+fn send_feed_response(
+  title: String,
+  link: String,
+  description: Option<String>,
+  items: Vec<Item>,
+  site_view: SiteView,
+) -> HttpResponse {
   let mut channel = Channel {
     namespaces: RSS_NAMESPACE.clone(),
-    title: format!("{} - Subscribed", site_view.site.name),
-    link: protocol_and_hostname,
+    title,
+    link,
     items,
     ..Default::default()
   };
 
-  if let Some(site_desc) = site_view.site.description {
-    channel.set_description(markdown_to_html(&site_desc));
+  let description = description.or(site_view.site.description);
+  if let Some(desc) = description {
+    channel.set_description(markdown_to_html(&desc));
   }
 
-  Ok(channel_to_http_res(channel))
+  HttpResponse::Ok()
+    .content_type("application/rss+xml")
+    .body(channel.to_string())
 }
 
 async fn get_feed_notifs(
@@ -302,21 +335,11 @@ async fn get_feed_notifs(
   .await?;
 
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();
+
+  let title = format!("{} - Notifications", site_view.site.name);
+  let link = format!("{protocol_and_hostname}/notifications");
   let items = create_reply_and_mention_items(notifications, &context)?;
-
-  let mut channel = Channel {
-    namespaces: RSS_NAMESPACE.clone(),
-    title: format!("{} - Notifications", site_view.site.name),
-    link: format!("{protocol_and_hostname}/notifications"),
-    items,
-    ..Default::default()
-  };
-
-  if let Some(site_desc) = site_view.site.description {
-    channel.set_description(&site_desc);
-  }
-
-  Ok(channel_to_http_res(channel))
+  Ok(send_feed_response(title, link, None, items, site_view))
 }
 
 /// Gets your ModeratorView modlog
@@ -340,21 +363,10 @@ async fn get_feed_modlog(
   .await?;
 
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();
+  let title = format!("{} - Modlog", local_user.person.name);
+  let link = format!("{protocol_and_hostname}/modlog");
   let items = create_modlog_items(modlog, context.settings())?;
-
-  let mut channel = Channel {
-    namespaces: RSS_NAMESPACE.clone(),
-    title: format!("{} - Modlog", local_user.person.name),
-    link: format!("{protocol_and_hostname}/modlog"),
-    items,
-    ..Default::default()
-  };
-
-  if let Some(site_desc) = site_view.site.description {
-    channel.set_description(&site_desc);
-  }
-
-  Ok(channel_to_http_res(channel))
+  Ok(send_feed_response(title, link, None, items, site_view))
 }
 
 fn create_reply_and_mention_items(
@@ -363,40 +375,51 @@ fn create_reply_and_mention_items(
 ) -> LemmyResult<Vec<Item>> {
   let reply_items: Vec<Item> = notifs
     .iter()
-    .map(|v| match &v.data {
+    .flat_map(|v| match &v.data {
       NotificationData::Post(post) => {
-        let mention_url = post.post.local_url(context.settings())?;
-        build_item(
+        let mention_url = post.post.local_url(context.settings()).ok()?;
+        Some(build_item(
           &post.creator,
           &post.post.published_at,
           mention_url.as_str(),
           &post.post.body.clone().unwrap_or_default(),
           context.settings(),
-        )
+        ))
       }
       NotificationData::Comment(comment) => {
-        let reply_url = comment.comment.local_url(context.settings())?;
-        build_item(
+        let reply_url = comment.comment.local_url(context.settings()).ok()?;
+        Some(build_item(
           &comment.creator,
           &comment.comment.published_at,
           reply_url.as_str(),
           &comment.comment.content,
           context.settings(),
-        )
+        ))
       }
       NotificationData::PrivateMessage(pm) => {
         let notifs_url = format!(
           "{}/notifications",
           context.settings().get_protocol_and_hostname()
         );
-        build_item(
+        Some(build_item(
           &pm.creator,
           &pm.private_message.published_at,
           &notifs_url,
           &pm.private_message.content,
           context.settings(),
-        )
+        ))
       }
+      // skip modlog items
+      NotificationData::AdminAdd(_)
+      | NotificationData::ModAddToCommunity(_)
+      | NotificationData::AdminBan(_)
+      | NotificationData::ModBanFromCommunity(_)
+      | NotificationData::ModLockPost(_)
+      | NotificationData::ModLockComment(_)
+      | NotificationData::ModRemovePost(_)
+      | NotificationData::ModRemoveComment(_)
+      | NotificationData::AdminRemoveCommunity(_)
+      | NotificationData::ModTransferCommunity(_) => None,
     })
     .collect::<LemmyResult<Vec<Item>>>()?;
 
@@ -429,7 +452,7 @@ fn create_modlog_items(
           },
           &v.instance.domain
         ),
-        &v.admin_allow_instance.reason,
+        Some(&v.admin_allow_instance.reason),
         settings,
       ),
       ModlogCombinedView::AdminBlockInstance(v) => build_modlog_item(
@@ -445,7 +468,7 @@ fn create_modlog_items(
           },
           &v.instance.domain
         ),
-        &v.admin_block_instance.reason,
+        Some(&v.admin_block_instance.reason),
         settings,
       ),
       ModlogCombinedView::AdminPurgeComment(v) => build_modlog_item(
@@ -453,7 +476,7 @@ fn create_modlog_items(
         &v.admin_purge_comment.published_at,
         &modlog_url,
         "Admin purged comment",
-        &v.admin_purge_comment.reason,
+        Some(&v.admin_purge_comment.reason),
         settings,
       ),
       ModlogCombinedView::AdminPurgeCommunity(v) => build_modlog_item(
@@ -461,7 +484,7 @@ fn create_modlog_items(
         &v.admin_purge_community.published_at,
         &modlog_url,
         "Admin purged community",
-        &v.admin_purge_community.reason,
+        Some(&v.admin_purge_community.reason),
         settings,
       ),
       ModlogCombinedView::AdminPurgePerson(v) => build_modlog_item(
@@ -469,7 +492,7 @@ fn create_modlog_items(
         &v.admin_purge_person.published_at,
         &modlog_url,
         "Admin purged person",
-        &v.admin_purge_person.reason,
+        Some(&v.admin_purge_person.reason),
         settings,
       ),
       ModlogCombinedView::AdminPurgePost(v) => build_modlog_item(
@@ -477,7 +500,7 @@ fn create_modlog_items(
         &v.admin_purge_post.published_at,
         &modlog_url,
         "Admin purged post",
-        &v.admin_purge_post.reason,
+        Some(&v.admin_purge_post.reason),
         settings,
       ),
       ModlogCombinedView::AdminAdd(v) => build_modlog_item(
@@ -489,7 +512,7 @@ fn create_modlog_items(
           removed_added_str(v.admin_add.removed),
           &v.other_person.name
         ),
-        &None,
+        None,
         settings,
       ),
       ModlogCombinedView::ModAddToCommunity(v) => build_modlog_item(
@@ -502,7 +525,7 @@ fn create_modlog_items(
           &v.other_person.name,
           &v.community.name
         ),
-        &None,
+        None,
         settings,
       ),
       ModlogCombinedView::AdminBan(v) => build_modlog_item(
@@ -514,7 +537,7 @@ fn create_modlog_items(
           banned_unbanned_str(v.admin_ban.banned),
           &v.other_person.name
         ),
-        &v.admin_ban.reason,
+        Some(&v.admin_ban.reason),
         settings,
       ),
       ModlogCombinedView::ModBanFromCommunity(v) => build_modlog_item(
@@ -527,7 +550,7 @@ fn create_modlog_items(
           &v.other_person.name,
           &v.community.name
         ),
-        &v.mod_ban_from_community.reason,
+        Some(&v.mod_ban_from_community.reason),
         settings,
       ),
       ModlogCombinedView::ModFeaturePost(v) => build_modlog_item(
@@ -543,7 +566,7 @@ fn create_modlog_items(
           },
           &v.post.name
         ),
-        &None,
+        None,
         settings,
       ),
       ModlogCombinedView::ModChangeCommunityVisibility(v) => build_modlog_item(
@@ -554,7 +577,7 @@ fn create_modlog_items(
           "Changed /c/{} visibility to {}",
           &v.community.name, &v.mod_change_community_visibility.visibility
         ),
-        &None,
+        None,
         settings,
       ),
       ModlogCombinedView::ModLockPost(v) => build_modlog_item(
@@ -570,7 +593,7 @@ fn create_modlog_items(
           },
           &v.post.name
         ),
-        &v.mod_lock_post.reason,
+        Some(&v.mod_lock_post.reason),
         settings,
       ),
       ModlogCombinedView::ModRemoveComment(v) => build_modlog_item(
@@ -582,7 +605,7 @@ fn create_modlog_items(
           removed_restored_str(v.mod_remove_comment.removed),
           &v.comment.content
         ),
-        &v.mod_remove_comment.reason,
+        Some(&v.mod_remove_comment.reason),
         settings,
       ),
       ModlogCombinedView::AdminRemoveCommunity(v) => build_modlog_item(
@@ -594,7 +617,7 @@ fn create_modlog_items(
           removed_restored_str(v.admin_remove_community.removed),
           &v.community.name
         ),
-        &v.admin_remove_community.reason,
+        Some(&v.admin_remove_community.reason),
         settings,
       ),
       ModlogCombinedView::ModRemovePost(v) => build_modlog_item(
@@ -606,7 +629,7 @@ fn create_modlog_items(
           removed_restored_str(v.mod_remove_post.removed),
           &v.post.name
         ),
-        &v.mod_remove_post.reason,
+        Some(&v.mod_remove_post.reason),
         settings,
       ),
       ModlogCombinedView::ModTransferCommunity(v) => build_modlog_item(
@@ -617,7 +640,7 @@ fn create_modlog_items(
           "Tranferred /c/{} to /u/{}",
           &v.community.name, &v.other_person.name
         ),
-        &None,
+        None,
         settings,
       ),
       ModlogCombinedView::ModLockComment(v) => build_modlog_item(
@@ -633,7 +656,7 @@ fn create_modlog_items(
           },
           &v.comment.content
         ),
-        &v.mod_lock_comment.reason,
+        Some(&v.mod_lock_comment.reason),
         settings,
       ),
     })
@@ -671,7 +694,7 @@ fn build_modlog_item(
   published: &DateTime<Utc>,
   url: &str,
   action: &str,
-  reason: &Option<String>,
+  reason: Option<&String>,
   settings: &Settings,
 ) -> LemmyResult<Item> {
   let guid = Some(Guid {
@@ -694,7 +717,7 @@ fn build_modlog_item(
     pub_date: Some(published.to_rfc2822()),
     link: Some(url.to_owned()),
     guid,
-    description: reason.clone(),
+    description: reason.cloned(),
     ..Default::default()
   })
 }
@@ -820,10 +843,4 @@ fn create_post_items(posts: Vec<PostView>, settings: &Settings) -> LemmyResult<V
   }
 
   Ok(items)
-}
-
-fn channel_to_http_res(channel: Channel) -> HttpResponse {
-  HttpResponse::Ok()
-    .content_type("application/rss+xml")
-    .body(channel.to_string())
 }

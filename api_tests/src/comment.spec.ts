@@ -39,6 +39,8 @@ import {
   listPersonContent,
   listNotifications,
   lockComment,
+  statusNotFound,
+  statusBadRequest,
 } from "./shared";
 import {
   CommentReportView,
@@ -101,7 +103,7 @@ test("Create a comment", async () => {
 
 test("Create a comment in a non-existent post", async () => {
   await expect(createComment(alpha, -1)).rejects.toStrictEqual(
-    new LemmyError("not_found"),
+    new LemmyError("not_found", statusNotFound),
   );
 });
 
@@ -827,7 +829,7 @@ test("Dont send a comment reply to a blocked community", async () => {
 
   // Beta blocks the new beta community
   let blockRes = await blockCommunity(beta, newCommunityId, true);
-  expect(blockRes.blocked).toBe(true);
+  expect(blockRes.community_view.community_actions?.blocked_at).toBeDefined();
   delay();
 
   // Alpha creates a comment
@@ -850,7 +852,7 @@ test("Dont send a comment reply to a blocked community", async () => {
 
   // Unblock the community
   blockRes = await blockCommunity(beta, newCommunityId, false);
-  expect(blockRes.blocked).toBe(false);
+  expect(blockRes.community_view.community_actions?.blocked_at).toBeUndefined();
 });
 
 /// Fetching a deeply nested comment can lead to stack overflow as all parent comments are also
@@ -962,11 +964,11 @@ test("Lock comment", async () => {
       betaPost.post.id,
       comment3.comment_view.comment.id,
     ),
-  ).rejects.toStrictEqual(new LemmyError("locked"));
+  ).rejects.toStrictEqual(new LemmyError("locked", statusBadRequest));
 
   // newBeta should still be able to respond to comment1
-  await expect(
-    createComment(newBetaApi, betaPost.post.id, betaComment1.comment.id),
+  expect(
+    await createComment(newBetaApi, betaPost.post.id, betaComment1.comment.id),
   ).toBeDefined();
 });
 
