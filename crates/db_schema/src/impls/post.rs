@@ -40,7 +40,7 @@ use diesel_async::RunQueryDsl;
 use diesel_uplete::{uplete, UpleteCount};
 use lemmy_db_schema_file::{
   enums::PostNotificationsMode,
-  schema::{community, local_user, person, post, post_actions},
+  schema::{community, local_user, notification, person, post, post_actions},
 };
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
@@ -350,6 +350,16 @@ impl Likeable for PostActions {
     let conn = &mut get_conn(pool).await?;
 
     validate_like(form.like_score).with_lemmy_type(LemmyErrorType::CouldntCreate)?;
+
+    update(
+      notification::table
+        .filter(notification::recipient_id.eq(form.person_id))
+        .filter(notification::post_id.eq(form.post_id)),
+    )
+    .set(notification::read.eq(true))
+    .execute(conn)
+    .await
+    .with_lemmy_type(LemmyErrorType::CouldntCreate)?;
 
     insert_into(post_actions::table)
       .values(form)

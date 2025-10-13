@@ -30,7 +30,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use diesel_ltree::{dsl::LtreeExtensions, Ltree};
 use diesel_uplete::{uplete, UpleteCount};
-use lemmy_db_schema_file::schema::{comment, comment_actions, community, post};
+use lemmy_db_schema_file::schema::{comment, comment_actions, community, notification, post};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
@@ -317,6 +317,16 @@ impl Likeable for CommentActions {
     let conn = &mut get_conn(pool).await?;
 
     validate_like(form.like_score).with_lemmy_type(LemmyErrorType::CouldntCreate)?;
+
+    update(
+      notification::table
+        .filter(notification::recipient_id.eq(form.person_id))
+        .filter(notification::comment_id.eq(form.comment_id)),
+    )
+    .set(notification::read.eq(true))
+    .execute(conn)
+    .await
+    .with_lemmy_type(LemmyErrorType::CouldntCreate)?;
 
     insert_into(comment_actions::table)
       .values(form)
