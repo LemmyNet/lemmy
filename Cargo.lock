@@ -600,6 +600,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "89e25b6adfb930f02d1981565a6e5d9c547ac15a96606256d3b59040e5cd4ca3"
 
 [[package]]
+name = "bb8"
+version = "0.8.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d89aabfae550a5c44b43ab941844ffcd2e993cb6900b342debf59e9ea74acdb8"
+dependencies = [
+ "async-trait",
+ "futures-util",
+ "parking_lot",
+ "tokio",
+]
+
+[[package]]
 name = "bcrypt"
 version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1391,6 +1403,22 @@ dependencies = [
  "lock_api",
  "once_cell",
  "parking_lot_core",
+]
+
+[[package]]
+name = "db-pool"
+version = "0.6.0"
+source = "git+https://github.com/momentary-lapse/db-pool.git?branch=edition2021#39f31b40483257b6ce2adcc8fe632546cb6d45c8"
+dependencies = [
+ "async-trait",
+ "bb8",
+ "deadpool",
+ "diesel",
+ "diesel-async",
+ "futures",
+ "parking_lot",
+ "tokio",
+ "uuid",
 ]
 
 [[package]]
@@ -3170,7 +3198,6 @@ dependencies = [
  "regex",
  "serde",
  "serde_json",
- "serial_test",
  "sitemap-rs",
  "tokio",
  "totp-rs",
@@ -3301,7 +3328,6 @@ dependencies = [
  "reqwest-middleware",
  "serde",
  "serde_json",
- "serial_test",
  "tokio",
  "tracing",
  "url",
@@ -3403,7 +3429,6 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
- "serial_test",
  "stringreader",
  "tokio",
  "tracing",
@@ -3434,7 +3459,6 @@ dependencies = [
  "reqwest 0.12.23",
  "serde",
  "serde_json",
- "serial_test",
  "test-context",
  "tokio",
  "tokio-util",
@@ -3451,6 +3475,7 @@ dependencies = [
  "activitypub_federation",
  "bcrypt",
  "chrono",
+ "db-pool",
  "deadpool",
  "derive-new",
  "diesel",
@@ -3469,7 +3494,6 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
- "serial_test",
  "strum",
  "tokio",
  "tokio-postgres",
@@ -3507,7 +3531,6 @@ dependencies = [
  "lemmy_db_schema_file",
  "lemmy_utils",
  "pathfinding",
- "serial_test",
  "tracing",
  "unified-diff",
 ]
@@ -3529,7 +3552,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
 ]
@@ -3548,7 +3570,6 @@ dependencies = [
  "lemmy_utils",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
  "url",
@@ -3567,7 +3588,6 @@ dependencies = [
  "lemmy_utils",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
 ]
@@ -3642,7 +3662,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
 ]
@@ -3660,7 +3679,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
 ]
@@ -3702,7 +3720,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
 ]
@@ -3725,7 +3742,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
 ]
@@ -3747,7 +3763,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
 ]
@@ -3769,7 +3784,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
 ]
@@ -3791,7 +3805,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "serial_test",
  "test-context",
  "tokio",
  "tracing",
@@ -3837,7 +3850,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
 ]
@@ -3857,7 +3869,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
 ]
@@ -3881,7 +3892,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
  "url",
@@ -3923,8 +3933,8 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
+ "tokio-shared-rt",
  "ts-rs",
 ]
 
@@ -3979,7 +3989,6 @@ dependencies = [
  "reqwest-middleware",
  "rss",
  "serde",
- "serial_test",
  "tokio",
  "tracing",
  "url",
@@ -6766,6 +6775,28 @@ checksum = "05f63835928ca123f1bef57abbcd23bb2ba0ac9ae1235f1e65bda0d06e7786bd"
 dependencies = [
  "rustls 0.23.31",
  "tokio",
+]
+
+[[package]]
+name = "tokio-shared-rt"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1a6bb03ec682a0bb16ce93d19301abc5b98a0d7936477175a156a213dcc47d85"
+dependencies = [
+ "once_cell",
+ "tokio",
+ "tokio-shared-rt-macro",
+]
+
+[[package]]
+name = "tokio-shared-rt-macro"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1fe49a94e3a984b0d0ab97343dc3dcd52baae1ee13f005bfad39faea47d051dc"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.106",
 ]
 
 [[package]]
