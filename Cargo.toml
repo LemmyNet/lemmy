@@ -188,6 +188,7 @@ captcha = "1.0.0"
 anyhow = { version = "1.0.98", features = ["backtrace"] }
 diesel_ltree = "0.4.0"
 tokio = { version = "1.45.1", features = ["full"] }
+tokio-shared-rt = "0.1.0"
 regex = "1.11.1"
 diesel-derive-newtype = "2.1.2"
 diesel-derive-enum = { version = "2.1.0", features = ["postgres"] }

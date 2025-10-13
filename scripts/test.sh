@@ -24,4 +24,4 @@ fi
 
 # Add this to do printlns: -- --nocapture
 
-docker-compose -f docker/docker-compose.yml down postgres
+docker-compose -f docker/docker-compose-test.yml down
