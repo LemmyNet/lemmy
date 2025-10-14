@@ -5,11 +5,16 @@ use lemmy_api_utils::{
   utils::{check_private_instance, local_user_view_from_jwt},
 };
 use lemmy_db_schema::{
-  source::{community::Community, multi_community::MultiCommunity, person::Person},
+  source::{
+    community::Community,
+    multi_community::MultiCommunity,
+    notification::Notification,
+    person::Person,
+  },
   traits::ApubActor,
   PersonContentType,
 };
-use lemmy_db_schema_file::enums::{ListingType, PostSortType};
+use lemmy_db_schema_file::enums::{ListingType, NotificationType, PostSortType};
 use lemmy_db_views_modlog_combined::{impls::ModlogCombinedQuery, ModlogCombinedView};
 use lemmy_db_views_notification::{impls::NotificationQuery, NotificationData, NotificationView};
 use lemmy_db_views_person_content_combined::impls::PersonContentCombinedQuery;
@@ -375,51 +380,56 @@ fn create_reply_and_mention_items(
 ) -> LemmyResult<Vec<Item>> {
   let reply_items: Vec<Item> = notifs
     .iter()
-    .flat_map(|v| match &v.data {
-      NotificationData::Post(post) => {
-        let mention_url = post.post.local_url(context.settings()).ok()?;
-        Some(build_item(
-          &post.creator,
-          &post.post.published_at,
-          mention_url.as_str(),
-          &post.post.body.clone().unwrap_or_default(),
-          context.settings(),
-        ))
+    .flat_map(|v| {
+      match &v.data {
+        NotificationData::Post(post) => {
+          let mention_url = post.post.local_url(context.settings()).ok()?;
+          Some(build_item(
+            &post.creator,
+            &post.post.published_at,
+            mention_url.as_str(),
+            &post.post.body.clone().unwrap_or_default(),
+            &v.notification,
+            context.settings(),
+          ))
+        }
+        NotificationData::Comment(comment) => {
+          let reply_url = comment.comment.local_url(context.settings()).ok()?;
+          Some(build_item(
+            &comment.creator,
+            &comment.comment.published_at,
+            reply_url.as_str(),
+            &comment.comment.content,
+            &v.notification,
+            context.settings(),
+          ))
+        }
+        NotificationData::PrivateMessage(pm) => {
+          let notifs_url = format!(
+            "{}/notifications",
+            context.settings().get_protocol_and_hostname()
+          );
+          Some(build_item(
+            &pm.creator,
+            &pm.private_message.published_at,
+            &notifs_url,
+            &pm.private_message.content,
+            &v.notification,
+            context.settings(),
+          ))
+        }
+        // skip modlog items
+        NotificationData::AdminAdd(_)
+        | NotificationData::ModAddToCommunity(_)
+        | NotificationData::AdminBan(_)
+        | NotificationData::ModBanFromCommunity(_)
+        | NotificationData::ModLockPost(_)
+        | NotificationData::ModLockComment(_)
+        | NotificationData::ModRemovePost(_)
+        | NotificationData::ModRemoveComment(_)
+        | NotificationData::AdminRemoveCommunity(_)
+        | NotificationData::ModTransferCommunity(_) => None,
       }
-      NotificationData::Comment(comment) => {
-        let reply_url = comment.comment.local_url(context.settings()).ok()?;
-        Some(build_item(
-          &comment.creator,
-          &comment.comment.published_at,
-          reply_url.as_str(),
-          &comment.comment.content,
-          context.settings(),
-        ))
-      }
-      NotificationData::PrivateMessage(pm) => {
-        let notifs_url = format!(
-          "{}/notifications",
-          context.settings().get_protocol_and_hostname()
-        );
-        Some(build_item(
-          &pm.creator,
-          &pm.private_message.published_at,
-          &notifs_url,
-          &pm.private_message.content,
-          context.settings(),
-        ))
-      }
-      // skip modlog items
-      NotificationData::AdminAdd(_)
-      | NotificationData::ModAddToCommunity(_)
-      | NotificationData::AdminBan(_)
-      | NotificationData::ModBanFromCommunity(_)
-      | NotificationData::ModLockPost(_)
-      | NotificationData::ModLockComment(_)
-      | NotificationData::ModRemovePost(_)
-      | NotificationData::ModRemoveComment(_)
-      | NotificationData::AdminRemoveCommunity(_)
-      | NotificationData::ModTransferCommunity(_) => None,
     })
     .collect::<LemmyResult<Vec<Item>>>()?;
 
@@ -727,6 +737,7 @@ fn build_item(
   published: &DateTime<Utc>,
   url: &str,
   content: &str,
+  notification: &Notification,
   settings: &Settings,
 ) -> LemmyResult<Item> {
   // TODO add images
@@ -736,8 +747,15 @@ fn build_item(
   });
   let description = Some(markdown_to_html(content));
 
+  let title = match notification.kind {
+    NotificationType::Mention => format!("Mention from {}", creator.name),
+    NotificationType::Reply => format!("Reply from {}", creator.name),
+    NotificationType::Subscribed => "Subscribed".to_string(),
+    NotificationType::PrivateMessage => format!("Private message from {}", creator.name),
+    NotificationType::ModAction => "Mod action".to_string(),
+  };
   Ok(Item {
-    title: Some(format!("Reply from {}", creator.name)),
+    title: Some(title),
     author: Some(format!(
       "/u/{} <a href=\"{}\">(link)</a>",
       creator.name,
