@@ -890,7 +890,7 @@ diesel::table! {
 
 diesel::table! {
     person_liked_combined (id) {
-        liked_at -> Timestamptz,
+        voted_at -> Timestamptz,
         id -> Int4,
         person_id -> Int4,
         post_id -> Nullable<Int4>,
