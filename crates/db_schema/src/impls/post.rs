@@ -26,6 +26,7 @@ use crate::{
 use chrono::{DateTime, Utc};
 use diesel::{
   dsl::{count, insert_into, not, update},
+  expression::SelectableHelper,
   BoolExpressionMethods,
   DecoratableTarget,
   ExpressionMethods,
@@ -355,6 +356,7 @@ impl Likeable for PostActions {
       .on_conflict((post_actions::post_id, post_actions::person_id))
       .do_update()
       .set(form)
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntCreate)
@@ -415,6 +417,7 @@ impl Saveable for PostActions {
       .on_conflict((post_actions::post_id, post_actions::person_id))
       .do_update()
       .set(form)
+      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -524,6 +527,7 @@ impl PostActions {
     let conn = &mut get_conn(pool).await?;
     post_actions::table
       .find((person_id, post_id))
+      .select(Self::as_select())
       .first(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
