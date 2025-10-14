@@ -39,10 +39,7 @@ test("Follow a private community", async () => {
   // No pending follows yet
   const pendingFollows0 = await listCommunityPendingFollows(alpha);
   expect(pendingFollows0.items.length).toBe(0);
-  const pendingFollowsCount0 = await getCommunityPendingFollowsCount(
-    alpha,
-    alphaCommunityId,
-  );
+  const pendingFollowsCount0 = await getCommunityPendingFollowsCount(alpha);
   expect(pendingFollowsCount0.count).toBe(0);
 
   // follow as new user
@@ -72,10 +69,7 @@ test("Follow a private community", async () => {
     f => f.items.length == 1,
   );
   expect(pendingFollows1.items[0].is_new_instance).toBe(true);
-  const pendingFollowsCount1 = await getCommunityPendingFollowsCount(
-    alpha,
-    alphaCommunityId,
-  );
+  const pendingFollowsCount1 = await getCommunityPendingFollowsCount(alpha);
   expect(pendingFollowsCount1.count).toBe(1);
 
   // user still sees approval required at this point
@@ -99,10 +93,7 @@ test("Follow a private community", async () => {
   );
   const pendingFollows2 = await listCommunityPendingFollows(alpha);
   expect(pendingFollows2.items.length).toBe(0);
-  const pendingFollowsCount2 = await getCommunityPendingFollowsCount(
-    alpha,
-    alphaCommunityId,
-  );
+  const pendingFollowsCount2 = await getCommunityPendingFollowsCount(alpha);
   expect(pendingFollowsCount2.count).toBe(0);
 
   // follow with another user from that instance, is_new_instance should be false now
