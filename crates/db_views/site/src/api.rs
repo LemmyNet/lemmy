@@ -706,6 +706,10 @@ pub struct UserSettingsBackup {
   pub blocked_instances_communities: Vec<String>,
   #[serde(default)]
   pub blocked_instances_persons: Vec<String>,
+  #[serde(default)]
+  pub blocking_keywords: Vec<String>,
+  #[serde(default)]
+  pub discussion_languages: Vec<String>,
 }
 
 #[skip_serializing_none]
