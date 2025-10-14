@@ -60,7 +60,8 @@ impl Crud for Community {
     let community_ = insert_into(community::table)
       .values(form)
       .get_result::<Self>(conn)
-      .await?;
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)?;
 
     // Initialize languages for new community
     CommunityLanguage::update(pool, vec![], community_.id).await?;

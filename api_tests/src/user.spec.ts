@@ -25,6 +25,8 @@ import {
   getPersonDetails,
   banPersonFromSite,
   delay,
+  statusNotFound,
+  statusUnauthorized,
 } from "./shared";
 import {
   EditSite,
@@ -108,10 +110,10 @@ test("Delete user", async () => {
   // Wait, in order to make sure it federates
   await delay(1_000);
   await expect(getMyUser(user)).rejects.toStrictEqual(
-    new LemmyError("incorrect_login"),
+    new LemmyError("incorrect_login", statusUnauthorized),
   );
   await expect(getPersonDetails(user, person_id)).rejects.toStrictEqual(
-    new LemmyError("not_found"),
+    new LemmyError("not_found", statusNotFound),
   );
 
   // check that posts and comments are marked as deleted on other instances.
@@ -130,7 +132,7 @@ test("Delete user", async () => {
   expect(comment.comment_view.comment.deleted).toBe(true);
   await expect(
     getPersonDetails(user, remoteComment.creator_id),
-  ).rejects.toStrictEqual(new LemmyError("not_found"));
+  ).rejects.toStrictEqual(new LemmyError("not_found", statusNotFound));
 });
 
 test("Requests with invalid auth should be treated as unauthenticated", async () => {
@@ -139,7 +141,7 @@ test("Requests with invalid auth should be treated as unauthenticated", async ()
     fetchFunction,
   });
   await expect(getMyUser(invalid_auth)).rejects.toStrictEqual(
-    new LemmyError("incorrect_login"),
+    new LemmyError("incorrect_login", statusUnauthorized),
   );
   let site = await getSite(invalid_auth);
   expect(site.site_view).toBeDefined();

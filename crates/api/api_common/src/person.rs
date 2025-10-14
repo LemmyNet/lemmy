@@ -8,7 +8,7 @@ pub use lemmy_db_schema::{
 };
 pub use lemmy_db_views_local_user::LocalUserView;
 pub use lemmy_db_views_person::{
-  api::{GetPersonDetails, GetPersonDetailsResponse},
+  api::{GetPersonDetails, GetPersonDetailsResponse, PersonResponse},
   PersonView,
 };
 

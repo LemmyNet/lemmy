@@ -37,7 +37,7 @@ impl Collection for ApubFeedCollection {
     owner: &Self::Owner,
     context: &Data<Self::DataType>,
   ) -> Result<Self::Kind, Self::Error> {
-    let entries = MultiCommunity::read_entry_ap_ids(&mut context.pool(), &owner.name).await?;
+    let entries = MultiCommunity::read_community_ap_ids(&mut context.pool(), &owner.name).await?;
     Ok(Self::Kind {
       r#type: Default::default(),
       id: owner.following_url.clone().into(),
