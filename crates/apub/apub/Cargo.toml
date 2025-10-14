@@ -44,7 +44,6 @@ async-trait = { workspace = true }
 either = { workspace = true }
 
 [dev-dependencies]
-serial_test = { workspace = true }
 pretty_assertions = { workspace = true }
 
 [package.metadata.cargo-shear]

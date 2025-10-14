@@ -49,6 +49,5 @@ chrono = { workspace = true }
 
 [dev-dependencies]
 lemmy_db_views_local_user = { workspace = true }
-serial_test = { workspace = true }
 tokio = { workspace = true }
 pretty_assertions = { workspace = true }

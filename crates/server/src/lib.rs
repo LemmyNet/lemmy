@@ -23,7 +23,10 @@ use lemmy_apub::{
 use lemmy_apub_activities::{handle_outgoing_activities, match_outgoing_activities};
 use lemmy_apub_objects::objects::{community::FETCH_COMMUNITY_COLLECTIONS, instance::ApubSite};
 use lemmy_apub_send::{Opts, SendManager};
-use lemmy_db_schema::{source::secret::Secret, utils::build_db_pool};
+use lemmy_db_schema::{
+  source::secret::Secret,
+  utils::{build_db_pool, GenericDbPool},
+};
 use lemmy_db_views_site::SiteView;
 use lemmy_routes::{
   feeds,
@@ -203,7 +206,7 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
     .with(TracingMiddleware::default())
     .build();
   let context = LemmyContext::create(
-    pool.clone(),
+    GenericDbPool::Actual(pool.clone()),
     client.clone(),
     pictrs_client,
     secret.clone(),

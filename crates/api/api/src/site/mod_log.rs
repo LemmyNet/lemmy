@@ -107,10 +107,8 @@ mod tests {
   };
   use lemmy_db_views_post::PostView;
   use pretty_assertions::assert_eq;
-  use serial_test::serial;
 
   #[tokio::test]
-  #[serial]
   async fn test_mod_remove_or_restore_data() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();

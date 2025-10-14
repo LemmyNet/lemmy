@@ -603,7 +603,6 @@ mod tests {
   use lemmy_db_schema_file::schema::report_combined;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
-  use serial_test::serial;
 
   struct Data {
     instance: Instance,
@@ -706,9 +705,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn combined() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -877,9 +875,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn private_message_reports() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -942,9 +939,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn post_reports() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1076,9 +1072,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn comment_reports() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1200,9 +1195,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn community_reports() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1272,9 +1266,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn violates_instance_rules() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1362,9 +1355,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn my_reports_only() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 

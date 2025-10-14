@@ -265,7 +265,6 @@ mod tests {
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
-  use serial_test::serial;
 
   struct Data {
     instance: Instance,
@@ -341,9 +340,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn test_combined() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 

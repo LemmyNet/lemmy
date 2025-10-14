@@ -183,7 +183,6 @@ mod tests {
   use assert_json_diff::assert_json_include;
   use lemmy_db_schema::test_data::TestData;
   use pretty_assertions::assert_eq;
-  use serial_test::serial;
 
   async fn prepare_comment_test(
     url: &Url,
@@ -202,7 +201,6 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn test_parse_lemmy_pm() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let test_data = TestData::create(&mut context.pool()).await?;
@@ -226,7 +224,6 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn test_parse_pleroma_pm() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let test_data = TestData::create(&mut context.pool()).await?;
