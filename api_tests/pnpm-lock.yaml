@@ -36,8 +36,8 @@ importers:
         specifier: ^17.13.3
         version: 17.13.3
       lemmy-js-client:
-        specifier: 1.0.0-multi-community-follow-state.3
-        version: 1.0.0-multi-community-follow-state.3
+        specifier: 1.0.0-private-community-fixes.0
+        version: 1.0.0-private-community-fixes.0
       prettier:
         specifier: ^3.5.3
         version: 3.6.2
@@ -1656,8 +1656,8 @@ packages:
   keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
 
-  lemmy-js-client@1.0.0-multi-community-follow-state.3:
-    resolution: {integrity: sha512-nKd6v/QzbrN7596NsMCLQ2LDX9/uPuE09tST68EUCcWO4NeO1CxVLXfFgd5c1f9w7FATObfcnwlM8v3BVX1XfQ==}
+  lemmy-js-client@1.0.0-private-community-fixes.0:
+    resolution: {integrity: sha512-6182aetTLLjiEvVX/aovUSU23KuDKKooGEy2YgAyZ1xiwuqLPMVh2yCpwUUy5RZmtMNY9epg9s62KWLRTpegZQ==}
 
   leven@3.1.0:
     resolution: {integrity: sha512-qsda+H8jTaUaN/x5vzW2rzc+8Rw4TAQ/4KjB46IwK5VH+IlVeeeje/EoZRpiXvIqjFgK84QffqPztGI3VBLG1A==}
@@ -4399,7 +4399,7 @@ snapshots:
     dependencies:
       json-buffer: 3.0.1
 
-  lemmy-js-client@1.0.0-multi-community-follow-state.3:
+  lemmy-js-client@1.0.0-private-community-fixes.0:
     dependencies:
       '@tsoa/runtime': 6.6.0
     transitivePeerDependencies:

@@ -25,6 +25,10 @@ use lemmy_utils::{
   spawn_try_task,
   utils::mention::scrape_text_for_mentions,
 };
+use std::{
+  collections::HashSet,
+  hash::{Hash, Hasher},
+};
 use url::Url;
 
 #[derive(derive_new::new, Debug, Clone)]
@@ -43,6 +47,22 @@ struct CollectedNotifyData<'a> {
   kind: NotificationType,
 }
 
+/// For PartialEq and Hash, we only need to compare recipient id and object url.
+impl<'a> PartialEq for CollectedNotifyData<'a> {
+  fn eq(&self, other: &CollectedNotifyData<'_>) -> bool {
+    self.person_id == other.person_id && self.local_url == other.local_url
+  }
+}
+
+impl<'a> Hash for CollectedNotifyData<'a> {
+  fn hash<H: Hasher>(&self, state: &mut H) {
+    self.person_id.hash(state);
+    self.local_url.hash(state);
+  }
+}
+
+impl<'a> Eq for CollectedNotifyData<'a> {}
+
 impl NotifyData {
   /// Scans the post/comment content for mentions, then sends notifications via db and email
   /// to mentioned users and parent creator. Spawns a task for background processing.
@@ -53,11 +73,15 @@ impl NotifyData {
 
   /// Logic for send(), in separate function so it can run serially in tests.
   pub async fn send_internal(self, context: LemmyContext) -> LemmyResult<()> {
-    let mut collected = self.notify_parent_creator(&context).await?;
-
-    collected.append(&mut self.notify_mentions(&context).await?);
-
-    collected.append(&mut self.notify_subscribers(&context).await?);
+    // Use set so that notifications are unique per user and object.
+    let collected: HashSet<_> = [
+      self.notify_parent_creator(&context).await?,
+      self.notify_mentions(&context).await?,
+      self.notify_subscribers(&context).await?,
+    ]
+    .into_iter()
+    .flatten()
+    .collect();
 
     let mut forms = vec![];
     for c in collected {
@@ -348,11 +372,10 @@ mod tests {
     timmy_post: Post,
     jessica_post: Post,
     timmy_comment: Comment,
-    sara_comment: Comment,
   }
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
-    let instance = Instance::read_or_create(pool, "example.com".to_string()).await?;
+    let instance = Instance::read_or_create(pool, "lemmy-alpha".to_string()).await?;
 
     let timmy = LocalUserView::create_test_user(pool, "timmy_pcv", "", false).await?;
 
@@ -381,10 +404,6 @@ mod tests {
       CommentInsertForm::new(timmy.person.id, timmy_post.id, "timmy comment prv".into());
     let timmy_comment = Comment::create(pool, &timmy_comment_form, None).await?;
 
-    let sara_comment_form =
-      CommentInsertForm::new(sara.person.id, timmy_post.id, "sara comment prv".into());
-    let sara_comment = Comment::create(pool, &sara_comment_form, Some(&timmy_comment.path)).await?;
-
     Ok(Data {
       instance,
       timmy,
@@ -394,7 +413,6 @@ mod tests {
       timmy_post,
       jessica_post,
       timmy_comment,
-      sara_comment,
     })
   }
 
@@ -442,6 +460,7 @@ mod tests {
 
   async fn cleanup(data: Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
     Instance::delete(pool, data.instance.id).await?;
+    Instance::delete(pool, data.timmy.person.instance_id).await?;
 
     Ok(())
   }
@@ -453,10 +472,17 @@ mod tests {
     let pool = &mut context.pool();
     let data = init_data(pool).await?;
 
-    // Sara replied to timmys comment
+    // Sara replied to timmys comment with a mention
+    let sara_comment_form = CommentInsertForm::new(
+      data.sara.person.id,
+      data.timmy_post.id,
+      "@timmy_notify@lemmy-alpha".into(),
+    );
+    let sara_comment =
+      Comment::create(pool, &sara_comment_form, Some(&data.timmy_comment.path)).await?;
     NotifyData {
       post: data.timmy_post.clone(),
-      comment_opt: Some(data.sara_comment.clone()),
+      comment_opt: Some(sara_comment.clone()),
       creator: data.sara.person.clone(),
       community: data.community.clone(),
       do_send_email: false,
@@ -464,6 +490,7 @@ mod tests {
     .send_internal(context.app_data().clone())
     .await?;
 
+    // Ensure that reply + mention only generates a single notification
     let timmy_unread_replies =
       NotificationView::get_unread_count(pool, &data.timmy.person, true).await?;
     assert_eq!(1, timmy_unread_replies);
@@ -474,7 +501,7 @@ mod tests {
     assert_length!(1, timmy_inbox);
 
     if let NotificationData::Comment(comment) = &timmy_inbox[0].data {
-      assert_eq!(data.sara_comment.id, comment.comment.id);
+      assert_eq!(sara_comment.id, comment.comment.id);
       assert_eq!(data.timmy_post.id, comment.post.id);
       assert_eq!(data.sara.person.id, comment.creator.id);
       assert_eq!(
@@ -775,13 +802,13 @@ mod tests {
 
     // Make sure instance_blocks are working
     let timmy_blocks_instance_form =
-      InstancePersonsBlockForm::new(data.timmy.person.id, data.sara.person.instance_id);
+      InstancePersonsBlockForm::new(data.timmy.person.id, data.jessica.instance_id);
 
     let inserted_instance_block =
       InstanceActions::block_persons(pool, &timmy_blocks_instance_form).await?;
 
     assert_eq!(
-      (data.timmy.person.id, data.sara.person.instance_id, true),
+      (data.timmy.person.id, data.jessica.instance_id, true),
       (
         inserted_instance_block.person_id,
         inserted_instance_block.instance_id,
@@ -799,10 +826,12 @@ mod tests {
     .filter_map(to_pm)
     .collect();
 
-    assert_length!(0, &timmy_messages);
+    // Messages from Jessica are blocked, only messages from Sara are going through.
+    assert_length!(1, &timmy_messages);
+    assert_eq!(data.sara.person.id, timmy_messages[0].creator.id);
 
     let timmy_unread = NotificationView::get_unread_count(pool, &data.timmy.person, true).await?;
-    assert_eq!(0, timmy_unread);
+    assert_eq!(1, timmy_unread);
 
     cleanup(data, pool).await?;
 
