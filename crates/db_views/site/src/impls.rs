@@ -2,8 +2,13 @@ use crate::{api::UserSettingsBackup, SiteView};
 use diesel::{ExpressionMethods, JoinOnDsl, OptionalExtension, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  impls::local_user::UserBackupLists,
-  source::person::Person,
+  source::{
+    actor_language::LocalUserLanguage,
+    keyword_block::LocalUserKeywordBlock,
+    language::Language,
+    local_user::LocalUser,
+    person::Person,
+  },
   traits::Crud,
   utils::{get_conn, DbPool},
 };
@@ -14,7 +19,10 @@ use lemmy_utils::{
   error::{LemmyError, LemmyErrorType, LemmyResult},
   CacheLock,
 };
-use std::sync::{Arc, LazyLock};
+use std::{
+  collections::HashMap,
+  sync::{Arc, LazyLock},
+};
 
 impl SiteView {
   pub async fn read_local(pool: &mut DbPool<'_>) -> LemmyResult<Self> {
@@ -48,13 +56,25 @@ impl SiteView {
   }
 }
 
-pub fn user_backup_list_to_user_settings_backup(
+pub async fn user_backup_list_to_user_settings_backup(
   local_user_view: LocalUserView,
-  lists: UserBackupLists,
-) -> UserSettingsBackup {
-  let vec_into = |vec: Vec<_>| vec.into_iter().map(Into::into).collect();
+  pool: &mut DbPool<'_>,
+) -> LemmyResult<UserSettingsBackup> {
+  let lists = LocalUser::export_backup(pool, local_user_view.person.id).await?;
+  let blocking_keywords = LocalUserKeywordBlock::read(pool, local_user_view.local_user.id).await?;
+  let discussion_languages = LocalUserLanguage::read(pool, local_user_view.local_user.id).await?;
 
-  UserSettingsBackup {
+  let all_languages: HashMap<_, _> = Language::read_all(pool)
+    .await?
+    .into_iter()
+    .map(|l| (l.id, l.code))
+    .collect();
+  let discussion_languages = discussion_languages
+    .iter()
+    .flat_map(|d| all_languages.get(d).cloned())
+    .collect();
+  let vec_into = |vec: Vec<_>| vec.into_iter().map(Into::into).collect();
+  Ok(UserSettingsBackup {
     display_name: local_user_view.person.display_name,
     bio: local_user_view.person.bio,
     avatar: local_user_view.person.avatar.map(Into::into),
@@ -69,5 +89,7 @@ pub fn user_backup_list_to_user_settings_backup(
     blocked_users: vec_into(lists.blocked_users),
     saved_posts: vec_into(lists.saved_posts),
     saved_comments: vec_into(lists.saved_comments),
-  }
+    blocking_keywords,
+    discussion_languages,
+  })
 }
