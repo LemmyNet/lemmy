@@ -175,7 +175,6 @@ uuid = { version = "1.18.1", features = ["serde"] }
 captcha = "1.0.0"
 anyhow = { version = "1.0.99", features = ["backtrace"] }
 diesel_ltree = "0.4.0"
-serial_test = "3.2.0"
 tokio = { version = "1.47.1", features = ["full"] }
 tokio-shared-rt = "0.1.0"
 regex = "1.11.2"

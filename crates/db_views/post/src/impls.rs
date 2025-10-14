@@ -632,6 +632,7 @@ mod tests {
   };
   use test_context::{test_context, AsyncTestContext};
   use url::Url;
+  use lemmy_db_schema::utils::build_db_pool_for_tests;
 
   const POST_BY_BLOCKED_PERSON: &str = "post by blocked person";
   const POST_BY_BOT: &str = "post by bot";
@@ -2122,7 +2123,6 @@ mod tests {
 
   #[test_context(Data)]
   #[tokio::test]
-  #[serial]
   async fn post_listing_creator_community_banned(data: &mut Data) -> LemmyResult<()> {
     let pool = &data.pool();
     let pool = &mut pool.into();
@@ -2229,7 +2229,7 @@ mod tests {
   #[test_context(Data)]
   #[tokio::test]
   async fn post_listings_no_comments_only(data: &mut Data) -> LemmyResult<()> {
-    let pool = &data.pool();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     // Create a comment for a post
