@@ -22,17 +22,18 @@ use lemmy_apub_objects::objects::community::ApubCommunity;
 use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{
-    community::{Community, CommunityInsertForm},
+    community::{Community, CommunityActions, CommunityInsertForm, CommunityModeratorForm},
     local_site::{LocalSite, LocalSiteUpdateForm},
     local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitUpdateForm},
     person::{Person, PersonInsertForm},
-    post::{Post, PostInsertForm},
+    post::{Post, PostActions, PostInsertForm, PostLikeForm},
     site::{Site, SiteUpdateForm},
   },
-  traits::Crud,
+  traits::{Crud, Likeable},
   utils::diesel_string_update,
 };
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_person::impls::PersonQuery;
 use lemmy_db_views_site::{
   api::{CreateSite, SiteResponse},
   SiteView,
@@ -190,13 +191,16 @@ fn fetch_community_list(context: Data<LemmyContext>) {
 
 fn create_welcome_post(context: &LemmyContext) {
   let context = context.clone();
-  // create user `lemmy` with login disabled and community `main` with initial user as mod
 
-  // create post in this community with getting started info (link to docs, matrix chat,
-  // !lemmy@lemmy.ml etc
   spawn_try_task(async move {
     let pool = &mut context.pool();
     let local_site = SiteView::read_local(pool).await?;
+    let admins = PersonQuery {
+      admins_only: Some(true),
+      ..Default::default()
+    }
+    .list(None, local_site.instance.id, &mut context.pool())
+    .await?;
     // TODO: handle case where name `lemmy` is taken by initial admin user
     // TODO: should probably have valid keypair, inbox url etc for federation (just in case). but
     // not password.
@@ -211,19 +215,28 @@ fn create_welcome_post(context: &LemmyContext) {
       String::new(),
     );
     let community = Community::create(pool, &form).await?;
-    // TODO: add initial admin user as community mod (not necessary but looks cleaner)
+    // Add initial admin user as community mod (not necessary but looks cleaner)
+    let form = CommunityModeratorForm::new(community.id, admins[0].person.id);
+    CommunityActions::join(pool, &form).await?;
+    // TODO: modlog entry as well?
 
+    // Create post in this community with getting started info
     // TODO: move to translations
-    let text = r#"
-    asd
-    asd
-    "#
+    let title = "Welcome to Lemmy!".to_string();
+    let body = r#"To get started you can [read the documentation](https://join-lemmy.org/docs/index.html).
+
+If you need help, try !lemmy@lemmy.ml or the [admin chat on Matrix](https://matrix.to/#/#lemmy-support-general:discuss.online)."#
     .to_string();
     let form = PostInsertForm {
+      body: Some(body),
       featured_local: Some(true),
-      ..PostInsertForm::new(text, person.id, community.id)
+      ..PostInsertForm::new(title, person.id, community.id)
     };
-    Post::create(pool, &form).await?;
+    let post = Post::create(pool, &form).await?;
+
+    // Own upvote for post
+    let form = PostLikeForm::new(post.id, person.id, 1);
+    PostActions::like(&mut context.pool(), &form).await?;
 
     Ok(())
   })
