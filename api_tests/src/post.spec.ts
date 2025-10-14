@@ -318,7 +318,7 @@ test("Lock a post", async () => {
   await followCommunity(alpha, true, betaCommunity.community.id);
   await waitUntil(
     () => resolveBetaCommunity(alpha),
-    c => c?.community_actions?.follow_state == "Accepted",
+    c => c?.community_actions?.follow_state == "accepted",
   );
 
   let postRes = await createPost(alpha, betaCommunity.community.id);

@@ -610,7 +610,7 @@ test("A and G subscribe to B (center) A posts, G mentions B, it gets announced t
         m.notifications.find(m => {
           let data = m.data as CommentView;
           return (
-            m.notification.kind == "Mention" &&
+            m.notification.kind == "mention" &&
             data.comment.ap_id === commentRes.comment_view.comment.ap_id
           );
         }),
@@ -637,11 +637,11 @@ test("Check that activity from another instance is sent to third instance", asyn
   expect(gammaFollow.community_view.community.name).toBe("main");
   await waitUntil(
     () => resolveBetaCommunity(alpha),
-    c => c?.community_actions?.follow_state === "Accepted",
+    c => c?.community_actions?.follow_state === "accepted",
   );
   await waitUntil(
     () => resolveBetaCommunity(gamma),
-    c => c?.community_actions?.follow_state === "Accepted",
+    c => c?.community_actions?.follow_state === "accepted",
   );
 
   // Create a post on beta
