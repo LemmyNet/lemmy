@@ -138,8 +138,8 @@ UPDATE
     post AS a
 SET
     comments = a.comments + diff.comments,
-    newest_comment_time_at_after_published = GREATEST (a.newest_comment_time_at_after_published, diff.newest_comment_time_at),
-    newest_comment_time_necro_at_after_published = GREATEST (a.newest_comment_time_necro_at_after_published, diff.newest_comment_time_necro_at)
+    newest_comment_time_at = GREATEST (a.newest_comment_time_at, diff.newest_comment_time_at),
+    newest_comment_time_necro_at = GREATEST (a.newest_comment_time_necro_at, diff.newest_comment_time_necro_at)
 FROM (
     SELECT
         post.id AS post_id,
@@ -161,10 +161,10 @@ GROUP BY
 WHERE
     a.id = diff.post_id
     AND (diff.comments,
-        GREATEST (a.newest_comment_time_at_after_published, diff.newest_comment_time_at),
-        GREATEST (a.newest_comment_time_necro_at_after_published, diff.newest_comment_time_necro_at)) != (0,
-        a.newest_comment_time_at_after_published,
-        a.newest_comment_time_necro_at_after_published);
+        GREATEST (a.newest_comment_time_at, diff.newest_comment_time_at),
+        GREATEST (a.newest_comment_time_necro_at, diff.newest_comment_time_necro_at)) != (0,
+        a.newest_comment_time_at,
+        a.newest_comment_time_necro_at);
 UPDATE
     local_site AS a
 SET

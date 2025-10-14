@@ -218,6 +218,28 @@ where
   }
 }
 
+pub struct CoalesceKey<A, B>(pub A, pub B);
+
+impl<A, B, C> CursorKey<C> for CoalesceKey<A, B>
+where
+  A: CursorKey<C, SqlType = sql_types::Nullable<B::SqlType>>,
+  B: CursorKey<C, SqlType: Send>,
+{
+  type SqlType = B::SqlType;
+  type CursorValue = functions::coalesce<B::SqlType, A::CursorValue, B::CursorValue>;
+  type SqlValue = functions::coalesce<B::SqlType, A::SqlValue, B::SqlValue>;
+
+  fn get_cursor_value(cursor: &C) -> Self::CursorValue {
+    // TODO: for slight optimization, use unwrap_or_else here (this requires the CursorKey trait to
+    // be changed to allow non-binded CursorValue)
+    functions::coalesce(A::get_cursor_value(cursor), B::get_cursor_value(cursor))
+  }
+
+  fn get_sql_value() -> Self::SqlValue {
+    functions::coalesce(A::get_sql_value(), B::get_sql_value())
+  }
+}
+
 /// Includes an SQL comment before `T`, which can be used to label auto_explain output
 #[derive(QueryId)]
 pub struct Commented<T> {

@@ -53,6 +53,7 @@ use lemmy_db_schema::{
       },
     },
     seconds_to_pg_interval,
+    CoalesceKey,
     Commented,
     DbPool,
   },
@@ -529,7 +530,7 @@ impl PostQuery<'_> {
       Scaled => pq.then_order_by(key::scaled_rank),
       Controversial => pq.then_order_by(key::controversy_rank),
       New | Old => pq.then_order_by(key::published_at),
-      NewComments => pq.then_order_by(key::newest_comment_time_at),
+      NewComments => pq.then_order_by(CoalesceKey(key::newest_comment_time_at, key::published_at)),
       MostComments => pq.then_order_by(key::comments),
       Top => pq.then_order_by(key::score),
     };

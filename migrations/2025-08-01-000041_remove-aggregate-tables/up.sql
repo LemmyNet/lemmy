@@ -90,8 +90,8 @@ CREATE INDEX idx_comment_score ON comment USING btree (score DESC);
 
 -- merge post_aggregates into post table
 ALTER TABLE post
-    ADD COLUMN newest_comment_time_necro_after_published timestamp with time zone,
-    ADD COLUMN newest_comment_time_after_published timestamp with time zone,
+    ADD COLUMN newest_comment_time_necro timestamp with time zone,
+    ADD COLUMN newest_comment_time timestamp with time zone,
     ADD COLUMN comments int NOT NULL DEFAULT 0,
     ADD COLUMN score int NOT NULL DEFAULT 1, -- Default value only for previous rows, to match the similar thing done with `upvotes`
     ADD COLUMN upvotes int NOT NULL DEFAULT 1, -- Default value only for previous rows, so the update below can filter out more rows by using `upvotes != 1` instead of `upvotes != 0`
@@ -131,8 +131,8 @@ WHERE
 UPDATE
     post
 SET
-    newest_comment_time_necro_after_published = nullif (pa.newest_comment_time_necro, pa.published),
-    newest_comment_time_after_published = nullif (pa.newest_comment_time, pa.published),
+    newest_comment_time_necro = nullif (pa.newest_comment_time_necro, pa.published),
+    newest_comment_time = nullif (pa.newest_comment_time, pa.published),
     comments = pa.comments,
     score = pa.score,
     upvotes = pa.upvotes,
@@ -190,9 +190,9 @@ CREATE INDEX idx_post_community_hot ON post USING btree (community_id, featured_
 
 CREATE INDEX idx_post_community_most_comments ON post USING btree (community_id, featured_local DESC, comments DESC, published DESC, id DESC);
 
-CREATE INDEX idx_post_community_newest_comment_time ON post USING btree (community_id, featured_local DESC, coalesce(newest_comment_time_after_published, published) DESC, id DESC);
+CREATE INDEX idx_post_community_newest_comment_time ON post USING btree (community_id, featured_local DESC, coalesce(newest_comment_time, published) DESC, id DESC);
 
-CREATE INDEX idx_post_community_newest_comment_time_necro ON post USING btree (community_id, featured_local DESC, coalesce(newest_comment_time_necro_after_published, published) DESC, id DESC);
+CREATE INDEX idx_post_community_newest_comment_time_necro ON post USING btree (community_id, featured_local DESC, coalesce(newest_comment_time_necro, published) DESC, id DESC);
 
 -- INDEX idx_post_community_published ON post USING btree (community_id, featured_local DESC, published DESC);
 --CREATE INDEX idx_post_community_published_asc ON post USING btree (community_id, featured_local DESC, reverse_timestamp_sort (published) DESC);
@@ -208,9 +208,9 @@ CREATE INDEX idx_post_featured_community_hot ON post USING btree (community_id, 
 
 CREATE INDEX idx_post_featured_community_most_comments ON post USING btree (community_id, featured_community DESC, comments DESC, published DESC, id DESC);
 
-CREATE INDEX idx_post_featured_community_newest_comment_time ON post USING btree (community_id, featured_community DESC, coalesce(newest_comment_time_after_published, published) DESC, id DESC);
+CREATE INDEX idx_post_featured_community_newest_comment_time ON post USING btree (community_id, featured_community DESC, coalesce(newest_comment_time, published) DESC, id DESC);
 
-CREATE INDEX idx_post_featured_community_newest_comment_time_necr ON post USING btree (community_id, featured_community DESC, coalesce(newest_comment_time_necro_after_published, published) DESC, id DESC);
+CREATE INDEX idx_post_featured_community_newest_comment_time_necr ON post USING btree (community_id, featured_community DESC, coalesce(newest_comment_time_necro, published) DESC, id DESC);
 
 --CREATE INDEX idx_post_featured_community_published ON post USING btree (community_id, featured_community DESC, published DESC);
 CREATE INDEX idx_post_featured_community_published_asc ON post USING btree (community_id, featured_community DESC, reverse_timestamp_sort (published) DESC, id DESC);
@@ -227,9 +227,9 @@ CREATE INDEX idx_post_featured_local_hot ON post USING btree (featured_local DES
 
 CREATE INDEX idx_post_featured_local_most_comments ON post USING btree (featured_local DESC, comments DESC, published DESC, id DESC);
 
-CREATE INDEX idx_post_featured_local_newest_comment_time ON post USING btree (featured_local DESC, coalesce(newest_comment_time_after_published, published) DESC, id DESC);
+CREATE INDEX idx_post_featured_local_newest_comment_time ON post USING btree (featured_local DESC, coalesce(newest_comment_time, published) DESC, id DESC);
 
-CREATE INDEX idx_post_featured_local_newest_comment_time_necro ON post USING btree (featured_local DESC, coalesce(newest_comment_time_necro_after_published, published) DESC, id DESC);
+CREATE INDEX idx_post_featured_local_newest_comment_time_necro ON post USING btree (featured_local DESC, coalesce(newest_comment_time_necro, published) DESC, id DESC);
 
 CREATE INDEX idx_post_featured_local_published ON post USING btree (featured_local DESC, published DESC, id DESC);
 

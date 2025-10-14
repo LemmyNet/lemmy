@@ -325,10 +325,7 @@ impl Post {
         post::hot_rank.eq(hot_rank(post::score, post::published_at)),
         post::hot_rank_active.eq(hot_rank(
           post::score,
-          coalesce(
-            post::newest_comment_time_necro_at_after_published,
-            post::published_at,
-          ),
+          coalesce(post::newest_comment_time_necro_at, post::published_at),
         )),
         post::scaled_rank.eq(scaled_rank(
           post::score,
@@ -708,8 +705,8 @@ mod tests {
       score: 1,
       hot_rank: RANK_DEFAULT,
       hot_rank_active: RANK_DEFAULT,
-      newest_comment_time_at: inserted_post.published_at,
-      newest_comment_time_necro_at: inserted_post.published_at,
+      newest_comment_time_at: None,
+      newest_comment_time_necro_at: None,
       report_count: 0,
       scaled_rank: RANK_DEFAULT,
       unresolved_report_count: 0,

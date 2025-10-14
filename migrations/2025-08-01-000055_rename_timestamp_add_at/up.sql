@@ -160,9 +160,9 @@ ALTER TABLE post RENAME COLUMN updated TO updated_at;
 
 ALTER TABLE post RENAME COLUMN scheduled_publish_time TO scheduled_publish_time_at;
 
-ALTER TABLE post RENAME COLUMN newest_comment_time_after_published TO newest_comment_time_at_after_published;
+ALTER TABLE post RENAME COLUMN newest_comment_time TO newest_comment_time_at;
 
-ALTER TABLE post RENAME COLUMN newest_comment_time_necro_after_published TO newest_comment_time_necro_at_after_published;
+ALTER TABLE post RENAME COLUMN newest_comment_time_necro TO newest_comment_time_necro_at;
 
 ALTER TABLE post_actions RENAME COLUMN read TO read_at;
 

@@ -5,8 +5,6 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
-  crate::utils::functions::coalesce,
-  diesel::sql_types,
   i_love_jesus::CursorKeysModule,
   lemmy_db_schema_file::schema::{post, post_actions},
 };
@@ -65,14 +63,10 @@ pub struct Post {
   /// Time at which the post will be published. None means publish immediately.
   pub scheduled_publish_time_at: Option<DateTime<Utc>>,
   #[serde(skip)]
-  #[cfg_attr(feature = "full", diesel(select_expression = coalesce(post::newest_comment_time_necro_at_after_published, post::published_at)))]
-  #[cfg_attr(feature = "full", diesel(select_expression_type = coalesce<sql_types::Timestamptz, post::newest_comment_time_necro_at_after_published, post::published_at>))]
   /// A newest comment time, limited to 2 days, to prevent necrobumping
-  pub newest_comment_time_necro_at: DateTime<Utc>,
-  #[cfg_attr(feature = "full", diesel(select_expression = coalesce(post::newest_comment_time_at_after_published, post::published_at)))]
-  #[cfg_attr(feature = "full", diesel(select_expression_type = coalesce<sql_types::Timestamptz, post::newest_comment_time_at_after_published, post::published_at>))]
-  /// The time of the newest comment in the post.
-  pub newest_comment_time_at: DateTime<Utc>,
+  pub newest_comment_time_necro_at: Option<DateTime<Utc>>,
+  /// The time of the newest comment in the post, if the post has any comments.
+  pub newest_comment_time_at: Option<DateTime<Utc>>,
   pub comments: i32,
   pub score: i32,
   pub upvotes: i32,
