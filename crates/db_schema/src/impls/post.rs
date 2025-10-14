@@ -26,7 +26,6 @@ use crate::{
 use chrono::{DateTime, Utc};
 use diesel::{
   dsl::{count, insert_into, not, update},
-  expression::SelectableHelper,
   BoolExpressionMethods,
   DecoratableTarget,
   ExpressionMethods,
