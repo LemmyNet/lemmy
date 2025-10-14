@@ -942,7 +942,7 @@ test("Mention beta from alpha post body", async () => {
   await assertPostFederation(betaPost, postOnAlphaRes.post_view);
 
   let mentionsRes = await waitUntil(
-    () => listNotifications(beta, "Mention"),
+    () => listNotifications(beta, "mention"),
     m => !!m.notifications[0],
   );
 

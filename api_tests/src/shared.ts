@@ -305,7 +305,7 @@ export async function featurePost(
   let form: FeaturePost = {
     post_id: post.id,
     featured,
-    feature_type: "Community",
+    feature_type: "community",
   };
   return api.featurePost(form);
 }
@@ -342,7 +342,7 @@ export async function searchPostLocal(
 ): Promise<PostView | undefined> {
   let form: Search = {
     q: post.name,
-    type_: "Posts",
+    type_: "posts",
     listing_type: "all",
   };
   let res = await api.search(form);

@@ -558,7 +558,7 @@ test("Dont receive community activities after unsubscribe", async () => {
 
   let form: Search = {
     q: postRes.post_view.post.name,
-    type_: "Posts",
+    type_: "posts",
     listing_type: "all",
   };
 
