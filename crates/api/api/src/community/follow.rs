@@ -27,7 +27,8 @@ pub async fn follow_community(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityResponse>> {
   check_local_user_valid(&local_user_view)?;
-  let community = Community::read(&mut context.pool(), data.community_id).await?;
+  let community_id = data.community_id;
+  let community = Community::read(&mut context.pool(), community_id).await?;
   let person_id = local_user_view.person.id;
 
   if data.follow {
@@ -36,7 +37,7 @@ pub async fn follow_community(
     // actions from existing followers for private community (so following would be impossible).
     if community.local {
       check_community_deleted_removed(&community)?;
-      CommunityPersonBanView::check(&mut context.pool(), person_id, community.id).await?;
+      CommunityPersonBanView::check(&mut context.pool(), person_id, community_id).await?;
     }
 
     let follow_state = if community.visibility == CommunityVisibility::Private {
@@ -49,12 +50,12 @@ pub async fn follow_community(
       // remote follow needs to be federated first
       CommunityFollowerState::Pending
     };
-    let form = CommunityFollowerForm::new(community.id, person_id, follow_state);
+    let form = CommunityFollowerForm::new(community_id, person_id, follow_state);
 
     // Write to db
     CommunityActions::follow(&mut context.pool(), &form).await?;
   } else {
-    CommunityActions::unfollow(&mut context.pool(), person_id, community.id).await?;
+    CommunityActions::unfollow(&mut context.pool(), person_id, community_id).await?;
   }
 
   // Send the federated follow
@@ -65,7 +66,6 @@ pub async fn follow_community(
     )?;
   }
 
-  let community_id = data.community_id;
   let community_view = CommunityView::read(
     &mut context.pool(),
     community_id,

@@ -1,0 +1,51 @@
+[package]
+name = "lemmy_apub"
+publish = false
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "lemmy_apub"
+path = "src/lib.rs"
+doctest = false
+
+[features]
+full = []
+
+[lints]
+workspace = true
+
+[dependencies]
+lemmy_db_views_community_moderator = { workspace = true, features = ["full"] }
+lemmy_db_views_community_follower = { workspace = true, features = ["full"] }
+lemmy_db_views_post = { workspace = true, features = ["full"] }
+lemmy_utils = { workspace = true, features = ["full"] }
+lemmy_db_schema = { workspace = true, features = ["full"] }
+lemmy_api_utils = { workspace = true, features = ["full"] }
+lemmy_apub_activities = { workspace = true }
+lemmy_apub_objects = { workspace = true }
+activitypub_federation = { workspace = true }
+lemmy_db_schema_file = { workspace = true }
+serde_json = { workspace = true }
+serde = { workspace = true }
+actix-web = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+url = { workspace = true }
+futures = { workspace = true }
+futures-util = { workspace = true }
+async-trait = { workspace = true }
+either = { workspace = true }
+
+[dev-dependencies]
+serial_test = { workspace = true }
+pretty_assertions = { workspace = true }
+
+[package.metadata.cargo-shear]
+ignored = ["futures", "futures-util"]

@@ -1,5 +1,4 @@
 use crate::SiteView;
-use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
   newtypes::{
     InstanceId,
@@ -38,7 +37,6 @@ use lemmy_db_views_community_follower::CommunityFollowerView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
-use lemmy_db_views_post::PostView;
 use lemmy_db_views_readable_federation_state::ReadableFederationState;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -65,7 +63,10 @@ pub struct AdminBlockInstanceParams {
   pub instance: String,
   pub block: bool,
   pub reason: String,
-  pub expires_at: Option<DateTime<Utc>>,
+  /// A time that the block will expire, in unix epoch seconds.
+  ///
+  /// An i64 unix timestamp is used for a simpler API client implementation.
+  pub expires_at: Option<i64>,
 }
 
 #[skip_serializing_none]
@@ -582,52 +583,6 @@ pub struct UserBlockInstanceCommunitiesParams {
 /// Verify your email.
 pub struct VerifyEmail {
   pub token: String,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// Gets your hidden posts.
-pub struct ListPersonHidden {
-  pub page_cursor: Option<PaginationCursor>,
-  pub page_back: Option<bool>,
-  pub limit: Option<i64>,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// You hidden posts response.
-pub struct ListPersonHiddenResponse {
-  pub hidden: Vec<PostView>,
-  /// the pagination cursor to use to fetch the next page
-  pub next_page: Option<PaginationCursor>,
-  pub prev_page: Option<PaginationCursor>,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// Gets your read posts.
-pub struct ListPersonRead {
-  pub page_cursor: Option<PaginationCursor>,
-  pub page_back: Option<bool>,
-  pub limit: Option<i64>,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// You read posts response.
-pub struct ListPersonReadResponse {
-  pub read: Vec<PostView>,
-  /// the pagination cursor to use to fetch the next page
-  pub next_page: Option<PaginationCursor>,
-  pub prev_page: Option<PaginationCursor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]

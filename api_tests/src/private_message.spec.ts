@@ -12,6 +12,7 @@ import {
   unfollows,
   listNotifications,
   resolvePerson,
+  statusBadRequest,
 } from "./shared";
 
 let recipient_id: number;
@@ -135,7 +136,9 @@ test("Create a private message report", async () => {
       pmRes.private_message_view.private_message.id,
       "a reason",
     ),
-  ).rejects.toStrictEqual(new LemmyError("couldnt_create_report"));
+  ).rejects.toStrictEqual(
+    new LemmyError("couldnt_create_report", statusBadRequest),
+  );
 
   // This one should pass
   let reason = "another reason";

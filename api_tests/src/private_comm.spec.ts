@@ -24,6 +24,7 @@ import {
   gamma,
   getPosts,
   getComments,
+  statusNotFound,
 } from "./shared";
 
 beforeAll(setupLogins);
@@ -142,13 +143,13 @@ test("Only followers can view and interact with private community content", asyn
     await resolveCommunity(user, community.community_view.community.ap_id)
   )?.community;
   await expect(resolvePost(user, post0.post_view.post)).rejects.toStrictEqual(
-    new LemmyError("not_found"),
+    new LemmyError("not_found", statusNotFound),
   );
   await expect(
     resolveComment(user, comment.comment_view.comment),
-  ).rejects.toStrictEqual(new LemmyError("not_found"));
+  ).rejects.toStrictEqual(new LemmyError("not_found", statusNotFound));
   await expect(createPost(user, betaCommunity!.id)).rejects.toStrictEqual(
-    new LemmyError("not_found"),
+    new LemmyError("not_found", statusNotFound),
   );
 
   // follow the community and approve
@@ -333,7 +334,7 @@ test("Fetch remote content in private community", async () => {
 
   // cannot fetch post yet
   await expect(resolvePost(gamma, post.post_view.post)).rejects.toStrictEqual(
-    new LemmyError("not_found"),
+    new LemmyError("not_found", statusNotFound),
   );
   // follow community and approve
   await gamma.followCommunity(follow_form);

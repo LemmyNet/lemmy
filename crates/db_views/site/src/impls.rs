@@ -40,6 +40,8 @@ impl SiteView {
       .map_err(|e: Arc<LemmyError>| anyhow::anyhow!("err getting local site: {e:?}").into())
   }
 
+  /// A special site bot user, solely made for following non-local communities for
+  /// multi-communities.
   pub async fn read_multicomm_follower(pool: &mut DbPool<'_>) -> LemmyResult<Person> {
     let site_view = SiteView::read_local(pool).await?;
     Person::read(pool, site_view.local_site.multi_comm_follower).await

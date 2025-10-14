@@ -12,7 +12,7 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::private_message_report;
-use lemmy_utils::error::{FederationError, LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult, UntranslatedError};
 
 impl Reportable for PrivateMessageReport {
   type Form = PrivateMessageReportForm;
@@ -51,7 +51,7 @@ impl Reportable for PrivateMessageReport {
     _report_creator_id: PersonId,
     _resolver_id: PersonId,
   ) -> LemmyResult<usize> {
-    Err(FederationError::Unreachable.into())
+    Err(UntranslatedError::Unreachable.into())
   }
 
   // TODO: this is unused because private message doesn't have remove handler

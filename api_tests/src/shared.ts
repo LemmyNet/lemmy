@@ -1,7 +1,6 @@
 import {
   ApproveCommunityPendingFollower,
   BlockCommunity,
-  BlockCommunityResponse,
   CommunityId,
   CommunityVisibility,
   CreatePrivateMessageReport,
@@ -32,6 +31,7 @@ import {
   ListNotifications,
   ListNotificationsResponse,
   NotificationDataType,
+  PersonResponse,
 } from "lemmy-js-client";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
 import { DeletePost } from "lemmy-js-client/dist/types/DeletePost";
@@ -52,7 +52,6 @@ import { RemovePost } from "lemmy-js-client/dist/types/RemovePost";
 import { ResolveObject } from "lemmy-js-client/dist/types/ResolveObject";
 import { Search } from "lemmy-js-client/dist/types/Search";
 import { Comment } from "lemmy-js-client/dist/types/Comment";
-import { BanPersonResponse } from "lemmy-js-client/dist/types/BanPersonResponse";
 import { BanPerson } from "lemmy-js-client/dist/types/BanPerson";
 import { BanFromCommunityResponse } from "lemmy-js-client/dist/types/BanFromCommunityResponse";
 import { BanFromCommunity } from "lemmy-js-client/dist/types/BanFromCommunity";
@@ -94,6 +93,9 @@ import { GetCommunityPendingFollowsCountI } from "lemmy-js-client/dist/other_typ
 
 export const fetchFunction = fetch;
 export const imageFetchLimit = 50;
+export const statusNotFound = 404;
+export const statusBadRequest = 400;
+export const statusUnauthorized = 401;
 export const sampleImage =
   "https://i.pinimg.com/originals/df/5f/5b/df5f5b1b174a2b4b6026cc6c8f9395c1.jpg";
 export const sampleSite = "https://w3.org";
@@ -471,7 +473,7 @@ export async function banPersonFromSite(
   person_id: number,
   ban: boolean,
   remove_or_restore_data: boolean,
-): Promise<BanPersonResponse> {
+): Promise<PersonResponse> {
   // Make sure lemmy-beta/c/main is cached on lemmy_alpha
   let form: BanPerson = {
     person_id,
@@ -918,7 +920,7 @@ export function blockCommunity(
   api: LemmyHttp,
   community_id: CommunityId,
   block: boolean,
-): Promise<BlockCommunityResponse> {
+): Promise<CommunityResponse> {
   let form: BlockCommunity = {
     community_id,
     block,

@@ -155,16 +155,18 @@ impl PostView {
             .eq(false)
             .or(post::creator_id.nullable().eq(my_person_id)),
         )
-        // users can see their own deleted posts
         .filter(
           community::deleted
             .eq(false)
             .or(post::creator_id.nullable().eq(my_person_id)),
         )
+        // Posts deleted by the creator are still visible if they have any comments. If there
+        // are no comments only the creator can see it.
         .filter(
           post::deleted
             .eq(false)
-            .or(post::creator_id.nullable().eq(my_person_id)),
+            .or(post::creator_id.nullable().eq(my_person_id))
+            .or(post::comments.gt(0)),
         )
         // private communities can only by browsed by accepted followers
         .filter(

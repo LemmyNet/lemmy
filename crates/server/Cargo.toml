@@ -1,0 +1,49 @@
+[package]
+name = "lemmy_server"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+publish = false
+default-run = "lemmy_server"
+
+[lib]
+doctest = false
+
+[lints]
+workspace = true
+
+[features]
+default = []
+
+[dependencies]
+lemmy_api = { workspace = true }
+lemmy_api_routes = { workspace = true }
+lemmy_apub = { workspace = true }
+lemmy_apub_activities = { workspace = true }
+lemmy_apub_objects = { workspace = true }
+lemmy_utils = { workspace = true }
+lemmy_db_schema = { workspace = true }
+lemmy_db_schema_setup = { workspace = true }
+lemmy_api_utils = { workspace = true }
+lemmy_routes = { workspace = true }
+lemmy_apub_send = { workspace = true }
+lemmy_db_views_site = { workspace = true }
+activitypub_federation = { workspace = true }
+actix-web = { workspace = true }
+tracing = { workspace = true }
+tracing-actix-web = { workspace = true }
+tracing-subscriber = { workspace = true }
+reqwest-middleware = { workspace = true }
+reqwest-tracing = { workspace = true }
+serde_json = { workspace = true }
+rustls = { workspace = true }
+tokio.workspace = true
+clap = { workspace = true }
+
+[target.'cfg(target_arch = "x86_64")'.dependencies]
+mimalloc = "0.1.48"

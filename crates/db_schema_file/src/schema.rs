@@ -780,6 +780,16 @@ diesel::table! {
         kind -> NotificationTypeEnum,
         post_id -> Nullable<Int4>,
         private_message_id -> Nullable<Int4>,
+        admin_add_id -> Nullable<Int4>,
+        mod_add_to_community_id -> Nullable<Int4>,
+        admin_ban_id -> Nullable<Int4>,
+        mod_ban_from_community_id -> Nullable<Int4>,
+        mod_lock_post_id -> Nullable<Int4>,
+        mod_remove_comment_id -> Nullable<Int4>,
+        admin_remove_community_id -> Nullable<Int4>,
+        mod_remove_post_id -> Nullable<Int4>,
+        mod_lock_comment_id -> Nullable<Int4>,
+        mod_transfer_community_id -> Nullable<Int4>,
     }
 }
 
@@ -1231,7 +1241,17 @@ diesel::joinable!(multi_community_entry -> community (community_id));
 diesel::joinable!(multi_community_entry -> multi_community (multi_community_id));
 diesel::joinable!(multi_community_follow -> multi_community (multi_community_id));
 diesel::joinable!(multi_community_follow -> person (person_id));
+diesel::joinable!(notification -> admin_add (admin_add_id));
+diesel::joinable!(notification -> admin_ban (admin_ban_id));
+diesel::joinable!(notification -> admin_remove_community (admin_remove_community_id));
 diesel::joinable!(notification -> comment (comment_id));
+diesel::joinable!(notification -> mod_add_to_community (mod_add_to_community_id));
+diesel::joinable!(notification -> mod_ban_from_community (mod_ban_from_community_id));
+diesel::joinable!(notification -> mod_lock_comment (mod_lock_comment_id));
+diesel::joinable!(notification -> mod_lock_post (mod_lock_post_id));
+diesel::joinable!(notification -> mod_remove_comment (mod_remove_comment_id));
+diesel::joinable!(notification -> mod_remove_post (mod_remove_post_id));
+diesel::joinable!(notification -> mod_transfer_community (mod_transfer_community_id));
 diesel::joinable!(notification -> person (recipient_id));
 diesel::joinable!(notification -> post (post_id));
 diesel::joinable!(notification -> private_message (private_message_id));

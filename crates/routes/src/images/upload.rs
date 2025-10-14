@@ -17,7 +17,7 @@ use lemmy_db_schema::{
 use lemmy_db_views_community::api::CommunityIdQuery;
 use lemmy_db_views_local_image::api::UploadImageResponse;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use reqwest::Body;
 use std::time::Duration;
 use UploadType::*;
@@ -208,12 +208,17 @@ pub async fn do_upload_image(
   if let Some(addr) = req.head().peer_addr {
     client_req = client_req.header("X-Forwarded-For", addr.to_string())
   };
+  // Make HTTP request to pict-rs with the user provided image data.
   let res = client_req
     .timeout(Duration::from_secs(pictrs.upload_timeout))
     .body(Body::wrap_stream(make_send(body)))
     .send()
-    .await?
-    .error_for_status()?;
+    .await
+    // Dont check for status code here and dont call `error_for_status()`. If the upload failed,
+    // this is handled below as `images.files` is empty.
+    .with_lemmy_type(LemmyErrorType::PictrsInvalidImageUpload(
+      "HTTP request to pict-rs failed".to_string(),
+    ))?;
 
   let mut images = res.json::<PictrsResponse>().await?;
   for image in &images.files {
@@ -236,7 +241,7 @@ pub async fn do_upload_image(
   let image = images
     .files
     .pop()
-    .ok_or(LemmyErrorType::InvalidImageUpload)?;
+    .ok_or(LemmyErrorType::PictrsInvalidImageUpload(images.msg))?;
 
   let url = image.image_url(&context.settings().get_protocol_and_hostname())?;
   Ok(UploadImageResponse {
