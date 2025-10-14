@@ -89,7 +89,9 @@ impl NotifyData {
         send_notification_email(user_view, c.local_url, c.data, context.settings());
       }
     }
-    Notification::create(&mut context.pool(), &forms).await?;
+    if !forms.is_empty() {
+      Notification::create(&mut context.pool(), &forms).await?;
+    }
 
     Ok(())
   }

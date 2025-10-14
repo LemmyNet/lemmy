@@ -1,6 +1,10 @@
 use super::not_zero;
 use crate::site::{application_question_check, site_default_post_listing_type_check};
-use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
+use activitypub_federation::{
+  config::Data,
+  fetch::object_id::ObjectId,
+  http_signatures::generate_actor_keypair,
+};
 use actix_web::web::Json;
 use chrono::Utc;
 use lemmy_api_utils::{
@@ -14,11 +18,15 @@ use lemmy_api_utils::{
     slur_regex,
   },
 };
+use lemmy_apub_objects::objects::community::ApubCommunity;
 use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{
+    community::{Community, CommunityInsertForm},
     local_site::{LocalSite, LocalSiteUpdateForm},
     local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitUpdateForm},
+    person::{Person, PersonInsertForm},
+    post::{Post, PostInsertForm},
     site::{Site, SiteUpdateForm},
   },
   traits::Crud,
@@ -31,6 +39,7 @@ use lemmy_db_views_site::{
 };
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
+  spawn_try_task,
   utils::{
     slurs::check_slurs,
     validation::{
@@ -41,6 +50,7 @@ use lemmy_utils::{
     },
   },
 };
+use serde::Deserialize;
 use url::Url;
 
 pub async fn create_site(
@@ -140,7 +150,104 @@ pub async fn create_site(
     local_site_rate_limit_to_rate_limit_config(&site_view.local_site_rate_limit);
   context.rate_limit_cell().set_config(rate_limit_config);
 
+  // TODO: also disable in debug mode
+  let no_default_data = context
+    .settings()
+    .setup
+    .as_ref()
+    .map(|s| s.no_default_data)
+    .flatten();
+  if !no_default_data.unwrap_or_default() {
+    create_welcome_post(&context);
+    fetch_community_list(context.clone());
+  }
+
   Ok(Json(SiteResponse { site_view }))
+}
+
+/// Fetch list of communities from lemmyverse.net and then fetch the top 1000 communities.
+fn fetch_community_list(context: Data<LemmyContext>) {
+  spawn_try_task(async move {
+    // Fetch list of communities
+    // TODO: embed trimmed down community list in binary, or serve it from join-lemmy.org?
+    let mut communities: Vec<CommunityInfo> = context
+      .client()
+      .get("https://data.lemmyverse.net/data/community.full.json")
+      .send()
+      .await?
+      .json()
+      .await?;
+
+    // invert sort key to get largest values first
+    communities.sort_by_key(|c| -c.counts.users_active_month);
+
+    // Fetch communities themselves
+    let tasks = communities.iter().take(100).map(|c| async {
+      let context = context.reset_request_count();
+      c.url.dereference(&context).await.ok();
+    });
+
+    // This could be made faster by running tasks in parallel with try_join_all or FuturesUnordered.
+    // However that causes massive slowdown as each community fetch starts additional background
+    // tasks to fetch moderators, recent posts etc. So we need to run it one by one.
+    for t in tasks {
+      t.await;
+    }
+
+    Ok(())
+  })
+}
+
+fn create_welcome_post(context: &LemmyContext) {
+  let context = context.clone();
+  // create user `lemmy` with login disabled and community `main` with initial user as mod
+
+  // create post in this community with getting started info (link to docs, matrix chat,
+  // !lemmy@lemmy.ml etc
+  spawn_try_task(async move {
+    let pool = &mut context.pool();
+    let local_site = SiteView::read_local(pool).await?;
+    // TODO: handle case where name `lemmy` is taken by initial admin user
+    // TODO: should probably have valid keypair, inbox url etc for federation (just in case). but
+    // not password.
+    let form = PersonInsertForm::new("lemmy".to_string(), String::new(), local_site.instance.id);
+    let person = Person::create(pool, &form).await?;
+
+    // TODO: definitely needs keypair, inbox etc
+    let form = CommunityInsertForm::new(
+      local_site.instance.id,
+      "main".to_string(),
+      "Main".to_string(),
+      String::new(),
+    );
+    let community = Community::create(pool, &form).await?;
+    // TODO: add initial admin user as community mod (not necessary but looks cleaner)
+
+    // TODO: move to translations
+    let text = r#"
+    asd
+    asd
+    "#
+    .to_string();
+    let form = PostInsertForm {
+      featured_local: Some(true),
+      ..PostInsertForm::new(text, person.id, community.id)
+    };
+    Post::create(pool, &form).await?;
+
+    Ok(())
+  })
+}
+
+#[derive(Deserialize)]
+struct CommunityInfo {
+  url: ObjectId<ApubCommunity>,
+  counts: CommunityInfoCounts,
+}
+
+#[derive(Deserialize)]
+struct CommunityInfoCounts {
+  users_active_month: i32,
 }
 
 fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> LemmyResult<()> {
@@ -184,7 +291,6 @@ fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> 
 
 #[cfg(test)]
 mod tests {
-
   use crate::site::create::validate_create_payload;
   use lemmy_db_schema::source::local_site::LocalSite;
   use lemmy_db_schema_file::enums::{ListingType, PostSortType, RegistrationMode};
