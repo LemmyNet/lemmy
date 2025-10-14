@@ -441,12 +441,29 @@ impl PostActions {
     pool: &mut DbPool<'_>,
     form: &PostReadForm,
   ) -> LemmyResult<UpleteCount> {
+    Self::mark_many_as_unread(pool, std::slice::from_ref(form)).await
+  }
+
+  pub async fn mark_many_as_unread(
+    pool: &mut DbPool<'_>,
+    forms: &[PostReadForm],
+  ) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
+
+    // Grab the first person id
+    let person_id = forms
+      .iter()
+      .map(|f| f.person_id)
+      .next()
+      .ok_or_else(|| LemmyErrorType::CouldntUpdate)?;
+
+    // Collect up the post ids
+    let post_ids: Vec<PostId> = forms.iter().map(|f| f.post_id).collect();
 
     uplete(
       post_actions::table
-        .filter(post_actions::post_id.eq(form.post_id))
-        .filter(post_actions::person_id.eq(form.person_id)),
+        .filter(post_actions::post_id.eq_any(post_ids))
+        .filter(post_actions::person_id.eq(person_id)),
     )
     .set_null(post_actions::read_at)
     .get_result(conn)

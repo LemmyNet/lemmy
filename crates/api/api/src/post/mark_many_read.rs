@@ -18,8 +18,12 @@ pub async fn mark_posts_as_read(
 
   let forms = PostActions::build_many_read_forms(post_ids, person_id);
 
-  // Mark the posts as read
-  PostActions::mark_many_as_read(&mut context.pool(), &forms).await?;
+  // Mark the posts as read / unread
+  if data.read {
+    PostActions::mark_many_as_read(&mut context.pool(), &forms).await?;
+  } else {
+    PostActions::mark_many_as_unread(&mut context.pool(), &forms).await?;
+  }
 
   Ok(Json(SuccessResponse::default()))
 }
