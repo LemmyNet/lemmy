@@ -520,7 +520,7 @@ BEGIN
                             person
                         WHERE
                             id = NEW.person_id) = TRUE THEN
-                        INSERT INTO person_liked_combined (liked_at, vote_is_upvote, person_id, thing_id)
+                        INSERT INTO person_liked_combined (voted_at, vote_is_upvote, person_id, thing_id)
                             VALUES (NEW.voted_at, NEW.vote_is_upvote, NEW.person_id, NEW.thing_id);
                     END IF;
                 ELSIF (TG_OP = 'UPDATE') THEN
@@ -531,7 +531,7 @@ BEGIN
                             person
                         WHERE
                             id = NEW.person_id) = TRUE THEN
-                        INSERT INTO person_liked_combined (liked_at, vote_is_upvote, person_id, thing_id)
+                        INSERT INTO person_liked_combined (voted_at, vote_is_upvote, person_id, thing_id)
                             VALUES (NEW.voted_at, NEW.vote_is_upvote, NEW.person_id, NEW.thing_id);
                         -- If liked gets set as null, delete the row
                     ELSE
