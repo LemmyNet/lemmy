@@ -56,7 +56,6 @@ impl Crud for Post {
     let conn = &mut get_conn(pool).await?;
     insert_into(post::table)
       .values(form)
-      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntCreate)
@@ -70,7 +69,6 @@ impl Crud for Post {
     let conn = &mut get_conn(pool).await?;
     diesel::update(post::table.find(post_id))
       .set(new_post)
-      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -82,7 +80,6 @@ impl Post {
     let conn = &mut get_conn(pool).await?;
     post::table
       .find(id)
-      .select(Self::as_select())
       .first(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
@@ -100,7 +97,6 @@ impl Post {
       .filter_target(coalesce(post::updated_at, post::published_at).lt(timestamp))
       .do_update()
       .set(form)
-      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntCreate)
@@ -118,7 +114,6 @@ impl Post {
       .filter(post::featured_community.eq(true))
       .then_order_by(post::published_at.desc())
       .limit(FETCH_LIMIT_MAX.try_into()?)
-      .select(Self::as_select())
       .load::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
@@ -155,7 +150,6 @@ impl Post {
         post::deleted.eq(true),
         post::updated_at.eq(Utc::now()),
       ))
-      .returning(Self::as_select())
       .get_results::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -208,7 +202,6 @@ impl Post {
       .filter(post::creator_id.eq(creator_id))
       .filter(post::community_id.eq(community_id))
       .set((post::removed.eq(removed), post::updated_at.eq(Utc::now())))
-      .returning(Self::as_select())
       .get_results::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -227,7 +220,6 @@ impl Post {
     update(post::table)
       .filter(post::id.eq_any(post_ids.clone()))
       .set((post::removed.eq(removed), post::updated_at.eq(Utc::now())))
-      .returning(Self::as_select())
       .get_results::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -243,7 +235,6 @@ impl Post {
     update(post::table)
       .filter(post::creator_id.eq(creator_id))
       .set((post::removed.eq(removed), post::updated_at.eq(Utc::now())))
-      .returning(Self::as_select())
       .get_results::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -261,7 +252,6 @@ impl Post {
     post::table
       .filter(post::ap_id.eq(object_id))
       .filter(post::scheduled_publish_time_at.is_null())
-      .select(Self::as_select())
       .first(conn)
       .await
       .optional()
@@ -277,7 +267,6 @@ impl Post {
 
     diesel::update(post::table.filter(post::ap_id.eq(object_id)))
       .set(post::deleted.eq(true))
-      .returning(Self::as_select())
       .get_results::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -333,7 +322,6 @@ impl Post {
           interactions_month,
         )),
       ))
-      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -368,7 +356,6 @@ impl Likeable for PostActions {
       .on_conflict((post_actions::post_id, post_actions::person_id))
       .do_update()
       .set(form)
-      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntCreate)
@@ -429,7 +416,6 @@ impl Saveable for PostActions {
       .on_conflict((post_actions::post_id, post_actions::person_id))
       .do_update()
       .set(form)
-      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -492,7 +478,6 @@ impl PostActions {
       .on_conflict((post_actions::person_id, post_actions::post_id))
       .do_update()
       .set(form)
-      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -525,7 +510,6 @@ impl PostActions {
       .on_conflict((post_actions::person_id, post_actions::post_id))
       .do_update()
       .set(form)
-      .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -541,7 +525,6 @@ impl PostActions {
     let conn = &mut get_conn(pool).await?;
     post_actions::table
       .find((person_id, post_id))
-      .select(Self::as_select())
       .first(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
