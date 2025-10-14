@@ -68,20 +68,6 @@ pub async fn like_comment(
 
   let mut like_form = CommentLikeForm::new(my_person_id, data.comment_id, data.score);
 
-  // Remove any likes first
-  CommentActions::remove_like(&mut context.pool(), my_person_id, comment_id).await?;
-  if let Some(previous_score) = previous_score {
-    PersonActions::remove_like(
-      &mut context.pool(),
-      my_person_id,
-      orig_comment.creator.id,
-      previous_score,
-    )
-    .await
-    // Ignore errors, since a previous_like of zero throws an error
-    .ok();
-  }
-
   if like_form.like_score != 0 {
     like_form = plugin_hook_before("before_comment_vote", like_form).await?;
     let like = CommentActions::like(&mut context.pool(), &like_form).await?;

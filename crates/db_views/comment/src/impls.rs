@@ -751,12 +751,6 @@ mod tests {
   }
 
   async fn cleanup(data: Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
-    CommentActions::remove_like(
-      pool,
-      data.timmy_local_user_view.person.id,
-      data.comment_0.id,
-    )
-    .await?;
     Comment::delete(pool, data.comment_0.id).await?;
     Comment::delete(pool, data.comment_1.id).await?;
     Post::delete(pool, data.post.id).await?;

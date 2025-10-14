@@ -326,7 +326,7 @@ impl Likeable for CommentActions {
     .set(notification::read.eq(true))
     .execute(conn)
     .await
-    .with_lemmy_type(LemmyErrorType::CouldntCreate)?;
+    .ok();
 
     insert_into(comment_actions::table)
       .values(form)
