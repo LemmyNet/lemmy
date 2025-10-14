@@ -60,3 +60,8 @@ ignored = ["futures", "futures-util"]
 serial_test = { workspace = true }
 tokio = { workspace = true }
 pretty_assertions = { workspace = true }
+
+[build-dependencies]
+reqwest  = { workspace = true }
+serde  = { workspace = true }
+serde_json  = { workspace = true }

@@ -50,7 +50,6 @@ use lemmy_utils::{
     },
   },
 };
-use serde::Deserialize;
 use url::Url;
 
 pub async fn create_site(
@@ -168,28 +167,19 @@ pub async fn create_site(
 /// Fetch list of communities from lemmyverse.net and then fetch the top 1000 communities.
 fn fetch_community_list(context: Data<LemmyContext>) {
   spawn_try_task(async move {
-    // Fetch list of communities
-    // TODO: embed trimmed down community list in binary, or serve it from join-lemmy.org?
-    let mut communities: Vec<CommunityInfo> = context
-      .client()
-      .get("https://data.lemmyverse.net/data/community.full.json")
-      .send()
-      .await?
-      .json()
-      .await?;
-
-    // invert sort key to get largest values first
-    communities.sort_by_key(|c| -c.counts.users_active_month);
+    let communities_json = include_str!(concat!(env!("OUT_DIR"), "/communities.json"));
+    let communities: Vec<ObjectId<ApubCommunity>> = serde_json::from_str(communities_json)?;
 
     // Fetch communities themselves
-    let tasks = communities.iter().take(100).map(|c| async {
+    let tasks = communities.iter().map(|c| async {
       let context = context.reset_request_count();
-      c.url.dereference(&context).await.ok();
+      c.dereference(&context).await.ok();
     });
 
-    // This could be made faster by running tasks in parallel with try_join_all or FuturesUnordered.
-    // However that causes massive slowdown as each community fetch starts additional background
-    // tasks to fetch moderators, recent posts etc. So we need to run it one by one.
+    // This could be made faster by running tasks in parallel with try_join_all or
+    // FuturesUnordered. However that causes massive slowdown as each community fetch
+    // starts additional background tasks to fetch moderators, recent posts etc. So we
+    // need to run it one by one.
     for t in tasks {
       t.await;
     }
@@ -237,17 +227,6 @@ fn create_welcome_post(context: &LemmyContext) {
 
     Ok(())
   })
-}
-
-#[derive(Deserialize)]
-struct CommunityInfo {
-  url: ObjectId<ApubCommunity>,
-  counts: CommunityInfoCounts,
-}
-
-#[derive(Deserialize)]
-struct CommunityInfoCounts {
-  users_active_month: i32,
 }
 
 fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> LemmyResult<()> {
