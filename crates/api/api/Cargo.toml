@@ -25,6 +25,9 @@ full = []
 lemmy_db_views_comment = { workspace = true, features = ["full"] }
 lemmy_db_views_community = { workspace = true, features = ["full"] }
 lemmy_db_views_community_moderator = { workspace = true, features = ["full"] }
+lemmy_db_views_community_follower_approval = { workspace = true, features = [
+  "full",
+] }
 lemmy_db_views_community_follower = { workspace = true, features = ["full"] }
 lemmy_apub_objects = { workspace = true, features = ["full"] }
 lemmy_db_views_community_person_ban = { workspace = true, features = ["full"] }

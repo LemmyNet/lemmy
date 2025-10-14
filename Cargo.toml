@@ -37,6 +37,7 @@ members = [
   "crates/db_views/community",
   "crates/db_views/community_moderator",
   "crates/db_views/community_follower",
+  "crates/db_views/community_follower_approval",
   "crates/db_views/community_person_ban",
   "crates/db_views/custom_emoji",
   "crates/db_views/notification",
@@ -109,6 +110,7 @@ lemmy_email = { version = "=1.0.0-alpha.9", path = "./crates/email" }
 lemmy_db_views_comment = { version = "=1.0.0-alpha.9", path = "./crates/db_views/comment" }
 lemmy_db_views_community = { version = "=1.0.0-alpha.9", path = "./crates/db_views/community" }
 lemmy_db_views_community_follower = { version = "=1.0.0-alpha.9", path = "./crates/db_views/community_follower" }
+lemmy_db_views_community_follower_approval = { version = "=1.0.0-alpha.9", path = "./crates/db_views/community_follower_approval" }
 lemmy_db_views_community_moderator = { version = "=1.0.0-alpha.9", path = "./crates/db_views/community_moderator" }
 lemmy_db_views_community_person_ban = { version = "=1.0.0-alpha.9", path = "./crates/db_views/community_person_ban" }
 lemmy_db_views_custom_emoji = { version = "=1.0.0-alpha.9", path = "./crates/db_views/custom_emoji" }

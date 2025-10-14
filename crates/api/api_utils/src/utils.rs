@@ -35,7 +35,7 @@ use lemmy_db_schema::{
   utils::DbPool,
 };
 use lemmy_db_schema_file::enums::{FederationMode, RegistrationMode};
-use lemmy_db_views_community_follower::CommunityFollowerView;
+use lemmy_db_views_community_follower_approval::PendingFollowerView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_community_person_ban::CommunityPersonBanView;
 use lemmy_db_views_local_image::LocalImageView;
@@ -259,7 +259,7 @@ pub async fn check_community_user_action(
   check_local_user_valid(local_user_view)?;
   check_community_deleted_removed(community)?;
   CommunityPersonBanView::check(pool, local_user_view.person.id, community.id).await?;
-  CommunityFollowerView::check_private_community_action(pool, local_user_view.person.id, community)
+  PendingFollowerView::check_private_community_action(pool, local_user_view.person.id, community)
     .await?;
   InstanceActions::check_ban(pool, local_user_view.person.id, community.instance_id).await?;
   Ok(())
