@@ -10,7 +10,10 @@ use chrono::Utc;
 use lemmy_api_utils::{
   context::LemmyContext,
   utils::{
+    generate_featured_url,
+    generate_followers_url,
     generate_inbox_url,
+    generate_moderators_url,
     get_url_blocklist,
     is_admin,
     local_site_rate_limit_to_rate_limit_config,
@@ -29,7 +32,7 @@ use lemmy_db_schema::{
     post::{Post, PostActions, PostInsertForm, PostLikeForm},
     site::{Site, SiteUpdateForm},
   },
-  traits::{Crud, Likeable},
+  traits::{ApubActor, Crud, Likeable},
   utils::diesel_string_update,
 };
 use lemmy_db_views_local_user::LocalUserView;
@@ -195,48 +198,85 @@ fn create_welcome_post(context: &LemmyContext) {
   spawn_try_task(async move {
     let pool = &mut context.pool();
     let local_site = SiteView::read_local(pool).await?;
-    let admins = PersonQuery {
+    let mut admins = PersonQuery {
       admins_only: Some(true),
       ..Default::default()
     }
     .list(None, local_site.instance.id, &mut context.pool())
     .await?;
-    // TODO: handle case where name `lemmy` is taken by initial admin user
-    // TODO: should probably have valid keypair, inbox url etc for federation (just in case). but
-    // not password.
-    let form = PersonInsertForm::new("lemmy".to_string(), String::new(), local_site.instance.id);
-    let person = Person::create(pool, &form).await?;
+    let initial_user = admins.pop();
 
-    // TODO: definitely needs keypair, inbox etc
-    let form = CommunityInsertForm::new(
-      local_site.instance.id,
-      "main".to_string(),
-      "Main".to_string(),
-      String::new(),
-    );
-    let community = Community::create(pool, &form).await?;
+    // Create dummy user for posting the welcome post. Make sure the username is not taken yet.
+    // Also dont create LocalUser and no password to prevent login.
+    let mut username = "lemmy".to_string();
+    let mut name_taken = true;
+    while name_taken {
+      name_taken = Person::check_username_taken(pool, &username).await.is_err();
+      if name_taken {
+        username += "_";
+      }
+    }
+    let actor_keypair = generate_actor_keypair()?;
+    let ap_id = Person::generate_local_actor_url(&username, context.settings())?;
+    let person_form = PersonInsertForm {
+      ap_id: Some(ap_id.clone()),
+      inbox_url: Some(generate_inbox_url()?),
+      private_key: Some(actor_keypair.private_key),
+      ..PersonInsertForm::new(
+        username.clone(),
+        actor_keypair.public_key,
+        local_site.site.instance_id,
+      )
+    };
+    let person = Person::create(pool, &person_form).await?;
+
+    // Create main community
+    let community_name = "main".to_string();
+    let community_ap_id = Community::generate_local_actor_url(&community_name, context.settings())?;
+    let keypair = generate_actor_keypair()?;
+    let community_form = CommunityInsertForm {
+      ap_id: Some(community_ap_id.clone()),
+      private_key: Some(keypair.private_key),
+      followers_url: Some(generate_followers_url(&community_ap_id)?),
+      inbox_url: Some(generate_inbox_url()?),
+      moderators_url: Some(generate_moderators_url(&community_ap_id)?),
+      featured_url: Some(generate_featured_url(&community_ap_id)?),
+      ..CommunityInsertForm::new(
+        local_site.site.instance_id,
+        community_name,
+        "Main".to_string(),
+        keypair.public_key,
+      )
+    };
+    let community = Community::create(pool, &community_form).await?;
+
     // Add initial admin user as community mod (not necessary but looks cleaner)
-    let form = CommunityModeratorForm::new(community.id, admins[0].person.id);
-    CommunityActions::join(pool, &form).await?;
-    // TODO: modlog entry as well?
+    if let Some(initial_user) = initial_user {
+      let mod_form = CommunityModeratorForm::new(community.id, initial_user.person.id);
+      CommunityActions::join(pool, &mod_form).await?;
+    }
 
     // Create post in this community with getting started info
     // TODO: move to translations
     let title = "Welcome to Lemmy!".to_string();
     let body = r#"To get started you can [read the documentation](https://join-lemmy.org/docs/index.html).
 
-If you need help, try !lemmy@lemmy.ml or the [admin chat on Matrix](https://matrix.to/#/#lemmy-support-general:discuss.online)."#
+Your instance is already federated with the Lemmyverse. Go to the "All" tab on the frontpage to see content from other instances. This content is incomplete, follow a community to receive all new posts, comments and votes. For more details see [Getting started with Federation](https://join-lemmy.org/docs/administration/federation_getting_started.html).
+
+If you have any problems with Lemmy, check out the [Troubleshooting guide](https://join-lemmy.org/docs/administration/troubleshooting.html). You can also ask questions in !lemmy@lemmy.ml or the [admin chat on Matrix](https://matrix.to/#/#lemmy-support-general:discuss.online).
+
+You can delete or unfeature this post with the context menu above."#
     .to_string();
-    let form = PostInsertForm {
+    let post_form = PostInsertForm {
       body: Some(body),
       featured_local: Some(true),
       ..PostInsertForm::new(title, person.id, community.id)
     };
-    let post = Post::create(pool, &form).await?;
+    let post = Post::create(pool, &post_form).await?;
 
     // Own upvote for post
-    let form = PostLikeForm::new(post.id, person.id, 1);
-    PostActions::like(&mut context.pool(), &form).await?;
+    let like_form = PostLikeForm::new(post.id, person.id, 1);
+    PostActions::like(&mut context.pool(), &like_form).await?;
 
     Ok(())
   })

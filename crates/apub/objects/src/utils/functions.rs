@@ -14,14 +14,13 @@ use html2md::parse_html;
 use lemmy_api_utils::{context::LemmyContext, utils::check_is_mod_or_admin};
 use lemmy_db_schema::{
   source::{
-    community::{Community, CommunityActions, CommunityModeratorForm},
+    community::Community,
     instance::{Instance, InstanceActions},
     local_site::LocalSite,
   },
   utils::DbPool,
 };
 use lemmy_db_schema_file::enums::{ActorType, CommunityVisibility};
-use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_community_person_ban::CommunityPersonBanView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
