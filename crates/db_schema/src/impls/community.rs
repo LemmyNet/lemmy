@@ -359,7 +359,7 @@ impl CommunityActions {
       .get_result::<bool>(conn)
       .await?
       .then_some(())
-      .ok_or(UntranslatedError::CommunityHasNoFollowers.into())
+      .ok_or(UntranslatedError::CommunityHasNoFollowers(remote_community_id.0).into())
   }
 
   pub async fn approve_private_community_follower(
