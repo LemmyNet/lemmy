@@ -209,7 +209,7 @@ test.skip("Remove a comment from admin and community on the same instance", asyn
   let refetchedPostComments = await listPersonContent(
     alpha,
     commentRes.comment_view.comment.creator_id,
-    "Comments",
+    "comments",
   );
   let firstRefetchedComment = refetchedPostComments.content[0] as CommentView;
   expect(firstRefetchedComment.comment.removed).toBe(true);
@@ -411,7 +411,7 @@ test("Reply to a comment from another instance, get notification", async () => {
 
   // check inbox of replies on alpha, fetching read/unread both
   let alphaRepliesRes = await waitUntil(
-    () => listNotifications(alpha, "Reply"),
+    () => listNotifications(alpha, "reply"),
     r => r.notifications.length > 0,
   );
   const alphaReply = alphaRepliesRes.notifications.find(
@@ -476,7 +476,7 @@ test("Bot reply notifications are filtered when bots are hidden", async () => {
   alphaUnreadCountRes = await getUnreadCount(alpha);
   expect(alphaUnreadCountRes.count).toBe(1);
 
-  let alphaUnreadRepliesRes = await listNotifications(alpha, "Reply", true);
+  let alphaUnreadRepliesRes = await listNotifications(alpha, "reply", true);
   expect(alphaUnreadRepliesRes.notifications.length).toBe(1);
   expect(alphaUnreadRepliesRes.notifications[0].notification.comment_id).toBe(
     commentRes.comment_view.comment.id,
@@ -530,7 +530,7 @@ test("Mention beta from alpha comment", async () => {
   assertCommentFederation(betaRootComment, commentRes.comment_view);
 
   let mentionsRes = await waitUntil(
-    () => listNotifications(beta, "Mention"),
+    () => listNotifications(beta, "mention"),
     m => !!m.notifications[0],
   );
 
@@ -606,11 +606,11 @@ test("A and G subscribe to B (center) A posts, G mentions B, it gets announced t
   // Make sure beta has mentions
   let relevantMention = await waitUntil(
     () =>
-      listNotifications(beta, "Mention").then(m =>
+      listNotifications(beta, "mention").then(m =>
         m.notifications.find(m => {
           let data = m.data as CommentView;
           return (
-            m.notification.kind == "Mention" &&
+            m.notification.kind == "mention" &&
             data.comment.ap_id === commentRes.comment_view.comment.ap_id
           );
         }),
@@ -637,11 +637,11 @@ test("Check that activity from another instance is sent to third instance", asyn
   expect(gammaFollow.community_view.community.name).toBe("main");
   await waitUntil(
     () => resolveBetaCommunity(alpha),
-    c => c?.community_actions?.follow_state === "Accepted",
+    c => c?.community_actions?.follow_state === "accepted",
   );
   await waitUntil(
     () => resolveBetaCommunity(gamma),
-    c => c?.community_actions?.follow_state === "Accepted",
+    c => c?.community_actions?.follow_state === "accepted",
   );
 
   // Create a post on beta
@@ -847,7 +847,7 @@ test("Dont send a comment reply to a blocked community", async () => {
   unreadCount = await getUnreadCount(beta);
   expect(unreadCount.count).toBe(0);
 
-  let replies = await listNotifications(beta, "Reply", true);
+  let replies = await listNotifications(beta, "reply", true);
   expect(replies.notifications.length).toBe(0);
 
   // Unblock the community
