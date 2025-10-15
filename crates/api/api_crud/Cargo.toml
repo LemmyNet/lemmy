@@ -57,9 +57,6 @@ diesel-async = { workspace = true }
 ignored = ["futures", "futures-util"]
 
 [dev-dependencies]
-serial_test = { workspace = true }
-tokio = { workspace = true }
-pretty_assertions = { workspace = true }
 
 [build-dependencies]
 reqwest = { workspace = true }

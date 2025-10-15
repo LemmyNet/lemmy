@@ -265,6 +265,10 @@ Your instance is already federated with the Lemmyverse. Go to the "All" tab on t
 
 If you have any problems with Lemmy, check out the [Troubleshooting guide](https://join-lemmy.org/docs/administration/troubleshooting.html). You can also ask questions in !lemmy@lemmy.ml or the [admin chat on Matrix](https://matrix.to/#/#lemmy-support-general:discuss.online).
 
+To get notified about new Lemmy versions, please subscribe to one of the following channels:
+- !announcements@lemmy.ml
+- https://join-lemmy.org/news
+- https://github.com/LemmyNet/lemmy/releases
 You can delete or unfeature this post with the context menu above."#
     .to_string();
     let post_form = PostInsertForm {
