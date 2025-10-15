@@ -465,9 +465,6 @@ mod tests {
     };
     AdminBlockInstance::create(pool, &form).await?;
 
-    /*
-      Temporarily disabled to speed up compilation
-      https://github.com/LemmyNet/lemmy/issues/6012
     let form = AdminPurgeCommentForm {
       admin_person_id: data.timmy.id,
       post_id: data.post.id,
@@ -493,7 +490,6 @@ mod tests {
       reason: "reason".to_string(),
     };
     AdminPurgePost::create(pool, &form).await?;
-    */
 
     let form = ModChangeCommunityVisibilityForm {
       mod_person_id: data.timmy.id,

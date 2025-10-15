@@ -3693,6 +3693,7 @@ dependencies = [
  "lemmy_db_schema",
  "lemmy_db_schema_file",
  "lemmy_db_views_comment",
+ "lemmy_db_views_modlog",
  "lemmy_db_views_post",
  "lemmy_db_views_private_message",
  "lemmy_utils",
