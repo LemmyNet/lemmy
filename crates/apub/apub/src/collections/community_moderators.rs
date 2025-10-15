@@ -90,7 +90,7 @@ pub(super) async fn handle_community_moderators(
     }
 
     // Only add the top mod in case of new instance
-    if is_new_instance(&context).await? {
+    if is_new_instance(context).await? {
       return Ok(());
     }
   }
