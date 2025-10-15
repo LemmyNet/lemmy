@@ -214,6 +214,7 @@ pub enum CommunityFollowerState {
   Accepted,
   Pending,
   ApprovalRequired,
+  Denied,
 }
 
 #[derive(

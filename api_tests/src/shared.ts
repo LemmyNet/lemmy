@@ -31,8 +31,7 @@ import {
   ListNotifications,
   ListNotificationsResponse,
   NotificationDataType,
-  BanPersonResponse,
-  BlockCommunityResponse,
+  PersonResponse,
 } from "lemmy-js-client";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
 import { DeletePost } from "lemmy-js-client/dist/types/DeletePost";
@@ -90,7 +89,6 @@ import { GetPosts } from "lemmy-js-client/dist/types/GetPosts";
 import { GetPersonDetailsResponse } from "lemmy-js-client/dist/types/GetPersonDetailsResponse";
 import { GetPersonDetails } from "lemmy-js-client/dist/types/GetPersonDetails";
 import { ListingType } from "lemmy-js-client/dist/types/ListingType";
-import { GetCommunityPendingFollowsCountI } from "lemmy-js-client/dist/other_types";
 
 export const fetchFunction = fetch;
 export const imageFetchLimit = 50;
@@ -474,7 +472,7 @@ export async function banPersonFromSite(
   person_id: number,
   ban: boolean,
   remove_or_restore_data: boolean,
-): Promise<BanPersonResponse> {
+): Promise<PersonResponse> {
   // Make sure lemmy-beta/c/main is cached on lemmy_alpha
   let form: BanPerson = {
     person_id,
@@ -921,7 +919,7 @@ export function blockCommunity(
   api: LemmyHttp,
   community_id: CommunityId,
   block: boolean,
-): Promise<BlockCommunityResponse> {
+): Promise<CommunityResponse> {
   let form: BlockCommunity = {
     community_id,
     block,
@@ -933,7 +931,7 @@ export function listCommunityPendingFollows(
   api: LemmyHttp,
 ): Promise<ListCommunityPendingFollowsResponse> {
   let form: ListCommunityPendingFollows = {
-    pending_only: true,
+    unread_only: true,
     all_communities: false,
     limit: 50,
   };
@@ -942,10 +940,8 @@ export function listCommunityPendingFollows(
 
 export function getCommunityPendingFollowsCount(
   api: LemmyHttp,
-  community_id: CommunityId,
 ): Promise<GetCommunityPendingFollowsCountResponse> {
-  let form: GetCommunityPendingFollowsCountI = { community_id };
-  return api.getCommunityPendingFollowsCount(form);
+  return api.getCommunityPendingFollowsCount();
 }
 
 export function approveCommunityPendingFollow(
