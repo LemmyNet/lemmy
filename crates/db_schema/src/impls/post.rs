@@ -463,7 +463,7 @@ impl PostActions {
       .iter()
       .map(|f| f.person_id)
       .next()
-      .ok_or_else(|| LemmyErrorType::CouldntUpdate)?;
+      .ok_or(LemmyErrorType::CouldntUpdate)?;
 
     // Collect up the post ids
     let post_ids: Vec<PostId> = forms.iter().map(|f| f.post_id).collect();
