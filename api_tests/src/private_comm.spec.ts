@@ -32,8 +32,8 @@ afterAll(unfollows);
 
 test("Follow a private community", async () => {
   // create private community
-  const community = await createCommunity(alpha, randomString(10), "Private");
-  expect(community.community_view.community.visibility).toBe("Private");
+  const community = await createCommunity(alpha, randomString(10), "private");
+  expect(community.community_view.community.visibility).toBe("private");
   const alphaCommunityId = community.community_view.community.id;
 
   // No pending follows yet
@@ -49,7 +49,7 @@ test("Follow a private community", async () => {
     community.community_view.community.ap_id,
   );
   expect(betaCommunity).toBeDefined();
-  expect(betaCommunity?.community.visibility).toBe("Private");
+  expect(betaCommunity?.community.visibility).toBe("private");
   const betaCommunityId = betaCommunity!.community.id;
   const follow_form: FollowCommunity = {
     community_id: betaCommunityId,
@@ -60,7 +60,7 @@ test("Follow a private community", async () => {
   // Follow listed as pending
   const follow1 = await getCommunity(user, betaCommunityId);
   expect(follow1.community_view.community_actions?.follow_state).toBe(
-    "ApprovalRequired",
+    "approval_required",
   );
 
   // Wait for follow to federate, shown as pending
@@ -75,7 +75,7 @@ test("Follow a private community", async () => {
   // user still sees approval required at this point
   const betaCommunity2 = await getCommunity(user, betaCommunityId);
   expect(betaCommunity2.community_view.community_actions?.follow_state).toBe(
-    "ApprovalRequired",
+    "approval_required",
   );
 
   // Approve the follow
@@ -89,7 +89,7 @@ test("Follow a private community", async () => {
   // Follow is confirmed
   await waitUntil(
     () => getCommunity(user, betaCommunityId),
-    c => c.community_view.community_actions?.follow_state == "Accepted",
+    c => c.community_view.community_actions?.follow_state == "accepted",
   );
   const pendingFollows2 = await listCommunityPendingFollows(alpha);
   expect(pendingFollows2.items.length).toBe(0);
@@ -116,8 +116,8 @@ test("Follow a private community", async () => {
 
 test("Only followers can view and interact with private community content", async () => {
   // create private community
-  const community = await createCommunity(alpha, randomString(10), "Private");
-  expect(community.community_view.community.visibility).toBe("Private");
+  const community = await createCommunity(alpha, randomString(10), "private");
+  expect(community.community_view.community.visibility).toBe("private");
   const alphaCommunityId = community.community_view.community.id;
 
   // create post and comment
@@ -170,8 +170,8 @@ test("Only followers can view and interact with private community content", asyn
 
 test("Reject follower", async () => {
   // create private community
-  const community = await createCommunity(alpha, randomString(10), "Private");
-  expect(community.community_view.community.visibility).toBe("Private");
+  const community = await createCommunity(alpha, randomString(10), "private");
+  expect(community.community_view.community.visibility).toBe("private");
   const alphaCommunityId = community.community_view.community.id;
 
   // user is not following the community and cannot view nor create posts
@@ -187,7 +187,7 @@ test("Reject follower", async () => {
   };
   const follow = await user.followCommunity(follow_form);
   expect(follow.community_view.community_actions?.follow_state).toBe(
-    "ApprovalRequired",
+    "approval_required",
   );
 
   const pendingFollows1 = await waitUntil(
@@ -210,8 +210,8 @@ test("Reject follower", async () => {
 
 test("Follow a private community and receive activities", async () => {
   // create private community
-  const community = await createCommunity(alpha, randomString(10), "Private");
-  expect(community.community_view.community.visibility).toBe("Private");
+  const community = await createCommunity(alpha, randomString(10), "private");
+  expect(community.community_view.community.visibility).toBe("private");
   const alphaCommunityId = community.community_view.community.id;
 
   // follow with users from beta and gamma
@@ -242,11 +242,11 @@ test("Follow a private community and receive activities", async () => {
   // Follow is confirmed
   await waitUntil(
     () => getCommunity(beta, betaCommunityId),
-    c => c.community_view.community_actions?.follow_state == "Accepted",
+    c => c.community_view.community_actions?.follow_state == "accepted",
   );
   await waitUntil(
     () => getCommunity(gamma, gammaCommunityId),
-    c => c.community_view.community_actions?.follow_state == "Accepted",
+    c => c.community_view.community_actions?.follow_state == "accepted",
   );
 
   // create a post and comment from gamma
@@ -259,7 +259,7 @@ test("Follow a private community and receive activities", async () => {
 
   // post and comment were federated to beta
   let posts = await waitUntil(
-    () => getPosts(beta, "All", betaCommunityId),
+    () => getPosts(beta, "all", betaCommunityId),
     c => c.posts.length == 1,
   );
   expect(posts.posts[0].post.ap_id).toBe(post.post_view.post.ap_id);
@@ -278,8 +278,8 @@ test("Follow a private community and receive activities", async () => {
 
 test("Fetch remote content in private community", async () => {
   // create private community
-  const community = await createCommunity(alpha, randomString(10), "Private");
-  expect(community.community_view.community.visibility).toBe("Private");
+  const community = await createCommunity(alpha, randomString(10), "private");
+  expect(community.community_view.community.visibility).toBe("private");
   const alphaCommunityId = community.community_view.community.id;
 
   const betaCommunityId = (await resolveCommunity(
@@ -296,7 +296,7 @@ test("Fetch remote content in private community", async () => {
   // Follow is confirmed
   await waitUntil(
     () => getCommunity(beta, betaCommunityId),
-    c => c.community_view.community_actions?.follow_state == "Accepted",
+    c => c.community_view.community_actions?.follow_state == "accepted",
   );
 
   // beta creates post and comment

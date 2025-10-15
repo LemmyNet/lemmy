@@ -161,7 +161,7 @@ export async function setupLogins() {
 
   // Registration applications are now enabled by default, need to disable them
   let editSiteForm: EditSite = {
-    registration_mode: "Open",
+    registration_mode: "open",
     rate_limit_message_max_requests: 999,
     rate_limit_post_max_requests: 999,
     rate_limit_comment_max_requests: 999,
@@ -303,7 +303,7 @@ export async function featurePost(
   let form: FeaturePost = {
     post_id: post.id,
     featured,
-    feature_type: "Community",
+    feature_type: "community",
   };
   return api.featurePost(form);
 }
@@ -340,8 +340,8 @@ export async function searchPostLocal(
 ): Promise<PostView | undefined> {
   let form: Search = {
     q: post.name,
-    type_: "Posts",
-    listing_type: "All",
+    type_: "posts",
+    listing_type: "all",
   };
   let res = await api.search(form);
   let first = res.results.at(0);
@@ -386,12 +386,12 @@ export async function lockComment(
 export async function getComments(
   api: LemmyHttp,
   post_id?: number,
-  listingType: ListingType = "All",
+  listingType: ListingType = "all",
 ): Promise<GetCommentsResponse> {
   let form: GetComments = {
     post_id: post_id,
     type_: listingType,
-    sort: "New",
+    sort: "new",
     limit: 50,
   };
   return api.getComments(form);
@@ -514,7 +514,7 @@ export async function followCommunity(
     () => getCommunity(api, res.community_view.community.id),
     g => {
       let followState = g.community_view.community_actions?.follow_state;
-      return follow ? followState === "Accepted" : followState === undefined;
+      return follow ? followState === "accepted" : followState === undefined;
     },
   );
   // wait FOLLOW_ADDITIONS_RECHECK_DELAY (there's no API to wait for this currently)
@@ -601,7 +601,7 @@ export async function likeComment(
 export async function createCommunity(
   api: LemmyHttp,
   name_: string = randomString(10),
-  visibility: CommunityVisibility = "Public",
+  visibility: CommunityVisibility = "public",
 ): Promise<CommunityResponse> {
   let description = "a sample description";
   let form: CreateCommunity = {
@@ -739,8 +739,8 @@ export async function saveUserSettingsBio(
     show_nsfw: true,
     blur_nsfw: false,
     theme: "darkly",
-    default_post_sort_type: "Active",
-    default_listing_type: "All",
+    default_post_sort_type: "active",
+    default_listing_type: "all",
     interface_language: "en",
     show_avatars: true,
     send_notifications_to_email: false,
@@ -756,8 +756,8 @@ export async function saveUserSettingsFederated(
   let form: SaveUserSettings = {
     show_nsfw: false,
     blur_nsfw: true,
-    default_post_sort_type: "Hot",
-    default_listing_type: "All",
+    default_post_sort_type: "hot",
+    default_listing_type: "all",
     interface_language: "",
     display_name: "user321",
     show_avatars: false,
@@ -1020,7 +1020,7 @@ export async function unfollows() {
 
 export async function purgeAllPosts(api: LemmyHttp) {
   // The best way to get all federated items, is to find the posts
-  let res = await api.getPosts({ type_: "All", limit: 50 });
+  let res = await api.getPosts({ type_: "all", limit: 50 });
   await Promise.allSettled(
     Array.from(new Set(res.posts.map(p => p.post.id)))
       .map(post_id => api.purgePost({ post_id, reason: "purge" }))
