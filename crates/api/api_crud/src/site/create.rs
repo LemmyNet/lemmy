@@ -1,19 +1,12 @@
 use super::not_zero;
 use crate::site::{application_question_check, site_default_post_listing_type_check};
-use activitypub_federation::{
-  config::Data,
-  fetch::object_id::ObjectId,
-  http_signatures::generate_actor_keypair,
-};
+use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
 use actix_web::web::Json;
 use chrono::Utc;
 use lemmy_api_utils::{
   context::LemmyContext,
   utils::{
-    generate_featured_url,
-    generate_followers_url,
     generate_inbox_url,
-    generate_moderators_url,
     get_url_blocklist,
     is_admin,
     local_site_rate_limit_to_rate_limit_config,
@@ -21,29 +14,23 @@ use lemmy_api_utils::{
     slur_regex,
   },
 };
-use lemmy_apub_objects::objects::community::ApubCommunity;
 use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{
-    community::{Community, CommunityActions, CommunityInsertForm, CommunityModeratorForm},
     local_site::{LocalSite, LocalSiteUpdateForm},
     local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitUpdateForm},
-    person::{Person, PersonInsertForm},
-    post::{Post, PostActions, PostInsertForm, PostLikeForm},
     site::{Site, SiteUpdateForm},
   },
-  traits::{ApubActor, Crud, Likeable},
+  traits::Crud,
   utils::diesel_string_update,
 };
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_person::impls::PersonQuery;
 use lemmy_db_views_site::{
   api::{CreateSite, SiteResponse},
   SiteView,
 };
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
-  spawn_try_task,
   utils::{
     slurs::check_slurs,
     validation::{
@@ -153,137 +140,7 @@ pub async fn create_site(
     local_site_rate_limit_to_rate_limit_config(&site_view.local_site_rate_limit);
   context.rate_limit_cell().set_config(rate_limit_config);
 
-  // TODO: also disable in debug mode
-  let no_default_data = context
-    .settings()
-    .setup
-    .as_ref()
-    .map(|s| s.no_default_data)
-    .flatten();
-  if !no_default_data.unwrap_or_default() {
-    create_welcome_post(&context);
-    fetch_community_list(context.clone());
-  }
-
   Ok(Json(SiteResponse { site_view }))
-}
-
-/// Fetch list of communities from lemmyverse.net and then fetch the top 1000 communities.
-fn fetch_community_list(context: Data<LemmyContext>) {
-  spawn_try_task(async move {
-    let communities_json = include_str!(concat!(env!("OUT_DIR"), "/communities.json"));
-    let communities: Vec<ObjectId<ApubCommunity>> = serde_json::from_str(communities_json)?;
-
-    // Fetch communities themselves
-    let tasks = communities.iter().map(|c| async {
-      let context = context.reset_request_count();
-      c.dereference(&context).await.ok();
-    });
-
-    // This could be made faster by running tasks in parallel with try_join_all or
-    // FuturesUnordered. However that causes massive slowdown as each community fetch
-    // starts additional background tasks to fetch moderators, recent posts etc. So we
-    // need to run it one by one.
-    for t in tasks {
-      t.await;
-    }
-
-    Ok(())
-  })
-}
-
-fn create_welcome_post(context: &LemmyContext) {
-  let context = context.clone();
-
-  spawn_try_task(async move {
-    let pool = &mut context.pool();
-    let local_site = SiteView::read_local(pool).await?;
-    let mut admins = PersonQuery {
-      admins_only: Some(true),
-      ..Default::default()
-    }
-    .list(None, local_site.instance.id, &mut context.pool())
-    .await?;
-    let initial_user = admins.pop();
-
-    // Create dummy user for posting the welcome post. Make sure the username is not taken yet.
-    // Also dont create LocalUser and no password to prevent login.
-    let mut username = "lemmy".to_string();
-    let mut name_taken = true;
-    while name_taken {
-      name_taken = Person::check_username_taken(pool, &username).await.is_err();
-      if name_taken {
-        username += "_";
-      }
-    }
-    let actor_keypair = generate_actor_keypair()?;
-    let ap_id = Person::generate_local_actor_url(&username, context.settings())?;
-    let person_form = PersonInsertForm {
-      ap_id: Some(ap_id.clone()),
-      inbox_url: Some(generate_inbox_url()?),
-      private_key: Some(actor_keypair.private_key),
-      ..PersonInsertForm::new(
-        username.clone(),
-        actor_keypair.public_key,
-        local_site.site.instance_id,
-      )
-    };
-    let person = Person::create(pool, &person_form).await?;
-
-    // Create main community
-    let community_name = "main".to_string();
-    let community_ap_id = Community::generate_local_actor_url(&community_name, context.settings())?;
-    let keypair = generate_actor_keypair()?;
-    let community_form = CommunityInsertForm {
-      ap_id: Some(community_ap_id.clone()),
-      private_key: Some(keypair.private_key),
-      followers_url: Some(generate_followers_url(&community_ap_id)?),
-      inbox_url: Some(generate_inbox_url()?),
-      moderators_url: Some(generate_moderators_url(&community_ap_id)?),
-      featured_url: Some(generate_featured_url(&community_ap_id)?),
-      ..CommunityInsertForm::new(
-        local_site.site.instance_id,
-        community_name,
-        "Main".to_string(),
-        keypair.public_key,
-      )
-    };
-    let community = Community::create(pool, &community_form).await?;
-
-    // Add initial admin user as community mod (not necessary but looks cleaner)
-    if let Some(initial_user) = initial_user {
-      let mod_form = CommunityModeratorForm::new(community.id, initial_user.person.id);
-      CommunityActions::join(pool, &mod_form).await?;
-    }
-
-    // Create post in this community with getting started info
-    // TODO: move to translations
-    let title = "Welcome to Lemmy!".to_string();
-    let body = r#"To get started you can [read the documentation](https://join-lemmy.org/docs/index.html).
-
-Your instance is already federated with the Lemmyverse. Go to the "All" tab on the frontpage to see content from other instances. This content is incomplete, follow a community to receive all new posts, comments and votes. For more details see [Getting started with Federation](https://join-lemmy.org/docs/administration/federation_getting_started.html).
-
-If you have any problems with Lemmy, check out the [Troubleshooting guide](https://join-lemmy.org/docs/administration/troubleshooting.html). You can also ask questions in !lemmy@lemmy.ml or the [admin chat on Matrix](https://matrix.to/#/#lemmy-support-general:discuss.online).
-
-To get notified about new Lemmy versions, please subscribe to one of the following channels:
-- !announcements@lemmy.ml
-- https://join-lemmy.org/news
-- https://github.com/LemmyNet/lemmy/releases
-You can delete or unfeature this post with the context menu above."#
-    .to_string();
-    let post_form = PostInsertForm {
-      body: Some(body),
-      featured_local: Some(true),
-      ..PostInsertForm::new(title, person.id, community.id)
-    };
-    let post = Post::create(pool, &post_form).await?;
-
-    // Own upvote for post
-    let like_form = PostLikeForm::new(post.id, person.id, 1);
-    PostActions::like(&mut context.pool(), &like_form).await?;
-
-    Ok(())
-  })
 }
 
 fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> LemmyResult<()> {
