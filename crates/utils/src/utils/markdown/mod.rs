@@ -3,6 +3,7 @@ use markdown_it::MarkdownIt;
 use regex::RegexSet;
 use std::sync::LazyLock;
 
+mod identifier_rule;
 pub mod image_links;
 mod link_rule;
 
@@ -16,6 +17,7 @@ static MARKDOWN_PARSER: LazyLock<MarkdownIt> = LazyLock::new(|| {
   markdown_it_ruby::add(&mut parser);
   markdown_it_footnote::add(&mut parser);
   link_rule::add(&mut parser);
+  identifier_rule::add(&mut parser);
 
   parser
 });
@@ -42,6 +44,16 @@ mod tests {
   #[test]
   fn test_basic_markdown() {
     let tests: Vec<_> = vec![
+      (
+        "rewrite community identifier",
+        "!test@lemmy-alpha",
+        "<p><a href=\"/c/test@lemmy-alpha\" rel=\"nofollow\" class=\"u-url mention\">!test@lemmy-alpha</a></p>\n",
+      ),
+      (
+        "rewrite user identifier",
+        "@garda@lemmy-alpha",
+        "<p><a href=\"/u/garda@lemmy-alpha\" rel=\"nofollow\" class=\"u-url mention\">@garda@lemmy-alpha</a></p>\n",
+      ),
       (
         "headings",
         "# h1\n## h2\n### h3\n#### h4\n##### h5\n###### h6",
