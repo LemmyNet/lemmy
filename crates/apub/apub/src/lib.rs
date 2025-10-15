@@ -1,8 +1,11 @@
 use activitypub_federation::{config::UrlVerifier, error::Error as ActivityPubError};
 use async_trait::async_trait;
+use chrono::{Days, Utc};
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::utils::functions::{check_apub_id_valid, local_site_data_cached};
 use lemmy_db_schema::utils::ActualDbPool;
-use lemmy_utils::error::{LemmyError, LemmyErrorType, UntranslatedError};
+use lemmy_db_views_site::SiteView;
+use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult, UntranslatedError};
 use url::Url;
 
 pub mod collections;
@@ -50,4 +53,11 @@ impl UrlVerifier for VerifyUrlData {
     })?;
     Ok(())
   }
+}
+
+/// Returns true if the local instance was created in the last 24 hours. In this case Lemmy should
+/// fetch less data over federation, because the setup task fetches a lot of communities.
+async fn is_new_instance(context: &LemmyContext) -> LemmyResult<bool> {
+  let local_site = SiteView::read_local(&mut context.pool()).await?;
+  Ok(local_site.site.published_at - Days::new(1) < Utc::now())
 }
