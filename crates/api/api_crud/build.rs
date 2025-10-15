@@ -22,11 +22,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     communities.sort_by_key(|c| -c.counts.users_active_month);
 
     // take urls of top 100 communities
-    communities
+    let mut c = communities
       .into_iter()
       .map(|c| c.url)
       .take(100)
-      .collect::<Vec<_>>()
+      .collect::<Vec<_>>();
+
+    // also prefetch these two communities as they are linked in the welcome post
+    c.insert(0, "https://lemmy.ml/c/announcements".to_string());
+    c.insert(0, "https://lemmy.ml/c/lemmy".to_string());
+    c
   } else {
     // in debug mode only use a single hardcoded community to avoid unnecessary requests
     vec!["https://lemmy.ml/c/lemmy".to_string()]
