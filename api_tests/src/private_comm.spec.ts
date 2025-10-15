@@ -24,6 +24,7 @@ import {
   gamma,
   getPosts,
   getComments,
+  statusNotFound,
 } from "./shared";
 
 beforeAll(setupLogins);
@@ -38,10 +39,7 @@ test("Follow a private community", async () => {
   // No pending follows yet
   const pendingFollows0 = await listCommunityPendingFollows(alpha);
   expect(pendingFollows0.items.length).toBe(0);
-  const pendingFollowsCount0 = await getCommunityPendingFollowsCount(
-    alpha,
-    alphaCommunityId,
-  );
+  const pendingFollowsCount0 = await getCommunityPendingFollowsCount(alpha);
   expect(pendingFollowsCount0.count).toBe(0);
 
   // follow as new user
@@ -71,10 +69,7 @@ test("Follow a private community", async () => {
     f => f.items.length == 1,
   );
   expect(pendingFollows1.items[0].is_new_instance).toBe(true);
-  const pendingFollowsCount1 = await getCommunityPendingFollowsCount(
-    alpha,
-    alphaCommunityId,
-  );
+  const pendingFollowsCount1 = await getCommunityPendingFollowsCount(alpha);
   expect(pendingFollowsCount1.count).toBe(1);
 
   // user still sees approval required at this point
@@ -98,10 +93,7 @@ test("Follow a private community", async () => {
   );
   const pendingFollows2 = await listCommunityPendingFollows(alpha);
   expect(pendingFollows2.items.length).toBe(0);
-  const pendingFollowsCount2 = await getCommunityPendingFollowsCount(
-    alpha,
-    alphaCommunityId,
-  );
+  const pendingFollowsCount2 = await getCommunityPendingFollowsCount(alpha);
   expect(pendingFollowsCount2.count).toBe(0);
 
   // follow with another user from that instance, is_new_instance should be false now
@@ -142,13 +134,13 @@ test("Only followers can view and interact with private community content", asyn
     await resolveCommunity(user, community.community_view.community.ap_id)
   )?.community;
   await expect(resolvePost(user, post0.post_view.post)).rejects.toStrictEqual(
-    new LemmyError("not_found"),
+    new LemmyError("not_found", statusNotFound),
   );
   await expect(
     resolveComment(user, comment.comment_view.comment),
-  ).rejects.toStrictEqual(new LemmyError("not_found"));
+  ).rejects.toStrictEqual(new LemmyError("not_found", statusNotFound));
   await expect(createPost(user, betaCommunity!.id)).rejects.toStrictEqual(
-    new LemmyError("not_found"),
+    new LemmyError("not_found", statusNotFound),
   );
 
   // follow the community and approve
@@ -172,8 +164,8 @@ test("Only followers can view and interact with private community content", asyn
 
   const post1 = await createPost(user, betaCommunity!.id);
   expect(post1.post_view).toBeDefined();
-  const like = await likeComment(user, 1, resolvedComment!.comment);
-  expect(like.comment_view.comment_actions?.like_score).toBe(1);
+  const like = await likeComment(user, true, resolvedComment!.comment);
+  expect(like.comment_view.comment_actions?.vote_is_upvote).toBe(true);
 });
 
 test("Reject follower", async () => {
@@ -333,7 +325,7 @@ test("Fetch remote content in private community", async () => {
 
   // cannot fetch post yet
   await expect(resolvePost(gamma, post.post_view.post)).rejects.toStrictEqual(
-    new LemmyError("not_found"),
+    new LemmyError("not_found", statusNotFound),
   );
   // follow community and approve
   await gamma.followCommunity(follow_form);

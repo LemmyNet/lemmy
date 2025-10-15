@@ -74,16 +74,6 @@ pub struct BlockCommunity {
   pub block: bool,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// The block community response.
-pub struct BlockCommunityResponse {
-  pub community_view: CommunityView,
-  pub blocked: bool,
-}
-
 /// Parameter for setting community icon or banner. Can't use POST data here as it already contains
 /// the image data.
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
@@ -317,7 +307,8 @@ pub struct ListMultiCommunitiesResponse {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct GetMultiCommunity {
-  pub id: MultiCommunityId,
+  pub id: Option<MultiCommunityId>,
+  pub name: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -326,6 +317,13 @@ pub struct GetMultiCommunity {
 pub struct GetMultiCommunityResponse {
   pub multi_community_view: MultiCommunityView,
   pub communities: Vec<CommunityView>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+pub struct MultiCommunityResponse {
+  pub multi_community_view: MultiCommunityView,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]

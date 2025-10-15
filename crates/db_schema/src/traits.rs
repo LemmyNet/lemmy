@@ -7,8 +7,11 @@ use crate::{
 use diesel::{
   associations::HasTable,
   dsl,
+  expression::{Expression, Selectable},
+  pg::Pg,
   query_builder::{DeleteStatement, IntoUpdateTarget},
-  query_dsl::methods::{FindDsl, LimitDsl},
+  query_dsl::methods::{FindDsl, LimitDsl, SelectDsl},
+  SelectableHelper,
   Table,
 };
 use diesel_async::{
@@ -34,14 +37,17 @@ pub type PrimaryKey<T> = <<T as HasTable>::Table as Table>::PrimaryKey;
 
 // Trying to create default implementations for `create` and `update` results in a lifetime mess and
 // weird compile errors. https://github.com/rust-lang/rust/issues/102211
-pub trait Crud: HasTable + Sized
+pub trait Crud: HasTable + Sized + Selectable<Pg>
 where
   Self::Table: FindDsl<Self::IdType>,
-  Find<Self>: LimitDsl + IntoUpdateTarget + Send,
+  Find<Self>: LimitDsl + IntoUpdateTarget + SelectDsl<dsl::AsSelect<Self, Pg>> + Send,
   Delete<Find<Self>>: ExecuteDsl<AsyncPgConnection> + Send + 'static,
+  dsl::Select<Find<Self>, dsl::AsSelect<Self, Pg>>: LimitDsl + Send,
+  dsl::AsSelect<Self, Pg>: Expression,
 
   // Used by `RunQueryDsl::first`
-  dsl::Limit<Find<Self>>: LoadQuery<'static, AsyncPgConnection, Self> + Send + 'static,
+  dsl::Limit<dsl::Select<Find<Self>, dsl::AsSelect<Self, Pg>>>:
+    LoadQuery<'static, AsyncPgConnection, Self> + Send + 'static,
 {
   type InsertForm;
   type UpdateForm;
@@ -57,7 +63,8 @@ where
     Self: Send,
   {
     async {
-      let query: Find<Self> = Self::table().find(id);
+      let query: dsl::Select<Find<Self>, dsl::AsSelect<Self, Pg>> =
+        Self::table().find(id).select(Self::as_select());
       let conn = &mut *get_conn(pool).await?;
       query
         .first(conn)
@@ -215,16 +222,13 @@ pub trait ApubActor: Sized {
     object_id: &DbUrl,
   ) -> impl Future<Output = LemmyResult<Option<Self>>> + Send;
   /// - actor_name is the name of the community or user to read.
+  /// - domain if None only local actors are searched, if Some only actors from that domain
   /// - include_deleted, if true, will return communities or users that were deleted/removed
   fn read_from_name(
     pool: &mut DbPool<'_>,
     actor_name: &str,
+    domain: Option<&str>,
     include_deleted: bool,
-  ) -> impl Future<Output = LemmyResult<Option<Self>>> + Send;
-  fn read_from_name_and_domain(
-    pool: &mut DbPool<'_>,
-    actor_name: &str,
-    protocol_domain: &str,
   ) -> impl Future<Output = LemmyResult<Option<Self>>> + Send;
 
   fn generate_local_actor_url(name: &str, settings: &Settings) -> LemmyResult<DbUrl>;

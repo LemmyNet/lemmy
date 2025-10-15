@@ -11,9 +11,12 @@ use lemmy_apub_objects::objects::{
 };
 use lemmy_db_schema::{
   source::{
+    actor_language::LocalUserLanguage,
     comment::{CommentActions, CommentSavedForm},
     community::{CommunityActions, CommunityBlockForm, CommunityFollowerForm},
     instance::{Instance, InstanceActions, InstanceCommunitiesBlockForm, InstancePersonsBlockForm},
+    keyword_block::LocalUserKeywordBlock,
+    language::Language,
     local_user::{LocalUser, LocalUserUpdateForm},
     person::{Person, PersonActions, PersonBlockForm, PersonUpdateForm},
     post::{PostActions, PostSavedForm},
@@ -29,10 +32,10 @@ use lemmy_db_views_site::{
 use lemmy_utils::{
   error::LemmyResult,
   spawn_try_task,
-  utils::validation::check_api_elements_count,
+  utils::validation::{check_api_elements_count, check_blocking_keywords_are_valid},
 };
 use serde::Deserialize;
-use std::future::Future;
+use std::{collections::HashMap, future::Future};
 use tracing::info;
 
 const PARALLELISM: usize = 10;
@@ -41,8 +44,8 @@ pub async fn export_settings(
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<UserSettingsBackup>> {
-  let lists = LocalUser::export_backup(&mut context.pool(), local_user_view.person.id).await?;
-  let settings = user_backup_list_to_user_settings_backup(local_user_view, lists);
+  let settings =
+    user_backup_list_to_user_settings_backup(local_user_view, &mut context.pool()).await?;
 
   Ok(Json(settings))
 }
@@ -89,13 +92,37 @@ pub async fn import_settings(
     show_upvote_percentage: data.settings.as_ref().map(|s| s.show_upvote_percentage),
     ..Default::default()
   };
-  LocalUser::update(
-    &mut context.pool(),
-    local_user_view.local_user.id,
-    &local_user_form,
-  )
-  .await?;
+  let local_user_id = local_user_view.local_user.id;
+  LocalUser::update(&mut context.pool(), local_user_id, &local_user_form).await?;
 
+  if !data.discussion_languages.is_empty() {
+    let all_languages: HashMap<_, _> = Language::read_all(&mut context.pool())
+      .await?
+      .into_iter()
+      .map(|l| (l.code, l.id))
+      .collect();
+    let discussion_languages = data
+      .discussion_languages
+      .iter()
+      .flat_map(|d| all_languages.get(d).copied())
+      .collect();
+    LocalUserLanguage::update(&mut context.pool(), discussion_languages, local_user_id).await?;
+  }
+
+  if !data.blocking_keywords.is_empty() {
+    let trimmed_blocking_keywords = data
+      .blocking_keywords
+      .iter()
+      .map(|blocking_keyword| blocking_keyword.trim().to_string())
+      .collect();
+    check_blocking_keywords_are_valid(&trimmed_blocking_keywords)?;
+    LocalUserKeywordBlock::update(
+      &mut context.pool(),
+      trimmed_blocking_keywords,
+      local_user_id,
+    )
+    .await?;
+  }
   let url_count = data.followed_communities.len()
     + data.blocked_communities.len()
     + data.blocked_users.len()
@@ -271,6 +298,7 @@ pub(crate) mod tests {
   use actix_web::web::Json;
   use lemmy_api_utils::context::LemmyContext;
   use lemmy_db_schema::{
+    newtypes::LanguageId,
     source::{
       community::{Community, CommunityActions, CommunityFollowerForm, CommunityInsertForm},
       person::Person,
@@ -307,6 +335,20 @@ pub(crate) mod tests {
       CommunityFollowerState::Accepted,
     );
     CommunityActions::follow(pool, &follower_form).await?;
+    let discussion_langs_before = vec![LanguageId(1), LanguageId(2), LanguageId(3)];
+    LocalUserLanguage::update(
+      &mut context.pool(),
+      discussion_langs_before.clone(),
+      export_user.local_user.id,
+    )
+    .await?;
+    let keyword_blocks_before = vec!["blocking_1".to_string(), "blocking_2".to_string()];
+    LocalUserKeywordBlock::update(
+      &mut context.pool(),
+      keyword_blocks_before.clone(),
+      export_user.local_user.id,
+    )
+    .await?;
 
     let backup = export_settings(export_user.clone(), context.clone()).await?;
 
@@ -329,6 +371,12 @@ pub(crate) mod tests {
     let follows = CommunityFollowerView::for_person(pool, import_user.person.id).await?;
     assert_eq!(follows.len(), 1);
     assert_eq!(follows[0].community.ap_id, community.ap_id);
+    let discussion_langs_after =
+      LocalUserLanguage::read(&mut context.pool(), export_user.local_user.id).await?;
+    assert_eq!(discussion_langs_before, discussion_langs_after);
+    let keyword_blocks_after =
+      LocalUserKeywordBlock::read(&mut context.pool(), export_user.local_user.id).await?;
+    assert_eq!(keyword_blocks_before, keyword_blocks_after);
 
     Person::delete(pool, export_user.person.id).await?;
     Person::delete(pool, import_user.person.id).await?;

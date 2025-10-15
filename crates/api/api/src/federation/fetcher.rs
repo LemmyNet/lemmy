@@ -37,7 +37,7 @@ where
       .splitn(2, '@')
       .collect_tuple()
       .ok_or(LemmyErrorType::InvalidUrl)?;
-    let actor = DbActor::read_from_name_and_domain(&mut context.pool(), name, domain)
+    let actor = DbActor::read_from_name(&mut context.pool(), name, Some(domain), false)
       .await
       .ok()
       .flatten();
@@ -55,7 +55,7 @@ where
   else {
     let identifier = identifier.to_string();
     Ok(
-      DbActor::read_from_name(&mut context.pool(), &identifier, include_deleted)
+      DbActor::read_from_name(&mut context.pool(), &identifier, None, include_deleted)
         .await?
         .ok_or(NotFound)?
         .into(),

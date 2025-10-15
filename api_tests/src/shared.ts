@@ -1,7 +1,6 @@
 import {
   ApproveCommunityPendingFollower,
   BlockCommunity,
-  BlockCommunityResponse,
   CommunityId,
   CommunityVisibility,
   CreatePrivateMessageReport,
@@ -32,6 +31,7 @@ import {
   ListNotifications,
   ListNotificationsResponse,
   NotificationDataType,
+  PersonResponse,
 } from "lemmy-js-client";
 import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
 import { DeletePost } from "lemmy-js-client/dist/types/DeletePost";
@@ -52,7 +52,6 @@ import { RemovePost } from "lemmy-js-client/dist/types/RemovePost";
 import { ResolveObject } from "lemmy-js-client/dist/types/ResolveObject";
 import { Search } from "lemmy-js-client/dist/types/Search";
 import { Comment } from "lemmy-js-client/dist/types/Comment";
-import { BanPersonResponse } from "lemmy-js-client/dist/types/BanPersonResponse";
 import { BanPerson } from "lemmy-js-client/dist/types/BanPerson";
 import { BanFromCommunityResponse } from "lemmy-js-client/dist/types/BanFromCommunityResponse";
 import { BanFromCommunity } from "lemmy-js-client/dist/types/BanFromCommunity";
@@ -90,10 +89,12 @@ import { GetPosts } from "lemmy-js-client/dist/types/GetPosts";
 import { GetPersonDetailsResponse } from "lemmy-js-client/dist/types/GetPersonDetailsResponse";
 import { GetPersonDetails } from "lemmy-js-client/dist/types/GetPersonDetails";
 import { ListingType } from "lemmy-js-client/dist/types/ListingType";
-import { GetCommunityPendingFollowsCountI } from "lemmy-js-client/dist/other_types";
 
 export const fetchFunction = fetch;
 export const imageFetchLimit = 50;
+export const statusNotFound = 404;
+export const statusBadRequest = 400;
+export const statusUnauthorized = 401;
 export const sampleImage =
   "https://i.pinimg.com/originals/df/5f/5b/df5f5b1b174a2b4b6026cc6c8f9395c1.jpg";
 export const sampleSite = "https://w3.org";
@@ -471,7 +472,7 @@ export async function banPersonFromSite(
   person_id: number,
   ban: boolean,
   remove_or_restore_data: boolean,
-): Promise<BanPersonResponse> {
+): Promise<PersonResponse> {
   // Make sure lemmy-beta/c/main is cached on lemmy_alpha
   let form: BanPerson = {
     person_id,
@@ -523,12 +524,12 @@ export async function followCommunity(
 
 export async function likePost(
   api: LemmyHttp,
-  score: number,
+  is_upvote: boolean | undefined,
   post: Post,
 ): Promise<PostResponse> {
   let form: CreatePostLike = {
     post_id: post.id,
-    score: score,
+    is_upvote: is_upvote,
   };
 
   return api.likePost(form);
@@ -587,12 +588,12 @@ export async function removeComment(
 
 export async function likeComment(
   api: LemmyHttp,
-  score: number,
+  is_upvote: boolean | undefined,
   comment: Comment,
 ): Promise<CommentResponse> {
   let form: CreateCommentLike = {
     comment_id: comment.id,
-    score,
+    is_upvote,
   };
   return api.likeComment(form);
 }
@@ -918,7 +919,7 @@ export function blockCommunity(
   api: LemmyHttp,
   community_id: CommunityId,
   block: boolean,
-): Promise<BlockCommunityResponse> {
+): Promise<CommunityResponse> {
   let form: BlockCommunity = {
     community_id,
     block,
@@ -930,7 +931,7 @@ export function listCommunityPendingFollows(
   api: LemmyHttp,
 ): Promise<ListCommunityPendingFollowsResponse> {
   let form: ListCommunityPendingFollows = {
-    pending_only: true,
+    unread_only: true,
     all_communities: false,
     limit: 50,
   };
@@ -939,10 +940,8 @@ export function listCommunityPendingFollows(
 
 export function getCommunityPendingFollowsCount(
   api: LemmyHttp,
-  community_id: CommunityId,
 ): Promise<GetCommunityPendingFollowsCountResponse> {
-  let form: GetCommunityPendingFollowsCountI = { community_id };
-  return api.getCommunityPendingFollowsCount(form);
+  return api.getCommunityPendingFollowsCount();
 }
 
 export function approveCommunityPendingFollow(

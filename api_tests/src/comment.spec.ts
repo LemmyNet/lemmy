@@ -39,6 +39,8 @@ import {
   listPersonContent,
   listNotifications,
   lockComment,
+  statusNotFound,
+  statusBadRequest,
 } from "./shared";
 import {
   CommentReportView,
@@ -101,7 +103,7 @@ test("Create a comment", async () => {
 
 test("Create a comment in a non-existent post", async () => {
   await expect(createComment(alpha, -1)).rejects.toStrictEqual(
-    new LemmyError("not_found"),
+    new LemmyError("not_found", statusNotFound),
   );
 });
 
@@ -290,7 +292,11 @@ test("Unlike a comment", async () => {
   expect(gammaComment1?.creator.local).toBe(false);
   expect(gammaComment1?.comment.score).toBe(1);
 
-  let unlike = await likeComment(alpha, 0, commentRes.comment_view.comment);
+  let unlike = await likeComment(
+    alpha,
+    undefined,
+    commentRes.comment_view.comment,
+  );
   expect(unlike.comment_view.comment.score).toBe(0);
 
   // Make sure that comment is unliked on beta
@@ -328,7 +334,7 @@ test("Federated comment like", async () => {
     throw "Missing beta comment";
   }
 
-  let like = await likeComment(beta, 1, betaComment.comment);
+  let like = await likeComment(beta, true, betaComment.comment);
   expect(like.comment_view.comment.score).toBe(2);
 
   // Get the post from alpha, check the likes
@@ -827,7 +833,7 @@ test("Dont send a comment reply to a blocked community", async () => {
 
   // Beta blocks the new beta community
   let blockRes = await blockCommunity(beta, newCommunityId, true);
-  expect(blockRes.blocked).toBe(true);
+  expect(blockRes.community_view.community_actions?.blocked_at).toBeDefined();
   delay();
 
   // Alpha creates a comment
@@ -850,7 +856,7 @@ test("Dont send a comment reply to a blocked community", async () => {
 
   // Unblock the community
   blockRes = await blockCommunity(beta, newCommunityId, false);
-  expect(blockRes.blocked).toBe(false);
+  expect(blockRes.community_view.community_actions?.blocked_at).toBeUndefined();
 });
 
 /// Fetching a deeply nested comment can lead to stack overflow as all parent comments are also
@@ -962,11 +968,11 @@ test("Lock comment", async () => {
       betaPost.post.id,
       comment3.comment_view.comment.id,
     ),
-  ).rejects.toStrictEqual(new LemmyError("locked"));
+  ).rejects.toStrictEqual(new LemmyError("locked", statusBadRequest));
 
   // newBeta should still be able to respond to comment1
-  await expect(
-    createComment(newBetaApi, betaPost.post.id, betaComment1.comment.id),
+  expect(
+    await createComment(newBetaApi, betaPost.post.id, betaComment1.comment.id),
   ).toBeDefined();
 });
 

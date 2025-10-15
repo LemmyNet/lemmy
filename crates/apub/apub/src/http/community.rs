@@ -34,7 +34,7 @@ use lemmy_db_schema::{
   traits::ApubActor,
 };
 use lemmy_db_schema_file::enums::CommunityVisibility;
-use lemmy_db_views_community_follower::CommunityFollowerView;
+use lemmy_db_views_community_follower_approval::PendingFollowerView;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   FEDERATION_CONTEXT,
@@ -57,7 +57,7 @@ pub(crate) async fn get_apub_community_http(
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
   let community: ApubCommunity =
-    Community::read_from_name(&mut context.pool(), &info.community_name, true)
+    Community::read_from_name(&mut context.pool(), &info.community_name, None, true)
       .await?
       .ok_or(LemmyErrorType::NotFound)?
       .into();
@@ -74,7 +74,7 @@ pub(crate) async fn get_apub_community_followers(
   context: Data<LemmyContext>,
   request: HttpRequest,
 ) -> LemmyResult<HttpResponse> {
-  let community = Community::read_from_name(&mut context.pool(), &info.community_name, false)
+  let community = Community::read_from_name(&mut context.pool(), &info.community_name, None, false)
     .await?
     .ok_or(LemmyErrorType::NotFound)?;
   if let Some(is_follower) = &query.is_follower {
@@ -98,7 +98,7 @@ async fn check_is_follower(
   // also check for http sig so that followers are not exposed publicly
   let signing_actor =
     signing_actor::<SiteOrMultiOrCommunityOrUser>(&request, None, &context).await?;
-  CommunityFollowerView::check_has_followers_from_instance(
+  PendingFollowerView::check_has_followers_from_instance(
     community.id,
     get_instance_id(&signing_actor),
     &mut context.pool(),
@@ -106,7 +106,7 @@ async fn check_is_follower(
   .await?;
 
   let instance_id = get_instance_id(&is_follower.dereference(&context).await?);
-  let has_followers = CommunityFollowerView::check_has_followers_from_instance(
+  let has_followers = PendingFollowerView::check_has_followers_from_instance(
     community.id,
     instance_id,
     &mut context.pool(),
@@ -127,7 +127,7 @@ pub(crate) async fn get_apub_community_outbox(
   request: HttpRequest,
 ) -> LemmyResult<HttpResponse> {
   let community: ApubCommunity =
-    Community::read_from_name(&mut context.pool(), &info.community_name, false)
+    Community::read_from_name(&mut context.pool(), &info.community_name, None, false)
       .await?
       .ok_or(LemmyErrorType::NotFound)?
       .into();
@@ -141,7 +141,7 @@ pub(crate) async fn get_apub_community_moderators(
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
   let community: ApubCommunity =
-    Community::read_from_name(&mut context.pool(), &info.community_name, false)
+    Community::read_from_name(&mut context.pool(), &info.community_name, None, false)
       .await?
       .ok_or(LemmyErrorType::NotFound)?
       .into();
@@ -157,7 +157,7 @@ pub(crate) async fn get_apub_community_featured(
   request: HttpRequest,
 ) -> LemmyResult<HttpResponse> {
   let community: ApubCommunity =
-    Community::read_from_name(&mut context.pool(), &info.community_name, false)
+    Community::read_from_name(&mut context.pool(), &info.community_name, None, false)
       .await?
       .ok_or(LemmyErrorType::NotFound)?
       .into();
@@ -176,8 +176,9 @@ pub(crate) async fn get_apub_person_multi_community(
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
   let multi: ApubMultiCommunity =
-    MultiCommunity::read_from_name(&mut context.pool(), &query.multi_name)
+    MultiCommunity::read_from_name(&mut context.pool(), &query.multi_name, None, false)
       .await?
+      .ok_or(LemmyErrorType::NotFound)?
       .into();
 
   multi.http_response(&FEDERATION_CONTEXT, &context).await
@@ -187,8 +188,9 @@ pub(crate) async fn get_apub_person_multi_community_follows(
   query: Path<MultiCommunityQuery>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
-  let multi = MultiCommunity::read_from_name(&mut context.pool(), &query.multi_name)
+  let multi = MultiCommunity::read_from_name(&mut context.pool(), &query.multi_name, None, false)
     .await?
+    .ok_or(LemmyErrorType::NotFound)?
     .into();
 
   let collection = ApubFeedCollection::read_local(&multi, &context).await?;
@@ -207,7 +209,7 @@ pub(crate) async fn get_apub_community_tag_http(
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
   let community: ApubCommunity =
-    Community::read_from_name(&mut context.pool(), &info.community_name, true)
+    Community::read_from_name(&mut context.pool(), &info.community_name, None, true)
       .await?
       .ok_or(LemmyErrorType::NotFound)?
       .into();

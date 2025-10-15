@@ -60,7 +60,8 @@ impl Crud for Community {
     let community_ = insert_into(community::table)
       .values(form)
       .get_result::<Self>(conn)
-      .await?;
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)?;
 
     // Initialize languages for new community
     CommunityLanguage::update(pool, vec![], community_.id).await?;
@@ -361,11 +362,12 @@ impl CommunityActions {
       .ok_or(UntranslatedError::CommunityHasNoFollowers.into())
   }
 
-  pub async fn approve_follower(
+  pub async fn approve_private_community_follower(
     pool: &mut DbPool<'_>,
     community_id: CommunityId,
     follower_id: PersonId,
     approver_id: PersonId,
+    state: CommunityFollowerState,
   ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
     let find_action = community_actions::table
@@ -373,7 +375,7 @@ impl CommunityActions {
       .filter(community_actions::followed_at.is_not_null());
     diesel::update(find_action)
       .set((
-        community_actions::follow_state.eq(CommunityFollowerState::Accepted),
+        community_actions::follow_state.eq(state),
         community_actions::follow_approver_id.eq(approver_id),
       ))
       .execute(conn)
@@ -624,7 +626,7 @@ impl ApubActor for Community {
   ) -> LemmyResult<Option<Self>> {
     let conn = &mut get_conn(pool).await?;
     community::table
-      .filter(community::ap_id.eq(object_id))
+      .filter(lower(community::ap_id).eq(object_id.to_lowercase()))
       .first(conn)
       .await
       .optional()
@@ -634,34 +636,24 @@ impl ApubActor for Community {
   async fn read_from_name(
     pool: &mut DbPool<'_>,
     community_name: &str,
+    domain: Option<&str>,
     include_deleted: bool,
   ) -> LemmyResult<Option<Self>> {
     let conn = &mut get_conn(pool).await?;
     let mut q = community::table
+      .inner_join(instance::table)
       .into_boxed()
-      .filter(community::local.eq(true))
-      .filter(lower(community::name).eq(community_name.to_lowercase()));
+      .filter(lower(community::name).eq(community_name.to_lowercase()))
+      .select(community::all_columns);
     if !include_deleted {
       q = q.filter(Self::hide_removed_and_deleted())
     }
+    if let Some(domain) = domain {
+      q = q.filter(lower(instance::domain).eq(domain.to_lowercase()))
+    } else {
+      q = q.filter(community::local.eq(true))
+    }
     q.first(conn)
-      .await
-      .optional()
-      .with_lemmy_type(LemmyErrorType::NotFound)
-  }
-
-  async fn read_from_name_and_domain(
-    pool: &mut DbPool<'_>,
-    community_name: &str,
-    for_domain: &str,
-  ) -> LemmyResult<Option<Self>> {
-    let conn = &mut get_conn(pool).await?;
-    community::table
-      .inner_join(instance::table)
-      .filter(lower(community::name).eq(community_name.to_lowercase()))
-      .filter(lower(instance::domain).eq(for_domain.to_lowercase()))
-      .select(community::all_columns)
-      .first(conn)
       .await
       .optional()
       .with_lemmy_type(LemmyErrorType::NotFound)

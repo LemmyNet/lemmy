@@ -409,9 +409,9 @@ pub async fn purge_image_from_pictrs_url(
 
   let alias = image_url
     .path_segments()
-    .ok_or(LemmyErrorType::ImageUrlMissingPathSegments)?
+    .ok_or(UntranslatedError::PurgeInvalidImageUrl)?
     .next_back()
-    .ok_or(LemmyErrorType::ImageUrlMissingLastPathSegment)?;
+    .ok_or(UntranslatedError::PurgeInvalidImageUrl)?;
 
   purge_image_from_pictrs(alias, context).await
 }

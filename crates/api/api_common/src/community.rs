@@ -28,13 +28,12 @@ pub use lemmy_db_views_community::{
   CommunityView,
   MultiCommunityView,
 };
-pub use lemmy_db_views_community_follower::PendingFollow;
+pub use lemmy_db_views_community_follower_approval::PendingFollowerView;
 pub use lemmy_db_views_community_moderator::CommunityModeratorView;
 
 pub mod actions {
   pub use lemmy_db_views_community::api::{
     BlockCommunity,
-    BlockCommunityResponse,
     CreateCommunity,
     FollowCommunity,
     HideCommunity,
@@ -58,14 +57,14 @@ pub mod actions {
       TransferCommunity,
       UpdateCommunityTag,
     };
-    pub use lemmy_db_views_community_follower::{
+    pub use lemmy_db_views_community_follower::CommunityFollowerView;
+    pub use lemmy_db_views_community_follower_approval::{
       api::{
-        GetCommunityPendingFollowsCount,
         GetCommunityPendingFollowsCountResponse,
         ListCommunityPendingFollows,
         ListCommunityPendingFollowsResponse,
       },
-      CommunityFollowerView,
+      PendingFollowerView,
     };
   }
 }
