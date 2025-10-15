@@ -3331,7 +3331,6 @@ dependencies = [
  "lemmy_db_views_community_follower",
  "lemmy_db_views_community_moderator",
  "lemmy_db_views_post",
- "lemmy_db_views_site",
  "lemmy_utils",
  "pretty_assertions",
  "serde",

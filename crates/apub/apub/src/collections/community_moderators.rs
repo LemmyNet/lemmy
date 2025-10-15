@@ -89,6 +89,7 @@ pub(super) async fn handle_community_moderators(
       }
     }
 
+    // Only add the top mod in case of new instance
     if is_new_instance(&context).await? {
       return Ok(());
     }
@@ -113,6 +114,7 @@ mod tests {
       person::{Person, PersonInsertForm},
       site::Site,
     },
+    test_data::TestData,
     traits::Crud,
   };
   use pretty_assertions::assert_eq;
@@ -122,6 +124,7 @@ mod tests {
   #[serial]
   async fn test_parse_lemmy_community_moderators() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
+    let test_data = TestData::create(&mut context.pool()).await?;
     let (new_mod, site) = parse_lemmy_person(&context).await?;
     let community = parse_lemmy_community(&context).await?;
     let community_id = community.id;
@@ -156,6 +159,7 @@ mod tests {
     Community::delete(&mut context.pool(), community.id).await?;
     Site::delete(&mut context.pool(), site.id).await?;
     Instance::delete(&mut context.pool(), inserted_instance.id).await?;
+    test_data.delete(&mut context.pool()).await?;
     Ok(())
   }
 }
