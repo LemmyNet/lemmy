@@ -539,10 +539,9 @@ async fn create_local_user(
       .settings()
       .setup
       .as_ref()
-      .map(|s| s.no_default_data)
-      .flatten();
+      .and_then(|s| s.no_default_data);
     if !no_default_data.unwrap_or_default() {
-      create_welcome_post(&context);
+      create_welcome_post(context);
       fetch_community_list(context.clone());
     }
   }

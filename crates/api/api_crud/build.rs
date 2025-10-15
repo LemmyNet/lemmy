@@ -8,7 +8,7 @@ use std::{
 
 /// Generates a list of communities which is fetched during Lemmy setup.
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-  let community_ids = if env::var("OUT_DIR").unwrap() == "release" {
+  let community_ids = if env::var("PROFILE")? == "release" {
     // fetch list of communities from lemmyverse.net
     let mut communities: Vec<_> =
       reqwest::blocking::get("https://data.lemmyverse.net/data/community.full.json")?
@@ -38,7 +38,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
   };
 
   // write to file
-  write_out_file("communities.json", serde_json::to_string(&community_ids)?);
+  write_out_file("communities.json", serde_json::to_string(&community_ids)?)?;
   Ok(())
 }
 
@@ -57,10 +57,11 @@ struct CommunityInfoCounts {
 }
 
 /// https://github.com/harindaka/build_script_file_gen/blob/master/src/lib.rs
-fn write_out_file(file_name: &str, content: String) {
-  let out_dir = env::var("OUT_DIR").unwrap();
-  let dest_path = Path::new(&out_dir).join(&file_name);
-  let mut f = BufWriter::new(File::create(&dest_path).unwrap());
+fn write_out_file(file_name: &str, content: String) -> Result<(), Box<dyn std::error::Error>> {
+  let out_dir = env::var("OUT_DIR")?;
+  let dest_path = Path::new(&out_dir).join(file_name);
+  let mut f = BufWriter::new(File::create(&dest_path)?);
 
   write!(f, "{}", &content).unwrap();
+  Ok(())
 }
