@@ -2,30 +2,7 @@ use lemmy_db_schema::source::{
   comment::Comment,
   community::Community,
   instance::Instance,
-  mod_log::{
-    admin::{
-      AdminAdd,
-      AdminAllowInstance,
-      AdminBan,
-      AdminBlockInstance,
-      AdminPurgeComment,
-      AdminPurgeCommunity,
-      AdminPurgePerson,
-      AdminPurgePost,
-      AdminRemoveCommunity,
-    },
-    moderator::{
-      ModAddToCommunity,
-      ModBanFromCommunity,
-      ModChangeCommunityVisibility,
-      ModFeaturePost,
-      ModLockComment,
-      ModLockPost,
-      ModRemoveComment,
-      ModRemovePost,
-      ModTransferCommunity,
-    },
-  },
+  modlog::Modlog,
   person::Person,
   post::Post,
 };
@@ -49,10 +26,9 @@ pub mod impls;
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// When someone is added as a community moderator.
 pub struct ModAddToCommunityView {
-  pub mod_add_to_community: ModAddToCommunity,
-  pub moderator: Option<Person>,
+  pub moderator: Person,
   pub community: Community,
-  pub other_person: Person,
+  pub target_person: Person,
 }
 
 #[skip_serializing_none]
@@ -63,9 +39,8 @@ pub struct ModAddToCommunityView {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// When someone is added as a site moderator.
 pub struct AdminAddView {
-  pub admin_add: AdminAdd,
-  pub moderator: Option<Person>,
-  pub other_person: Person,
+  pub moderator: Person,
+  pub target_person: Person,
 }
 
 #[skip_serializing_none]
@@ -76,10 +51,9 @@ pub struct AdminAddView {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// When someone is banned from a community.
 pub struct ModBanFromCommunityView {
-  pub mod_ban_from_community: ModBanFromCommunity,
-  pub moderator: Option<Person>,
+  pub moderator: Person,
   pub community: Community,
-  pub other_person: Person,
+  pub target_person: Person,
 }
 
 #[skip_serializing_none]
@@ -90,9 +64,8 @@ pub struct ModBanFromCommunityView {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// When someone is banned from the site.
 pub struct AdminBanView {
-  pub admin_ban: AdminBan,
-  pub moderator: Option<Person>,
-  pub other_person: Person,
+  pub moderator: Person,
+  pub target_person: Person,
 }
 
 #[skip_serializing_none]
@@ -103,8 +76,7 @@ pub struct AdminBanView {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// When the visibility of a community is changed
 pub struct ModChangeCommunityVisibilityView {
-  pub mod_change_community_visibility: ModChangeCommunityVisibility,
-  pub moderator: Option<Person>,
+  pub moderator: Person,
   pub community: Community,
 }
 
@@ -116,9 +88,7 @@ pub struct ModChangeCommunityVisibilityView {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// When a moderator locks a post (prevents new comments being made).
 pub struct ModLockPostView {
-  pub mod_lock_post: ModLockPost,
-  pub moderator: Option<Person>,
-  pub other_person: Person,
+  pub moderator: Person,
   pub post: Post,
   pub community: Community,
 }
@@ -131,9 +101,7 @@ pub struct ModLockPostView {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// When a moderator locks a comment (prevents replies to it or its children).
 pub struct ModLockCommentView {
-  pub mod_lock_comment: ModLockComment,
-  pub moderator: Option<Person>,
-  pub other_person: Person,
+  pub moderator: Person,
   pub comment: Comment,
   pub post: Post,
   pub community: Community,
@@ -147,9 +115,7 @@ pub struct ModLockCommentView {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// When a moderator removes a comment.
 pub struct ModRemoveCommentView {
-  pub mod_remove_comment: ModRemoveComment,
-  pub moderator: Option<Person>,
-  pub other_person: Person,
+  pub moderator: Person,
   pub comment: Comment,
   pub post: Post,
   pub community: Community,
@@ -163,8 +129,7 @@ pub struct ModRemoveCommentView {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// When an admin removes a community.
 pub struct AdminRemoveCommunityView {
-  pub admin_remove_community: AdminRemoveCommunity,
-  pub moderator: Option<Person>,
+  pub moderator: Person,
   pub community: Community,
 }
 
@@ -176,9 +141,7 @@ pub struct AdminRemoveCommunityView {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// When a moderator removes a post.
 pub struct ModRemovePostView {
-  pub mod_remove_post: ModRemovePost,
-  pub moderator: Option<Person>,
-  pub other_person: Person,
+  pub moderator: Person,
   pub post: Post,
   pub community: Community,
 }
@@ -191,9 +154,7 @@ pub struct ModRemovePostView {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// When a moderator features a post on a community (pins it to the top).
 pub struct ModFeaturePostView {
-  pub mod_feature_post: ModFeaturePost,
-  pub moderator: Option<Person>,
-  pub other_person: Person,
+  pub moderator: Person,
   pub post: Post,
   pub community: Community,
 }
@@ -206,10 +167,9 @@ pub struct ModFeaturePostView {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// When a moderator transfers a community to a new owner.
 pub struct ModTransferCommunityView {
-  pub mod_transfer_community: ModTransferCommunity,
-  pub moderator: Option<Person>,
+  pub moderator: Person,
   pub community: Community,
-  pub other_person: Person,
+  pub target_person: Person,
 }
 
 #[skip_serializing_none]
@@ -220,9 +180,7 @@ pub struct ModTransferCommunityView {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// When an admin purges a comment.
 pub struct AdminPurgeCommentView {
-  pub admin_purge_comment: AdminPurgeComment,
-  pub admin: Option<Person>,
-  pub post: Post,
+  pub admin: Person,
 }
 
 #[skip_serializing_none]
@@ -233,8 +191,7 @@ pub struct AdminPurgeCommentView {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// When an admin purges a community.
 pub struct AdminPurgeCommunityView {
-  pub admin_purge_community: AdminPurgeCommunity,
-  pub admin: Option<Person>,
+  pub admin: Person,
 }
 
 #[skip_serializing_none]
@@ -245,8 +202,7 @@ pub struct AdminPurgeCommunityView {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// When an admin purges a person.
 pub struct AdminPurgePersonView {
-  pub admin_purge_person: AdminPurgePerson,
-  pub admin: Option<Person>,
+  pub admin: Person,
 }
 
 #[skip_serializing_none]
@@ -257,9 +213,7 @@ pub struct AdminPurgePersonView {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// When an admin purges a post.
 pub struct AdminPurgePostView {
-  pub admin_purge_post: AdminPurgePost,
-  pub admin: Option<Person>,
-  pub community: Community,
+  pub admin: Person,
 }
 
 #[skip_serializing_none]
@@ -270,9 +224,8 @@ pub struct AdminPurgePostView {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// When an admin purges a post.
 pub struct AdminBlockInstanceView {
-  pub admin_block_instance: AdminBlockInstance,
   pub instance: Instance,
-  pub admin: Option<Person>,
+  pub admin: Person,
 }
 
 #[skip_serializing_none]
@@ -283,60 +236,17 @@ pub struct AdminBlockInstanceView {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// When an admin purges a post.
 pub struct AdminAllowInstanceView {
-  pub admin_allow_instance: AdminAllowInstance,
   pub instance: Instance,
-  pub admin: Option<Person>,
+  pub admin: Person,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 /// A combined modlog view
-pub(crate) struct ModlogCombinedViewInternal {
-  // Specific
+pub(crate) struct ModlogViewInternal {
   #[cfg_attr(feature = "full", diesel(embed))]
-  pub admin_allow_instance: Option<AdminAllowInstance>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub admin_block_instance: Option<AdminBlockInstance>,
-  /*
-    Temporarily disabled to speed up compilation
-    https://github.com/LemmyNet/lemmy/issues/6012
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub admin_purge_comment: Option<AdminPurgeComment>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub admin_purge_community: Option<AdminPurgeCommunity>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub admin_purge_person: Option<AdminPurgePerson>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub admin_purge_post: Option<AdminPurgePost>,
-  */
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub admin_add: Option<AdminAdd>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub mod_add_to_community: Option<ModAddToCommunity>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub admin_ban: Option<AdminBan>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub mod_ban_from_community: Option<ModBanFromCommunity>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub mod_feature_post: Option<ModFeaturePost>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub mod_change_community_visibility: Option<ModChangeCommunityVisibility>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub mod_lock_post: Option<ModLockPost>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub mod_remove_comment: Option<ModRemoveComment>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub admin_remove_community: Option<AdminRemoveCommunity>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub mod_remove_post: Option<ModRemovePost>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub mod_transfer_community: Option<ModTransferCommunity>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  pub mod_lock_comment: Option<ModLockComment>,
-  // Specific fields
-
-  // Shared
+  pub modlog: Modlog,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub moderator: Option<Person>,
   #[cfg_attr(feature = "full",
@@ -345,15 +255,23 @@ pub(crate) struct ModlogCombinedViewInternal {
       select_expression = person1_select().nullable()
     )
   )]
-  pub other_person: Option<Person>,
+  pub target_person: Option<Person>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  pub instance: Option<Instance>,
+  pub target_instance: Option<Instance>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  pub community: Option<Community>,
+  pub target_community: Option<Community>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  pub post: Option<Post>,
+  pub target_post: Option<Post>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  pub comment: Option<Comment>,
+  pub target_comment: Option<Comment>,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
+pub struct ModlogView {
+  pub modlog: Modlog,
+  pub data: ModlogData,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -361,7 +279,7 @@ pub(crate) struct ModlogCombinedViewInternal {
 #[cfg_attr(feature = "ts-rs", ts(export))]
 // Use serde's internal tagging, to work easier with javascript libraries
 #[serde(tag = "type_")]
-pub enum ModlogCombinedView {
+pub enum ModlogData {
   AdminAllowInstance(AdminAllowInstanceView),
   AdminBlockInstance(AdminBlockInstanceView),
   AdminPurgeComment(AdminPurgeCommentView),

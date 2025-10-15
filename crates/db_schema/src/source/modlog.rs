@@ -23,11 +23,17 @@ pub struct Modlog {
   reason: Option<String>,
   pub is_revert: bool,
   pub mod_id: PersonId,
+  #[serde(skip)]
   pub target_person_id: Option<PersonId>,
+  #[serde(skip)]
   pub target_community_id: Option<CommunityId>,
+  #[serde(skip)]
   pub target_post_id: Option<PostId>,
+  #[serde(skip)]
   pub target_comment_id: Option<CommentId>,
+  #[serde(skip)]
   pub target_instance_id: Option<InstanceId>,
+  #[serde(skip)]
   pub expires_at: Option<DateTime<Utc>>,
   pub published_at: DateTime<Utc>,
 }

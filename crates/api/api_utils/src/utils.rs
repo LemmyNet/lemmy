@@ -17,12 +17,6 @@ use lemmy_db_schema::{
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
-    mod_log::moderator::{
-      ModRemoveComment,
-      ModRemoveCommentForm,
-      ModRemovePost,
-      ModRemovePostForm,
-    },
     oauth_account::OAuthAccount,
     person::{Person, PersonUpdateForm},
     post::{Post, PostActions, PostReadCommentsForm},

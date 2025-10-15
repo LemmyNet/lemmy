@@ -29,10 +29,10 @@ CREATE TABLE modlog (
     is_revert boolean NOT NULL,
     mod_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     target_person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
-    target_community_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
-    target_post_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
-    target_comment_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
-    target_instance_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
+    target_community_id int REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE,
+    target_post_id int REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE,
+    target_comment_id int REFERENCES comment ON UPDATE CASCADE ON DELETE CASCADE,
+    target_instance_id int REFERENCES instance ON UPDATE CASCADE ON DELETE CASCADE,
     expires_at timestamptz,
     published_at timestamptz NOT NULL DEFAULT now()
 );

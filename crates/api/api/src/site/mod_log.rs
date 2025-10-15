@@ -5,7 +5,7 @@ use lemmy_api_utils::{
 };
 use lemmy_db_schema::traits::PaginationCursorBuilder;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_modlog_combined::{
+use lemmy_db_views_modlog::{
   api::{GetModlog, GetModlogResponse},
   impls::ModlogCombinedQuery,
   ModlogCombinedView,
@@ -99,7 +99,7 @@ mod tests {
     ModlogActionType,
   };
   use lemmy_db_views_comment::CommentView;
-  use lemmy_db_views_modlog_combined::{
+  use lemmy_db_views_modlog::{
     impls::ModlogCombinedQuery,
     ModRemoveCommentView,
     ModRemovePostView,

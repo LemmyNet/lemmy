@@ -3153,7 +3153,7 @@ dependencies = [
  "lemmy_db_views_community_person_ban",
  "lemmy_db_views_local_image",
  "lemmy_db_views_local_user",
- "lemmy_db_views_modlog_combined",
+ "lemmy_db_views_modlog",
  "lemmy_db_views_notification",
  "lemmy_db_views_person",
  "lemmy_db_views_person_content_combined",
@@ -3193,7 +3193,7 @@ dependencies = [
  "lemmy_db_views_custom_emoji",
  "lemmy_db_views_local_image",
  "lemmy_db_views_local_user",
- "lemmy_db_views_modlog_combined",
+ "lemmy_db_views_modlog",
  "lemmy_db_views_notification",
  "lemmy_db_views_person",
  "lemmy_db_views_person_content_combined",
@@ -3665,7 +3665,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "lemmy_db_views_modlog_combined"
+name = "lemmy_db_views_modlog"
 version = "1.0.0-alpha.9"
 dependencies = [
  "diesel",
@@ -3982,7 +3982,7 @@ dependencies = [
  "lemmy_db_views_community",
  "lemmy_db_views_local_image",
  "lemmy_db_views_local_user",
- "lemmy_db_views_modlog_combined",
+ "lemmy_db_views_modlog",
  "lemmy_db_views_notification",
  "lemmy_db_views_person_content_combined",
  "lemmy_db_views_post",

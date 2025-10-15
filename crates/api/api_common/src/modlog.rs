@@ -47,7 +47,7 @@ pub use lemmy_db_schema::{
   },
   ModlogActionType,
 };
-pub use lemmy_db_views_modlog_combined::{
+pub use lemmy_db_views_modlog::{
   api::{GetModlog, GetModlogResponse},
   AdminAddView,
   AdminAllowInstanceView,

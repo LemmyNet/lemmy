@@ -43,23 +43,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::{
   enums::NotificationType,
-  schema::{
-    admin_add,
-    admin_ban,
-    admin_remove_community,
-    comment,
-    mod_add_to_community,
-    mod_ban_from_community,
-    mod_lock_comment,
-    mod_lock_post,
-    mod_remove_comment,
-    mod_remove_post,
-    mod_transfer_community,
-    notification,
-    person,
-    post,
-    private_message,
-  },
+  schema::{comment, notification, person, post, private_message},
 };
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_private_message::PrivateMessageView;
