@@ -163,8 +163,8 @@ pub enum UntranslatedError {
   Unreachable,
   CouldntSendWebmention,
   /// A remote community sent an activity to us, but actually no local user follows the community
-  /// so the activity was rejected. Includes the community id.
-  CommunityHasNoFollowers(i32),
+  /// so the activity was rejected.
+  CommunityHasNoFollowers(String),
 }
 
 cfg_if! {
