@@ -10,12 +10,18 @@ use std::{
 fn main() -> Result<(), Box<dyn std::error::Error>> {
   let community_ids = if env::var("OUT_DIR").unwrap() == "release" {
     // fetch list of communities from lemmyverse.net
-    let mut communities: Vec<CommunityInfo> =
-      reqwest::blocking::get("https://data.lemmyverse.net/data/community.full.json")?.json()?;
+    let mut communities: Vec<_> =
+      reqwest::blocking::get("https://data.lemmyverse.net/data/community.full.json")?
+        .json::<Vec<CommunityInfo>>()?
+        .into_iter()
+        // exclude nsfw and suspicious
+        .filter(|c| !c.nsfw && !c.is_suspicious)
+        .collect();
 
     // invert sort key to get largest values first
     communities.sort_by_key(|c| -c.counts.users_active_month);
 
+    // take urls of top 100 communities
     communities
       .into_iter()
       .map(|c| c.url)
@@ -35,6 +41,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 struct CommunityInfo {
   url: String,
   counts: CommunityInfoCounts,
+  nsfw: bool,
+  #[serde(rename = "isSuspicious")]
+  is_suspicious: bool,
 }
 
 #[derive(Deserialize)]
