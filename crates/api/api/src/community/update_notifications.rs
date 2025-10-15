@@ -28,7 +28,7 @@ pub async fn update_community_notifications(
   // To get notifications for a remote community, the user needs to follow it over federation.
   // Do this automatically here to avoid confusion.
   if data.mode == CommunityNotificationsMode::AllPostsAndComments
-    || data.mode == CommunityNotificationsMode::AllPostsAndComments
+    || data.mode == CommunityNotificationsMode::AllPosts
   {
     let community = Community::read(&mut context.pool(), data.community_id).await?;
     if !community.local {
