@@ -33,7 +33,6 @@ CREATE TABLE modlog (
     target_post_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
     target_comment_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
     target_instance_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
-    reverted_modlog_id int REFERENCES modlog ON UPDATE CASCADE ON DELETE CASCADE,
     expires_at timestamptz,
     published_at timestamptz NOT NULL DEFAULT now()
 );
