@@ -63,7 +63,7 @@ pub(super) async fn do_follow_community(
   if !community.local {
     ActivityChannel::submit_activity(
       SendActivityData::FollowCommunity(community, person.clone(), follow),
-      &context,
+      context,
     )?;
   }
   Ok(())
