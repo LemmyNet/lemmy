@@ -127,6 +127,7 @@ impl NotificationView {
     let my_local_user_admin_join: my_local_user_admin_join =
       my_local_user_admin_join(Some(my_person.id));
 
+    // Note: avoid adding any more joins here as it will significantly slow down compilation.
     notification::table
       .left_join(modlog::table)
       .left_join(private_message_join)
