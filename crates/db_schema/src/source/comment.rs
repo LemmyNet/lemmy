@@ -55,9 +55,9 @@ pub struct Comment {
   /// The total number of children in this comment branch.
   pub child_count: i32,
   #[serde(skip)]
-  pub hot_rank: f64,
+  pub hot_rank: f32,
   #[serde(skip)]
-  pub controversy_rank: f64,
+  pub controversy_rank: f32,
   pub report_count: i16,
   pub unresolved_report_count: i16,
   /// If a local user comments in a remote community, the comment is hidden until it is confirmed
@@ -130,16 +130,16 @@ pub struct CommentUpdateForm {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct CommentActions {
+  /// When the comment was upvoted or downvoted.
+  pub voted_at: Option<DateTime<Utc>>,
+  /// When the comment was saved.
+  pub saved_at: Option<DateTime<Utc>>,
   #[serde(skip)]
   pub person_id: PersonId,
   #[serde(skip)]
   pub comment_id: CommentId,
-  /// The like / score for the comment.
-  pub like_score: Option<i16>,
-  /// When the comment was liked.
-  pub liked_at: Option<DateTime<Utc>>,
-  /// When the comment was saved.
-  pub saved_at: Option<DateTime<Utc>>,
+  /// True if upvoted, false if downvoted. Upvote is greater than downvote.
+  pub vote_is_upvote: Option<bool>,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -151,9 +151,9 @@ pub struct CommentActions {
 pub struct CommentLikeForm {
   pub person_id: PersonId,
   pub comment_id: CommentId,
-  pub like_score: i16,
+  pub vote_is_upvote: bool,
   #[new(value = "Utc::now()")]
-  pub liked_at: DateTime<Utc>,
+  pub voted_at: DateTime<Utc>,
 }
 
 #[derive(derive_new::new)]

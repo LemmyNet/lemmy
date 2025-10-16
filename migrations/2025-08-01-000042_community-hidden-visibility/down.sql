@@ -1,131 +1,17 @@
 -- recreate columns in the original order
 ALTER TABLE community
     ADD COLUMN hidden bool DEFAULT FALSE NOT NULL,
-    ADD COLUMN posting_restricted_to_mods_new bool NOT NULL DEFAULT FALSE,
-    ADD COLUMN instance_id_new int,
-    ADD COLUMN moderators_url_new varchar(255),
-    ADD COLUMN featured_url_new varchar(255),
-    ADD COLUMN visibility_new community_visibility NOT NULL DEFAULT 'Public',
-    ADD COLUMN description_new varchar(150),
-    ADD COLUMN random_number_new smallint NOT NULL DEFAULT random_smallint (),
-    ADD COLUMN subscribers_new int NOT NULL DEFAULT 0,
-    ADD COLUMN posts_new int NOT NULL DEFAULT 0,
-    ADD COLUMN comments_new int NOT NULL DEFAULT 0,
-    ADD COLUMN users_active_day_new int NOT NULL DEFAULT 0,
-    ADD COLUMN users_active_week_new int NOT NULL DEFAULT 0,
-    ADD COLUMN users_active_month_new int NOT NULL DEFAULT 0,
-    ADD COLUMN users_active_half_year_new int NOT NULL DEFAULT 0,
-    ADD COLUMN hot_rank_new double precision NOT NULL DEFAULT 0.0001,
-    ADD COLUMN subscribers_local_new int NOT NULL DEFAULT 0,
-    ADD COLUMN report_count_new smallint NOT NULL DEFAULT 0,
-    ADD COLUMN unresolved_report_count_new smallint NOT NULL DEFAULT 0,
-    ADD COLUMN interactions_month_new int NOT NULL DEFAULT 0;
+    ADD COLUMN visibility_new community_visibility NOT NULL DEFAULT 'Public';
 
 UPDATE
     community
 SET
-    (posting_restricted_to_mods_new,
-        instance_id_new,
-        moderators_url_new,
-        featured_url_new,
-        visibility_new,
-        description_new,
-        random_number_new,
-        subscribers_new,
-        posts_new,
-        comments_new,
-        users_active_day_new,
-        users_active_week_new,
-        users_active_month_new,
-        users_active_half_year_new,
-        hot_rank_new,
-        subscribers_local_new,
-        report_count_new,
-        unresolved_report_count_new,
-        interactions_month_new) = (posting_restricted_to_mods,
-        instance_id,
-        moderators_url,
-        featured_url,
-        visibility,
-        description,
-        random_number,
-        subscribers,
-        posts,
-        comments,
-        users_active_day,
-        users_active_week,
-        users_active_month,
-        users_active_half_year,
-        hot_rank,
-        subscribers_local,
-        report_count,
-        unresolved_report_count,
-        interactions_month);
+    visibility_new = visibility;
 
 ALTER TABLE community
-    ALTER COLUMN instance_id_new SET NOT NULL,
-    DROP COLUMN posting_restricted_to_mods,
-    DROP COLUMN instance_id,
-    DROP COLUMN moderators_url,
-    DROP COLUMN featured_url,
-    DROP COLUMN visibility,
-    DROP COLUMN description,
-    DROP COLUMN random_number,
-    DROP COLUMN subscribers,
-    DROP COLUMN posts,
-    DROP COLUMN comments,
-    DROP COLUMN users_active_day,
-    DROP COLUMN users_active_week,
-    DROP COLUMN users_active_month,
-    DROP COLUMN users_active_half_year,
-    DROP COLUMN hot_rank,
-    DROP COLUMN subscribers_local,
-    DROP COLUMN report_count,
-    DROP COLUMN unresolved_report_count,
-    DROP COLUMN interactions_month;
-
-ALTER TABLE community RENAME COLUMN posting_restricted_to_mods_new TO posting_restricted_to_mods;
-
-ALTER TABLE community RENAME COLUMN instance_id_new TO instance_id;
-
-ALTER TABLE community RENAME COLUMN moderators_url_new TO moderators_url;
-
-ALTER TABLE community RENAME COLUMN featured_url_new TO featured_url;
+    DROP COLUMN visibility;
 
 ALTER TABLE community RENAME COLUMN visibility_new TO visibility;
-
-ALTER TABLE community RENAME COLUMN description_new TO description;
-
-ALTER TABLE community RENAME COLUMN random_number_new TO random_number;
-
-ALTER TABLE community RENAME COLUMN subscribers_new TO subscribers;
-
-ALTER TABLE community RENAME COLUMN posts_new TO posts;
-
-ALTER TABLE community RENAME COLUMN comments_new TO comments;
-
-ALTER TABLE community RENAME COLUMN users_active_day_new TO users_active_day;
-
-ALTER TABLE community RENAME COLUMN users_active_week_new TO users_active_week;
-
-ALTER TABLE community RENAME COLUMN users_active_month_new TO users_active_month;
-
-ALTER TABLE community RENAME COLUMN users_active_half_year_new TO users_active_half_year;
-
-ALTER TABLE community RENAME COLUMN hot_rank_new TO hot_rank;
-
-ALTER TABLE community RENAME COLUMN subscribers_local_new TO subscribers_local;
-
-ALTER TABLE community RENAME COLUMN report_count_new TO report_count;
-
-ALTER TABLE community RENAME COLUMN unresolved_report_count_new TO unresolved_report_count;
-
-ALTER TABLE community RENAME COLUMN interactions_month_new TO interactions_month;
-
-ALTER TABLE community
-    ADD CONSTRAINT community_featured_url_key UNIQUE (featured_url),
-    ADD CONSTRAINT community_moderators_url_key UNIQUE (moderators_url),
-    ADD CONSTRAINT community_instance_id_fkey FOREIGN KEY (instance_id) REFERENCES instance (id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 -- same changes as up.sql, but the other way round
 UPDATE
@@ -160,15 +46,6 @@ ALTER TABLE community
 CREATE INDEX idx_community_random_number ON community (random_number) INCLUDE (local, nsfw)
 WHERE
     NOT (deleted OR removed OR visibility = 'Private');
-
-CREATE INDEX idx_community_nonzero_hotrank ON community USING btree (published)
-WHERE (hot_rank <> (0)::double precision);
-
-CREATE INDEX idx_community_subscribers ON community USING btree (subscribers DESC);
-
-CREATE INDEX idx_community_users_active_month ON community USING btree (users_active_month DESC);
-
-CREATE INDEX idx_community_hot ON public.community USING btree (hot_rank DESC);
 
 REINDEX TABLE community;
 

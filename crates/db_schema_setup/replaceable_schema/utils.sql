@@ -1,7 +1,7 @@
 -- Each calculation used in triggers should be a single SQL language
 -- expression so it can be inlined in migrations.
 CREATE FUNCTION r.controversy_rank (upvotes numeric, downvotes numeric)
-    RETURNS float
+    RETURNS real
     LANGUAGE sql
     IMMUTABLE PARALLEL SAFE RETURN CASE WHEN downvotes <= 0
         OR upvotes <= 0 THEN
@@ -16,7 +16,7 @@ CREATE FUNCTION r.controversy_rank (upvotes numeric, downvotes numeric)
     END;
 
 CREATE FUNCTION r.hot_rank (score numeric, published_at timestamp with time zone)
-    RETURNS double precision
+    RETURNS real
     LANGUAGE sql
     IMMUTABLE PARALLEL SAFE RETURN
     -- after a week, it will default to 0.
@@ -34,7 +34,7 @@ now() - published_at) < '7 days' THEN
     END;
 
 CREATE FUNCTION r.scaled_rank (score numeric, published_at timestamp with time zone, interactions_month numeric)
-    RETURNS double precision
+    RETURNS real
     LANGUAGE sql
     IMMUTABLE PARALLEL SAFE
     -- Add 2 to avoid divide by zero errors
@@ -154,14 +154,14 @@ $a$;
 -- Edit community aggregates to include voters as active users
 CREATE OR REPLACE FUNCTION r.community_aggregates_activity (i text)
     RETURNS TABLE (
-        count_ bigint,
+        count_ integer,
         community_id_ integer)
     LANGUAGE plpgsql
     AS $$
 BEGIN
     RETURN query
     SELECT
-        count(*),
+        count(*)::integer,
         community_id
     FROM (
         SELECT
@@ -193,7 +193,7 @@ BEGIN
             INNER JOIN post p ON pa.post_id = p.id
             INNER JOIN person pe ON pa.person_id = pe.id
         WHERE
-            pa.liked_at > ('now'::timestamp - i::interval)
+            pa.voted_at > ('now'::timestamp - i::interval)
             AND pe.bot_account = FALSE
         UNION
         SELECT
@@ -205,7 +205,7 @@ BEGIN
             INNER JOIN post p ON c.post_id = p.id
             INNER JOIN person pe ON ca.person_id = pe.id
         WHERE
-            ca.liked_at > ('now'::timestamp - i::interval)
+            ca.voted_at > ('now'::timestamp - i::interval)
             AND pe.bot_account = FALSE) a
 GROUP BY
     community_id;
@@ -215,14 +215,14 @@ $$;
 -- Community aggregate function for adding up total number of interactions
 CREATE OR REPLACE FUNCTION r.community_aggregates_interactions (i text)
     RETURNS TABLE (
-        count_ bigint,
+        count_ integer,
         community_id_ integer)
     LANGUAGE plpgsql
     AS $$
 BEGIN
     RETURN query
     SELECT
-        COALESCE(sum(comments + upvotes + downvotes)::bigint, 0) AS count_,
+        COALESCE(sum(comments + upvotes + downvotes)::integer, 0) AS count_,
         community_id AS community_id_
     FROM
         post
@@ -270,7 +270,7 @@ BEGIN
             post_actions pa
             INNER JOIN person pe ON pa.person_id = pe.id
         WHERE
-            pa.liked_at > ('now'::timestamp - i::interval)
+            pa.voted_at > ('now'::timestamp - i::interval)
             AND pe.local = TRUE
             AND pe.bot_account = FALSE
         UNION
@@ -280,7 +280,7 @@ BEGIN
             comment_actions ca
             INNER JOIN person pe ON ca.person_id = pe.id
         WHERE
-            ca.liked_at > ('now'::timestamp - i::interval)
+            ca.voted_at > ('now'::timestamp - i::interval)
             AND pe.local = TRUE
             AND pe.bot_account = FALSE) a;
     RETURN count_;

@@ -311,7 +311,7 @@ pub fn check_comment_deleted_or_removed(comment: &Comment) -> LemmyResult<()> {
 }
 
 pub async fn check_local_vote_mode(
-  score: i16,
+  is_upvote: Option<bool>,
   post_or_comment_id: PostOrCommentId,
   local_site: &LocalSite,
   person_id: PersonId,
@@ -322,8 +322,8 @@ pub async fn check_local_vote_mode(
     PostOrCommentId::Comment(_) => (local_site.comment_downvotes, local_site.comment_upvotes),
   };
 
-  let downvote_fail = score == -1 && downvote_setting == FederationMode::Disable;
-  let upvote_fail = score == 1 && upvote_setting == FederationMode::Disable;
+  let downvote_fail = is_upvote == Some(false) && downvote_setting == FederationMode::Disable;
+  let upvote_fail = is_upvote == Some(true) && upvote_setting == FederationMode::Disable;
 
   // Undo previous vote for item if new vote fails
   if downvote_fail || upvote_fail {

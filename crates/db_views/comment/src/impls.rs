@@ -457,7 +457,7 @@ mod tests {
       )
     );
 
-    let comment_like_form = CommentLikeForm::new(inserted_timmy_person.id, comment_0.id, 1);
+    let comment_like_form = CommentLikeForm::new(inserted_timmy_person.id, comment_0.id, true);
 
     CommentActions::like(pool, &comment_like_form).await?;
 
@@ -513,7 +513,7 @@ mod tests {
     assert!(read_comment_views_with_person[0]
       .comment_actions
       .as_ref()
-      .is_some_and(|x| x.like_score == Some(1)));
+      .is_some_and(|x| x.vote_is_upvote == Some(true)));
     assert!(read_comment_views_with_person[0].can_mod);
 
     // Make sure its 1, not showing the blocked comment
