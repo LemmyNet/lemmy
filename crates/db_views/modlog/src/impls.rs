@@ -1,26 +1,4 @@
-use crate::{
-  AdminAddView,
-  AdminAllowInstanceView,
-  AdminBanView,
-  AdminBlockInstanceView,
-  AdminPurgeCommentView,
-  AdminPurgeCommunityView,
-  AdminPurgePersonView,
-  AdminPurgePostView,
-  AdminRemoveCommunityView,
-  ModAddToCommunityView,
-  ModBanFromCommunityView,
-  ModChangeCommunityVisibilityView,
-  ModFeaturePostView,
-  ModLockCommentView,
-  ModLockPostView,
-  ModRemoveCommentView,
-  ModRemovePostView,
-  ModTransferCommunityView,
-  ModlogData,
-  ModlogView,
-  ModlogViewInternal,
-};
+use crate::ModlogView;
 use diesel::{
   BoolExpressionMethods,
   ExpressionMethods,
@@ -39,7 +17,7 @@ use lemmy_db_schema::{
     local_user::LocalUser,
     modlog::{modlog_keys as key, Modlog},
   },
-  traits::{InternalToCombinedView, PaginationCursorBuilder},
+  traits::PaginationCursorBuilder,
   utils::{
     get_conn,
     limit_fetch,
@@ -58,7 +36,7 @@ use lemmy_db_schema_file::{
 };
 use lemmy_utils::error::LemmyResult;
 
-impl ModlogViewInternal {
+impl ModlogView {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins(my_person_id: Option<PersonId>) -> _ {
     // The query for the admin / mod person
@@ -131,8 +109,8 @@ impl ModlogQuery<'_> {
     let target_person = aliases::person1.field(person::id);
     let my_person_id = self.local_user.person_id();
 
-    let mut query = ModlogViewInternal::joins(my_person_id)
-      .select(ModlogViewInternal::as_select())
+    let mut query = ModlogView::joins(my_person_id)
+      .select(ModlogView::as_select())
       .limit(limit)
       .into_boxed();
 
@@ -184,7 +162,7 @@ impl ModlogQuery<'_> {
     // Tie breaker
     .then_order_by(key::id);
 
-    let res = paginated_query.load::<ModlogViewInternal>(conn).await?;
+    let res = paginated_query.load::<ModlogView>(conn).await?;
 
     let hide_modlog_names = self.hide_modlog_names.unwrap_or_default();
 
@@ -192,14 +170,13 @@ impl ModlogQuery<'_> {
     let out = res
       .into_iter()
       .map(|u| u.hide_mod_name(hide_modlog_names))
-      .filter_map(InternalToCombinedView::map_to_enum)
       .collect();
 
     Ok(out)
   }
 }
 
-impl ModlogViewInternal {
+impl ModlogView {
   /// Hides modlog names by setting the moderator to None.
   fn hide_mod_name(self, hide_modlog_names: bool) -> Self {
     if hide_modlog_names {
@@ -210,104 +187,6 @@ impl ModlogViewInternal {
     } else {
       self
     }
-  }
-}
-
-impl InternalToCombinedView for ModlogViewInternal {
-  type CombinedView = ModlogView;
-
-  fn map_to_enum(self) -> Option<Self::CombinedView> {
-    let data = match self.modlog.kind {
-      ModlogKind::AdminAdd => ModlogData::AdminAdd(AdminAddView {
-        moderator: self.moderator?,
-        target_person: self.target_person?,
-      }),
-      ModlogKind::AdminBan => ModlogData::AdminBan(AdminBanView {
-        moderator: self.moderator?,
-        target_person: self.target_person?,
-      }),
-      ModlogKind::AdminAllowInstance => ModlogData::AdminAllowInstance(AdminAllowInstanceView {
-        admin: self.moderator?,
-        instance: self.target_instance?,
-      }),
-      ModlogKind::AdminBlockInstance => ModlogData::AdminBlockInstance(AdminBlockInstanceView {
-        admin: self.moderator?,
-        instance: self.target_instance?,
-      }),
-      ModlogKind::AdminPurgeComment => ModlogData::AdminPurgeComment(AdminPurgeCommentView {
-        admin: self.moderator?,
-      }),
-      ModlogKind::AdminPurgeCommunity => ModlogData::AdminPurgeCommunity(AdminPurgeCommunityView {
-        admin: self.moderator?,
-      }),
-      ModlogKind::AdminPurgePerson => ModlogData::AdminPurgePerson(AdminPurgePersonView {
-        admin: self.moderator?,
-      }),
-      ModlogKind::AdminPurgePost => ModlogData::AdminPurgePost(AdminPurgePostView {
-        admin: self.moderator?,
-      }),
-      ModlogKind::ModAddToCommunity => ModlogData::ModAddToCommunity(ModAddToCommunityView {
-        moderator: self.moderator?,
-        target_person: self.target_person?,
-        community: self.target_community?,
-      }),
-      ModlogKind::ModBanFromCommunity => ModlogData::ModBanFromCommunity(ModBanFromCommunityView {
-        moderator: self.moderator?,
-        target_person: self.target_person?,
-        community: self.target_community?,
-      }),
-      ModlogKind::ModFeaturePost => ModlogData::ModFeaturePost(ModFeaturePostView {
-        moderator: self.moderator?,
-        post: self.target_post?,
-        community: self.target_community?,
-      }),
-      ModlogKind::ModChangeCommunityVisibility => {
-        ModlogData::ModChangeCommunityVisibility(ModChangeCommunityVisibilityView {
-          moderator: self.moderator?,
-          community: self.target_community?,
-        })
-      }
-      ModlogKind::ModLockPost => ModlogData::ModLockPost(ModLockPostView {
-        moderator: self.moderator?,
-        post: self.target_post?,
-        community: self.target_community?,
-      }),
-      ModlogKind::ModRemoveComment => ModlogData::ModRemoveComment(ModRemoveCommentView {
-        moderator: self.moderator?,
-        comment: self.target_comment?,
-        post: self.target_post?,
-        community: self.target_community?,
-      }),
-      ModlogKind::AdminRemoveCommunity => {
-        ModlogData::AdminRemoveCommunity(AdminRemoveCommunityView {
-          moderator: self.moderator?,
-          community: self.target_community?,
-        })
-      }
-      ModlogKind::ModRemovePost => ModlogData::ModRemovePost(ModRemovePostView {
-        moderator: self.moderator?,
-        post: self.target_post?,
-        community: self.target_community?,
-      }),
-      ModlogKind::ModTransferCommunity => {
-        ModlogData::ModTransferCommunity(ModTransferCommunityView {
-          moderator: self.moderator?,
-          target_person: self.target_person?,
-          community: self.target_community?,
-        })
-      }
-      ModlogKind::ModLockComment => ModlogData::ModLockComment(ModLockCommentView {
-        moderator: self.moderator?,
-        comment: self.target_comment?,
-        post: self.target_post?,
-        community: self.target_community?,
-      }),
-    };
-
-    Some(ModlogView {
-      modlog: self.modlog,
-      data,
-    })
   }
 }
 
