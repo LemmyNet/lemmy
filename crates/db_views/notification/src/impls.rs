@@ -46,23 +46,10 @@ use lemmy_db_schema::{
   NotificationDataType,
 };
 use lemmy_db_schema_file::{
-  enums::{ModlogKind, NotificationType},
+  enums::NotificationType,
   schema::{comment, modlog, notification, person, post, private_message},
 };
-use lemmy_db_views_modlog::{
-  AdminAddView,
-  AdminBanView,
-  AdminRemoveCommunityView,
-  ModAddToCommunityView,
-  ModBanFromCommunityView,
-  ModLockCommentView,
-  ModLockPostView,
-  ModRemoveCommentView,
-  ModRemovePostView,
-  ModTransferCommunityView,
-  ModlogData,
-  ModlogView,
-};
+use lemmy_db_views_modlog::ModlogView;
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_private_message::PrivateMessageView;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
@@ -348,67 +335,16 @@ fn map_to_enum(v: NotificationViewInternal) -> Option<NotificationView> {
       creator,
       recipient: v.recipient,
     })
-  } else if let Some(modlog) = v.modlog {
-    let data = match modlog.kind {
-      ModlogKind::AdminAdd => ModlogData::AdminAdd(AdminAddView {
-        moderator: v.creator?,
-        target_person: v.recipient,
-      }),
-      ModlogKind::ModAddToCommunity => ModlogData::ModAddToCommunity(ModAddToCommunityView {
-        moderator: v.creator?,
-        community: v.community?,
-        target_person: v.recipient,
-      }),
-      ModlogKind::AdminBan => ModlogData::AdminBan(AdminBanView {
-        moderator: v.creator?,
-        target_person: v.recipient,
-      }),
-      ModlogKind::ModBanFromCommunity => ModlogData::ModBanFromCommunity(ModBanFromCommunityView {
-        moderator: v.creator?,
-        community: v.community?,
-        target_person: v.recipient,
-      }),
-      ModlogKind::ModLockPost => ModlogData::ModLockPost(ModLockPostView {
-        moderator: v.creator?,
-        post: v.post?,
-        community: v.community?,
-      }),
-      ModlogKind::ModLockComment => ModlogData::ModLockComment(ModLockCommentView {
-        moderator: v.creator?,
-        post: v.post?,
-        comment: v.comment?,
-        community: v.community?,
-      }),
-      ModlogKind::ModRemovePost => ModlogData::ModRemovePost(ModRemovePostView {
-        moderator: v.creator?,
-        post: v.post?,
-        community: v.community?,
-      }),
-      ModlogKind::ModRemoveComment => ModlogData::ModRemoveComment(ModRemoveCommentView {
-        moderator: v.creator?,
-        post: v.post?,
-        comment: v.comment?,
-        community: v.community?,
-      }),
-      ModlogKind::AdminRemoveCommunity => {
-        ModlogData::AdminRemoveCommunity(AdminRemoveCommunityView {
-          moderator: v.creator?,
-          community: v.community?,
-        })
-      }
-      ModlogKind::ModTransferCommunity => {
-        ModlogData::ModTransferCommunity(ModTransferCommunityView {
-          moderator: v.creator?,
-          community: v.community?,
-          target_person: v.recipient,
-        })
-      }
-      _ => {
-        // other actions do not generate notifications
-        todo!()
-      }
-    };
-    NotificationData::ModAction(ModlogView { modlog, data })
+  } else if let (Some(modlog), Some(item_creator)) = (v.modlog, v.item_creator) {
+    ModlogView {
+      modlog,
+      moderator: item_creator,
+      target_instance: v.instance,
+      target_person: v.person,
+      target_community: v.community,
+      target_post: v.post,
+      target_comment: v.comment,
+    }
   } else {
     return None;
   };
