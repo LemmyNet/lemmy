@@ -2,10 +2,15 @@ use actix_web::web::{Data, Json};
 use anyhow::Context;
 use diesel_async::scoped_futures::ScopedFutureExt;
 use lemmy_api_utils::{
-  context::LemmyContext, notify::notify_mod_action, utils::{check_community_user_action, is_admin, is_top_mod}
+  context::LemmyContext,
+  notify::notify_mod_action,
+  utils::{check_community_user_action, is_admin, is_top_mod},
 };
 use lemmy_db_schema::{
-  source::{community::{Community, CommunityActions, CommunityModeratorForm}, modlog::{Modlog, ModlogInsertForm}},
+  source::{
+    community::{Community, CommunityActions, CommunityModeratorForm},
+    modlog::{Modlog, ModlogInsertForm},
+  },
   traits::Crud,
   utils::get_conn,
 };

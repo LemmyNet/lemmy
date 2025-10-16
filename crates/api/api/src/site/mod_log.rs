@@ -1,3 +1,4 @@
+use crate::hide_modlog_names;
 use actix_web::web::{Data, Json, Query};
 use lemmy_api_utils::{
   context::LemmyContext,
@@ -22,25 +23,8 @@ pub async fn get_mod_log(
 
   check_private_instance(&local_user_view, &local_site)?;
 
-  // Only show the modlog names if:
-  // You're an admin or
-  // You're fetching the modlog for a single community, and you're a mod
-  // (Alternatively !admin/mod)
-  let hide_modlog_names = if let Some(community_id) = data.community_id {
-    is_mod_or_admin_opt(
-      &mut context.pool(),
-      local_user_view.as_ref(),
-      Some(community_id),
-    )
-    .await
-    .is_err()
-  } else {
-    !local_user_view
-      .as_ref()
-      .map(|l| l.local_user.admin)
-      .unwrap_or_default()
-  };
-
+  let hide_modlog_names =
+    hide_modlog_names(local_user_view.as_ref(), data.community_id, &context).await;
   // Only allow mod person id filters if its not hidden
   let mod_person_id = if hide_modlog_names {
     None
