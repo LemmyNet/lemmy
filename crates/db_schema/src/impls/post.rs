@@ -440,18 +440,7 @@ impl PostActions {
   ) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
 
-    let forms = PostActions::build_many_read_forms(post_ids, person_id);
-
-    // Grab the first person id
-    let person_id = forms
-      .iter()
-      .map(|f| f.person_id)
-      .next()
-      .ok_or(LemmyErrorType::CouldntUpdate)?;
-
-    // Collect up the post ids
-    let post_ids: Vec<PostId> = forms.iter().map(|f| f.post_id).collect();
-
+    let post_ids: Vec<_> = post_ids.iter().cloned().collect();
     uplete(
       post_actions::table
         .filter(post_actions::post_id.eq_any(post_ids))
@@ -470,7 +459,10 @@ impl PostActions {
   ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
 
-    let forms = PostActions::build_many_read_forms(post_ids, person_id);
+    let forms: Vec<_> = post_ids
+      .iter()
+      .map(|post_id| PostReadForm::new(*post_id, person_id))
+      .collect();
 
     insert_into(post_actions::table)
       .values(forms)
@@ -548,13 +540,6 @@ impl PostActions {
   pub async fn from_cursor(cursor: &PaginationCursor, pool: &mut DbPool<'_>) -> LemmyResult<Self> {
     let [(_, person_id), (_, post_id)] = cursor.prefixes_and_ids()?;
     Self::read(pool, PostId(post_id), PersonId(person_id)).await
-  }
-
-  fn build_many_read_forms(post_ids: &[PostId], person_id: PersonId) -> Vec<PostReadForm> {
-    post_ids
-      .iter()
-      .map(|post_id| PostReadForm::new(*post_id, person_id))
-      .collect::<Vec<_>>()
   }
 
   pub async fn update_notification_state(
