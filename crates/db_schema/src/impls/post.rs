@@ -433,23 +433,7 @@ impl Saveable for PostActions {
 }
 
 impl PostActions {
-  pub async fn mark_as_read(
-    pool: &mut DbPool<'_>,
-    person_id: PersonId,
-    post_id: PostId,
-  ) -> LemmyResult<usize> {
-    Self::mark_many_as_read(pool, person_id, &[post_id]).await
-  }
-
   pub async fn mark_as_unread(
-    pool: &mut DbPool<'_>,
-    person_id: PersonId,
-    post_id: PostId,
-  ) -> LemmyResult<UpleteCount> {
-    Self::mark_many_as_unread(pool, person_id, &[post_id]).await
-  }
-
-  pub async fn mark_many_as_unread(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     post_ids: &[PostId],
@@ -479,7 +463,7 @@ impl PostActions {
     .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
-  pub async fn mark_many_as_read(
+  pub async fn mark_as_read(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     post_ids: &[PostId],
@@ -566,7 +550,7 @@ impl PostActions {
     Self::read(pool, PostId(post_id), PersonId(person_id)).await
   }
 
-  pub fn build_many_read_forms(post_ids: &[PostId], person_id: PersonId) -> Vec<PostReadForm> {
+  fn build_many_read_forms(post_ids: &[PostId], person_id: PersonId) -> Vec<PostReadForm> {
     post_ids
       .iter()
       .map(|post_id| PostReadForm::new(*post_id, person_id))
@@ -729,8 +713,8 @@ mod tests {
     assert!(inserted_post_saved.saved_at.is_some());
 
     // Mark 2 posts as read
-    PostActions::mark_as_read(pool, inserted_person.id, inserted_post.id).await?;
-    PostActions::mark_as_read(pool, inserted_person.id, inserted_post2.id).await?;
+    PostActions::mark_as_read(pool, inserted_person.id, &[inserted_post.id]).await?;
+    PostActions::mark_as_read(pool, inserted_person.id, &[inserted_post2.id]).await?;
 
     let read_post = Post::read(pool, inserted_post.id).await?;
 
@@ -750,11 +734,11 @@ mod tests {
     assert_eq!(UpleteCount::only_updated(1), saved_removed);
 
     let read_removed_1 =
-      PostActions::mark_as_unread(pool, inserted_person.id, inserted_post.id).await?;
+      PostActions::mark_as_unread(pool, inserted_person.id, &[inserted_post.id]).await?;
     assert_eq!(UpleteCount::only_deleted(1), read_removed_1);
 
     let read_removed_2 =
-      PostActions::mark_as_unread(pool, inserted_person.id, inserted_post2.id).await?;
+      PostActions::mark_as_unread(pool, inserted_person.id, &[inserted_post2.id]).await?;
     assert_eq!(UpleteCount::only_deleted(1), read_removed_2);
 
     let num_deleted = Post::delete(pool, inserted_post.id).await?

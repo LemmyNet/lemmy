@@ -18,9 +18,9 @@ pub async fn mark_posts_as_read(
 
   // Mark the posts as read / unread
   if data.read {
-    PostActions::mark_many_as_read(&mut context.pool(), person_id, post_ids).await?;
+    PostActions::mark_as_read(&mut context.pool(), person_id, post_ids).await?;
   } else {
-    PostActions::mark_many_as_unread(&mut context.pool(), person_id, post_ids).await?;
+    PostActions::mark_as_unread(&mut context.pool(), person_id, post_ids).await?;
   }
 
   Ok(Json(SuccessResponse::default()))
