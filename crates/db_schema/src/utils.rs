@@ -60,7 +60,7 @@ const FETCH_LIMIT_DEFAULT: i64 = 20;
 pub const FETCH_LIMIT_MAX: usize = 50;
 pub const SITEMAP_LIMIT: i64 = 50000;
 pub const SITEMAP_DAYS: TimeDelta = TimeDelta::days(31);
-pub const RANK_DEFAULT: f64 = 0.0001;
+pub const RANK_DEFAULT: f32 = 0.0001;
 
 pub type ActualDbPool = Pool<AsyncPgConnection>;
 
@@ -215,6 +215,28 @@ where
 
   fn get_sql_value() -> Self::SqlValue {
     diesel_ltree::subpath(K::get_sql_value(), 0, -1)
+  }
+}
+
+pub struct CoalesceKey<A, B>(pub A, pub B);
+
+impl<A, B, C> CursorKey<C> for CoalesceKey<A, B>
+where
+  A: CursorKey<C, SqlType = sql_types::Nullable<B::SqlType>>,
+  B: CursorKey<C, SqlType: Send>,
+{
+  type SqlType = B::SqlType;
+  type CursorValue = functions::coalesce<B::SqlType, A::CursorValue, B::CursorValue>;
+  type SqlValue = functions::coalesce<B::SqlType, A::SqlValue, B::SqlValue>;
+
+  fn get_cursor_value(cursor: &C) -> Self::CursorValue {
+    // TODO: for slight optimization, use unwrap_or_else here (this requires the CursorKey trait to
+    // be changed to allow non-binded CursorValue)
+    functions::coalesce(A::get_cursor_value(cursor), B::get_cursor_value(cursor))
+  }
+
+  fn get_sql_value() -> Self::SqlValue {
+    functions::coalesce(A::get_sql_value(), B::get_sql_value())
   }
 }
 
@@ -490,12 +512,12 @@ pub mod functions {
 
   define_sql_function! {
     #[sql_name = "r.hot_rank"]
-    fn hot_rank(score: Int4, time: Timestamptz) -> Double;
+    fn hot_rank(score: Int4, time: Timestamptz) -> Float;
   }
 
   define_sql_function! {
     #[sql_name = "r.scaled_rank"]
-    fn scaled_rank(score: Int4, time: Timestamptz, interactions_month: Int4) -> Double;
+    fn scaled_rank(score: Int4, time: Timestamptz, interactions_month: Int4) -> Float;
   }
 
   define_sql_function!(fn lower(x: Text) -> Text);
@@ -570,18 +592,6 @@ pub(crate) fn format_actor_url(
     format!("{local_protocol_and_hostname}/{prefix}/{name}")
   };
   Ok(Url::parse(&url)?)
-}
-
-/// Make sure the like score is 1, or -1
-///
-/// Uses a default NotFound error, that you should map to
-/// CouldntLikeComment/CouldntLikePost.
-pub(crate) fn validate_like(like_score: i16) -> LemmyResult<()> {
-  if [-1, 1].contains(&like_score) {
-    Ok(())
-  } else {
-    Err(LemmyErrorType::NotFound.into())
-  }
 }
 
 #[cfg(test)]

@@ -41,7 +41,7 @@ pub async fn like_comment(
   let my_person_id = local_user_view.person.id;
 
   check_local_vote_mode(
-    data.score,
+    data.is_upvote,
     PostOrCommentId::Comment(comment_id),
     &local_site,
     my_person_id,
@@ -57,7 +57,7 @@ pub async fn like_comment(
     local_instance_id,
   )
   .await?;
-  let previous_score = orig_comment.comment_actions.and_then(|p| p.like_score);
+  let previous_is_upvote = orig_comment.comment_actions.and_then(|p| p.vote_is_upvote);
 
   check_community_user_action(
     &local_user_view,
@@ -66,30 +66,29 @@ pub async fn like_comment(
   )
   .await?;
 
-  let mut like_form = CommentLikeForm::new(my_person_id, data.comment_id, data.score);
-
   // Remove any likes first
   CommentActions::remove_like(&mut context.pool(), my_person_id, comment_id).await?;
-  if let Some(previous_score) = previous_score {
+  if let Some(previous_is_upvote) = previous_is_upvote {
     PersonActions::remove_like(
       &mut context.pool(),
       my_person_id,
       orig_comment.creator.id,
-      previous_score,
+      previous_is_upvote,
     )
     .await
     // Ignore errors, since a previous_like of zero throws an error
     .ok();
   }
 
-  if like_form.like_score != 0 {
+  if let Some(is_upvote) = data.is_upvote {
+    let mut like_form = CommentLikeForm::new(my_person_id, data.comment_id, is_upvote);
     like_form = plugin_hook_before("before_comment_vote", like_form).await?;
     let like = CommentActions::like(&mut context.pool(), &like_form).await?;
     PersonActions::like(
       &mut context.pool(),
       my_person_id,
       orig_comment.creator.id,
-      like_form.like_score,
+      like_form.vote_is_upvote,
     )
     .await?;
 
@@ -101,8 +100,8 @@ pub async fn like_comment(
       object_id: orig_comment.comment.ap_id,
       actor: local_user_view.person.clone(),
       community: orig_comment.community,
-      previous_score,
-      new_score: data.score,
+      previous_is_upvote,
+      new_is_upvote: data.is_upvote,
     },
     &context,
   )?;

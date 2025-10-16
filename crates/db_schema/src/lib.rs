@@ -251,9 +251,9 @@ pub type Person2AliasAllColumnsTuple = (
 #[cfg(feature = "full")]
 /// A helper tuple for more my instance persons actions
 pub type MyInstancePersonsActionsAllColumnsTuple = (
+  AliasedField<aliases::MyInstancePersonsActions, instance_actions::blocked_communities_at>,
   AliasedField<aliases::MyInstancePersonsActions, instance_actions::person_id>,
   AliasedField<aliases::MyInstancePersonsActions, instance_actions::instance_id>,
-  AliasedField<aliases::MyInstancePersonsActions, instance_actions::blocked_communities_at>,
   AliasedField<aliases::MyInstancePersonsActions, instance_actions::received_ban_at>,
   AliasedField<aliases::MyInstancePersonsActions, instance_actions::ban_expires_at>,
   AliasedField<aliases::MyInstancePersonsActions, instance_actions::blocked_persons_at>,

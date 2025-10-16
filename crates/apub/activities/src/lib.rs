@@ -253,15 +253,15 @@ pub async fn match_outgoing_activities(
         object_id,
         actor,
         community,
-        previous_score,
-        new_score,
+        previous_is_upvote,
+        new_is_upvote,
       } => {
         send_like_activity(
           object_id,
           actor,
           community,
-          previous_score,
-          new_score,
+          previous_is_upvote,
+          new_is_upvote,
           context,
         )
         .await

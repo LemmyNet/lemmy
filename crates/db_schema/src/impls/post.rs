@@ -16,7 +16,6 @@ use crate::{
     functions::{coalesce, hot_rank, scaled_rank},
     get_conn,
     now,
-    validate_like,
     DbPool,
     DELETED_REPLACEMENT_TEXT,
     FETCH_LIMIT_MAX,
@@ -43,7 +42,7 @@ use lemmy_db_schema_file::{
   schema::{community, local_user, person, post, post_actions},
 };
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
 };
 use url::Url;
@@ -313,7 +312,10 @@ impl Post {
     diesel::update(post::table.find(post_id))
       .set((
         post::hot_rank.eq(hot_rank(post::score, post::published_at)),
-        post::hot_rank_active.eq(hot_rank(post::score, post::newest_comment_time_necro_at)),
+        post::hot_rank_active.eq(hot_rank(
+          post::score,
+          coalesce(post::newest_comment_time_necro_at, post::published_at),
+        )),
         post::scaled_rank.eq(scaled_rank(
           post::score,
           post::published_at,
@@ -349,8 +351,6 @@ impl Likeable for PostActions {
   async fn like(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
 
-    validate_like(form.like_score).with_lemmy_type(LemmyErrorType::CouldntCreate)?;
-
     insert_into(post_actions::table)
       .values(form)
       .on_conflict((post_actions::post_id, post_actions::person_id))
@@ -369,8 +369,8 @@ impl Likeable for PostActions {
   ) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
     uplete(post_actions::table.find((person_id, post_id)))
-      .set_null(post_actions::like_score)
-      .set_null(post_actions::liked_at)
+      .set_null(post_actions::vote_is_upvote)
+      .set_null(post_actions::voted_at)
       .get_result(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -383,8 +383,8 @@ impl Likeable for PostActions {
     let conn = &mut get_conn(pool).await?;
 
     uplete(post_actions::table.filter(post_actions::person_id.eq(person_id)))
-      .set_null(post_actions::like_score)
-      .set_null(post_actions::liked_at)
+      .set_null(post_actions::vote_is_upvote)
+      .set_null(post_actions::voted_at)
       .get_result(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -400,8 +400,8 @@ impl Likeable for PostActions {
     let conn = &mut get_conn(pool).await?;
 
     uplete(post_actions::table.filter(post_actions::post_id.eq_any(post_ids.clone())))
-      .set_null(post_actions::like_score)
-      .set_null(post_actions::liked_at)
+      .set_null(post_actions::vote_is_upvote)
+      .set_null(post_actions::voted_at)
       .get_result(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -533,7 +533,10 @@ impl PostActions {
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
-  pub async fn from_cursor(cursor: &PaginationCursor, pool: &mut DbPool<'_>) -> LemmyResult<Self> {
+  pub async fn from_cursor(
+    cursor: &PaginationCursor,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<PostActions> {
     let [(_, person_id), (_, post_id)] = cursor.prefixes_and_ids()?;
     Self::read(pool, PostId(post_id), PersonId(person_id)).await
   }
@@ -688,8 +691,8 @@ mod tests {
       score: 1,
       hot_rank: RANK_DEFAULT,
       hot_rank_active: RANK_DEFAULT,
-      newest_comment_time_at: inserted_post.published_at,
-      newest_comment_time_necro_at: inserted_post.published_at,
+      newest_comment_time_at: None,
+      newest_comment_time_necro_at: None,
       report_count: 0,
       scaled_rank: RANK_DEFAULT,
       unresolved_report_count: 0,
@@ -697,10 +700,10 @@ mod tests {
     };
 
     // Post Like
-    let post_like_form = PostLikeForm::new(inserted_post.id, inserted_person.id, 1);
+    let post_like_form = PostLikeForm::new(inserted_post.id, inserted_person.id, true);
 
     let inserted_post_like = PostActions::like(pool, &post_like_form).await?;
-    assert_eq!(Some(1), inserted_post_like.like_score);
+    assert_eq!(Some(true), inserted_post_like.vote_is_upvote);
 
     // Post Save
     let post_saved_form = PostSavedForm::new(inserted_post.id, inserted_person.id);
@@ -800,7 +803,7 @@ mod tests {
     let inserted_child_comment =
       Comment::create(pool, &child_comment_form, Some(&inserted_comment.path)).await?;
 
-    let post_like = PostLikeForm::new(inserted_post.id, inserted_person.id, 1);
+    let post_like = PostLikeForm::new(inserted_post.id, inserted_person.id, true);
 
     PostActions::like(pool, &post_like).await?;
 
@@ -812,7 +815,7 @@ mod tests {
     assert_eq!(0, post_aggs_before_delete.downvotes);
 
     // Add a post dislike from the other person
-    let post_dislike = PostLikeForm::new(inserted_post.id, another_inserted_person.id, -1);
+    let post_dislike = PostLikeForm::new(inserted_post.id, another_inserted_person.id, false);
 
     PostActions::like(pool, &post_dislike).await?;
 

@@ -144,7 +144,7 @@ impl Activity for CreateOrUpdateNote {
     let comment = ApubComment::from_json(self.object, context).await?;
 
     // author likes their own comment by default
-    let like_form = CommentLikeForm::new(comment.creator_id, comment.id, 1);
+    let like_form = CommentLikeForm::new(comment.creator_id, comment.id, true);
     CommentActions::like(&mut context.pool(), &like_form).await?;
 
     // Calculate initial hot_rank

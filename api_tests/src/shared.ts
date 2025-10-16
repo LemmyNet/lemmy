@@ -524,12 +524,12 @@ export async function followCommunity(
 
 export async function likePost(
   api: LemmyHttp,
-  score: number,
+  is_upvote: boolean | undefined,
   post: Post,
 ): Promise<PostResponse> {
   let form: CreatePostLike = {
     post_id: post.id,
-    score: score,
+    is_upvote: is_upvote,
   };
 
   return api.likePost(form);
@@ -588,12 +588,12 @@ export async function removeComment(
 
 export async function likeComment(
   api: LemmyHttp,
-  score: number,
+  is_upvote: boolean | undefined,
   comment: Comment,
 ): Promise<CommentResponse> {
   let form: CreateCommentLike = {
     comment_id: comment.id,
-    score,
+    is_upvote,
   };
   return api.likeComment(form);
 }

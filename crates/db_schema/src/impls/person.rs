@@ -365,15 +365,11 @@ impl PersonActions {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     target_id: PersonId,
-    like_score: i16,
+    vote_is_upvote: bool,
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
 
-    let (upvotes_inc, downvotes_inc) = match like_score {
-      1 => (1, 0),
-      -1 => (0, 1),
-      _ => return Err(LemmyErrorType::NotFound.into()),
-    };
+    let (upvotes_inc, downvotes_inc) = if vote_is_upvote { (1, 0) } else { (0, 1) };
 
     let voted_at = Utc::now();
 
@@ -400,20 +396,16 @@ impl PersonActions {
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
-  /// Removes a person like. A previous_score of zero throws an error.
+  /// Removes a person like.
   pub async fn remove_like(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     target_id: PersonId,
-    previous_score: i16,
+    previous_is_upvote: bool,
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
 
-    let (upvotes_inc, downvotes_inc) = match previous_score {
-      1 => (-1, 0),
-      -1 => (0, -1),
-      _ => return Err(LemmyErrorType::NotFound.into()),
-    };
+    let (upvotes_inc, downvotes_inc) = if previous_is_upvote { (-1, 0) } else { (0, -1) };
     let voted_at = Utc::now();
 
     insert_into(person_actions::table)
@@ -575,7 +567,7 @@ mod tests {
     );
     let inserted_post = Post::create(pool, &new_post).await?;
 
-    let post_like = PostLikeForm::new(inserted_post.id, inserted_person.id, 1);
+    let post_like = PostLikeForm::new(inserted_post.id, inserted_person.id, true);
     let _inserted_post_like = PostActions::like(pool, &post_like).await?;
 
     let comment_form = CommentInsertForm::new(
@@ -585,7 +577,7 @@ mod tests {
     );
     let inserted_comment = Comment::create(pool, &comment_form, None).await?;
 
-    let mut comment_like = CommentLikeForm::new(inserted_person.id, inserted_comment.id, 1);
+    let mut comment_like = CommentLikeForm::new(inserted_person.id, inserted_comment.id, true);
 
     let _inserted_comment_like = CommentActions::like(pool, &comment_like).await?;
 
@@ -598,7 +590,7 @@ mod tests {
       Comment::create(pool, &child_comment_form, Some(&inserted_comment.path)).await?;
 
     let child_comment_like =
-      CommentLikeForm::new(another_inserted_person.id, inserted_child_comment.id, 1);
+      CommentLikeForm::new(another_inserted_person.id, inserted_child_comment.id, true);
 
     let _inserted_child_comment_like = CommentActions::like(pool, &child_comment_like).await?;
 
