@@ -22,7 +22,7 @@ use lemmy_api_utils::{
 };
 use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
-  source::post::{Post, PostActions, PostInsertForm, PostLikeForm, PostReadForm},
+  source::post::{Post, PostActions, PostInsertForm, PostLikeForm},
   traits::{Crud, Likeable},
   utils::diesel_url_create,
 };
