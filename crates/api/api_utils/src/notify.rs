@@ -302,7 +302,8 @@ pub async fn notify_private_message(
 
 pub fn notify_mod_action(actions: Vec<Modlog>, target_id: PersonId, context: &LemmyContext) {
   // Filter out mod actions which should not generate notification
-  // TODO: could instead filter out any actions with target_person_id == None
+  // TODO: Could instead filter out any actions with target_person_id == None, and
+  //       also remove the target_id param for this function.
   let actions: Vec<_> = actions
     .into_iter()
     .filter(|a| {
@@ -315,7 +316,8 @@ pub fn notify_mod_action(actions: Vec<Modlog>, target_id: PersonId, context: &Le
         && k != AdminAllowInstance
         && k != AdminBlockInstance
         && k != ModChangeCommunityVisibility
-        && k != ModFeaturePost
+        && k != ModFeaturePostCommunity
+        && k != AdminFeaturePostSite
     })
     .collect();
   if actions.is_empty() {

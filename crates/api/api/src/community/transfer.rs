@@ -2,14 +2,14 @@ use actix_web::web::{Data, Json};
 use anyhow::Context;
 use diesel_async::scoped_futures::ScopedFutureExt;
 use lemmy_api_utils::{
-  context::LemmyContext,
-  utils::{check_community_user_action, is_admin, is_top_mod},
+  context::LemmyContext, notify::notify_mod_action, utils::{check_community_user_action, is_admin, is_top_mod}
 };
 use lemmy_db_schema::{
-  source::community::{Community, CommunityActions, CommunityModeratorForm},
+  source::{community::{Community, CommunityActions, CommunityModeratorForm}, modlog::{Modlog, ModlogInsertForm}},
   traits::Crud,
   utils::get_conn,
 };
+use lemmy_db_schema_file::enums::ModlogKind;
 use lemmy_db_views_community::{
   api::{GetCommunityResponse, TransferCommunity},
   CommunityView,
@@ -56,7 +56,7 @@ pub async fn transfer_community(
   let pool = &mut context.pool();
   let conn = &mut get_conn(pool).await?;
   let tx_data = data.clone();
-  conn
+  let action = conn
     .run_transaction(|conn| {
       async move {
         CommunityActions::delete_mods_for_community(&mut conn.into(), community_id).await?;
@@ -71,19 +71,21 @@ pub async fn transfer_community(
         }
 
         // Mod tables
-        let form = ModTransferCommunityForm {
-          mod_person_id: local_user_view.person.id,
-          other_person_id: tx_data.person_id,
-          community_id: tx_data.community_id,
+        let form = ModlogInsertForm {
+          target_person_id: Some(tx_data.person_id),
+          target_community_id: Some(tx_data.community_id),
+          ..ModlogInsertForm::new(
+            ModlogKind::ModTransferCommunity,
+            true,
+            local_user_view.person.id,
+          )
         };
-
-        ModTransferCommunity::create(&mut conn.into(), &form).await?;
-
-        Ok(())
+        Modlog::create(&mut conn.into(), &[form]).await
       }
       .scope_boxed()
     })
     .await?;
+  notify_mod_action(action.clone(), data.person_id, &context);
 
   let community_id = data.community_id;
   let community_view = CommunityView::read(

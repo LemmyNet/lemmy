@@ -7,7 +7,14 @@ use lemmy_api_utils::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_community_mod_action,
 };
-use lemmy_db_schema::{source::comment::Comment, traits::Crud};
+use lemmy_db_schema::{
+  source::{
+    comment::Comment,
+    modlog::{Modlog, ModlogInsertForm},
+  },
+  traits::Crud,
+};
+use lemmy_db_schema_file::enums::ModlogKind;
 use lemmy_db_views_comment::{
   api::{CommentResponse, LockComment},
   CommentView,
@@ -43,14 +50,17 @@ pub async fn lock_comment(
   .await?;
   let comment = comments.first().ok_or(LemmyErrorType::NotFound)?;
 
-  let form = ModLockCommentForm {
-    mod_person_id: local_user_view.person.id,
-    comment_id: data.comment_id,
-    locked: Some(locked),
-    reason: data.reason.clone(),
+  let form = ModlogInsertForm {
+    target_comment_id: Some(data.comment_id),
+    reason: Some(data.reason.clone()),
+    ..ModlogInsertForm::new(
+      ModlogKind::ModLockComment,
+      locked,
+      local_user_view.person.id,
+    )
   };
-  let action = ModLockComment::create(&mut context.pool(), &form).await?;
-  notify_mod_action(action, comment.creator_id, &context);
+  let action = Modlog::create(&mut context.pool(), &[form]).await?;
+  notify_mod_action(action.clone(), orig_comment.creator.id, &context);
 
   ActivityChannel::submit_activity(
     SendActivityData::LockComment(

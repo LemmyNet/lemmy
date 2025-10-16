@@ -6,9 +6,14 @@ use lemmy_api_utils::{
   utils::{is_admin, purge_post_images},
 };
 use lemmy_db_schema::{
-  source::{local_user::LocalUser, post::Post},
+  source::{
+    local_user::LocalUser,
+    modlog::{Modlog, ModlogInsertForm},
+    post::Post,
+  },
   traits::Crud,
 };
+use lemmy_db_schema_file::enums::ModlogKind;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::api::PurgePost;
 use lemmy_db_views_site::api::SuccessResponse;
@@ -38,12 +43,13 @@ pub async fn purge_post(
   Post::delete(&mut context.pool(), data.post_id).await?;
 
   // Mod tables
-  let form = AdminPurgePostForm {
-    admin_person_id: local_user_view.person.id,
-    reason: data.reason.clone(),
-    community_id: post.community_id,
+  let form = ModlogInsertForm {
+    target_post_id: Some(data.post_id),
+    target_community_id: Some(post.community_id),
+    reason: Some(data.reason.clone()),
+    ..ModlogInsertForm::new(ModlogKind::AdminPurgePost, true, local_user_view.person.id)
   };
-  AdminPurgePost::create(&mut context.pool(), &form).await?;
+  Modlog::create(&mut context.pool(), &[form]).await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::RemovePost {

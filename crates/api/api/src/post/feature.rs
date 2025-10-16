@@ -9,11 +9,13 @@ use lemmy_api_utils::{
 use lemmy_db_schema::{
   source::{
     community::Community,
+    modlog::{Modlog, ModlogInsertForm},
     post::{Post, PostUpdateForm},
   },
   traits::Crud,
   PostFeatureType,
 };
+use lemmy_db_schema_file::enums::ModlogKind;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::api::{FeaturePost, PostResponse};
 use lemmy_utils::error::LemmyResult;
@@ -35,28 +37,32 @@ pub async fn feature_post(
 
   // Update the post
   let post_id = data.post_id;
-  let new_post: PostUpdateForm = if data.feature_type == PostFeatureType::Community {
-    PostUpdateForm {
-      featured_community: Some(data.featured),
-      ..Default::default()
-    }
+  let (post_form, modlog_kind) = if data.feature_type == PostFeatureType::Community {
+    (
+      PostUpdateForm {
+        featured_community: Some(data.featured),
+        ..Default::default()
+      },
+      ModlogKind::ModFeaturePostCommunity,
+    )
   } else {
-    PostUpdateForm {
-      featured_local: Some(data.featured),
-      ..Default::default()
-    }
+    (
+      PostUpdateForm {
+        featured_local: Some(data.featured),
+        ..Default::default()
+      },
+      ModlogKind::AdminFeaturePostSite,
+    )
   };
-  let post = Post::update(&mut context.pool(), post_id, &new_post).await?;
+  let post = Post::update(&mut context.pool(), post_id, &post_form).await?;
 
   // Mod tables
-  let form = ModFeaturePostForm {
-    mod_person_id: local_user_view.person.id,
-    post_id: data.post_id,
-    featured: Some(data.featured),
-    is_featured_community: Some(data.feature_type == PostFeatureType::Community),
+  let form = ModlogInsertForm {
+    target_post_id: Some(data.post_id),
+    target_community_id: Some(community.id),
+    ..ModlogInsertForm::new(modlog_kind, data.featured, local_user_view.person.id)
   };
-
-  ModFeaturePost::create(&mut context.pool(), &form).await?;
+  Modlog::create(&mut context.pool(), &[form]).await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::FeaturePost(post, local_user_view.person.clone(), data.featured),

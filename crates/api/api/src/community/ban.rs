@@ -15,10 +15,12 @@ use lemmy_db_schema::{
   source::{
     community::{Community, CommunityActions, CommunityPersonBanForm},
     local_user::LocalUser,
+    modlog::{Modlog, ModlogInsertForm},
   },
   traits::{Bannable, Crud, Followable},
   utils::get_conn,
 };
+use lemmy_db_schema_file::enums::ModlogKind;
 use lemmy_db_views_community::api::{BanFromCommunity, BanFromCommunityResponse};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
@@ -85,18 +87,14 @@ pub async fn ban_from_community(
         };
 
         // Mod tables
-        let form = ModBanFromCommunityForm {
-          mod_person_id: my_person_id,
-          other_person_id: tx_data.person_id,
-          community_id: tx_data.community_id,
-          reason: tx_data.reason.clone(),
-          banned: Some(tx_data.ban),
+        let form = ModlogInsertForm {
+          target_person_id: Some(tx_data.person_id),
+          target_community_id: Some(tx_data.community_id),
+          reason: Some(tx_data.reason.clone()),
           expires_at,
+          ..ModlogInsertForm::new(ModlogKind::ModBanFromCommunity, tx_data.ban, my_person_id)
         };
-
-        let action = ModBanFromCommunity::create(&mut conn.into(), &form).await?;
-
-        Ok(action)
+        Modlog::create(&mut conn.into(), &[form]).await
       }
       .scope_boxed()
     })

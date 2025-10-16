@@ -8,9 +8,11 @@ use lemmy_db_schema::{
   source::{
     federation_blocklist::{FederationBlockList, FederationBlockListForm},
     instance::Instance,
+    modlog::{Modlog, ModlogInsertForm},
   },
   traits::Crud,
 };
+use lemmy_db_schema_file::enums::ModlogKind;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::api::{AdminBlockInstanceParams, SuccessResponse};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
@@ -45,13 +47,16 @@ pub async fn admin_block_instance(
     FederationBlockList::unblock(&mut context.pool(), instance_id).await?;
   }
 
-  let mod_log_form = AdminBlockInstanceForm {
-    instance_id,
-    admin_person_id: local_user_view.person.id,
-    blocked: data.block,
-    reason: data.reason.clone(),
+  let form = ModlogInsertForm {
+    target_instance_id: Some(instance_id),
+    reason: Some(data.reason.clone()),
+    ..ModlogInsertForm::new(
+      ModlogKind::AdminBlockInstance,
+      data.block,
+      local_user_view.person.id,
+    )
   };
-  AdminBlockInstance::create(&mut context.pool(), &mod_log_form).await?;
+  Modlog::create(&mut context.pool(), &[form]).await?;
 
   Ok(Json(SuccessResponse::default()))
 }

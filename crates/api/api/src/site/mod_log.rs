@@ -5,7 +5,11 @@ use lemmy_api_utils::{
 };
 use lemmy_db_schema::traits::PaginationCursorBuilder;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_modlog::api::{GetModlog, GetModlogResponse};
+use lemmy_db_views_modlog::{
+  api::{GetModlog, GetModlogResponse},
+  impls::ModlogQuery,
+  ModlogView,
+};
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 
@@ -45,17 +49,17 @@ pub async fn get_mod_log(
   };
 
   let cursor_data = if let Some(cursor) = &data.page_cursor {
-    Some(ModlogCombinedView::from_cursor(cursor, &mut context.pool()).await?)
+    Some(ModlogView::from_cursor(cursor, &mut context.pool()).await?)
   } else {
     None
   };
 
-  let modlog = ModlogCombinedQuery {
+  let modlog = ModlogQuery {
     type_: data.type_,
     listing_type: data.listing_type,
     community_id: data.community_id,
     mod_person_id,
-    other_person_id: data.other_person_id,
+    target_person_id: data.other_person_id,
     local_user: local_user_view.as_ref().map(|u| &u.local_user),
     post_id: data.post_id,
     comment_id: data.comment_id,

@@ -5,9 +5,11 @@ use lemmy_db_schema::{
   source::{
     federation_allowlist::{FederationAllowList, FederationAllowListForm},
     instance::Instance,
+    modlog::{Modlog, ModlogInsertForm},
   },
   traits::Crud,
 };
+use lemmy_db_schema_file::enums::ModlogKind;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::api::{AdminAllowInstanceParams, SuccessResponse};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
@@ -37,13 +39,16 @@ pub async fn admin_allow_instance(
     FederationAllowList::unallow(&mut context.pool(), instance_id).await?;
   }
 
-  let mod_log_form = AdminAllowInstanceForm {
-    instance_id,
-    admin_person_id: local_user_view.person.id,
-    reason: data.reason.clone(),
-    allowed: data.allow,
+  let form = ModlogInsertForm {
+    target_instance_id: Some(instance_id),
+    reason: Some(data.reason.clone()),
+    ..ModlogInsertForm::new(
+      ModlogKind::AdminAllowInstance,
+      data.allow,
+      local_user_view.person.id,
+    )
   };
-  AdminAllowInstance::create(&mut context.pool(), &mod_log_form).await?;
+  Modlog::create(&mut context.pool(), &[form]).await?;
 
   Ok(Json(SuccessResponse::default()))
 }

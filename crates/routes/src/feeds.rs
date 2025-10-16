@@ -519,7 +519,21 @@ fn create_modlog_items(modlog: Vec<ModlogView>, settings: &Settings) -> LemmyRes
         ),
         settings,
       ),
-      ModlogKind::ModFeaturePost => build_modlog_item(
+      ModlogKind::ModFeaturePostCommunity => build_modlog_item(
+        &r,
+        &modlog_url,
+        format!(
+          "{} post {}",
+          if r.modlog.removed {
+            "Featured"
+          } else {
+            "Unfeatured"
+          },
+          &r.target_post.as_ref().unwrap().name
+        ),
+        settings,
+      ),
+      ModlogKind::AdminFeaturePostSite => build_modlog_item(
         &r,
         &modlog_url,
         format!(

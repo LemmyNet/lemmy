@@ -9,10 +9,12 @@ use lemmy_db_schema::{
   source::{
     instance::{InstanceActions, InstanceBanForm},
     local_user::LocalUser,
+    modlog::{Modlog, ModlogInsertForm},
     person::Person,
   },
   traits::{Bannable, Crud},
 };
+use lemmy_db_schema_file::enums::ModlogKind;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::api::PurgePerson;
 use lemmy_db_views_site::api::SuccessResponse;
@@ -61,11 +63,16 @@ pub async fn purge_person(
   .await?;
 
   // Mod tables
-  let form = AdminPurgePersonForm {
-    admin_person_id: local_user_view.person.id,
-    reason: data.reason.clone(),
+  let form = ModlogInsertForm {
+    target_person_id: Some(data.person_id),
+    reason: Some(data.reason.clone()),
+    ..ModlogInsertForm::new(
+      ModlogKind::AdminPurgePerson,
+      true,
+      local_user_view.person.id,
+    )
   };
-  AdminPurgePerson::create(&mut context.pool(), &form).await?;
+  Modlog::create(&mut context.pool(), &[form]).await?;
 
   Ok(Json(SuccessResponse::default()))
 }

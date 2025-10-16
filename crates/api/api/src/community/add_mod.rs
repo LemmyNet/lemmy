@@ -11,10 +11,12 @@ use lemmy_db_schema::{
   source::{
     community::{Community, CommunityActions, CommunityModeratorForm},
     local_user::LocalUser,
+    modlog::{Modlog, ModlogInsertForm},
   },
   traits::Crud,
   utils::get_conn,
 };
+use lemmy_db_schema_file::enums::ModlogKind;
 use lemmy_db_views_community::api::{AddModToCommunity, AddModToCommunityResponse};
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
@@ -74,16 +76,16 @@ pub async fn add_mod_to_community(
         }
 
         // Mod tables
-        let form = ModAddToCommunityForm {
-          mod_person_id: local_user_view.person.id,
-          other_person_id: tx_data.person_id,
-          community_id: tx_data.community_id,
-          removed: Some(!tx_data.added),
+        let form = ModlogInsertForm {
+          target_person_id: Some(tx_data.person_id),
+          target_community_id: Some(tx_data.community_id),
+          ..ModlogInsertForm::new(
+            ModlogKind::ModAddToCommunity,
+            !tx_data.added,
+            local_user_view.person.id,
+          )
         };
-
-        let action = ModAddToCommunity::create(&mut conn.into(), &form).await?;
-
-        Ok(action)
+        Modlog::create(&mut conn.into(), &[form]).await
       }
       .scope_boxed()
     })

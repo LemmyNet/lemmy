@@ -7,9 +7,14 @@ use lemmy_api_utils::{
 };
 use lemmy_db_schema::{
   newtypes::PersonId,
-  source::{community::Community, local_user::LocalUser},
+  source::{
+    community::Community,
+    local_user::LocalUser,
+    modlog::{Modlog, ModlogInsertForm},
+  },
   traits::Crud,
 };
+use lemmy_db_schema_file::enums::ModlogKind;
 use lemmy_db_views_community::api::PurgeCommunity;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
@@ -45,11 +50,16 @@ pub async fn purge_community(
   Community::delete(&mut context.pool(), data.community_id).await?;
 
   // Mod tables
-  let form = AdminPurgeCommunityForm {
-    admin_person_id: local_user_view.person.id,
-    reason: data.reason.clone(),
+  let form = ModlogInsertForm {
+    target_community_id: Some(data.community_id),
+    reason: Some(data.reason.clone()),
+    ..ModlogInsertForm::new(
+      ModlogKind::AdminPurgeCommunity,
+      true,
+      local_user_view.person.id,
+    )
   };
-  AdminPurgeCommunity::create(&mut context.pool(), &form).await?;
+  Modlog::create(&mut context.pool(), &[form]).await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::RemoveCommunity {

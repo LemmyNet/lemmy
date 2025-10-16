@@ -6,9 +6,14 @@ use lemmy_api_utils::{
   utils::is_admin,
 };
 use lemmy_db_schema::{
-  source::{comment::Comment, local_user::LocalUser},
+  source::{
+    comment::Comment,
+    local_user::LocalUser,
+    modlog::{Modlog, ModlogInsertForm},
+  },
   traits::Crud,
 };
+use lemmy_db_schema_file::enums::ModlogKind;
 use lemmy_db_views_comment::{api::PurgeComment, CommentView};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::api::SuccessResponse;
@@ -49,12 +54,17 @@ pub async fn purge_comment(
   Comment::delete(&mut context.pool(), comment_id).await?;
 
   // Mod tables
-  let form = AdminPurgeCommentForm {
-    admin_person_id: local_user_view.person.id,
-    reason: data.reason.clone(),
-    post_id,
+  let form = ModlogInsertForm {
+    target_post_id: Some(post_id),
+    target_community_id: Some(comment_view.community.id),
+    reason: Some(data.reason.clone()),
+    ..ModlogInsertForm::new(
+      ModlogKind::AdminPurgeComment,
+      true,
+      local_user_view.person.id,
+    )
   };
-  AdminPurgeComment::create(&mut context.pool(), &form).await?;
+  Modlog::create(&mut context.pool(), &[form]).await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::RemoveComment {

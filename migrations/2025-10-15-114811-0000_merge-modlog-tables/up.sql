@@ -1,4 +1,5 @@
--- new enum with all possible mod actions
+-- New enum with all possible mod actions
+-- TODO: We could also remove the Admin/Mod prefix
 CREATE TYPE modlog_kind AS enum (
     'AdminAdd',
     'AdminBan',
@@ -10,7 +11,8 @@ CREATE TYPE modlog_kind AS enum (
     'AdminPurgePost',
     'ModAddToCommunity',
     'ModBanFromCommunity',
-    'ModFeaturePost',
+    'ModFeaturePostCommunity',
+    'AdminFeaturePostSite',
     'ModChangeCommunityVisibility',
     'ModLockPost',
     'ModRemoveComment',
@@ -24,6 +26,10 @@ CREATE TYPE modlog_kind AS enum (
 CREATE TABLE modlog (
     id serial PRIMARY KEY,
     kind modlog_kind NOT NULL,
+    -- TODO: This name makes sense for most things like remove post, but for others like
+    --       feature post or transfer community it is really unintuitive. One option
+    --       would be to use `is_revert` instead, but that means almost every api value
+    --       needs to be inverted.
     removed boolean NOT NULL,
     mod_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     -- For some actions reason is quite pointless so leave it optional (eg add admin, feature post)
@@ -31,7 +37,7 @@ CREATE TABLE modlog (
     target_person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
     target_community_id int REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE,
     target_post_id int REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE,
-    target_comment_id int REFERENCES comment ON UPDATE CASCADE ON DELETE CASCADE,
+    target_comment_id int REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE,
     target_instance_id int REFERENCES instance ON UPDATE CASCADE ON DELETE CASCADE,
     expires_at timestamptz,
     published_at timestamptz NOT NULL DEFAULT now()
