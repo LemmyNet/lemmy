@@ -336,7 +336,7 @@ fn map_to_enum(v: NotificationViewInternal) -> Option<NotificationView> {
       recipient: v.recipient,
     })
   } else if let (Some(modlog), Some(item_creator)) = (v.modlog, v.item_creator) {
-    ModlogView {
+    NotificationData::ModAction(ModlogView {
       modlog,
       moderator: item_creator,
       target_instance: v.instance,
@@ -344,7 +344,7 @@ fn map_to_enum(v: NotificationViewInternal) -> Option<NotificationView> {
       target_community: v.community,
       target_post: v.post,
       target_comment: v.comment,
-    }
+    })
   } else {
     return None;
   };

@@ -24,10 +24,10 @@ CREATE TYPE modlog_kind AS enum (
 CREATE TABLE modlog (
     id serial PRIMARY KEY,
     kind modlog_kind NOT NULL,
-    -- For some actions reason is quite pointless so leave it optional (eg add admin, feature post)
-    reason text,
     is_revert boolean NOT NULL,
     mod_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    -- For some actions reason is quite pointless so leave it optional (eg add admin, feature post)
+    reason text,
     target_person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
     target_community_id int REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE,
     target_post_id int REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE,

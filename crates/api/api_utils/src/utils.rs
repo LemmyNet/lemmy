@@ -17,6 +17,7 @@ use lemmy_db_schema::{
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
+    modlog::{Modlog, ModlogInsertForm},
     oauth_account::OAuthAccount,
     person::{Person, PersonUpdateForm},
     post::{Post, PostActions, PostReadCommentsForm},
@@ -28,7 +29,7 @@ use lemmy_db_schema::{
   traits::{Crud, Likeable},
   utils::DbPool,
 };
-use lemmy_db_schema_file::enums::{FederationMode, RegistrationMode};
+use lemmy_db_schema_file::enums::{FederationMode, ModlogKind::ModRemovePost, RegistrationMode};
 use lemmy_db_views_community_follower_approval::PendingFollowerView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_community_person_ban::CommunityPersonBanView;
@@ -643,17 +644,16 @@ async fn create_modlog_entries_for_removed_or_restored_posts(
   reason: &str,
 ) -> LemmyResult<()> {
   // Build the forms
-  let forms = post_ids
+  let forms: Vec<_> = post_ids
     .iter()
-    .map(|&post_id| ModRemovePostForm {
-      mod_person_id,
-      post_id,
-      removed: Some(removed),
-      reason: reason.to_string(),
+    .map(|&post_id| ModlogInsertForm {
+      reason: Some(reason.to_string()),
+      target_post_id: Some(post_id),
+      ..ModlogInsertForm::new(ModRemovePost, !removed, mod_person_id)
     })
     .collect();
 
-  ModRemovePost::create_multiple(pool, &forms).await?;
+  Modlog::create(pool, &forms).await?;
 
   Ok(())
 }
@@ -666,17 +666,16 @@ async fn create_modlog_entries_for_removed_or_restored_comments(
   reason: &str,
 ) -> LemmyResult<()> {
   // Build the forms
-  let forms = comment_ids
+  let forms: Vec<_> = comment_ids
     .iter()
-    .map(|&comment_id| ModRemoveCommentForm {
-      mod_person_id,
-      comment_id,
-      removed: Some(removed),
-      reason: reason.to_string(),
+    .map(|&comment_id| ModlogInsertForm {
+      target_comment_id: Some(comment_id),
+      reason: Some(reason.to_string()),
+      ..ModlogInsertForm::new(ModRemovePost, !removed, mod_person_id)
     })
     .collect();
 
-  ModRemoveComment::create_multiple(pool, &forms).await?;
+  Modlog::create(pool, &forms).await?;
 
   Ok(())
 }
