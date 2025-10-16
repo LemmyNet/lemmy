@@ -20,7 +20,7 @@ use serde::{Deserialize, Serialize};
 pub struct Modlog {
   pub id: ModlogId,
   pub kind: ModlogKind,
-  pub is_revert: bool,
+  pub removed: bool,
   pub mod_id: PersonId,
   pub reason: Option<String>,
   #[serde(skip)]
@@ -43,7 +43,7 @@ pub struct Modlog {
 #[cfg_attr(feature = "full", diesel(table_name = modlog))]
 pub struct ModlogInsertForm {
   pub kind: ModlogKind,
-  pub is_revert: bool,
+  pub removed: bool,
   pub mod_id: PersonId,
   #[new(default)]
   pub reason: Option<String>,

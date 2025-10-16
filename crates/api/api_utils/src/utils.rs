@@ -649,7 +649,7 @@ async fn create_modlog_entries_for_removed_or_restored_posts(
     .map(|&post_id| ModlogInsertForm {
       reason: Some(reason.to_string()),
       target_post_id: Some(post_id),
-      ..ModlogInsertForm::new(ModRemovePost, !removed, mod_person_id)
+      ..ModlogInsertForm::new(ModRemovePost, removed, mod_person_id)
     })
     .collect();
 
@@ -671,7 +671,7 @@ async fn create_modlog_entries_for_removed_or_restored_comments(
     .map(|&comment_id| ModlogInsertForm {
       target_comment_id: Some(comment_id),
       reason: Some(reason.to_string()),
-      ..ModlogInsertForm::new(ModRemovePost, !removed, mod_person_id)
+      ..ModlogInsertForm::new(ModRemovePost, removed, mod_person_id)
     })
     .collect();
 

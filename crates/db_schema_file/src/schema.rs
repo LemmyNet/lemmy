@@ -514,7 +514,7 @@ diesel::table! {
     modlog (id) {
         id -> Int4,
         kind -> ModlogKind,
-        is_revert -> Bool,
+        removed -> Bool,
         mod_id -> Int4,
         reason -> Nullable<Text>,
         target_person_id -> Nullable<Int4>,

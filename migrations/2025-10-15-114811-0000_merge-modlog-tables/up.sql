@@ -24,7 +24,7 @@ CREATE TYPE modlog_kind AS enum (
 CREATE TABLE modlog (
     id serial PRIMARY KEY,
     kind modlog_kind NOT NULL,
-    is_revert boolean NOT NULL,
+    removed boolean NOT NULL,
     mod_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     -- For some actions reason is quite pointless so leave it optional (eg add admin, feature post)
     reason text,
@@ -46,7 +46,7 @@ ALTER TABLE modlog
         AND num_nonnulls (target_person_id, target_community_id, target_post_id, target_comment_id, target_instance_id) = 2));
 
 -- copy old data to new table
-INSERT INTO modlog (kind, is_revert, mod_id, target_person_id, published_at)
+INSERT INTO modlog (kind, removed, mod_id, target_person_id, published_at)
 SELECT
     'AdminAdd',
     removed,
@@ -56,7 +56,7 @@ SELECT
 FROM
     admin_add;
 
-INSERT INTO modlog (kind, reason, is_revert, mod_id, target_person_id, published_at)
+INSERT INTO modlog (kind, reason, removed, mod_id, target_person_id, published_at)
 SELECT
     'AdminBan',
     reason,
@@ -67,7 +67,7 @@ SELECT
 FROM
     admin_ban;
 
-INSERT INTO modlog (kind, reason, is_revert, mod_id, target_instance_id, published_at)
+INSERT INTO modlog (kind, reason, removed, mod_id, target_instance_id, published_at)
 SELECT
     'AdminAllowInstance',
     reason,
@@ -78,7 +78,7 @@ SELECT
 FROM
     admin_allow_instance;
 
-INSERT INTO modlog (kind, reason, is_revert, mod_id, target_instance_id, published_at)
+INSERT INTO modlog (kind, reason, removed, mod_id, target_instance_id, published_at)
 SELECT
     'AdminBlockInstance',
     reason,
@@ -89,7 +89,7 @@ SELECT
 FROM
     admin_block_instance;
 
-INSERT INTO modlog (kind, reason, is_revert, mod_id, target_comment_id, published_at)
+INSERT INTO modlog (kind, reason, removed, mod_id, target_comment_id, published_at)
 SELECT
     'AdminPurgeComment',
     reason,
@@ -101,7 +101,7 @@ SELECT
 FROM
     admin_purge_comment;
 
-INSERT INTO modlog (kind, reason, is_revert, mod_id, target_post_id, published_at)
+INSERT INTO modlog (kind, reason, removed, mod_id, target_post_id, published_at)
 SELECT
     'AdminPurgePost',
     reason,
@@ -113,14 +113,14 @@ FROM
     admin_purge_comment;
 
 -- This one is not possible because admin_purge_community is missing community_id
--- INSERT INTO modlog (kind, reason, is_revert, mod_id, target_community_id, published_at)
+-- INSERT INTO modlog (kind, reason, removed, mod_id, target_community_id, published_at)
 -- SELECT 'AdminPurgeCommunity', reason, FALSE, admin_person_id, community_id,published_at
 -- FROM admin_purge_community;
 -- Same for admin_purge_person
--- INSERT INTO modlog (kind, reason, is_revert, mod_id, target_person_id, published_at)
+-- INSERT INTO modlog (kind, reason, removed, mod_id, target_person_id, published_at)
 -- SELECT 'AdminPurgePerson',reason, FALSE,admin_person_id, person_id, published_at
 -- FROM admin_purge_person;
-INSERT INTO modlog (kind, is_revert, mod_id, target_person_id, published_at)
+INSERT INTO modlog (kind, removed, mod_id, target_person_id, published_at)
 SELECT
     'ModAddToCommunity',
     removed,
@@ -130,7 +130,7 @@ SELECT
 FROM
     mod_add_to_community;
 
-INSERT INTO modlog (kind, reason, is_revert, mod_id, target_community_id, target_person_id, expires_at, published_at)
+INSERT INTO modlog (kind, reason, removed, mod_id, target_community_id, target_person_id, expires_at, published_at)
 SELECT
     'ModBanFromCommunity',
     reason,
@@ -143,7 +143,7 @@ SELECT
 FROM
     mod_ban_from_community;
 
-INSERT INTO modlog (kind, is_revert, mod_id, target_post_id, published_at)
+INSERT INTO modlog (kind, removed, mod_id, target_post_id, published_at)
 SELECT
     'ModFeaturePost',
     featured,
@@ -153,7 +153,7 @@ SELECT
 FROM
     mod_feature_post;
 
-INSERT INTO modlog (kind, is_revert, mod_id, target_community_id, published_at)
+INSERT INTO modlog (kind, removed, mod_id, target_community_id, published_at)
 SELECT
     'ModChangeCommunityVisibility',
     FALSE,
@@ -163,7 +163,7 @@ SELECT
 FROM
     mod_change_community_visibility;
 
-INSERT INTO modlog (kind, reason, is_revert, mod_id, target_post_id, published_at)
+INSERT INTO modlog (kind, reason, removed, mod_id, target_post_id, published_at)
 SELECT
     'ModLockPost',
     reason,
@@ -174,7 +174,7 @@ SELECT
 FROM
     mod_lock_post;
 
-INSERT INTO modlog (kind, reason, is_revert, mod_id, target_comment_id, published_at)
+INSERT INTO modlog (kind, reason, removed, mod_id, target_comment_id, published_at)
 SELECT
     'ModLockComment',
     reason,
@@ -185,7 +185,7 @@ SELECT
 FROM
     mod_lock_comment;
 
-INSERT INTO modlog (kind, reason, is_revert, mod_id, target_comment_id, published_at)
+INSERT INTO modlog (kind, reason, removed, mod_id, target_comment_id, published_at)
 SELECT
     'ModRemoveComment',
     reason,
@@ -196,7 +196,7 @@ SELECT
 FROM
     mod_remove_comment;
 
-INSERT INTO modlog (kind, reason, is_revert, mod_id, target_community_id, published_at)
+INSERT INTO modlog (kind, reason, removed, mod_id, target_community_id, published_at)
 SELECT
     'AdminRemoveCommunity',
     reason,
@@ -207,7 +207,7 @@ SELECT
 FROM
     admin_remove_community;
 
-INSERT INTO modlog (kind, reason, is_revert, mod_id, target_post_id, published_at)
+INSERT INTO modlog (kind, reason, removed, mod_id, target_post_id, published_at)
 SELECT
     'ModRemovePost',
     reason,
@@ -218,7 +218,7 @@ SELECT
 FROM
     mod_remove_post;
 
-INSERT INTO modlog (kind, is_revert, mod_id, target_community_id, target_person_id, published_at)
+INSERT INTO modlog (kind, removed, mod_id, target_community_id, target_person_id, published_at)
 SELECT
     'ModTransferCommunity',
     FALSE,
