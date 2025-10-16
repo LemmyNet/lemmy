@@ -440,7 +440,7 @@ impl PostActions {
   ) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
 
-    let post_ids: Vec<_> = post_ids.iter().cloned().collect();
+    let post_ids: Vec<_> = post_ids.to_vec();
     uplete(
       post_actions::table
         .filter(post_actions::post_id.eq_any(post_ids))
