@@ -132,7 +132,7 @@ mod tests {
       LocalUser::create(&mut context.pool(), &local_user_form, vec![]).await?;
 
     let req = TestRequest::default().to_http_request();
-    let jwt = Claims::generate(inserted_local_user.id, req, &context).await?;
+    let jwt = Claims::generate(inserted_local_user.id, None, req, &context).await?;
 
     let valid = Claims::validate(&jwt, &context).await;
     assert!(valid.is_ok());
