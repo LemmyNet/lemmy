@@ -40,7 +40,8 @@ pub fn fetch_community_collections(
       followers.dereference(&community, &context).await.ok();
     }
     // Dont fetch featured posts for new instances to save requests.
-    if !is_new_instance(&context).await? {
+    // But need to run this in debug mode so that api tests can pass.
+    if cfg!(debug_assertions) || !is_new_instance(&context).await? {
       if let Some(featured) = group.featured {
         let featured: CollectionId<ApubCommunityFeatured> = featured.into();
         featured.dereference(&community, &context).await.ok();
