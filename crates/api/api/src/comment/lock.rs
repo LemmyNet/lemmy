@@ -7,13 +7,7 @@ use lemmy_api_utils::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_community_mod_action,
 };
-use lemmy_db_schema::{
-  source::{
-    comment::Comment,
-    mod_log::moderator::{ModLockComment, ModLockCommentForm},
-  },
-  traits::Crud,
-};
+use lemmy_db_schema::{source::comment::Comment, traits::Crud};
 use lemmy_db_views_comment::{
   api::{CommentResponse, LockComment},
   CommentView,

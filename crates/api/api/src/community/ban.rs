@@ -15,7 +15,6 @@ use lemmy_db_schema::{
   source::{
     community::{Community, CommunityActions, CommunityPersonBanForm},
     local_user::LocalUser,
-    mod_log::moderator::{ModBanFromCommunity, ModBanFromCommunityForm},
   },
   traits::{Bannable, Crud, Followable},
   utils::get_conn,

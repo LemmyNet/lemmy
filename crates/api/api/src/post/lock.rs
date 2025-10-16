@@ -8,10 +8,7 @@ use lemmy_api_utils::{
   utils::check_community_mod_action,
 };
 use lemmy_db_schema::{
-  source::{
-    mod_log::moderator::{ModLockPost, ModLockPostForm},
-    post::{Post, PostUpdateForm},
-  },
+  source::post::{Post, PostUpdateForm},
   traits::Crud,
 };
 use lemmy_db_views_local_user::LocalUserView;

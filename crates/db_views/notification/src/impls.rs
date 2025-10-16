@@ -197,6 +197,7 @@ pub struct NotificationQuery {
   pub type_: Option<NotificationDataType>,
   pub unread_only: Option<bool>,
   pub show_bot_accounts: Option<bool>,
+  pub hide_modlog_names: Option<bool>,
   pub cursor_data: Option<Notification>,
   pub page_back: Option<bool>,
   pub limit: Option<i64>,
@@ -279,11 +280,17 @@ impl NotificationQuery {
       .load::<NotificationViewInternal>(conn)
       .await?;
 
-    Ok(res.into_iter().filter_map(map_to_enum).collect())
+    let hide_modlog_names = self.hide_modlog_names.unwrap_or_default();
+    Ok(
+      res
+        .into_iter()
+        .filter_map(|r| map_to_enum(r, hide_modlog_names))
+        .collect(),
+    )
   }
 }
 
-fn map_to_enum(v: NotificationViewInternal) -> Option<NotificationView> {
+fn map_to_enum(v: NotificationViewInternal, hide_modlog_name: bool) -> Option<NotificationView> {
   let data = if let (Some(comment), Some(post), Some(community), Some(creator)) = (
     v.comment.clone(),
     v.post.clone(),
@@ -335,16 +342,20 @@ fn map_to_enum(v: NotificationViewInternal) -> Option<NotificationView> {
       creator,
       recipient: v.recipient,
     })
-  } else if let (Some(modlog), Some(item_creator)) = (v.modlog, v.item_creator) {
-    NotificationData::ModAction(ModlogView {
+  } else if let (Some(modlog), Some(creator)) = (v.modlog, v.creator) {
+    let m = ModlogView {
       modlog,
-      moderator: item_creator,
-      target_instance: v.instance,
-      target_person: v.person,
+      moderator: Some(creator),
+      target_person: Some(v.recipient),
       target_community: v.community,
       target_post: v.post,
       target_comment: v.comment,
-    })
+      // TODO: probably need to set this in case user gets banned by remote instance,
+      // means we need to join it
+      target_instance: None,
+    };
+    let m = m.hide_mod_name(hide_modlog_name);
+    NotificationData::ModAction(m)
   } else {
     return None;
   };

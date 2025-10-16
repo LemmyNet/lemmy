@@ -1,6 +1,5 @@
 use crate::{
   newtypes::{CommunityId, DbUrl, PaginationCursor, PersonId},
-  source::notification::NotificationInsertForm,
   utils::{get_conn, DbPool},
 };
 use diesel::{
@@ -19,7 +18,6 @@ use diesel_async::{
   RunQueryDsl,
 };
 use diesel_uplete::UpleteCount;
-use lemmy_db_schema_file::enums::ModlogKind;
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
@@ -253,11 +251,4 @@ pub trait PaginationCursorBuilder {
     cursor: &PaginationCursor,
     conn: &mut DbPool<'_>,
   ) -> impl Future<Output = LemmyResult<Self::CursorData>> + Send;
-}
-
-pub trait ModActionNotify {
-  fn insert_form(&self, recipient_id: PersonId) -> NotificationInsertForm;
-  fn kind(&self) -> ModlogKind;
-  fn is_revert(&self) -> bool;
-  fn reason(&self) -> Option<&str>;
 }

@@ -11,7 +11,6 @@ use lemmy_db_schema::{
   source::{
     community::{Community, CommunityActions, CommunityModeratorForm},
     local_user::LocalUser,
-    mod_log::moderator::{ModAddToCommunity, ModAddToCommunityForm},
   },
   traits::Crud,
   utils::get_conn,

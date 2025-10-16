@@ -13,15 +13,13 @@ use lemmy_db_schema::{
     comment_report::CommentReport,
     community::{Community, CommunityUpdateForm},
     community_report::CommunityReport,
-    mod_log::{
-      admin::{AdminRemoveCommunity, AdminRemoveCommunityForm},
-      moderator::{ModRemoveComment, ModRemoveCommentForm, ModRemovePost, ModRemovePostForm},
-    },
+    modlog::{Modlog, ModlogInsertForm},
     post::{Post, PostUpdateForm},
     post_report::PostReport,
   },
   traits::{Crud, Reportable},
 };
+use lemmy_db_schema_file::enums::ModlogKind;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult, UntranslatedError};
 use url::Url;
@@ -110,13 +108,12 @@ pub(crate) async fn receive_remove_action(
         Err(UntranslatedError::OnlyLocalAdminCanRemoveCommunity)?
       }
       CommunityReport::resolve_all_for_object(&mut context.pool(), community.id, actor.id).await?;
-      let form = AdminRemoveCommunityForm {
-        mod_person_id: actor.id,
-        community_id: community.id,
-        removed: Some(true),
-        reason,
+      let form = ModlogInsertForm {
+        target_community_id: Some(community.id),
+        reason: Some(reason),
+        ..ModlogInsertForm::new(ModlogKind::AdminRemoveCommunity, true, actor.id)
       };
-      let action = AdminRemoveCommunity::create(&mut context.pool(), &form).await?;
+      let action = Modlog::create(&mut context.pool(), &[form]).await?;
       for m in CommunityModeratorView::for_community(&mut context.pool(), community.id).await? {
         notify_mod_action(action.clone(), m.moderator.id, context.app_data());
       }
@@ -132,13 +129,12 @@ pub(crate) async fn receive_remove_action(
     }
     DeletableObjects::Post(post) => {
       PostReport::resolve_all_for_object(&mut context.pool(), post.id, actor.id).await?;
-      let form = ModRemovePostForm {
-        mod_person_id: actor.id,
-        post_id: post.id,
-        removed: Some(true),
-        reason,
+      let form = ModlogInsertForm {
+        target_post_id: Some(post.id),
+        reason: Some(reason),
+        ..ModlogInsertForm::new(ModlogKind::ModRemovePost, true, actor.id)
       };
-      let action = ModRemovePost::create(&mut context.pool(), &form).await?;
+      let action = Modlog::create(&mut context.pool(), &[form]).await?;
       notify_mod_action(action, post.creator_id, context.app_data());
       Post::update(
         &mut context.pool(),
@@ -152,13 +148,12 @@ pub(crate) async fn receive_remove_action(
     }
     DeletableObjects::Comment(comment) => {
       CommentReport::resolve_all_for_object(&mut context.pool(), comment.id, actor.id).await?;
-      let form = ModRemoveCommentForm {
-        mod_person_id: actor.id,
-        comment_id: comment.id,
-        removed: Some(true),
-        reason,
+      let form = ModlogInsertForm {
+        target_comment_id: Some(comment.id),
+        reason: Some(reason),
+        ..ModlogInsertForm::new(ModlogKind::ModRemoveComment, true, actor.id)
       };
-      let action = ModRemoveComment::create(&mut context.pool(), &form).await?;
+      let action = Modlog::create(&mut context.pool(), &[form]).await?;
       notify_mod_action(action, comment.creator_id, context.app_data());
       Comment::update(
         &mut context.pool(),

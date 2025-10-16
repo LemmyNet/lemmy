@@ -10,7 +10,6 @@ use lemmy_db_schema::{
   source::{
     instance::{InstanceActions, InstanceBanForm},
     local_user::LocalUser,
-    mod_log::admin::{AdminBan, AdminBanForm},
   },
   traits::{Bannable, Crud},
 };

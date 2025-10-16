@@ -53,7 +53,7 @@ impl ModlogView {
     );
 
     modlog::table
-      .left_join(moderator_join)
+      .inner_join(moderator_join)
       .left_join(target_person_join)
       .left_join(comment::table)
       .left_join(post::table)
@@ -178,7 +178,7 @@ impl ModlogQuery<'_> {
 
 impl ModlogView {
   /// Hides modlog names by setting the moderator to None.
-  fn hide_mod_name(self, hide_modlog_names: bool) -> Self {
+  pub fn hide_mod_name(self, hide_modlog_names: bool) -> Self {
     if hide_modlog_names {
       Self {
         moderator: None,

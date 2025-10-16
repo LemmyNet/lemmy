@@ -5,14 +5,16 @@ use lemmy_db_schema::{
     comment::Comment,
     community::{Community, CommunityActions},
     instance::InstanceActions,
+    modlog::Modlog,
     notification::{Notification, NotificationInsertForm},
     person::{Person, PersonActions},
     post::{Post, PostActions},
   },
-  traits::{ApubActor, Blockable, Crud, ModActionNotify},
+  traits::{ApubActor, Blockable, Crud},
 };
 use lemmy_db_schema_file::enums::{
   CommunityNotificationsMode,
+  ModlogKind,
   NotificationType,
   PostNotificationsMode,
 };
@@ -298,37 +300,60 @@ pub async fn notify_private_message(
   Ok(())
 }
 
-pub fn notify_mod_action<T>(action: T, target_id: PersonId, context: &LemmyContext)
-where
-  T: ModActionNotify + Send + 'static,
-{
+pub fn notify_mod_action(actions: Vec<Modlog>, target_id: PersonId, context: &LemmyContext) {
+  // Filter out mod actions which should not generate notification
+  // TODO: could instead filter out any actions with target_person_id == None
+  let actions: Vec<_> = actions
+    .into_iter()
+    .filter(|a| {
+      use ModlogKind::*;
+      let k = a.kind;
+      k != AdminPurgePerson
+        && k != AdminPurgeCommunity
+        && k != AdminPurgePost
+        && k != AdminPurgeComment
+        && k != AdminAllowInstance
+        && k != AdminBlockInstance
+        && k != ModChangeCommunityVisibility
+        && k != ModFeaturePost
+    })
+    .collect();
+  if actions.is_empty() {
+    return;
+  }
+
   let context = context.clone();
   spawn_try_task(async move {
-    let Ok(local_recipient) = LocalUserView::read_person(&mut context.pool(), target_id).await
-    else {
-      return Ok(());
-    };
+    for action in actions {
+      let Ok(local_recipient) = LocalUserView::read_person(&mut context.pool(), target_id).await
+      else {
+        continue;
+      };
 
-    let form = action.insert_form(target_id);
-    Notification::create(&mut context.pool(), &[form]).await?;
+      let form = NotificationInsertForm {
+        modlog_id: Some(action.id),
+        ..NotificationInsertForm::new(local_recipient.person.id, NotificationType::ModAction)
+      };
+      Notification::create(&mut context.pool(), &[form]).await?;
 
-    let modlog_url = format!(
-      "{}/modlog?userId={}&actionType={}",
-      context.settings().get_protocol_and_hostname(),
-      local_recipient.person.id.0,
-      action.kind()
-    );
-    let d = NotificationEmailData::ModAction {
-      kind: action.kind(),
-      reason: action.reason(),
-      is_revert: action.is_revert(),
-    };
-    send_notification_email(
-      local_recipient,
-      Url::parse(&modlog_url)?.into(),
-      d,
-      context.settings(),
-    );
+      let modlog_url = format!(
+        "{}/modlog?userId={}&actionType={}",
+        context.settings().get_protocol_and_hostname(),
+        local_recipient.person.id.0,
+        action.kind
+      );
+      let d = NotificationEmailData::ModAction {
+        kind: action.kind,
+        reason: action.reason.as_deref(),
+        is_revert: action.removed,
+      };
+      send_notification_email(
+        local_recipient,
+        Url::parse(&modlog_url)?.into(),
+        d,
+        context.settings(),
+      );
+    }
     Ok(())
   })
 }

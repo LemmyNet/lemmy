@@ -22,12 +22,13 @@ use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
     community::Community,
-    mod_log::moderator::{ModChangeCommunityVisibility, ModChangeCommunityVisibilityForm},
+    modlog::{Modlog, ModlogInsertForm},
     multi_community::MultiCommunity,
     person::Person,
   },
   traits::Crud,
 };
+use lemmy_db_schema_file::enums::ModlogKind;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
@@ -119,12 +120,11 @@ impl Activity for Update {
 
         if old_community.visibility != community.visibility {
           let actor = self.actor.dereference(context).await?;
-          let form = ModChangeCommunityVisibilityForm {
-            mod_person_id: actor.id,
-            community_id: old_community.id,
-            visibility: old_community.visibility,
+          let form = ModlogInsertForm {
+            target_community_id: Some(old_community.id),
+            ..ModlogInsertForm::new(ModlogKind::ModChangeCommunityVisibility, true, actor.id)
           };
-          ModChangeCommunityVisibility::create(&mut context.pool(), &form).await?;
+          Modlog::create(&mut context.pool(), &[form]).await?;
         }
       }
       Either::Right(m) => {

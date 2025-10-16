@@ -1,10 +1,7 @@
 use actix_web::web::{Data, Json};
 use lemmy_api_utils::{context::LemmyContext, notify::notify_mod_action, utils::is_admin};
 use lemmy_db_schema::{
-  source::{
-    local_user::{LocalUser, LocalUserUpdateForm},
-    mod_log::admin::{AdminAdd, AdminAddForm},
-  },
+  source::local_user::{LocalUser, LocalUserUpdateForm},
   traits::Crud,
 };
 use lemmy_db_views_local_user::LocalUserView;

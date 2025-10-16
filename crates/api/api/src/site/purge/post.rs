@@ -6,11 +6,7 @@ use lemmy_api_utils::{
   utils::{is_admin, purge_post_images},
 };
 use lemmy_db_schema::{
-  source::{
-    local_user::LocalUser,
-    mod_log::admin::{AdminPurgePost, AdminPurgePostForm},
-    post::Post,
-  },
+  source::{local_user::LocalUser, post::Post},
   traits::Crud,
 };
 use lemmy_db_views_local_user::LocalUserView;

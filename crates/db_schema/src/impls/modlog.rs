@@ -8,11 +8,11 @@ use lemmy_db_schema_file::schema::modlog;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Modlog {
-  pub async fn create(pool: &mut DbPool<'_>, form: &[ModlogInsertForm]) -> LemmyResult<Self> {
+  pub async fn create(pool: &mut DbPool<'_>, form: &[ModlogInsertForm]) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
     insert_into(modlog::table)
       .values(form)
-      .get_result::<Self>(conn)
+      .get_results::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }

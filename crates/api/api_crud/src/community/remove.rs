@@ -11,10 +11,11 @@ use lemmy_db_schema::{
   source::{
     community::{Community, CommunityUpdateForm},
     community_report::CommunityReport,
-    mod_log::admin::{AdminRemoveCommunity, AdminRemoveCommunityForm},
+    modlog::{Modlog, ModlogInsertForm},
   },
   traits::{Crud, Reportable},
 };
+use lemmy_db_schema_file::enums::ModlogKind;
 use lemmy_db_views_community::api::{CommunityResponse, RemoveCommunity};
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
@@ -52,13 +53,16 @@ pub async fn remove_community(
   .await?;
 
   // Mod tables
-  let form = AdminRemoveCommunityForm {
-    mod_person_id: local_user_view.person.id,
-    community_id: data.community_id,
-    removed: Some(removed),
-    reason: data.reason.clone(),
+  let form = ModlogInsertForm {
+    target_community_id: Some(data.community_id),
+    reason: Some(data.reason.clone()),
+    ..ModlogInsertForm::new(
+      ModlogKind::AdminRemoveCommunity,
+      removed,
+      local_user_view.person.id,
+    )
   };
-  let action = AdminRemoveCommunity::create(&mut context.pool(), &form).await?;
+  let action = Modlog::create(&mut context.pool(), &[form]).await?;
   for m in CommunityModeratorView::for_community(&mut context.pool(), data.community_id).await? {
     notify_mod_action(action.clone(), m.moderator.id, context.app_data());
   }

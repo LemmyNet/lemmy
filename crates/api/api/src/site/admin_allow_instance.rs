@@ -5,7 +5,6 @@ use lemmy_db_schema::{
   source::{
     federation_allowlist::{FederationAllowList, FederationAllowListForm},
     instance::Instance,
-    mod_log::admin::{AdminAllowInstance, AdminAllowInstanceForm},
   },
   traits::Crud,
 };

@@ -8,7 +8,6 @@ use lemmy_db_schema::{
   source::{
     federation_blocklist::{FederationBlockList, FederationBlockListForm},
     instance::Instance,
-    mod_log::admin::{AdminBlockInstance, AdminBlockInstanceForm},
   },
   traits::Crud,
 };

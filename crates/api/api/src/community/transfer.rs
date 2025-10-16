@@ -6,10 +6,7 @@ use lemmy_api_utils::{
   utils::{check_community_user_action, is_admin, is_top_mod},
 };
 use lemmy_db_schema::{
-  source::{
-    community::{Community, CommunityActions, CommunityModeratorForm},
-    mod_log::moderator::{ModTransferCommunity, ModTransferCommunityForm},
-  },
+  source::community::{Community, CommunityActions, CommunityModeratorForm},
   traits::Crud,
   utils::get_conn,
 };

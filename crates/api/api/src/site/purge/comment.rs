@@ -6,11 +6,7 @@ use lemmy_api_utils::{
   utils::is_admin,
 };
 use lemmy_db_schema::{
-  source::{
-    comment::Comment,
-    local_user::LocalUser,
-    mod_log::admin::{AdminPurgeComment, AdminPurgeCommentForm},
-  },
+  source::{comment::Comment, local_user::LocalUser},
   traits::Crud,
 };
 use lemmy_db_views_comment::{api::PurgeComment, CommentView};

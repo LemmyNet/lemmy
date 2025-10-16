@@ -9,7 +9,6 @@ use lemmy_api_utils::{
 use lemmy_db_schema::{
   source::{
     community::Community,
-    mod_log::moderator::{ModFeaturePost, ModFeaturePostForm},
     post::{Post, PostUpdateForm},
   },
   traits::Crud,

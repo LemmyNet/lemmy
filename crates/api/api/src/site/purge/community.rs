@@ -7,11 +7,7 @@ use lemmy_api_utils::{
 };
 use lemmy_db_schema::{
   newtypes::PersonId,
-  source::{
-    community::Community,
-    local_user::LocalUser,
-    mod_log::admin::{AdminPurgeCommunity, AdminPurgeCommunityForm},
-  },
+  source::{community::Community, local_user::LocalUser},
   traits::Crud,
 };
 use lemmy_db_views_community::api::PurgeCommunity;

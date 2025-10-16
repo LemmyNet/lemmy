@@ -16,6 +16,7 @@ use activitypub_federation::{
 };
 use lemmy_api_utils::{
   context::LemmyContext,
+  notify::notify_mod_action,
   utils::{remove_or_restore_user_data, remove_or_restore_user_data_in_community},
 };
 use lemmy_apub_objects::{
@@ -27,13 +28,11 @@ use lemmy_db_schema::{
     activity::ActivitySendTargets,
     community::{CommunityActions, CommunityPersonBanForm},
     instance::{InstanceActions, InstanceBanForm},
-    mod_log::{
-      admin::{AdminBan, AdminBanForm},
-      moderator::{ModBanFromCommunity, ModBanFromCommunityForm},
-    },
+    modlog::{Modlog, ModlogInsertForm},
   },
   traits::{Bannable, Crud},
 };
+use lemmy_db_schema_file::enums::ModlogKind;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
@@ -119,15 +118,15 @@ impl Activity for UndoBlockUser {
         }
 
         // write mod log
-        let form = AdminBanForm {
-          mod_person_id: mod_person.id,
-          other_person_id: blocked_person.id,
-          reason,
-          banned: Some(false),
+        let form = ModlogInsertForm {
+          target_person_id: Some(blocked_person.id),
+          target_instance_id: Some(site.instance_id),
           expires_at,
-          instance_id: site.instance_id,
+          reason: Some(reason),
+          ..ModlogInsertForm::new(ModlogKind::AdminBan, false, mod_person.id)
         };
-        AdminBan::create(&mut context.pool(), &form).await?;
+        let action = Modlog::create(&mut context.pool(), &[form]).await?;
+        notify_mod_action(action.clone(), blocked_person.id, context.app_data());
       }
       SiteOrCommunity::Right(community) => {
         verify_visibility(&self.to, &self.cc, &community)?;
@@ -147,15 +146,15 @@ impl Activity for UndoBlockUser {
         }
 
         // write to mod log
-        let form = ModBanFromCommunityForm {
-          mod_person_id: mod_person.id,
-          other_person_id: blocked_person.id,
-          community_id: community.id,
-          reason,
-          banned: Some(false),
+        let form = ModlogInsertForm {
+          target_person_id: Some(blocked_person.id),
+          target_community_id: Some(community.id),
           expires_at,
+          reason: Some(reason),
+          ..ModlogInsertForm::new(ModlogKind::ModBanFromCommunity, false, mod_person.id)
         };
-        ModBanFromCommunity::create(&mut context.pool(), &form).await?;
+        let action = Modlog::create(&mut context.pool(), &[form]).await?;
+        notify_mod_action(action.clone(), blocked_person.id, context.app_data());
       }
     }
 

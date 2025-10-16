@@ -12,10 +12,11 @@ use lemmy_db_schema::{
     comment::{Comment, CommentUpdateForm},
     comment_report::CommentReport,
     local_user::LocalUser,
-    mod_log::moderator::{ModRemoveComment, ModRemoveCommentForm},
+    modlog::{Modlog, ModlogInsertForm},
   },
   traits::{Crud, Reportable},
 };
+use lemmy_db_schema_file::enums::ModlogKind;
 use lemmy_db_views_comment::{
   api::{CommentResponse, RemoveComment},
   CommentView,
@@ -76,14 +77,17 @@ pub async fn remove_comment(
     .await?;
 
   // Mod tables
-  let form = ModRemoveCommentForm {
-    mod_person_id: local_user_view.person.id,
-    comment_id: data.comment_id,
-    removed: Some(removed),
-    reason: data.reason.clone(),
+  let form = ModlogInsertForm {
+    target_comment_id: Some(data.comment_id),
+    reason: Some(data.reason.clone()),
+    ..ModlogInsertForm::new(
+      ModlogKind::ModRemoveComment,
+      removed,
+      local_user_view.person.id,
+    )
   };
-  let action = ModRemoveComment::create(&mut context.pool(), &form).await?;
-  notify_mod_action(action, updated_comment.creator_id, context.app_data());
+  let actions = Modlog::create(&mut context.pool(), &[form]).await?;
+  notify_mod_action(actions, updated_comment.creator_id, context.app_data());
 
   let updated_comment_id = updated_comment.id;
 

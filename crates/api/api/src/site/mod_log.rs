@@ -5,11 +5,7 @@ use lemmy_api_utils::{
 };
 use lemmy_db_schema::traits::PaginationCursorBuilder;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_modlog::{
-  api::{GetModlog, GetModlogResponse},
-  impls::ModlogCombinedQuery,
-  ModlogCombinedView,
-};
+use lemmy_db_views_modlog::api::{GetModlog, GetModlogResponse};
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 

@@ -27,6 +27,7 @@ pub async fn list_notifications(
     show_bot_accounts: Some(local_user_view.local_user.show_bot_accounts),
     cursor_data,
     page_back: data.page_back,
+    hide_modlog_names: todo!(),
     limit: data.limit,
     no_limit: None,
   }
