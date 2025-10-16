@@ -37,7 +37,7 @@ pub async fn save_post(
   )
   .await?;
 
-  PostActions::mark_as_read(&mut context.pool(), person_id, post_id).await?;
+  PostActions::mark_as_read(&mut context.pool(), person_id, &[post_id]).await?;
 
   Ok(Json(PostResponse { post_view }))
 }

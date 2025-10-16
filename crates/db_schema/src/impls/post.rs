@@ -433,41 +433,14 @@ impl Saveable for PostActions {
 }
 
 impl PostActions {
-  pub async fn mark_as_read(
-    pool: &mut DbPool<'_>,
-    person_id: PersonId,
-    post_id: PostId,
-  ) -> LemmyResult<usize> {
-    Self::mark_many_as_read(pool, person_id, &[post_id]).await
-  }
-
   pub async fn mark_as_unread(
-    pool: &mut DbPool<'_>,
-    person_id: PersonId,
-    post_id: PostId,
-  ) -> LemmyResult<UpleteCount> {
-    Self::mark_many_as_unread(pool, person_id, &[post_id]).await
-  }
-
-  pub async fn mark_many_as_unread(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     post_ids: &[PostId],
   ) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
 
-    let forms = PostActions::build_many_read_forms(post_ids, person_id);
-
-    // Grab the first person id
-    let person_id = forms
-      .iter()
-      .map(|f| f.person_id)
-      .next()
-      .ok_or(LemmyErrorType::CouldntUpdate)?;
-
-    // Collect up the post ids
-    let post_ids: Vec<PostId> = forms.iter().map(|f| f.post_id).collect();
-
+    let post_ids: Vec<_> = post_ids.to_vec();
     uplete(
       post_actions::table
         .filter(post_actions::post_id.eq_any(post_ids))
@@ -479,14 +452,17 @@ impl PostActions {
     .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
-  pub async fn mark_many_as_read(
+  pub async fn mark_as_read(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     post_ids: &[PostId],
   ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
 
-    let forms = PostActions::build_many_read_forms(post_ids, person_id);
+    let forms: Vec<_> = post_ids
+      .iter()
+      .map(|post_id| PostReadForm::new(*post_id, person_id))
+      .collect();
 
     insert_into(post_actions::table)
       .values(forms)
@@ -564,13 +540,6 @@ impl PostActions {
   pub async fn from_cursor(cursor: &PaginationCursor, pool: &mut DbPool<'_>) -> LemmyResult<Self> {
     let [(_, person_id), (_, post_id)] = cursor.prefixes_and_ids()?;
     Self::read(pool, PostId(post_id), PersonId(person_id)).await
-  }
-
-  pub fn build_many_read_forms(post_ids: &[PostId], person_id: PersonId) -> Vec<PostReadForm> {
-    post_ids
-      .iter()
-      .map(|post_id| PostReadForm::new(*post_id, person_id))
-      .collect::<Vec<_>>()
   }
 
   pub async fn update_notification_state(
@@ -729,8 +698,8 @@ mod tests {
     assert!(inserted_post_saved.saved_at.is_some());
 
     // Mark 2 posts as read
-    PostActions::mark_as_read(pool, inserted_person.id, inserted_post.id).await?;
-    PostActions::mark_as_read(pool, inserted_person.id, inserted_post2.id).await?;
+    PostActions::mark_as_read(pool, inserted_person.id, &[inserted_post.id]).await?;
+    PostActions::mark_as_read(pool, inserted_person.id, &[inserted_post2.id]).await?;
 
     let read_post = Post::read(pool, inserted_post.id).await?;
 
@@ -750,11 +719,11 @@ mod tests {
     assert_eq!(UpleteCount::only_updated(1), saved_removed);
 
     let read_removed_1 =
-      PostActions::mark_as_unread(pool, inserted_person.id, inserted_post.id).await?;
+      PostActions::mark_as_unread(pool, inserted_person.id, &[inserted_post.id]).await?;
     assert_eq!(UpleteCount::only_deleted(1), read_removed_1);
 
     let read_removed_2 =
-      PostActions::mark_as_unread(pool, inserted_person.id, inserted_post2.id).await?;
+      PostActions::mark_as_unread(pool, inserted_person.id, &[inserted_post2.id]).await?;
     assert_eq!(UpleteCount::only_deleted(1), read_removed_2);
 
     let num_deleted = Post::delete(pool, inserted_post.id).await?

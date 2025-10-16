@@ -67,7 +67,7 @@ pub async fn get_post(
 
   let post_id = post_view.post.id;
   if let Some(person_id) = person_id {
-    PostActions::mark_as_read(&mut context.pool(), person_id, post_id).await?;
+    PostActions::mark_as_read(&mut context.pool(), person_id, &[post_id]).await?;
 
     update_read_comments(
       person_id,

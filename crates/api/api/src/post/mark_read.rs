@@ -19,9 +19,9 @@ pub async fn mark_post_as_read(
 
   // Mark the post as read / unread
   if data.read {
-    PostActions::mark_as_read(&mut context.pool(), person_id, post_id).await?;
+    PostActions::mark_as_read(&mut context.pool(), person_id, &[post_id]).await?;
   } else {
-    PostActions::mark_as_unread(&mut context.pool(), person_id, post_id).await?;
+    PostActions::mark_as_unread(&mut context.pool(), person_id, &[post_id]).await?;
   }
   let post_view = PostView::read(
     &mut context.pool(),

@@ -1231,9 +1231,9 @@ mod tests {
     let pool = &mut pool.into();
 
     // Mark the bot post, then the tags post as read
-    PostActions::mark_as_read(pool, data.tegan.person.id, data.bot_post.id).await?;
+    PostActions::mark_as_read(pool, data.tegan.person.id, &[data.bot_post.id]).await?;
 
-    PostActions::mark_as_read(pool, data.tegan.person.id, data.post_with_tags.id).await?;
+    PostActions::mark_as_read(pool, data.tegan.person.id, &[data.post_with_tags.id]).await?;
 
     let read_read_post_listing =
       PostView::list_read(pool, &data.tegan.person, None, None, None, None).await?;
@@ -1839,7 +1839,7 @@ mod tests {
     data.tegan.local_user.show_read_posts = false;
 
     // Mark a post as read
-    PostActions::mark_as_read(pool, data.tegan.person.id, data.bot_post.id).await?;
+    PostActions::mark_as_read(pool, data.tegan.person.id, &[data.bot_post.id]).await?;
 
     // Make sure you don't see the read post in the results
     let post_listings_hide_read = data.default_post_query().list(&data.site, pool).await?;

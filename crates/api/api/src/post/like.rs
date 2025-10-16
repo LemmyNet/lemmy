@@ -94,7 +94,7 @@ pub async fn like_post(
   }
 
   // Mark Post Read
-  PostActions::mark_as_read(&mut context.pool(), my_person_id, post_id).await?;
+  PostActions::mark_as_read(&mut context.pool(), my_person_id, &[post_id]).await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::LikePostOrComment {

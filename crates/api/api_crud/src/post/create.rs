@@ -174,7 +174,7 @@ pub async fn create_post(
   )
   .send(&context);
 
-  PostActions::mark_as_read(&mut context.pool(), person_id, post_id).await?;
+  PostActions::mark_as_read(&mut context.pool(), person_id, &[post_id]).await?;
 
   build_post_response(&context, community_id, local_user_view, post_id).await
 }
