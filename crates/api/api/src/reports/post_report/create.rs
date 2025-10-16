@@ -21,7 +21,7 @@ use lemmy_db_views_post::PostView;
 use lemmy_db_views_report_combined::{
   api::{CreatePostReport, PostReportResponse},
   ReportCombinedViewInternal,
-};
+};use lemmy_api_utils::plugins::plugin_hook_after;
 use lemmy_db_views_site::SiteView;
 use lemmy_email::admin::send_new_report_email_to_admins;
 use lemmy_utils::error::LemmyResult;
@@ -67,6 +67,7 @@ pub async fn create_post_report(
 
   let post_report_view =
     ReportCombinedViewInternal::read_post_report(&mut context.pool(), report.id, person).await?;
+  plugin_hook_after("post_report_created", &post_report_view);
 
   // Email the admins
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;

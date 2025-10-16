@@ -90,7 +90,7 @@ pub async fn like_post(
     )
     .await?;
 
-    plugin_hook_after("after_post_vote", &like)?;
+    plugin_hook_after("after_post_vote", &like);
   }
 
   // Mark Post Read

@@ -59,7 +59,7 @@ pub async fn mod_update_post(
 
   let post_id = data.post_id;
   let updated_post = Post::update(&mut context.pool(), post_id, &post_form).await?;
-  plugin_hook_after("after_update_local_post", &post_form)?;
+  plugin_hook_after("after_update_local_post", &post_form);
 
   if let Some(tags) = &data.tags {
     update_post_tags(&updated_post, tags, &context).await?;

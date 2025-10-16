@@ -14,7 +14,7 @@ use lemmy_db_schema::{
     site::Site,
   },
   traits::{Crud, Reportable},
-};
+};use lemmy_api_utils::plugins::plugin_hook_after;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_report_combined::{
   api::{CommunityReportResponse, CreateCommunityReport},
@@ -56,6 +56,7 @@ pub async fn create_community_report(
   let community_report_view =
     ReportCombinedViewInternal::read_community_report(&mut context.pool(), report.id, person)
       .await?;
+  plugin_hook_after("community_report_created", &community_report_view);
 
   // Email the admins
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;

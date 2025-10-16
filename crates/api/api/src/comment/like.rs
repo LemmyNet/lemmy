@@ -93,7 +93,7 @@ pub async fn like_comment(
     )
     .await?;
 
-    plugin_hook_after("after_comment_vote", &like)?;
+    plugin_hook_after("after_comment_vote", &like);
   }
 
   ActivityChannel::submit_activity(

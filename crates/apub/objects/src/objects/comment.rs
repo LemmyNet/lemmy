@@ -236,7 +236,7 @@ impl Object for ApubComment {
       parent_comment_path.as_ref(),
     )
     .await?;
-    plugin_hook_after("after_receive_federated_comment", &comment)?;
+    plugin_hook_after("after_receive_federated_comment", &comment);
     Ok(comment.into())
   }
 }

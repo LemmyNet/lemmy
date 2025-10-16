@@ -306,7 +306,7 @@ impl Object for ApubPost {
 
     let timestamp = page.updated.or(page.published).unwrap_or_else(Utc::now);
     let post = Post::insert_apub(&mut context.pool(), timestamp, &form).await?;
-    plugin_hook_after("after_receive_federated_post", &post)?;
+    plugin_hook_after("after_receive_federated_post", &post);
 
     update_apub_post_tags(&page, &post, context).await?;
 

@@ -113,7 +113,7 @@ pub async fn create_comment(
   let parent_path = parent_opt.clone().map(|t| t.path);
   let inserted_comment =
     Comment::create(&mut context.pool(), &comment_form, parent_path.as_ref()).await?;
-  plugin_hook_after("after_create_local_comment", &inserted_comment)?;
+  plugin_hook_after("after_create_local_comment", &inserted_comment);
 
   NotifyData::new(
     post.clone(),
