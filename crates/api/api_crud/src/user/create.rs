@@ -51,6 +51,7 @@ use lemmy_db_views_site::{
 use lemmy_email::{
   account::send_verification_email_if_required,
   admin::send_new_applicant_email_to_admins,
+  user_language,
 };
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
@@ -533,6 +534,11 @@ async fn create_local_user(
   local_user_form.default_listing_type = Some(local_site.default_post_listing_type);
   local_user_form.post_listing_mode = Some(local_site.default_post_listing_mode);
   // If its the initial site setup, they are an admin
+  local_user_form.admin = Some(!local_site.site_setup);
+  local_user_form.interface_language = language_tags.first().cloned();
+  let inserted_local_user = LocalUser::create(conn_, &local_user_form, language_ids).await?;
+
+  // If we are setting up a new site, fetch initial communities and create welcome post.
   if !local_site.site_setup {
     local_user_form.admin = Some(true);
     let no_default_data = context
@@ -541,12 +547,10 @@ async fn create_local_user(
       .as_ref()
       .and_then(|s| s.no_default_data);
     if !no_default_data.unwrap_or_default() {
-      create_welcome_post(context);
+      create_welcome_post(inserted_local_user.clone(), context);
       fetch_community_list(context.clone());
     }
   }
-  local_user_form.interface_language = language_tags.first().cloned();
-  let inserted_local_user = LocalUser::create(conn_, &local_user_form, language_ids).await?;
 
   Ok(inserted_local_user)
 }
@@ -675,7 +679,7 @@ fn fetch_community_list(context: Data<LemmyContext>) {
   })
 }
 
-fn create_welcome_post(context: &LemmyContext) {
+fn create_welcome_post(local_user: LocalUser, context: &LemmyContext) {
   let context = context.clone();
 
   spawn_try_task(async move {
@@ -740,21 +744,9 @@ fn create_welcome_post(context: &LemmyContext) {
     }
 
     // Create post in this community with getting started info
-    // TODO: move to translations
-    let title = "Welcome to Lemmy!".to_string();
-    let body = r#"To get started you can [read the documentation](https://join-lemmy.org/docs/index.html).
-
-Your instance is already federated with the Lemmyverse. Go to the "All" tab on the frontpage to see content from other instances. This content is incomplete, follow a community to receive all new posts, comments and votes. For more details see [Getting started with Federation](https://join-lemmy.org/docs/administration/federation_getting_started.html).
-
-If you have any problems with Lemmy, check out the [Troubleshooting guide](https://join-lemmy.org/docs/administration/troubleshooting.html). You can also ask questions in !lemmy@lemmy.ml or the [admin chat on Matrix](https://matrix.to/#/#lemmy-support-general:discuss.online).
-
-To get notified about new Lemmy versions, please subscribe to one of the following channels:
-- !announcements@lemmy.ml
-- [join-lemmy.org](https://join-lemmy.org/news)
-- [github.com](https://github.com/LemmyNet/lemmy/releases)
-
-You can delete or unfeature this post with the context menu above."#
-    .to_string();
+    let lang = user_language(&local_user);
+    let title = lang.welcome_post_title().to_string();
+    let body = lang.welcome_post_body().to_string();
     let post_form = PostInsertForm {
       body: Some(body),
       featured_local: Some(true),

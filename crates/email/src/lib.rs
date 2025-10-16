@@ -1,4 +1,4 @@
-use lemmy_db_schema::sensitive::SensitiveString;
+use lemmy_db_schema::{sensitive::SensitiveString, source::local_user::LocalUser};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
@@ -23,8 +23,8 @@ fn inbox_link(settings: &Settings) -> String {
 }
 
 #[allow(clippy::expect_used)]
-fn user_language(local_user_view: &LocalUserView) -> Lang {
-  let lang_id = LanguageId::new(&local_user_view.local_user.interface_language);
+pub fn user_language(local_user: &LocalUser) -> Lang {
+  let lang_id = LanguageId::new(&local_user.interface_language);
   Lang::from_language_id(&lang_id).unwrap_or_else(|| {
     let en = LanguageId::new("en");
     Lang::from_language_id(&en).expect("default language")
