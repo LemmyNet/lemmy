@@ -138,7 +138,7 @@ impl Object for ApubSite {
       .inner()
       .domain()
       .ok_or(UntranslatedError::UrlWithoutDomain)?;
-    let instance = DbInstance::read_or_create(&mut context.pool(), domain.to_string()).await?;
+    let instance = DbInstance::read_or_create(&mut context.pool(), domain).await?;
 
     let slur_regex = slur_regex(context).await?;
     let url_blocklist = get_url_blocklist(context).await?;
@@ -210,7 +210,7 @@ pub(crate) async fn fetch_instance_actor_for_object<T: Into<Url> + Clone>(
         .domain()
         .ok_or(UntranslatedError::UrlWithoutDomain)?;
       Ok(
-        DbInstance::read_or_create(&mut context.pool(), domain.to_string())
+        DbInstance::read_or_create(&mut context.pool(), domain)
           .await?
           .id,
       )

@@ -439,7 +439,7 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
 
     let new_person = PersonInsertForm::test_form(inserted_instance.id, "terry");
 
@@ -553,7 +553,7 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
 
     let new_person = PersonInsertForm::test_form(inserted_instance.id, "thommy_comment_agg");
 
@@ -649,7 +649,7 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "mydomain.tld".to_string()).await?;
+    let inserted_instance = Instance::read_or_create(pool, "mydomain.tld").await?;
     let new_person = PersonInsertForm::test_form(inserted_instance.id, "john");
     let inserted_person = Person::create(pool, &new_person).await?;
     let new_community = CommunityInsertForm::new(

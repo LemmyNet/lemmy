@@ -40,16 +40,13 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let instances = vec![
-      Instance::read_or_create(pool, "tld1.xyz".to_string()).await?,
-      Instance::read_or_create(pool, "tld2.xyz".to_string()).await?,
-      Instance::read_or_create(pool, "tld3.xyz".to_string()).await?,
+      Instance::read_or_create(pool, "tld1.xyz").await?,
+      Instance::read_or_create(pool, "tld2.xyz").await?,
+      Instance::read_or_create(pool, "tld3.xyz").await?,
     ];
     let forms: Vec<_> = instances
       .iter()
-      .map(|i| FederationAllowListForm {
-        instance_id: i.id,
-        updated_at: None,
-      })
+      .map(|i| FederationAllowListForm::new(i.id))
       .collect();
 
     for f in &forms {

@@ -1,16 +1,23 @@
 use crate::newtypes::{InstanceId, PersonId};
 use chrono::{DateTime, Utc};
-#[cfg(feature = "full")]
-use lemmy_db_schema_file::schema::{instance, instance_actions};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use std::fmt::Debug;
+#[cfg(feature = "full")]
+use {
+  i_love_jesus::CursorKeysModule,
+  lemmy_db_schema_file::schema::{instance, instance_actions},
+};
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
+#[cfg_attr(
+  feature = "full",
+  derive(Queryable, Selectable, Identifiable, CursorKeysModule)
+)]
 #[cfg_attr(feature = "full", diesel(table_name = instance))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "full", cursor_keys_module(name = instance_keys))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Basic data about a Fediverse instance which is available for every known domain. Additional

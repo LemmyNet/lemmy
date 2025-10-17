@@ -115,7 +115,7 @@ mod tests {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();
 
-    let instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
 
     // John is the mod
     let john = PersonInsertForm::test_form(instance.id, "john the modder");

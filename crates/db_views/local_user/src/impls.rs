@@ -129,9 +129,7 @@ impl LocalUserView {
     bio: &str,
     admin: bool,
   ) -> LemmyResult<Self> {
-    let instance_id = Instance::read_or_create(pool, "example.com".to_string())
-      .await?
-      .id;
+    let instance_id = Instance::read_or_create(pool, "example.com").await?.id;
     let person_form = PersonInsertForm {
       display_name: Some(name.to_owned()),
       bio: Some(bio.to_owned()),
@@ -254,7 +252,7 @@ mod tests {
   }
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
-    let instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
 
     let alice_form = PersonInsertForm {
       local: Some(true),

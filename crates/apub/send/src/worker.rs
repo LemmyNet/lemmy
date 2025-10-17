@@ -496,7 +496,7 @@ mod test {
   impl Data {
     async fn init() -> LemmyResult<Self> {
       let context = LemmyContext::init_test_federation_config().await;
-      let instance = Instance::read_or_create(&mut context.pool(), "localhost".to_string()).await?;
+      let instance = Instance::read_or_create(&mut context.pool(), "localhost").await?;
 
       let actor_keypair = generate_actor_keypair()?;
       let ap_id: DbUrl = Url::parse("http://local.com/u/alice")?.into();
@@ -677,7 +677,7 @@ mod test {
     data.inbox_receiver.recv().await.unwrap();
 
     let instance =
-      Instance::read_or_create(&mut data.context.pool(), data.instance.domain.clone()).await?;
+      Instance::read_or_create(&mut data.context.pool(), &data.instance.domain).await?;
 
     assert!(instance.updated_at.is_some());
 

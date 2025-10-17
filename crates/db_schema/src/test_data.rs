@@ -18,7 +18,7 @@ pub struct TestData {
 
 impl TestData {
   pub async fn create(pool: &mut DbPool<'_>) -> LemmyResult<Self> {
-    let instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
 
     let site_form = SiteInsertForm::new("test site".to_string(), instance.id);
     let site = Site::create(pool, &site_form).await?;

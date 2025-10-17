@@ -180,6 +180,13 @@ pub fn creator_local_home_community_banned() -> _ {
     .or(creator_community_instance_banned())
 }
 
+#[diesel::dsl::auto_type]
+pub fn person_alias1_local_home_community_banned() -> _ {
+  creator_local_banned()
+    .or(creator_home_banned())
+    .or(creator_community_instance_banned())
+}
+
 pub type CreatorLocalHomeCommunityBanExpiresType = coalesce_3_nullable<
   Timestamptz,
   Nullable<AliasedField<CreatorLocalInstanceActions, instance_actions::ban_expires_at>>,

@@ -231,7 +231,7 @@ pub async fn import_settings(
         .blocked_instances_communities
         .iter()
         .map(|domain| async {
-          let instance = Instance::read_or_create(&mut context.pool(), domain.clone()).await?;
+          let instance = Instance::read_or_create(&mut context.pool(), domain).await?;
           let form = InstanceCommunitiesBlockForm::new(person_id, instance.id);
           InstanceActions::block_communities(&mut context.pool(), &form).await?;
           LemmyResult::Ok(())
@@ -240,7 +240,7 @@ pub async fn import_settings(
     .await?;
 
     try_join_all(data.blocked_instances_persons.iter().map(|domain| async {
-      let instance = Instance::read_or_create(&mut context.pool(), domain.clone()).await?;
+      let instance = Instance::read_or_create(&mut context.pool(), domain).await?;
       let form = InstancePersonsBlockForm::new(person_id, instance.id);
       InstanceActions::block_persons(&mut context.pool(), &form).await?;
       LemmyResult::Ok(())
