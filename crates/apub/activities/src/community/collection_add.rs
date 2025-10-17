@@ -28,12 +28,13 @@ use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
     community::{Community, CommunityActions, CommunityModeratorForm},
-    mod_log::moderator::{ModAddToCommunity, ModAddToCommunityForm},
+    modlog::{Modlog, ModlogInsertForm},
     person::Person,
     post::{Post, PostUpdateForm},
   },
   traits::Crud,
 };
+use lemmy_db_schema_file::enums::ModlogKind;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
@@ -132,14 +133,13 @@ impl Activity for CollectionAdd {
 
           // write mod log
           let actor = self.actor.dereference(context).await?;
-          let form = ModAddToCommunityForm {
-            mod_person_id: actor.id,
-            other_person_id: new_mod.id,
-            community_id: community.id,
-            removed: Some(false),
+          let form = ModlogInsertForm {
+            target_community_id: Some(community.id),
+            target_person_id: Some(new_mod.id),
+            ..ModlogInsertForm::new(ModlogKind::ModAddToCommunity, false, actor.id)
           };
-          let action = ModAddToCommunity::create(&mut context.pool(), &form).await?;
-          notify_mod_action(action.clone(), new_mod.id, context);
+          let action = Modlog::create(&mut context.pool(), &[form]).await?;
+          notify_mod_action(action, new_mod.id, context);
         }
       }
       CollectionType::Featured => {

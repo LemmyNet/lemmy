@@ -27,11 +27,12 @@ use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
     community::{Community, CommunityActions, CommunityModeratorForm},
-    mod_log::moderator::{ModAddToCommunity, ModAddToCommunityForm},
+    modlog::{Modlog, ModlogInsertForm},
     post::{Post, PostUpdateForm},
   },
   traits::Crud,
 };
+use lemmy_db_schema_file::enums::ModlogKind;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
@@ -123,14 +124,13 @@ impl Activity for CollectionRemove {
 
         // write mod log
         let actor = self.actor.dereference(context).await?;
-        let form = ModAddToCommunityForm {
-          mod_person_id: actor.id,
-          other_person_id: remove_mod.id,
-          community_id: community.id,
-          removed: Some(true),
+        let form = ModlogInsertForm {
+          target_community_id: Some(community.id),
+          target_person_id: Some(remove_mod.id),
+          ..ModlogInsertForm::new(ModlogKind::ModAddToCommunity, true, actor.id)
         };
-        let action = ModAddToCommunity::create(&mut context.pool(), &form).await?;
-        notify_mod_action(action.clone(), remove_mod.id, context);
+        let action = Modlog::create(&mut context.pool(), &[form]).await?;
+        notify_mod_action(action, remove_mod.id, context);
 
         // TODO: send websocket notification about removed mod
       }

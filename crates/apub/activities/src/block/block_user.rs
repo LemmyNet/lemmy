@@ -33,13 +33,11 @@ use lemmy_db_schema::{
     activity::ActivitySendTargets,
     community::{CommunityActions, CommunityPersonBanForm},
     instance::{InstanceActions, InstanceBanForm},
-    mod_log::{
-      admin::{AdminBan, AdminBanForm},
-      moderator::{ModBanFromCommunity, ModBanFromCommunityForm},
-    },
+    modlog::{Modlog, ModlogInsertForm},
   },
   traits::{Bannable, Crud},
 };
+use lemmy_db_schema_file::enums::ModlogKind;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
@@ -154,15 +152,14 @@ impl Activity for BlockUser {
         }
 
         // write mod log
-        let form = AdminBanForm {
-          mod_person_id: mod_person.id,
-          other_person_id: blocked_person.id,
-          reason,
-          banned: Some(true),
+        let form = ModlogInsertForm {
+          target_person_id: Some(blocked_person.id),
+          target_instance_id: Some(site.instance_id),
           expires_at,
-          instance_id: site.instance_id,
+          reason: Some(reason),
+          ..ModlogInsertForm::new(ModlogKind::AdminBan, true, mod_person.id)
         };
-        let action = AdminBan::create(&mut context.pool(), &form).await?;
+        let action = Modlog::create(&mut context.pool(), &[form]).await?;
         notify_mod_action(action.clone(), blocked_person.id, context);
       }
       SiteOrCommunity::Right(community) => {
@@ -189,15 +186,14 @@ impl Activity for BlockUser {
         }
 
         // write to mod log
-        let form = ModBanFromCommunityForm {
-          mod_person_id: mod_person.id,
-          other_person_id: blocked_person.id,
-          community_id: community.id,
-          reason,
-          banned: Some(true),
+        let form = ModlogInsertForm {
+          target_person_id: Some(blocked_person.id),
+          target_community_id: Some(community.id),
           expires_at,
+          reason: Some(reason),
+          ..ModlogInsertForm::new(ModlogKind::ModBanFromCommunity, true, mod_person.id)
         };
-        let action = ModBanFromCommunity::create(&mut context.pool(), &form).await?;
+        let action = Modlog::create(&mut context.pool(), &[form]).await?;
         notify_mod_action(action.clone(), blocked_person.id, context);
       }
     }

@@ -9,11 +9,12 @@ use lemmy_api_utils::{
 };
 use lemmy_db_schema::{
   source::{
-    mod_log::moderator::{ModLockPost, ModLockPostForm},
+    modlog::{Modlog, ModlogInsertForm},
     post::{Post, PostUpdateForm},
   },
   traits::Crud,
 };
+use lemmy_db_schema_file::enums::ModlogKind;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::{
   api::{LockPost, PostResponse},
@@ -60,14 +61,13 @@ pub async fn lock_post(
   .await?;
 
   // Mod tables
-  let form = ModLockPostForm {
-    mod_person_id: local_user_view.person.id,
-    post_id: data.post_id,
-    locked: Some(locked),
-    reason: data.reason.clone(),
+  let form = ModlogInsertForm {
+    target_post_id: Some(data.post_id),
+    reason: Some(data.reason.clone()),
+    ..ModlogInsertForm::new(ModlogKind::ModLockPost, locked, local_user_view.person.id)
   };
-  let action = ModLockPost::create(&mut context.pool(), &form).await?;
-  notify_mod_action(action, post.creator_id, &context);
+  let action = Modlog::create(&mut context.pool(), &[form]).await?;
+  notify_mod_action(action.clone(), orig_post.creator.id, &context);
 
   ActivityChannel::submit_activity(
     SendActivityData::LockPost(

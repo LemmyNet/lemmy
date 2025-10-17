@@ -1,9 +1,6 @@
-use crate::ModlogCombinedView;
-use lemmy_db_schema::{
-  newtypes::{CommentId, CommunityId, PaginationCursor, PersonId, PostId},
-  ModlogActionType,
-};
-use lemmy_db_schema_file::enums::ListingType;
+use crate::ModlogView;
+use lemmy_db_schema::newtypes::{CommentId, CommunityId, PaginationCursor, PersonId, PostId};
+use lemmy_db_schema_file::enums::{ListingType, ModlogKind};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -18,7 +15,7 @@ pub struct GetModlog {
   /// Filter by the community.
   pub community_id: Option<CommunityId>,
   /// Filter by the modlog action type.
-  pub type_: Option<ModlogActionType>,
+  pub type_: Option<ModlogKind>,
   /// Filter by listing type. When not using All, it will remove the non-community modlog entries,
   /// such as site bans, instance blocks, adding an admin, etc.
   pub listing_type: Option<ListingType>,
@@ -38,7 +35,7 @@ pub struct GetModlog {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// The modlog fetch response.
 pub struct GetModlogResponse {
-  pub modlog: Vec<ModlogCombinedView>,
+  pub modlog: Vec<ModlogView>,
   /// the pagination cursor to use to fetch the next page
   pub next_page: Option<PaginationCursor>,
   pub prev_page: Option<PaginationCursor>,
