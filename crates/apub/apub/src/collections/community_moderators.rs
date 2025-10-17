@@ -89,8 +89,7 @@ mod tests {
     let community = parse_lemmy_community(&context).await?;
     let community_id = community.id;
 
-    let inserted_instance =
-      Instance::read_or_create(&mut context.pool(), "my_domain.tld".to_string()).await?;
+    let inserted_instance = Instance::read_or_create(&mut context.pool(), "my_domain.tld").await?;
 
     let old_mod = PersonInsertForm::test_form(inserted_instance.id, "holly");
 

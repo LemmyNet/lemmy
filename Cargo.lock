@@ -3923,6 +3923,8 @@ dependencies = [
  "lemmy_utils",
  "serde",
  "serde_with",
+ "serial_test",
+ "tokio",
  "ts-rs",
  "url",
 ]

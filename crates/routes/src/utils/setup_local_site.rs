@@ -46,7 +46,7 @@ pub async fn setup_local_site(pool: &mut DbPool<'_>, settings: &Settings) -> Lem
       .run_transaction(|conn| {
         async move {
           // Upsert this to the instance table
-          let instance = Instance::read_or_create(&mut conn.into(), domain).await?;
+          let instance = Instance::read_or_create(&mut conn.into(), &domain).await?;
 
           if let Some(setup) = &settings.setup {
             let person_keypair = generate_actor_keypair()?;

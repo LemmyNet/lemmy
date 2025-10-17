@@ -250,7 +250,7 @@ mod tests {
     let pool = &mut pool.into();
 
     // insert local community
-    let local_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let local_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
     let community_form = CommunityInsertForm {
       visibility: Some(CommunityVisibility::Private),
       ..CommunityInsertForm::new(
@@ -263,7 +263,7 @@ mod tests {
     let community = Community::create(pool, &community_form).await?;
 
     // insert remote user
-    let remote_instance = Instance::read_or_create(pool, "other_domain.tld".to_string()).await?;
+    let remote_instance = Instance::read_or_create(pool, "other_domain.tld").await?;
     let person_form =
       PersonInsertForm::new("name".to_string(), "pubkey".to_string(), remote_instance.id);
     let person = Person::create(pool, &person_form).await?;
@@ -319,7 +319,7 @@ mod tests {
     let pool = &mut pool.into();
 
     // insert local community
-    let local_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let local_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
     let community_form = CommunityInsertForm {
       visibility: Some(CommunityVisibility::Private),
       ..CommunityInsertForm::new(
@@ -340,7 +340,7 @@ mod tests {
     CommunityActions::join(pool, &moderator_form).await?;
 
     // insert remote user
-    let remote_instance = Instance::read_or_create(pool, "other_domain.tld".to_string()).await?;
+    let remote_instance = Instance::read_or_create(pool, "other_domain.tld").await?;
     let person_form =
       PersonInsertForm::new("name".to_string(), "pubkey".to_string(), remote_instance.id);
     let person = Person::create(pool, &person_form).await?;

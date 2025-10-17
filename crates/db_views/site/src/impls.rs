@@ -1,5 +1,12 @@
-use crate::{api::UserSettingsBackup, SiteView};
-use diesel::{ExpressionMethods, JoinOnDsl, OptionalExtension, QueryDsl, SelectableHelper};
+use crate::{api::UserSettingsBackup, FederatedInstancesView, SiteView};
+use diesel::{
+  ExpressionMethods,
+  JoinOnDsl,
+  OptionalExtension,
+  PgSortExpressionMethods,
+  QueryDsl,
+  SelectableHelper,
+};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   source::{
@@ -12,11 +19,19 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::{get_conn, DbPool},
 };
-use lemmy_db_schema_file::schema::{instance, local_site, local_site_rate_limit, site};
+use lemmy_db_schema_file::schema::{
+  federation_allowlist,
+  federation_blocklist,
+  federation_queue_state,
+  instance,
+  local_site,
+  local_site_rate_limit,
+  site,
+};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::{
   build_cache,
-  error::{LemmyError, LemmyErrorType, LemmyResult},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   CacheLock,
 };
 use std::{
@@ -92,4 +107,94 @@ pub async fn user_backup_list_to_user_settings_backup(
     blocking_keywords,
     discussion_languages,
   })
+}
+
+impl FederatedInstancesView {
+  pub async fn list(pool: &mut DbPool<'_>) -> LemmyResult<Vec<Self>> {
+    let conn = &mut get_conn(pool).await?;
+    instance::table
+      // omit instance representing the local site
+      .left_join(site::table.left_join(local_site::table))
+      .filter(local_site::id.is_null())
+      .left_join(federation_blocklist::table)
+      .left_join(federation_allowlist::table)
+      .left_join(federation_queue_state::table)
+      // Show recently updated instances and those with valid metadata first
+      .order((
+        instance::updated_at.desc(),
+        instance::software.asc().nulls_last(),
+      ))
+      .select(Self::as_select())
+      .get_results(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+}
+
+#[cfg(test)]
+#[expect(clippy::indexing_slicing)]
+mod tests {
+  use crate::FederatedInstancesView;
+  use lemmy_db_schema::{
+    assert_length,
+    source::{
+      federation_allowlist::{FederationAllowList, FederationAllowListForm},
+      federation_queue_state::FederationQueueState,
+      instance::Instance,
+      site::{Site, SiteInsertForm},
+    },
+    traits::Crud,
+    utils::build_db_pool_for_tests,
+  };
+  use lemmy_utils::error::LemmyResult;
+  use serial_test::serial;
+
+  #[tokio::test]
+  #[serial]
+  async fn test_instance_list() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+
+    // insert test data
+    let instance0 = Instance::read_or_create(pool, "example0.com").await?;
+    let instance1 = Instance::read_or_create(pool, "example1.com").await?;
+    let site_form = SiteInsertForm::new("Example".to_string(), instance0.id);
+    let site = Site::create(pool, &site_form).await?;
+    let form = FederationAllowListForm::new(instance0.id);
+    let allow = FederationAllowList::allow(pool, &form).await?;
+    let queue_state = FederationQueueState {
+      instance_id: instance0.id,
+      fail_count: 5,
+      last_successful_id: None,
+      last_successful_published_time_at: None,
+      last_retry_at: None,
+    };
+    FederationQueueState::upsert(pool, &queue_state).await?;
+
+    // run the query
+    let list = FederatedInstancesView::list(pool).await?;
+    assert_length!(2, list);
+
+    // compare first result
+    let list0 = &list[1];
+    assert_eq!(instance0.domain, list0.instance.domain);
+    assert_eq!(Some(site), list0.site.clone());
+    assert_eq!(
+      Some(queue_state.fail_count),
+      list0.queue_state.clone().map(|q| q.fail_count)
+    );
+    assert_eq!(Some(allow), list0.allowed);
+    assert!(list0.blocked.is_none());
+
+    // compare second result
+    let list1 = &list[0];
+    assert_eq!(instance1.domain, list1.instance.domain);
+    assert!(list1.site.is_none());
+    assert!(list1.queue_state.is_none());
+    assert!(list1.allowed.is_none());
+    assert!(list1.blocked.is_none());
+
+    Instance::delete_all(pool).await?;
+    Ok(())
+  }
 }

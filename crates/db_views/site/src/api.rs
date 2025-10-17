@@ -1,4 +1,4 @@
-use crate::SiteView;
+use crate::{FederatedInstancesView, SiteView};
 use lemmy_db_schema::{
   newtypes::{
     InstanceId,
@@ -297,8 +297,7 @@ pub struct FederatedInstances {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A response of federated instances.
 pub struct GetFederatedInstancesResponse {
-  /// Optional, because federation may be disabled.
-  pub federated_instances: Option<FederatedInstances>,
+  pub federated_instances: Vec<FederatedInstancesView>,
 }
 
 #[skip_serializing_none]

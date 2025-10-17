@@ -13,7 +13,7 @@ use lemmy_db_schema::{
     comment::{Comment, CommentActions},
     community::{Community, CommunityActions, CommunityUpdateForm},
     images::{ImageDetails, RemoteImage},
-    instance::{Instance, InstanceActions},
+    instance::InstanceActions,
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
@@ -40,10 +40,7 @@ use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_community_person_ban::CommunityPersonBanView;
 use lemmy_db_views_local_image::LocalImageView;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_site::{
-  api::{FederatedInstances, InstanceWithFederationState},
-  SiteView,
-};
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::{
     LemmyError,
@@ -363,44 +360,6 @@ pub fn check_private_messages_enabled(local_user_view: &LocalUserView) -> Result
     Err(LemmyErrorType::CouldntCreate)?
   } else {
     Ok(())
-  }
-}
-
-pub async fn build_federated_instances(
-  local_site: &LocalSite,
-  pool: &mut DbPool<'_>,
-) -> LemmyResult<Option<FederatedInstances>> {
-  if local_site.federation_enabled {
-    let mut linked = Vec::new();
-    let mut allowed = Vec::new();
-    let mut blocked = Vec::new();
-
-    let all = Instance::read_all_with_fed_state(pool).await?;
-    for (instance, federation_state, is_blocked, is_allowed) in all {
-      let i = InstanceWithFederationState {
-        instance,
-        federation_state: federation_state.map(std::convert::Into::into),
-      };
-      if is_blocked {
-        // blocked instances will only have an entry here if they had been federated with in the
-        // past.
-        blocked.push(i);
-      } else if is_allowed {
-        allowed.push(i.clone());
-        linked.push(i);
-      } else {
-        // not explicitly allowed but implicitly linked
-        linked.push(i);
-      }
-    }
-
-    Ok(Some(FederatedInstances {
-      linked,
-      allowed,
-      blocked,
-    }))
-  } else {
-    Ok(None)
   }
 }
 

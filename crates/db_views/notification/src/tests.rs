@@ -24,7 +24,7 @@ struct Data {
 }
 
 async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
-  let instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+  let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
 
   let alice_form = PersonInsertForm::test_form(instance.id, "alice2");
   let alice = Person::create(pool, &alice_form).await?;
