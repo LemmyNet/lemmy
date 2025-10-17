@@ -1,6 +1,6 @@
 use cfg_if::cfg_if;
 use serde::{Deserialize, Serialize};
-use std::fmt::Debug;
+use std::{fmt::Debug, panic::Location};
 use strum::{Display, EnumIter};
 
 /// Errors used in the API, all of these are translated in lemmy-ui.
@@ -168,13 +168,13 @@ pub enum UntranslatedError {
 cfg_if! {
   if #[cfg(feature = "full")] {
 
-    use std::{fmt, backtrace::Backtrace};
+    use std::{fmt};
     pub type LemmyResult<T> = Result<T, LemmyError>;
 
     pub struct LemmyError {
       pub error_type: LemmyErrorType,
       pub inner: anyhow::Error,
-      pub context: Backtrace,
+      pub caller: Location<'static>,
     }
 
     /// Maximum number of items in an array passed as API parameter. See [[LemmyErrorType::TooManyItems]]
@@ -184,6 +184,7 @@ cfg_if! {
     where
       T: Into<anyhow::Error>,
     {
+    #[track_caller]
       fn from(t: T) -> Self {
         let cause = t.into();
         let error_type = match cause.downcast_ref::<diesel::result::Error>() {
@@ -193,7 +194,7 @@ cfg_if! {
         LemmyError {
           error_type,
           inner: cause,
-          context: Backtrace::capture(),
+          caller: *Location::caller(),
         }
       }
     }
@@ -202,8 +203,8 @@ cfg_if! {
       fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("LemmyError")
          .field("message", &self.error_type)
+         .field("caller", &format_args!("{}", self.caller))
          .field("inner", &self.inner)
-         .field("context", &self.context)
          .finish()
       }
     }
@@ -211,8 +212,9 @@ cfg_if! {
     impl fmt::Display for LemmyError {
       fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}: ", &self.error_type)?;
-        writeln!(f, "{}", self.inner)?;
-        fmt::Display::fmt(&self.context, f)
+        write!(f, "{}", self.caller)?;
+        write!(f, "{}", self.inner)?;
+        Ok(())
       }
     }
 
@@ -231,23 +233,26 @@ cfg_if! {
     }
 
     impl From<LemmyErrorType> for LemmyError {
+    #[track_caller]
       fn from(error_type: LemmyErrorType) -> Self {
+
         let inner = anyhow::anyhow!("{}", error_type);
         LemmyError {
           error_type,
           inner,
-          context: Backtrace::capture(),
+          caller: *Location::caller(),
         }
       }
     }
 
     impl From<UntranslatedError> for LemmyError {
+    #[track_caller]
       fn from(error_type: UntranslatedError) -> Self {
         let inner = anyhow::anyhow!("{}", error_type);
         LemmyError {
           error_type: LemmyErrorType::UntranslatedError { error: Some(error_type) },
           inner,
-          context: Backtrace::capture(),
+          caller: *Location::caller(),
         }
       }
     }
@@ -263,11 +268,12 @@ cfg_if! {
     }
 
     impl<T, E: Into<anyhow::Error>> LemmyErrorExt<T, E> for Result<T, E> {
+    #[track_caller]
       fn with_lemmy_type(self, error_type: LemmyErrorType) -> LemmyResult<T> {
         self.map_err(|error| LemmyError {
           error_type,
           inner: error.into(),
-          context: Backtrace::capture(),
+          caller: *Location::caller(),
         })
       }
     }
