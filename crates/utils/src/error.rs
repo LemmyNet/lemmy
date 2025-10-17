@@ -162,7 +162,9 @@ pub enum UntranslatedError {
   PurgeInvalidImageUrl,
   Unreachable,
   CouldntSendWebmention,
-  CommunityHasNoFollowers,
+  /// A remote community sent an activity to us, but actually no local user follows the community
+  /// so the activity was rejected.
+  CommunityHasNoFollowers(String),
 }
 
 cfg_if! {
