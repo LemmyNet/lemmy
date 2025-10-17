@@ -284,7 +284,7 @@ test("Lock a post", async () => {
   await followCommunity(alpha, true, betaCommunity.community.id);
   await waitUntil(
     () => resolveBetaCommunity(alpha),
-    c => c?.community_actions?.follow_state == "Accepted",
+    c => c?.community_actions?.follow_state == "accepted",
   );
 
   let postRes = await createPost(alpha, betaCommunity.community.id);
@@ -908,7 +908,7 @@ test("Mention beta from alpha post body", async () => {
   await assertPostFederation(betaPost, postOnAlphaRes.post_view);
 
   let mentionsRes = await waitUntil(
-    () => listNotifications(beta, "Mention"),
+    () => listNotifications(beta, "mention"),
     m => !!m.notifications[0],
   );
 
