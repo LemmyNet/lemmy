@@ -282,13 +282,22 @@ pub struct EditSite {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// A list of federated instances.
-pub struct FederatedInstances {
-  pub linked: Vec<InstanceWithFederationState>,
-  pub allowed: Vec<InstanceWithFederationState>,
-  pub blocked: Vec<InstanceWithFederationState>,
+pub enum GetFederatedInstancesKind {
+  Linked,
+  Allowed,
+  Blocked,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+pub struct GetFederatedInstances {
+  pub domain_filter: Option<String>,
+  pub kind: GetFederatedInstancesKind,
 }
 
 #[skip_serializing_none]

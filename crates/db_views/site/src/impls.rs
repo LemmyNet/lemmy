@@ -1,9 +1,14 @@
-use crate::{api::UserSettingsBackup, FederatedInstancesView, SiteView};
+use crate::{
+  api::{GetFederatedInstances, GetFederatedInstancesKind, UserSettingsBackup},
+  FederatedInstancesView,
+  SiteView,
+};
 use diesel::{
   ExpressionMethods,
   JoinOnDsl,
   OptionalExtension,
   PgSortExpressionMethods,
+  PgTextExpressionMethods,
   QueryDsl,
   SelectableHelper,
 };
@@ -17,7 +22,7 @@ use lemmy_db_schema::{
     person::Person,
   },
   traits::Crud,
-  utils::{get_conn, DbPool},
+  utils::{fuzzy_search, get_conn, DbPool},
 };
 use lemmy_db_schema_file::schema::{
   federation_allowlist,
@@ -110,9 +115,9 @@ pub async fn user_backup_list_to_user_settings_backup(
 }
 
 impl FederatedInstancesView {
-  pub async fn list(pool: &mut DbPool<'_>) -> LemmyResult<Vec<Self>> {
+  pub async fn list(pool: &mut DbPool<'_>, data: GetFederatedInstances) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
-    instance::table
+    let mut query = instance::table
       // omit instance representing the local site
       .left_join(site::table.left_join(local_site::table))
       .filter(local_site::id.is_null())
@@ -125,6 +130,25 @@ impl FederatedInstancesView {
         instance::software.asc().nulls_last(),
       ))
       .select(Self::as_select())
+      .into_boxed();
+
+    if let Some(domain_filter) = &data.domain_filter {
+      query = query.filter(instance::domain.ilike(fuzzy_search(domain_filter)))
+    }
+
+    query = match data.kind {
+      GetFederatedInstancesKind::Linked => {
+        query.filter(federation_blocklist::instance_id.is_null())
+      }
+      GetFederatedInstancesKind::Allowed => {
+        query.filter(federation_allowlist::instance_id.is_not_null())
+      }
+      GetFederatedInstancesKind::Blocked => {
+        query.filter(federation_blocklist::instance_id.is_not_null())
+      }
+    };
+
+    query
       .get_results(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
@@ -134,7 +158,10 @@ impl FederatedInstancesView {
 #[cfg(test)]
 #[expect(clippy::indexing_slicing)]
 mod tests {
-  use crate::FederatedInstancesView;
+  use crate::{
+    api::{GetFederatedInstances, GetFederatedInstancesKind},
+    FederatedInstancesView,
+  };
   use lemmy_db_schema::{
     assert_length,
     source::{
@@ -172,7 +199,11 @@ mod tests {
     FederationQueueState::upsert(pool, &queue_state).await?;
 
     // run the query
-    let list = FederatedInstancesView::list(pool).await?;
+    let data = GetFederatedInstances {
+      domain_filter: None,
+      kind: GetFederatedInstancesKind::Linked,
+    };
+    let list = FederatedInstancesView::list(pool, data).await?;
     assert_length!(2, list);
 
     // compare first result
