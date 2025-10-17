@@ -48,7 +48,7 @@ pub fn send_notification_email(
   }
 
   let inbox_link = inbox_link(settings);
-  let lang = user_language(&local_user_view);
+  let lang = user_language(&local_user_view.local_user);
   let (subject, body) = match data {
     NotificationEmailData::Mention { content, person } => {
       let content = markdown_to_html(&content);

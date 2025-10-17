@@ -33,8 +33,9 @@ lemmy_db_views_search_combined = { workspace = true, features = ["full"] }
 lemmy_db_views_site = { workspace = true, features = ["full"] }
 lemmy_utils = { workspace = true, features = ["full"] }
 lemmy_db_schema = { workspace = true, features = ["full"] }
-lemmy_api_utils = { workspace = true }
+lemmy_api_utils = { workspace = true, features = ["full"] }
 lemmy_db_schema_file = { workspace = true }
+lemmy_apub_objects = { workspace = true }
 lemmy_email = { workspace = true }
 activitypub_federation = { workspace = true }
 bcrypt = { workspace = true }
@@ -54,3 +55,10 @@ diesel-async = { workspace = true }
 
 [package.metadata.cargo-shear]
 ignored = ["futures", "futures-util"]
+
+[dev-dependencies]
+
+[build-dependencies]
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }

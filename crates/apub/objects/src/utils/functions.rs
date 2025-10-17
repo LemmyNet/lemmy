@@ -14,14 +14,13 @@ use html2md::parse_html;
 use lemmy_api_utils::{context::LemmyContext, utils::check_is_mod_or_admin};
 use lemmy_db_schema::{
   source::{
-    community::{Community, CommunityActions, CommunityModeratorForm},
+    community::Community,
     instance::{Instance, InstanceActions},
     local_site::LocalSite,
   },
   utils::DbPool,
 };
 use lemmy_db_schema_file::enums::{ActorType, CommunityVisibility};
-use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_community_person_ban::CommunityPersonBanView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
@@ -195,41 +194,6 @@ impl<L: GetActorType, R: GetActorType> GetActorType for either::Either<L, R> {
       Either::Left(l) => l.actor_type(),
     }
   }
-}
-
-pub async fn handle_community_moderators(
-  new_mods: &Vec<ObjectId<ApubPerson>>,
-  community: &ApubCommunity,
-  context: &Data<LemmyContext>,
-) -> LemmyResult<()> {
-  let community_id = community.id;
-  let current_moderators =
-    CommunityModeratorView::for_community(&mut context.pool(), community_id).await?;
-  // Remove old mods from database which arent in the moderators collection anymore
-  for mod_user in &current_moderators {
-    let mod_id = ObjectId::from(mod_user.moderator.ap_id.clone());
-    if !new_mods.contains(&mod_id) {
-      let community_moderator_form =
-        CommunityModeratorForm::new(mod_user.community.id, mod_user.moderator.id);
-      CommunityActions::leave(&mut context.pool(), &community_moderator_form).await?;
-    }
-  }
-
-  // Add new mods to database which have been added to moderators collection
-  for mod_id in new_mods {
-    // Ignore errors as mod accounts might be deleted or instances unavailable.
-    let mod_user: Option<ApubPerson> = mod_id.dereference(context).await.ok();
-    if let Some(mod_user) = mod_user {
-      if !current_moderators
-        .iter()
-        .any(|x| x.moderator.ap_id == mod_user.ap_id)
-      {
-        let community_moderator_form = CommunityModeratorForm::new(community.id, mod_user.id);
-        CommunityActions::join(&mut context.pool(), &community_moderator_form).await?;
-      }
-    }
-  }
-  Ok(())
 }
 
 /// Marks object as public only if the community is public

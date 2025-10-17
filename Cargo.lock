@@ -10,9 +10,9 @@ checksum = "8f27d075294830fcab6f66e320dab524bc6d048f4a151698e153205559113772"
 
 [[package]]
 name = "activitypub_federation"
-version = "0.7.0-beta.7"
+version = "0.7.0-beta.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "41586e92352fdcdac6b7d2d12c61a699f18990761114390af925aeed1b3ac500"
+checksum = "d05f124225de07889f93f0e49ac23d6877c4e63c628c19cc936929643be28a61"
 dependencies = [
  "activitystreams-kinds",
  "actix-web",
@@ -3224,6 +3224,7 @@ dependencies = [
  "futures",
  "futures-util",
  "lemmy_api_utils",
+ "lemmy_apub_objects",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
  "lemmy_db_views_comment",
@@ -3241,6 +3242,7 @@ dependencies = [
  "lemmy_email",
  "lemmy_utils",
  "regex",
+ "reqwest 0.12.23",
  "serde",
  "serde_json",
  "serde_with",
@@ -3319,6 +3321,7 @@ dependencies = [
  "activitypub_federation",
  "actix-web",
  "async-trait",
+ "chrono",
  "either",
  "futures",
  "futures-util",

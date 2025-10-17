@@ -184,7 +184,6 @@ fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> 
 
 #[cfg(test)]
 mod tests {
-
   use crate::site::create::validate_create_payload;
   use lemmy_db_schema::source::local_site::LocalSite;
   use lemmy_db_schema_file::enums::{ListingType, PostSortType, RegistrationMode};
