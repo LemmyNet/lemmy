@@ -4,6 +4,7 @@ use actix_web::web::Json;
 use either::Either;
 use lemmy_api_utils::{
   context::LemmyContext,
+  plugins::plugin_hook_after,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
     check_community_user_action,
@@ -21,7 +22,7 @@ use lemmy_db_views_post::PostView;
 use lemmy_db_views_report_combined::{
   api::{CreatePostReport, PostReportResponse},
   ReportCombinedViewInternal,
-};use lemmy_api_utils::plugins::plugin_hook_after;
+};
 use lemmy_db_views_site::SiteView;
 use lemmy_email::admin::send_new_report_email_to_admins;
 use lemmy_utils::error::LemmyResult;

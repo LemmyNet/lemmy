@@ -4,6 +4,7 @@ use actix_web::web::Json;
 use either::Either;
 use lemmy_api_utils::{
   context::LemmyContext,
+  plugins::plugin_hook_after,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_local_user_valid, slur_regex},
 };
@@ -14,7 +15,7 @@ use lemmy_db_schema::{
     site::Site,
   },
   traits::{Crud, Reportable},
-};use lemmy_api_utils::plugins::plugin_hook_after;
+};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_report_combined::{
   api::{CommunityReportResponse, CreateCommunityReport},
