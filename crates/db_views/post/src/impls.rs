@@ -607,15 +607,7 @@ mod tests {
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
       multi_community::{MultiCommunity, MultiCommunityInsertForm},
       person::{Person, PersonActions, PersonBlockForm, PersonInsertForm, PersonNoteForm},
-      post::{
-        Post,
-        PostActions,
-        PostHideForm,
-        PostInsertForm,
-        PostLikeForm,
-        PostReadForm,
-        PostUpdateForm,
-      },
+      post::{Post, PostActions, PostHideForm, PostInsertForm, PostLikeForm, PostUpdateForm},
       site::Site,
       tag::{PostTag, Tag, TagInsertForm},
     },
@@ -1240,11 +1232,9 @@ mod tests {
     let pool = &mut pool.into();
 
     // Mark the bot post, then the tags post as read
-    let bot_post_read_form = PostReadForm::new(data.bot_post.id, data.tegan.person.id);
-    PostActions::mark_as_read(pool, &bot_post_read_form).await?;
+    PostActions::mark_as_read(pool, data.tegan.person.id, &[data.bot_post.id]).await?;
 
-    let tag_post_read_form = PostReadForm::new(data.post_with_tags.id, data.tegan.person.id);
-    PostActions::mark_as_read(pool, &tag_post_read_form).await?;
+    PostActions::mark_as_read(pool, data.tegan.person.id, &[data.post_with_tags.id]).await?;
 
     let read_read_post_listing =
       PostView::list_read(pool, &data.tegan.person, None, None, None, None).await?;
@@ -1850,8 +1840,7 @@ mod tests {
     data.tegan.local_user.show_read_posts = false;
 
     // Mark a post as read
-    let read_form = PostReadForm::new(data.bot_post.id, data.tegan.person.id);
-    PostActions::mark_as_read(pool, &read_form).await?;
+    PostActions::mark_as_read(pool, data.tegan.person.id, &[data.bot_post.id]).await?;
 
     // Make sure you don't see the read post in the results
     let post_listings_hide_read = data.default_post_query().list(&data.site, pool).await?;

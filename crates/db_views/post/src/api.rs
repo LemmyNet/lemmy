@@ -285,4 +285,5 @@ pub struct SavePost {
 /// Mark several posts as read.
 pub struct MarkManyPostsAsRead {
   pub post_ids: Vec<PostId>,
+  pub read: bool,
 }
