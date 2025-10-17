@@ -9,29 +9,31 @@ use std::{
 /// Generates a list of communities which is fetched during Lemmy setup.
 fn main() -> Result<(), Box<dyn std::error::Error>> {
   let community_ids = if env::var("PROFILE")? == "release" {
-    // fetch list of communities from lemmyverse.net
-    let mut communities: Vec<_> =
-      reqwest::blocking::get("https://data.lemmyverse.net/data/community.full.json")?
-        .json::<Vec<CommunityInfo>>()?
-        .into_iter()
-        // exclude nsfw and suspicious
-        .filter(|c| !c.nsfw && !c.is_suspicious)
-        .collect();
-
-    // invert sort key to get largest values first
-    communities.sort_by_key(|c| -c.counts.users_active_month);
-
-    // take urls of top 100 communities
-    let mut c = communities
+    // fetch list of communities from lemmy.ml
+    // TODO: once lemmy.ml is upgraded to 1.0:
+    //       - switch to api v4
+    //       - change sort to `Subscribers`
+    //       - directly use ListCommunitiesResponse as build-dependency (if it doesnt affect
+    //         compilation time)
+    // TODO: lemmy api returns 50 items at most, consider using pagination to get more
+    let client = reqwest::blocking::Client::builder()
+      .user_agent("Lemmy Build Script")
+      .build()?;
+    let mut communities: Vec<_> = client
+      .get("https://lemmy.ml/api/v3/community/list?type_=All&sort=TopAll&limit=50")
+      .send()?
+      .json::<ListCommunitiesResponse>()?
+      .communities
       .into_iter()
-      .map(|c| c.url)
-      .take(100)
-      .collect::<Vec<_>>();
+      // exclude nsfw
+      .filter(|c| !c.community.nsfw)
+      .map(|c| c.community.actor_id)
+      .collect();
 
     // also prefetch these two communities as they are linked in the welcome post
-    c.insert(0, "https://lemmy.ml/c/announcements".to_string());
-    c.insert(0, "https://lemmy.ml/c/lemmy".to_string());
-    c
+    communities.insert(0, "https://lemmy.ml/c/announcements".to_string());
+    communities.insert(0, "https://lemmy.ml/c/lemmy".to_string());
+    communities
   } else {
     // in debug mode only use a single hardcoded community to avoid unnecessary requests
     vec!["https://lemmy.ml/c/lemmy".to_string()]
@@ -43,17 +45,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[derive(Deserialize)]
-struct CommunityInfo {
-  url: String,
-  counts: CommunityInfoCounts,
-  nsfw: bool,
-  #[serde(rename = "isSuspicious")]
-  is_suspicious: bool,
+pub struct ListCommunitiesResponse {
+  pub communities: Vec<CommunityView>,
 }
 
 #[derive(Deserialize)]
-struct CommunityInfoCounts {
-  users_active_month: i32,
+pub struct CommunityView {
+  pub community: Community,
+  pub counts: CommunityAggregates,
+}
+
+#[derive(Deserialize)]
+pub struct Community {
+  pub nsfw: bool,
+  pub actor_id: String,
+}
+
+#[derive(Deserialize)]
+pub struct CommunityAggregates {
+  pub users_active_month: i64,
 }
 
 /// https://github.com/harindaka/build_script_file_gen/blob/master/src/lib.rs
