@@ -76,7 +76,7 @@ pub async fn update_comment(
   form = plugin_hook_before("before_update_local_comment", form).await?;
   let updated_comment = Comment::update(&mut context.pool(), comment_id, &form).await?;
 
-  plugin_hook_after("after_update_local_comment", &updated_comment)?;
+  plugin_hook_after("after_update_local_comment", &updated_comment);
 
   // Do the mentions / recipients
   NotifyData::new(

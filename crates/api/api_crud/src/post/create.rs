@@ -137,7 +137,7 @@ pub async fn create_post(
 
   let inserted_post = Post::create(&mut context.pool(), &post_form).await?;
 
-  plugin_hook_after("after_create_local_post", &inserted_post)?;
+  plugin_hook_after("after_create_local_post", &inserted_post);
 
   if let Some(tags) = &data.tags {
     update_post_tags(&inserted_post, tags, &context).await?;
