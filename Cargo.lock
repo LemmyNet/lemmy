@@ -3913,6 +3913,7 @@ dependencies = [
  "diesel-async",
  "extism",
  "extism-convert",
+ "i-love-jesus",
  "lemmy_db_schema",
  "lemmy_db_schema_file",
  "lemmy_db_views_community_follower",

@@ -1,28 +1,30 @@
 use crate::{
   api::{GetFederatedInstances, GetFederatedInstancesKind, UserSettingsBackup},
-  FederatedInstancesView,
+  FederatedInstanceView,
   SiteView,
 };
 use diesel::{
   ExpressionMethods,
   JoinOnDsl,
   OptionalExtension,
-  PgSortExpressionMethods,
   PgTextExpressionMethods,
   QueryDsl,
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
+use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
+  newtypes::{InstanceId, PaginationCursor},
   source::{
     actor_language::LocalUserLanguage,
+    instance::{instance_keys as key, Instance},
     keyword_block::LocalUserKeywordBlock,
     language::Language,
     local_user::LocalUser,
     person::Person,
   },
-  traits::Crud,
-  utils::{fuzzy_search, get_conn, DbPool},
+  traits::{Crud, PaginationCursorBuilder},
+  utils::{fuzzy_search, get_conn, limit_fetch, paginate, DbPool},
 };
 use lemmy_db_schema_file::schema::{
   federation_allowlist,
@@ -114,9 +116,15 @@ pub async fn user_backup_list_to_user_settings_backup(
   })
 }
 
-impl FederatedInstancesView {
+impl FederatedInstanceView {
   pub async fn list(pool: &mut DbPool<'_>, data: GetFederatedInstances) -> LemmyResult<Vec<Self>> {
+    let cursor_data = if let Some(cursor) = &data.page_cursor {
+      Some(FederatedInstanceView::from_cursor(cursor, pool).await?)
+    } else {
+      None
+    };
     let conn = &mut get_conn(pool).await?;
+    let limit = limit_fetch(data.limit)?;
     let mut query = instance::table
       // omit instance representing the local site
       .left_join(site::table.left_join(local_site::table))
@@ -124,12 +132,8 @@ impl FederatedInstancesView {
       .left_join(federation_blocklist::table)
       .left_join(federation_allowlist::table)
       .left_join(federation_queue_state::table)
-      // Show recently updated instances and those with valid metadata first
-      .order((
-        instance::updated_at.desc(),
-        instance::software.asc().nulls_last(),
-      ))
       .select(Self::as_select())
+      .limit(limit)
       .into_boxed();
 
     if let Some(domain_filter) = &data.domain_filter {
@@ -148,10 +152,40 @@ impl FederatedInstancesView {
       }
     };
 
-    query
-      .get_results(conn)
+    let mut pq = paginate(
+      query,
+      SortDirection::Desc,
+      cursor_data,
+      None,
+      data.page_back,
+    );
+
+    // Show recently updated instances and those with valid metadata first
+    // TODO: doesnt support keys_last() or different order per key.
+    //       should be `key::updated_at.desc(), instance::software.asc().nulls_last()`
+    pq = pq
+      .then_order_by(key::updated_at)
+      .then_order_by(key::software)
+      .then_order_by(key::id);
+
+    pq.get_results(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+}
+
+impl PaginationCursorBuilder for FederatedInstanceView {
+  type CursorData = Instance;
+  fn to_cursor(&self) -> PaginationCursor {
+    PaginationCursor::new_single('I', self.instance.id.0)
+  }
+
+  async fn from_cursor(
+    cursor: &PaginationCursor,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Self::CursorData> {
+    let [(_, id)] = cursor.prefixes_and_ids()?;
+    Instance::read(pool, InstanceId(id)).await
   }
 }
 
@@ -160,7 +194,7 @@ impl FederatedInstancesView {
 mod tests {
   use crate::{
     api::{GetFederatedInstances, GetFederatedInstancesKind},
-    FederatedInstancesView,
+    FederatedInstanceView,
   };
   use lemmy_db_schema::{
     assert_length,
@@ -202,8 +236,11 @@ mod tests {
     let data = GetFederatedInstances {
       domain_filter: None,
       kind: GetFederatedInstancesKind::Linked,
+      page_cursor: None,
+      page_back: None,
+      limit: None,
     };
-    let list = FederatedInstancesView::list(pool, data).await?;
+    let list = FederatedInstanceView::list(pool, data).await?;
     assert_length!(2, list);
 
     // compare first result

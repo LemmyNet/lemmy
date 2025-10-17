@@ -1,4 +1,4 @@
-use crate::{FederatedInstancesView, SiteView};
+use crate::{FederatedInstanceView, SiteView};
 use lemmy_db_schema::{
   newtypes::{
     InstanceId,
@@ -298,6 +298,9 @@ pub enum GetFederatedInstancesKind {
 pub struct GetFederatedInstances {
   pub domain_filter: Option<String>,
   pub kind: GetFederatedInstancesKind,
+  pub page_cursor: Option<PaginationCursor>,
+  pub page_back: Option<bool>,
+  pub limit: Option<i64>,
 }
 
 #[skip_serializing_none]
@@ -306,7 +309,9 @@ pub struct GetFederatedInstances {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A response of federated instances.
 pub struct GetFederatedInstancesResponse {
-  pub federated_instances: Vec<FederatedInstancesView>,
+  pub federated_instances: Vec<FederatedInstanceView>,
+  pub next_page: Option<PaginationCursor>,
+  pub prev_page: Option<PaginationCursor>,
 }
 
 #[skip_serializing_none]
