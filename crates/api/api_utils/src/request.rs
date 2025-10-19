@@ -380,12 +380,26 @@ impl PictrsFileDetails {
   /// Builds the image form. This should always use the thumbnail_url,
   /// Because the post_view joins to it
   pub fn build_image_details_form(&self, thumbnail_url: &Url) -> ImageDetailsInsertForm {
+    use base64::{engine::general_purpose, Engine as _};
+
+    // Save the blurhash base64 string in the back-end, since this is too slow on the front end.
+    let blurhash_base64 = self
+      .blurhash
+      .as_ref()
+      // Decode the blurhash into vec u8
+      .map(|b| blurhash::decode(b, self.width.into(), self.height.into(), 1.0))
+      // Ignore errors
+      .and_then(Result::ok)
+      // Create a base64 string
+      .map(|data| general_purpose::STANDARD.encode(&data));
+
     ImageDetailsInsertForm {
       link: thumbnail_url.clone().into(),
       width: self.width.into(),
       height: self.height.into(),
       content_type: self.content_type.clone(),
       blurhash: self.blurhash.clone(),
+      blurhash_base64,
     }
   }
 }

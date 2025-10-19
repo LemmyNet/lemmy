@@ -391,6 +391,7 @@ diesel::table! {
         content_type -> Text,
         #[max_length = 50]
         blurhash -> Nullable<Varchar>,
+        blurhash_base64 -> Nullable<Text>,
     }
 }
 

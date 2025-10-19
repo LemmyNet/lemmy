@@ -76,6 +76,8 @@ regex = { workspace = true }
 jsonwebtoken = { version = "9.3.1" }
 either.workspace = true
 derive-new.workspace = true
+blurhash = "0.2.3"
+base64.workspace = true
 
 [dev-dependencies]
 serial_test = { workspace = true }

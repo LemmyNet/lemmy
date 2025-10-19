@@ -66,6 +66,7 @@ pub struct ImageDetails {
   pub height: i32,
   pub content_type: String,
   pub blurhash: Option<String>,
+  pub blurhash_base64: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -77,4 +78,5 @@ pub struct ImageDetailsInsertForm {
   pub height: i32,
   pub content_type: String,
   pub blurhash: Option<String>,
+  pub blurhash_base64: Option<String>,
 }
