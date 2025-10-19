@@ -117,8 +117,7 @@ pub(crate) struct PersonContentCombinedViewInternal {
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
-// Use serde's internal tagging, to work easier with javascript libraries
-#[serde(tag = "type_")]
+#[serde(tag = "type_", rename_all = "snake_case")]
 pub enum PersonContentCombinedView {
   Post(PostView),
   Comment(CommentView),

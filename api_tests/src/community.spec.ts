@@ -806,7 +806,7 @@ function checkCommunityReportName(
   report: CommunityReport,
 ) {
   switch (rcv.type_) {
-    case "Community":
+    case "community":
       return (
         rcv.community_report.original_community_name ===
         report.original_community_name
