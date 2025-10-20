@@ -665,7 +665,7 @@ test("Enforce community ban for federated user", async () => {
   await waitUntil(
     () => getModlog(alpha),
     m =>
-      m.modlog[0].type_ == "ModBanFromCommunity" &&
+      m.modlog[0].type_ == "mod_ban_from_community" &&
       m.modlog[0].mod_ban_from_community.banned == false,
   );
 
@@ -829,7 +829,7 @@ test("Fetch post via redirect", async () => {
   let gammaPost = await gamma
     .resolveObject(form)
     .then(a => a.results.at(0))
-    .then(a => (a?.type_ == "Post" ? a : undefined));
+    .then(a => (a?.type_ == "post" ? a : undefined));
 
   expect(gammaPost).toBeDefined();
   expect(gammaPost?.post.ap_id).toBe(alphaPost.post_view.post.ap_id);
@@ -877,7 +877,7 @@ test("Fetch post with redirect", async () => {
   let gammaPost2 = await gamma
     .resolveObject(form)
     .then(a => a.results.at(0))
-    .then(a => (a?.type_ == "Post" ? a : undefined));
+    .then(a => (a?.type_ == "post" ? a : undefined));
 
   expect(gammaPost2?.post).toBeDefined();
 });
@@ -1015,7 +1015,7 @@ test("Plugin test", async () => {
 
 function checkPostReportName(rcv: ReportCombinedView, report: PostReport) {
   switch (rcv.type_) {
-    case "Post":
+    case "post":
       return rcv.post_report.original_post_name === report.original_post_name;
     default:
       return false;
