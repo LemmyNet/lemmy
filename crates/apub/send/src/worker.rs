@@ -163,11 +163,16 @@ impl InstanceWorker {
         }
       }
 
-      let newest_id = get_latest_activity_id(&mut self.pool()).await?;
+      let newest_id_opt = get_latest_activity_id(&mut self.pool()).await?;
+      let newest_id = newest_id_opt.unwrap_or(ActivityId(0));
       if next_id_to_send > newest_id {
-        if next_id_to_send > ActivityId(newest_id.0 + 1) {
+        // If next id to send for this instance is higher than the highest sent_activity table id
+        // there may be a problem and activities wont send.
+        // However this can occur normally if there was no outgoing activity for a week
+        // and sent_activity was completely emptied by scheduled task.
+        if newest_id_opt.is_some() && next_id_to_send > ActivityId(newest_id.0 + 1) {
           tracing::error!(
-                "{}: next send id {} is higher than latest id {}+1 in database (did the db get cleared?)",
+                "{}: next send id {} is higher than latest id {}+1 in table sent_activity (did the db get cleared?)",
                 self.instance.domain,
                 next_id_to_send.0,
                 newest_id.0
@@ -227,7 +232,9 @@ impl InstanceWorker {
     let last = if let Some(last) = self.state.last_successful_id {
       last
     } else {
-      let latest_id = get_latest_activity_id(&mut self.pool()).await?;
+      let latest_id = get_latest_activity_id(&mut self.pool())
+        .await?
+        .unwrap_or(ActivityId(0));
       // this is the initial creation (instance first seen) of the federation queue for this
       // instance
 
