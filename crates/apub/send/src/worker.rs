@@ -119,7 +119,7 @@ impl InstanceWorker {
   /// cancelled (graceful exit)
   async fn loop_until_stopped(&mut self) -> LemmyResult<()> {
     self.initial_fail_sleep().await?;
-    let (mut last_sent_id, mut newest_id) = self.get_latest_ids().await?;
+    let mut last_sent_id = self.get_last_sent_id().await?;
 
     while !self.stop.is_cancelled() {
       // check if we need to wait for a send to finish before sending the next one
@@ -163,27 +163,24 @@ impl InstanceWorker {
         }
       }
 
+      let newest_id = get_latest_activity_id(&mut self.pool()).await?;
       if next_id_to_send > newest_id {
-        // lazily fetch latest id only if we have cought up
-        newest_id = self.get_latest_ids().await?.1;
-        if next_id_to_send > newest_id {
-          if next_id_to_send > ActivityId(newest_id.0 + 1) {
-            tracing::error!(
+        if next_id_to_send > ActivityId(newest_id.0 + 1) {
+          tracing::error!(
                 "{}: next send id {} is higher than latest id {}+1 in database (did the db get cleared?)",
                 self.instance.domain,
                 next_id_to_send.0,
                 newest_id.0
               );
-          }
-          // no more work to be done, wait before rechecking
-          tokio::select! {
-            () = sleep(*WORK_FINISHED_RECHECK_DELAY) => {},
-            () = self.stop.cancelled() => {
-              tracing::debug!("cancelled worker loop while waiting for new work")
-            }
-          }
-          continue;
         }
+        // no more work to be done, wait before rechecking
+        tokio::select! {
+          () = sleep(*WORK_FINISHED_RECHECK_DELAY) => {},
+          () = self.stop.cancelled() => {
+            tracing::debug!("cancelled worker loop while waiting for new work")
+          }
+        }
+        continue;
       }
       self.in_flight += 1;
       last_sent_id = next_id_to_send;
@@ -224,13 +221,13 @@ impl InstanceWorker {
     Ok(())
   }
 
-  /// return the last successfully sent id and the newest activity id in the database
-  /// sets last_successful_id in database if it's the first time this instance is seen
-  async fn get_latest_ids(&mut self) -> Result<(ActivityId, ActivityId)> {
-    let latest_id = get_latest_activity_id(&mut self.pool()).await?;
+  /// Return the last successfully sent id.
+  /// Sets last_successful_id in database if it's the first time this instance is seen.
+  async fn get_last_sent_id(&mut self) -> Result<ActivityId> {
     let last = if let Some(last) = self.state.last_successful_id {
       last
     } else {
+      let latest_id = get_latest_activity_id(&mut self.pool()).await?;
       // this is the initial creation (instance first seen) of the federation queue for this
       // instance
 
@@ -240,7 +237,7 @@ impl InstanceWorker {
       self.save_and_send_state().await?;
       latest_id
     };
-    Ok((last, latest_id))
+    Ok(last)
   }
 
   async fn handle_send_results(&mut self) -> Result<(), anyhow::Error> {
