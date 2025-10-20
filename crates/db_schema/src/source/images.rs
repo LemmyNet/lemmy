@@ -66,6 +66,7 @@ pub struct ImageDetails {
   pub height: i32,
   pub content_type: String,
   pub blurhash: Option<String>,
+  /// A base64 encoded png of the blurhash, for image previews.
   pub blurhash_base64: Option<String>,
 }
 
