@@ -267,7 +267,7 @@ impl NotifyData {
   }
 }
 
-pub async fn notify_private_message(
+pub fn notify_private_message(
   view: &PrivateMessageView,
   is_create: bool,
   context: &LemmyContext,
@@ -430,7 +430,7 @@ mod tests {
     let pool = &mut context.pool();
     let pm = PrivateMessage::create(pool, &form).await?;
     let view = PrivateMessageView::read(pool, pm.id).await?;
-    notify_private_message(&view, false, context).await;
+    notify_private_message(&view, false, context);
     Ok(())
   }
   async fn setup_private_messages(data: &Data, context: &LemmyContext) -> LemmyResult<()> {
