@@ -40,6 +40,9 @@ use url::Url;
 use urlencoding::encode;
 use webpage::{OpengraphObject, HTML};
 
+const BLURHASH_MAX_WIDTH: u16 = 32;
+const BLURHASH_MAX_HEIGHT: u16 = 32;
+
 pub fn client_builder(settings: &Settings) -> ClientBuilder {
   let user_agent = format!("Lemmy/{VERSION}; +{}", settings.get_protocol_and_hostname());
 
@@ -381,10 +384,15 @@ impl PictrsFileDetails {
   /// Builds the image form. This should always use the thumbnail_url,
   /// Because the post_view joins to it
   pub fn build_image_details_form(&self, thumbnail_url: &Url) -> ImageDetailsInsertForm {
-    let blurhash_base64 = self
-      .blurhash
-      .as_ref()
-      .and_then(|b| blurhash_to_base64_png(b, self.width.into(), self.height.into()).ok());
+    let blurhash_base64 = self.blurhash.as_ref().and_then(|b| {
+      let (width, height) = downscale_image_keep_ratio(
+        self.width,
+        self.height,
+        BLURHASH_MAX_WIDTH,
+        BLURHASH_MAX_HEIGHT,
+      );
+      blurhash_to_base64_png(b, width, height).ok()
+    });
 
     ImageDetailsInsertForm {
       link: thumbnail_url.clone().into(),
@@ -419,6 +427,24 @@ fn image_to_base64_png(image: ImageBuffer<Rgba<u8>, Vec<u8>>) -> LemmyResult<Str
 
   let b64_png = general_purpose::STANDARD.encode(bytes);
   Ok(b64_png)
+}
+
+/// Downscale an image, but keep the aspect ratio.
+fn downscale_image_keep_ratio(
+  source_width: u16,
+  source_height: u16,
+  max_width: u16,
+  max_height: u16,
+) -> (u32, u32) {
+  let width_ratio = max_width as f32 / source_width as f32;
+  let height_ratio = max_height as f32 / source_height as f32;
+
+  let ratio = width_ratio.min(height_ratio);
+
+  let width_downscaled = (source_width as f32 * ratio) as u32;
+  let height_downscaled = (source_height as f32 * ratio) as u32;
+
+  (width_downscaled, height_downscaled)
 }
 
 #[derive(Deserialize, Serialize, Debug)]
