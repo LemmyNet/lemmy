@@ -50,7 +50,12 @@ pub struct ReportCombinedViewInternal {
   pub private_message_report: Option<PrivateMessageReport>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub community_report: Option<CommunityReport>,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression_type = Person1AliasAllColumnsTuple,
+      select_expression = person1_select()
+    )
+  )]
   pub report_creator: Person,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub comment: Option<Comment>,
@@ -58,12 +63,7 @@ pub struct ReportCombinedViewInternal {
   pub private_message: Option<PrivateMessage>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub post: Option<Post>,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression_type = Nullable<Person1AliasAllColumnsTuple>,
-      select_expression = person1_select().nullable()
-    )
-  )]
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub creator: Option<Person>,
   #[cfg_attr(feature = "full",
     diesel(
