@@ -1,7 +1,11 @@
+use crate::context::LemmyContext;
 use anyhow::anyhow;
 use extism::{Manifest, PluginBuilder, Pool, PoolPlugin};
 use extism_convert::Json;
-use lemmy_db_schema::source::notification::Notification;
+use lemmy_db_schema::{
+  source::{notification::Notification, person::Person},
+  traits::Crud,
+};
 use lemmy_db_views_notification::NotificationView;
 use lemmy_db_views_site::api::PluginMetadata;
 use lemmy_utils::{
@@ -36,35 +40,34 @@ where
   }
 
   let data = data.clone();
-  spawn_blocking(move || run_plugin_hook_after(plugins, name, data));
+  spawn_blocking(move || run_plugin_hook_after(name, data));
 }
 
 /// Calls plugin hook for the given notifications Loads additional data via
 /// NotificationView, but only if a plugin is active.
-pub async fn plugin_hook_notification(notifications: Vec<Notification>, context: &LemmyContext) {
+pub async fn plugin_hook_notification(
+  notifications: Vec<Notification>,
+  context: &LemmyContext,
+) -> LemmyResult<()> {
   let name = "notification_created";
   let plugins = LemmyPlugins::get_or_init();
   if !plugins.function_exists(name) {
-    return;
+    return Ok(());
   }
 
   for n in notifications {
-    // TODO: run db queries in background task, or make sure this function is only
-    //       called in background and doesnt block api requests.
-    let person = Person::read(&mut context.pool(), n.recipient_id)
-      .await
-      .unwrap();
-    let view = NotificationView::read(n.id, &mut context.pool(), person)
-      .await
-      .unwrap();
-    spawn_blocking(async { run_plugin_hook_after(plugins, name, view) });
+    let person = Person::read(&mut context.pool(), n.recipient_id).await?;
+    let view = NotificationView::read(&mut context.pool(), n.id, &person).await?;
+    spawn_blocking(move || run_plugin_hook_after(name, view));
   }
+  Ok(())
 }
 
-fn run_plugin_hook_after<T>(plugins: LemmyPlugins, name: &'static str, data: T) -> LemmyResult<()>
+fn run_plugin_hook_after<T>(name: &'static str, data: T) -> LemmyResult<()>
 where
   T: Clone + Serialize + for<'b> Deserialize<'b>,
 {
+  let plugins = LemmyPlugins::get_or_init();
   for p in plugins.0 {
     if let Some(plugin) = p.get(name)? {
       let params: Json<T> = data.clone().into();

@@ -206,7 +206,7 @@ impl NotificationView {
       .get_result::<NotificationViewInternal>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)?;
-    map_to_enum(res).ok_or(LemmyErrorType::NotFound)
+    map_to_enum(res).ok_or(LemmyErrorType::NotFound.into())
   }
 }
 

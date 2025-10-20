@@ -114,7 +114,7 @@ impl NotifyData {
       }
     }
     let notifications = Notification::create(&mut context.pool(), &forms).await?;
-    plugin_hook_notification(notifications);
+    plugin_hook_notification(notifications, &context).await?;
 
     Ok(())
   }
@@ -271,33 +271,37 @@ pub async fn notify_private_message(
   view: &PrivateMessageView,
   is_create: bool,
   context: &LemmyContext,
-) -> LemmyResult<()> {
-  let Ok(local_recipient) =
-    LocalUserView::read_person(&mut context.pool(), view.recipient.id).await
-  else {
-    return Ok(());
-  };
+) {
+  let view = view.clone();
+  let context = context.clone();
+  spawn_try_task(async move {
+    let Ok(local_recipient) =
+      LocalUserView::read_person(&mut context.pool(), view.recipient.id).await
+    else {
+      return Ok(());
+    };
 
-  let form = NotificationInsertForm::new_private_message(&view.private_message);
-  let notifications = Notification::create(&mut context.pool(), &[form]).await?;
+    let form = NotificationInsertForm::new_private_message(&view.private_message);
+    let notifications = Notification::create(&mut context.pool(), &[form]).await?;
 
-  if is_create {
-    plugin_hook_notification(notifications);
-    let site_view = SiteView::read_local(&mut context.pool()).await?;
-    if !site_view.local_site.disable_email_notifications {
-      let d = NotificationEmailData::PrivateMessage {
-        sender: &view.creator,
-        content: &view.private_message.content,
-      };
-      send_notification_email(
-        local_recipient,
-        view.private_message.local_url(context.settings())?,
-        d,
-        context.settings(),
-      );
+    if is_create {
+      plugin_hook_notification(notifications, &context).await?;
+      let site_view = SiteView::read_local(&mut context.pool()).await?;
+      if !site_view.local_site.disable_email_notifications {
+        let d = NotificationEmailData::PrivateMessage {
+          sender: &view.creator,
+          content: &view.private_message.content,
+        };
+        send_notification_email(
+          local_recipient,
+          view.private_message.local_url(context.settings())?,
+          d,
+          context.settings(),
+        );
+      }
     }
-  }
-  Ok(())
+    Ok(())
+  })
 }
 
 pub fn notify_mod_action<T>(action: T, target_id: PersonId, context: &LemmyContext)
@@ -325,7 +329,7 @@ where
       reason: action.reason(),
       is_revert: action.is_revert(),
     };
-    plugin_hook_notification(notifications);
+    plugin_hook_notification(notifications, &context).await?;
     send_notification_email(
       local_recipient,
       Url::parse(&modlog_url)?.into(),

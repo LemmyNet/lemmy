@@ -70,7 +70,7 @@ pub async fn create_private_message(
 
   let view = PrivateMessageView::read(&mut context.pool(), inserted_private_message.id).await?;
 
-  notify_private_message(&view, true, &context).await?;
+  notify_private_message(&view, true, &context).await;
 
   ActivityChannel::submit_activity(
     SendActivityData::CreatePrivateMessage(view.clone()),
