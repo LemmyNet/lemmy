@@ -76,7 +76,8 @@ regex = { workspace = true }
 jsonwebtoken = { version = "9.3.1" }
 either.workspace = true
 derive-new.workspace = true
-blurhash = "0.2.3"
+blurhash = { version = "0.2.3", features = ["image"] }
+image = "0.24.7"
 base64.workspace = true
 
 [dev-dependencies]

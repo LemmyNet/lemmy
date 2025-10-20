@@ -7,6 +7,7 @@ use activitypub_federation::config::Data;
 use chrono::{DateTime, Utc};
 use encoding_rs::{Encoding, UTF_8};
 use futures::StreamExt;
+use image::{ImageBuffer, Rgba};
 use lemmy_db_schema::{
   source::{
     images::{ImageDetailsInsertForm, LocalImage, LocalImageForm},
@@ -380,18 +381,11 @@ impl PictrsFileDetails {
   /// Builds the image form. This should always use the thumbnail_url,
   /// Because the post_view joins to it
   pub fn build_image_details_form(&self, thumbnail_url: &Url) -> ImageDetailsInsertForm {
-    use base64::{engine::general_purpose, Engine as _};
-
-    // Save the blurhash base64 string in the back-end, since this is too slow on the front end.
     let blurhash_base64 = self
       .blurhash
       .as_ref()
-      // Decode the blurhash into vec u8
-      .map(|b| blurhash::decode(b, self.width.into(), self.height.into(), 1.0))
-      // Ignore errors
-      .and_then(Result::ok)
-      // Create a base64 string
-      .map(|data| general_purpose::STANDARD.encode(&data));
+      .map(|b| blurhash_to_base64_png(&b, self.width.into(), self.height.into()).ok())
+      .flatten();
 
     ImageDetailsInsertForm {
       link: thumbnail_url.clone().into(),
@@ -402,6 +396,30 @@ impl PictrsFileDetails {
       blurhash_base64,
     }
   }
+}
+
+/// Converts a blurhash string to a base64 png.
+/// It's necessary to save it in the back-end, since this is too slow on the front end.
+fn blurhash_to_base64_png(blurhash: &str, width: u32, height: u32) -> LemmyResult<String> {
+  // Decode the blurhash into an image
+  let decoded = blurhash::decode_image(blurhash, width, height, 1.0)?;
+
+  // Create a base64 png string
+  let base64 = image_to_base64_png(decoded)?;
+
+  Ok(base64)
+}
+
+/// Converts an image to a base64 png
+fn image_to_base64_png(image: ImageBuffer<Rgba<u8>, Vec<u8>>) -> LemmyResult<String> {
+  use base64::{engine::general_purpose, Engine as _};
+  use std::io::Cursor;
+
+  let mut bytes: Vec<u8> = Vec::new();
+  image.write_to(&mut Cursor::new(&mut bytes), image::ImageOutputFormat::Png)?;
+
+  let b64_png = general_purpose::STANDARD.encode(bytes);
+  Ok(b64_png)
 }
 
 #[derive(Deserialize, Serialize, Debug)]
