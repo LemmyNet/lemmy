@@ -384,8 +384,7 @@ impl PictrsFileDetails {
     let blurhash_base64 = self
       .blurhash
       .as_ref()
-      .map(|b| blurhash_to_base64_png(&b, self.width.into(), self.height.into()).ok())
-      .flatten();
+      .and_then(|b| blurhash_to_base64_png(b, self.width.into(), self.height.into()).ok());
 
     ImageDetailsInsertForm {
       link: thumbnail_url.clone().into(),
