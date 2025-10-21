@@ -195,15 +195,14 @@ impl Post {
     creator_id: PersonId,
     community_id: CommunityId,
     removed: bool,
-  ) -> LemmyResult<Vec<PostId>> {
+  ) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
 
     update(post::table)
       .filter(post::creator_id.eq(creator_id))
       .filter(post::community_id.eq(community_id))
       .set((post::removed.eq(removed), post::updated_at.eq(Utc::now())))
-      .returning(post::id)
-      .get_results(conn)
+      .get_results::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
@@ -213,7 +212,7 @@ impl Post {
     creator_id: PersonId,
     instance_id: InstanceId,
     removed: bool,
-  ) -> LemmyResult<Vec<PostId>> {
+  ) -> LemmyResult<Vec<Self>> {
     let post_ids = Self::creator_post_ids_in_instance(pool, creator_id, instance_id).await?;
 
     let conn = &mut get_conn(pool).await?;
@@ -221,7 +220,6 @@ impl Post {
     update(post::table)
       .filter(post::id.eq_any(post_ids.clone()))
       .set((post::removed.eq(removed), post::updated_at.eq(Utc::now())))
-      .returning(post::id)
       .get_results(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -231,13 +229,12 @@ impl Post {
     pool: &mut DbPool<'_>,
     creator_id: PersonId,
     removed: bool,
-  ) -> LemmyResult<Vec<PostId>> {
+  ) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
 
     update(post::table)
       .filter(post::creator_id.eq(creator_id))
       .set((post::removed.eq(removed), post::updated_at.eq(Utc::now())))
-      .returning(post::id)
       .get_results(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)

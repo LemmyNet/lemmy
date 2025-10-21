@@ -125,7 +125,7 @@ pub(crate) async fn receive_remove_action(
     }
     DeletableObjects::Post(post) => {
       PostReport::resolve_all_for_object(&mut context.pool(), post.id, actor.id).await?;
-      let form = ModlogInsertForm::mod_remove_post(actor.id, post.id, true, &reason);
+      let form = ModlogInsertForm::mod_remove_post(actor.id, &post, true, &reason);
       let action = Modlog::create(&mut context.pool(), &[form]).await?;
       notify_mod_action(action, post.creator_id, context.app_data());
       Post::update(
@@ -140,7 +140,7 @@ pub(crate) async fn receive_remove_action(
     }
     DeletableObjects::Comment(comment) => {
       CommentReport::resolve_all_for_object(&mut context.pool(), comment.id, actor.id).await?;
-      let form = ModlogInsertForm::mod_remove_comment(actor.id, comment.id, true, &reason);
+      let form = ModlogInsertForm::mod_remove_comment(actor.id, &comment, true, &reason);
       let action = Modlog::create(&mut context.pool(), &[form]).await?;
       notify_mod_action(action, comment.creator_id, context.app_data());
       Comment::update(

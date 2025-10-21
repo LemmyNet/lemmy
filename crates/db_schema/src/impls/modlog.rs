@@ -56,25 +56,27 @@ impl<'a> ModlogInsertForm<'a> {
   }
   pub fn mod_remove_post(
     mod_person_id: PersonId,
-    post_id: PostId,
+    post: &Post,
     removed: bool,
     reason: &'a str,
   ) -> Self {
     Self {
       reason: Some(reason),
-      target_post_id: Some(post_id),
+      target_post_id: Some(post.id),
+      target_person_id: Some(post.creator_id),
       ..ModlogInsertForm::new(ModlogKind::ModRemovePost, removed, mod_person_id)
     }
   }
   pub fn mod_remove_comment(
     mod_person_id: PersonId,
-    comment_id: CommentId,
+    comment: &Comment,
     removed: bool,
     reason: &'a str,
   ) -> Self {
     Self {
       reason: Some(reason),
-      target_comment_id: Some(comment_id),
+      target_comment_id: Some(comment.id),
+      target_person_id: Some(comment.creator_id),
       ..ModlogInsertForm::new(ModlogKind::ModRemoveComment, removed, mod_person_id)
     }
   }

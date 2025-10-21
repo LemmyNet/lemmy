@@ -607,24 +607,24 @@ pub async fn remove_or_restore_user_data(
   }
 
   // Posts
-  let removed_or_restored_post_ids =
+  let removed_or_restored_posts =
     Post::update_removed_for_creator(pool, banned_person_id, removed).await?;
   create_modlog_entries_for_removed_or_restored_posts(
     pool,
     mod_person_id,
-    removed_or_restored_post_ids,
+    &removed_or_restored_posts,
     removed,
     reason,
   )
   .await?;
 
   // Comments
-  let removed_or_restored_comment_ids =
+  let removed_or_restored_comments =
     Comment::update_removed_for_creator(pool, banned_person_id, removed).await?;
   create_modlog_entries_for_removed_or_restored_comments(
     pool,
     mod_person_id,
-    removed_or_restored_comment_ids,
+    &removed_or_restored_comments,
     removed,
     reason,
   )
@@ -639,14 +639,14 @@ pub async fn remove_or_restore_user_data(
 async fn create_modlog_entries_for_removed_or_restored_posts(
   pool: &mut DbPool<'_>,
   mod_person_id: PersonId,
-  post_ids: Vec<PostId>,
+  posts: &Vec<Post>,
   removed: bool,
   reason: &str,
 ) -> LemmyResult<()> {
   // Build the forms
-  let forms: Vec<_> = post_ids
+  let forms: Vec<_> = posts
     .iter()
-    .map(|&post_id| ModlogInsertForm::mod_remove_post(mod_person_id, post_id, removed, reason))
+    .map(|post| ModlogInsertForm::mod_remove_post(mod_person_id, post, removed, reason))
     .collect();
 
   Modlog::create(pool, &forms).await?;
@@ -657,16 +657,14 @@ async fn create_modlog_entries_for_removed_or_restored_posts(
 async fn create_modlog_entries_for_removed_or_restored_comments(
   pool: &mut DbPool<'_>,
   mod_person_id: PersonId,
-  comment_ids: Vec<CommentId>,
+  comments: &Vec<Comment>,
   removed: bool,
   reason: &str,
 ) -> LemmyResult<()> {
   // Build the forms
-  let forms: Vec<_> = comment_ids
+  let forms: Vec<_> = comments
     .iter()
-    .map(|&comment_id| {
-      ModlogInsertForm::mod_remove_comment(mod_person_id, comment_id, removed, reason)
-    })
+    .map(|comment| ModlogInsertForm::mod_remove_comment(mod_person_id, &comment, removed, reason))
     .collect();
 
   Modlog::create(pool, &forms).await?;
@@ -690,28 +688,22 @@ pub async fn remove_or_restore_user_data_in_community(
   }
 
   // Posts
-  let posts_ids =
+  let posts =
     Post::update_removed_for_creator_and_community(pool, banned_person_id, community_id, remove)
       .await?;
 
-  create_modlog_entries_for_removed_or_restored_posts(
-    pool,
-    mod_person_id,
-    posts_ids,
-    remove,
-    reason,
-  )
-  .await?;
+  create_modlog_entries_for_removed_or_restored_posts(pool, mod_person_id, &posts, remove, reason)
+    .await?;
 
   // Comments
-  let removed_comment_ids =
+  let removed_comments =
     Comment::update_removed_for_creator_and_community(pool, banned_person_id, community_id, remove)
       .await?;
 
   create_modlog_entries_for_removed_or_restored_comments(
     pool,
     mod_person_id,
-    removed_comment_ids,
+    &removed_comments,
     remove,
     reason,
   )

@@ -62,12 +62,8 @@ pub async fn remove_post(
     .await?;
 
   // Mod tables
-  let form = ModlogInsertForm::mod_remove_post(
-    local_user_view.person.id,
-    data.post_id,
-    removed,
-    &data.reason,
-  );
+  let form =
+    ModlogInsertForm::mod_remove_post(local_user_view.person.id, &post, removed, &data.reason);
   let action = Modlog::create(&mut context.pool(), &[form]).await?;
   notify_mod_action(action, post.creator_id, context.app_data());
 
