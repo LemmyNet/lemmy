@@ -53,7 +53,7 @@ pub async fn create_pm_report(
     ReportCombinedViewInternal::read_private_message_report(&mut context.pool(), report.id, person)
       .await?;
   plugin_hook_after(
-    "private_message_report_created",
+    "private_message_report_after_create",
     &private_message_report_view,
   );
 

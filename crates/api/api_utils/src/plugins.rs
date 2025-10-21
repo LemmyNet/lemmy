@@ -49,7 +49,7 @@ pub async fn plugin_hook_notification(
   notifications: Vec<Notification>,
   context: &LemmyContext,
 ) -> LemmyResult<()> {
-  let name = "notification_created";
+  let name = "notification_after_create";
   let plugins = LemmyPlugins::get_or_init();
   if !plugins.function_exists(name) {
     return Ok(());

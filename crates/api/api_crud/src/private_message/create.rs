@@ -61,10 +61,10 @@ pub async fn create_private_message(
     content.clone(),
   );
 
-  form = plugin_hook_before("before_create_local_private_message", form).await?;
+  form = plugin_hook_before("local_private_message_before_create", form).await?;
   let inserted_private_message = PrivateMessage::create(&mut context.pool(), &form).await?;
   plugin_hook_after(
-    "after_create_local_private_message",
+    "local_private_message_after_create",
     &inserted_private_message,
   );
 

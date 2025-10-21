@@ -71,7 +71,7 @@ pub async fn create_comment_report(
 
   let comment_report_view =
     ReportCombinedViewInternal::read_comment_report(&mut context.pool(), report.id, person).await?;
-  plugin_hook_after("comment_report_created", &comment_report_view);
+  plugin_hook_after("comment_report_after_create", &comment_report_view);
 
   // Email the admins
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
