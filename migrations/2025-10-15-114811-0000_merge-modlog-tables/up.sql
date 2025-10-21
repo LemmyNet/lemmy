@@ -46,10 +46,86 @@ CREATE TABLE modlog (
 -- Most mod actions can have only one target. We could make this much more specific and state
 -- which exact column must be set for each kind but that would be excessive.
 ALTER TABLE modlog
-    ADD CHECK (num_nonnulls (target_person_id, target_community_id, target_post_id, target_comment_id, target_instance_id) = 1
-        OR ((kind = 'ModBanFromCommunity'
-        OR kind = 'ModTransferCommunity')
-        AND num_nonnulls (target_person_id, target_community_id, target_post_id, target_comment_id, target_instance_id) = 2));
+    ADD CHECK ((kind = 'AdminAdd'
+        AND target_person_id IS NOT NULL
+        AND num_nonnulls (target_community_id, target_post_id, target_comment_id, target_instance_id) = 0)
+        OR (kind = 'AdminBan'
+        AND target_person_id IS NOT NULL
+        AND target_instance_id IS NOT NULL
+        AND num_nonnulls (target_community_id, target_post_id, target_comment_id) = 0)
+        OR (kind = 'ModRemovePost'
+        AND target_post_id IS NOT NULL
+        AND num_nonnulls (target_community_id, target_instance_id, target_person_id, target_comment_id) = 0)
+        OR (kind = 'ModRemoveComment'
+        AND target_comment_id IS NOT NULL
+        AND num_nonnulls (target_community_id, target_instance_id, target_person_id, target_post_id) = 0)
+        OR (kind = 'ModLockComment'
+        AND target_comment_id IS NOT NULL
+        AND num_nonnulls (target_community_id, target_instance_id, target_person_id, target_post_id) = 0)
+        OR (kind = 'ModLockPost'
+        AND target_post_id IS NOT NULL
+        AND num_nonnulls (target_community_id, target_instance_id, target_person_id, target_comment_id) = 0)
+        OR (kind = 'AdminRemoveCommunity'
+        AND target_community_id IS NOT NULL
+        AND num_nonnulls (target_post_id, target_instance_id, target_person_id, target_comment_id) = 0)
+        OR (kind = 'ModChangeCommunityVisibility'
+        AND target_community_id IS NOT NULL
+        AND num_nonnulls (target_post_id, target_instance_id, target_person_id, target_comment_id) = 0)
+        OR (kind = 'ModBanFromCommunity'
+        AND target_community_id IS NOT NULL
+        AND target_person_id IS NOT NULL
+        AND
+        AND num_nonnulls (target_post_id, target_instance_id, target_comment_id) = 0)
+        OR (kind = 'ModAddToCommunity'
+        AND target_community_id IS NOT NULL
+        AND target_person_id IS NOT NULL
+        AND
+        AND num_nonnulls (target_post_id, target_instance_id, target_comment_id) = 0)
+        OR (kind = 'ModTransferCommunity'
+        AND target_community_id IS NOT NULL
+        AND target_person_id IS NOT NULL
+        AND
+        AND num_nonnulls (target_post_id, target_instance_id, target_comment_id) = 0)
+        OR (kind = 'AdminAllowInstance'
+        AND target_instance_id IS NOT NULL
+        AND target_person_id IS NOT NULL
+        AND
+        AND num_nonnulls (target_post_id, target_person_id, target_community_id, target_comment_id) = 0)
+        OR (kind = 'AdminBlockInstance'
+        AND target_instance_id IS NOT NULL
+        AND target_person_id IS NOT NULL
+        AND
+        AND num_nonnulls (target_post_id, target_person_id, target_community_id, target_comment_id) = 0)
+        OR (kind = 'AdminPurgeComment'
+        AND target_comment_id IS NOT NULL
+        AND target_person_id IS NOT NULL
+        AND target_post_id IS NOT NULL
+        AND target_community_id IS NOT NULL
+        AND
+        AND num_nonnulls (target_instance_id) = 0)
+        OR (kind = 'AdminPurgePost'
+        AND target_post_id IS NOT NULL
+        AND target_person_id IS NOT NULL
+        AND target_community_id IS NOT NULL
+        AND
+        AND num_nonnulls (target_instance_id, target_comment_id) = 0)
+        OR (kind = 'AdminPurgeCommunity'
+        AND target_community_id IS NOT NULL
+        AND
+        AND num_nonnulls (target_instance_id, target_post_id, target_comment_id, target_person_id) = 0)
+        OR (kind = 'AdminPurgePerson'
+        AND target_person_id IS NOT NULL
+        AND
+        AND num_nonnulls (target_instance_id, target_post_id, target_comment_id, target_community_id) = 0)
+        OR (kind = 'ModFeaturePostCommunity'
+        AND target_post_id IS NOT NULL
+        AND target_community_id IS NOT NULL
+        AND
+        AND num_nonnulls (target_instance_id, target_post_id, target_comment_id) = 0)
+        OR (kind = 'AdminFeaturePostSite'
+        AND target_post_id IS NOT NULL
+        AND
+        AND num_nonnulls (target_instance_id, target_person_id, target_comment_id, target_community_id) = 0));
 
 -- copy old data to new table
 INSERT INTO modlog (kind, removed, mod_id, target_person_id, published_at)
