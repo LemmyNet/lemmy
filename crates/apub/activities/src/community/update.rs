@@ -120,10 +120,7 @@ impl Activity for Update {
 
         if old_community.visibility != community.visibility {
           let actor = self.actor.dereference(context).await?;
-          let form = ModlogInsertForm {
-            target_community_id: Some(old_community.id),
-            ..ModlogInsertForm::new(ModlogKind::ModChangeCommunityVisibility, true, actor.id)
-          };
+          let form = ModlogInsertForm::mod_change_community_visibility(actor.id, old_community.id);
           Modlog::create(&mut context.pool(), &[form]).await?;
         }
       }

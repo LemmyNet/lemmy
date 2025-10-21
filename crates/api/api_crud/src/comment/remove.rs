@@ -77,15 +77,12 @@ pub async fn remove_comment(
     .await?;
 
   // Mod tables
-  let form = ModlogInsertForm {
-    target_comment_id: Some(data.comment_id),
-    reason: Some(data.reason.clone()),
-    ..ModlogInsertForm::new(
-      ModlogKind::ModRemoveComment,
-      removed,
-      local_user_view.person.id,
-    )
-  };
+  let form = ModlogInsertForm::mod_remove_comment(
+    local_user_view.person.id,
+    data.comment_id,
+    removed,
+    &data.reason,
+  );
   let actions = Modlog::create(&mut context.pool(), &[form]).await?;
   notify_mod_action(actions, updated_comment.creator_id, context.app_data());
 

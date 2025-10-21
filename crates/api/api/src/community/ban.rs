@@ -87,13 +87,14 @@ pub async fn ban_from_community(
         };
 
         // Mod tables
-        let form = ModlogInsertForm {
-          target_person_id: Some(tx_data.person_id),
-          target_community_id: Some(tx_data.community_id),
-          reason: Some(tx_data.reason.clone()),
+        let form = ModlogInsertForm::mod_ban_from_community(
+          my_person_id,
+          tx_data.community_id,
+          tx_data.person_id,
+          tx_data.ban,
           expires_at,
-          ..ModlogInsertForm::new(ModlogKind::ModBanFromCommunity, tx_data.ban, my_person_id)
-        };
+          &tx_data.reason,
+        );
         Modlog::create(&mut conn.into(), &[form]).await
       }
       .scope_boxed()

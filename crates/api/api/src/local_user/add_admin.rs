@@ -60,10 +60,11 @@ pub async fn add_admin(
   .await?;
 
   // Mod tables
-  let form = ModlogInsertForm {
-    target_person_id: Some(added_local_user.person.id),
-    ..ModlogInsertForm::new(ModlogKind::AdminAdd, !data.added, my_person_id)
-  };
+  let form = ModlogInsertForm::admin_add(
+    &local_user_view.person,
+    added_local_user.person.id,
+    !data.added,
+  );
   let action = Modlog::create(&mut context.pool(), &[form]).await?;
   notify_mod_action(action.clone(), added_local_user.person.id, &context);
 

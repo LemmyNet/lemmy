@@ -37,13 +37,17 @@ pub async fn feature_post(
 
   // Update the post
   let post_id = data.post_id;
-  let (post_form, modlog_kind) = if data.feature_type == PostFeatureType::Community {
+  let (post_form, modlog_form) = if data.feature_type == PostFeatureType::Community {
     (
       PostUpdateForm {
         featured_community: Some(data.featured),
         ..Default::default()
       },
-      ModlogKind::ModFeaturePostCommunity,
+      ModlogInsertForm::mod_feature_post_community(
+        local_user_view.person.id,
+        &orig_post,
+        data.featured,
+      ),
     )
   } else {
     (
@@ -51,18 +55,17 @@ pub async fn feature_post(
         featured_local: Some(data.featured),
         ..Default::default()
       },
-      ModlogKind::AdminFeaturePostSite,
+      ModlogInsertForm::admin_feature_post_site(
+        local_user_view.person.id,
+        &orig_post,
+        data.featured,
+      ),
     )
   };
   let post = Post::update(&mut context.pool(), post_id, &post_form).await?;
 
   // Mod tables
-  let form = ModlogInsertForm {
-    target_post_id: Some(data.post_id),
-    target_community_id: Some(community.id),
-    ..ModlogInsertForm::new(modlog_kind, data.featured, local_user_view.person.id)
-  };
-  Modlog::create(&mut context.pool(), &[form]).await?;
+  Modlog::create(&mut context.pool(), &[modlog_form]).await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::FeaturePost(post, local_user_view.person.clone(), data.featured),

@@ -646,11 +646,7 @@ async fn create_modlog_entries_for_removed_or_restored_posts(
   // Build the forms
   let forms: Vec<_> = post_ids
     .iter()
-    .map(|&post_id| ModlogInsertForm {
-      reason: Some(reason.to_string()),
-      target_post_id: Some(post_id),
-      ..ModlogInsertForm::new(ModlogKind::ModRemovePost, removed, mod_person_id)
-    })
+    .map(|&post_id| ModlogInsertForm::mod_remove_post(mod_person_id, post_id, removed, reason))
     .collect();
 
   Modlog::create(pool, &forms).await?;
@@ -668,10 +664,8 @@ async fn create_modlog_entries_for_removed_or_restored_comments(
   // Build the forms
   let forms: Vec<_> = comment_ids
     .iter()
-    .map(|&comment_id| ModlogInsertForm {
-      target_comment_id: Some(comment_id),
-      reason: Some(reason.to_string()),
-      ..ModlogInsertForm::new(ModlogKind::ModRemoveComment, removed, mod_person_id)
+    .map(|&comment_id| {
+      ModlogInsertForm::mod_remove_comment(mod_person_id, comment_id, removed, reason)
     })
     .collect();
 

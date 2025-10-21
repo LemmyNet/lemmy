@@ -76,15 +76,12 @@ pub async fn add_mod_to_community(
         }
 
         // Mod tables
-        let form = ModlogInsertForm {
-          target_person_id: Some(tx_data.person_id),
-          target_community_id: Some(tx_data.community_id),
-          ..ModlogInsertForm::new(
-            ModlogKind::ModAddToCommunity,
-            !tx_data.added,
-            local_user_view.person.id,
-          )
-        };
+        let form = ModlogInsertForm::mod_add_to_community(
+          local_user_view.person.id,
+          tx_data.community_id,
+          tx_data.person_id,
+          !tx_data.added,
+        );
         Modlog::create(&mut conn.into(), &[form]).await
       }
       .scope_boxed()

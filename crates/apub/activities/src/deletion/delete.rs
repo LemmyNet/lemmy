@@ -108,11 +108,7 @@ pub(crate) async fn receive_remove_action(
         Err(UntranslatedError::OnlyLocalAdminCanRemoveCommunity)?
       }
       CommunityReport::resolve_all_for_object(&mut context.pool(), community.id, actor.id).await?;
-      let form = ModlogInsertForm {
-        target_community_id: Some(community.id),
-        reason: Some(reason),
-        ..ModlogInsertForm::new(ModlogKind::AdminRemoveCommunity, true, actor.id)
-      };
+      let form = ModlogInsertForm::admin_remove_community(actor.id, community.id, true, &reason);
       let action = Modlog::create(&mut context.pool(), &[form]).await?;
       for m in CommunityModeratorView::for_community(&mut context.pool(), community.id).await? {
         notify_mod_action(action.clone(), m.moderator.id, context.app_data());
@@ -129,11 +125,7 @@ pub(crate) async fn receive_remove_action(
     }
     DeletableObjects::Post(post) => {
       PostReport::resolve_all_for_object(&mut context.pool(), post.id, actor.id).await?;
-      let form = ModlogInsertForm {
-        target_post_id: Some(post.id),
-        reason: Some(reason),
-        ..ModlogInsertForm::new(ModlogKind::ModRemovePost, true, actor.id)
-      };
+      let form = ModlogInsertForm::mod_remove_post(actor.id, post.id, true, &reason);
       let action = Modlog::create(&mut context.pool(), &[form]).await?;
       notify_mod_action(action, post.creator_id, context.app_data());
       Post::update(
@@ -148,11 +140,7 @@ pub(crate) async fn receive_remove_action(
     }
     DeletableObjects::Comment(comment) => {
       CommentReport::resolve_all_for_object(&mut context.pool(), comment.id, actor.id).await?;
-      let form = ModlogInsertForm {
-        target_comment_id: Some(comment.id),
-        reason: Some(reason),
-        ..ModlogInsertForm::new(ModlogKind::ModRemoveComment, true, actor.id)
-      };
+      let form = ModlogInsertForm::mod_remove_comment(actor.id, comment.id, true, &reason);
       let action = Modlog::create(&mut context.pool(), &[form]).await?;
       notify_mod_action(action, comment.creator_id, context.app_data());
       Comment::update(

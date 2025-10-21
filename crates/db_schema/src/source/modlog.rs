@@ -41,22 +41,22 @@ pub struct Modlog {
 #[derive(derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable))]
 #[cfg_attr(feature = "full", diesel(table_name = modlog))]
-pub struct ModlogInsertForm {
-  pub kind: ModlogKind,
-  pub removed: bool,
-  pub mod_id: PersonId,
+pub struct ModlogInsertForm<'a> {
+  pub(crate) kind: ModlogKind,
+  pub(crate) removed: bool,
+  pub(crate) mod_id: PersonId,
   #[new(default)]
-  pub reason: Option<String>,
+  pub(crate) reason: Option<&'a str>,
   #[new(default)]
-  pub target_person_id: Option<PersonId>,
+  pub(crate) target_person_id: Option<PersonId>,
   #[new(default)]
-  pub target_community_id: Option<CommunityId>,
+  pub(crate) target_community_id: Option<CommunityId>,
   #[new(default)]
-  pub target_post_id: Option<PostId>,
+  pub(crate) target_post_id: Option<PostId>,
   #[new(default)]
-  pub target_comment_id: Option<CommentId>,
+  pub(crate) target_comment_id: Option<CommentId>,
   #[new(default)]
-  pub target_instance_id: Option<InstanceId>,
+  pub(crate) target_instance_id: Option<InstanceId>,
   #[new(default)]
-  pub expires_at: Option<DateTime<Utc>>,
+  pub(crate) expires_at: Option<DateTime<Utc>>,
 }

@@ -70,11 +70,7 @@ impl Activity for LockPageOrNote {
         };
         Post::update(&mut context.pool(), post.id, &form).await?;
 
-        let form = ModlogInsertForm {
-          target_post_id: Some(post.id),
-          reason: Some(reason),
-          ..ModlogInsertForm::new(ModlogKind::ModLockPost, true, actor.id)
-        };
+        let form = ModlogInsertForm::mod_lock_post(actor.id, post.id, true, &reason);
         let action = Modlog::create(&mut context.pool(), &[form]).await?;
         notify_mod_action(action, post.creator_id, context);
       }
@@ -82,11 +78,7 @@ impl Activity for LockPageOrNote {
         Comment::update_locked_for_comment_and_children(&mut context.pool(), &comment.path, true)
           .await?;
 
-        let form = ModlogInsertForm {
-          target_comment_id: Some(comment.id),
-          reason: Some(reason),
-          ..ModlogInsertForm::new(ModlogKind::ModLockComment, true, actor.id)
-        };
+        let form = ModlogInsertForm::mod_lock_comment(actor.id, comment.id, true, &reason);
         let action = Modlog::create(&mut context.pool(), &[form]).await?;
         notify_mod_action(action, comment.creator_id, context);
       }
@@ -133,11 +125,7 @@ impl Activity for UndoLockPageOrNote {
 
         Post::update(&mut context.pool(), post.id, &form).await?;
 
-        let form = ModlogInsertForm {
-          target_post_id: Some(post.id),
-          reason: Some(reason),
-          ..ModlogInsertForm::new(ModlogKind::ModLockPost, false, actor.id)
-        };
+        let form = ModlogInsertForm::mod_lock_post(actor.id, post.id, false, &reason);
         let action = Modlog::create(&mut context.pool(), &[form]).await?;
         notify_mod_action(action, post.creator_id, context);
       }
@@ -145,11 +133,7 @@ impl Activity for UndoLockPageOrNote {
         Comment::update_locked_for_comment_and_children(&mut context.pool(), &comment.path, false)
           .await?;
 
-        let form = ModlogInsertForm {
-          target_comment_id: Some(comment.id),
-          reason: Some(reason),
-          ..ModlogInsertForm::new(ModlogKind::ModLockComment, false, actor.id)
-        };
+        let form = ModlogInsertForm::mod_lock_comment(actor.id, comment.id, false, &reason);
         let action = Modlog::create(&mut context.pool(), &[form]).await?;
         notify_mod_action(action, comment.creator_id, context);
       }

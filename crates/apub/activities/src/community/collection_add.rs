@@ -133,11 +133,8 @@ impl Activity for CollectionAdd {
 
           // write mod log
           let actor = self.actor.dereference(context).await?;
-          let form = ModlogInsertForm {
-            target_community_id: Some(community.id),
-            target_person_id: Some(new_mod.id),
-            ..ModlogInsertForm::new(ModlogKind::ModAddToCommunity, false, actor.id)
-          };
+          let form =
+            ModlogInsertForm::mod_add_to_community(actor.id, community.id, new_mod.id, false);
           let action = Modlog::create(&mut context.pool(), &[form]).await?;
           notify_mod_action(action, new_mod.id, context);
         }

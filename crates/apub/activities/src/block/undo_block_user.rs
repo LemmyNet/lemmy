@@ -118,13 +118,8 @@ impl Activity for UndoBlockUser {
         }
 
         // write mod log
-        let form = ModlogInsertForm {
-          target_person_id: Some(blocked_person.id),
-          target_instance_id: Some(site.instance_id),
-          expires_at,
-          reason: Some(reason),
-          ..ModlogInsertForm::new(ModlogKind::AdminBan, false, mod_person.id)
-        };
+        let form =
+          ModlogInsertForm::admin_ban(&mod_person, blocked_person.id, false, expires_at, &reason);
         let action = Modlog::create(&mut context.pool(), &[form]).await?;
         notify_mod_action(action.clone(), blocked_person.id, context.app_data());
       }
@@ -146,13 +141,14 @@ impl Activity for UndoBlockUser {
         }
 
         // write to mod log
-        let form = ModlogInsertForm {
-          target_person_id: Some(blocked_person.id),
-          target_community_id: Some(community.id),
+        let form = ModlogInsertForm::mod_ban_from_community(
+          mod_person.id,
+          community.id,
+          blocked_person.id,
+          false,
           expires_at,
-          reason: Some(reason),
-          ..ModlogInsertForm::new(ModlogKind::ModBanFromCommunity, false, mod_person.id)
-        };
+          &reason,
+        );
         let action = Modlog::create(&mut context.pool(), &[form]).await?;
         notify_mod_action(action.clone(), blocked_person.id, context.app_data());
       }

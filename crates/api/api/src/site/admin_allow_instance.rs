@@ -39,15 +39,12 @@ pub async fn admin_allow_instance(
     FederationAllowList::unallow(&mut context.pool(), instance_id).await?;
   }
 
-  let form = ModlogInsertForm {
-    target_instance_id: Some(instance_id),
-    reason: Some(data.reason.clone()),
-    ..ModlogInsertForm::new(
-      ModlogKind::AdminAllowInstance,
-      data.allow,
-      local_user_view.person.id,
-    )
-  };
+  let form = ModlogInsertForm::admin_allow_instance(
+    local_user_view.person.id,
+    instance_id,
+    data.allow,
+    &data.reason,
+  );
   Modlog::create(&mut context.pool(), &[form]).await?;
 
   Ok(Json(SuccessResponse::default()))

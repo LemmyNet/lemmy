@@ -65,13 +65,13 @@ pub async fn ban_from_site(
   };
 
   // Mod tables
-  let form = ModlogInsertForm {
-    target_person_id: Some(data.person_id),
-    target_instance_id: Some(local_user_view.person.instance_id),
+  let form = ModlogInsertForm::admin_ban(
+    &local_user_view.person,
+    data.person_id,
+    data.ban,
     expires_at,
-    reason: Some(data.reason.clone()),
-    ..ModlogInsertForm::new(ModlogKind::AdminAdd, data.ban, my_person_id)
-  };
+    &data.reason,
+  );
   let action = Modlog::create(&mut context.pool(), &[form]).await?;
   notify_mod_action(action.clone(), data.person_id, &context);
 

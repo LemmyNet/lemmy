@@ -99,14 +99,10 @@ pub async fn update_community(
   let community = Community::update(&mut context.pool(), community_id, &community_form).await?;
 
   if old_community.visibility != community.visibility {
-    let form = ModlogInsertForm {
-      target_community_id: Some(community.id),
-      ..ModlogInsertForm::new(
-        ModlogKind::ModChangeCommunityVisibility,
-        false,
-        local_user_view.person.id,
-      )
-    };
+    let form = ModlogInsertForm::mod_change_community_visibility(
+      local_user_view.person.id,
+      data.community_id,
+    );
     Modlog::create(&mut context.pool(), &[form]).await?;
   }
 

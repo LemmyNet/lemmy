@@ -124,11 +124,8 @@ impl Activity for CollectionRemove {
 
         // write mod log
         let actor = self.actor.dereference(context).await?;
-        let form = ModlogInsertForm {
-          target_community_id: Some(community.id),
-          target_person_id: Some(remove_mod.id),
-          ..ModlogInsertForm::new(ModlogKind::ModAddToCommunity, true, actor.id)
-        };
+        let form =
+          ModlogInsertForm::mod_add_to_community(actor.id, community.id, remove_mod.id, true);
         let action = Modlog::create(&mut context.pool(), &[form]).await?;
         notify_mod_action(action, remove_mod.id, context);
 

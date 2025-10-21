@@ -47,15 +47,12 @@ pub async fn admin_block_instance(
     FederationBlockList::unblock(&mut context.pool(), instance_id).await?;
   }
 
-  let form = ModlogInsertForm {
-    target_instance_id: Some(instance_id),
-    reason: Some(data.reason.clone()),
-    ..ModlogInsertForm::new(
-      ModlogKind::AdminBlockInstance,
-      data.block,
-      local_user_view.person.id,
-    )
-  };
+  let form = ModlogInsertForm::admin_block_instance(
+    local_user_view.person.id,
+    instance_id,
+    data.block,
+    &data.reason,
+  );
   Modlog::create(&mut context.pool(), &[form]).await?;
 
   Ok(Json(SuccessResponse::default()))

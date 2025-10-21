@@ -47,23 +47,17 @@ pub async fn purge_comment(
   )
   .await?;
 
-  let post_id = comment_view.comment.post_id;
-
   // TODO read comments for pictrs images and purge them
 
   Comment::delete(&mut context.pool(), comment_id).await?;
 
   // Mod tables
-  let form = ModlogInsertForm {
-    target_post_id: Some(post_id),
-    target_community_id: Some(comment_view.community.id),
-    reason: Some(data.reason.clone()),
-    ..ModlogInsertForm::new(
-      ModlogKind::AdminPurgeComment,
-      true,
-      local_user_view.person.id,
-    )
-  };
+  let form = ModlogInsertForm::admin_purge_comment(
+    local_user_view.person.id,
+    &comment_view.comment,
+    comment_view.community.id,
+    &data.reason,
+  );
   Modlog::create(&mut context.pool(), &[form]).await?;
 
   ActivityChannel::submit_activity(

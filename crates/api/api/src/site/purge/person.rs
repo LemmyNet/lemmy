@@ -63,15 +63,8 @@ pub async fn purge_person(
   .await?;
 
   // Mod tables
-  let form = ModlogInsertForm {
-    target_person_id: Some(data.person_id),
-    reason: Some(data.reason.clone()),
-    ..ModlogInsertForm::new(
-      ModlogKind::AdminPurgePerson,
-      true,
-      local_user_view.person.id,
-    )
-  };
+  let form =
+    ModlogInsertForm::admin_purge_person(local_user_view.person.id, data.person_id, &data.reason);
   Modlog::create(&mut context.pool(), &[form]).await?;
 
   Ok(Json(SuccessResponse::default()))

@@ -53,15 +53,12 @@ pub async fn remove_community(
   .await?;
 
   // Mod tables
-  let form = ModlogInsertForm {
-    target_community_id: Some(data.community_id),
-    reason: Some(data.reason.clone()),
-    ..ModlogInsertForm::new(
-      ModlogKind::AdminRemoveCommunity,
-      removed,
-      local_user_view.person.id,
-    )
-  };
+  let form = ModlogInsertForm::admin_remove_community(
+    local_user_view.person.id,
+    data.community_id,
+    removed,
+    &data.reason,
+  );
   let action = Modlog::create(&mut context.pool(), &[form]).await?;
   for m in CommunityModeratorView::for_community(&mut context.pool(), data.community_id).await? {
     notify_mod_action(action.clone(), m.moderator.id, context.app_data());
