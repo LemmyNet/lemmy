@@ -117,6 +117,17 @@ pub async fn user_backup_list_to_user_settings_backup(
 }
 
 impl FederatedInstanceView {
+  #[diesel::dsl::auto_type(no_type_alias)]
+  fn joins() -> _ {
+    instance::table
+      // omit instance representing the local site
+      .left_join(site::table.left_join(local_site::table))
+      .filter(local_site::id.is_null())
+      .left_join(federation_blocklist::table)
+      .left_join(federation_allowlist::table)
+      .left_join(federation_queue_state::table)
+  }
+
   pub async fn list(pool: &mut DbPool<'_>, data: GetFederatedInstances) -> LemmyResult<Vec<Self>> {
     let cursor_data = if let Some(cursor) = &data.page_cursor {
       Some(FederatedInstanceView::from_cursor(cursor, pool).await?)
@@ -125,13 +136,7 @@ impl FederatedInstanceView {
     };
     let conn = &mut get_conn(pool).await?;
     let limit = limit_fetch(data.limit)?;
-    let mut query = instance::table
-      // omit instance representing the local site
-      .left_join(site::table.left_join(local_site::table))
-      .filter(local_site::id.is_null())
-      .left_join(federation_blocklist::table)
-      .left_join(federation_allowlist::table)
-      .left_join(federation_queue_state::table)
+    let mut query = Self::joins()
       .select(Self::as_select())
       .limit(limit)
       .into_boxed();
@@ -141,6 +146,7 @@ impl FederatedInstanceView {
     }
 
     query = match data.kind {
+      GetFederatedInstancesKind::All => query,
       GetFederatedInstancesKind::Linked => {
         query.filter(federation_blocklist::instance_id.is_null())
       }
@@ -169,6 +175,16 @@ impl FederatedInstanceView {
       .then_order_by(key::id);
 
     pq.get_results(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  pub async fn read(pool: &mut DbPool<'_>, instance_id: InstanceId) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+    Self::joins()
+      .filter(instance::id.eq(instance_id))
+      .select(Self::as_select())
+      .get_result(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
