@@ -267,11 +267,7 @@ impl NotifyData {
   }
 }
 
-pub fn notify_private_message(
-  view: &PrivateMessageView,
-  is_create: bool,
-  context: &LemmyContext,
-) {
+pub fn notify_private_message(view: &PrivateMessageView, is_create: bool, context: &LemmyContext) {
   let view = view.clone();
   let context = context.clone();
   spawn_try_task(async move {
