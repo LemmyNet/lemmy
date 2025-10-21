@@ -164,8 +164,8 @@ test("Only followers can view and interact with private community content", asyn
 
   const post1 = await createPost(user, betaCommunity!.id);
   expect(post1.post_view).toBeDefined();
-  const like = await likeComment(user, 1, resolvedComment!.comment);
-  expect(like.comment_view.comment_actions?.like_score).toBe(1);
+  const like = await likeComment(user, true, resolvedComment!.comment);
+  expect(like.comment_view.comment_actions?.vote_is_upvote).toBe(true);
 });
 
 test("Reject follower", async () => {

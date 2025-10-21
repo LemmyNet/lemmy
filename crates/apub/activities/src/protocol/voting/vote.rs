@@ -5,7 +5,7 @@ use lemmy_apub_objects::{
   objects::{community::ApubCommunity, person::ApubPerson, PostOrComment},
   utils::protocol::InCommunity,
 };
-use lemmy_utils::error::{LemmyError, LemmyResult, UntranslatedError};
+use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
 use strum::Display;
 use url::Url;
@@ -26,24 +26,19 @@ pub enum VoteType {
   Dislike,
 }
 
-impl TryFrom<i16> for VoteType {
-  type Error = LemmyError;
-
-  fn try_from(value: i16) -> Result<Self, Self::Error> {
-    match value {
-      1 => Ok(VoteType::Like),
-      -1 => Ok(VoteType::Dislike),
-      _ => Err(UntranslatedError::InvalidVoteValue.into()),
+impl From<bool> for VoteType {
+  fn from(value: bool) -> Self {
+    if value {
+      VoteType::Like
+    } else {
+      VoteType::Dislike
     }
   }
 }
 
-impl From<&VoteType> for i16 {
-  fn from(value: &VoteType) -> i16 {
-    match value {
-      VoteType::Like => 1,
-      VoteType::Dislike => -1,
-    }
+impl From<&VoteType> for bool {
+  fn from(value: &VoteType) -> Self {
+    value == &VoteType::Like
   }
 }
 

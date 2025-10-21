@@ -62,7 +62,7 @@ test("Update a private message", async () => {
   let betaPms = await waitUntil(
     () => listNotifications(beta, "private_message"),
     p =>
-      p.notifications[0].data.type_ == "PrivateMessage" &&
+      p.notifications[0].data.type_ == "private_message" &&
       p.notifications[0].data.private_message.content === updatedContent,
   );
   let pm = betaPms.notifications[0].data as PrivateMessageView;
@@ -76,7 +76,7 @@ test("Delete a private message", async () => {
     m =>
       !!m.notifications.find(
         e =>
-          e.data.type_ == "PrivateMessage" &&
+          e.data.type_ == "private_message" &&
           e.data.private_message.ap_id ===
             pmRes.private_message_view.private_message.ap_id,
       ),
@@ -121,7 +121,7 @@ test("Create a private message report", async () => {
     m =>
       !!m.notifications.find(
         e =>
-          e.data.type_ == "PrivateMessage" &&
+          e.data.type_ == "private_message" &&
           e.data.private_message.ap_id ===
             pmRes.private_message_view.private_message.ap_id,
       ),

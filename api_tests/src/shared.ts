@@ -331,7 +331,7 @@ export async function resolvePost(
   return api
     .resolveObject(form)
     .then(a => a.results.at(0))
-    .then(a => (a?.type_ == "Post" ? a : undefined));
+    .then(a => (a?.type_ == "post" ? a : undefined));
 }
 
 export async function searchPostLocal(
@@ -345,7 +345,7 @@ export async function searchPostLocal(
   };
   let res = await api.search(form);
   let first = res.results.at(0);
-  return first?.type_ == "Post" ? first : undefined;
+  return first?.type_ == "post" ? first : undefined;
 }
 
 /// wait for a post to appear locally without pulling it
@@ -425,7 +425,7 @@ export async function resolveComment(
   return api
     .resolveObject(form)
     .then(a => a.results.at(0))
-    .then(a => (a?.type_ == "Comment" ? a : undefined));
+    .then(a => (a?.type_ == "comment" ? a : undefined));
 }
 
 export async function resolveBetaCommunity(
@@ -438,7 +438,7 @@ export async function resolveBetaCommunity(
   return api
     .resolveObject(form)
     .then(a => a.results.at(0))
-    .then(a => (a?.type_ == "Community" ? a : undefined));
+    .then(a => (a?.type_ == "community" ? a : undefined));
 }
 
 export async function resolveCommunity(
@@ -451,7 +451,7 @@ export async function resolveCommunity(
   return api
     .resolveObject(form)
     .then(a => a.results.at(0))
-    .then(a => (a?.type_ == "Community" ? a : undefined));
+    .then(a => (a?.type_ == "community" ? a : undefined));
 }
 
 export async function resolvePerson(
@@ -464,7 +464,7 @@ export async function resolvePerson(
   return api
     .resolveObject(form)
     .then(a => a.results.at(0))
-    .then(a => (a?.type_ == "Person" ? a : undefined));
+    .then(a => (a?.type_ == "person" ? a : undefined));
 }
 
 export async function banPersonFromSite(
@@ -524,12 +524,12 @@ export async function followCommunity(
 
 export async function likePost(
   api: LemmyHttp,
-  score: number,
+  is_upvote: boolean | undefined,
   post: Post,
 ): Promise<PostResponse> {
   let form: CreatePostLike = {
     post_id: post.id,
-    score: score,
+    is_upvote: is_upvote,
   };
 
   return api.likePost(form);
@@ -588,12 +588,12 @@ export async function removeComment(
 
 export async function likeComment(
   api: LemmyHttp,
-  score: number,
+  is_upvote: boolean | undefined,
   comment: Comment,
 ): Promise<CommentResponse> {
   let form: CreateCommentLike = {
     comment_id: comment.id,
-    score,
+    is_upvote,
   };
   return api.likeComment(form);
 }

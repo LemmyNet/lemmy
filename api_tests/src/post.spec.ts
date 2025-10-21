@@ -169,11 +169,11 @@ test("Unlike a post", async () => {
     throw "Missing beta community";
   }
   let postRes = await createPost(alpha, betaCommunity.community.id);
-  let unlike = await likePost(alpha, 0, postRes.post_view.post);
+  let unlike = await likePost(alpha, undefined, postRes.post_view.post);
   expect(unlike.post_view.post.score).toBe(0);
 
   // Try to unlike it again, make sure it stays at 0
-  let unlike2 = await likePost(alpha, 0, postRes.post_view.post);
+  let unlike2 = await likePost(alpha, undefined, postRes.post_view.post);
   expect(unlike2.post_view.post.score).toBe(0);
 
   // Make sure that post is unliked on beta
@@ -187,40 +187,6 @@ test("Unlike a post", async () => {
   expect(betaPost?.community.local).toBe(true);
   expect(betaPost?.creator.local).toBe(false);
   expect(betaPost?.post.score).toBe(0);
-  await assertPostFederation(betaPost, postRes.post_view);
-});
-
-test("Make sure like is within range", async () => {
-  if (!betaCommunity) {
-    throw "Missing beta community";
-  }
-  let postRes = await createPost(alpha, betaCommunity.community.id);
-
-  // Try a like with score 2
-  await expect(
-    likePost(alpha, 2, postRes.post_view.post),
-  ).rejects.toStrictEqual(
-    new LemmyError("couldnt_like_post", statusBadRequest),
-  );
-
-  // Try a like with score -2
-  await expect(
-    likePost(alpha, -2, postRes.post_view.post),
-  ).rejects.toStrictEqual(
-    new LemmyError("couldnt_like_post", statusBadRequest),
-  );
-
-  // Make sure that post stayed at 1
-  const betaPost = await waitForPost(
-    beta,
-    postRes.post_view.post,
-    post => post?.post.score === 1,
-  );
-
-  expect(betaPost).toBeDefined();
-  expect(betaPost?.community.local).toBe(true);
-  expect(betaPost?.creator.local).toBe(false);
-  expect(betaPost?.post.score).toBe(1);
   await assertPostFederation(betaPost, postRes.post_view);
 });
 
@@ -699,7 +665,7 @@ test("Enforce community ban for federated user", async () => {
   await waitUntil(
     () => getModlog(alpha),
     m =>
-      m.modlog[0].type_ == "ModBanFromCommunity" &&
+      m.modlog[0].type_ == "mod_ban_from_community" &&
       m.modlog[0].mod_ban_from_community.banned == false,
   );
 
@@ -863,7 +829,7 @@ test("Fetch post via redirect", async () => {
   let gammaPost = await gamma
     .resolveObject(form)
     .then(a => a.results.at(0))
-    .then(a => (a?.type_ == "Post" ? a : undefined));
+    .then(a => (a?.type_ == "post" ? a : undefined));
 
   expect(gammaPost).toBeDefined();
   expect(gammaPost?.post.ap_id).toBe(alphaPost.post_view.post.ap_id);
@@ -911,7 +877,7 @@ test("Fetch post with redirect", async () => {
   let gammaPost2 = await gamma
     .resolveObject(form)
     .then(a => a.results.at(0))
-    .then(a => (a?.type_ == "Post" ? a : undefined));
+    .then(a => (a?.type_ == "post" ? a : undefined));
 
   expect(gammaPost2?.post).toBeDefined();
 });
@@ -1049,7 +1015,7 @@ test("Plugin test", async () => {
 
 function checkPostReportName(rcv: ReportCombinedView, report: PostReport) {
   switch (rcv.type_) {
-    case "Post":
+    case "post":
       return rcv.post_report.original_post_name === report.original_post_name;
     default:
       return false;

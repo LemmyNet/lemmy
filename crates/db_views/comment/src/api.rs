@@ -32,8 +32,7 @@ pub struct CreateComment {
 /// Like a comment.
 pub struct CreateCommentLike {
   pub comment_id: CommentId,
-  /// Must be -1, 0, or 1 .
-  pub score: i16,
+  pub is_upvote: Option<bool>,
 }
 
 #[skip_serializing_none]

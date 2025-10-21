@@ -184,8 +184,8 @@ diesel::table! {
         upvotes -> Int4,
         downvotes -> Int4,
         child_count -> Int4,
-        hot_rank -> Float8,
-        controversy_rank -> Float8,
+        hot_rank -> Float4,
+        controversy_rank -> Float4,
         report_count -> Int2,
         unresolved_report_count -> Int2,
         federation_pending -> Bool,
@@ -195,11 +195,11 @@ diesel::table! {
 
 diesel::table! {
     comment_actions (person_id, comment_id) {
+        voted_at -> Nullable<Timestamptz>,
+        saved_at -> Nullable<Timestamptz>,
         person_id -> Int4,
         comment_id -> Int4,
-        like_score -> Nullable<Int2>,
-        liked_at -> Nullable<Timestamptz>,
-        saved_at -> Nullable<Timestamptz>,
+        vote_is_upvote -> Nullable<Bool>,
     }
 }
 
@@ -263,11 +263,11 @@ diesel::table! {
         users_active_week -> Int4,
         users_active_month -> Int4,
         users_active_half_year -> Int4,
-        hot_rank -> Float8,
+        hot_rank -> Float4,
         subscribers_local -> Int4,
+        interactions_month -> Int4,
         report_count -> Int2,
         unresolved_report_count -> Int2,
-        interactions_month -> Int4,
         local_removed -> Bool,
     }
 }
@@ -278,15 +278,15 @@ diesel::table! {
     use super::sql_types::CommunityNotificationsModeEnum;
 
     community_actions (person_id, community_id) {
-        person_id -> Int4,
-        community_id -> Int4,
         followed_at -> Nullable<Timestamptz>,
-        follow_state -> Nullable<CommunityFollowerState>,
-        follow_approver_id -> Nullable<Int4>,
         blocked_at -> Nullable<Timestamptz>,
         became_moderator_at -> Nullable<Timestamptz>,
         received_ban_at -> Nullable<Timestamptz>,
         ban_expires_at -> Nullable<Timestamptz>,
+        person_id -> Int4,
+        community_id -> Int4,
+        follow_state -> Nullable<CommunityFollowerState>,
+        follow_approver_id -> Nullable<Int4>,
         notifications -> Nullable<CommunityNotificationsModeEnum>,
     }
 }
@@ -410,9 +410,9 @@ diesel::table! {
 
 diesel::table! {
     instance_actions (person_id, instance_id) {
+        blocked_communities_at -> Nullable<Timestamptz>,
         person_id -> Int4,
         instance_id -> Int4,
-        blocked_communities_at -> Nullable<Timestamptz>,
         received_ban_at -> Nullable<Timestamptz>,
         ban_expires_at -> Nullable<Timestamptz>,
         blocked_persons_at -> Nullable<Timestamptz>,
@@ -866,11 +866,11 @@ diesel::table! {
 
 diesel::table! {
     person_actions (person_id, target_id) {
+        followed_at -> Nullable<Timestamptz>,
+        blocked_at -> Nullable<Timestamptz>,
         person_id -> Int4,
         target_id -> Int4,
-        followed_at -> Nullable<Timestamptz>,
         follow_pending -> Nullable<Bool>,
-        blocked_at -> Nullable<Timestamptz>,
         noted_at -> Nullable<Timestamptz>,
         note -> Nullable<Text>,
         voted_at -> Nullable<Timestamptz>,
@@ -890,12 +890,12 @@ diesel::table! {
 
 diesel::table! {
     person_liked_combined (id) {
-        liked_at -> Timestamptz,
-        like_score -> Int2,
+        voted_at -> Timestamptz,
+        id -> Int4,
         person_id -> Int4,
         post_id -> Nullable<Int4>,
         comment_id -> Nullable<Int4>,
-        id -> Int4,
+        vote_is_upvote -> Bool,
     }
 }
 
@@ -938,16 +938,16 @@ diesel::table! {
         url_content_type -> Nullable<Text>,
         alt_text -> Nullable<Text>,
         scheduled_publish_time_at -> Nullable<Timestamptz>,
+        newest_comment_time_necro_at -> Nullable<Timestamptz>,
+        newest_comment_time_at -> Nullable<Timestamptz>,
         comments -> Int4,
         score -> Int4,
         upvotes -> Int4,
         downvotes -> Int4,
-        newest_comment_time_necro_at -> Timestamptz,
-        newest_comment_time_at -> Timestamptz,
-        hot_rank -> Float8,
-        hot_rank_active -> Float8,
-        controversy_rank -> Float8,
-        scaled_rank -> Float8,
+        hot_rank -> Float4,
+        hot_rank_active -> Float4,
+        controversy_rank -> Float4,
+        scaled_rank -> Float4,
         report_count -> Int2,
         unresolved_report_count -> Int2,
         federation_pending -> Bool,
@@ -961,15 +961,15 @@ diesel::table! {
     use super::sql_types::PostNotificationsModeEnum;
 
     post_actions (person_id, post_id) {
-        person_id -> Int4,
-        post_id -> Int4,
         read_at -> Nullable<Timestamptz>,
         read_comments_at -> Nullable<Timestamptz>,
-        read_comments_amount -> Nullable<Int4>,
         saved_at -> Nullable<Timestamptz>,
-        liked_at -> Nullable<Timestamptz>,
-        like_score -> Nullable<Int2>,
+        voted_at -> Nullable<Timestamptz>,
         hidden_at -> Nullable<Timestamptz>,
+        person_id -> Int4,
+        post_id -> Int4,
+        read_comments_amount -> Nullable<Int4>,
+        vote_is_upvote -> Nullable<Bool>,
         notifications -> Nullable<PostNotificationsModeEnum>,
     }
 }

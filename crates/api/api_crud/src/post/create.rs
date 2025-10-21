@@ -22,7 +22,7 @@ use lemmy_api_utils::{
 };
 use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
-  source::post::{Post, PostActions, PostInsertForm, PostLikeForm, PostReadForm},
+  source::post::{Post, PostActions, PostInsertForm, PostLikeForm},
   traits::{Crud, Likeable},
   utils::diesel_url_create,
 };
@@ -161,7 +161,7 @@ pub async fn create_post(
   // They like their own post by default
   let person_id = local_user_view.person.id;
   let post_id = inserted_post.id;
-  let like_form = PostLikeForm::new(post_id, person_id, 1);
+  let like_form = PostLikeForm::new(post_id, person_id, true);
 
   PostActions::like(&mut context.pool(), &like_form).await?;
 
@@ -174,8 +174,7 @@ pub async fn create_post(
   )
   .send(&context);
 
-  let read_form = PostReadForm::new(post_id, person_id);
-  PostActions::mark_as_read(&mut context.pool(), &read_form).await?;
+  PostActions::mark_as_read(&mut context.pool(), person_id, &[post_id]).await?;
 
   build_post_response(&context, community_id, local_user_view, post_id).await
 }
