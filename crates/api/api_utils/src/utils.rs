@@ -607,24 +607,24 @@ pub async fn remove_or_restore_user_data(
   }
 
   // Posts
-  let removed_or_restored_posts =
+  let removed_or_restored_post_ids =
     Post::update_removed_for_creator(pool, banned_person_id, removed).await?;
   create_modlog_entries_for_removed_or_restored_posts(
     pool,
     mod_person_id,
-    removed_or_restored_posts.iter().map(|r| r.id).collect(),
+    removed_or_restored_post_ids,
     removed,
     reason,
   )
   .await?;
 
   // Comments
-  let removed_or_restored_comments =
+  let removed_or_restored_comment_ids =
     Comment::update_removed_for_creator(pool, banned_person_id, removed).await?;
   create_modlog_entries_for_removed_or_restored_comments(
     pool,
     mod_person_id,
-    removed_or_restored_comments.iter().map(|r| r.id).collect(),
+    removed_or_restored_comment_ids,
     removed,
     reason,
   )
@@ -690,14 +690,14 @@ pub async fn remove_or_restore_user_data_in_community(
   }
 
   // Posts
-  let posts =
+  let posts_ids =
     Post::update_removed_for_creator_and_community(pool, banned_person_id, community_id, remove)
       .await?;
 
   create_modlog_entries_for_removed_or_restored_posts(
     pool,
     mod_person_id,
-    posts.iter().map(|r| r.id).collect(),
+    posts_ids,
     remove,
     reason,
   )

@@ -58,14 +58,15 @@ impl Comment {
     pool: &mut DbPool<'_>,
     creator_id: PersonId,
     removed: bool,
-  ) -> LemmyResult<Vec<Self>> {
+  ) -> LemmyResult<Vec<CommentId>> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(comment::table.filter(comment::creator_id.eq(creator_id)))
       .set((
         comment::removed.eq(removed),
         comment::updated_at.eq(Utc::now()),
       ))
-      .get_results::<Self>(conn)
+      .returning(comment::id)
+      .get_results(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
