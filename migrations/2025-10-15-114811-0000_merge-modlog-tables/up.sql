@@ -78,57 +78,37 @@ ALTER TABLE modlog
         OR (kind = 'ModBanFromCommunity'
         AND target_community_id IS NOT NULL
         AND target_person_id IS NOT NULL
-        AND
         AND num_nonnulls (target_post_id, target_instance_id, target_comment_id) = 0)
         OR (kind = 'ModAddToCommunity'
         AND target_community_id IS NOT NULL
         AND target_person_id IS NOT NULL
-        AND
         AND num_nonnulls (target_post_id, target_instance_id, target_comment_id) = 0)
         OR (kind = 'ModTransferCommunity'
         AND target_community_id IS NOT NULL
         AND target_person_id IS NOT NULL
-        AND
         AND num_nonnulls (target_post_id, target_instance_id, target_comment_id) = 0)
         OR (kind = 'AdminAllowInstance'
         AND target_instance_id IS NOT NULL
         AND target_person_id IS NOT NULL
-        AND
         AND num_nonnulls (target_post_id, target_person_id, target_community_id, target_comment_id) = 0)
         OR (kind = 'AdminBlockInstance'
         AND target_instance_id IS NOT NULL
         AND target_person_id IS NOT NULL
-        AND
         AND num_nonnulls (target_post_id, target_person_id, target_community_id, target_comment_id) = 0)
         OR (kind = 'AdminPurgeComment'
-        AND target_comment_id IS NOT NULL
-        AND target_person_id IS NOT NULL
-        AND target_post_id IS NOT NULL
-        AND target_community_id IS NOT NULL
-        AND
-        AND num_nonnulls (target_instance_id) = 0)
+        AND num_nonnulls (target_post_id, target_person_id, target_community_id, target_instance_id, target_comment_id) = 0)
         OR (kind = 'AdminPurgePost'
-        AND target_post_id IS NOT NULL
-        AND target_person_id IS NOT NULL
-        AND target_community_id IS NOT NULL
-        AND
-        AND num_nonnulls (target_instance_id, target_comment_id) = 0)
+        AND num_nonnulls (target_post_id, target_person_id, target_community_id, target_instance_id, target_comment_id) = 0)
         OR (kind = 'AdminPurgeCommunity'
-        AND target_community_id IS NOT NULL
-        AND
-        AND num_nonnulls (target_instance_id, target_post_id, target_comment_id, target_person_id) = 0)
+        AND num_nonnulls (target_post_id, target_person_id, target_community_id, target_instance_id, target_comment_id) = 0)
         OR (kind = 'AdminPurgePerson'
-        AND target_person_id IS NOT NULL
-        AND
-        AND num_nonnulls (target_instance_id, target_post_id, target_comment_id, target_community_id) = 0)
+        AND num_nonnulls (target_post_id, target_person_id, target_community_id, target_instance_id, target_comment_id) = 0)
         OR (kind = 'ModFeaturePostCommunity'
         AND target_post_id IS NOT NULL
         AND target_community_id IS NOT NULL
-        AND
         AND num_nonnulls (target_instance_id, target_post_id, target_comment_id) = 0)
         OR (kind = 'AdminFeaturePostSite'
         AND target_post_id IS NOT NULL
-        AND
         AND num_nonnulls (target_instance_id, target_person_id, target_comment_id, target_community_id) = 0));
 
 -- copy old data to new table
@@ -175,37 +155,34 @@ SELECT
 FROM
     admin_block_instance;
 
-INSERT INTO modlog (kind, reason, removed, mod_id, target_comment_id, published_at)
+INSERT INTO modlog (kind, reason, removed, mod_id, published_at)
 SELECT
     'AdminPurgeComment',
     reason,
-    FALSE,
+    true,
     admin_person_id,
-    -- old table has wrong column name
-    post_id,
     published_at
 FROM
     admin_purge_comment;
 
-INSERT INTO modlog (kind, reason, removed, mod_id, target_post_id, published_at)
+INSERT INTO modlog (kind, reason, removed, mod_id,  published_at)
 SELECT
     'AdminPurgePost',
     reason,
-    FALSE,
+    true,
     admin_person_id,
-    post_id,
     published_at
 FROM
     admin_purge_comment;
 
--- This one is not possible because admin_purge_community is missing community_id
--- INSERT INTO modlog (kind, reason, removed, mod_id, target_community_id, published_at)
--- SELECT 'AdminPurgeCommunity', reason, FALSE, admin_person_id, community_id,published_at
--- FROM admin_purge_community;
--- Same for admin_purge_person
--- INSERT INTO modlog (kind, reason, removed, mod_id, target_person_id, published_at)
--- SELECT 'AdminPurgePerson',reason, FALSE,admin_person_id, person_id, published_at
--- FROM admin_purge_person;
+INSERT INTO modlog (kind, reason, removed, mod_id,  published_at)
+ SELECT 'AdminPurgeCommunity', reason, true, admin_person_id,published_at
+ FROM admin_purge_community;
+ 
+INSERT INTO modlog (kind, reason, removed, mod_id, published_at)
+SELECT 'AdminPurgePerson',reason, true,admin_person_id, published_at
+ FROM admin_purge_person;
+
 INSERT INTO modlog (kind, removed, mod_id, target_person_id, published_at)
 SELECT
     'ModAddToCommunity',

@@ -194,46 +194,12 @@ impl ModlogView {
 #[expect(clippy::indexing_slicing)]
 mod tests {
   use super::*;
-  use crate::AdminAllowInstance;
   use lemmy_db_schema::{
     newtypes::PersonId,
     source::{
       comment::{Comment, CommentInsertForm},
       community::{Community, CommunityInsertForm},
       instance::Instance,
-      mod_log::{
-        admin::{
-          AdminAdd,
-          AdminAddForm,
-          AdminAllowInstanceForm,
-          AdminBan,
-          AdminBanForm,
-          AdminBlockInstance,
-          AdminBlockInstanceForm,
-          AdminRemoveCommunity,
-          AdminRemoveCommunityForm,
-        },
-        moderator::{
-          ModAddToCommunity,
-          ModAddToCommunityForm,
-          ModBanFromCommunity,
-          ModBanFromCommunityForm,
-          ModChangeCommunityVisibility,
-          ModChangeCommunityVisibilityForm,
-          ModFeaturePost,
-          ModFeaturePostForm,
-          ModLockComment,
-          ModLockCommentForm,
-          ModLockPost,
-          ModLockPostForm,
-          ModRemoveComment,
-          ModRemoveCommentForm,
-          ModRemovePost,
-          ModRemovePostForm,
-          ModTransferCommunity,
-          ModTransferCommunityForm,
-        },
-      },
       person::{Person, PersonInsertForm},
       post::{Post, PostInsertForm},
     },
@@ -314,6 +280,7 @@ mod tests {
       comment_2,
     })
   }
+  use lemmy_db_schema::source::modlog::ModlogInsertForm;
 
   async fn cleanup(data: Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
     Instance::delete(pool, data.instance.id).await?;
@@ -328,160 +295,95 @@ mod tests {
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
-    let form = AdminAllowInstanceForm {
-      instance_id: data.instance.id,
-      admin_person_id: data.timmy.id,
-      allowed: true,
-      reason: "reason".to_string(),
-    };
-    AdminAllowInstance::create(pool, &form).await?;
+    let form =
+      ModlogInsertForm::admin_allow_instance(data.timmy.id, data.instance.id, true, "reason");
+    Modlog::create(pool, &[form]).await?;
 
-    let form = AdminBlockInstanceForm {
-      instance_id: data.instance.id,
-      admin_person_id: data.timmy.id,
-      blocked: true,
-      reason: "reason".to_string(),
-    };
-    AdminBlockInstance::create(pool, &form).await?;
+    let form =
+      ModlogInsertForm::admin_block_instance(data.timmy.id, data.instance.id, true, "reason");
+    Modlog::create(pool, &[form]).await?;
 
-    let form = AdminPurgeCommentForm {
-      admin_person_id: data.timmy.id,
-      post_id: data.post.id,
-      reason: "reason".to_string(),
-    };
-    AdminPurgeComment::create(pool, &form).await?;
+    let form = ModlogInsertForm::admin_purge_comment(
+      data.timmy.id,
+      &data.comment,
+      data.community.id,
+      "reason",
+    );
+    Modlog::create(pool, &[form]).await?;
 
-    let form = AdminPurgeCommunityForm {
-      admin_person_id: data.timmy.id,
-      reason: "reason".to_string(),
-    };
-    AdminPurgeCommunity::create(pool, &form).await?;
+    let form = ModlogInsertForm::admin_purge_community(data.timmy.id, data.community.id, "reason");
+    Modlog::create(pool, &[form]).await?;
 
-    let form = AdminPurgePersonForm {
-      admin_person_id: data.timmy.id,
-      reason: "reason".to_string(),
-    };
-    AdminPurgePerson::create(pool, &form).await?;
+    let form = ModlogInsertForm::admin_purge_person(data.timmy.id, data.sara.id, "reason");
+    Modlog::create(pool, &[form]).await?;
 
-    let form = AdminPurgePostForm {
-      admin_person_id: data.timmy.id,
-      community_id: data.community.id,
-      reason: "reason".to_string(),
-    };
-    AdminPurgePost::create(pool, &form).await?;
+    let form = ModlogInsertForm::admin_purge_post(data.timmy.id, &data.post, "reason");
+    Modlog::create(pool, &[form]).await?;
 
-    let form = ModChangeCommunityVisibilityForm {
-      mod_person_id: data.timmy.id,
-      community_id: data.community.id,
-      visibility: CommunityVisibility::Unlisted,
-    };
-    ModChangeCommunityVisibility::create(pool, &form).await?;
+    let form = ModlogInsertForm::mod_change_community_visibility(data.timmy.id, data.community.id);
+    Modlog::create(pool, &[form]).await?;
 
     // A 2nd mod hide community, but to a different community, and with jessica
-    let form = ModChangeCommunityVisibilityForm {
-      mod_person_id: data.jessica.id,
-      community_id: data.community_2.id,
-      visibility: CommunityVisibility::Unlisted,
-    };
-    ModChangeCommunityVisibility::create(pool, &form).await?;
+    let form =
+      ModlogInsertForm::mod_change_community_visibility(data.jessica.id, data.community_2.id);
+    Modlog::create(pool, &[form]).await?;
 
     let modlog = ModlogQuery::default().list(pool).await?;
     assert_eq!(4, modlog.len());
 
-    if let ModlogView::ModChangeCommunityVisibility(v) = &modlog[0] {
-      assert_eq!(
-        data.community_2.id,
-        v.mod_change_community_visibility.community_id
-      );
-      assert_eq!(data.community_2.id, v.community.id);
-      assert_eq!(
-        data.jessica.id,
-        v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
-      );
-    } else {
-      panic!("wrong type");
-    }
+    let v = &modlog[0];
+    assert_eq!(ModlogKind::ModChangeCommunityVisibility, v.modlog.kind);
+    assert_eq!(
+      Some(data.community_2.id),
+      v.target_community.as_ref().map(|a| a.id)
+    );
+    assert_eq!(Some(data.jessica.id), v.moderator.as_ref().map(|a| a.id));
 
-    if let ModlogView::ModChangeCommunityVisibility(v) = &modlog[1] {
-      assert_eq!(
-        data.community.id,
-        v.mod_change_community_visibility.community_id
-      );
-      assert_eq!(data.community.id, v.community.id);
-      assert_eq!(
-        data.timmy.id,
-        v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
-      );
-    } else {
-      panic!("wrong type");
-    }
+    let v = &modlog[1];
+    assert_eq!(ModlogKind::ModChangeCommunityVisibility, v.modlog.kind);
+    assert_eq!(
+      Some(data.community.id),
+      v.target_community.as_ref().map(|a| a.id)
+    );
+    assert_eq!(Some(data.timmy.id), v.moderator.as_ref().map(|a| a.id));
 
-    /*
-      Temporarily disabled to speed up compilation
-      https://github.com/LemmyNet/lemmy/issues/6012
-    if let ModlogView::AdminPurgePost(v) = &modlog[2] {
-      assert_eq!(data.community.id, v.admin_purge_post.community_id);
-      assert_eq!(data.community.id, v.community.id);
-      assert_eq!(
-        data.timmy.id,
-        v.admin.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
-      );
-    } else {
-      panic!("wrong type");
-    }
+    let v = &modlog[2];
+    assert_eq!(ModlogKind::AdminPurgePost, v.modlog.kind);
+    assert_eq!(
+      Some(data.community.id),
+      v.target_community.as_ref().map(|a| a.id)
+    );
+    assert_eq!(Some(data.timmy.id), v.moderator.as_ref().map(|a| a.id));
 
-    if let ModlogView::AdminPurgePerson(v) = &modlog[3] {
-      assert_eq!(
-        data.timmy.id,
-        v.admin.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
-      );
-    } else {
-      panic!("wrong type");
-    }
+    let v = &modlog[3];
+    assert_eq!(ModlogKind::AdminPurgePerson, v.modlog.kind);
+    assert_eq!(Some(data.timmy.id), v.moderator.as_ref().map(|a| a.id));
 
-    if let ModlogView::AdminPurgeCommunity(v) = &modlog[4] {
-      assert_eq!(
-        data.timmy.id,
-        v.admin.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
-      );
-    } else {
-      panic!("wrong type");
-    }
+    let v = &modlog[4];
+    assert_eq!(ModlogKind::AdminPurgeCommunity, v.modlog.kind);
+    assert_eq!(Some(data.timmy.id), v.moderator.as_ref().map(|a| a.id));
 
-    if let ModlogView::AdminPurgeComment(v) = &modlog[5] {
-      assert_eq!(data.post.id, v.admin_purge_comment.post_id);
-      assert_eq!(data.post.id, v.post.id);
-      assert_eq!(
-        data.timmy.id,
-        v.admin.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
-      );
-    } else {
-      panic!("wrong type");
-    }
-    */
+    let v = &modlog[5];
+    assert_eq!(ModlogKind::AdminPurgeComment, v.modlog.kind);
+    assert_eq!(Some(data.post.id), v.target_post.as_ref().map(|a| a.id));
+    assert_eq!(Some(data.timmy.id), v.moderator.as_ref().map(|a| a.id));
 
     // Make sure the report types are correct
-    if let ModlogView::AdminBlockInstance(v) = &modlog[2] {
-      assert_eq!(data.instance.id, v.admin_block_instance.instance_id);
-      assert_eq!(data.instance.id, v.instance.id);
-      assert_eq!(
-        data.timmy.id,
-        v.admin.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
-      );
-    } else {
-      panic!("wrong type");
-    }
+    let v = &modlog[2]; // TODO: why index 2 again?
+    assert_eq!(ModlogKind::AdminBlockInstance, v.modlog.kind);
+    assert_eq!(
+      Some(data.instance.id),
+      v.target_instance.as_ref().map(|a| a.id)
+    );
+    assert_eq!(Some(data.timmy.id), v.moderator.as_ref().map(|a| a.id));
 
-    if let ModlogView::AdminAllowInstance(v) = &modlog[3] {
-      assert_eq!(data.instance.id, v.admin_allow_instance.instance_id);
-      assert_eq!(data.instance.id, v.instance.id);
-      assert_eq!(
-        data.timmy.id,
-        v.admin.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
-      );
-    } else {
-      panic!("wrong type");
-    }
+    let v = &modlog[3];
+    assert_eq!(ModlogKind::AdminAllowInstance, v.modlog.kind);
+    assert_eq!(
+      Some(data.instance.id),
+      v.target_instance.as_ref().map(|a| a.id)
+    );
+    assert_eq!(Some(data.timmy.id), v.moderator.as_ref().map(|a| a.id));
 
     // Filter by admin
     let modlog_admin_filter = ModlogQuery {
@@ -515,33 +417,21 @@ mod tests {
     // 2 of these, one is jessicas
     assert_eq!(2, modlog_type_filter.len());
 
-    if let ModlogView::ModChangeCommunityVisibility(v) = &modlog_type_filter[0] {
-      assert_eq!(
-        data.community_2.id,
-        v.mod_change_community_visibility.community_id
-      );
-      assert_eq!(data.community_2.id, v.community.id);
-      assert_eq!(
-        data.jessica.id,
-        v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
-      );
-    } else {
-      panic!("wrong type");
-    }
+    let v = &modlog[0];
+    assert_eq!(ModlogKind::ModChangeCommunityVisibility, v.modlog.kind);
+    assert_eq!(
+      Some(data.community.id),
+      v.target_community.as_ref().map(|a| a.id)
+    );
+    assert_eq!(Some(data.jessica.id), v.moderator.as_ref().map(|a| a.id));
 
-    if let ModlogView::ModChangeCommunityVisibility(v) = &modlog_type_filter[1] {
-      assert_eq!(
-        data.community.id,
-        v.mod_change_community_visibility.community_id
-      );
-      assert_eq!(data.community.id, v.community.id);
-      assert_eq!(
-        data.timmy.id,
-        v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
-      );
-    } else {
-      panic!("wrong type");
-    }
+    let v = &modlog[0];
+    assert_eq!(ModlogKind::ModChangeCommunityVisibility, v.modlog.kind);
+    assert_eq!(
+      Some(data.community.id),
+      v.target_community.as_ref().map(|a| a.id)
+    );
+    assert_eq!(Some(data.timmy.id), v.moderator.as_ref().map(|a| a.id));
 
     cleanup(data, pool).await?;
 
@@ -555,303 +445,212 @@ mod tests {
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
-    let form = AdminAddForm {
-      mod_person_id: data.timmy.id,
-      target_person_id: data.jessica.id,
-      removed: Some(false),
-    };
-    AdminAdd::create(pool, &form).await?;
+    let form = ModlogInsertForm::admin_add(&data.timmy, data.jessica.id, false);
+    Modlog::create(pool, &[form]).await?;
 
-    let form = ModAddToCommunityForm {
-      mod_person_id: data.timmy.id,
-      target_person_id: data.jessica.id,
-      community_id: data.community.id,
-      removed: Some(false),
-    };
-    ModAddToCommunity::create(pool, &form).await?;
+    let form = ModlogInsertForm::mod_add_to_community(
+      data.timmy.id,
+      data.community.id,
+      data.jessica.id,
+      false,
+    );
+    Modlog::create(pool, &[form]).await?;
 
-    let form = AdminBanForm {
-      mod_person_id: data.timmy.id,
-      target_person_id: data.jessica.id,
-      banned: Some(true),
-      reason: "reason".to_string(),
-      expires_at: None,
-      instance_id: data.instance.id,
-    };
-    AdminBan::create(pool, &form).await?;
+    let form = ModlogInsertForm::admin_ban(&data.timmy, data.jessica.id, true, None, "reason");
+    Modlog::create(pool, &[form]).await?;
 
-    let form = ModBanFromCommunityForm {
-      mod_person_id: data.timmy.id,
-      target_person_id: data.jessica.id,
-      community_id: data.community.id,
-      banned: Some(true),
-      reason: "reason".to_string(),
-      expires_at: None,
-    };
-    ModBanFromCommunity::create(pool, &form).await?;
+    let form = ModlogInsertForm::mod_ban_from_community(
+      data.timmy.id,
+      data.community.id,
+      data.jessica.id,
+      true,
+      None,
+      "reason",
+    );
+    Modlog::create(pool, &[form]).await?;
 
-    let form = ModFeaturePostForm {
-      mod_person_id: data.timmy.id,
-      post_id: data.post.id,
-      featured: Some(true),
-      is_featured_community: None,
-    };
-    ModFeaturePost::create(pool, &form).await?;
+    let form = ModlogInsertForm::mod_feature_post_community(data.timmy.id, &data.post, true);
+    Modlog::create(pool, &[form]).await?;
 
-    let form = ModLockPostForm {
-      mod_person_id: data.timmy.id,
-      post_id: data.post.id,
-      locked: Some(true),
-      reason: "reason".to_string(),
-    };
-    ModLockPost::create(pool, &form).await?;
+    let form = ModlogInsertForm::admin_feature_post_site(data.timmy.id, &data.post, true);
+    Modlog::create(pool, &[form]).await?;
 
-    let form = ModLockCommentForm {
-      mod_person_id: data.timmy.id,
-      comment_id: data.comment.id,
-      locked: Some(true),
-      reason: "reason".to_string(),
-    };
-    ModLockComment::create(pool, &form).await?;
+    let form = ModlogInsertForm::mod_lock_post(data.timmy.id, &data.post, true, "reason");
+    Modlog::create(pool, &[form]).await?;
 
-    let form = ModRemoveCommentForm {
-      mod_person_id: data.timmy.id,
-      comment_id: data.comment.id,
-      removed: Some(true),
-      reason: "reason".to_string(),
-    };
-    ModRemoveComment::create(pool, &form).await?;
+    let form = ModlogInsertForm::mod_lock_comment(data.timmy.id, &data.comment, true, "reason");
+    Modlog::create(pool, &[form]).await?;
 
-    let form = AdminRemoveCommunityForm {
-      mod_person_id: data.timmy.id,
-      community_id: data.community.id,
-      removed: Some(true),
-      reason: "reason".to_string(),
-    };
-    AdminRemoveCommunity::create(pool, &form).await?;
+    let form = ModlogInsertForm::mod_remove_comment(data.timmy.id, &data.comment, true, "reason");
+    Modlog::create(pool, &[form]).await?;
 
-    let form = ModRemovePostForm {
-      mod_person_id: data.timmy.id,
-      post_id: data.post.id,
-      removed: Some(true),
-      reason: "reason".to_string(),
-    };
-    ModRemovePost::create(pool, &form).await?;
+    let form = ModlogInsertForm::admin_remove_community(
+      data.timmy.id,
+      data.community.id,
+      None,
+      true,
+      "reason",
+    );
+    Modlog::create(pool, &[form]).await?;
 
-    let form = ModTransferCommunityForm {
-      mod_person_id: data.timmy.id,
-      target_person_id: data.jessica.id,
-      community_id: data.community.id,
-    };
-    ModTransferCommunity::create(pool, &form).await?;
+    let form = ModlogInsertForm::mod_remove_post(data.timmy.id, &data.post, true, "reason");
+    Modlog::create(pool, &[form]).await?;
+
+    let form =
+      ModlogInsertForm::mod_transfer_community(data.timmy.id, data.community.id, data.jessica.id);
+    Modlog::create(pool, &[form]).await?;
 
     // A few extra ones to test different filters
-    let form = ModTransferCommunityForm {
-      mod_person_id: data.jessica.id,
-      target_person_id: data.sara.id,
-      community_id: data.community_2.id,
-    };
-    ModTransferCommunity::create(pool, &form).await?;
+    let form =
+      ModlogInsertForm::mod_transfer_community(data.jessica.id, data.community_2.id, data.sara.id);
+    Modlog::create(pool, &[form]).await?;
 
-    let form = ModRemovePostForm {
-      mod_person_id: data.jessica.id,
-      post_id: data.post_2.id,
-      removed: Some(true),
-      reason: "reason".to_string(),
-    };
-    ModRemovePost::create(pool, &form).await?;
+    let form = ModlogInsertForm::mod_remove_post(data.jessica.id, &data.post_2, true, "reason");
+    Modlog::create(pool, &[form]).await?;
 
-    let form = ModRemoveCommentForm {
-      mod_person_id: data.jessica.id,
-      comment_id: data.comment_2.id,
-      removed: Some(true),
-      reason: "reason".to_string(),
-    };
-    ModRemoveComment::create(pool, &form).await?;
+    let form =
+      ModlogInsertForm::mod_remove_comment(data.jessica.id, &data.comment_2, true, "reason");
+    Modlog::create(pool, &[form]).await?;
 
     // The all view
     let modlog = ModlogQuery::default().list(pool).await?;
     assert_eq!(14, modlog.len());
 
-    if let ModlogView::ModRemoveComment(v) = &modlog[0] {
-      assert_eq!(data.comment_2.id, v.mod_remove_comment.comment_id);
-      assert_eq!(data.comment_2.id, v.comment.id);
-      assert_eq!(data.post_2.id, v.post.id);
-      assert_eq!(data.community_2.id, v.community.id);
-      assert_eq!(
-        data.jessica.id,
-        v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
-      );
-      assert_eq!(data.jessica.id, v.target_person.id);
-    } else {
-      panic!("wrong type");
-    }
+    let v = &modlog[0];
+    assert_eq!(ModlogKind::ModRemoveComment, v.modlog.kind);
+    assert_eq!(
+      Some(data.comment.id),
+      v.target_comment.as_ref().map(|a| a.id)
+    );
+    assert_eq!(Some(data.sara.id), v.target_person.as_ref().map(|a| a.id));
+    assert_eq!(Some(data.jessica.id), v.moderator.as_ref().map(|a| a.id));
 
-    if let ModlogView::ModRemovePost(v) = &modlog[1] {
-      assert_eq!(data.post_2.id, v.mod_remove_post.post_id);
-      assert_eq!(data.post_2.id, v.post.id);
-      assert_eq!(data.sara.id, v.post.creator_id);
-      assert_eq!(data.community_2.id, v.community.id);
-      assert_eq!(
-        data.jessica.id,
-        v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
-      );
-      assert_eq!(data.sara.id, v.target_person.id);
-    } else {
-      panic!("wrong type");
-    }
+    let v = &modlog[1];
+    assert_eq!(ModlogKind::ModRemovePost, v.modlog.kind);
+    assert_eq!(
+      Some(data.comment.id),
+      v.target_comment.as_ref().map(|a| a.id)
+    );
+    assert_eq!(Some(data.sara.id), v.target_person.as_ref().map(|a| a.id));
+    assert_eq!(Some(data.jessica.id), v.moderator.as_ref().map(|a| a.id));
 
-    if let ModlogView::ModTransferCommunity(v) = &modlog[2] {
-      assert_eq!(data.community_2.id, v.mod_transfer_community.community_id);
-      assert_eq!(data.community_2.id, v.community.id);
-      assert_eq!(
-        data.jessica.id,
-        v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
-      );
-      assert_eq!(data.sara.id, v.target_person.id);
-    } else {
-      panic!("wrong type");
-    }
+    let v = &modlog[2];
+    assert_eq!(ModlogKind::ModTransferCommunity, v.modlog.kind);
+    assert_eq!(
+      Some(data.community_2.id),
+      v.target_community.as_ref().map(|a| a.id)
+    );
+    assert_eq!(Some(data.sara.id), v.target_person.as_ref().map(|a| a.id));
+    assert_eq!(Some(data.jessica.id), v.moderator.as_ref().map(|a| a.id));
 
-    if let ModlogView::ModTransferCommunity(v) = &modlog[3] {
-      assert_eq!(data.community.id, v.mod_transfer_community.community_id);
-      assert_eq!(data.community.id, v.community.id);
-      assert_eq!(
-        data.timmy.id,
-        v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
-      );
-      assert_eq!(data.jessica.id, v.target_person.id);
-    } else {
-      panic!("wrong type");
-    }
+    let v = &modlog[3];
+    assert_eq!(ModlogKind::ModTransferCommunity, v.modlog.kind);
+    assert_eq!(
+      Some(data.community.id),
+      v.target_community.as_ref().map(|a| a.id)
+    );
+    assert_eq!(
+      Some(data.jessica.id),
+      v.target_person.as_ref().map(|a| a.id)
+    );
+    assert_eq!(Some(data.timmy.id), v.moderator.as_ref().map(|a| a.id));
 
-    if let ModlogView::ModRemovePost(v) = &modlog[4] {
-      assert_eq!(data.post.id, v.mod_remove_post.post_id);
-      assert_eq!(data.post.id, v.post.id);
-      assert_eq!(data.timmy.id, v.post.creator_id);
-      assert_eq!(data.community.id, v.community.id);
-      assert_eq!(
-        data.timmy.id,
-        v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
-      );
-      assert_eq!(data.timmy.id, v.target_person.id);
-    } else {
-      panic!("wrong type");
-    }
+    let v = &modlog[4];
+    assert_eq!(ModlogKind::ModRemovePost, v.modlog.kind);
+    assert_eq!(Some(data.post.id), v.target_post.as_ref().map(|a| a.id));
+    assert_eq!(Some(data.timmy.id), v.target_person.as_ref().map(|a| a.id));
+    assert_eq!(Some(data.timmy.id), v.moderator.as_ref().map(|a| a.id));
 
-    if let ModlogView::AdminRemoveCommunity(v) = &modlog[5] {
-      assert_eq!(data.community.id, v.admin_remove_community.community_id);
-      assert_eq!(data.community.id, v.community.id);
-      assert_eq!(
-        data.timmy.id,
-        v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
-      );
-    } else {
-      panic!("wrong type");
-    }
+    let v = &modlog[5];
+    assert_eq!(ModlogKind::AdminRemoveCommunity, v.modlog.kind);
+    assert_eq!(
+      Some(data.community.id),
+      v.target_community.as_ref().map(|a| a.id)
+    );
+    assert_eq!(Some(data.timmy.id), v.moderator.as_ref().map(|a| a.id));
 
-    if let ModlogView::ModRemoveComment(v) = &modlog[6] {
-      assert_eq!(data.comment.id, v.mod_remove_comment.comment_id);
-      assert_eq!(data.comment.id, v.comment.id);
-      assert_eq!(data.post.id, v.post.id);
-      assert_eq!(data.community.id, v.community.id);
-      assert_eq!(
-        data.timmy.id,
-        v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
-      );
-      assert_eq!(data.timmy.id, v.target_person.id);
-    } else {
-      panic!("wrong type");
-    }
+    let v = &modlog[6];
+    assert_eq!(ModlogKind::ModRemoveComment, v.modlog.kind);
+    assert_eq!(
+      Some(data.comment.id),
+      v.target_comment.as_ref().map(|a| a.id)
+    );
+    assert_eq!(Some(data.post.id), v.target_post.as_ref().map(|a| a.id));
+    assert_eq!(
+      Some(data.community.id),
+      v.target_community.as_ref().map(|a| a.id)
+    );
+    assert_eq!(Some(data.timmy.id), v.moderator.as_ref().map(|a| a.id));
 
-    if let ModlogView::ModLockComment(v) = &modlog[7] {
-      assert_eq!(data.comment.id, v.mod_lock_comment.comment_id);
-      assert!(v.mod_lock_comment.locked);
-      assert_eq!(data.comment.id, v.comment.id);
-      assert_eq!(data.timmy.id, v.comment.creator_id);
-      assert_eq!(data.community.id, v.community.id);
-      assert_eq!(
-        data.timmy.id,
-        v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
-      );
-      assert_eq!(data.timmy.id, v.target_person.id);
-    } else {
-      panic!("wrong type");
-    }
+    let v = &modlog[7];
+    assert_eq!(ModlogKind::ModLockComment, v.modlog.kind);
+    assert_eq!(
+      Some(data.comment.id),
+      v.target_comment.as_ref().map(|a| a.id)
+    );
+    assert_eq!(
+      Some(data.community.id),
+      v.target_community.as_ref().map(|a| a.id)
+    );
+    assert_eq!(Some(data.timmy.id), v.moderator.as_ref().map(|a| a.id));
 
-    if let ModlogView::ModLockPost(v) = &modlog[8] {
-      assert_eq!(data.post.id, v.mod_lock_post.post_id);
-      assert!(v.mod_lock_post.locked);
-      assert_eq!(data.post.id, v.post.id);
-      assert_eq!(data.timmy.id, v.post.creator_id);
-      assert_eq!(data.community.id, v.community.id);
-      assert_eq!(
-        data.timmy.id,
-        v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
-      );
-      assert_eq!(data.timmy.id, v.target_person.id);
-    } else {
-      panic!("wrong type");
-    }
+    let v = &modlog[8];
+    assert_eq!(ModlogKind::ModLockPost, v.modlog.kind);
+    assert_eq!(Some(data.post.id), v.target_post.as_ref().map(|a| a.id));
+    assert_eq!(
+      Some(data.community.id),
+      v.target_community.as_ref().map(|a| a.id)
+    );
+    assert_eq!(Some(data.timmy.id), v.moderator.as_ref().map(|a| a.id));
 
-    if let ModlogView::ModFeaturePost(v) = &modlog[9] {
-      assert_eq!(data.post.id, v.mod_feature_post.post_id);
-      assert!(v.mod_feature_post.featured);
-      assert_eq!(data.post.id, v.post.id);
-      assert_eq!(data.timmy.id, v.post.creator_id);
-      assert_eq!(data.community.id, v.community.id);
-      assert_eq!(
-        data.timmy.id,
-        v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
-      );
-      assert_eq!(data.timmy.id, v.target_person.id);
-    } else {
-      panic!("wrong type");
-    }
+    let v = &modlog[9];
+    assert_eq!(ModlogKind::ModFeaturePostCommunity, v.modlog.kind);
+    assert_eq!(Some(data.post.id), v.target_post.as_ref().map(|a| a.id));
+    assert_eq!(
+      Some(data.community.id),
+      v.target_community.as_ref().map(|a| a.id)
+    );
+    assert_eq!(Some(data.timmy.id), v.moderator.as_ref().map(|a| a.id));
 
-    if let ModlogView::ModBanFromCommunity(v) = &modlog[10] {
-      assert_eq!(data.community.id, v.mod_ban_from_community.community_id);
-      assert_eq!(data.community.id, v.community.id);
-      assert_eq!(
-        data.timmy.id,
-        v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
-      );
-      assert_eq!(data.jessica.id, v.target_person.id);
-    } else {
-      panic!("wrong type");
-    }
+    let v = &modlog[10];
+    assert_eq!(ModlogKind::ModBanFromCommunity, v.modlog.kind);
+    assert_eq!(
+      Some(data.jessica.id),
+      v.target_person.as_ref().map(|a| a.id)
+    );
+    assert_eq!(
+      Some(data.community.id),
+      v.target_community.as_ref().map(|a| a.id)
+    );
+    assert_eq!(Some(data.timmy.id), v.moderator.as_ref().map(|a| a.id));
 
-    if let ModlogView::AdminBan(v) = &modlog[11] {
-      assert_eq!(
-        data.timmy.id,
-        v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
-      );
-      assert_eq!(data.jessica.id, v.target_person.id);
-    } else {
-      panic!("wrong type");
-    }
+    let v = &modlog[11];
+    assert_eq!(ModlogKind::AdminBan, v.modlog.kind);
+    assert_eq!(
+      Some(data.jessica.id),
+      v.target_person.as_ref().map(|a| a.id)
+    );
+    assert_eq!(Some(data.timmy.id), v.moderator.as_ref().map(|a| a.id));
 
-    if let ModlogView::ModAddToCommunity(v) = &modlog[12] {
-      assert_eq!(data.community.id, v.mod_add_to_community.community_id);
-      assert_eq!(data.community.id, v.community.id);
-      assert_eq!(
-        data.timmy.id,
-        v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
-      );
-      assert_eq!(data.jessica.id, v.target_person.id);
-    } else {
-      panic!("wrong type");
-    }
+    let v = &modlog[12];
+    assert_eq!(ModlogKind::ModAddToCommunity, v.modlog.kind);
+    assert_eq!(
+      Some(data.jessica.id),
+      v.target_person.as_ref().map(|a| a.id)
+    );
+    assert_eq!(
+      Some(data.community.id),
+      v.target_community.as_ref().map(|a| a.id)
+    );
+    assert_eq!(Some(data.timmy.id), v.moderator.as_ref().map(|a| a.id));
 
-    if let ModlogView::AdminAdd(v) = &modlog[13] {
-      assert_eq!(
-        data.timmy.id,
-        v.moderator.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
-      );
-      assert_eq!(data.jessica.id, v.target_person.id);
-    } else {
-      panic!("wrong type");
-    }
+    let v = &modlog[13];
+    assert_eq!(ModlogKind::AdminAdd, v.modlog.kind);
+    assert_eq!(
+      Some(data.jessica.id),
+      v.target_person.as_ref().map(|a| a.id)
+    );
+    assert_eq!(Some(data.timmy.id), v.moderator.as_ref().map(|a| a.id));
 
     // Filter by moderator
     let modlog_mod_timmy_filter = ModlogQuery {
@@ -959,14 +758,14 @@ mod tests {
     assert_eq!(2, modlog_type_filter.len());
 
     // Assert that the types are correct
-    assert!(matches!(
-      modlog_type_filter[0],
-      ModlogView::ModRemoveComment(_)
-    ));
-    assert!(matches!(
-      modlog_type_filter[1],
-      ModlogView::ModRemoveComment(_)
-    ));
+    assert_eq!(
+      ModlogKind::ModRemoveComment,
+      modlog_type_filter[0].modlog.kind,
+    );
+    assert_eq!(
+      ModlogKind::ModRemoveComment,
+      modlog_type_filter[1].modlog.kind,
+    );
 
     cleanup(data, pool).await?;
 
@@ -980,25 +779,18 @@ mod tests {
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
-    let form = AdminAllowInstanceForm {
-      instance_id: data.instance.id,
-      admin_person_id: data.timmy.id,
-      allowed: true,
-      reason: "reason".to_string(),
-    };
-    AdminAllowInstance::create(pool, &form).await?;
+    let form =
+      ModlogInsertForm::admin_allow_instance(data.timmy.id, data.instance.id, true, "reason");
+    Modlog::create(pool, &[form]).await?;
 
     let modlog = ModlogQuery::default().list(pool).await?;
     assert_eq!(1, modlog.len());
 
-    if let ModlogView::AdminAllowInstance(v) = &modlog[0] {
-      assert_eq!(
-        data.timmy.id,
-        v.admin.as_ref().map(|a| a.id).unwrap_or(PersonId(-1))
-      );
-    } else {
-      panic!("wrong type");
-    }
+    assert_eq!(ModlogKind::AdminAllowInstance, modlog[0].modlog.kind);
+    assert_eq!(
+      Some(data.timmy.id),
+      modlog[0].moderator.as_ref().map(|a| a.id)
+    );
 
     // Filter out the names
     let modlog_hide_names_filter = ModlogQuery {
@@ -1009,11 +801,11 @@ mod tests {
     .await?;
     assert_eq!(1, modlog_hide_names_filter.len());
 
-    if let ModlogView::AdminAllowInstance(v) = &modlog_hide_names_filter[0] {
-      assert!(v.admin.is_none())
-    } else {
-      panic!("wrong type");
-    }
+    assert_eq!(
+      ModlogKind::AdminAllowInstance,
+      modlog_hide_names_filter[0].modlog.kind
+    );
+    assert!(modlog_hide_names_filter[0].moderator.is_none());
 
     cleanup(data, pool).await?;
 

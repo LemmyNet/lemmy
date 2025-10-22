@@ -68,7 +68,7 @@ pub async fn lock_post(
     &data.reason,
   );
   let action = Modlog::create(&mut context.pool(), &[form]).await?;
-  notify_mod_action(action.clone(), &context);
+  notify_mod_action(action.clone(),  &context);
 
   ActivityChannel::submit_activity(
     SendActivityData::LockPost(

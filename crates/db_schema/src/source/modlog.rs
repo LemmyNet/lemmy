@@ -21,6 +21,7 @@ pub struct Modlog {
   pub id: ModlogId,
   pub kind: ModlogKind,
   pub removed: bool,
+  #[serde(skip)]
   pub mod_id: PersonId,
   pub reason: Option<String>,
   #[serde(skip)]
