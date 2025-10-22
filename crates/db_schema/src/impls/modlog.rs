@@ -82,40 +82,45 @@ impl<'a> ModlogInsertForm<'a> {
   }
   pub fn mod_lock_comment(
     mod_person_id: PersonId,
-    comment_id: CommentId,
+    comment: &Comment,
     removed: bool,
     reason: &'a str,
   ) -> Self {
     Self {
       reason: Some(reason),
-      target_comment_id: Some(comment_id),
+      target_comment_id: Some(comment.id),
+      target_person_id: Some(comment.creator_id),
       ..ModlogInsertForm::new(ModlogKind::ModLockComment, removed, mod_person_id)
     }
   }
   pub fn mod_lock_post(
     mod_person_id: PersonId,
-    post_id: PostId,
+    post: &Post,
     removed: bool,
     reason: &'a str,
   ) -> Self {
     Self {
       reason: Some(reason),
-      target_post_id: Some(post_id),
+      target_post_id: Some(post.id),
+      target_person_id: Some(post.creator_id),
       ..ModlogInsertForm::new(ModlogKind::ModLockComment, removed, mod_person_id)
     }
   }
   pub fn admin_remove_community(
     mod_person_id: PersonId,
     community_id: CommunityId,
+    community_owner_id: Option<PersonId>,
     removed: bool,
     reason: &'a str,
   ) -> Self {
     Self {
       reason: Some(reason),
       target_community_id: Some(community_id),
+      target_person_id: community_owner_id,
       ..ModlogInsertForm::new(ModlogKind::AdminRemoveCommunity, removed, mod_person_id)
     }
   }
+
   pub fn mod_change_community_visibility(
     mod_person_id: PersonId,
     community_id: CommunityId,

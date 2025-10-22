@@ -66,7 +66,7 @@ pub async fn add_admin(
     !data.added,
   );
   let action = Modlog::create(&mut context.pool(), &[form]).await?;
-  notify_mod_action(action.clone(), added_local_user.person.id, &context);
+  notify_mod_action(action.clone(), &context);
 
   let admins = PersonQuery {
     admins_only: Some(true),

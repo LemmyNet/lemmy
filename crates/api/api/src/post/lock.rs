@@ -63,12 +63,12 @@ pub async fn lock_post(
   // Mod tables
   let form = ModlogInsertForm::mod_lock_post(
     local_user_view.person.id,
-    data.post_id,
+    &orig_post.post,
     locked,
     &data.reason,
   );
   let action = Modlog::create(&mut context.pool(), &[form]).await?;
-  notify_mod_action(action.clone(), orig_post.creator.id, &context);
+  notify_mod_action(action.clone(), &context);
 
   ActivityChannel::submit_activity(
     SendActivityData::LockPost(

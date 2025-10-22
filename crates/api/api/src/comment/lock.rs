@@ -50,14 +50,10 @@ pub async fn lock_comment(
   .await?;
   let comment = comments.first().ok_or(LemmyErrorType::NotFound)?;
 
-  let form = ModlogInsertForm::mod_lock_comment(
-    local_user_view.person.id,
-    data.comment_id,
-    locked,
-    &data.reason,
-  );
+  let form =
+    ModlogInsertForm::mod_lock_comment(local_user_view.person.id, &comment, locked, &data.reason);
   let action = Modlog::create(&mut context.pool(), &[form]).await?;
-  notify_mod_action(action.clone(), orig_comment.creator.id, &context);
+  notify_mod_action(action.clone(), &context);
 
   ActivityChannel::submit_activity(
     SendActivityData::LockComment(

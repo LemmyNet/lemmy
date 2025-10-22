@@ -155,7 +155,7 @@ impl Activity for BlockUser {
         let form =
           ModlogInsertForm::admin_ban(&mod_person, blocked_person.id, true, expires_at, &reason);
         let action = Modlog::create(&mut context.pool(), &[form]).await?;
-        notify_mod_action(action.clone(), blocked_person.id, context);
+        notify_mod_action(action.clone(), context);
       }
       SiteOrCommunity::Right(community) => {
         let community_user_ban_form = CommunityPersonBanForm {
@@ -190,7 +190,7 @@ impl Activity for BlockUser {
           &reason,
         );
         let action = Modlog::create(&mut context.pool(), &[form]).await?;
-        notify_mod_action(action.clone(), blocked_person.id, context);
+        notify_mod_action(action.clone(), context);
       }
     }
 

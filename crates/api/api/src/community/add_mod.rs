@@ -87,7 +87,7 @@ pub async fn add_mod_to_community(
       .scope_boxed()
     })
     .await?;
-  notify_mod_action(action.clone(), tx_data.person_id, &context);
+  notify_mod_action(action.clone(), &context);
 
   // Note: in case a remote mod is added, this returns the old moderators list, it will only get
   //       updated once we receive an activity from the community (like `Announce/Add/Moderator`)

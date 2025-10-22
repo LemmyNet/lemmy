@@ -86,7 +86,7 @@ pub async fn transfer_community(
       .scope_boxed()
     })
     .await?;
-  notify_mod_action(action.clone(), data.person_id, &context);
+  notify_mod_action(action.clone(), &context);
 
   let community_id = data.community_id;
   let community_view = CommunityView::read(

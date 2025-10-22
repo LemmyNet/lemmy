@@ -108,11 +108,18 @@ pub(crate) async fn receive_remove_action(
         Err(UntranslatedError::OnlyLocalAdminCanRemoveCommunity)?
       }
       CommunityReport::resolve_all_for_object(&mut context.pool(), community.id, actor.id).await?;
-      let form = ModlogInsertForm::admin_remove_community(actor.id, community.id, true, &reason);
+      let community_owner =
+        CommunityModeratorView::top_mod_for_community(&mut context.pool(), community.id).await?;
+      let form = ModlogInsertForm::admin_remove_community(
+        actor.id,
+        community.id,
+        community_owner,
+        true,
+        &reason,
+      );
       let action = Modlog::create(&mut context.pool(), &[form]).await?;
-      for m in CommunityModeratorView::for_community(&mut context.pool(), community.id).await? {
-        notify_mod_action(action.clone(), m.moderator.id, context.app_data());
-      }
+      notify_mod_action(action.clone(), context.app_data());
+
       Community::update(
         &mut context.pool(),
         community.id,
@@ -127,7 +134,7 @@ pub(crate) async fn receive_remove_action(
       PostReport::resolve_all_for_object(&mut context.pool(), post.id, actor.id).await?;
       let form = ModlogInsertForm::mod_remove_post(actor.id, &post, true, &reason);
       let action = Modlog::create(&mut context.pool(), &[form]).await?;
-      notify_mod_action(action, post.creator_id, context.app_data());
+      notify_mod_action(action, context.app_data());
       Post::update(
         &mut context.pool(),
         post.id,
@@ -142,7 +149,7 @@ pub(crate) async fn receive_remove_action(
       CommentReport::resolve_all_for_object(&mut context.pool(), comment.id, actor.id).await?;
       let form = ModlogInsertForm::mod_remove_comment(actor.id, &comment, true, &reason);
       let action = Modlog::create(&mut context.pool(), &[form]).await?;
-      notify_mod_action(action, comment.creator_id, context.app_data());
+      notify_mod_action(action, context.app_data());
       Comment::update(
         &mut context.pool(),
         comment.id,

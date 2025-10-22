@@ -121,7 +121,7 @@ impl Activity for UndoBlockUser {
         let form =
           ModlogInsertForm::admin_ban(&mod_person, blocked_person.id, false, expires_at, &reason);
         let action = Modlog::create(&mut context.pool(), &[form]).await?;
-        notify_mod_action(action.clone(), blocked_person.id, context.app_data());
+        notify_mod_action(action.clone(), context.app_data());
       }
       SiteOrCommunity::Right(community) => {
         verify_visibility(&self.to, &self.cc, &community)?;
@@ -150,7 +150,7 @@ impl Activity for UndoBlockUser {
           &reason,
         );
         let action = Modlog::create(&mut context.pool(), &[form]).await?;
-        notify_mod_action(action.clone(), blocked_person.id, context.app_data());
+        notify_mod_action(action.clone(), context.app_data());
       }
     }
 

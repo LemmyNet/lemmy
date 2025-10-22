@@ -63,10 +63,12 @@ ALTER TABLE modlog
         AND num_nonnulls (target_community_id, target_instance_id, target_post_id) = 0)
         OR (kind = 'ModLockComment'
         AND target_comment_id IS NOT NULL
-        AND num_nonnulls (target_community_id, target_instance_id, target_person_id, target_post_id) = 0)
+        AND target_person_id IS NOT NULL
+        AND num_nonnulls (target_community_id, target_instance_id, target_post_id) = 0)
         OR (kind = 'ModLockPost'
         AND target_post_id IS NOT NULL
-        AND num_nonnulls (target_community_id, target_instance_id, target_person_id, target_comment_id) = 0)
+        AND target_person_id IS NOT NULL
+        AND num_nonnulls (target_community_id, target_instance_id, target_comment_id) = 0)
         OR (kind = 'AdminRemoveCommunity'
         AND target_community_id IS NOT NULL
         AND num_nonnulls (target_post_id, target_instance_id, target_person_id, target_comment_id) = 0)

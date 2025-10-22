@@ -136,7 +136,7 @@ impl Activity for CollectionAdd {
           let form =
             ModlogInsertForm::mod_add_to_community(actor.id, community.id, new_mod.id, false);
           let action = Modlog::create(&mut context.pool(), &[form]).await?;
-          notify_mod_action(action, new_mod.id, context);
+          notify_mod_action(action, context);
         }
       }
       CollectionType::Featured => {

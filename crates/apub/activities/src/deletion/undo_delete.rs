@@ -88,11 +88,18 @@ impl UndoDelete {
         if community.local {
           Err(UntranslatedError::OnlyLocalAdminCanRestoreCommunity)?
         }
-        let form = ModlogInsertForm::admin_remove_community(actor.id, community.id, false, &reason);
+        let community_owner =
+          CommunityModeratorView::top_mod_for_community(&mut context.pool(), community.id).await?;
+        let form = ModlogInsertForm::admin_remove_community(
+          actor.id,
+          community.id,
+          community_owner,
+          false,
+          &reason,
+        );
         let action = Modlog::create(&mut context.pool(), &[form]).await?;
-        for m in CommunityModeratorView::for_community(&mut context.pool(), community.id).await? {
-          notify_mod_action(action.clone(), m.moderator.id, context.app_data());
-        }
+        notify_mod_action(action.clone(), context.app_data());
+
         Community::update(
           &mut context.pool(),
           community.id,
@@ -106,7 +113,7 @@ impl UndoDelete {
       DeletableObjects::Post(post) => {
         let form = ModlogInsertForm::mod_remove_post(actor.id, &post, false, &reason);
         let action = Modlog::create(&mut context.pool(), &[form]).await?;
-        notify_mod_action(action, post.creator_id, context.app_data());
+        notify_mod_action(action, context.app_data());
         Post::update(
           &mut context.pool(),
           post.id,
@@ -120,7 +127,7 @@ impl UndoDelete {
       DeletableObjects::Comment(comment) => {
         let form = ModlogInsertForm::mod_remove_comment(actor.id, &comment, false, &reason);
         let action = Modlog::create(&mut context.pool(), &[form]).await?;
-        notify_mod_action(action, comment.creator_id, context.app_data());
+        notify_mod_action(action, context.app_data());
         Comment::update(
           &mut context.pool(),
           comment.id,

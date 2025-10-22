@@ -65,7 +65,7 @@ pub async fn remove_post(
   let form =
     ModlogInsertForm::mod_remove_post(local_user_view.person.id, &post, removed, &data.reason);
   let action = Modlog::create(&mut context.pool(), &[form]).await?;
-  notify_mod_action(action, post.creator_id, context.app_data());
+  notify_mod_action(action, context.app_data());
 
   ActivityChannel::submit_activity(
     SendActivityData::RemovePost {

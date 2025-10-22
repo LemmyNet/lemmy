@@ -73,7 +73,7 @@ pub async fn ban_from_site(
     &data.reason,
   );
   let action = Modlog::create(&mut context.pool(), &[form]).await?;
-  notify_mod_action(action.clone(), data.person_id, &context);
+  notify_mod_action(action.clone(), &context);
 
   let person_view = PersonView::read(
     &mut context.pool(),

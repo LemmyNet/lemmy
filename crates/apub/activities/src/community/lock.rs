@@ -70,17 +70,17 @@ impl Activity for LockPageOrNote {
         };
         Post::update(&mut context.pool(), post.id, &form).await?;
 
-        let form = ModlogInsertForm::mod_lock_post(actor.id, post.id, true, &reason);
+        let form = ModlogInsertForm::mod_lock_post(actor.id, &post, true, &reason);
         let action = Modlog::create(&mut context.pool(), &[form]).await?;
-        notify_mod_action(action, post.creator_id, context);
+        notify_mod_action(action, context);
       }
       PostOrComment::Right(comment) => {
         Comment::update_locked_for_comment_and_children(&mut context.pool(), &comment.path, true)
           .await?;
 
-        let form = ModlogInsertForm::mod_lock_comment(actor.id, comment.id, true, &reason);
+        let form = ModlogInsertForm::mod_lock_comment(actor.id, &comment, true, &reason);
         let action = Modlog::create(&mut context.pool(), &[form]).await?;
-        notify_mod_action(action, comment.creator_id, context);
+        notify_mod_action(action, context);
       }
     }
 
@@ -125,17 +125,17 @@ impl Activity for UndoLockPageOrNote {
 
         Post::update(&mut context.pool(), post.id, &form).await?;
 
-        let form = ModlogInsertForm::mod_lock_post(actor.id, post.id, false, &reason);
+        let form = ModlogInsertForm::mod_lock_post(actor.id, &post, false, &reason);
         let action = Modlog::create(&mut context.pool(), &[form]).await?;
-        notify_mod_action(action, post.creator_id, context);
+        notify_mod_action(action, context);
       }
       PostOrComment::Right(comment) => {
         Comment::update_locked_for_comment_and_children(&mut context.pool(), &comment.path, false)
           .await?;
 
-        let form = ModlogInsertForm::mod_lock_comment(actor.id, comment.id, false, &reason);
+        let form = ModlogInsertForm::mod_lock_comment(actor.id, &comment, false, &reason);
         let action = Modlog::create(&mut context.pool(), &[form]).await?;
-        notify_mod_action(action, comment.creator_id, context);
+        notify_mod_action(action, context);
       }
     }
 

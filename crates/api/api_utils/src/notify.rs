@@ -300,25 +300,13 @@ pub async fn notify_private_message(
   Ok(())
 }
 
-pub fn notify_mod_action(actions: Vec<Modlog>, target_id: PersonId, context: &LemmyContext) {
-  // Filter out mod actions which should not generate notification
-  // TODO: Could instead filter out any actions with target_person_id == None, and
-  //       also remove the target_id param for this function.
+pub fn notify_mod_action(actions: Vec<Modlog>, context: &LemmyContext) {
+  // Mod actions should notify the target person. If there is no target person then also no
+  // notification. This means each mod action can only notify a single person (eg it is not possible
+  // to notify all community mods when a community gets removed).
   let actions: Vec<_> = actions
     .into_iter()
-    .filter(|a| {
-      use ModlogKind::*;
-      let k = a.kind;
-      k != AdminPurgePerson
-        && k != AdminPurgeCommunity
-        && k != AdminPurgePost
-        && k != AdminPurgeComment
-        && k != AdminAllowInstance
-        && k != AdminBlockInstance
-        && k != ModChangeCommunityVisibility
-        && k != ModFeaturePostCommunity
-        && k != AdminFeaturePostSite
-    })
+    .filter(|a| a.target_person_id.is_some())
     .collect();
   if actions.is_empty() {
     return;
@@ -327,6 +315,9 @@ pub fn notify_mod_action(actions: Vec<Modlog>, target_id: PersonId, context: &Le
   let context = context.clone();
   spawn_try_task(async move {
     for action in actions {
+      let Some(target_id) = action.target_person_id else {
+        continue;
+      };
       let Ok(local_recipient) = LocalUserView::read_person(&mut context.pool(), target_id).await
       else {
         continue;
