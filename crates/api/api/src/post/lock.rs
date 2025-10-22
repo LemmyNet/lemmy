@@ -14,7 +14,6 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_schema_file::enums::ModlogKind;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::{
   api::{LockPost, PostResponse},
@@ -68,7 +67,7 @@ pub async fn lock_post(
     &data.reason,
   );
   let action = Modlog::create(&mut context.pool(), &[form]).await?;
-  notify_mod_action(action.clone(),  &context);
+  notify_mod_action(action.clone(), &context);
 
   ActivityChannel::submit_activity(
     SendActivityData::LockPost(

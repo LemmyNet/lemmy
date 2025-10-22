@@ -8,7 +8,7 @@ use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
 use enum_map::{enum_map, EnumMap};
 use lemmy_db_schema::{
-  newtypes::{CommentId, CommunityId, DbUrl, InstanceId, PersonId, PostId, PostOrCommentId, TagId},
+  newtypes::{CommunityId, DbUrl, InstanceId, PersonId, PostId, PostOrCommentId, TagId},
   source::{
     comment::{Comment, CommentActions},
     community::{Community, CommunityActions, CommunityUpdateForm},
@@ -29,7 +29,7 @@ use lemmy_db_schema::{
   traits::{Crud, Likeable},
   utils::DbPool,
 };
-use lemmy_db_schema_file::enums::{FederationMode, ModlogKind, RegistrationMode};
+use lemmy_db_schema_file::enums::{FederationMode, RegistrationMode};
 use lemmy_db_views_community_follower_approval::PendingFollowerView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_community_person_ban::CommunityPersonBanView;
@@ -639,7 +639,7 @@ pub async fn remove_or_restore_user_data(
 async fn create_modlog_entries_for_removed_or_restored_posts(
   pool: &mut DbPool<'_>,
   mod_person_id: PersonId,
-  posts: &Vec<Post>,
+  posts: &[Post],
   removed: bool,
   reason: &str,
 ) -> LemmyResult<()> {
@@ -657,14 +657,14 @@ async fn create_modlog_entries_for_removed_or_restored_posts(
 async fn create_modlog_entries_for_removed_or_restored_comments(
   pool: &mut DbPool<'_>,
   mod_person_id: PersonId,
-  comments: &Vec<Comment>,
+  comments: &[Comment],
   removed: bool,
   reason: &str,
 ) -> LemmyResult<()> {
   // Build the forms
   let forms: Vec<_> = comments
     .iter()
-    .map(|comment| ModlogInsertForm::mod_remove_comment(mod_person_id, &comment, removed, reason))
+    .map(|comment| ModlogInsertForm::mod_remove_comment(mod_person_id, comment, removed, reason))
     .collect();
 
   Modlog::create(pool, &forms).await?;
@@ -1012,7 +1012,7 @@ pub async fn update_post_tags(
 mod tests {
   use super::*;
   use diesel_ltree::Ltree;
-  use lemmy_db_schema::newtypes::LanguageId;
+  use lemmy_db_schema::newtypes::{CommentId, LanguageId};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 

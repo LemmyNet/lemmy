@@ -159,29 +159,41 @@ INSERT INTO modlog (kind, reason, removed, mod_id, published_at)
 SELECT
     'AdminPurgeComment',
     reason,
-    true,
+    TRUE,
     admin_person_id,
     published_at
 FROM
     admin_purge_comment;
 
-INSERT INTO modlog (kind, reason, removed, mod_id,  published_at)
+INSERT INTO modlog (kind, reason, removed, mod_id, published_at)
 SELECT
     'AdminPurgePost',
     reason,
-    true,
+    TRUE,
     admin_person_id,
     published_at
 FROM
     admin_purge_comment;
 
-INSERT INTO modlog (kind, reason, removed, mod_id,  published_at)
- SELECT 'AdminPurgeCommunity', reason, true, admin_person_id,published_at
- FROM admin_purge_community;
- 
 INSERT INTO modlog (kind, reason, removed, mod_id, published_at)
-SELECT 'AdminPurgePerson',reason, true,admin_person_id, published_at
- FROM admin_purge_person;
+SELECT
+    'AdminPurgeCommunity',
+    reason,
+    TRUE,
+    admin_person_id,
+    published_at
+FROM
+    admin_purge_community;
+
+INSERT INTO modlog (kind, reason, removed, mod_id, published_at)
+SELECT
+    'AdminPurgePerson',
+    reason,
+    TRUE,
+    admin_person_id,
+    published_at
+FROM
+    admin_purge_person;
 
 INSERT INTO modlog (kind, removed, mod_id, target_person_id, published_at)
 SELECT
@@ -208,7 +220,7 @@ FROM
 
 INSERT INTO modlog (kind, removed, mod_id, target_post_id, published_at)
 SELECT
-    'ModFeaturePost',
+    'ModFeaturePostCommunity',
     featured,
     mod_person_id,
     post_id,

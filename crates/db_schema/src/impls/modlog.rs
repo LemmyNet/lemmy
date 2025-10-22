@@ -1,5 +1,5 @@
 use crate::{
-  newtypes::{CommentId, CommunityId, InstanceId, ModlogId, PersonId, PostId},
+  newtypes::{CommunityId, InstanceId, PersonId},
   source::{
     comment::Comment,
     modlog::{Modlog, ModlogInsertForm},
@@ -11,8 +11,6 @@ use crate::{
 use chrono::{DateTime, Utc};
 use diesel::dsl::insert_into;
 use diesel_async::RunQueryDsl;
-#[cfg(feature = "full")]
-use i_love_jesus::CursorKeysModule;
 use lemmy_db_schema_file::enums::ModlogKind;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::modlog;

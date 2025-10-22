@@ -20,7 +20,6 @@ use lemmy_db_schema::{
   traits::{Bannable, Crud, Followable},
   utils::get_conn,
 };
-use lemmy_db_schema_file::enums::ModlogKind;
 use lemmy_db_views_community::api::{BanFromCommunity, BanFromCommunityResponse};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;

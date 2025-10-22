@@ -1,9 +1,6 @@
 use crate::hide_modlog_names;
 use actix_web::web::{Data, Json, Query};
-use lemmy_api_utils::{
-  context::LemmyContext,
-  utils::{check_private_instance, is_mod_or_admin_opt},
-};
+use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
 use lemmy_db_schema::traits::PaginationCursorBuilder;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_modlog::{
@@ -75,20 +72,14 @@ mod tests {
       community::{Community, CommunityInsertForm},
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm},
-      mod_log::moderator::{ModRemoveComment, ModRemovePost},
+      modlog::Modlog,
       person::{Person, PersonInsertForm},
       post::{Post, PostActions, PostInsertForm, PostLikeForm},
     },
     traits::{Crud, Likeable},
-    ModlogActionType,
   };
+  use lemmy_db_schema_file::enums::ModlogKind;
   use lemmy_db_views_comment::CommentView;
-  use lemmy_db_views_modlog::{
-    impls::ModlogCombinedQuery,
-    ModRemoveCommentView,
-    ModRemovePostView,
-    ModlogCombinedView,
-  };
   use lemmy_db_views_post::PostView;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
@@ -123,7 +114,7 @@ mod tests {
     let post_1 = Post::create(pool, &post_form_1).await?;
 
     let post_like_form_1 = PostLikeForm::new(post_1.id, sara.id, true);
-    let _post_like_1 = PostActions::like(pool, &post_like_form_1).await?;
+    PostActions::like(pool, &post_like_form_1).await?;
 
     let post_form_2 = PostInsertForm::new("A test post radical".into(), sara.id, community.id);
     let post_2 = Post::create(pool, &post_form_2).await?;
@@ -133,11 +124,11 @@ mod tests {
     let comment_1 = Comment::create(pool, &comment_form_1, None).await?;
 
     let comment_like_form_1 = CommentLikeForm::new(sara.id, comment_1.id, true);
-    let _comment_like_1 = CommentActions::like(pool, &comment_like_form_1).await?;
+    CommentActions::like(pool, &comment_like_form_1).await?;
 
     let comment_form_2 =
       CommentInsertForm::new(sara.id, post_2.id, "A test comment radical".into());
-    let _comment_2 = Comment::create(pool, &comment_form_2, None).await?;
+    Comment::create(pool, &comment_form_2, None).await?;
 
     // Read saras post to make sure it has a like
     let post_view_1 =
@@ -164,8 +155,8 @@ mod tests {
 
     // Verify that their posts and comments are removed.
     // Posts
-    let post_modlog = ModlogCombinedQuery {
-      type_: Some(ModlogActionType::ModRemovePost),
+    let post_modlog = ModlogQuery {
+      type_: Some(ModlogKind::ModRemovePost),
       ..Default::default()
     }
     .list(pool)
@@ -175,22 +166,30 @@ mod tests {
     assert!(matches!(
       &post_modlog[..],
       [
-        ModlogCombinedView::ModRemovePost(ModRemovePostView {
-          mod_remove_post: ModRemovePost { removed: true, .. },
-          post: Post { removed: true, .. },
+        ModlogView {
+          modlog: Modlog {
+            removed: true,
+            kind: ModlogKind::ModRemovePost,
+            ..
+          },
+          target_post: Some(Post { removed: true, .. }),
           ..
-        }),
-        ModlogCombinedView::ModRemovePost(ModRemovePostView {
-          mod_remove_post: ModRemovePost { removed: true, .. },
-          post: Post { removed: true, .. },
+        },
+        ModlogView {
+          modlog: Modlog {
+            removed: true,
+            kind: ModlogKind::ModRemovePost,
+            ..
+          },
+          target_post: Some(Post { removed: true, .. }),
           ..
-        }),
+        },
       ],
     ));
 
     // Comments
-    let comment_modlog = ModlogCombinedQuery {
-      type_: Some(ModlogActionType::ModRemoveComment),
+    let comment_modlog = ModlogQuery {
+      type_: Some(ModlogKind::ModRemoveComment),
       ..Default::default()
     }
     .list(pool)
@@ -200,16 +199,24 @@ mod tests {
     assert!(matches!(
       &comment_modlog[..],
       [
-        ModlogCombinedView::ModRemoveComment(ModRemoveCommentView {
-          mod_remove_comment: ModRemoveComment { removed: true, .. },
-          comment: Comment { removed: true, .. },
+        ModlogView {
+          modlog: Modlog {
+            removed: true,
+            kind: ModlogKind::ModRemoveComment,
+            ..
+          },
+          target_comment: Some(Comment { removed: true, .. }),
           ..
-        }),
-        ModlogCombinedView::ModRemoveComment(ModRemoveCommentView {
-          mod_remove_comment: ModRemoveComment { removed: true, .. },
-          comment: Comment { removed: true, .. },
+        },
+        ModlogView {
+          modlog: Modlog {
+            removed: true,
+            kind: ModlogKind::ModRemoveComment,
+            ..
+          },
+          target_comment: Some(Comment { removed: true, .. }),
           ..
-        }),
+        },
       ],
     ));
 
@@ -238,8 +245,8 @@ mod tests {
     remove_or_restore_user_data(john.id, sara.id, false, "a restore reason", &context).await?;
 
     // Posts
-    let post_modlog = ModlogCombinedQuery {
-      type_: Some(ModlogActionType::ModRemovePost),
+    let post_modlog = ModlogQuery {
+      type_: Some(ModlogKind::ModRemovePost),
       ..Default::default()
     }
     .list(pool)
@@ -249,32 +256,48 @@ mod tests {
     assert!(matches!(
       &post_modlog[..],
       [
-        ModlogCombinedView::ModRemovePost(ModRemovePostView {
-          mod_remove_post: ModRemovePost { removed: false, .. },
-          post: Post { removed: false, .. },
+        ModlogView {
+          modlog: Modlog {
+            removed: false,
+            kind: ModlogKind::ModRemovePost,
+            ..
+          },
+          target_post: Some(Post { removed: false, .. }),
           ..
-        }),
-        ModlogCombinedView::ModRemovePost(ModRemovePostView {
-          mod_remove_post: ModRemovePost { removed: false, .. },
-          post: Post { removed: false, .. },
+        },
+        ModlogView {
+          modlog: Modlog {
+            removed: false,
+            kind: ModlogKind::ModRemovePost,
+            ..
+          },
+          target_post: Some(Post { removed: false, .. }),
           ..
-        }),
-        ModlogCombinedView::ModRemovePost(ModRemovePostView {
-          mod_remove_post: ModRemovePost { removed: true, .. },
-          post: Post { removed: false, .. },
+        },
+        ModlogView {
+          modlog: Modlog {
+            removed: true,
+            kind: ModlogKind::ModRemovePost,
+            ..
+          },
+          target_post: Some(Post { removed: false, .. }),
           ..
-        }),
-        ModlogCombinedView::ModRemovePost(ModRemovePostView {
-          mod_remove_post: ModRemovePost { removed: true, .. },
-          post: Post { removed: false, .. },
+        },
+        ModlogView {
+          modlog: Modlog {
+            removed: true,
+            kind: ModlogKind::ModRemovePost,
+            ..
+          },
+          target_post: Some(Post { removed: false, .. }),
           ..
-        }),
+        },
       ],
     ));
 
     // Comments
-    let comment_modlog = ModlogCombinedQuery {
-      type_: Some(ModlogActionType::ModRemoveComment),
+    let comment_modlog = ModlogQuery {
+      type_: Some(ModlogKind::ModRemoveComment),
       ..Default::default()
     }
     .list(pool)
@@ -284,26 +307,42 @@ mod tests {
     assert!(matches!(
       &comment_modlog[..],
       [
-        ModlogCombinedView::ModRemoveComment(ModRemoveCommentView {
-          mod_remove_comment: ModRemoveComment { removed: false, .. },
-          comment: Comment { removed: false, .. },
+        ModlogView {
+          modlog: Modlog {
+            removed: false,
+            kind: ModlogKind::ModRemoveComment,
+            ..
+          },
+          target_comment: Some(Comment { removed: false, .. }),
           ..
-        }),
-        ModlogCombinedView::ModRemoveComment(ModRemoveCommentView {
-          mod_remove_comment: ModRemoveComment { removed: false, .. },
-          comment: Comment { removed: false, .. },
+        },
+        ModlogView {
+          modlog: Modlog {
+            removed: false,
+            kind: ModlogKind::ModRemoveComment,
+            ..
+          },
+          target_comment: Some(Comment { removed: false, .. }),
           ..
-        }),
-        ModlogCombinedView::ModRemoveComment(ModRemoveCommentView {
-          mod_remove_comment: ModRemoveComment { removed: true, .. },
-          comment: Comment { removed: false, .. },
+        },
+        ModlogView {
+          modlog: Modlog {
+            removed: true,
+            kind: ModlogKind::ModRemoveComment,
+            ..
+          },
+          target_comment: Some(Comment { removed: false, .. }),
           ..
-        }),
-        ModlogCombinedView::ModRemoveComment(ModRemoveCommentView {
-          mod_remove_comment: ModRemoveComment { removed: true, .. },
-          comment: Comment { removed: false, .. },
+        },
+        ModlogView {
+          modlog: Modlog {
+            removed: true,
+            kind: ModlogKind::ModRemoveComment,
+            ..
+          },
+          target_comment: Some(Comment { removed: false, .. }),
           ..
-        }),
+        },
       ],
     ));
 

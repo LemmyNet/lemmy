@@ -438,7 +438,7 @@ fn create_modlog_items(modlog: Vec<ModlogView>, settings: &Settings) -> LemmyRes
     .iter()
     .map(|r| match r.modlog.kind {
       ModlogKind::AdminAllowInstance => build_modlog_item(
-        &r,
+        r,
         &modlog_url,
         format!(
           "Admin {} instance - {}",
@@ -452,7 +452,7 @@ fn create_modlog_items(modlog: Vec<ModlogView>, settings: &Settings) -> LemmyRes
         settings,
       ),
       ModlogKind::AdminBlockInstance => build_modlog_item(
-        &r,
+        r,
         &modlog_url,
         format!(
           "Admin {} instance - {}",
@@ -466,19 +466,19 @@ fn create_modlog_items(modlog: Vec<ModlogView>, settings: &Settings) -> LemmyRes
         settings,
       ),
       ModlogKind::AdminPurgeComment => {
-        build_modlog_item(&r, &modlog_url, "Admin purged comment", settings)
+        build_modlog_item(r, &modlog_url, "Admin purged comment", settings)
       }
       ModlogKind::AdminPurgeCommunity => {
-        build_modlog_item(&r, &modlog_url, "Admin purged community", settings)
+        build_modlog_item(r, &modlog_url, "Admin purged community", settings)
       }
       ModlogKind::AdminPurgePerson => {
-        build_modlog_item(&r, &modlog_url, "Admin purged person", settings)
+        build_modlog_item(r, &modlog_url, "Admin purged person", settings)
       }
       ModlogKind::AdminPurgePost => {
-        build_modlog_item(&r, &modlog_url, "Admin purged post", settings)
+        build_modlog_item(r, &modlog_url, "Admin purged post", settings)
       }
       ModlogKind::AdminAdd => build_modlog_item(
-        &r,
+        r,
         &modlog_url,
         format!(
           "{} admin {}",
@@ -488,7 +488,7 @@ fn create_modlog_items(modlog: Vec<ModlogView>, settings: &Settings) -> LemmyRes
         settings,
       ),
       ModlogKind::ModAddToCommunity => build_modlog_item(
-        &r,
+        r,
         &modlog_url,
         format!(
           "{} mod {} to /c/{}",
@@ -499,7 +499,7 @@ fn create_modlog_items(modlog: Vec<ModlogView>, settings: &Settings) -> LemmyRes
         settings,
       ),
       ModlogKind::AdminBan => build_modlog_item(
-        &r,
+        r,
         &modlog_url,
         format!(
           "{} {}",
@@ -509,7 +509,7 @@ fn create_modlog_items(modlog: Vec<ModlogView>, settings: &Settings) -> LemmyRes
         settings,
       ),
       ModlogKind::ModBanFromCommunity => build_modlog_item(
-        &r,
+        r,
         &modlog_url,
         format!(
           "{} {} from /c/{}",
@@ -520,7 +520,7 @@ fn create_modlog_items(modlog: Vec<ModlogView>, settings: &Settings) -> LemmyRes
         settings,
       ),
       ModlogKind::ModFeaturePostCommunity => build_modlog_item(
-        &r,
+        r,
         &modlog_url,
         format!(
           "{} post {}",
@@ -534,7 +534,7 @@ fn create_modlog_items(modlog: Vec<ModlogView>, settings: &Settings) -> LemmyRes
         settings,
       ),
       ModlogKind::AdminFeaturePostSite => build_modlog_item(
-        &r,
+        r,
         &modlog_url,
         format!(
           "{} post {}",
@@ -548,7 +548,7 @@ fn create_modlog_items(modlog: Vec<ModlogView>, settings: &Settings) -> LemmyRes
         settings,
       ),
       ModlogKind::ModChangeCommunityVisibility => build_modlog_item(
-        &r,
+        r,
         &modlog_url,
         format!(
           "Changed /c/{} visibility",
@@ -557,7 +557,7 @@ fn create_modlog_items(modlog: Vec<ModlogView>, settings: &Settings) -> LemmyRes
         settings,
       ),
       ModlogKind::ModLockPost => build_modlog_item(
-        &r,
+        r,
         &modlog_url,
         format!(
           "{} post {}",
@@ -571,7 +571,7 @@ fn create_modlog_items(modlog: Vec<ModlogView>, settings: &Settings) -> LemmyRes
         settings,
       ),
       ModlogKind::ModRemoveComment => build_modlog_item(
-        &r,
+        r,
         &modlog_url,
         format!(
           "{} comment {}",
@@ -581,7 +581,7 @@ fn create_modlog_items(modlog: Vec<ModlogView>, settings: &Settings) -> LemmyRes
         settings,
       ),
       ModlogKind::AdminRemoveCommunity => build_modlog_item(
-        &r,
+        r,
         &modlog_url,
         format!(
           "{} community /c/{}",
@@ -591,7 +591,7 @@ fn create_modlog_items(modlog: Vec<ModlogView>, settings: &Settings) -> LemmyRes
         settings,
       ),
       ModlogKind::ModRemovePost => build_modlog_item(
-        &r,
+        r,
         &modlog_url,
         format!(
           "{} post {}",
@@ -601,7 +601,7 @@ fn create_modlog_items(modlog: Vec<ModlogView>, settings: &Settings) -> LemmyRes
         settings,
       ),
       ModlogKind::ModTransferCommunity => build_modlog_item(
-        &r,
+        r,
         &modlog_url,
         format!(
           "Tranferred /c/{} to /u/{}",
@@ -611,7 +611,7 @@ fn create_modlog_items(modlog: Vec<ModlogView>, settings: &Settings) -> LemmyRes
         settings,
       ),
       ModlogKind::ModLockComment => build_modlog_item(
-        &r,
+        r,
         &modlog_url,
         format!(
           "{} comment {}",

@@ -16,7 +16,6 @@ use lemmy_db_schema::{
   traits::Crud,
   utils::get_conn,
 };
-use lemmy_db_schema_file::enums::ModlogKind;
 use lemmy_db_views_community::api::{AddModToCommunity, AddModToCommunityResponse};
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;

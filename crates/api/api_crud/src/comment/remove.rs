@@ -16,7 +16,6 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Reportable},
 };
-use lemmy_db_schema_file::enums::ModlogKind;
 use lemmy_db_views_comment::{
   api::{CommentResponse, RemoveComment},
   CommentView,

@@ -34,7 +34,6 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_schema_file::enums::ModlogKind;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 

@@ -14,7 +14,6 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_schema_file::enums::ModlogKind;
 use lemmy_db_views_comment::{
   api::{CommentResponse, LockComment},
   CommentView,
@@ -51,7 +50,7 @@ pub async fn lock_comment(
   let comment = comments.first().ok_or(LemmyErrorType::NotFound)?;
 
   let form =
-    ModlogInsertForm::mod_lock_comment(local_user_view.person.id, &comment, locked, &data.reason);
+    ModlogInsertForm::mod_lock_comment(local_user_view.person.id, comment, locked, &data.reason);
   let action = Modlog::create(&mut context.pool(), &[form]).await?;
   notify_mod_action(action.clone(), &context);
 

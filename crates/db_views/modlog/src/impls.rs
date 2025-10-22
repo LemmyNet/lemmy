@@ -195,7 +195,6 @@ impl ModlogView {
 mod tests {
   use super::*;
   use lemmy_db_schema::{
-    newtypes::PersonId,
     source::{
       comment::{Comment, CommentInsertForm},
       community::{Community, CommunityInsertForm},
@@ -206,7 +205,6 @@ mod tests {
     traits::Crud,
     utils::{build_db_pool_for_tests, DbPool},
   };
-  use lemmy_db_schema_file::enums::CommunityVisibility;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;

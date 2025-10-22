@@ -14,7 +14,6 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::enums::{
   CommunityNotificationsMode,
-  ModlogKind,
   NotificationType,
   PostNotificationsMode,
 };

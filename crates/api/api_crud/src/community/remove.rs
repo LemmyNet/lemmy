@@ -15,7 +15,6 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Reportable},
 };
-use lemmy_db_schema_file::enums::ModlogKind;
 use lemmy_db_views_community::api::{CommunityResponse, RemoveCommunity};
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
