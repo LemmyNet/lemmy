@@ -420,7 +420,7 @@ test("Reply to a comment from another instance, get notification", async () => {
   );
   const alphaReply = alphaRepliesRes.notifications.find(
     r =>
-      r.data.type_ == "Comment" &&
+      r.data.type_ == "comment" &&
       r.data.comment.id === alphaComment.comment.id,
   );
   expect(alphaReply).toBeDefined();
@@ -978,7 +978,7 @@ test("Lock comment", async () => {
 
 function checkCommentReportReason(rcv: ReportCombinedView, reason: string) {
   switch (rcv.type_) {
-    case "Comment":
+    case "comment":
       return rcv.comment_report.reason === reason;
     default:
       return false;

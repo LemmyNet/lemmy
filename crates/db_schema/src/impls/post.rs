@@ -433,20 +433,18 @@ impl Saveable for PostActions {
 }
 
 impl PostActions {
-  pub async fn mark_as_read(pool: &mut DbPool<'_>, form: &PostReadForm) -> LemmyResult<usize> {
-    Self::mark_many_as_read(pool, std::slice::from_ref(form)).await
-  }
-
   pub async fn mark_as_unread(
     pool: &mut DbPool<'_>,
-    form: &PostReadForm,
+    person_id: PersonId,
+    post_ids: &[PostId],
   ) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
 
+    let post_ids: Vec<_> = post_ids.to_vec();
     uplete(
       post_actions::table
-        .filter(post_actions::post_id.eq(form.post_id))
-        .filter(post_actions::person_id.eq(form.person_id)),
+        .filter(post_actions::post_id.eq_any(post_ids))
+        .filter(post_actions::person_id.eq(person_id)),
     )
     .set_null(post_actions::read_at)
     .get_result(conn)
@@ -454,11 +452,17 @@ impl PostActions {
     .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
-  pub async fn mark_many_as_read(
+  pub async fn mark_as_read(
     pool: &mut DbPool<'_>,
-    forms: &[PostReadForm],
+    person_id: PersonId,
+    post_ids: &[PostId],
   ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
+
+    let forms: Vec<_> = post_ids
+      .iter()
+      .map(|post_id| PostReadForm::new(*post_id, person_id))
+      .collect();
 
     insert_into(post_actions::table)
       .values(forms)
@@ -541,13 +545,6 @@ impl PostActions {
     Self::read(pool, PostId(post_id), PersonId(person_id)).await
   }
 
-  pub fn build_many_read_forms(post_ids: &[PostId], person_id: PersonId) -> Vec<PostReadForm> {
-    post_ids
-      .iter()
-      .map(|post_id| PostReadForm::new(*post_id, person_id))
-      .collect::<Vec<_>>()
-  }
-
   pub async fn update_notification_state(
     post_id: PostId,
     person_id: PersonId,
@@ -596,15 +593,7 @@ mod tests {
       community::{Community, CommunityInsertForm},
       instance::Instance,
       person::{Person, PersonInsertForm},
-      post::{
-        Post,
-        PostActions,
-        PostInsertForm,
-        PostLikeForm,
-        PostReadForm,
-        PostSavedForm,
-        PostUpdateForm,
-      },
+      post::{Post, PostActions, PostInsertForm, PostLikeForm, PostSavedForm, PostUpdateForm},
     },
     traits::{Crud, Likeable, Saveable},
     utils::{build_db_pool_for_tests, RANK_DEFAULT},
@@ -712,10 +701,8 @@ mod tests {
     assert!(inserted_post_saved.saved_at.is_some());
 
     // Mark 2 posts as read
-    let post_read_form_1 = PostReadForm::new(inserted_post.id, inserted_person.id);
-    PostActions::mark_as_read(pool, &post_read_form_1).await?;
-    let post_read_form_2 = PostReadForm::new(inserted_post2.id, inserted_person.id);
-    PostActions::mark_as_read(pool, &post_read_form_2).await?;
+    PostActions::mark_as_read(pool, inserted_person.id, &[inserted_post.id]).await?;
+    PostActions::mark_as_read(pool, inserted_person.id, &[inserted_post2.id]).await?;
 
     let read_post = Post::read(pool, inserted_post.id).await?;
 
@@ -734,12 +721,12 @@ mod tests {
     let saved_removed = PostActions::unsave(pool, &post_saved_form).await?;
     assert_eq!(UpleteCount::only_updated(1), saved_removed);
 
-    let read_remove_form_1 = PostReadForm::new(inserted_post.id, inserted_person.id);
-    let read_removed_1 = PostActions::mark_as_unread(pool, &read_remove_form_1).await?;
+    let read_removed_1 =
+      PostActions::mark_as_unread(pool, inserted_person.id, &[inserted_post.id]).await?;
     assert_eq!(UpleteCount::only_deleted(1), read_removed_1);
 
-    let read_remove_form_2 = PostReadForm::new(inserted_post2.id, inserted_person.id);
-    let read_removed_2 = PostActions::mark_as_unread(pool, &read_remove_form_2).await?;
+    let read_removed_2 =
+      PostActions::mark_as_unread(pool, inserted_person.id, &[inserted_post2.id]).await?;
     assert_eq!(UpleteCount::only_deleted(1), read_removed_2);
 
     let num_deleted = Post::delete(pool, inserted_post.id).await?
