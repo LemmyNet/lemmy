@@ -378,7 +378,7 @@ mod tests {
   }
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
-    let instance = Instance::read_or_create(pool, "lemmy-alpha".to_string()).await?;
+    let instance = Instance::read_or_create(pool, "lemmy-alpha").await?;
 
     let timmy = LocalUserView::create_test_user(pool, "timmy_pcv", "", false).await?;
 

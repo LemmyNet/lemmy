@@ -1565,8 +1565,7 @@ mod tests {
     let pool = &data.pool();
     let pool = &mut pool.into();
 
-    let blocked_instance_comms =
-      Instance::read_or_create(pool, "another_domain.tld".to_string()).await?;
+    let blocked_instance_comms = Instance::read_or_create(pool, "another_domain.tld").await?;
 
     let community_form = CommunityInsertForm::new(
       blocked_instance_comms.id,
@@ -1653,8 +1652,7 @@ mod tests {
     let pool = &data.pool();
     let pool = &mut pool.into();
 
-    let blocked_instance_persons =
-      Instance::read_or_create(pool, "another_domain.tld".to_string()).await?;
+    let blocked_instance_persons = Instance::read_or_create(pool, "another_domain.tld").await?;
 
     let howard_form = PersonInsertForm::test_form(blocked_instance_persons.id, "howard");
     let howard = Person::create(pool, &howard_form).await?;

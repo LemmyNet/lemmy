@@ -13,14 +13,14 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_site::api::{AdminBlockInstanceParams, SuccessResponse};
+use lemmy_db_views_site::{api::AdminBlockInstanceParams, FederatedInstanceView};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn admin_block_instance(
   data: Json<AdminBlockInstanceParams>,
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
-) -> LemmyResult<Json<SuccessResponse>> {
+) -> LemmyResult<Json<FederatedInstanceView>> {
   is_admin(&local_user_view)?;
 
   let expires_at = check_expire_time(data.expires_at)?;
@@ -30,15 +30,11 @@ pub async fn admin_block_instance(
     Err(LemmyErrorType::CannotCombineFederationBlocklistAndAllowlist)?;
   }
 
-  let instance_id = Instance::read_or_create(&mut context.pool(), data.instance.clone())
+  let instance_id = Instance::read_or_create(&mut context.pool(), &data.instance)
     .await?
     .id;
 
-  let form = FederationBlockListForm {
-    instance_id,
-    expires_at,
-    updated_at: None,
-  };
+  let form = FederationBlockListForm::new(instance_id, expires_at);
 
   if data.block {
     FederationBlockList::block(&mut context.pool(), &form).await?;
@@ -54,5 +50,7 @@ pub async fn admin_block_instance(
   };
   AdminBlockInstance::create(&mut context.pool(), &mod_log_form).await?;
 
-  Ok(Json(SuccessResponse::default()))
+  Ok(Json(
+    FederatedInstanceView::read(&mut context.pool(), instance_id).await?,
+  ))
 }
