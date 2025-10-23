@@ -168,7 +168,7 @@ mod tests {
       [
         ModlogView {
           modlog: Modlog {
-            removed: true,
+            is_revert: false,
             kind: ModlogKind::ModRemovePost,
             ..
           },
@@ -177,7 +177,7 @@ mod tests {
         },
         ModlogView {
           modlog: Modlog {
-            removed: true,
+            is_revert: false,
             kind: ModlogKind::ModRemovePost,
             ..
           },
@@ -201,7 +201,7 @@ mod tests {
       [
         ModlogView {
           modlog: Modlog {
-            removed: true,
+            is_revert: false,
             kind: ModlogKind::ModRemoveComment,
             ..
           },
@@ -210,7 +210,7 @@ mod tests {
         },
         ModlogView {
           modlog: Modlog {
-            removed: true,
+            is_revert: false,
             kind: ModlogKind::ModRemoveComment,
             ..
           },
@@ -258,7 +258,7 @@ mod tests {
       [
         ModlogView {
           modlog: Modlog {
-            removed: false,
+            is_revert: true,
             kind: ModlogKind::ModRemovePost,
             ..
           },
@@ -267,7 +267,7 @@ mod tests {
         },
         ModlogView {
           modlog: Modlog {
-            removed: false,
+            is_revert: true,
             kind: ModlogKind::ModRemovePost,
             ..
           },
@@ -276,7 +276,7 @@ mod tests {
         },
         ModlogView {
           modlog: Modlog {
-            removed: true,
+            is_revert: false,
             kind: ModlogKind::ModRemovePost,
             ..
           },
@@ -285,7 +285,7 @@ mod tests {
         },
         ModlogView {
           modlog: Modlog {
-            removed: true,
+            is_revert: false,
             kind: ModlogKind::ModRemovePost,
             ..
           },
@@ -309,7 +309,7 @@ mod tests {
       [
         ModlogView {
           modlog: Modlog {
-            removed: false,
+            is_revert: true,
             kind: ModlogKind::ModRemoveComment,
             ..
           },
@@ -318,7 +318,7 @@ mod tests {
         },
         ModlogView {
           modlog: Modlog {
-            removed: false,
+            is_revert: true,
             kind: ModlogKind::ModRemoveComment,
             ..
           },
@@ -327,7 +327,7 @@ mod tests {
         },
         ModlogView {
           modlog: Modlog {
-            removed: true,
+            is_revert: false,
             kind: ModlogKind::ModRemoveComment,
             ..
           },
@@ -336,7 +336,7 @@ mod tests {
         },
         ModlogView {
           modlog: Modlog {
-            removed: true,
+            is_revert: false,
             kind: ModlogKind::ModRemoveComment,
             ..
           },

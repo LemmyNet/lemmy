@@ -340,7 +340,7 @@ pub fn notify_mod_action(actions: Vec<Modlog>, context: &LemmyContext) {
       let d = NotificationEmailData::ModAction {
         kind: action.kind,
         reason: action.reason.as_deref(),
-        is_revert: action.removed,
+        is_revert: action.is_revert,
       };
       send_notification_email(
         local_recipient,

@@ -442,7 +442,7 @@ fn create_modlog_items(modlog: Vec<ModlogView>, settings: &Settings) -> LemmyRes
         &modlog_url,
         format!(
           "Admin {} instance - {}",
-          if r.modlog.removed {
+          if r.modlog.is_revert {
             "disallowed"
           } else {
             "allowed"
@@ -456,10 +456,10 @@ fn create_modlog_items(modlog: Vec<ModlogView>, settings: &Settings) -> LemmyRes
         &modlog_url,
         format!(
           "Admin {} instance - {}",
-          if r.modlog.removed {
-            "blocked"
-          } else {
+          if r.modlog.is_revert {
             "unblocked"
+          } else {
+            "blocked"
           },
           &r.target_instance.as_ref().unwrap().domain
         ),
@@ -482,7 +482,7 @@ fn create_modlog_items(modlog: Vec<ModlogView>, settings: &Settings) -> LemmyRes
         &modlog_url,
         format!(
           "{} admin {}",
-          removed_added_str(r.modlog.removed),
+          removed_added_str(r.modlog.is_revert),
           &r.target_person.as_ref().unwrap().name
         ),
         settings,
@@ -492,7 +492,7 @@ fn create_modlog_items(modlog: Vec<ModlogView>, settings: &Settings) -> LemmyRes
         &modlog_url,
         format!(
           "{} mod {} to /c/{}",
-          removed_added_str(r.modlog.removed),
+          removed_added_str(r.modlog.is_revert),
           &r.target_person.as_ref().unwrap().name,
           &r.target_community.as_ref().unwrap().name
         ),
@@ -503,7 +503,7 @@ fn create_modlog_items(modlog: Vec<ModlogView>, settings: &Settings) -> LemmyRes
         &modlog_url,
         format!(
           "{} {}",
-          banned_unbanned_str(r.modlog.removed),
+          banned_unbanned_str(r.modlog.is_revert),
           &r.target_person.as_ref().unwrap().name
         ),
         settings,
@@ -513,7 +513,7 @@ fn create_modlog_items(modlog: Vec<ModlogView>, settings: &Settings) -> LemmyRes
         &modlog_url,
         format!(
           "{} {} from /c/{}",
-          banned_unbanned_str(r.modlog.removed),
+          banned_unbanned_str(r.modlog.is_revert),
           &r.target_person.as_ref().unwrap().name,
           &r.target_community.as_ref().unwrap().name
         ),
@@ -524,7 +524,7 @@ fn create_modlog_items(modlog: Vec<ModlogView>, settings: &Settings) -> LemmyRes
         &modlog_url,
         format!(
           "{} post {}",
-          if r.modlog.removed {
+          if r.modlog.is_revert {
             "Featured"
           } else {
             "Unfeatured"
@@ -538,7 +538,7 @@ fn create_modlog_items(modlog: Vec<ModlogView>, settings: &Settings) -> LemmyRes
         &modlog_url,
         format!(
           "{} post {}",
-          if r.modlog.removed {
+          if r.modlog.is_revert {
             "Featured"
           } else {
             "Unfeatured"
@@ -561,10 +561,10 @@ fn create_modlog_items(modlog: Vec<ModlogView>, settings: &Settings) -> LemmyRes
         &modlog_url,
         format!(
           "{} post {}",
-          if r.modlog.removed {
-            "Locked"
-          } else {
+          if r.modlog.is_revert {
             "Unlocked"
+          } else {
+            "Locked"
           },
           &&r.target_post.as_ref().unwrap().name
         ),
@@ -575,7 +575,7 @@ fn create_modlog_items(modlog: Vec<ModlogView>, settings: &Settings) -> LemmyRes
         &modlog_url,
         format!(
           "{} comment {}",
-          removed_restored_str(r.modlog.removed),
+          removed_restored_str(r.modlog.is_revert),
           &&r.target_comment.as_ref().unwrap().content
         ),
         settings,
@@ -585,7 +585,7 @@ fn create_modlog_items(modlog: Vec<ModlogView>, settings: &Settings) -> LemmyRes
         &modlog_url,
         format!(
           "{} community /c/{}",
-          removed_restored_str(r.modlog.removed),
+          removed_restored_str(r.modlog.is_revert),
           &&r.target_community.as_ref().unwrap().name
         ),
         settings,
@@ -595,7 +595,7 @@ fn create_modlog_items(modlog: Vec<ModlogView>, settings: &Settings) -> LemmyRes
         &modlog_url,
         format!(
           "{} post {}",
-          removed_restored_str(r.modlog.removed),
+          removed_restored_str(r.modlog.is_revert),
           &r.target_post.as_ref().unwrap().name
         ),
         settings,
@@ -615,10 +615,10 @@ fn create_modlog_items(modlog: Vec<ModlogView>, settings: &Settings) -> LemmyRes
         &modlog_url,
         format!(
           "{} comment {}",
-          if r.modlog.removed {
-            "Locked"
-          } else {
+          if r.modlog.is_revert {
             "Unlocked"
+          } else {
+            "Locked"
           },
           &&r.target_comment.as_ref().unwrap().content
         ),
@@ -630,27 +630,27 @@ fn create_modlog_items(modlog: Vec<ModlogView>, settings: &Settings) -> LemmyRes
   Ok(modlog_items)
 }
 
-fn removed_added_str(removed: bool) -> &'static str {
-  if removed {
-    "Removed"
-  } else {
+fn removed_added_str(is_revert: bool) -> &'static str {
+  if is_revert {
     "Added"
-  }
-}
-
-fn banned_unbanned_str(banned: bool) -> &'static str {
-  if banned {
-    "Banned"
   } else {
-    "Unbanned"
-  }
-}
-
-fn removed_restored_str(removed: bool) -> &'static str {
-  if removed {
     "Removed"
+  }
+}
+
+fn banned_unbanned_str(is_revert: bool) -> &'static str {
+  if is_revert {
+    "Unbanned"
   } else {
+    "Banned"
+  }
+}
+
+fn removed_restored_str(is_revert: bool) -> &'static str {
+  if is_revert {
     "Restored"
+  } else {
+    "Removed"
   }
 }
 

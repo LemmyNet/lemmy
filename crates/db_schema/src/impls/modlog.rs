@@ -43,13 +43,13 @@ impl<'a> ModlogInsertForm<'a> {
       expires_at,
       target_person_id: Some(target_person_id),
       target_instance_id: Some(mod_person.instance_id),
-      ..ModlogInsertForm::new(ModlogKind::AdminBan, banned, mod_person.id)
+      ..ModlogInsertForm::new(ModlogKind::AdminBan, !banned, mod_person.id)
     }
   }
   pub fn admin_add(mod_person: &Person, target_person_id: PersonId, added: bool) -> Self {
     Self {
       target_person_id: Some(target_person_id),
-      ..ModlogInsertForm::new(ModlogKind::AdminAdd, added, mod_person.id)
+      ..ModlogInsertForm::new(ModlogKind::AdminAdd, !added, mod_person.id)
     }
   }
   pub fn mod_remove_post(
@@ -62,7 +62,7 @@ impl<'a> ModlogInsertForm<'a> {
       reason: Some(reason),
       target_post_id: Some(post.id),
       target_person_id: Some(post.creator_id),
-      ..ModlogInsertForm::new(ModlogKind::ModRemovePost, removed, mod_person_id)
+      ..ModlogInsertForm::new(ModlogKind::ModRemovePost, !removed, mod_person_id)
     }
   }
   pub fn mod_remove_comment(
@@ -75,7 +75,7 @@ impl<'a> ModlogInsertForm<'a> {
       reason: Some(reason),
       target_comment_id: Some(comment.id),
       target_person_id: Some(comment.creator_id),
-      ..ModlogInsertForm::new(ModlogKind::ModRemoveComment, removed, mod_person_id)
+      ..ModlogInsertForm::new(ModlogKind::ModRemoveComment, !removed, mod_person_id)
     }
   }
   pub fn mod_lock_comment(
@@ -88,7 +88,7 @@ impl<'a> ModlogInsertForm<'a> {
       reason: Some(reason),
       target_comment_id: Some(comment.id),
       target_person_id: Some(comment.creator_id),
-      ..ModlogInsertForm::new(ModlogKind::ModLockComment, removed, mod_person_id)
+      ..ModlogInsertForm::new(ModlogKind::ModLockComment, !removed, mod_person_id)
     }
   }
   pub fn mod_lock_post(
@@ -101,7 +101,7 @@ impl<'a> ModlogInsertForm<'a> {
       reason: Some(reason),
       target_post_id: Some(post.id),
       target_person_id: Some(post.creator_id),
-      ..ModlogInsertForm::new(ModlogKind::ModLockComment, removed, mod_person_id)
+      ..ModlogInsertForm::new(ModlogKind::ModLockComment, !removed, mod_person_id)
     }
   }
   pub fn admin_remove_community(
@@ -115,7 +115,7 @@ impl<'a> ModlogInsertForm<'a> {
       reason: Some(reason),
       target_community_id: Some(community_id),
       target_person_id: community_owner_id,
-      ..ModlogInsertForm::new(ModlogKind::AdminRemoveCommunity, removed, mod_person_id)
+      ..ModlogInsertForm::new(ModlogKind::AdminRemoveCommunity, !removed, mod_person_id)
     }
   }
 
@@ -127,7 +127,7 @@ impl<'a> ModlogInsertForm<'a> {
       target_community_id: Some(community_id),
       ..ModlogInsertForm::new(
         ModlogKind::ModChangeCommunityVisibility,
-        true,
+        false,
         mod_person_id,
       )
     }
@@ -145,7 +145,7 @@ impl<'a> ModlogInsertForm<'a> {
       expires_at,
       target_community_id: Some(community_id),
       target_person_id: Some(target_person_id),
-      ..ModlogInsertForm::new(ModlogKind::ModBanFromCommunity, removed, mod_person_id)
+      ..ModlogInsertForm::new(ModlogKind::ModBanFromCommunity, !removed, mod_person_id)
     }
   }
   pub fn mod_add_to_community(
@@ -157,7 +157,7 @@ impl<'a> ModlogInsertForm<'a> {
     Self {
       target_community_id: Some(community_id),
       target_person_id: Some(target_person_id),
-      ..ModlogInsertForm::new(ModlogKind::ModAddToCommunity, added, mod_person_id)
+      ..ModlogInsertForm::new(ModlogKind::ModAddToCommunity, !added, mod_person_id)
     }
   }
   pub fn mod_transfer_community(
@@ -168,7 +168,7 @@ impl<'a> ModlogInsertForm<'a> {
     Self {
       target_community_id: Some(community_id),
       target_person_id: Some(target_person_id),
-      ..ModlogInsertForm::new(ModlogKind::ModTransferCommunity, true, mod_person_id)
+      ..ModlogInsertForm::new(ModlogKind::ModTransferCommunity, false, mod_person_id)
     }
   }
   pub fn admin_allow_instance(
@@ -180,7 +180,7 @@ impl<'a> ModlogInsertForm<'a> {
     Self {
       reason: Some(reason),
       target_instance_id: Some(instance_id),
-      ..ModlogInsertForm::new(ModlogKind::AdminAllowInstance, allow, mod_person_id)
+      ..ModlogInsertForm::new(ModlogKind::AdminAllowInstance, !allow, mod_person_id)
     }
   }
   pub fn admin_block_instance(
@@ -192,7 +192,7 @@ impl<'a> ModlogInsertForm<'a> {
     Self {
       reason: Some(reason),
       target_instance_id: Some(instance_id),
-      ..ModlogInsertForm::new(ModlogKind::AdminBlockInstance, block, mod_person_id)
+      ..ModlogInsertForm::new(ModlogKind::AdminBlockInstance, !block, mod_person_id)
     }
   }
   pub fn admin_purge_comment(
@@ -207,7 +207,7 @@ impl<'a> ModlogInsertForm<'a> {
       target_person_id: Some(comment.creator_id),
       target_community_id: Some(community_id),
       reason: Some(reason),
-      ..ModlogInsertForm::new(ModlogKind::AdminPurgeComment, true, mod_person_id)
+      ..ModlogInsertForm::new(ModlogKind::AdminPurgeComment, false, mod_person_id)
     }
   }
   pub fn admin_purge_post(mod_person_id: PersonId, post: &Post, reason: &'a str) -> Self {
@@ -216,7 +216,7 @@ impl<'a> ModlogInsertForm<'a> {
       target_person_id: Some(post.creator_id),
       target_community_id: Some(post.community_id),
       reason: Some(reason),
-      ..ModlogInsertForm::new(ModlogKind::AdminPurgePost, true, mod_person_id)
+      ..ModlogInsertForm::new(ModlogKind::AdminPurgePost, false, mod_person_id)
     }
   }
   pub fn admin_purge_community(
@@ -227,27 +227,31 @@ impl<'a> ModlogInsertForm<'a> {
     Self {
       target_community_id: Some(community_id),
       reason: Some(reason),
-      ..ModlogInsertForm::new(ModlogKind::AdminPurgeCommunity, true, mod_person_id)
+      ..ModlogInsertForm::new(ModlogKind::AdminPurgeCommunity, false, mod_person_id)
     }
   }
   pub fn admin_purge_person(mod_person_id: PersonId, person_id: PersonId, reason: &'a str) -> Self {
     Self {
       target_person_id: Some(person_id),
       reason: Some(reason),
-      ..ModlogInsertForm::new(ModlogKind::AdminPurgePerson, true, mod_person_id)
+      ..ModlogInsertForm::new(ModlogKind::AdminPurgePerson, false, mod_person_id)
     }
   }
   pub fn mod_feature_post_community(mod_person_id: PersonId, post: &Post, featured: bool) -> Self {
     Self {
       target_post_id: Some(post.id),
       target_community_id: Some(post.community_id),
-      ..ModlogInsertForm::new(ModlogKind::ModFeaturePostCommunity, featured, mod_person_id)
+      ..ModlogInsertForm::new(
+        ModlogKind::ModFeaturePostCommunity,
+        !featured,
+        mod_person_id,
+      )
     }
   }
   pub fn admin_feature_post_site(mod_person_id: PersonId, post: &Post, featured: bool) -> Self {
     Self {
       target_post_id: Some(post.id),
-      ..ModlogInsertForm::new(ModlogKind::AdminFeaturePostSite, featured, mod_person_id)
+      ..ModlogInsertForm::new(ModlogKind::AdminFeaturePostSite, !featured, mod_person_id)
     }
   }
 }
