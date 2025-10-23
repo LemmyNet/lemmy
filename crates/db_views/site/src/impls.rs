@@ -167,8 +167,6 @@ impl FederatedInstanceView {
     );
 
     // Show recently updated instances and those with valid metadata first
-    // TODO: doesnt support keys_last() or different order per key.
-    //       should be `key::updated_at.desc(), instance::software.asc().nulls_last()`
     pq = pq
       .then_order_by(key::updated_at)
       .then_order_by(key::software)
