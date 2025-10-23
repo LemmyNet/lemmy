@@ -329,7 +329,7 @@ pub fn notify_mod_action(actions: Vec<Modlog>, context: &LemmyContext) {
         ..NotificationInsertForm::new(local_recipient.person.id, NotificationType::ModAction)
       };
       let notifications = Notification::create(&mut context.pool(), &[form]).await?;
-    plugin_hook_notification(notifications, &context).await?;
+      plugin_hook_notification(notifications, &context).await?;
 
       let modlog_url = format!(
         "{}/modlog?userId={}&actionType={}",

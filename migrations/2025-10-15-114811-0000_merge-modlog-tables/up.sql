@@ -22,7 +22,7 @@ CREATE TYPE modlog_kind AS enum (
     'ModLockComment'
 );
 
--- new table with data for all mod actions
+-- New table with data for all mod actions
 CREATE TABLE modlog (
     id serial PRIMARY KEY,
     kind modlog_kind NOT NULL,
@@ -31,14 +31,15 @@ CREATE TABLE modlog (
     --       would be to use `is_revert` instead, but that means almost every api value
     --       needs to be inverted.
     removed boolean NOT NULL,
-    mod_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    -- Not using `ON DELETE CASCADE` for any foreign keys, to avoid modlog items disappearing if an item is purged.
+    mod_id int REFERENCES person ON UPDATE CASCADE NOT NULL,
     -- For some actions reason is quite pointless so leave it optional (eg add admin, feature post)
     reason text,
-    target_person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
-    target_community_id int REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE,
-    target_post_id int REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE,
-    target_comment_id int REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE,
-    target_instance_id int REFERENCES instance ON UPDATE CASCADE ON DELETE CASCADE,
+    target_person_id int REFERENCES person ON UPDATE CASCADE,
+    target_community_id int REFERENCES community ON UPDATE CASCADE,
+    target_post_id int REFERENCES post ON UPDATE CASCADE,
+    target_comment_id int REFERENCES COMMENT ON UPDATE CASCADE,
+    target_instance_id int REFERENCES instance ON UPDATE CASCADE,
     expires_at timestamptz,
     published_at timestamptz NOT NULL DEFAULT now()
 );
@@ -96,9 +97,11 @@ ALTER TABLE modlog
         AND target_person_id IS NOT NULL
         AND num_nonnulls (target_post_id, target_person_id, target_community_id, target_comment_id) = 0)
         OR (kind = 'AdminPurgeComment'
-        AND num_nonnulls (target_post_id, target_person_id, target_community_id, target_instance_id, target_comment_id) = 0)
+        AND target_post_id IS NOT NULL
+        AND num_nonnulls (target_person_id, target_community_id, target_instance_id, target_comment_id) = 0)
         OR (kind = 'AdminPurgePost'
-        AND num_nonnulls (target_post_id, target_person_id, target_community_id, target_instance_id, target_comment_id) = 0)
+        AND target_community_id IS NOT NULL
+        AND num_nonnulls (target_post_id, target_person_id, target_instance_id, target_comment_id) = 0)
         OR (kind = 'AdminPurgeCommunity'
         AND num_nonnulls (target_post_id, target_person_id, target_community_id, target_instance_id, target_comment_id) = 0)
         OR (kind = 'AdminPurgePerson'
@@ -155,25 +158,27 @@ SELECT
 FROM
     admin_block_instance;
 
-INSERT INTO modlog (kind, reason, removed, mod_id, published_at)
+INSERT INTO modlog (kind, reason, removed, mod_id, target_post_id, published_at)
 SELECT
     'AdminPurgeComment',
     reason,
     TRUE,
     admin_person_id,
+    post_id,
     published_at
 FROM
     admin_purge_comment;
 
-INSERT INTO modlog (kind, reason, removed, mod_id, published_at)
+INSERT INTO modlog (kind, reason, removed, mod_id, target_community_id, published_at)
 SELECT
     'AdminPurgePost',
     reason,
     TRUE,
     admin_person_id,
+    community_id,
     published_at
 FROM
-    admin_purge_comment;
+    admin_purge_post;
 
 INSERT INTO modlog (kind, reason, removed, mod_id, published_at)
 SELECT
