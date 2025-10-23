@@ -31,15 +31,16 @@ CREATE TABLE modlog (
     --       would be to use `is_revert` instead, but that means almost every api value
     --       needs to be inverted.
     removed boolean NOT NULL,
-    -- Not using `ON DELETE CASCADE` for any foreign keys, to avoid modlog items disappearing if an item is purged.
-    mod_id int REFERENCES person ON UPDATE CASCADE NOT NULL,
+    -- Not using `references person` for any of the foreign keys to avoid modlog entries
+    -- disappearing if the mod or any target gets purged.
+    mod_id int NOT NULL,
     -- For some actions reason is quite pointless so leave it optional (eg add admin, feature post)
     reason text,
-    target_person_id int REFERENCES person ON UPDATE CASCADE,
-    target_community_id int REFERENCES community ON UPDATE CASCADE,
-    target_post_id int REFERENCES post ON UPDATE CASCADE,
-    target_comment_id int REFERENCES COMMENT ON UPDATE CASCADE,
-    target_instance_id int REFERENCES instance ON UPDATE CASCADE,
+    target_person_id int,
+    target_community_id int,
+    target_post_id int,
+    target_comment_id int,
+    target_instance_id int,
     expires_at timestamptz,
     published_at timestamptz NOT NULL DEFAULT now()
 );
