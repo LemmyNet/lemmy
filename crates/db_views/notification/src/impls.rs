@@ -13,7 +13,7 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   aliases,
-  newtypes::PaginationCursor,
+  newtypes::{NotificationId, PaginationCursor},
   source::{
     notification::{notification_keys, Notification},
     person::Person,
@@ -191,6 +191,22 @@ impl NotificationView {
       .first::<i64>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  pub async fn read(
+    pool: &mut DbPool<'_>,
+    id: NotificationId,
+    my_person: &Person,
+  ) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+
+    let res = Self::joins(my_person)
+      .filter(notification::id.eq(id))
+      .select(NotificationViewInternal::as_select())
+      .get_result::<NotificationViewInternal>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)?;
+    map_to_enum(res).ok_or(LemmyErrorType::NotFound.into())
   }
 }
 

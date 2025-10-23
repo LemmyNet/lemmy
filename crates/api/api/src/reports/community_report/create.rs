@@ -4,6 +4,7 @@ use actix_web::web::Json;
 use either::Either;
 use lemmy_api_utils::{
   context::LemmyContext,
+  plugins::plugin_hook_after,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_local_user_valid, slur_regex},
 };
@@ -56,6 +57,7 @@ pub async fn create_community_report(
   let community_report_view =
     ReportCombinedViewInternal::read_community_report(&mut context.pool(), report.id, person)
       .await?;
+  plugin_hook_after("community_report_after_create", &community_report_view);
 
   // Email the admins
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;

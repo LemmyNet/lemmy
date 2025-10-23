@@ -2,6 +2,7 @@ use crate::check_report_reason;
 use actix_web::web::{Data, Json};
 use lemmy_api_utils::{
   context::LemmyContext,
+  plugins::plugin_hook_after,
   utils::{check_local_user_valid, slur_regex},
 };
 use lemmy_db_schema::{
@@ -51,6 +52,10 @@ pub async fn create_pm_report(
   let private_message_report_view =
     ReportCombinedViewInternal::read_private_message_report(&mut context.pool(), report.id, person)
       .await?;
+  plugin_hook_after(
+    "private_message_report_after_create",
+    &private_message_report_view,
+  );
 
   // Email the admins
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;

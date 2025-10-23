@@ -1,4 +1,4 @@
-use crate::context::LemmyContext;
+use crate::{context::LemmyContext, plugins::plugin_hook_notification};
 use lemmy_db_schema::{
   newtypes::{DbUrl, PersonId},
   source::{
@@ -113,7 +113,8 @@ impl NotifyData {
         send_notification_email(user_view, c.local_url, c.data, context.settings());
       }
     }
-    Notification::create(&mut context.pool(), &forms).await?;
+    let notifications = Notification::create(&mut context.pool(), &forms).await?;
+    plugin_hook_notification(notifications, &context).await?;
 
     Ok(())
   }
@@ -266,36 +267,37 @@ impl NotifyData {
   }
 }
 
-pub async fn notify_private_message(
-  view: &PrivateMessageView,
-  is_create: bool,
-  context: &LemmyContext,
-) -> LemmyResult<()> {
-  let Ok(local_recipient) =
-    LocalUserView::read_person(&mut context.pool(), view.recipient.id).await
-  else {
-    return Ok(());
-  };
+pub fn notify_private_message(view: &PrivateMessageView, is_create: bool, context: &LemmyContext) {
+  let view = view.clone();
+  let context = context.clone();
+  spawn_try_task(async move {
+    let Ok(local_recipient) =
+      LocalUserView::read_person(&mut context.pool(), view.recipient.id).await
+    else {
+      return Ok(());
+    };
 
-  let form = NotificationInsertForm::new_private_message(&view.private_message);
-  Notification::create(&mut context.pool(), &[form]).await?;
+    let form = NotificationInsertForm::new_private_message(&view.private_message);
+    let notifications = Notification::create(&mut context.pool(), &[form]).await?;
 
-  if is_create {
-    let site_view = SiteView::read_local(&mut context.pool()).await?;
-    if !site_view.local_site.disable_email_notifications {
-      let d = NotificationEmailData::PrivateMessage {
-        sender: &view.creator,
-        content: &view.private_message.content,
-      };
-      send_notification_email(
-        local_recipient,
-        view.private_message.local_url(context.settings())?,
-        d,
-        context.settings(),
-      );
+    if is_create {
+      plugin_hook_notification(notifications, &context).await?;
+      let site_view = SiteView::read_local(&mut context.pool()).await?;
+      if !site_view.local_site.disable_email_notifications {
+        let d = NotificationEmailData::PrivateMessage {
+          sender: &view.creator,
+          content: &view.private_message.content,
+        };
+        send_notification_email(
+          local_recipient,
+          view.private_message.local_url(context.settings())?,
+          d,
+          context.settings(),
+        );
+      }
     }
-  }
-  Ok(())
+    Ok(())
+  })
 }
 
 pub fn notify_mod_action<T>(action: T, target_id: PersonId, context: &LemmyContext)
@@ -310,7 +312,7 @@ where
     };
 
     let form = action.insert_form(target_id);
-    Notification::create(&mut context.pool(), &[form]).await?;
+    let notifications = Notification::create(&mut context.pool(), &[form]).await?;
 
     let modlog_url = format!(
       "{}/modlog?userId={}&actionType={}",
@@ -323,6 +325,7 @@ where
       reason: action.reason(),
       is_revert: action.is_revert(),
     };
+    plugin_hook_notification(notifications, &context).await?;
     send_notification_email(
       local_recipient,
       Url::parse(&modlog_url)?.into(),
@@ -423,7 +426,7 @@ mod tests {
     let pool = &mut context.pool();
     let pm = PrivateMessage::create(pool, &form).await?;
     let view = PrivateMessageView::read(pool, pm.id).await?;
-    notify_private_message(&view, false, context).await?;
+    notify_private_message(&view, false, context);
     Ok(())
   }
   async fn setup_private_messages(data: &Data, context: &LemmyContext) -> LemmyResult<()> {
