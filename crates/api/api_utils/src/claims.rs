@@ -1,6 +1,6 @@
 use crate::context::LemmyContext;
 use actix_web::{http::header::USER_AGENT, HttpRequest};
-use chrono::Utc;
+use chrono::{DateTime, Duration, Utc};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use lemmy_db_schema::{
   newtypes::LocalUserId,
@@ -14,16 +14,17 @@ use serde::{Deserialize, Serialize};
 pub struct Claims {
   /// local_user_id, standard claim by RFC 7519.
   pub sub: String,
+  /// Server domain
   pub iss: String,
   /// Time when this token was issued as UNIX-timestamp in seconds
   pub iat: i64,
+  /// Expiration timestamp
+  pub exp: i64,
 }
 
 impl Claims {
   pub async fn validate(jwt: &str, context: &LemmyContext) -> LemmyResult<LocalUserId> {
-    let mut validation = Validation::default();
-    validation.validate_exp = false;
-    validation.required_spec_claims.remove("exp");
+    let validation = Validation::default();
     let jwt_secret = &context.secret().jwt_secret;
     let key = DecodingKey::from_secret(jwt_secret.as_ref());
     let claims =
@@ -35,14 +36,24 @@ impl Claims {
 
   pub async fn generate(
     user_id: LocalUserId,
+    stay_logged_in: Option<bool>,
     req: HttpRequest,
     context: &LemmyContext,
   ) -> LemmyResult<SensitiveString> {
     let hostname = context.settings().hostname.clone();
+    let now = Utc::now();
+    let exp = if stay_logged_in.unwrap_or_default() {
+      // Login doesnt expire
+      DateTime::<Utc>::MAX_UTC
+    } else {
+      // Login expires after one week
+      now + Duration::weeks(1)
+    };
     let my_claims = Claims {
       sub: user_id.0.to_string(),
       iss: hostname,
-      iat: Utc::now().timestamp(),
+      iat: now.timestamp(),
+      exp: exp.timestamp(),
     };
 
     let secret = &context.secret().jwt_secret;
@@ -102,7 +113,7 @@ mod tests {
     let inserted_local_user = LocalUser::create(pool, &local_user_form, vec![]).await?;
 
     let req = TestRequest::default().to_http_request();
-    let jwt = Claims::generate(inserted_local_user.id, req, &context).await?;
+    let jwt = Claims::generate(inserted_local_user.id, None, req, &context).await?;
 
     let valid = Claims::validate(&jwt, &context).await;
     assert!(valid.is_ok());
