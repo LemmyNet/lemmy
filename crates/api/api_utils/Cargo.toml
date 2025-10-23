@@ -30,6 +30,7 @@ full = [
   "lemmy_db_views_private_message/full",
   "lemmy_db_views_comment/full",
   "lemmy_db_views_post/full",
+  "lemmy_db_views_notification/full",
 ]
 
 [dependencies]
@@ -45,6 +46,7 @@ lemmy_db_views_site = { workspace = true }
 lemmy_db_views_private_message = { workspace = true }
 lemmy_db_views_comment = { workspace = true }
 lemmy_db_views_post = { workspace = true }
+lemmy_db_views_notification = { workspace = true }
 lemmy_email = { workspace = true }
 anyhow = { workspace = true }
 serde = { workspace = true }

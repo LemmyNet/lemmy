@@ -82,7 +82,7 @@ pub async fn like_comment(
 
   if let Some(is_upvote) = data.is_upvote {
     let mut like_form = CommentLikeForm::new(my_person_id, data.comment_id, is_upvote);
-    like_form = plugin_hook_before("before_comment_vote", like_form).await?;
+    like_form = plugin_hook_before("comment_before_vote", like_form).await?;
     let like = CommentActions::like(&mut context.pool(), &like_form).await?;
     PersonActions::like(
       &mut context.pool(),
@@ -92,7 +92,7 @@ pub async fn like_comment(
     )
     .await?;
 
-    plugin_hook_after("after_comment_vote", &like)?;
+    plugin_hook_after("comment_after_vote", &like);
   }
 
   ActivityChannel::submit_activity(
