@@ -1,6 +1,6 @@
 use actix_web::web::{Data, Json};
 use lemmy_api_utils::context::LemmyContext;
-use lemmy_db_schema::source::post::{PostActions, PostReadForm};
+use lemmy_db_schema::source::post::PostActions;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::{
   api::{MarkPostAsRead, PostResponse},
@@ -18,11 +18,10 @@ pub async fn mark_post_as_read(
   let post_id = data.post_id;
 
   // Mark the post as read / unread
-  let form = PostReadForm::new(post_id, person_id);
   if data.read {
-    PostActions::mark_as_read(&mut context.pool(), &form).await?;
+    PostActions::mark_as_read(&mut context.pool(), person_id, &[post_id]).await?;
   } else {
-    PostActions::mark_as_unread(&mut context.pool(), &form).await?;
+    PostActions::mark_as_unread(&mut context.pool(), person_id, &[post_id]).await?;
   }
   let post_view = PostView::read(
     &mut context.pool(),

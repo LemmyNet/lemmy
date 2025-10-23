@@ -342,9 +342,10 @@ impl CommunityActions {
   /// Dont use this check for local communities.
   pub async fn check_accept_activity_in_community(
     pool: &mut DbPool<'_>,
-    remote_community_id: CommunityId,
+    remote_community: &Community,
   ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
+    let remote_community_id = remote_community.id;
     let follow_action = community_actions::table
       .filter(community_actions::followed_at.is_not_null())
       .filter(community_actions::community_id.eq(remote_community_id));
@@ -359,14 +360,15 @@ impl CommunityActions {
       .get_result::<bool>(conn)
       .await?
       .then_some(())
-      .ok_or(UntranslatedError::CommunityHasNoFollowers.into())
+      .ok_or(UntranslatedError::CommunityHasNoFollowers(remote_community.ap_id.to_string()).into())
   }
 
-  pub async fn approve_follower(
+  pub async fn approve_private_community_follower(
     pool: &mut DbPool<'_>,
     community_id: CommunityId,
     follower_id: PersonId,
     approver_id: PersonId,
+    state: CommunityFollowerState,
   ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
     let find_action = community_actions::table
@@ -374,7 +376,7 @@ impl CommunityActions {
       .filter(community_actions::followed_at.is_not_null());
     diesel::update(find_action)
       .set((
-        community_actions::follow_state.eq(CommunityFollowerState::Accepted),
+        community_actions::follow_state.eq(state),
         community_actions::follow_approver_id.eq(approver_id),
       ))
       .execute(conn)

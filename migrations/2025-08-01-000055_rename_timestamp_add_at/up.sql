@@ -18,7 +18,7 @@ ALTER TABLE comment RENAME COLUMN published TO published_at;
 
 ALTER TABLE comment RENAME COLUMN updated TO updated_at;
 
-ALTER TABLE comment_actions RENAME COLUMN liked TO liked_at;
+ALTER TABLE comment_actions RENAME COLUMN liked TO voted_at;
 
 ALTER TABLE comment_actions RENAME COLUMN saved TO saved_at;
 
@@ -148,7 +148,7 @@ ALTER TABLE person_comment_mention RENAME COLUMN published TO published_at;
 
 ALTER TABLE person_content_combined RENAME COLUMN published TO published_at;
 
-ALTER TABLE person_liked_combined RENAME COLUMN liked TO liked_at;
+ALTER TABLE person_liked_combined RENAME COLUMN liked TO voted_at;
 
 ALTER TABLE person_post_mention RENAME COLUMN published TO published_at;
 
@@ -170,7 +170,7 @@ ALTER TABLE post_actions RENAME COLUMN read_comments TO read_comments_at;
 
 ALTER TABLE post_actions RENAME COLUMN saved TO saved_at;
 
-ALTER TABLE post_actions RENAME COLUMN liked TO liked_at;
+ALTER TABLE post_actions RENAME COLUMN liked TO voted_at;
 
 ALTER TABLE post_actions RENAME COLUMN hidden TO hidden_at;
 

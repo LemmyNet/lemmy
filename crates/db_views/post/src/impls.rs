@@ -53,6 +53,7 @@ use lemmy_db_schema::{
       },
     },
     seconds_to_pg_interval,
+    CoalesceKey,
     Commented,
     DbPool,
   },
@@ -529,7 +530,7 @@ impl PostQuery<'_> {
       Scaled => pq.then_order_by(key::scaled_rank),
       Controversial => pq.then_order_by(key::controversy_rank),
       New | Old => pq.then_order_by(key::published_at),
-      NewComments => pq.then_order_by(key::newest_comment_time_at),
+      NewComments => pq.then_order_by(CoalesceKey(key::newest_comment_time_at, key::published_at)),
       MostComments => pq.then_order_by(key::comments),
       Top => pq.then_order_by(key::score),
     };
@@ -606,15 +607,7 @@ mod tests {
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
       multi_community::{MultiCommunity, MultiCommunityInsertForm},
       person::{Person, PersonActions, PersonBlockForm, PersonInsertForm, PersonNoteForm},
-      post::{
-        Post,
-        PostActions,
-        PostHideForm,
-        PostInsertForm,
-        PostLikeForm,
-        PostReadForm,
-        PostUpdateForm,
-      },
+      post::{Post, PostActions, PostHideForm, PostInsertForm, PostLikeForm, PostUpdateForm},
       site::Site,
       tag::{PostTag, Tag, TagInsertForm},
     },
@@ -971,16 +964,16 @@ mod tests {
     let pool = &data.pool();
     let pool = &mut pool.into();
 
-    let post_like_form = PostLikeForm::new(data.post.id, data.tegan.person.id, 1);
+    let post_like_form = PostLikeForm::new(data.post.id, data.tegan.person.id, true);
 
     let inserted_post_like = PostActions::like(pool, &post_like_form).await?;
 
     assert_eq!(
-      (data.post.id, data.tegan.person.id, Some(1)),
+      (data.post.id, data.tegan.person.id, Some(true)),
       (
         inserted_post_like.post_id,
         inserted_post_like.person_id,
-        inserted_post_like.like_score,
+        inserted_post_like.vote_is_upvote,
       )
     );
 
@@ -998,7 +991,7 @@ mod tests {
       (
         post_listing_single_with_person
           .post_actions
-          .is_some_and(|t| t.like_score == Some(1)),
+          .is_some_and(|t| t.vote_is_upvote == Some(true)),
         // Make sure person actions is none so you don't get a voted_at for your own user
         post_listing_single_with_person.person_actions.is_none(),
         post_listing_single_with_person.post.score,
@@ -1094,20 +1087,20 @@ mod tests {
     );
     let bot_post_2 = Post::create(pool, &bot_post_2).await?;
 
-    let post_like_form = PostLikeForm::new(data.bot_post.id, data.tegan.person.id, 1);
+    let post_like_form = PostLikeForm::new(data.bot_post.id, data.tegan.person.id, true);
     let inserted_post_like = PostActions::like(pool, &post_like_form).await?;
 
     assert_eq!(
-      (data.bot_post.id, data.tegan.person.id, Some(1)),
+      (data.bot_post.id, data.tegan.person.id, Some(true)),
       (
         inserted_post_like.post_id,
         inserted_post_like.person_id,
-        inserted_post_like.like_score,
+        inserted_post_like.vote_is_upvote,
       )
     );
 
     let inserted_person_like =
-      PersonActions::like(pool, data.tegan.person.id, data.bot.person.id, 1).await?;
+      PersonActions::like(pool, data.tegan.person.id, data.bot.person.id, true).await?;
 
     assert_eq!(
       (data.tegan.person.id, data.bot.person.id, Some(1), Some(0),),
@@ -1133,7 +1126,7 @@ mod tests {
       (
         post_listing
           .post_actions
-          .is_some_and(|t| t.like_score == Some(1)),
+          .is_some_and(|t| t.vote_is_upvote == Some(true)),
         post_listing
           .person_actions
           .as_ref()
@@ -1149,10 +1142,10 @@ mod tests {
     );
 
     // Do a 2nd like to another post
-    let post_2_like_form = PostLikeForm::new(bot_post_2.id, data.tegan.person.id, 1);
+    let post_2_like_form = PostLikeForm::new(bot_post_2.id, data.tegan.person.id, true);
     let _inserted_post_2_like = PostActions::like(pool, &post_2_like_form).await?;
     let inserted_person_like_2 =
-      PersonActions::like(pool, data.tegan.person.id, data.bot.person.id, 1).await?;
+      PersonActions::like(pool, data.tegan.person.id, data.bot.person.id, true).await?;
     assert_eq!(
       (data.tegan.person.id, data.bot.person.id, Some(2), Some(0),),
       (
@@ -1169,7 +1162,7 @@ mod tests {
     assert_eq!(UpleteCount::only_deleted(1), like_removed);
 
     let person_like_removed =
-      PersonActions::remove_like(pool, data.tegan.person.id, data.bot.person.id, 1).await?;
+      PersonActions::remove_like(pool, data.tegan.person.id, data.bot.person.id, true).await?;
     assert_eq!(
       (data.tegan.person.id, data.bot.person.id, Some(1), Some(0),),
       (
@@ -1181,10 +1174,10 @@ mod tests {
     );
 
     // Now do a downvote
-    let post_like_form = PostLikeForm::new(data.bot_post.id, data.tegan.person.id, -1);
+    let post_like_form = PostLikeForm::new(data.bot_post.id, data.tegan.person.id, false);
     let _inserted_post_dislike = PostActions::like(pool, &post_like_form).await?;
     let inserted_person_dislike =
-      PersonActions::like(pool, data.tegan.person.id, data.bot.person.id, -1).await?;
+      PersonActions::like(pool, data.tegan.person.id, data.bot.person.id, false).await?;
     assert_eq!(
       (data.tegan.person.id, data.bot.person.id, Some(1), Some(1),),
       (
@@ -1209,7 +1202,7 @@ mod tests {
       (
         post_listing
           .post_actions
-          .is_some_and(|t| t.like_score == Some(-1)),
+          .is_some_and(|t| t.vote_is_upvote == Some(false)),
         post_listing
           .person_actions
           .as_ref()
@@ -1239,11 +1232,9 @@ mod tests {
     let pool = &mut pool.into();
 
     // Mark the bot post, then the tags post as read
-    let bot_post_read_form = PostReadForm::new(data.bot_post.id, data.tegan.person.id);
-    PostActions::mark_as_read(pool, &bot_post_read_form).await?;
+    PostActions::mark_as_read(pool, data.tegan.person.id, &[data.bot_post.id]).await?;
 
-    let tag_post_read_form = PostReadForm::new(data.post_with_tags.id, data.tegan.person.id);
-    PostActions::mark_as_read(pool, &tag_post_read_form).await?;
+    PostActions::mark_as_read(pool, data.tegan.person.id, &[data.post_with_tags.id]).await?;
 
     let read_read_post_listing =
       PostView::list_read(pool, &data.tegan.person, None, None, None, None).await?;
@@ -1849,8 +1840,7 @@ mod tests {
     data.tegan.local_user.show_read_posts = false;
 
     // Mark a post as read
-    let read_form = PostReadForm::new(data.bot_post.id, data.tegan.person.id);
-    PostActions::mark_as_read(pool, &read_form).await?;
+    PostActions::mark_as_read(pool, data.tegan.person.id, &[data.bot_post.id]).await?;
 
     // Make sure you don't see the read post in the results
     let post_listings_hide_read = data.default_post_query().list(&data.site, pool).await?;

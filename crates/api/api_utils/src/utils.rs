@@ -35,7 +35,7 @@ use lemmy_db_schema::{
   utils::DbPool,
 };
 use lemmy_db_schema_file::enums::{FederationMode, RegistrationMode};
-use lemmy_db_views_community_follower::CommunityFollowerView;
+use lemmy_db_views_community_follower_approval::PendingFollowerView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_community_person_ban::CommunityPersonBanView;
 use lemmy_db_views_local_image::LocalImageView;
@@ -259,7 +259,7 @@ pub async fn check_community_user_action(
   check_local_user_valid(local_user_view)?;
   check_community_deleted_removed(community)?;
   CommunityPersonBanView::check(pool, local_user_view.person.id, community.id).await?;
-  CommunityFollowerView::check_private_community_action(pool, local_user_view.person.id, community)
+  PendingFollowerView::check_private_community_action(pool, local_user_view.person.id, community)
     .await?;
   InstanceActions::check_ban(pool, local_user_view.person.id, community.instance_id).await?;
   Ok(())
@@ -311,7 +311,7 @@ pub fn check_comment_deleted_or_removed(comment: &Comment) -> LemmyResult<()> {
 }
 
 pub async fn check_local_vote_mode(
-  score: i16,
+  is_upvote: Option<bool>,
   post_or_comment_id: PostOrCommentId,
   local_site: &LocalSite,
   person_id: PersonId,
@@ -322,8 +322,8 @@ pub async fn check_local_vote_mode(
     PostOrCommentId::Comment(_) => (local_site.comment_downvotes, local_site.comment_upvotes),
   };
 
-  let downvote_fail = score == -1 && downvote_setting == FederationMode::Disable;
-  let upvote_fail = score == 1 && upvote_setting == FederationMode::Disable;
+  let downvote_fail = is_upvote == Some(false) && downvote_setting == FederationMode::Disable;
+  let upvote_fail = is_upvote == Some(true) && upvote_setting == FederationMode::Disable;
 
   // Undo previous vote for item if new vote fails
   if downvote_fail || upvote_fail {

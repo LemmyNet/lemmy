@@ -127,6 +127,7 @@ mod tests {
   #[test]
   fn test_load_config() -> LemmyResult<()> {
     Settings::init()?;
+
     Ok(())
   }
 }

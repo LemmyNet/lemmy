@@ -206,8 +206,7 @@ async fn can_accept_activity_in_community(
       return Err(LemmyErrorType::NotFound.into());
     }
     if !community.local {
-      CommunityActions::check_accept_activity_in_community(&mut context.pool(), community.id)
-        .await?
+      CommunityActions::check_accept_activity_in_community(&mut context.pool(), community).await?
     }
   }
   Ok(())

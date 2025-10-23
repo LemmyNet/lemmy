@@ -84,6 +84,8 @@ pub struct AuthenticateWithOauth {
   /// An answer is mandatory if require application is enabled on the server
   pub answer: Option<String>,
   pub pkce_code_verifier: Option<String>,
+  /// If this is true the login is valid forever, otherwise it expires after one week.
+  pub stay_logged_in: Option<bool>,
 }
 
 #[skip_serializing_none]
@@ -365,6 +367,8 @@ pub struct ChangePassword {
   pub new_password: SensitiveString,
   pub new_password_verify: SensitiveString,
   pub old_password: SensitiveString,
+  /// If this is true the login is valid forever, otherwise it expires after one week.
+  pub stay_logged_in: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
@@ -413,6 +417,8 @@ pub struct Login {
   pub password: SensitiveString,
   /// May be required, if totp is enabled for their account.
   pub totp_2fa_token: Option<String>,
+  /// If this is true the login is valid forever, otherwise it expires after one week.
+  pub stay_logged_in: Option<bool>,
 }
 
 #[skip_serializing_none]
@@ -662,7 +668,7 @@ pub struct ResolveObject {
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
-#[serde(tag = "type_")]
+#[serde(tag = "type_", rename_all = "snake_case")]
 pub enum PostOrCommentOrPrivateMessage {
   Post(Post),
   Comment(Comment),
@@ -706,6 +712,10 @@ pub struct UserSettingsBackup {
   pub blocked_instances_communities: Vec<String>,
   #[serde(default)]
   pub blocked_instances_persons: Vec<String>,
+  #[serde(default)]
+  pub blocking_keywords: Vec<String>,
+  #[serde(default)]
+  pub discussion_languages: Vec<String>,
 }
 
 #[skip_serializing_none]

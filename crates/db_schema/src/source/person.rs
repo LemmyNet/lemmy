@@ -135,15 +135,15 @@ pub struct PersonUpdateForm {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct PersonActions {
   #[serde(skip)]
+  pub followed_at: Option<DateTime<Utc>>,
+  /// When the person was blocked.
+  pub blocked_at: Option<DateTime<Utc>>,
+  #[serde(skip)]
   pub person_id: PersonId,
   #[serde(skip)]
   pub target_id: PersonId,
   #[serde(skip)]
-  pub followed_at: Option<DateTime<Utc>>,
-  #[serde(skip)]
   pub follow_pending: Option<bool>,
-  /// When the person was blocked.
-  pub blocked_at: Option<DateTime<Utc>>,
   /// When the person was noted.
   pub noted_at: Option<DateTime<Utc>>,
   /// A note about the person.

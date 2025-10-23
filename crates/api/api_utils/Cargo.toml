@@ -21,7 +21,7 @@ workspace = true
 full = [
   "lemmy_db_schema/full",
   "lemmy_db_views_community/full",
-  "lemmy_db_views_community_follower/full",
+  "lemmy_db_views_community_follower_approval/full",
   "lemmy_db_views_community_moderator/full",
   "lemmy_db_views_community_person_ban/full",
   "lemmy_db_views_local_image/full",
@@ -30,13 +30,14 @@ full = [
   "lemmy_db_views_private_message/full",
   "lemmy_db_views_comment/full",
   "lemmy_db_views_post/full",
+  "lemmy_db_views_notification/full",
 ]
 
 [dependencies]
 lemmy_db_schema = { workspace = true }
 lemmy_db_schema_file = { workspace = true }
 lemmy_db_views_community = { workspace = true }
-lemmy_db_views_community_follower = { workspace = true }
+lemmy_db_views_community_follower_approval = { workspace = true }
 lemmy_db_views_community_moderator = { workspace = true }
 lemmy_db_views_community_person_ban = { workspace = true }
 lemmy_db_views_local_image = { workspace = true }
@@ -45,6 +46,7 @@ lemmy_db_views_site = { workspace = true }
 lemmy_db_views_private_message = { workspace = true }
 lemmy_db_views_comment = { workspace = true }
 lemmy_db_views_post = { workspace = true }
+lemmy_db_views_notification = { workspace = true }
 lemmy_email = { workspace = true }
 anyhow = { workspace = true }
 serde = { workspace = true }

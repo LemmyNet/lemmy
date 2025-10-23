@@ -38,8 +38,7 @@ pub struct CreatePost {
 /// Like a post.
 pub struct CreatePostLike {
   pub post_id: PostId,
-  /// Score must be -1, 0, or 1.
-  pub score: i16,
+  pub is_upvote: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
@@ -286,4 +285,5 @@ pub struct SavePost {
 /// Mark several posts as read.
 pub struct MarkManyPostsAsRead {
   pub post_ids: Vec<PostId>,
+  pub read: bool,
 }
