@@ -73,7 +73,8 @@ ALTER TABLE modlog
         AND num_nonnulls (target_instance_id, target_comment_id) = 0)
         OR (kind = 'AdminRemoveCommunity'
         AND target_community_id IS NOT NULL
-        AND num_nonnulls (target_post_id, target_instance_id, target_person_id, target_comment_id) = 0)
+        -- target_person_id (community owner) can be either null or not null here
+        AND num_nonnulls (target_post_id, target_instance_id, target_comment_id) = 0)
         OR (kind = 'ModChangeCommunityVisibility'
         AND target_community_id IS NOT NULL
         AND num_nonnulls (target_post_id, target_instance_id, target_person_id, target_comment_id) = 0)
