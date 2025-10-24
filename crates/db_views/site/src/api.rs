@@ -286,7 +286,7 @@ pub struct EditSite {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
 pub enum GetFederatedInstancesKind {
   #[default]
   All,
