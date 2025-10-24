@@ -39,8 +39,8 @@ pub(crate) fn get_dump() -> String {
       "--no-large-objects",
       // Use a fake restrict key, rather than an auto-generated one.
       // See https://github.com/sqlc-dev/sqlc/issues/4065
-      //"--restrict-key",
-      //"empty",
+      "--restrict-key",
+      "empty",
     ])
     .stderr(Stdio::inherit())
     .output()

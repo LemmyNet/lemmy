@@ -665,8 +665,8 @@ test("Enforce community ban for federated user", async () => {
   await waitUntil(
     () => getModlog(alpha),
     m =>
-      m.modlog[0].type_ == "mod_ban_from_community" &&
-      m.modlog[0].mod_ban_from_community.banned == false,
+      m.modlog[0].modlog.kind == "mod_ban_from_community" &&
+      m.modlog[0].modlog.is_revert == true,
   );
 
   let postRes3 = await createPost(alpha, betaCommunity.community.id);
