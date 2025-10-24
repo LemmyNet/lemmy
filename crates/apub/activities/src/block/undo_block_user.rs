@@ -30,7 +30,7 @@ use lemmy_db_schema::{
     instance::{InstanceActions, InstanceBanForm},
     modlog::{Modlog, ModlogInsertForm},
   },
-  traits::{Bannable, Crud},
+  traits::Bannable,
 };
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;

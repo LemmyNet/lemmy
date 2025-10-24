@@ -12,7 +12,7 @@ use lemmy_db_schema::{
     local_user::LocalUser,
     modlog::{Modlog, ModlogInsertForm},
   },
-  traits::{Bannable, Crud},
+  traits::Bannable,
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::{

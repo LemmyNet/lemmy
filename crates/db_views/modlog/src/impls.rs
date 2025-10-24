@@ -309,13 +309,13 @@ mod tests {
     );
     Modlog::create(pool, &[form]).await?;
 
-    let form = ModlogInsertForm::admin_purge_community(data.timmy.id, data.community.id, "reason");
+    let form = ModlogInsertForm::admin_purge_community(data.timmy.id, "reason");
     Modlog::create(pool, &[form]).await?;
 
-    let form = ModlogInsertForm::admin_purge_person(data.timmy.id, data.sara.id, "reason");
+    let form = ModlogInsertForm::admin_purge_person(data.timmy.id, "reason");
     Modlog::create(pool, &[form]).await?;
 
-    let form = ModlogInsertForm::admin_purge_post(data.timmy.id, &data.post, "reason");
+    let form = ModlogInsertForm::admin_purge_post(data.timmy.id, data.community.id, "reason");
     Modlog::create(pool, &[form]).await?;
 
     let form = ModlogInsertForm::mod_change_community_visibility(data.timmy.id, data.community.id);
@@ -327,7 +327,7 @@ mod tests {
     Modlog::create(pool, &[form]).await?;
 
     let modlog = ModlogQuery::default().list(pool).await?;
-    assert_eq!(4, modlog.len());
+    assert_eq!(8, modlog.len());
 
     let v = &modlog[0];
     assert_eq!(ModlogKind::ModChangeCommunityVisibility, v.modlog.kind);
@@ -367,7 +367,7 @@ mod tests {
     assert_eq!(Some(data.timmy.id), v.moderator.as_ref().map(|a| a.id));
 
     // Make sure the report types are correct
-    let v = &modlog[2]; // TODO: why index 2 again?
+    let v = &modlog[6]; // TODO: why index 2 again?
     assert_eq!(ModlogKind::AdminBlockInstance, v.modlog.kind);
     assert_eq!(
       Some(data.instance.id),
@@ -375,7 +375,7 @@ mod tests {
     );
     assert_eq!(Some(data.timmy.id), v.moderator.as_ref().map(|a| a.id));
 
-    let v = &modlog[3];
+    let v = &modlog[7];
     assert_eq!(ModlogKind::AdminAllowInstance, v.modlog.kind);
     assert_eq!(
       Some(data.instance.id),
@@ -391,7 +391,7 @@ mod tests {
     .list(pool)
     .await?;
     // Only one is jessica
-    assert_eq!(3, modlog_admin_filter.len());
+    assert_eq!(7, modlog_admin_filter.len());
 
     // Filter by community
     let modlog_community_filter = ModlogQuery {
@@ -402,7 +402,7 @@ mod tests {
     .await?;
 
     // Should be 2, and not jessicas
-    assert_eq!(1, modlog_community_filter.len());
+    assert_eq!(3, modlog_community_filter.len());
 
     // Filter by type
     let modlog_type_filter = ModlogQuery {
@@ -423,7 +423,7 @@ mod tests {
     );
     assert_eq!(Some(data.jessica.id), v.moderator.as_ref().map(|a| a.id));
 
-    let v = &modlog[0];
+    let v = &modlog[1];
     assert_eq!(ModlogKind::ModChangeCommunityVisibility, v.modlog.kind);
     assert_eq!(
       Some(data.community.id),
@@ -512,7 +512,7 @@ mod tests {
 
     // The all view
     let modlog = ModlogQuery::default().list(pool).await?;
-    assert_eq!(14, modlog.len());
+    assert_eq!(15, modlog.len());
 
     let v = &modlog[0];
     assert_eq!(ModlogKind::ModRemoveComment, v.modlog.kind);

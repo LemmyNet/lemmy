@@ -7,12 +7,9 @@ use lemmy_api_utils::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_community_mod_action,
 };
-use lemmy_db_schema::{
-  source::{
-    comment::Comment,
-    modlog::{Modlog, ModlogInsertForm},
-  },
-  traits::Crud,
+use lemmy_db_schema::source::{
+  comment::Comment,
+  modlog::{Modlog, ModlogInsertForm},
 };
 use lemmy_db_views_comment::{
   api::{CommentResponse, LockComment},

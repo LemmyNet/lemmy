@@ -94,14 +94,14 @@ impl<'a> ModlogInsertForm<'a> {
   pub fn mod_lock_post(
     mod_person_id: PersonId,
     post: &Post,
-    removed: bool,
+    locked: bool,
     reason: &'a str,
   ) -> Self {
     Self {
       reason: Some(reason),
       target_post_id: Some(post.id),
       target_person_id: Some(post.creator_id),
-      ..ModlogInsertForm::new(ModlogKind::ModLockComment, !removed, mod_person_id)
+      ..ModlogInsertForm::new(ModlogKind::ModLockPost, !locked, mod_person_id)
     }
   }
   pub fn admin_remove_community(
@@ -202,7 +202,6 @@ impl<'a> ModlogInsertForm<'a> {
     reason: &'a str,
   ) -> Self {
     Self {
-      target_comment_id: Some(comment.id),
       target_post_id: Some(comment.post_id),
       target_person_id: Some(comment.creator_id),
       target_community_id: Some(community_id),
@@ -210,16 +209,7 @@ impl<'a> ModlogInsertForm<'a> {
       ..ModlogInsertForm::new(ModlogKind::AdminPurgeComment, false, mod_person_id)
     }
   }
-  pub fn admin_purge_post(mod_person_id: PersonId, post: &Post, reason: &'a str) -> Self {
-    Self {
-      target_post_id: Some(post.id),
-      target_person_id: Some(post.creator_id),
-      target_community_id: Some(post.community_id),
-      reason: Some(reason),
-      ..ModlogInsertForm::new(ModlogKind::AdminPurgePost, false, mod_person_id)
-    }
-  }
-  pub fn admin_purge_community(
+  pub fn admin_purge_post(
     mod_person_id: PersonId,
     community_id: CommunityId,
     reason: &'a str,
@@ -227,12 +217,17 @@ impl<'a> ModlogInsertForm<'a> {
     Self {
       target_community_id: Some(community_id),
       reason: Some(reason),
+      ..ModlogInsertForm::new(ModlogKind::AdminPurgePost, false, mod_person_id)
+    }
+  }
+  pub fn admin_purge_community(mod_person_id: PersonId, reason: &'a str) -> Self {
+    Self {
+      reason: Some(reason),
       ..ModlogInsertForm::new(ModlogKind::AdminPurgeCommunity, false, mod_person_id)
     }
   }
-  pub fn admin_purge_person(mod_person_id: PersonId, person_id: PersonId, reason: &'a str) -> Self {
+  pub fn admin_purge_person(mod_person_id: PersonId, reason: &'a str) -> Self {
     Self {
-      target_person_id: Some(person_id),
       reason: Some(reason),
       ..ModlogInsertForm::new(ModlogKind::AdminPurgePerson, false, mod_person_id)
     }

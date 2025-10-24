@@ -42,7 +42,8 @@ pub async fn purge_post(
   Post::delete(&mut context.pool(), data.post_id).await?;
 
   // Mod tables
-  let form = ModlogInsertForm::admin_purge_post(local_user_view.person.id, &post, &data.reason);
+  let form =
+    ModlogInsertForm::admin_purge_post(local_user_view.person.id, post.community_id, &data.reason);
   Modlog::create(&mut context.pool(), &[form]).await?;
 
   ActivityChannel::submit_activity(

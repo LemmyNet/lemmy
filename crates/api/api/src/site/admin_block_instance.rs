@@ -4,13 +4,10 @@ use lemmy_api_utils::{
   context::LemmyContext,
   utils::{check_expire_time, is_admin},
 };
-use lemmy_db_schema::{
-  source::{
-    federation_blocklist::{FederationBlockList, FederationBlockListForm},
-    instance::Instance,
-    modlog::{Modlog, ModlogInsertForm},
-  },
-  traits::Crud,
+use lemmy_db_schema::source::{
+  federation_blocklist::{FederationBlockList, FederationBlockListForm},
+  instance::Instance,
+  modlog::{Modlog, ModlogInsertForm},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::api::{AdminBlockInstanceParams, SuccessResponse};

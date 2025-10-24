@@ -18,15 +18,12 @@ use lemmy_apub_objects::{
     protocol::InCommunity,
   },
 };
-use lemmy_db_schema::{
-  source::{
-    activity::ActivitySendTargets,
-    community::Community,
-    modlog::{Modlog, ModlogInsertForm},
-    multi_community::MultiCommunity,
-    person::Person,
-  },
-  traits::Crud,
+use lemmy_db_schema::source::{
+  activity::ActivitySendTargets,
+  community::Community,
+  modlog::{Modlog, ModlogInsertForm},
+  multi_community::MultiCommunity,
+  person::Person,
 };
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;

@@ -49,11 +49,7 @@ pub async fn purge_community(
   Community::delete(&mut context.pool(), data.community_id).await?;
 
   // Mod tables
-  let form = ModlogInsertForm::admin_purge_community(
-    local_user_view.person.id,
-    data.community_id,
-    &data.reason,
-  );
+  let form = ModlogInsertForm::admin_purge_community(local_user_view.person.id, &data.reason);
   Modlog::create(&mut context.pool(), &[form]).await?;
 
   ActivityChannel::submit_activity(
