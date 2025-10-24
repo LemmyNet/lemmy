@@ -655,7 +655,7 @@ fn check_code_verifier(code_verifier: &str) -> LemmyResult<()> {
   }
 }
 
-/// Fetch list of communities from lemmyverse.net and then fetch the top 1000 communities.
+/// Fetch list of communities from lemmyverse.net and then fetch the top communities.
 fn fetch_community_list(context: Data<LemmyContext>) {
   spawn_try_task(async move {
     let communities_json = include_str!(concat!(env!("OUT_DIR"), "/communities.json"));
