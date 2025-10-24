@@ -7,14 +7,14 @@ use lemmy_db_schema::source::{
   modlog::{Modlog, ModlogInsertForm},
 };
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_site::api::{AdminAllowInstanceParams, SuccessResponse};
+use lemmy_db_views_site::{api::AdminAllowInstanceParams, FederatedInstanceView};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn admin_allow_instance(
   data: Json<AdminAllowInstanceParams>,
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
-) -> LemmyResult<Json<SuccessResponse>> {
+) -> LemmyResult<Json<FederatedInstanceView>> {
   is_admin(&local_user_view)?;
 
   let blocklist = Instance::blocklist(&mut context.pool()).await?;
@@ -22,13 +22,10 @@ pub async fn admin_allow_instance(
     Err(LemmyErrorType::CannotCombineFederationBlocklistAndAllowlist)?;
   }
 
-  let instance_id = Instance::read_or_create(&mut context.pool(), data.instance.clone())
+  let instance_id = Instance::read_or_create(&mut context.pool(), &data.instance)
     .await?
     .id;
-  let form = FederationAllowListForm {
-    instance_id,
-    updated_at: None,
-  };
+  let form = FederationAllowListForm::new(instance_id);
   if data.allow {
     FederationAllowList::allow(&mut context.pool(), &form).await?;
   } else {
@@ -43,5 +40,7 @@ pub async fn admin_allow_instance(
   );
   Modlog::create(&mut context.pool(), &[form]).await?;
 
-  Ok(Json(SuccessResponse::default()))
+  Ok(Json(
+    FederatedInstanceView::read(&mut context.pool(), instance_id).await?,
+  ))
 }

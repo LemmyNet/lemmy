@@ -102,7 +102,7 @@ mod tests {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
 
     let new_person = PersonInsertForm::test_form(inserted_instance.id, "Gerry9812");
 

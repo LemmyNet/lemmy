@@ -27,6 +27,7 @@ full = [
   "extism",
   "extism-convert",
   "anyhow",
+  "i-love-jesus",
 ]
 ts-rs = [
   "dep:ts-rs",
@@ -57,3 +58,8 @@ url = { workspace = true }
 extism = { workspace = true, optional = true }
 extism-convert = { workspace = true, optional = true }
 anyhow = { workspace = true, optional = true }
+i-love-jesus = { workspace = true, optional = true }
+
+[dev-dependencies]
+serial_test = { workspace = true }
+tokio = { workspace = true }

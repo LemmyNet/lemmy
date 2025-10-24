@@ -625,7 +625,7 @@ mod tests {
   }
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
 
     let timmy_form = PersonInsertForm::test_form(inserted_instance.id, "timmy_rcv");
     let inserted_timmy = Person::create(pool, &timmy_form).await?;
