@@ -1,4 +1,4 @@
-use crate::SiteView;
+use crate::{FederatedInstanceView, SiteView};
 use lemmy_db_schema::{
   newtypes::{
     InstanceId,
@@ -283,14 +283,28 @@ pub struct EditSite {
   pub suggested_communities: Option<MultiCommunityId>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// A list of federated instances.
-pub struct FederatedInstances {
-  pub linked: Vec<InstanceWithFederationState>,
-  pub allowed: Vec<InstanceWithFederationState>,
-  pub blocked: Vec<InstanceWithFederationState>,
+pub enum GetFederatedInstancesKind {
+  #[default]
+  All,
+  Linked,
+  Allowed,
+  Blocked,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+pub struct GetFederatedInstances {
+  pub domain_filter: Option<String>,
+  pub kind: GetFederatedInstancesKind,
+  pub page_cursor: Option<PaginationCursor>,
+  pub page_back: Option<bool>,
+  pub limit: Option<i64>,
 }
 
 #[skip_serializing_none]
@@ -299,8 +313,9 @@ pub struct FederatedInstances {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A response of federated instances.
 pub struct GetFederatedInstancesResponse {
-  /// Optional, because federation may be disabled.
-  pub federated_instances: Option<FederatedInstances>,
+  pub federated_instances: Vec<FederatedInstanceView>,
+  pub next_page: Option<PaginationCursor>,
+  pub prev_page: Option<PaginationCursor>,
 }
 
 #[skip_serializing_none]

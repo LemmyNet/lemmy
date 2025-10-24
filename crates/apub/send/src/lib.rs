@@ -240,9 +240,9 @@ mod test {
       };
       let pool = &mut context.pool();
       let instances = vec![
-        Instance::read_or_create(pool, "alpha.com".to_string()).await?,
-        Instance::read_or_create(pool, "beta.com".to_string()).await?,
-        Instance::read_or_create(pool, "gamma.com".to_string()).await?,
+        Instance::read_or_create(pool, "alpha.com").await?,
+        Instance::read_or_create(pool, "beta.com").await?,
+        Instance::read_or_create(pool, "gamma.com").await?,
       ];
 
       let send_manager = SendManager::new(opts, federation_config, federation_worker_config);
@@ -322,11 +322,7 @@ mod test {
     let instance_id = data.instances[0].id;
     let form = PersonInsertForm::new("tim".to_string(), String::new(), instance_id);
     let person = Person::create(&mut data.context.pool(), &form).await?;
-    let form = FederationBlockListForm {
-      instance_id,
-      updated_at: None,
-      expires_at: None,
-    };
+    let form = FederationBlockListForm::new(instance_id, None);
     FederationBlockList::block(&mut data.context.pool(), &form).await?;
     data.run().await?;
     let workers = &data.send_manager.workers;
@@ -348,10 +344,7 @@ mod test {
     let instance_id = data.instances[0].id;
     let form = PersonInsertForm::new("tim".to_string(), String::new(), instance_id);
     let person = Person::create(&mut data.context.pool(), &form).await?;
-    let form = FederationAllowListForm {
-      instance_id: data.instances[0].id,
-      updated_at: None,
-    };
+    let form = FederationAllowListForm::new(data.instances[0].id);
     FederationAllowList::allow(&mut data.context.pool(), &form).await?;
     data.run().await?;
     let workers = &data.send_manager.workers;
