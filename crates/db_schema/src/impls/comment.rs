@@ -58,42 +58,42 @@ impl Comment {
     pool: &mut DbPool<'_>,
     creator_id: PersonId,
     removed: bool,
-  ) -> LemmyResult<Vec<Self>> {
+  ) -> LemmyResult<Vec<Comment>> {
     let conn = &mut get_conn(pool).await?;
     diesel::update(comment::table.filter(comment::creator_id.eq(creator_id)))
       .set((
         comment::removed.eq(removed),
         comment::updated_at.eq(Utc::now()),
       ))
-      .get_results::<Self>(conn)
+      .get_results(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   /// Diesel can't update from join unfortunately, so you'll need to loop over these
-  async fn creator_comment_ids_in_community(
+  async fn creator_comments_in_community(
     pool: &mut DbPool<'_>,
     creator_id: PersonId,
     community_id: CommunityId,
-  ) -> LemmyResult<Vec<CommentId>> {
+  ) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
 
     comment::table
       .inner_join(post::table)
       .filter(comment::creator_id.eq(creator_id))
       .filter(post::community_id.eq(community_id))
-      .select(comment::id)
-      .load::<CommentId>(conn)
+      .select(Self::as_select())
+      .load::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
   /// Diesel can't update from join unfortunately, so you'll need to loop over these
-  async fn creator_comment_ids_in_instance(
+  async fn creator_comments_in_instance(
     pool: &mut DbPool<'_>,
     creator_id: PersonId,
     instance_id: InstanceId,
-  ) -> LemmyResult<Vec<CommentId>> {
+  ) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
     let community_join = community::table.on(post::community_id.eq(community::id));
 
@@ -102,8 +102,8 @@ impl Comment {
       .inner_join(community_join)
       .filter(comment::creator_id.eq(creator_id))
       .filter(community::instance_id.eq(instance_id))
-      .select(comment::id)
-      .load::<CommentId>(conn)
+      .select(Self::as_select())
+      .load::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
@@ -113,14 +113,14 @@ impl Comment {
     creator_id: PersonId,
     community_id: CommunityId,
     removed: bool,
-  ) -> LemmyResult<Vec<CommentId>> {
-    let comment_ids =
-      Self::creator_comment_ids_in_community(pool, creator_id, community_id).await?;
+  ) -> LemmyResult<Vec<Self>> {
+    let comments = Self::creator_comments_in_community(pool, creator_id, community_id).await?;
+    let comment_ids: Vec<_> = comments.iter().map(|c| c.id).collect();
 
     let conn = &mut get_conn(pool).await?;
 
     update(comment::table)
-      .filter(comment::id.eq_any(comment_ids.clone()))
+      .filter(comment::id.eq_any(comment_ids))
       .set((
         comment::removed.eq(removed),
         comment::updated_at.eq(Utc::now()),
@@ -128,7 +128,7 @@ impl Comment {
       .execute(conn)
       .await?;
 
-    Ok(comment_ids)
+    Ok(comments)
   }
 
   pub async fn update_removed_for_creator_and_instance(
@@ -136,19 +136,20 @@ impl Comment {
     creator_id: PersonId,
     instance_id: InstanceId,
     removed: bool,
-  ) -> LemmyResult<Vec<CommentId>> {
-    let comment_ids = Self::creator_comment_ids_in_instance(pool, creator_id, instance_id).await?;
+  ) -> LemmyResult<Vec<Self>> {
+    let comments = Self::creator_comments_in_instance(pool, creator_id, instance_id).await?;
+    let comment_ids: Vec<_> = comments.iter().map(|c| c.id).collect();
     let conn = &mut get_conn(pool).await?;
 
     update(comment::table)
-      .filter(comment::id.eq_any(comment_ids.clone()))
+      .filter(comment::id.eq_any(comment_ids))
       .set((
         comment::removed.eq(removed),
         comment::updated_at.eq(Utc::now()),
       ))
       .execute(conn)
       .await?;
-    Ok(comment_ids)
+    Ok(comments)
   }
 
   pub async fn create(
@@ -358,8 +359,8 @@ impl Likeable for CommentActions {
     creator_id: PersonId,
     community_id: CommunityId,
   ) -> LemmyResult<UpleteCount> {
-    let comment_ids =
-      Comment::creator_comment_ids_in_community(pool, creator_id, community_id).await?;
+    let comments = Comment::creator_comments_in_community(pool, creator_id, community_id).await?;
+    let comment_ids: Vec<_> = comments.iter().map(|c| c.id).collect();
 
     let conn = &mut get_conn(pool).await?;
 

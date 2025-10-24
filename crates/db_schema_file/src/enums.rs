@@ -296,3 +296,36 @@ pub enum NotificationType {
   PrivateMessage,
   ModAction,
 }
+
+#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "full", derive(DbEnum))]
+#[cfg_attr(
+  feature = "full",
+  ExistingTypePath = "crate::schema::sql_types::ModlogKind"
+)]
+#[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
+/// Types of notifications which can be received in inbox
+pub enum ModlogKind {
+  AdminAdd,
+  AdminBan,
+  AdminAllowInstance,
+  AdminBlockInstance,
+  AdminPurgeComment,
+  AdminPurgeCommunity,
+  AdminPurgePerson,
+  AdminPurgePost,
+  ModAddToCommunity,
+  ModBanFromCommunity,
+  AdminFeaturePostSite,
+  ModFeaturePostCommunity,
+  ModChangeCommunityVisibility,
+  ModLockPost,
+  ModRemoveComment,
+  AdminRemoveCommunity,
+  ModRemovePost,
+  ModTransferCommunity,
+  ModLockComment,
+}

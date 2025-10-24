@@ -16,6 +16,7 @@ use activitypub_federation::{
 };
 use lemmy_api_utils::{
   context::LemmyContext,
+  notify::notify_mod_action,
   utils::{remove_or_restore_user_data, remove_or_restore_user_data_in_community},
 };
 use lemmy_apub_objects::{
@@ -27,12 +28,9 @@ use lemmy_db_schema::{
     activity::ActivitySendTargets,
     community::{CommunityActions, CommunityPersonBanForm},
     instance::{InstanceActions, InstanceBanForm},
-    mod_log::{
-      admin::{AdminBan, AdminBanForm},
-      moderator::{ModBanFromCommunity, ModBanFromCommunityForm},
-    },
+    modlog::{Modlog, ModlogInsertForm},
   },
-  traits::{Bannable, Crud},
+  traits::Bannable,
 };
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
@@ -119,15 +117,10 @@ impl Activity for UndoBlockUser {
         }
 
         // write mod log
-        let form = AdminBanForm {
-          mod_person_id: mod_person.id,
-          other_person_id: blocked_person.id,
-          reason,
-          banned: Some(false),
-          expires_at,
-          instance_id: site.instance_id,
-        };
-        AdminBan::create(&mut context.pool(), &form).await?;
+        let form =
+          ModlogInsertForm::admin_ban(&mod_person, blocked_person.id, false, expires_at, &reason);
+        let action = Modlog::create(&mut context.pool(), &[form]).await?;
+        notify_mod_action(action.clone(), context.app_data());
       }
       SiteOrCommunity::Right(community) => {
         verify_visibility(&self.to, &self.cc, &community)?;
@@ -147,15 +140,16 @@ impl Activity for UndoBlockUser {
         }
 
         // write to mod log
-        let form = ModBanFromCommunityForm {
-          mod_person_id: mod_person.id,
-          other_person_id: blocked_person.id,
-          community_id: community.id,
-          reason,
-          banned: Some(false),
+        let form = ModlogInsertForm::mod_ban_from_community(
+          mod_person.id,
+          community.id,
+          blocked_person.id,
+          false,
           expires_at,
-        };
-        ModBanFromCommunity::create(&mut context.pool(), &form).await?;
+          &reason,
+        );
+        let action = Modlog::create(&mut context.pool(), &[form]).await?;
+        notify_mod_action(action.clone(), context.app_data());
       }
     }
 

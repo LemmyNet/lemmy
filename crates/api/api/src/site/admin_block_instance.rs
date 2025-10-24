@@ -4,13 +4,10 @@ use lemmy_api_utils::{
   context::LemmyContext,
   utils::{check_expire_time, is_admin},
 };
-use lemmy_db_schema::{
-  source::{
-    federation_blocklist::{FederationBlockList, FederationBlockListForm},
-    instance::Instance,
-    mod_log::admin::{AdminBlockInstance, AdminBlockInstanceForm},
-  },
-  traits::Crud,
+use lemmy_db_schema::source::{
+  federation_blocklist::{FederationBlockList, FederationBlockListForm},
+  instance::Instance,
+  modlog::{Modlog, ModlogInsertForm},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::{api::AdminBlockInstanceParams, FederatedInstanceView};
@@ -42,13 +39,13 @@ pub async fn admin_block_instance(
     FederationBlockList::unblock(&mut context.pool(), instance_id).await?;
   }
 
-  let mod_log_form = AdminBlockInstanceForm {
+  let form = ModlogInsertForm::admin_block_instance(
+    local_user_view.person.id,
     instance_id,
-    admin_person_id: local_user_view.person.id,
-    blocked: data.block,
-    reason: data.reason.clone(),
-  };
-  AdminBlockInstance::create(&mut context.pool(), &mod_log_form).await?;
+    data.block,
+    &data.reason,
+  );
+  Modlog::create(&mut context.pool(), &[form]).await?;
 
   Ok(Json(
     FederatedInstanceView::read(&mut context.pool(), instance_id).await?,
