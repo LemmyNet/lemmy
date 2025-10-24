@@ -45,6 +45,7 @@ futures = { workspace = true }
 futures-util = { workspace = true }
 async-trait = { workspace = true }
 either = { workspace = true }
+chrono = { workspace = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

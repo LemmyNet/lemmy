@@ -24,7 +24,7 @@ pub async fn send_password_reset_email(
   // Generate a random token
   let token = uuid::Uuid::new_v4().to_string();
 
-  let lang = user_language(user);
+  let lang = user_language(&user.local_user);
   let subject = lang.password_reset_subject(&user.person.name);
   let protocol_and_hostname = settings.get_protocol_and_hostname();
   let reset_link = format!("{}/password_change/{}", protocol_and_hostname, &token);
@@ -59,7 +59,7 @@ pub async fn send_verification_email(
   );
   EmailVerification::create(pool, &form).await?;
 
-  let lang = user_language(user);
+  let lang = user_language(&user.local_user);
   let subject = lang.verify_email_subject(&settings.hostname);
 
   // If an application is required, use a translation that includes that warning.
@@ -96,7 +96,7 @@ pub fn send_application_approved_email(
   user: &LocalUserView,
   settings: &'static Settings,
 ) -> LemmyResult<()> {
-  let lang = user_language(user);
+  let lang = user_language(&user.local_user);
   let subject = lang.registration_approved_subject(&user.person.name);
   let email = user_email(user)?;
   let body = lang.registration_approved_body(&settings.hostname);
@@ -109,7 +109,7 @@ pub fn send_application_denied_email(
   deny_reason: Option<String>,
   settings: &'static Settings,
 ) -> LemmyResult<()> {
-  let lang = user_language(user);
+  let lang = user_language(&user.local_user);
   let subject = lang.registration_denied_subject(&user.person.name);
   let email = user_email(user)?;
   let body = match deny_reason {
@@ -127,7 +127,7 @@ pub fn send_email_verified_email(
   user: &LocalUserView,
   settings: &'static Settings,
 ) -> LemmyResult<()> {
-  let lang = user_language(user);
+  let lang = user_language(&user.local_user);
   let subject = lang.email_verified_subject(&user.person.name);
   let email = user_email(user)?;
   let body = lang.email_verified_body();

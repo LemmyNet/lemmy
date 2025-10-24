@@ -113,8 +113,10 @@ impl NotifyData {
         send_notification_email(user_view, c.local_url, c.data, context.settings());
       }
     }
-    let notifications = Notification::create(&mut context.pool(), &forms).await?;
-    plugin_hook_notification(notifications, &context).await?;
+    if !forms.is_empty() {
+      let notifications = Notification::create(&mut context.pool(), &forms).await?;
+      plugin_hook_notification(notifications, &context).await?;
+    }
 
     Ok(())
   }
