@@ -60,7 +60,8 @@ ALTER TABLE modlog
         OR (kind = 'ModRemoveComment'
         AND target_comment_id IS NOT NULL
         AND target_person_id IS NOT NULL
-        AND num_nonnulls (target_community_id, target_instance_id, target_post_id) = 0)
+        AND target_post_id IS NOT NULL
+        AND num_nonnulls (target_community_id, target_instance_id) = 0)
         OR (kind = 'ModLockComment'
         AND target_comment_id IS NOT NULL
         AND target_person_id IS NOT NULL
@@ -68,7 +69,8 @@ ALTER TABLE modlog
         OR (kind = 'ModLockPost'
         AND target_post_id IS NOT NULL
         AND target_person_id IS NOT NULL
-        AND num_nonnulls (target_community_id, target_instance_id, target_comment_id) = 0)
+        AND target_community_id IS NOT NULL
+        AND num_nonnulls (target_instance_id, target_comment_id) = 0)
         OR (kind = 'AdminRemoveCommunity'
         AND target_community_id IS NOT NULL
         AND num_nonnulls (target_post_id, target_instance_id, target_person_id, target_comment_id) = 0)
@@ -95,8 +97,9 @@ ALTER TABLE modlog
         AND num_nonnulls (target_post_id, target_person_id, target_community_id, target_comment_id) = 0)
         OR (kind = 'AdminPurgeComment'
         AND target_post_id IS NOT NULL
-        and target_person_id is not null and target_community_id is not null
-        AND num_nonnulls ( target_instance_id, target_comment_id) = 0)
+        AND target_person_id IS NOT NULL
+        AND target_community_id IS NOT NULL
+        AND num_nonnulls (target_instance_id, target_comment_id) = 0)
         OR (kind = 'AdminPurgePost'
         AND target_community_id IS NOT NULL
         AND num_nonnulls (target_post_id, target_person_id, target_instance_id, target_comment_id) = 0)

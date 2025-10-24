@@ -74,6 +74,7 @@ impl<'a> ModlogInsertForm<'a> {
     Self {
       reason: Some(reason),
       target_comment_id: Some(comment.id),
+      target_post_id: Some(comment.post_id),
       target_person_id: Some(comment.creator_id),
       ..ModlogInsertForm::new(ModlogKind::ModRemoveComment, !removed, mod_person_id)
     }
@@ -100,6 +101,7 @@ impl<'a> ModlogInsertForm<'a> {
     Self {
       reason: Some(reason),
       target_post_id: Some(post.id),
+      target_community_id: Some(post.community_id),
       target_person_id: Some(post.creator_id),
       ..ModlogInsertForm::new(ModlogKind::ModLockPost, !locked, mod_person_id)
     }

@@ -418,7 +418,7 @@ mod tests {
     let v = &modlog[0];
     assert_eq!(ModlogKind::ModChangeCommunityVisibility, v.modlog.kind);
     assert_eq!(
-      Some(data.community.id),
+      Some(data.community_2.id),
       v.target_community.as_ref().map(|a| a.id)
     );
     assert_eq!(Some(data.jessica.id), v.moderator.as_ref().map(|a| a.id));
@@ -517,18 +517,18 @@ mod tests {
     let v = &modlog[0];
     assert_eq!(ModlogKind::ModRemoveComment, v.modlog.kind);
     assert_eq!(
-      Some(data.comment.id),
+      Some(data.comment_2.id),
       v.target_comment.as_ref().map(|a| a.id)
     );
-    assert_eq!(Some(data.sara.id), v.target_person.as_ref().map(|a| a.id));
+    assert_eq!(
+      Some(data.jessica.id),
+      v.target_person.as_ref().map(|a| a.id)
+    );
     assert_eq!(Some(data.jessica.id), v.moderator.as_ref().map(|a| a.id));
 
     let v = &modlog[1];
     assert_eq!(ModlogKind::ModRemovePost, v.modlog.kind);
-    assert_eq!(
-      Some(data.comment.id),
-      v.target_comment.as_ref().map(|a| a.id)
-    );
+    assert_eq!(Some(data.post_2.id), v.target_post.as_ref().map(|a| a.id));
     assert_eq!(Some(data.sara.id), v.target_person.as_ref().map(|a| a.id));
     assert_eq!(Some(data.jessica.id), v.moderator.as_ref().map(|a| a.id));
 
@@ -574,10 +574,6 @@ mod tests {
       v.target_comment.as_ref().map(|a| a.id)
     );
     assert_eq!(Some(data.post.id), v.target_post.as_ref().map(|a| a.id));
-    assert_eq!(
-      Some(data.community.id),
-      v.target_community.as_ref().map(|a| a.id)
-    );
     assert_eq!(Some(data.timmy.id), v.moderator.as_ref().map(|a| a.id));
 
     let v = &modlog[7];
@@ -585,10 +581,6 @@ mod tests {
     assert_eq!(
       Some(data.comment.id),
       v.target_comment.as_ref().map(|a| a.id)
-    );
-    assert_eq!(
-      Some(data.community.id),
-      v.target_community.as_ref().map(|a| a.id)
     );
     assert_eq!(Some(data.timmy.id), v.moderator.as_ref().map(|a| a.id));
 
@@ -602,6 +594,11 @@ mod tests {
     assert_eq!(Some(data.timmy.id), v.moderator.as_ref().map(|a| a.id));
 
     let v = &modlog[9];
+    assert_eq!(ModlogKind::AdminFeaturePostSite, v.modlog.kind);
+    assert_eq!(Some(data.post.id), v.target_post.as_ref().map(|a| a.id));
+    assert_eq!(Some(data.timmy.id), v.moderator.as_ref().map(|a| a.id));
+
+    let v = &modlog[10];
     assert_eq!(ModlogKind::ModFeaturePostCommunity, v.modlog.kind);
     assert_eq!(Some(data.post.id), v.target_post.as_ref().map(|a| a.id));
     assert_eq!(
@@ -610,7 +607,7 @@ mod tests {
     );
     assert_eq!(Some(data.timmy.id), v.moderator.as_ref().map(|a| a.id));
 
-    let v = &modlog[10];
+    let v = &modlog[11];
     assert_eq!(ModlogKind::ModBanFromCommunity, v.modlog.kind);
     assert_eq!(
       Some(data.jessica.id),
@@ -622,7 +619,7 @@ mod tests {
     );
     assert_eq!(Some(data.timmy.id), v.moderator.as_ref().map(|a| a.id));
 
-    let v = &modlog[11];
+    let v = &modlog[12];
     assert_eq!(ModlogKind::AdminBan, v.modlog.kind);
     assert_eq!(
       Some(data.jessica.id),
@@ -630,7 +627,7 @@ mod tests {
     );
     assert_eq!(Some(data.timmy.id), v.moderator.as_ref().map(|a| a.id));
 
-    let v = &modlog[12];
+    let v = &modlog[13];
     assert_eq!(ModlogKind::ModAddToCommunity, v.modlog.kind);
     assert_eq!(
       Some(data.jessica.id),
@@ -642,7 +639,7 @@ mod tests {
     );
     assert_eq!(Some(data.timmy.id), v.moderator.as_ref().map(|a| a.id));
 
-    let v = &modlog[13];
+    let v = &modlog[14];
     assert_eq!(ModlogKind::AdminAdd, v.modlog.kind);
     assert_eq!(
       Some(data.jessica.id),
@@ -657,7 +654,7 @@ mod tests {
     }
     .list(pool)
     .await?;
-    assert_eq!(11, modlog_mod_timmy_filter.len());
+    assert_eq!(12, modlog_mod_timmy_filter.len());
 
     let modlog_mod_jessica_filter = ModlogQuery {
       mod_person_id: Some(data.jessica.id),
@@ -677,7 +674,7 @@ mod tests {
     }
     .list(pool)
     .await?;
-    assert_eq!(5, modlog_modded_timmy_filter.len());
+    assert_eq!(4, modlog_modded_timmy_filter.len());
 
     let modlog_modded_jessica_filter = ModlogQuery {
       target_person_id: Some(data.jessica.id),
@@ -702,7 +699,7 @@ mod tests {
     }
     .list(pool)
     .await?;
-    assert_eq!(9, modlog_community_filter.len());
+    assert_eq!(6, modlog_community_filter.len());
 
     let modlog_community_2_filter = ModlogQuery {
       community_id: Some(data.community_2.id),
@@ -710,7 +707,7 @@ mod tests {
     }
     .list(pool)
     .await?;
-    assert_eq!(3, modlog_community_2_filter.len());
+    assert_eq!(1, modlog_community_2_filter.len());
 
     // Filter by post
     let modlog_post_filter = ModlogQuery {
