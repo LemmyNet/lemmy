@@ -60,6 +60,7 @@ impl Instance {
           updated_at: Some(Utc::now()),
           ..InstanceForm::new(domain_.to_string())
         };
+        plugin_hook_before("new_instance", form);
         insert_into(instance::table)
           .values(&form)
           // Necessary because this method may be called concurrently for the same domain. This
