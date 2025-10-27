@@ -187,6 +187,9 @@ pub struct SetupConfig {
   /// Email for the admin user (optional, can be omitted and set later through the website)
   #[doku(example = "user@example.com")]
   pub admin_email: Option<String>,
+  /// By default a new Lemmy instance gets populated with data from the most popular communities.
+  /// Set this to true to start with an empty instance instead.
+  pub no_default_data: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
