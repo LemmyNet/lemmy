@@ -1,4 +1,8 @@
-use crate::protocol::collections::url_collection::UrlCollection;
+use crate::{
+  collections::community_moderators::handle_community_moderators,
+  is_new_instance,
+  protocol::collections::url_collection::UrlCollection,
+};
 use activitypub_federation::{
   actix_web::response::create_http_response,
   config::Data,
@@ -13,10 +17,7 @@ use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
   objects::{community::ApubCommunity, person::ApubPerson},
   protocol::group::Group,
-  utils::{
-    functions::handle_community_moderators,
-    protocol::{AttributedTo, PersonOrGroupType},
-  },
+  utils::protocol::{AttributedTo, PersonOrGroupType},
 };
 use lemmy_db_schema::source::{comment::Comment, post::Post};
 use lemmy_utils::{error::LemmyResult, spawn_try_task, FEDERATION_CONTEXT};
@@ -38,9 +39,13 @@ pub fn fetch_community_collections(
       let followers: CollectionId<ApubCommunityFollower> = followers.into();
       followers.dereference(&community, &context).await.ok();
     }
-    if let Some(featured) = group.featured {
-      let featured: CollectionId<ApubCommunityFeatured> = featured.into();
-      featured.dereference(&community, &context).await.ok();
+    // Dont fetch featured posts for new instances to save requests.
+    // But need to run this in debug mode so that api tests can pass.
+    if cfg!(debug_assertions) || !is_new_instance(&context).await? {
+      if let Some(featured) = group.featured {
+        let featured: CollectionId<ApubCommunityFeatured> = featured.into();
+        featured.dereference(&community, &context).await.ok();
+      }
     }
     if let Some(moderators) = group.attributed_to {
       if let AttributedTo::Lemmy(l) = moderators {
