@@ -17,6 +17,8 @@ use std::fmt::Debug;
 #[cfg_attr(feature = "full", diesel(table_name = federation_allowlist))]
 #[cfg_attr(feature = "full", diesel(primary_key(instance_id)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct FederationAllowList {
   #[serde(skip)]
   pub instance_id: InstanceId,
