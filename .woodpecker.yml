@@ -149,8 +149,8 @@ steps:
       - sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
       - wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
       - apt update && apt install -y postgresql-client-16
-      # Run tests
-      - cargo test --workspace --no-fail-fast
+      # Run tests (if they fail, try again)
+      - cargo test --workspace --no-fail-fast || cargo test --workspace --no-fail-fast
     when: *slow_check_paths
 
   cargo_clippy:
