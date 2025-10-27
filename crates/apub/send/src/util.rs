@@ -194,8 +194,8 @@ pub(crate) async fn get_activity_cached(
 }
 
 /// return the most current activity id (with 1 second cache)
-pub(crate) async fn get_latest_activity_id(pool: &mut DbPool<'_>) -> Result<ActivityId> {
-  static CACHE: LazyLock<Cache<(), ActivityId>> = LazyLock::new(|| {
+pub(crate) async fn get_latest_activity_id(pool: &mut DbPool<'_>) -> Result<Option<ActivityId>> {
+  static CACHE: LazyLock<Cache<(), Option<ActivityId>>> = LazyLock::new(|| {
     Cache::builder()
       .time_to_live(*CACHE_DURATION_LATEST_ID)
       .build()
@@ -205,8 +205,7 @@ pub(crate) async fn get_latest_activity_id(pool: &mut DbPool<'_>) -> Result<Acti
       use diesel::dsl::max;
       use lemmy_db_schema_file::schema::sent_activity::dsl::{id, sent_activity};
       let conn = &mut get_conn(pool).await?;
-      let seq: Option<ActivityId> = sent_activity.select(max(id)).get_result(conn).await?;
-      let latest_id = seq.unwrap_or(ActivityId(0));
+      let latest_id: Option<ActivityId> = sent_activity.select(max(id)).get_result(conn).await?;
       anyhow::Result::<_, anyhow::Error>::Ok(latest_id)
     })
     .await
