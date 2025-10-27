@@ -1,4 +1,4 @@
-CREATE TABLE mod_add_community (
+CREATE TABLE mod_add_to_community (
     community_id int NOT NULL REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE,
     id serial PRIMARY KEY,
     mod_person_id integer NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
@@ -7,7 +7,16 @@ CREATE TABLE mod_add_community (
     removed boolean DEFAULT FALSE NOT NULL
 );
 
-ALTER TABLE mod_add_community RENAME TO mod_add_to_community;
+ALTER SEQUENCE mod_add_to_community_id_seq
+    RENAME TO mod_add_community_id_seq;
+
+ALTER TABLE mod_add_to_community RENAME CONSTRAINT mod_add_to_community_community_id_fkey TO mod_add_community_community_id_fkey;
+
+ALTER TABLE mod_add_to_community RENAME CONSTRAINT mod_add_to_community_mod_person_id_fkey TO mod_add_community_mod_person_id_fkey;
+
+ALTER TABLE mod_add_to_community RENAME CONSTRAINT mod_add_to_community_other_person_id_fkey TO mod_add_community_other_person_id_fkey;
+
+ALTER TABLE mod_add_to_community RENAME CONSTRAINT mod_add_to_community_pkey TO mod_add_community_pkey;
 
 CREATE TABLE admin_purge_comment (
     admin_person_id integer NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
@@ -17,7 +26,7 @@ CREATE TABLE admin_purge_comment (
     reason text NOT NULL
 );
 
-CREATE TABLE mod_add (
+CREATE TABLE admin_add (
     id serial PRIMARY KEY,
     mod_person_id integer NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
     other_person_id integer NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
@@ -25,7 +34,14 @@ CREATE TABLE mod_add (
     removed boolean DEFAULT FALSE NOT NULL
 );
 
-ALTER TABLE mod_add RENAME TO admin_add;
+ALTER SEQUENCE admin_add_id_seq
+    RENAME TO mod_add_id_seq;
+
+ALTER TABLE admin_add RENAME CONSTRAINT admin_add_mod_person_id_fkey TO mod_add_mod_person_id_fkey;
+
+ALTER TABLE admin_add RENAME CONSTRAINT admin_add_other_person_id_fkey TO mod_add_other_person_id_fkey;
+
+ALTER TABLE admin_add RENAME CONSTRAINT admin_add_pkey TO mod_add_pkey;
 
 CREATE TABLE mod_transfer_community (
     community_id int NOT NULL REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE,
@@ -79,7 +95,7 @@ CREATE TABLE mod_remove_comment (
     removed boolean DEFAULT TRUE NOT NULL
 );
 
-CREATE TABLE mod_remove_community (
+CREATE TABLE admin_remove_community (
     community_id int NOT NULL REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE,
     id serial PRIMARY KEY,
     mod_person_id integer NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
@@ -88,7 +104,14 @@ CREATE TABLE mod_remove_community (
     removed boolean DEFAULT TRUE NOT NULL
 );
 
-ALTER TABLE mod_remove_community RENAME TO admin_remove_community;
+ALTER SEQUENCE admin_remove_community_id_seq
+    RENAME TO mod_remove_community_id_seq;
+
+ALTER TABLE admin_remove_community RENAME CONSTRAINT admin_remove_community_community_id_fkey TO mod_remove_community_community_id_fkey;
+
+ALTER TABLE admin_remove_community RENAME CONSTRAINT admin_remove_community_mod_person_id_fkey TO mod_remove_community_mod_person_id_fkey;
+
+ALTER TABLE admin_remove_community RENAME CONSTRAINT admin_remove_community_pkey TO mod_remove_community_pkey;
 
 CREATE TABLE mod_lock_comment (
     comment_id integer NOT NULL REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE,
@@ -99,7 +122,7 @@ CREATE TABLE mod_lock_comment (
     reason text NOT NULL
 );
 
-CREATE TABLE mod_sticky_post (
+CREATE TABLE mod_feature_post (
     featured boolean DEFAULT TRUE NOT NULL,
     id serial PRIMARY KEY,
     is_featured_community boolean DEFAULT TRUE NOT NULL,
@@ -108,7 +131,14 @@ CREATE TABLE mod_sticky_post (
     published_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
-ALTER TABLE mod_sticky_post RENAME TO mod_feature_post;
+ALTER SEQUENCE mod_feature_post_id_seq
+    RENAME TO mod_sticky_post_id_seq;
+
+ALTER TABLE mod_feature_post RENAME CONSTRAINT mod_feature_post_mod_person_id_fkey TO mod_sticky_post_mod_person_id_fkey;
+
+ALTER TABLE mod_feature_post RENAME CONSTRAINT mod_feature_post_pkey TO mod_sticky_post_pkey;
+
+ALTER TABLE mod_feature_post RENAME CONSTRAINT mod_feature_post_post_id_fkey TO mod_sticky_post_post_id_fkey;
 
 CREATE TABLE admin_block_instance (
     admin_person_id int NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
@@ -120,7 +150,7 @@ CREATE TABLE admin_block_instance (
     reason text NOT NULL
 );
 
-CREATE TABLE mod_ban (
+CREATE TABLE admin_ban (
     banned boolean DEFAULT TRUE NOT NULL,
     expires_at timestamp with time zone,
     id serial PRIMARY KEY,
@@ -131,7 +161,16 @@ CREATE TABLE mod_ban (
     reason text NOT NULL
 );
 
-ALTER TABLE mod_ban RENAME TO admin_ban;
+ALTER SEQUENCE admin_ban_id_seq
+    RENAME TO mod_ban_id_seq;
+
+ALTER TABLE admin_ban RENAME CONSTRAINT admin_ban_instance_id_fkey TO mod_ban_instance_id_fkey;
+
+ALTER TABLE admin_ban RENAME CONSTRAINT admin_ban_mod_person_id_fkey TO mod_ban_mod_person_id_fkey;
+
+ALTER TABLE admin_ban RENAME CONSTRAINT admin_ban_other_person_id_fkey TO mod_ban_other_person_id_fkey;
+
+ALTER TABLE admin_ban RENAME CONSTRAINT admin_ban_pkey TO mod_ban_pkey;
 
 CREATE TABLE admin_purge_post (
     admin_person_id integer NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
