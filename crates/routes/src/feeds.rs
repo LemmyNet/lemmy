@@ -436,194 +436,198 @@ fn create_modlog_items(modlog: Vec<ModlogView>, settings: &Settings) -> LemmyRes
 
   let modlog_items: Vec<Item> = modlog
     .iter()
-    .map(|r| match r.modlog.kind {
-      ModlogKind::AdminAllowInstance => build_modlog_item(
-        r,
-        &modlog_url,
-        format!(
-          "Admin {} instance - {}",
-          if r.modlog.is_revert {
-            "disallowed"
-          } else {
-            "allowed"
-          },
-          &r.target_instance.as_ref().unwrap().domain
+    .map(|r| {
+      let u = |x: Option<String>| x.unwrap_or_else(|| "unknown".to_string());
+      let target_instance_domain = u(r.target_instance.as_ref().map(|i| i.domain.clone()));
+      let target_person_name = u(r.target_person.as_ref().map(|i| i.name.clone()));
+      let target_community_name = u(r.target_community.as_ref().map(|i| i.name.clone()));
+      let target_post_name = u(r.target_post.as_ref().map(|i| i.name.clone()));
+      let target_comment_content = u(r.target_comment.as_ref().map(|i| i.content.clone()));
+      match r.modlog.kind {
+        ModlogKind::AdminAllowInstance => build_modlog_item(
+          r,
+          &modlog_url,
+          format!(
+            "Admin {} instance - {}",
+            if r.modlog.is_revert {
+              "disallowed"
+            } else {
+              "allowed"
+            },
+            &target_instance_domain
+          ),
+          settings,
         ),
-        settings,
-      ),
-      ModlogKind::AdminBlockInstance => build_modlog_item(
-        r,
-        &modlog_url,
-        format!(
-          "Admin {} instance - {}",
-          if r.modlog.is_revert {
-            "unblocked"
-          } else {
-            "blocked"
-          },
-          &r.target_instance.as_ref().unwrap().domain
+        ModlogKind::AdminBlockInstance => build_modlog_item(
+          r,
+          &modlog_url,
+          format!(
+            "Admin {} instance - {}",
+            if r.modlog.is_revert {
+              "unblocked"
+            } else {
+              "blocked"
+            },
+            &target_instance_domain
+          ),
+          settings,
         ),
-        settings,
-      ),
-      ModlogKind::AdminPurgeComment => {
-        build_modlog_item(r, &modlog_url, "Admin purged comment", settings)
+        ModlogKind::AdminPurgeComment => {
+          build_modlog_item(r, &modlog_url, "Admin purged comment", settings)
+        }
+        ModlogKind::AdminPurgeCommunity => {
+          build_modlog_item(r, &modlog_url, "Admin purged community", settings)
+        }
+        ModlogKind::AdminPurgePerson => {
+          build_modlog_item(r, &modlog_url, "Admin purged person", settings)
+        }
+        ModlogKind::AdminPurgePost => {
+          build_modlog_item(r, &modlog_url, "Admin purged post", settings)
+        }
+        ModlogKind::AdminAdd => build_modlog_item(
+          r,
+          &modlog_url,
+          format!(
+            "{} admin {}",
+            removed_added_str(r.modlog.is_revert),
+            &target_person_name
+          ),
+          settings,
+        ),
+        ModlogKind::ModAddToCommunity => build_modlog_item(
+          r,
+          &modlog_url,
+          format!(
+            "{} mod {} to /c/{}",
+            removed_added_str(r.modlog.is_revert),
+            &target_person_name,
+            &target_community_name
+          ),
+          settings,
+        ),
+        ModlogKind::AdminBan => build_modlog_item(
+          r,
+          &modlog_url,
+          format!(
+            "{} {}",
+            banned_unbanned_str(r.modlog.is_revert),
+            &target_person_name
+          ),
+          settings,
+        ),
+        ModlogKind::ModBanFromCommunity => build_modlog_item(
+          r,
+          &modlog_url,
+          format!(
+            "{} {} from /c/{}",
+            banned_unbanned_str(r.modlog.is_revert),
+            &target_person_name,
+            &target_community_name
+          ),
+          settings,
+        ),
+        ModlogKind::ModFeaturePostCommunity => build_modlog_item(
+          r,
+          &modlog_url,
+          format!(
+            "{} post {}",
+            if r.modlog.is_revert {
+              "Featured"
+            } else {
+              "Unfeatured"
+            },
+            &target_post_name
+          ),
+          settings,
+        ),
+        ModlogKind::AdminFeaturePostSite => build_modlog_item(
+          r,
+          &modlog_url,
+          format!(
+            "{} post {}",
+            if r.modlog.is_revert {
+              "Featured"
+            } else {
+              "Unfeatured"
+            },
+            &target_post_name
+          ),
+          settings,
+        ),
+        ModlogKind::ModChangeCommunityVisibility => build_modlog_item(
+          r,
+          &modlog_url,
+          format!("Changed /c/{} visibility", &&target_community_name),
+          settings,
+        ),
+        ModlogKind::ModLockPost => build_modlog_item(
+          r,
+          &modlog_url,
+          format!(
+            "{} post {}",
+            if r.modlog.is_revert {
+              "Unlocked"
+            } else {
+              "Locked"
+            },
+            &&target_post_name
+          ),
+          settings,
+        ),
+        ModlogKind::ModRemoveComment => build_modlog_item(
+          r,
+          &modlog_url,
+          format!(
+            "{} comment {}",
+            removed_restored_str(r.modlog.is_revert),
+            &&target_comment_content
+          ),
+          settings,
+        ),
+        ModlogKind::AdminRemoveCommunity => build_modlog_item(
+          r,
+          &modlog_url,
+          format!(
+            "{} community /c/{}",
+            removed_restored_str(r.modlog.is_revert),
+            &&target_community_name
+          ),
+          settings,
+        ),
+        ModlogKind::ModRemovePost => build_modlog_item(
+          r,
+          &modlog_url,
+          format!(
+            "{} post {}",
+            removed_restored_str(r.modlog.is_revert),
+            &target_post_name
+          ),
+          settings,
+        ),
+        ModlogKind::ModTransferCommunity => build_modlog_item(
+          r,
+          &modlog_url,
+          format!(
+            "Tranferred /c/{} to /u/{}",
+            &&target_community_name, &&target_person_name
+          ),
+          settings,
+        ),
+        ModlogKind::ModLockComment => build_modlog_item(
+          r,
+          &modlog_url,
+          format!(
+            "{} comment {}",
+            if r.modlog.is_revert {
+              "Unlocked"
+            } else {
+              "Locked"
+            },
+            &&target_comment_content
+          ),
+          settings,
+        ),
       }
-      ModlogKind::AdminPurgeCommunity => {
-        build_modlog_item(r, &modlog_url, "Admin purged community", settings)
-      }
-      ModlogKind::AdminPurgePerson => {
-        build_modlog_item(r, &modlog_url, "Admin purged person", settings)
-      }
-      ModlogKind::AdminPurgePost => {
-        build_modlog_item(r, &modlog_url, "Admin purged post", settings)
-      }
-      ModlogKind::AdminAdd => build_modlog_item(
-        r,
-        &modlog_url,
-        format!(
-          "{} admin {}",
-          removed_added_str(r.modlog.is_revert),
-          &r.target_person.as_ref().unwrap().name
-        ),
-        settings,
-      ),
-      ModlogKind::ModAddToCommunity => build_modlog_item(
-        r,
-        &modlog_url,
-        format!(
-          "{} mod {} to /c/{}",
-          removed_added_str(r.modlog.is_revert),
-          &r.target_person.as_ref().unwrap().name,
-          &r.target_community.as_ref().unwrap().name
-        ),
-        settings,
-      ),
-      ModlogKind::AdminBan => build_modlog_item(
-        r,
-        &modlog_url,
-        format!(
-          "{} {}",
-          banned_unbanned_str(r.modlog.is_revert),
-          &r.target_person.as_ref().unwrap().name
-        ),
-        settings,
-      ),
-      ModlogKind::ModBanFromCommunity => build_modlog_item(
-        r,
-        &modlog_url,
-        format!(
-          "{} {} from /c/{}",
-          banned_unbanned_str(r.modlog.is_revert),
-          &r.target_person.as_ref().unwrap().name,
-          &r.target_community.as_ref().unwrap().name
-        ),
-        settings,
-      ),
-      ModlogKind::ModFeaturePostCommunity => build_modlog_item(
-        r,
-        &modlog_url,
-        format!(
-          "{} post {}",
-          if r.modlog.is_revert {
-            "Featured"
-          } else {
-            "Unfeatured"
-          },
-          &r.target_post.as_ref().unwrap().name
-        ),
-        settings,
-      ),
-      ModlogKind::AdminFeaturePostSite => build_modlog_item(
-        r,
-        &modlog_url,
-        format!(
-          "{} post {}",
-          if r.modlog.is_revert {
-            "Featured"
-          } else {
-            "Unfeatured"
-          },
-          &r.target_post.as_ref().unwrap().name
-        ),
-        settings,
-      ),
-      ModlogKind::ModChangeCommunityVisibility => build_modlog_item(
-        r,
-        &modlog_url,
-        format!(
-          "Changed /c/{} visibility",
-          &&r.target_community.as_ref().unwrap().name
-        ),
-        settings,
-      ),
-      ModlogKind::ModLockPost => build_modlog_item(
-        r,
-        &modlog_url,
-        format!(
-          "{} post {}",
-          if r.modlog.is_revert {
-            "Unlocked"
-          } else {
-            "Locked"
-          },
-          &&r.target_post.as_ref().unwrap().name
-        ),
-        settings,
-      ),
-      ModlogKind::ModRemoveComment => build_modlog_item(
-        r,
-        &modlog_url,
-        format!(
-          "{} comment {}",
-          removed_restored_str(r.modlog.is_revert),
-          &&r.target_comment.as_ref().unwrap().content
-        ),
-        settings,
-      ),
-      ModlogKind::AdminRemoveCommunity => build_modlog_item(
-        r,
-        &modlog_url,
-        format!(
-          "{} community /c/{}",
-          removed_restored_str(r.modlog.is_revert),
-          &&r.target_community.as_ref().unwrap().name
-        ),
-        settings,
-      ),
-      ModlogKind::ModRemovePost => build_modlog_item(
-        r,
-        &modlog_url,
-        format!(
-          "{} post {}",
-          removed_restored_str(r.modlog.is_revert),
-          &r.target_post.as_ref().unwrap().name
-        ),
-        settings,
-      ),
-      ModlogKind::ModTransferCommunity => build_modlog_item(
-        r,
-        &modlog_url,
-        format!(
-          "Tranferred /c/{} to /u/{}",
-          &&r.target_community.as_ref().unwrap().name,
-          &&r.target_person.as_ref().unwrap().name
-        ),
-        settings,
-      ),
-      ModlogKind::ModLockComment => build_modlog_item(
-        r,
-        &modlog_url,
-        format!(
-          "{} comment {}",
-          if r.modlog.is_revert {
-            "Unlocked"
-          } else {
-            "Locked"
-          },
-          &&r.target_comment.as_ref().unwrap().content
-        ),
-        settings,
-      ),
     })
     .collect::<LemmyResult<Vec<Item>>>()?;
 

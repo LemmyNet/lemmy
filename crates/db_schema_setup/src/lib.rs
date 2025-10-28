@@ -89,7 +89,7 @@ impl MigrationHarness<Pg> for MigrationHarnessWrapper<'_> {
       // HACK: This particular down migration is broken and consistently throws "cache lookup failed
       // for function 26633". So the check is disabled as no one is going to migrate down from 1.0
       // to 0.19 anyway.
-      if name != "2025-10-15-114811-0000_merge-modlog-tables".to_string() {
+      if name != *"2025-10-15-114811-0000_merge-modlog-tables" {
         let before = diff_check::get_dump();
 
         self.run_migration_inner(migration)?;
