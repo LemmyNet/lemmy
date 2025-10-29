@@ -342,9 +342,10 @@ impl CommunityActions {
   /// Dont use this check for local communities.
   pub async fn check_accept_activity_in_community(
     pool: &mut DbPool<'_>,
-    remote_community_id: CommunityId,
+    remote_community: &Community,
   ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
+    let remote_community_id = remote_community.id;
     let follow_action = community_actions::table
       .filter(community_actions::followed_at.is_not_null())
       .filter(community_actions::community_id.eq(remote_community_id));
@@ -359,7 +360,7 @@ impl CommunityActions {
       .get_result::<bool>(conn)
       .await?
       .then_some(())
-      .ok_or(UntranslatedError::CommunityHasNoFollowers.into())
+      .ok_or(UntranslatedError::CommunityHasNoFollowers(remote_community.ap_id.to_string()).into())
   }
 
   pub async fn approve_private_community_follower(
@@ -708,7 +709,7 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
 
     let bobby_person = PersonInsertForm::test_form(inserted_instance.id, "bobby");
     let inserted_bobby = Person::create(pool, &bobby_person).await?;
@@ -859,7 +860,7 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
 
     let new_person = PersonInsertForm::test_form(inserted_instance.id, "thommy_community_agg");
 

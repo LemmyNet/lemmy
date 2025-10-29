@@ -16,7 +16,7 @@ use lemmy_db_schema::{
   newtypes::PostOrCommentId,
   source::{
     person::PersonActions,
-    post::{PostActions, PostLikeForm, PostReadForm},
+    post::{PostActions, PostLikeForm},
   },
   traits::Likeable,
 };
@@ -79,7 +79,7 @@ pub async fn like_post(
 
   if let Some(is_upvote) = data.is_upvote {
     let mut like_form = PostLikeForm::new(data.post_id, my_person_id, is_upvote);
-    like_form = plugin_hook_before("before_post_vote", like_form).await?;
+    like_form = plugin_hook_before("post_before_vote", like_form).await?;
     let like = PostActions::like(&mut context.pool(), &like_form).await?;
     PersonActions::like(
       &mut context.pool(),
@@ -89,12 +89,11 @@ pub async fn like_post(
     )
     .await?;
 
-    plugin_hook_after("after_post_vote", &like)?;
+    plugin_hook_after("post_after_vote", &like);
   }
 
   // Mark Post Read
-  let read_form = PostReadForm::new(post_id, my_person_id);
-  PostActions::mark_as_read(&mut context.pool(), &read_form).await?;
+  PostActions::mark_as_read(&mut context.pool(), my_person_id, &[post_id]).await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::LikePostOrComment {

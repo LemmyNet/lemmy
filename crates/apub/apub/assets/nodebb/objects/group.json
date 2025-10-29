@@ -1,22 +1,27 @@
 {
-  "@context": "https://www.w3.org/ns/activitystreams",
-  "id": "https://community.nodebb.org/category/31",
-  "url": "https://community.nodebb.org/category/31/threadiverse-working-group",
-  "inbox": "https://community.nodebb.org/category/31/inbox",
-  "outbox": "https://community.nodebb.org/category/31/outbox",
-  "sharedInbox": "https://community.nodebb.org/inbox",
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/v1"
+  ],
+  "id": "https://bb.devnull.land/category/2",
+  "url": "https://bb.devnull.land/category/2/general-discussion",
+  "inbox": "https://bb.devnull.land/category/2/inbox",
+  "outbox": "https://bb.devnull.land/category/2/outbox",
   "type": "Group",
-  "name": "Threadiverse Working Group",
-  "preferredUsername": "swicg-threadiverse-wg",
-  "summary": "Discussion and announcements related to the SWICG Threadiverse task force",
+  "name": "General Discussion",
+  "preferredUsername": "general",
+  "summary": "<p>A place to talk about whatever you want</p>\n<hr /><p dir=\"auto\">This is a forum category containing topical discussion. You can start new discussions by mentioning this category.</p>\n",
   "icon": {
     "type": "Image",
     "mediaType": "image/png",
-    "url": "https://community.nodebb.org/assets/uploads/system/site-logo.png"
+    "url": "https://bb.devnull.land/assets/uploads/category/category-2-icon.png"
   },
   "publicKey": {
-    "id": "https://community.nodebb.org/category/31#key",
-    "owner": "https://community.nodebb.org/category/31",
-    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0/Or3Ox2/jbhBZzF8W0Y\nWuS/4lgm5O5rxQk2nDRBXU/qNaZnMPkW2FxFPuPetndUVKSD2+vWF3SUlFyZ/vhT\nITzLkbRSILMiZCUg+0mvqi6va1WMBglMe5jLkc7wdfgNsosqBzKMdyMxqDZr++mJ\n8DjuqzWHENcjWcbMfSfAa9nkZHBIQUsHGGIwxEbKNlPqF0JIB66py7xmXbboDxpD\nPVF3EMkgZNnbmDGtlkZCKbztradyNRVl/u6KJpV3fbi+m/8CZ+POc4I5sKCQY1Hr\ndslHlm6tCkJQxIIKQtz0ZJ5yCUYmk48C2gFCndfJtYoEy9iR62xSemky6y04gWVc\naQIDAQAB\n-----END PUBLIC KEY-----\n"
+    "id": "https://bb.devnull.land/category/2#key",
+    "owner": "https://bb.devnull.land/category/2",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAunqTJfBQ1PpsKW6/EDGe\nMFQubvI8vL9VomZBfcgJWbEtCmAwpaR7LP+Du/OcoRDbkm04BQJR0xT2QEOO4YDs\nZjm520C0O34iw/bUdmnFMJEaFiyJUn7zEaqPIUf3+etPslAdq3rivHXYlpuP2i1U\nHGvLO4N08k6LDpAbgO5sdXGPP2k2HAo8Sch8PEqdiMj68i5v1cIz4Q0vvPnAf5UY\nmeMbnQg7yx0o+WPu6QTmd7DFYfGG36LOfRJKpqjzlVXjq2iQhU4XiqHWG0KJvzQ7\nsIqlAtb3ESVchDamNzHQi6rsMJR9zCZpcUt8VnxiL7B8tVKk4mBoHxkISY9Sj9iO\nnQIDAQAB\n-----END PUBLIC KEY-----\n"
+  },
+  "endpoints": {
+    "sharedInbox": "https://bb.devnull.land/inbox"
   }
 }

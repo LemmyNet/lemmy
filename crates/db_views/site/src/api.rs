@@ -1,4 +1,4 @@
-use crate::SiteView;
+use crate::{FederatedInstanceView, SiteView};
 use lemmy_db_schema::{
   newtypes::{
     InstanceId,
@@ -84,6 +84,8 @@ pub struct AuthenticateWithOauth {
   /// An answer is mandatory if require application is enabled on the server
   pub answer: Option<String>,
   pub pkce_code_verifier: Option<String>,
+  /// If this is true the login is valid forever, otherwise it expires after one week.
+  pub stay_logged_in: Option<bool>,
 }
 
 #[skip_serializing_none]
@@ -281,14 +283,28 @@ pub struct EditSite {
   pub suggested_communities: Option<MultiCommunityId>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
+pub enum GetFederatedInstancesKind {
+  #[default]
+  All,
+  Linked,
+  Allowed,
+  Blocked,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// A list of federated instances.
-pub struct FederatedInstances {
-  pub linked: Vec<InstanceWithFederationState>,
-  pub allowed: Vec<InstanceWithFederationState>,
-  pub blocked: Vec<InstanceWithFederationState>,
+pub struct GetFederatedInstances {
+  pub domain_filter: Option<String>,
+  pub kind: GetFederatedInstancesKind,
+  pub page_cursor: Option<PaginationCursor>,
+  pub page_back: Option<bool>,
+  pub limit: Option<i64>,
 }
 
 #[skip_serializing_none]
@@ -297,8 +313,9 @@ pub struct FederatedInstances {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A response of federated instances.
 pub struct GetFederatedInstancesResponse {
-  /// Optional, because federation may be disabled.
-  pub federated_instances: Option<FederatedInstances>,
+  pub federated_instances: Vec<FederatedInstanceView>,
+  pub next_page: Option<PaginationCursor>,
+  pub prev_page: Option<PaginationCursor>,
 }
 
 #[skip_serializing_none]
@@ -365,6 +382,8 @@ pub struct ChangePassword {
   pub new_password: SensitiveString,
   pub new_password_verify: SensitiveString,
   pub old_password: SensitiveString,
+  /// If this is true the login is valid forever, otherwise it expires after one week.
+  pub stay_logged_in: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
@@ -413,6 +432,8 @@ pub struct Login {
   pub password: SensitiveString,
   /// May be required, if totp is enabled for their account.
   pub totp_2fa_token: Option<String>,
+  /// If this is true the login is valid forever, otherwise it expires after one week.
+  pub stay_logged_in: Option<bool>,
 }
 
 #[skip_serializing_none]
@@ -662,7 +683,7 @@ pub struct ResolveObject {
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
-#[serde(tag = "type_")]
+#[serde(tag = "type_", rename_all = "snake_case")]
 pub enum PostOrCommentOrPrivateMessage {
   Post(Post),
   Comment(Comment),

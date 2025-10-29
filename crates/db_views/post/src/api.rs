@@ -38,6 +38,7 @@ pub struct CreatePost {
 /// Like a post.
 pub struct CreatePostLike {
   pub post_id: PostId,
+  /// True means Upvote, False means Downvote, and None means remove vote.
   pub is_upvote: Option<bool>,
 }
 
@@ -285,4 +286,5 @@ pub struct SavePost {
 /// Mark several posts as read.
 pub struct MarkManyPostsAsRead {
   pub post_ids: Vec<PostId>,
+  pub read: bool,
 }

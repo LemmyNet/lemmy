@@ -32,6 +32,7 @@ pub struct CreateComment {
 /// Like a comment.
 pub struct CreateCommentLike {
   pub comment_id: CommentId,
+  /// True means Upvote, False means Downvote, and None means remove vote.
   pub is_upvote: Option<bool>,
 }
 

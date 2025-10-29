@@ -226,7 +226,7 @@ impl Object for ApubComment {
       federation_pending: Some(false),
       locked: None,
     };
-    form = plugin_hook_before("before_receive_federated_comment", form).await?;
+    form = plugin_hook_before("federated_comment_before_receive", form).await?;
     let parent_comment_path = parent_comment.map(|t| t.0.path);
     let timestamp: DateTime<Utc> = note.updated.or(note.published).unwrap_or_else(Utc::now);
     let comment = Comment::insert_apub(
@@ -236,7 +236,7 @@ impl Object for ApubComment {
       parent_comment_path.as_ref(),
     )
     .await?;
-    plugin_hook_after("after_receive_federated_comment", &comment)?;
+    plugin_hook_after("federated_comment_after_receive", &comment);
     Ok(comment.into())
   }
 }

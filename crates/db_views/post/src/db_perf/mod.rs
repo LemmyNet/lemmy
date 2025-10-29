@@ -66,7 +66,7 @@ async fn db_perf() -> LemmyResult<()> {
       .await?;
   }
 
-  let instance = Instance::read_or_create(&mut conn.into(), "reddit.com".to_owned()).await?;
+  let instance = Instance::read_or_create(&mut conn.into(), "reddit.com").await?;
 
   println!("🫃 creating {} people", args.people);
   let mut person_ids = vec![];

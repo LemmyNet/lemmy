@@ -106,7 +106,7 @@ mod tests {
   use serial_test::serial;
 
   async fn init(pool: &mut DbPool<'_>) -> LemmyResult<(Person, PostReport)> {
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
     let person_form = PersonInsertForm::test_form(inserted_instance.id, "jim");
     let person = Person::create(pool, &person_form).await?;
 
