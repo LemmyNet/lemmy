@@ -3549,7 +3549,6 @@ dependencies = [
  "lemmy_db_schema",
  "lemmy_db_schema_file",
  "lemmy_db_views_community_moderator",
- "lemmy_db_views_person",
  "lemmy_utils",
  "serde",
  "serde_with",
