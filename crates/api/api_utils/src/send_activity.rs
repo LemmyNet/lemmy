@@ -1,7 +1,6 @@
 use crate::context::LemmyContext;
 use activitypub_federation::config::Data;
 use either::Either;
-use futures::future::BoxFuture;
 use lemmy_db_schema::{
   newtypes::{CommunityId, DbUrl, PersonId},
   source::{
@@ -18,7 +17,7 @@ use lemmy_db_views_community::api::BanFromCommunity;
 use lemmy_db_views_post::api::DeletePost;
 use lemmy_db_views_private_message::PrivateMessageView;
 use lemmy_utils::error::LemmyResult;
-use std::sync::{LazyLock, OnceLock};
+use std::sync::LazyLock;
 use tokio::{
   sync::{
     mpsc,
@@ -28,12 +27,6 @@ use tokio::{
   task::JoinHandle,
 };
 use url::Url;
-
-type MatchOutgoingActivitiesBoxed =
-  Box<for<'a> fn(SendActivityData, &'a Data<LemmyContext>) -> BoxFuture<'a, LemmyResult<()>>>;
-
-/// This static is necessary so that the api_common crates don't need to depend on lemmy_apub
-pub static MATCH_OUTGOING_ACTIVITIES: OnceLock<MatchOutgoingActivitiesBoxed> = OnceLock::new();
 
 #[derive(Debug)]
 pub enum SendActivityData {

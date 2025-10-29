@@ -9,7 +9,6 @@ use diesel::{
   dsl,
   query_builder::{DeleteStatement, IntoUpdateTarget},
   query_dsl::methods::{FindDsl, LimitDsl},
-  Table,
 };
 use diesel_async::{
   methods::{ExecuteDsl, LoadQuery},
@@ -25,12 +24,10 @@ use std::future::Future;
 use url::Url;
 
 /// Returned by `diesel::delete`
-pub type Delete<T> = DeleteStatement<<T as HasTable>::Table, <T as IntoUpdateTarget>::WhereClause>;
+type Delete<T> = DeleteStatement<<T as HasTable>::Table, <T as IntoUpdateTarget>::WhereClause>;
 
 /// Returned by `Self::table().find(id)`
-pub type Find<T> = dsl::Find<<T as HasTable>::Table, <T as Crud>::IdType>;
-
-pub type PrimaryKey<T> = <<T as HasTable>::Table as Table>::PrimaryKey;
+type Find<T> = dsl::Find<<T as HasTable>::Table, <T as Crud>::IdType>;
 
 // Trying to create default implementations for `create` and `update` results in a lifetime mess and
 // weird compile errors. https://github.com/rust-lang/rust/issues/102211
