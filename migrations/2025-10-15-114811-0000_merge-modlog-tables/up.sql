@@ -233,7 +233,17 @@ SELECT
     post_id,
     published_at
 FROM
-    mod_feature_post;
+    mod_feature_post where is_featured_community;
+
+INSERT INTO modlog (kind, is_revert, mod_id, target_post_id, published_at)
+SELECT
+    'AdminFeaturePostSite',
+    NOT featured,
+    mod_person_id,
+    post_id,
+    published_at
+FROM
+    mod_feature_post where not is_featured_community;
 
 INSERT INTO modlog (kind, is_revert, mod_id, target_community_id, published_at)
 SELECT
@@ -332,7 +342,7 @@ ALTER TABLE notification
 ALTER TABLE notification
     ADD CONSTRAINT notification_check CHECK (num_nonnulls (post_id, comment_id, private_message_id, modlog_id) = 1);
 
-CREATE INDEX idx_mnotification_modlog_id ON notification USING btree (modlog_id)
+CREATE INDEX idx_notification_modlog_id ON notification USING btree (modlog_id)
 WHERE (modlog_id IS NOT NULL);
 
 DROP TABLE modlog_combined, admin_add, admin_allow_instance, admin_ban, admin_block_instance, admin_remove_community, admin_purge_comment, admin_purge_community, admin_purge_person, admin_purge_post, mod_add_to_community, mod_ban_from_community, mod_change_community_visibility, mod_feature_post, mod_lock_comment, mod_lock_post, mod_remove_comment, mod_remove_post, mod_transfer_community;

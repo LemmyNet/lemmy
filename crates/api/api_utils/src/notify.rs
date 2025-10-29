@@ -288,7 +288,7 @@ async fn notify_private_message_internal(
   let notifications = Notification::create(&mut context.pool(), &[form]).await?;
 
   if is_create {
-    plugin_hook_notification(notifications, &context).await?;
+    plugin_hook_notification(notifications, context).await?;
     let site_view = SiteView::read_local(&mut context.pool()).await?;
     if !site_view.local_site.disable_email_notifications {
       let d = NotificationEmailData::PrivateMessage {
@@ -740,16 +740,6 @@ mod tests {
       .into_iter()
       .filter_map(to_pm)
       .collect();
-
-    dbg!(&timmy_messages
-      .iter()
-      .map(|x| (
-        x.private_message.ap_id.to_string(),
-        x.private_message.published_at,
-        x.creator.id,
-        x.recipient.id,
-      ))
-      .collect::<Vec<_>>());
 
     // The read even shows timmy's sent messages
     assert_length!(3, &timmy_messages);
