@@ -20,16 +20,16 @@ use lemmy_db_schema::{
   traits::{Bannable, Crud, Followable},
   utils::get_conn,
 };
-use lemmy_db_views_community::api::{BanFromCommunity, BanFromCommunityResponse};
+use lemmy_db_views_community::api::BanFromCommunity;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_person::PersonView;
+use lemmy_db_views_person::{api::PersonResponse, PersonView};
 use lemmy_utils::{error::LemmyResult, utils::validation::is_valid_body_field};
 
 pub async fn ban_from_community(
   data: Json<BanFromCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> LemmyResult<Json<BanFromCommunityResponse>> {
+) -> LemmyResult<Json<PersonResponse>> {
   let banned_person_id = data.person_id;
   let my_person_id = local_user_view.person.id;
   let expires_at = check_expire_time(data.expires_at)?;
@@ -123,8 +123,5 @@ pub async fn ban_from_community(
     &context,
   )?;
 
-  Ok(Json(BanFromCommunityResponse {
-    person_view,
-    banned: data.ban,
-  }))
+  Ok(Json(PersonResponse { person_view }))
 }

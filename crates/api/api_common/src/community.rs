@@ -46,7 +46,6 @@ pub mod actions {
       AddModToCommunityResponse,
       ApproveCommunityPendingFollower,
       BanFromCommunity,
-      BanFromCommunityResponse,
       CommunityIdQuery,
       CreateCommunityTag,
       DeleteCommunity,
