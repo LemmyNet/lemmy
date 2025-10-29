@@ -85,26 +85,20 @@ impl MigrationHarness<Pg> for MigrationHarnessWrapper<'_> {
   ) -> diesel::migration::Result<MigrationVersion<'static>> {
     #[cfg(test)]
     if self.enable_diff_check {
-      let name = format!("{}", migration.name());
-      // HACK: This particular down migration is broken and consistently throws "cache lookup failed
-      // for function 26633". So the check is disabled as no one is going to migrate down from 1.0
-      // to 0.19 anyway.
-      if name != *"2025-10-15-114811-0000_merge-modlog-tables" {
-        let before = diff_check::get_dump();
+      let before = diff_check::get_dump();
 
-        self.run_migration_inner(migration)?;
-        self.revert_migration(migration)?;
+      self.run_migration_inner(migration)?;
+      self.revert_migration(migration)?;
 
-        let after = diff_check::get_dump();
+      let after = diff_check::get_dump();
 
-        diff_check::check_dump_diff(
-          [&after, &before],
-          &format!(
-            "These changes need to be applied in migrations/{}/down.sql:",
-            migration.name()
-          ),
-        );
-      }
+      diff_check::check_dump_diff(
+        [&after, &before],
+        &format!(
+          "These changes need to be applied in migrations/{}/down.sql:",
+          migration.name()
+        ),
+      );
     }
 
     self.run_migration_inner(migration)
@@ -435,6 +429,10 @@ mod tests {
       1
     );
     assert_eq!(run(o.run().limit(1), &db_url)?, ReplaceableSchemaRebuilt);
+
+    // Get a new connection, workaround for error `cache lookup failed for function 26633`
+    // on `migrations/2025-10-15-114811-0000_merge-modlog-tables/down.sql`.
+    let conn = &mut PgConnection::establish(&db_url)?;
 
     // This should throw an error saying to use lemmy_server instead of diesel CLI
     conn.batch_execute("DROP OWNED BY CURRENT_USER;")?;
