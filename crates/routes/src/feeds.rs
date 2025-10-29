@@ -64,7 +64,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
       .route("/u/{user_name}.xml", web::get().to(get_feed_user))
       .route("/c/{community_name}.xml", web::get().to(get_feed_community))
       .route(
-        "/c/{multi_name}.xml",
+        "/m/{multi_name}.xml",
         web::get().to(get_feed_multi_community),
       )
       .route("/front/{jwt}.xml", web::get().to(get_feed_front))
