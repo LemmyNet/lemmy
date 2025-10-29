@@ -12,14 +12,6 @@ use lemmy_db_schema::{
     private_message::PrivateMessage,
     tag::TagsView,
   },
-  utils::queries::selects::{
-    creator_is_admin,
-    creator_is_moderator,
-    creator_local_home_ban_expires,
-    creator_local_home_banned,
-    local_user_can_mod,
-    CreatorLocalHomeBanExpiresType,
-  },
   NotificationDataType,
 };
 use lemmy_db_views_comment::CommentView;
@@ -37,6 +29,14 @@ use {
       creator_banned_from_community,
       person1_select,
       post_tags_fragment,
+    },
+    utils::queries::selects::{
+      creator_is_admin,
+      creator_is_moderator,
+      creator_local_home_ban_expires,
+      creator_local_home_banned,
+      local_user_can_mod,
+      CreatorLocalHomeBanExpiresType,
     },
     Person1AliasAllColumnsTuple,
   },
