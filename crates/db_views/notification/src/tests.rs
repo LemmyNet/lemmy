@@ -143,3 +143,17 @@ async fn test_post() -> LemmyResult<()> {
   Notification::delete(pool, notifs2[0].notification.id).await?;
   cleanup(data, pool).await
 }
+
+#[tokio::test]
+#[serial]
+async fn test_modlog() -> LemmyResult<()> {
+  let pool = &build_db_pool_for_tests();
+  let pool = &mut pool.into();
+  let data = init_data(pool).await?;
+
+  // TODO: insert comment, remove it, make modlog notification
+
+  // TODO: list notifications (duplicated)
+
+  cleanup(data, pool).await
+}
