@@ -293,6 +293,9 @@ impl NotificationQuery {
         NotificationDataType::Subscribed => {
           query.filter(notification::kind.eq(NotificationType::Subscribed))
         }
+        NotificationDataType::ModAction => {
+          query.filter(notification::kind.eq(NotificationType::ModAction))
+        }
       }
     }
 
