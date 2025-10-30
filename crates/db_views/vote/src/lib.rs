@@ -6,6 +6,7 @@ use serde_with::skip_serializing_none;
 
 #[cfg(feature = "full")]
 pub mod impls;
+pub mod api;
 
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]

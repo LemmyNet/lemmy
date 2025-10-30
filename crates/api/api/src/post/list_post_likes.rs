@@ -2,8 +2,8 @@ use actix_web::web::{Data, Json, Query};
 use lemmy_api_utils::{context::LemmyContext, utils::is_mod_or_admin};
 use lemmy_db_schema::source::post::Post;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_post::api::{ListPostLikes, ListPostLikesResponse};
-use lemmy_db_views_vote::VoteView;
+use lemmy_db_views_post::api::ListPostLikes;
+use lemmy_db_views_vote::{api::ListPostLikesResponse, VoteView};
 use lemmy_utils::error::LemmyResult;
 
 /// Lists likes for a post
