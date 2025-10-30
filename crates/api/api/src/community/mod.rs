@@ -12,7 +12,7 @@ use lemmy_db_schema::{
   traits::Followable,
 };
 use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility};
-use lemmy_db_views_community_person_ban::CommunityPersonBanView;
+use lemmy_db_views_community_moderator::CommunityPersonBanView;
 use lemmy_utils::error::LemmyResult;
 
 pub mod add_mod;

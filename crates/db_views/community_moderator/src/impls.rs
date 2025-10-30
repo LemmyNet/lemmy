@@ -1,6 +1,6 @@
-use crate::CommunityModeratorView;
+use crate::{CommunityModeratorView, CommunityPersonBanView};
 use diesel::{
-  dsl::exists,
+  dsl::{exists, not},
   select,
   ExpressionMethods,
   JoinOnDsl,
@@ -134,5 +134,23 @@ impl CommunityModeratorView {
       .load::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+}
+
+impl CommunityPersonBanView {
+  pub async fn check(
+    pool: &mut DbPool<'_>,
+    from_person_id: PersonId,
+    from_community_id: CommunityId,
+  ) -> LemmyResult<()> {
+    let conn = &mut get_conn(pool).await?;
+    let find_action = community_actions::table
+      .find((from_person_id, from_community_id))
+      .filter(community_actions::received_ban_at.is_not_null());
+    select(not(exists(find_action)))
+      .get_result::<bool>(conn)
+      .await?
+      .then_some(())
+      .ok_or(LemmyErrorType::PersonIsBannedFromCommunity.into())
   }
 }

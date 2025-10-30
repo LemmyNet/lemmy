@@ -30,7 +30,6 @@ lemmy_db_views_community_follower_approval = { workspace = true, features = [
 ] }
 lemmy_db_views_community_follower = { workspace = true, features = ["full"] }
 lemmy_apub_objects = { workspace = true, features = ["full"] }
-lemmy_db_views_community_person_ban = { workspace = true, features = ["full"] }
 lemmy_db_views_post = { workspace = true, features = ["full"] }
 lemmy_db_views_vote = { workspace = true, features = ["full"] }
 lemmy_db_views_local_user = { workspace = true, features = ["full"] }

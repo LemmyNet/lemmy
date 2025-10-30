@@ -29,9 +29,7 @@ use lemmy_db_schema_file::{
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use std::collections::HashMap;
 
-diesel::alias!(community_actions as follower_community_actions: FollowerCommunityActions,
-person as person_instance_check: PersonInstanceCheck,
-community_actions as community_actions_instance_check: CommunityActionInstanceCheck);
+diesel::alias!(community_actions as follower_community_actions: FollowerCommunityActions);
 
 impl PendingFollowerView {
   #[diesel::dsl::auto_type(no_type_alias)]

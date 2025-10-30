@@ -1,4 +1,8 @@
-use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
+use activitypub_federation::{
+  config::Data,
+  fetch::object_id::ObjectId,
+  http_signatures::generate_actor_keypair,
+};
 use actix_web::{web::Json, HttpRequest};
 use diesel_async::{scoped_futures::ScopedFutureExt, AsyncPgConnection};
 use lemmy_api_utils::{
@@ -8,30 +12,37 @@ use lemmy_api_utils::{
     check_email_verified,
     check_local_user_valid,
     check_registration_application,
+    generate_featured_url,
+    generate_followers_url,
     generate_inbox_url,
+    generate_moderators_url,
     honeypot_check,
     password_length_check,
     slur_regex,
   },
 };
+use lemmy_apub_objects::objects::community::ApubCommunity;
 use lemmy_db_schema::{
   newtypes::OAuthProviderId,
   source::{
     actor_language::SiteLanguage,
     captcha_answer::{CaptchaAnswer, CheckCaptchaAnswer},
+    community::{Community, CommunityActions, CommunityInsertForm, CommunityModeratorForm},
     language::Language,
     local_site::LocalSite,
     local_user::{LocalUser, LocalUserInsertForm},
     oauth_account::{OAuthAccount, OAuthAccountInsertForm},
     oauth_provider::OAuthProvider,
     person::{Person, PersonInsertForm},
+    post::{Post, PostActions, PostInsertForm, PostLikeForm},
     registration_application::{RegistrationApplication, RegistrationApplicationInsertForm},
   },
-  traits::{ApubActor, Crud},
+  traits::{ApubActor, Crud, Likeable},
   utils::get_conn,
 };
 use lemmy_db_schema_file::enums::RegistrationMode;
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_person::impls::PersonQuery;
 use lemmy_db_views_registration_applications::api::Register;
 use lemmy_db_views_site::{
   api::{AuthenticateWithOauth, LoginResponse},
@@ -40,9 +51,11 @@ use lemmy_db_views_site::{
 use lemmy_email::{
   account::send_verification_email_if_required,
   admin::send_new_applicant_email_to_admins,
+  user_language,
 };
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
+  spawn_try_task,
   utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::is_valid_actor_name,
@@ -148,8 +161,14 @@ pub async fn register(
           ..LocalUserInsertForm::new(person.id, Some(tx_data.password.to_string()))
         };
 
-        let local_user =
-          create_local_user(conn, language_tags, local_user_form, &site_view.local_site).await?;
+        let local_user = create_local_user(
+          conn,
+          language_tags,
+          local_user_form,
+          &site_view.local_site,
+          &tx_context,
+        )
+        .await?;
 
         if site_view.local_site.site_setup && require_registration_application {
           if let Some(answer) = tx_data.answer.clone() {
@@ -377,9 +396,14 @@ pub async fn authenticate_with_oauth(
               ..LocalUserInsertForm::new(person.id, None)
             };
 
-            let local_user =
-              create_local_user(conn, language_tags, local_user_form, &site_view.local_site)
-                .await?;
+            let local_user = create_local_user(
+              conn,
+              language_tags,
+              local_user_form,
+              &site_view.local_site,
+              &tx_context,
+            )
+            .await?;
 
             // Create the oauth account
             let oauth_account_form =
@@ -483,6 +507,7 @@ async fn create_local_user(
   language_tags: Vec<String>,
   mut local_user_form: LocalUserInsertForm,
   local_site: &LocalSite,
+  context: &Data<LemmyContext>,
 ) -> Result<LocalUser, LemmyError> {
   let conn_ = &mut conn.into();
   let all_languages = Language::read_all(conn_).await?;
@@ -512,6 +537,20 @@ async fn create_local_user(
   local_user_form.admin = Some(!local_site.site_setup);
   local_user_form.interface_language = language_tags.first().cloned();
   let inserted_local_user = LocalUser::create(conn_, &local_user_form, language_ids).await?;
+
+  // If we are setting up a new site, fetch initial communities and create welcome post.
+  if !local_site.site_setup {
+    local_user_form.admin = Some(true);
+    let no_default_data = context
+      .settings()
+      .setup
+      .as_ref()
+      .and_then(|s| s.no_default_data);
+    if !no_default_data.unwrap_or_default() {
+      create_welcome_post(inserted_local_user.clone(), context);
+      fetch_community_list(context.clone());
+    }
+  }
 
   Ok(inserted_local_user)
 }
@@ -614,4 +653,111 @@ fn check_code_verifier(code_verifier: &str) -> LemmyResult<()> {
   } else {
     Err(LemmyErrorType::InvalidCodeVerifier.into())
   }
+}
+
+/// Fetch list of communities from lemmyverse.net and then fetch the top communities.
+fn fetch_community_list(context: Data<LemmyContext>) {
+  spawn_try_task(async move {
+    let communities_json = include_str!(concat!(env!("OUT_DIR"), "/communities.json"));
+    let communities: Vec<ObjectId<ApubCommunity>> = serde_json::from_str(communities_json)?;
+
+    // Fetch communities themselves
+    let tasks = communities.iter().map(|c| async {
+      let context = context.reset_request_count();
+      c.dereference(&context).await.ok();
+    });
+
+    // This could be made faster by running tasks in parallel with try_join_all or
+    // FuturesUnordered. However that causes massive slowdown as each community fetch
+    // starts additional background tasks to fetch moderators, recent posts etc. So we
+    // need to run it one by one.
+    for t in tasks {
+      t.await;
+    }
+
+    Ok(())
+  })
+}
+
+fn create_welcome_post(local_user: LocalUser, context: &LemmyContext) {
+  let context = context.clone();
+
+  spawn_try_task(async move {
+    let pool = &mut context.pool();
+    let local_site = SiteView::read_local(pool).await?;
+    let mut admins = PersonQuery {
+      admins_only: Some(true),
+      ..Default::default()
+    }
+    .list(None, local_site.instance.id, &mut context.pool())
+    .await?;
+    let initial_user = admins.pop();
+
+    // Create dummy user for posting the welcome post. Make sure the username is not taken yet.
+    // Also dont create LocalUser and no password to prevent login.
+    let mut username = "lemmy".to_string();
+    let mut name_taken = true;
+    while name_taken {
+      name_taken = Person::check_username_taken(pool, &username).await.is_err();
+      if name_taken {
+        username += "_";
+      }
+    }
+    let actor_keypair = generate_actor_keypair()?;
+    let ap_id = Person::generate_local_actor_url(&username, context.settings())?;
+    let person_form = PersonInsertForm {
+      ap_id: Some(ap_id.clone()),
+      inbox_url: Some(generate_inbox_url()?),
+      private_key: Some(actor_keypair.private_key),
+      ..PersonInsertForm::new(
+        username.clone(),
+        actor_keypair.public_key,
+        local_site.site.instance_id,
+      )
+    };
+    let person = Person::create(pool, &person_form).await?;
+
+    // Create main community
+    let community_name = "main".to_string();
+    let community_ap_id = Community::generate_local_actor_url(&community_name, context.settings())?;
+    let keypair = generate_actor_keypair()?;
+    let community_form = CommunityInsertForm {
+      ap_id: Some(community_ap_id.clone()),
+      private_key: Some(keypair.private_key),
+      followers_url: Some(generate_followers_url(&community_ap_id)?),
+      inbox_url: Some(generate_inbox_url()?),
+      moderators_url: Some(generate_moderators_url(&community_ap_id)?),
+      featured_url: Some(generate_featured_url(&community_ap_id)?),
+      ..CommunityInsertForm::new(
+        local_site.site.instance_id,
+        community_name,
+        "Main".to_string(),
+        keypair.public_key,
+      )
+    };
+    let community = Community::create(pool, &community_form).await?;
+
+    // Add initial admin user as community mod (not necessary but looks cleaner)
+    if let Some(initial_user) = initial_user {
+      let mod_form = CommunityModeratorForm::new(community.id, initial_user.person.id);
+      CommunityActions::join(pool, &mod_form).await?;
+    }
+
+    // Create post in this community with getting started info
+    let lang = user_language(&local_user);
+    let title = lang.welcome_post_title().to_string();
+    let body = lang.welcome_post_body().to_string();
+    let post_form = PostInsertForm {
+      body: Some(body),
+      featured_local: Some(true),
+      ..PostInsertForm::new(title, person.id, community.id)
+    };
+    let post = Post::create(pool, &post_form).await?;
+
+    // Own upvote for post
+    let like_form = PostLikeForm::new(post.id, person.id, true);
+    PostActions::like(&mut context.pool(), &like_form).await?;
+
+    Ok(())
+  })
 }

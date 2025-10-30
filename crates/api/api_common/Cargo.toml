@@ -39,7 +39,6 @@ ts-rs = [
   "lemmy_db_views_person_saved_combined/ts-rs",
   "lemmy_db_views_post/ts-rs",
   "lemmy_db_views_private_message/ts-rs",
-  "lemmy_db_views_readable_federation_state/ts-rs",
   "lemmy_db_views_registration_applications/ts-rs",
   "lemmy_db_views_report_combined/ts-rs",
   "lemmy_db_views_search_combined/ts-rs",
@@ -67,7 +66,6 @@ lemmy_db_views_person_liked_combined.workspace = true
 lemmy_db_views_person_saved_combined.workspace = true
 lemmy_db_views_post.workspace = true
 lemmy_db_views_private_message.workspace = true
-lemmy_db_views_readable_federation_state.workspace = true
 lemmy_db_views_registration_applications.workspace = true
 lemmy_db_views_report_combined.workspace = true
 lemmy_db_views_search_combined.workspace = true

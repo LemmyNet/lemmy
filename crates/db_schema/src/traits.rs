@@ -5,12 +5,8 @@ use crate::{
 use diesel::{
   associations::HasTable,
   dsl,
-  expression::{Expression, Selectable},
-  pg::Pg,
   query_builder::{DeleteStatement, IntoUpdateTarget},
-  query_dsl::methods::{FindDsl, LimitDsl, SelectDsl},
-  SelectableHelper,
-  Table,
+  query_dsl::methods::{FindDsl, LimitDsl},
 };
 use diesel_async::{
   methods::{ExecuteDsl, LoadQuery},
@@ -26,26 +22,21 @@ use std::future::Future;
 use url::Url;
 
 /// Returned by `diesel::delete`
-pub type Delete<T> = DeleteStatement<<T as HasTable>::Table, <T as IntoUpdateTarget>::WhereClause>;
+type Delete<T> = DeleteStatement<<T as HasTable>::Table, <T as IntoUpdateTarget>::WhereClause>;
 
 /// Returned by `Self::table().find(id)`
-pub type Find<T> = dsl::Find<<T as HasTable>::Table, <T as Crud>::IdType>;
-
-pub type PrimaryKey<T> = <<T as HasTable>::Table as Table>::PrimaryKey;
+type Find<T> = dsl::Find<<T as HasTable>::Table, <T as Crud>::IdType>;
 
 // Trying to create default implementations for `create` and `update` results in a lifetime mess and
 // weird compile errors. https://github.com/rust-lang/rust/issues/102211
-pub trait Crud: HasTable + Sized + Selectable<Pg>
+pub trait Crud: HasTable + Sized
 where
   Self::Table: FindDsl<Self::IdType>,
-  Find<Self>: LimitDsl + IntoUpdateTarget + SelectDsl<dsl::AsSelect<Self, Pg>> + Send,
+  Find<Self>: LimitDsl + IntoUpdateTarget + Send,
   Delete<Find<Self>>: ExecuteDsl<AsyncPgConnection> + Send + 'static,
-  dsl::Select<Find<Self>, dsl::AsSelect<Self, Pg>>: LimitDsl + Send,
-  dsl::AsSelect<Self, Pg>: Expression,
 
   // Used by `RunQueryDsl::first`
-  dsl::Limit<dsl::Select<Find<Self>, dsl::AsSelect<Self, Pg>>>:
-    LoadQuery<'static, AsyncPgConnection, Self> + Send + 'static,
+  dsl::Limit<Find<Self>>: LoadQuery<'static, AsyncPgConnection, Self> + Send + 'static,
 {
   type InsertForm;
   type UpdateForm;
@@ -61,8 +52,7 @@ where
     Self: Send,
   {
     async {
-      let query: dsl::Select<Find<Self>, dsl::AsSelect<Self, Pg>> =
-        Self::table().find(id).select(Self::as_select());
+      let query: Find<Self> = Self::table().find(id);
       let conn = &mut *get_conn(pool).await?;
       query
         .first(conn)

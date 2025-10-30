@@ -1,4 +1,4 @@
-use crate::protocol::collections::group_moderators::GroupModerators;
+use crate::{is_new_instance, protocol::collections::group_moderators::GroupModerators};
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
@@ -7,10 +7,8 @@ use activitypub_federation::{
   traits::Collection,
 };
 use lemmy_api_utils::{context::LemmyContext, utils::generate_moderators_url};
-use lemmy_apub_objects::{
-  objects::{community::ApubCommunity, person::ApubPerson},
-  utils::functions::handle_community_moderators,
-};
+use lemmy_apub_objects::objects::{community::ApubCommunity, person::ApubPerson};
+use lemmy_db_schema::source::community::{CommunityActions, CommunityModeratorForm};
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
@@ -59,6 +57,46 @@ impl Collection for ApubCommunityModerators {
   }
 }
 
+pub(super) async fn handle_community_moderators(
+  new_mods: &Vec<ObjectId<ApubPerson>>,
+  community: &ApubCommunity,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<()> {
+  let community_id = community.id;
+  let current_moderators =
+    CommunityModeratorView::for_community(&mut context.pool(), community_id).await?;
+  // Remove old mods from database which arent in the moderators collection anymore
+  for mod_user in &current_moderators {
+    let mod_id = ObjectId::from(mod_user.moderator.ap_id.clone());
+    if !new_mods.contains(&mod_id) {
+      let community_moderator_form =
+        CommunityModeratorForm::new(mod_user.community.id, mod_user.moderator.id);
+      CommunityActions::leave(&mut context.pool(), &community_moderator_form).await?;
+    }
+  }
+
+  // Add new mods to database which have been added to moderators collection
+  for mod_id in new_mods {
+    // Ignore errors as mod accounts might be deleted or instances unavailable.
+    let mod_user: Option<ApubPerson> = mod_id.dereference(context).await.ok();
+    if let Some(mod_user) = mod_user {
+      if !current_moderators
+        .iter()
+        .any(|x| x.moderator.ap_id == mod_user.ap_id)
+      {
+        let community_moderator_form = CommunityModeratorForm::new(community.id, mod_user.id);
+        CommunityActions::join(&mut context.pool(), &community_moderator_form).await?;
+      }
+    }
+
+    // Only add the top mod in case of new instance
+    if is_new_instance(context).await? {
+      return Ok(());
+    }
+  }
+  Ok(())
+}
+
 #[cfg(test)]
 #[expect(clippy::indexing_slicing)]
 mod tests {
@@ -76,6 +114,7 @@ mod tests {
       person::{Person, PersonInsertForm},
       site::Site,
     },
+    test_data::TestData,
     traits::Crud,
   };
   use pretty_assertions::assert_eq;
@@ -85,6 +124,7 @@ mod tests {
   #[serial]
   async fn test_parse_lemmy_community_moderators() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
+    let test_data = TestData::create(&mut context.pool()).await?;
     let (new_mod, site) = parse_lemmy_person(&context).await?;
     let community = parse_lemmy_community(&context).await?;
     let community_id = community.id;
@@ -118,6 +158,7 @@ mod tests {
     Community::delete(&mut context.pool(), community.id).await?;
     Site::delete(&mut context.pool(), site.id).await?;
     Instance::delete(&mut context.pool(), inserted_instance.id).await?;
+    test_data.delete(&mut context.pool()).await?;
     Ok(())
   }
 }
