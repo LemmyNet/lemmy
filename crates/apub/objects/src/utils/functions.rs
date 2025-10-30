@@ -21,7 +21,7 @@ use lemmy_db_schema::{
   utils::DbPool,
 };
 use lemmy_db_schema_file::enums::{ActorType, CommunityVisibility};
-use lemmy_db_views_community_person_ban::CommunityPersonBanView;
+use lemmy_db_views_community_moderator::CommunityPersonBanView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::{LemmyError, LemmyResult, UntranslatedError},

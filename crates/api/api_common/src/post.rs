@@ -34,11 +34,11 @@ pub mod actions {
     pub use lemmy_db_views_post::api::{
       FeaturePost,
       ListPostLikes,
-      ListPostLikesResponse,
       LockPost,
       ModEditPost,
       PurgePost,
       RemovePost,
     };
+    pub use lemmy_db_views_vote::api::ListPostLikesResponse;
   }
 }
