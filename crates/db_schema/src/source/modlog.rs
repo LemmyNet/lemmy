@@ -34,7 +34,6 @@ pub struct Modlog {
   pub target_comment_id: Option<CommentId>,
   #[serde(skip)]
   pub target_instance_id: Option<InstanceId>,
-  #[serde(skip)]
   pub expires_at: Option<DateTime<Utc>>,
   pub published_at: DateTime<Utc>,
 }
