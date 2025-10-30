@@ -11,7 +11,7 @@ use lemmy_db_schema::{
   source::{
     community::{Community, CommunityUpdateForm},
     community_report::CommunityReport,
-    mod_log::admin::{AdminRemoveCommunity, AdminRemoveCommunityForm},
+    modlog::{Modlog, ModlogInsertForm},
   },
   traits::{Crud, Reportable},
 };
@@ -51,17 +51,18 @@ pub async fn remove_community(
   )
   .await?;
 
-  // Mod tables
-  let form = AdminRemoveCommunityForm {
-    mod_person_id: local_user_view.person.id,
-    community_id: data.community_id,
-    removed: Some(removed),
-    reason: data.reason.clone(),
-  };
-  let action = AdminRemoveCommunity::create(&mut context.pool(), &form).await?;
-  for m in CommunityModeratorView::for_community(&mut context.pool(), data.community_id).await? {
-    notify_mod_action(action.clone(), m.moderator.id, context.app_data());
-  }
+  // Mod
+  let community_owner =
+    CommunityModeratorView::top_mod_for_community(&mut context.pool(), data.community_id).await?;
+  let form = ModlogInsertForm::admin_remove_community(
+    local_user_view.person.id,
+    data.community_id,
+    community_owner,
+    removed,
+    &data.reason,
+  );
+  let action = Modlog::create(&mut context.pool(), &[form]).await?;
+  notify_mod_action(action.clone(), context.app_data());
 
   ActivityChannel::submit_activity(
     SendActivityData::RemoveCommunity {

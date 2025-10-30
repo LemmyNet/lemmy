@@ -430,6 +430,10 @@ mod tests {
     );
     assert_eq!(run(o.run().limit(1), &db_url)?, ReplaceableSchemaRebuilt);
 
+    // Get a new connection, workaround for error `cache lookup failed for function 26633`
+    // on `migrations/2025-10-15-114811-0000_merge-modlog-tables/down.sql`.
+    let conn = &mut PgConnection::establish(&db_url)?;
+
     // This should throw an error saying to use lemmy_server instead of diesel CLI
     conn.batch_execute("DROP OWNED BY CURRENT_USER;")?;
     assert!(matches!(

@@ -96,33 +96,6 @@ pub enum SearchType {
 #[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
-/// A list of possible types for the various modlog actions.
-pub enum ModlogActionType {
-  All,
-  ModRemovePost,
-  ModLockPost,
-  ModFeaturePost,
-  ModRemoveComment,
-  ModLockComment,
-  AdminRemoveCommunity,
-  ModBanFromCommunity,
-  ModAddToCommunity,
-  ModTransferCommunity,
-  AdminAdd,
-  AdminBan,
-  ModChangeCommunityVisibility,
-  AdminPurgePerson,
-  AdminPurgeCommunity,
-  AdminPurgePost,
-  AdminPurgeComment,
-  AdminBlockInstance,
-  AdminAllowInstance,
-}
-
-#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
-#[serde(rename_all = "snake_case")]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
 /// A list of possible types for the inbox.
 pub enum NotificationDataType {
   All,

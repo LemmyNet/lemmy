@@ -1,13 +1,10 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_utils::{context::LemmyContext, utils::is_admin};
-use lemmy_db_schema::{
-  source::{
-    federation_allowlist::{FederationAllowList, FederationAllowListForm},
-    instance::Instance,
-    mod_log::admin::{AdminAllowInstance, AdminAllowInstanceForm},
-  },
-  traits::Crud,
+use lemmy_db_schema::source::{
+  federation_allowlist::{FederationAllowList, FederationAllowListForm},
+  instance::Instance,
+  modlog::{Modlog, ModlogInsertForm},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::{api::AdminAllowInstanceParams, FederatedInstanceView};
@@ -35,13 +32,13 @@ pub async fn admin_allow_instance(
     FederationAllowList::unallow(&mut context.pool(), instance_id).await?;
   }
 
-  let mod_log_form = AdminAllowInstanceForm {
+  let form = ModlogInsertForm::admin_allow_instance(
+    local_user_view.person.id,
     instance_id,
-    admin_person_id: local_user_view.person.id,
-    reason: data.reason.clone(),
-    allowed: data.allow,
-  };
-  AdminAllowInstance::create(&mut context.pool(), &mod_log_form).await?;
+    data.allow,
+    &data.reason,
+  );
+  Modlog::create(&mut context.pool(), &[form]).await?;
 
   Ok(Json(
     FederatedInstanceView::read(&mut context.pool(), instance_id).await?,

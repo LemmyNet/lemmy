@@ -1,8 +1,6 @@
 use crate::{
   newtypes::{CommunityId, DbUrl, PaginationCursor, PersonId},
-  source::notification::NotificationInsertForm,
   utils::{get_conn, DbPool},
-  ModlogActionType,
 };
 use diesel::{
   associations::HasTable,
@@ -246,11 +244,4 @@ pub trait PaginationCursorBuilder {
     cursor: &PaginationCursor,
     conn: &mut DbPool<'_>,
   ) -> impl Future<Output = LemmyResult<Self::CursorData>> + Send;
-}
-
-pub trait ModActionNotify {
-  fn insert_form(&self, recipient_id: PersonId) -> NotificationInsertForm;
-  fn kind(&self) -> ModlogActionType;
-  fn is_revert(&self) -> bool;
-  fn reason(&self) -> Option<&str>;
 }
