@@ -243,6 +243,9 @@ impl NotificationQuery {
 
     let mut query = NotificationView::joins(my_person)
       .select(NotificationViewInternal::as_select())
+      // Workaround because joining comment to modlog somehow results in duplicate notifications
+      // for remove comment actions.
+      .distinct_on((notification::published_at, notification::id))
       .into_boxed();
 
     if !self.no_limit.unwrap_or_default() {
