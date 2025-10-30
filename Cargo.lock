@@ -3149,7 +3149,6 @@ dependencies = [
  "lemmy_db_views_community_follower",
  "lemmy_db_views_community_follower_approval",
  "lemmy_db_views_community_moderator",
- "lemmy_db_views_community_person_ban",
  "lemmy_db_views_local_image",
  "lemmy_db_views_local_user",
  "lemmy_db_views_modlog_combined",
@@ -3284,7 +3283,6 @@ dependencies = [
  "lemmy_db_views_community",
  "lemmy_db_views_community_follower_approval",
  "lemmy_db_views_community_moderator",
- "lemmy_db_views_community_person_ban",
  "lemmy_db_views_local_image",
  "lemmy_db_views_local_user",
  "lemmy_db_views_notification",
@@ -3361,7 +3359,6 @@ dependencies = [
  "lemmy_db_schema_file",
  "lemmy_db_views_community",
  "lemmy_db_views_community_moderator",
- "lemmy_db_views_community_person_ban",
  "lemmy_db_views_local_user",
  "lemmy_db_views_post",
  "lemmy_db_views_private_message",
@@ -3395,7 +3392,6 @@ dependencies = [
  "lemmy_db_schema",
  "lemmy_db_schema_file",
  "lemmy_db_views_community_moderator",
- "lemmy_db_views_community_person_ban",
  "lemmy_db_views_local_user",
  "lemmy_db_views_private_message",
  "lemmy_db_views_site",
@@ -3600,18 +3596,6 @@ dependencies = [
  "lemmy_utils",
  "serde",
  "ts-rs",
-]
-
-[[package]]
-name = "lemmy_db_views_community_person_ban"
-version = "1.0.0-alpha.11"
-dependencies = [
- "diesel",
- "diesel-async",
- "lemmy_db_schema",
- "lemmy_db_schema_file",
- "lemmy_utils",
- "serde",
 ]
 
 [[package]]

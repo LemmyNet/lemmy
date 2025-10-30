@@ -4,9 +4,9 @@ use lemmy_db_schema::source::person::Person;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
+pub mod api;
 #[cfg(feature = "full")]
 pub mod impls;
-pub mod api;
 
 #[skip_serializing_none]
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]

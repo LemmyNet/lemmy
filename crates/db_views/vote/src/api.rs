@@ -1,7 +1,6 @@
-use lemmy_db_schema::newtypes::PaginationCursor;
-use serde::Deserialize;
 use crate::VoteView;
-use serde::Serialize;
+use lemmy_db_schema::newtypes::PaginationCursor;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]

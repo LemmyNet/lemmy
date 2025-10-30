@@ -23,7 +23,6 @@ full = [
   "lemmy_db_views_community/full",
   "lemmy_db_views_community_follower_approval/full",
   "lemmy_db_views_community_moderator/full",
-  "lemmy_db_views_community_person_ban/full",
   "lemmy_db_views_local_image/full",
   "lemmy_db_views_local_user/full",
   "lemmy_db_views_site/full",
@@ -39,7 +38,6 @@ lemmy_db_schema_file = { workspace = true }
 lemmy_db_views_community = { workspace = true }
 lemmy_db_views_community_follower_approval = { workspace = true }
 lemmy_db_views_community_moderator = { workspace = true }
-lemmy_db_views_community_person_ban = { workspace = true }
 lemmy_db_views_local_image = { workspace = true }
 lemmy_db_views_local_user = { workspace = true }
 lemmy_db_views_site = { workspace = true }
