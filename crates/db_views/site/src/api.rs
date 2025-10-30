@@ -1,4 +1,4 @@
-use crate::{FederatedInstanceView, SiteView};
+use crate::{FederatedInstanceView, ReadableFederationState, SiteView};
 use lemmy_db_schema::{
   newtypes::{
     InstanceId,
@@ -37,7 +37,6 @@ use lemmy_db_views_community_follower::CommunityFollowerView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
-use lemmy_db_views_readable_federation_state::ReadableFederationState;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;

@@ -3200,7 +3200,6 @@ dependencies = [
  "lemmy_db_views_person_saved_combined",
  "lemmy_db_views_post",
  "lemmy_db_views_private_message",
- "lemmy_db_views_readable_federation_state",
  "lemmy_db_views_registration_applications",
  "lemmy_db_views_report_combined",
  "lemmy_db_views_search_combined",
@@ -3830,18 +3829,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "lemmy_db_views_readable_federation_state"
-version = "1.0.0-alpha.11"
-dependencies = [
- "chrono",
- "lemmy_db_schema",
- "lemmy_utils",
- "serde",
- "serde_with",
- "ts-rs",
-]
-
-[[package]]
 name = "lemmy_db_views_registration_applications"
 version = "1.0.0-alpha.11"
 dependencies = [
@@ -3909,6 +3896,7 @@ name = "lemmy_db_views_site"
 version = "1.0.0-alpha.11"
 dependencies = [
  "anyhow",
+ "chrono",
  "diesel",
  "diesel-async",
  "extism",
@@ -3920,7 +3908,6 @@ dependencies = [
  "lemmy_db_views_community_moderator",
  "lemmy_db_views_local_user",
  "lemmy_db_views_person",
- "lemmy_db_views_readable_federation_state",
  "lemmy_utils",
  "serde",
  "serde_with",

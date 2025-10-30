@@ -124,7 +124,6 @@ lemmy_db_views_person_liked_combined = { version = "=1.0.0-alpha.11", path = "./
 lemmy_db_views_person_saved_combined = { version = "=1.0.0-alpha.11", path = "./crates/db_views/person_saved_combined" }
 lemmy_db_views_post = { version = "=1.0.0-alpha.11", path = "./crates/db_views/post" }
 lemmy_db_views_private_message = { version = "=1.0.0-alpha.11", path = "./crates/db_views/private_message" }
-lemmy_db_views_readable_federation_state = { version = "=1.0.0-alpha.11", path = "./crates/db_views/readable_federation_state" }
 lemmy_db_views_registration_applications = { version = "=1.0.0-alpha.11", path = "./crates/db_views/registration_applications" }
 lemmy_db_views_report_combined = { version = "=1.0.0-alpha.11", path = "./crates/db_views/report_combined" }
 lemmy_db_views_search_combined = { version = "=1.0.0-alpha.11", path = "./crates/db_views/search_combined" }
