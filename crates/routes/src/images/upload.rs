@@ -165,7 +165,7 @@ pub async fn upload_site_banner(
   Ok(Json(image))
 }
 
-pub async fn do_upload_image(
+async fn do_upload_image(
   req: HttpRequest,
   body: Payload,
   upload_type: UploadType,

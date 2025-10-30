@@ -1,6 +1,7 @@
 use crate::{
   api::{GetFederatedInstances, GetFederatedInstancesKind, UserSettingsBackup},
   FederatedInstanceView,
+  ReadableFederationState,
   SiteView,
 };
 use diesel::{
@@ -17,6 +18,7 @@ use lemmy_db_schema::{
   newtypes::{InstanceId, PaginationCursor},
   source::{
     actor_language::LocalUserLanguage,
+    federation_queue_state::FederationQueueState,
     instance::{instance_keys as key, Instance},
     keyword_block::LocalUserKeywordBlock,
     language::Language,
@@ -39,6 +41,7 @@ use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::{
   build_cache,
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
+  federate_retry_sleep_duration,
   CacheLock,
 };
 use std::{
@@ -200,6 +203,19 @@ impl PaginationCursorBuilder for FederatedInstanceView {
   ) -> LemmyResult<Self::CursorData> {
     let [(_, id)] = cursor.prefixes_and_ids()?;
     Instance::read(pool, InstanceId(id)).await
+  }
+}
+
+#[allow(clippy::expect_used)]
+impl From<FederationQueueState> for ReadableFederationState {
+  fn from(internal_state: FederationQueueState) -> Self {
+    ReadableFederationState {
+      next_retry_at: internal_state.last_retry_at.map(|r| {
+        r + chrono::Duration::from_std(federate_retry_sleep_duration(internal_state.fail_count))
+          .expect("sleep duration longer than 2**63 ms (262 million years)")
+      }),
+      internal_state,
+    }
   }
 }
 

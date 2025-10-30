@@ -4,7 +4,7 @@ use std::{fmt::Debug, panic::Location};
 use strum::{Display, EnumIter};
 
 /// Errors used in the API, all of these are translated in lemmy-ui.
-#[derive(Display, Debug, Serialize, Deserialize, Clone, PartialEq, Eq, EnumIter, Hash)]
+#[derive(Display, Debug, Serialize, Deserialize, Clone, PartialEq, EnumIter, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 #[serde(tag = "error", content = "message", rename_all = "snake_case")]
@@ -134,7 +134,7 @@ pub enum LemmyErrorType {
 }
 
 /// These errors are only used for federation or internally and dont need to be translated.
-#[derive(Display, Debug, Serialize, Deserialize, Clone, PartialEq, Eq, EnumIter, Hash)]
+#[derive(Display, Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 #[non_exhaustive]
@@ -303,8 +303,6 @@ cfg_if! {
       use super::*;
       use actix_web::{body::MessageBody, ResponseError};
       use pretty_assertions::assert_eq;
-      use std::fs::read_to_string;
-      use strum::IntoEnumIterator;
 
       #[test]
       fn deserializes_no_message() -> LemmyResult<()> {
@@ -337,27 +335,6 @@ cfg_if! {
         let other_error = LemmyError::from(diesel::result::Error::NotInTransaction);
         assert!(matches!(other_error.error_type, LemmyErrorType::Unknown{..}));
         assert_eq!(400, other_error.status_code());
-      }
-
-      /// Check if errors match translations. Disabled because many are not translated at all.
-      #[test]
-      #[ignore]
-      fn test_translations_match() -> LemmyResult<()> {
-        #[derive(Deserialize)]
-        struct Err {
-          error: String,
-        }
-
-        let translations = read_to_string("translations/translations/en.json")?;
-
-        for e in LemmyErrorType::iter() {
-          let msg = serde_json::to_string(&e)?;
-          let msg: Err = serde_json::from_str(&msg)?;
-          let msg = msg.error;
-          assert!(translations.contains(&format!("\"{msg}\"")), "{msg}");
-        }
-
-        Ok(())
       }
     }
   }
