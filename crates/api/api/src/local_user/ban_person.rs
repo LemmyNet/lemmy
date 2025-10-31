@@ -10,9 +10,9 @@ use lemmy_db_schema::{
   source::{
     instance::{InstanceActions, InstanceBanForm},
     local_user::LocalUser,
-    mod_log::admin::{AdminBan, AdminBanForm},
+    modlog::{Modlog, ModlogInsertForm},
   },
-  traits::{Bannable, Crud},
+  traits::Bannable,
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::{
@@ -64,17 +64,15 @@ pub async fn ban_from_site(
   };
 
   // Mod tables
-  let form = AdminBanForm {
-    mod_person_id: my_person_id,
-    other_person_id: data.person_id,
-    reason: data.reason.clone(),
-    banned: Some(data.ban),
+  let form = ModlogInsertForm::admin_ban(
+    &local_user_view.person,
+    data.person_id,
+    data.ban,
     expires_at,
-    instance_id: local_user_view.person.instance_id,
-  };
-
-  let action = AdminBan::create(&mut context.pool(), &form).await?;
-  notify_mod_action(action.clone(), data.person_id, &context);
+    &data.reason,
+  );
+  let action = Modlog::create(&mut context.pool(), &[form]).await?;
+  notify_mod_action(action.clone(), &context);
 
   let person_view = PersonView::read(
     &mut context.pool(),

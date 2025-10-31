@@ -4,6 +4,7 @@ use diesel::{
   select,
   ExpressionMethods,
   JoinOnDsl,
+  OptionalExtension,
   QueryDsl,
   SelectableHelper,
 };
@@ -68,6 +69,21 @@ impl CommunityModeratorView {
       .order_by(community_actions::became_moderator_at)
       .load::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  pub async fn top_mod_for_community(
+    pool: &mut DbPool<'_>,
+    community_id: CommunityId,
+  ) -> LemmyResult<Option<PersonId>> {
+    let conn = &mut get_conn(pool).await?;
+    Self::joins()
+      .filter(community_actions::community_id.eq(community_id))
+      .select(person::id)
+      .order_by(community_actions::became_moderator_at)
+      .first(conn)
+      .await
+      .optional()
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
 

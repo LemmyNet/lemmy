@@ -5,18 +5,7 @@ use lemmy_db_schema::{
     comment::{Comment, CommentActions},
     community::{Community, CommunityActions},
     images::ImageDetails,
-    mod_log::{
-      admin::{AdminAdd, AdminBan, AdminRemoveCommunity},
-      moderator::{
-        ModAddToCommunity,
-        ModBanFromCommunity,
-        ModLockComment,
-        ModLockPost,
-        ModRemoveComment,
-        ModRemovePost,
-        ModTransferCommunity,
-      },
-    },
+    modlog::Modlog,
     notification::Notification,
     person::{Person, PersonActions},
     post::{Post, PostActions},
@@ -26,6 +15,7 @@ use lemmy_db_schema::{
   NotificationDataType,
 };
 use lemmy_db_views_comment::CommentView;
+use lemmy_db_views_modlog::ModlogView;
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_private_message::PrivateMessageView;
 use serde::{Deserialize, Serialize};
@@ -39,6 +29,14 @@ use {
       creator_banned_from_community,
       person1_select,
       post_tags_fragment,
+    },
+    utils::queries::selects::{
+      creator_is_admin,
+      creator_is_moderator,
+      creator_local_home_ban_expires,
+      creator_local_home_banned,
+      local_user_can_mod,
+      CreatorLocalHomeBanExpiresType,
     },
     Person1AliasAllColumnsTuple,
   },
@@ -85,34 +83,13 @@ struct NotificationViewInternal {
   #[cfg_attr(feature = "full", diesel(embed))]
   comment_actions: Option<CommentActions>,
   #[cfg_attr(feature = "full", diesel(embed))]
-  admin_add: Option<AdminAdd>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  mod_add_to_community: Option<ModAddToCommunity>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  admin_ban: Option<AdminBan>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  mod_ban_from_community: Option<ModBanFromCommunity>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  mod_lock_post: Option<ModLockPost>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  mod_lock_comment: Option<ModLockComment>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  mod_remove_post: Option<ModRemovePost>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  mod_remove_comment: Option<ModRemoveComment>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  admin_remove_community: Option<AdminRemoveCommunity>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  mod_transfer_community: Option<ModTransferCommunity>,
+  modlog: Option<Modlog>,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = post_tags_fragment()
     )
   )]
   post_tags: TagsView,
-  /*
-    TODO: temporarily commented out because compilation is too slow
-          https://github.com/LemmyNet/lemmy/issues/6012
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = creator_is_admin()
@@ -144,7 +121,6 @@ struct NotificationViewInternal {
     )
   )]
   creator_is_moderator: bool,
-  */
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = creator_banned_from_community()
@@ -175,16 +151,7 @@ pub enum NotificationData {
   Comment(CommentView),
   Post(PostView),
   PrivateMessage(PrivateMessageView),
-  AdminAdd(AdminAdd),
-  ModAddToCommunity(ModAddToCommunity),
-  AdminBan(AdminBan),
-  ModBanFromCommunity(ModBanFromCommunity),
-  ModLockPost(ModLockPost),
-  ModLockComment(ModLockComment),
-  ModRemovePost(ModRemovePost),
-  ModRemoveComment(ModRemoveComment),
-  AdminRemoveCommunity(AdminRemoveCommunity),
-  ModTransferCommunity(ModTransferCommunity),
+  ModAction(ModlogView),
 }
 
 #[skip_serializing_none]

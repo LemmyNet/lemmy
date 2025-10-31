@@ -3151,7 +3151,7 @@ dependencies = [
  "lemmy_db_views_community_moderator",
  "lemmy_db_views_local_image",
  "lemmy_db_views_local_user",
- "lemmy_db_views_modlog_combined",
+ "lemmy_db_views_modlog",
  "lemmy_db_views_notification",
  "lemmy_db_views_person",
  "lemmy_db_views_person_content_combined",
@@ -3191,7 +3191,7 @@ dependencies = [
  "lemmy_db_views_custom_emoji",
  "lemmy_db_views_local_image",
  "lemmy_db_views_local_user",
- "lemmy_db_views_modlog_combined",
+ "lemmy_db_views_modlog",
  "lemmy_db_views_notification",
  "lemmy_db_views_person",
  "lemmy_db_views_person_content_combined",
@@ -3648,7 +3648,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "lemmy_db_views_modlog_combined"
+name = "lemmy_db_views_modlog"
 version = "1.0.0-alpha.11"
 dependencies = [
  "diesel",
@@ -3676,6 +3676,7 @@ dependencies = [
  "lemmy_db_schema",
  "lemmy_db_schema_file",
  "lemmy_db_views_comment",
+ "lemmy_db_views_modlog",
  "lemmy_db_views_post",
  "lemmy_db_views_private_message",
  "lemmy_utils",
@@ -3955,7 +3956,7 @@ dependencies = [
  "lemmy_db_views_community",
  "lemmy_db_views_local_image",
  "lemmy_db_views_local_user",
- "lemmy_db_views_modlog_combined",
+ "lemmy_db_views_modlog",
  "lemmy_db_views_notification",
  "lemmy_db_views_person_content_combined",
  "lemmy_db_views_post",
@@ -7052,9 +7053,9 @@ checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 
 [[package]]
 name = "ts-rs"
-version = "11.0.1"
+version = "11.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ef1b7a6d914a34127ed8e1fa927eb7088903787bcded4fa3eef8f85ee1568be"
+checksum = "4994acea2522cd2b3b85c1d9529a55991e3ad5e25cdcd3de9d505972c4379424"
 dependencies = [
  "chrono",
  "thiserror 2.0.16",
@@ -7064,9 +7065,9 @@ dependencies = [
 
 [[package]]
 name = "ts-rs-macros"
-version = "11.0.1"
+version = "11.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e9d4ed7b4c18cc150a6a0a1e9ea1ecfa688791220781af6e119f9599a8502a0a"
+checksum = "ee6ff59666c9cbaec3533964505d39154dc4e0a56151fdea30a09ed0301f62e2"
 dependencies = [
  "proc-macro2",
  "quote",

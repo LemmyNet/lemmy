@@ -4,20 +4,18 @@ use crate::{
   protocol::deletion::{delete::Delete, undo_delete::UndoDelete},
 };
 use activitypub_federation::{config::Data, kinds::activity::UndoType, traits::Activity};
-use lemmy_api_utils::context::LemmyContext;
+use lemmy_api_utils::{context::LemmyContext, notify::notify_mod_action};
 use lemmy_apub_objects::objects::person::ApubPerson;
 use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentUpdateForm},
     community::{Community, CommunityUpdateForm},
-    mod_log::{
-      admin::{AdminRemoveCommunity, AdminRemoveCommunityForm},
-      moderator::{ModRemoveComment, ModRemoveCommentForm, ModRemovePost, ModRemovePostForm},
-    },
+    modlog::{Modlog, ModlogInsertForm},
     post::{Post, PostUpdateForm},
   },
   traits::Crud,
 };
+use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult, UntranslatedError};
 use url::Url;
 
@@ -89,13 +87,18 @@ impl UndoDelete {
         if community.local {
           Err(UntranslatedError::OnlyLocalAdminCanRestoreCommunity)?
         }
-        let form = AdminRemoveCommunityForm {
-          mod_person_id: actor.id,
-          community_id: community.id,
-          removed: Some(false),
-          reason,
-        };
-        AdminRemoveCommunity::create(&mut context.pool(), &form).await?;
+        let community_owner =
+          CommunityModeratorView::top_mod_for_community(&mut context.pool(), community.id).await?;
+        let form = ModlogInsertForm::admin_remove_community(
+          actor.id,
+          community.id,
+          community_owner,
+          false,
+          &reason,
+        );
+        let action = Modlog::create(&mut context.pool(), &[form]).await?;
+        notify_mod_action(action.clone(), context.app_data());
+
         Community::update(
           &mut context.pool(),
           community.id,
@@ -107,13 +110,9 @@ impl UndoDelete {
         .await?;
       }
       DeletableObjects::Post(post) => {
-        let form = ModRemovePostForm {
-          mod_person_id: actor.id,
-          post_id: post.id,
-          removed: Some(false),
-          reason,
-        };
-        ModRemovePost::create(&mut context.pool(), &form).await?;
+        let form = ModlogInsertForm::mod_remove_post(actor.id, &post, false, &reason);
+        let action = Modlog::create(&mut context.pool(), &[form]).await?;
+        notify_mod_action(action, context.app_data());
         Post::update(
           &mut context.pool(),
           post.id,
@@ -125,13 +124,9 @@ impl UndoDelete {
         .await?;
       }
       DeletableObjects::Comment(comment) => {
-        let form = ModRemoveCommentForm {
-          mod_person_id: actor.id,
-          comment_id: comment.id,
-          removed: Some(false),
-          reason,
-        };
-        ModRemoveComment::create(&mut context.pool(), &form).await?;
+        let form = ModlogInsertForm::mod_remove_comment(actor.id, &comment, false, &reason);
+        let action = Modlog::create(&mut context.pool(), &[form]).await?;
+        notify_mod_action(action, context.app_data());
         Comment::update(
           &mut context.pool(),
           comment.id,

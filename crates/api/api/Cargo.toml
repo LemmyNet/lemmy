@@ -37,7 +37,7 @@ lemmy_db_views_search_combined = { workspace = true, features = ["full"] }
 lemmy_db_views_person = { workspace = true, features = ["full"] }
 lemmy_db_views_local_image = { workspace = true, features = ["full"] }
 lemmy_db_views_notification = { workspace = true, features = ["full"] }
-lemmy_db_views_modlog_combined = { workspace = true, features = ["full"] }
+lemmy_db_views_modlog = { workspace = true, features = ["full"] }
 lemmy_db_views_person_saved_combined = { workspace = true, features = ["full"] }
 lemmy_db_views_person_liked_combined = { workspace = true, features = ["full"] }
 lemmy_db_views_person_content_combined = { workspace = true, features = [

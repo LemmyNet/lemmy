@@ -33,12 +33,9 @@ use lemmy_db_schema::{
     activity::ActivitySendTargets,
     community::{CommunityActions, CommunityPersonBanForm},
     instance::{InstanceActions, InstanceBanForm},
-    mod_log::{
-      admin::{AdminBan, AdminBanForm},
-      moderator::{ModBanFromCommunity, ModBanFromCommunityForm},
-    },
+    modlog::{Modlog, ModlogInsertForm},
   },
-  traits::{Bannable, Crud},
+  traits::Bannable,
 };
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
@@ -154,16 +151,10 @@ impl Activity for BlockUser {
         }
 
         // write mod log
-        let form = AdminBanForm {
-          mod_person_id: mod_person.id,
-          other_person_id: blocked_person.id,
-          reason,
-          banned: Some(true),
-          expires_at,
-          instance_id: site.instance_id,
-        };
-        let action = AdminBan::create(&mut context.pool(), &form).await?;
-        notify_mod_action(action.clone(), blocked_person.id, context);
+        let form =
+          ModlogInsertForm::admin_ban(&mod_person, blocked_person.id, true, expires_at, &reason);
+        let action = Modlog::create(&mut context.pool(), &[form]).await?;
+        notify_mod_action(action.clone(), context);
       }
       SiteOrCommunity::Right(community) => {
         let community_user_ban_form = CommunityPersonBanForm {
@@ -189,16 +180,16 @@ impl Activity for BlockUser {
         }
 
         // write to mod log
-        let form = ModBanFromCommunityForm {
-          mod_person_id: mod_person.id,
-          other_person_id: blocked_person.id,
-          community_id: community.id,
-          reason,
-          banned: Some(true),
+        let form = ModlogInsertForm::mod_ban_from_community(
+          mod_person.id,
+          community.id,
+          blocked_person.id,
+          true,
           expires_at,
-        };
-        let action = ModBanFromCommunity::create(&mut context.pool(), &form).await?;
-        notify_mod_action(action.clone(), blocked_person.id, context);
+          &reason,
+        );
+        let action = Modlog::create(&mut context.pool(), &[form]).await?;
+        notify_mod_action(action.clone(), context);
       }
     }
 

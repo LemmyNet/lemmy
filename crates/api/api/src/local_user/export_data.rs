@@ -58,16 +58,7 @@ pub async fn export_data(
     NotificationData::Comment(c) => Some(Comment(c.comment)),
     NotificationData::PrivateMessage(pm) => Some(PrivateMessage(pm.private_message)),
     // skip modlog items
-    NotificationData::AdminAdd(_)
-    | NotificationData::ModAddToCommunity(_)
-    | NotificationData::AdminBan(_)
-    | NotificationData::ModBanFromCommunity(_)
-    | NotificationData::ModLockPost(_)
-    | NotificationData::ModLockComment(_)
-    | NotificationData::ModRemovePost(_)
-    | NotificationData::ModRemoveComment(_)
-    | NotificationData::AdminRemoveCommunity(_)
-    | NotificationData::ModTransferCommunity(_) => None,
+    NotificationData::ModAction(_) => None,
   })
   .collect();
 
