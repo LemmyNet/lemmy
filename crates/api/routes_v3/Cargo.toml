@@ -28,50 +28,13 @@ lemmy_db_views_post = { workspace = true }
 lemmy_utils = { workspace = true }
 lemmy_api_utils = { workspace = true }
 lemmy_db_views_local_user = { workspace = true }
-lemmy_routes = { workspace = true }
 actix-web = { workspace = true }
 chrono = { workspace = true }
 url = { workspace = true }
-lemmy_api_019 = { package = "lemmy_api_common", version = "0.19.12"}
+lemmy_api_019 = { package = "lemmy_api_common", version = "0.19.12" }
 lemmy_db_views_comment = { workspace = true, features = ["full"] }
 lemmy_db_views_community = { workspace = true, features = ["full"] }
-lemmy_db_views_community_moderator = { workspace = true, features = ["full"] }
-lemmy_db_views_community_follower_approval = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_community_follower = { workspace = true, features = ["full"] }
-lemmy_apub_objects = { workspace = true, features = ["full"] }
-lemmy_db_views_vote = { workspace = true, features = ["full"] }
 lemmy_db_views_search_combined = { workspace = true, features = ["full"] }
 lemmy_db_views_person = { workspace = true, features = ["full"] }
-lemmy_db_views_local_image = { workspace = true, features = ["full"] }
-lemmy_db_views_notification = { workspace = true, features = ["full"] }
-lemmy_db_views_modlog = { workspace = true, features = ["full"] }
-lemmy_db_views_person_saved_combined = { workspace = true, features = ["full"] }
-lemmy_db_views_person_liked_combined = { workspace = true, features = ["full"] }
-lemmy_db_views_person_content_combined = { workspace = true, features = [
-  "full",
-] }
-lemmy_db_views_report_combined = { workspace = true, features = ["full"] }
-lemmy_db_views_registration_applications = { workspace = true, features = [
-  "full",
-] }
 lemmy_db_schema_file = { workspace = true }
-lemmy_email = { workspace = true }
 activitypub_federation = { workspace = true }
-tracing = { workspace = true }
-bcrypt = { workspace = true }
-base64 = { workspace = true }
-captcha = { workspace = true }
-anyhow = { workspace = true }
-regex = { workspace = true }
-hound = "3.5.1"
-sitemap-rs = "0.2.2"
-totp-rs = { version = "5.7.0", features = ["gen_secret", "otpauth"] }
-diesel-async = { workspace = true, features = ["deadpool", "postgres"] }
-either = { workspace = true }
-futures = { workspace = true }
-serde = { workspace = true }
-itertools = { workspace = true }
-serde_json = { workspace = true }
-diesel = { workspace = true }
