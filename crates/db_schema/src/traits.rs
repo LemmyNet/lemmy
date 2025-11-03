@@ -1,15 +1,12 @@
 use crate::{
   newtypes::{CommunityId, DbUrl, PaginationCursor, PersonId},
-  source::notification::NotificationInsertForm,
   utils::{get_conn, DbPool},
-  ModlogActionType,
 };
 use diesel::{
   associations::HasTable,
   dsl,
   query_builder::{DeleteStatement, IntoUpdateTarget},
   query_dsl::methods::{FindDsl, LimitDsl},
-  Table,
 };
 use diesel_async::{
   methods::{ExecuteDsl, LoadQuery},
@@ -25,12 +22,10 @@ use std::future::Future;
 use url::Url;
 
 /// Returned by `diesel::delete`
-pub type Delete<T> = DeleteStatement<<T as HasTable>::Table, <T as IntoUpdateTarget>::WhereClause>;
+type Delete<T> = DeleteStatement<<T as HasTable>::Table, <T as IntoUpdateTarget>::WhereClause>;
 
 /// Returned by `Self::table().find(id)`
-pub type Find<T> = dsl::Find<<T as HasTable>::Table, <T as Crud>::IdType>;
-
-pub type PrimaryKey<T> = <<T as HasTable>::Table as Table>::PrimaryKey;
+type Find<T> = dsl::Find<<T as HasTable>::Table, <T as Crud>::IdType>;
 
 // Trying to create default implementations for `create` and `update` results in a lifetime mess and
 // weird compile errors. https://github.com/rust-lang/rust/issues/102211
@@ -246,11 +241,4 @@ pub trait PaginationCursorBuilder {
     cursor: &PaginationCursor,
     conn: &mut DbPool<'_>,
   ) -> impl Future<Output = LemmyResult<Self::CursorData>> + Send;
-}
-
-pub trait ModActionNotify {
-  fn insert_form(&self, recipient_id: PersonId) -> NotificationInsertForm;
-  fn kind(&self) -> ModlogActionType;
-  fn is_revert(&self) -> bool;
-  fn reason(&self) -> Option<&str>;
 }

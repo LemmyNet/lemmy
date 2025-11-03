@@ -1,10 +1,10 @@
 use cfg_if::cfg_if;
 use serde::{Deserialize, Serialize};
-use std::fmt::Debug;
+use std::{fmt::Debug, panic::Location};
 use strum::{Display, EnumIter};
 
 /// Errors used in the API, all of these are translated in lemmy-ui.
-#[derive(Display, Debug, Serialize, Deserialize, Clone, PartialEq, Eq, EnumIter, Hash)]
+#[derive(Display, Debug, Serialize, Deserialize, Clone, PartialEq, EnumIter, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 #[serde(tag = "error", content = "message", rename_all = "snake_case")]
@@ -134,7 +134,7 @@ pub enum LemmyErrorType {
 }
 
 /// These errors are only used for federation or internally and dont need to be translated.
-#[derive(Display, Debug, Serialize, Deserialize, Clone, PartialEq, Eq, EnumIter, Hash)]
+#[derive(Display, Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 #[non_exhaustive]
@@ -162,19 +162,21 @@ pub enum UntranslatedError {
   PurgeInvalidImageUrl,
   Unreachable,
   CouldntSendWebmention,
-  CommunityHasNoFollowers,
+  /// A remote community sent an activity to us, but actually no local user follows the community
+  /// so the activity was rejected.
+  CommunityHasNoFollowers(String),
 }
 
 cfg_if! {
   if #[cfg(feature = "full")] {
 
-    use std::{fmt, backtrace::Backtrace};
+    use std::{fmt};
     pub type LemmyResult<T> = Result<T, LemmyError>;
 
     pub struct LemmyError {
       pub error_type: LemmyErrorType,
       pub inner: anyhow::Error,
-      pub context: Backtrace,
+      pub caller: Location<'static>,
     }
 
     /// Maximum number of items in an array passed as API parameter. See [[LemmyErrorType::TooManyItems]]
@@ -184,6 +186,7 @@ cfg_if! {
     where
       T: Into<anyhow::Error>,
     {
+    #[track_caller]
       fn from(t: T) -> Self {
         let cause = t.into();
         let error_type = match cause.downcast_ref::<diesel::result::Error>() {
@@ -193,7 +196,7 @@ cfg_if! {
         LemmyError {
           error_type,
           inner: cause,
-          context: Backtrace::capture(),
+          caller: *Location::caller(),
         }
       }
     }
@@ -202,8 +205,8 @@ cfg_if! {
       fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("LemmyError")
          .field("message", &self.error_type)
+         .field("caller", &format_args!("{}", self.caller))
          .field("inner", &self.inner)
-         .field("context", &self.context)
          .finish()
       }
     }
@@ -211,8 +214,9 @@ cfg_if! {
     impl fmt::Display for LemmyError {
       fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}: ", &self.error_type)?;
-        writeln!(f, "{}", self.inner)?;
-        fmt::Display::fmt(&self.context, f)
+        write!(f, "{}", self.caller)?;
+        write!(f, "{}", self.inner)?;
+        Ok(())
       }
     }
 
@@ -231,23 +235,26 @@ cfg_if! {
     }
 
     impl From<LemmyErrorType> for LemmyError {
+    #[track_caller]
       fn from(error_type: LemmyErrorType) -> Self {
+
         let inner = anyhow::anyhow!("{}", error_type);
         LemmyError {
           error_type,
           inner,
-          context: Backtrace::capture(),
+          caller: *Location::caller(),
         }
       }
     }
 
     impl From<UntranslatedError> for LemmyError {
+    #[track_caller]
       fn from(error_type: UntranslatedError) -> Self {
         let inner = anyhow::anyhow!("{}", error_type);
         LemmyError {
           error_type: LemmyErrorType::UntranslatedError { error: Some(error_type) },
           inner,
-          context: Backtrace::capture(),
+          caller: *Location::caller(),
         }
       }
     }
@@ -263,11 +270,12 @@ cfg_if! {
     }
 
     impl<T, E: Into<anyhow::Error>> LemmyErrorExt<T, E> for Result<T, E> {
+    #[track_caller]
       fn with_lemmy_type(self, error_type: LemmyErrorType) -> LemmyResult<T> {
         self.map_err(|error| LemmyError {
           error_type,
           inner: error.into(),
-          context: Backtrace::capture(),
+          caller: *Location::caller(),
         })
       }
     }
@@ -295,8 +303,6 @@ cfg_if! {
       use super::*;
       use actix_web::{body::MessageBody, ResponseError};
       use pretty_assertions::assert_eq;
-      use std::fs::read_to_string;
-      use strum::IntoEnumIterator;
 
       #[test]
       fn deserializes_no_message() -> LemmyResult<()> {
@@ -329,27 +335,6 @@ cfg_if! {
         let other_error = LemmyError::from(diesel::result::Error::NotInTransaction);
         assert!(matches!(other_error.error_type, LemmyErrorType::Unknown{..}));
         assert_eq!(400, other_error.status_code());
-      }
-
-      /// Check if errors match translations. Disabled because many are not translated at all.
-      #[test]
-      #[ignore]
-      fn test_translations_match() -> LemmyResult<()> {
-        #[derive(Deserialize)]
-        struct Err {
-          error: String,
-        }
-
-        let translations = read_to_string("translations/translations/en.json")?;
-
-        for e in LemmyErrorType::iter() {
-          let msg = serde_json::to_string(&e)?;
-          let msg: Err = serde_json::from_str(&msg)?;
-          let msg = msg.error;
-          assert!(translations.contains(&format!("\"{msg}\"")), "{msg}");
-        }
-
-        Ok(())
       }
     }
   }

@@ -161,7 +161,7 @@ mod tests {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
-    let instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
 
     let timmy_person_form = PersonInsertForm::test_form(instance.id, "timmy_rav");
 

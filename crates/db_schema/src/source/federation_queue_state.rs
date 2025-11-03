@@ -14,7 +14,7 @@ use serde_with::skip_serializing_none;
 #[cfg_attr(feature = "full", diesel(table_name = lemmy_db_schema_file::schema::federation_queue_state))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct FederationQueueState {
   pub instance_id: InstanceId,
   /// the last successfully sent activity id

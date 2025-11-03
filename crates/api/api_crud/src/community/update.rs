@@ -19,7 +19,7 @@ use lemmy_db_schema::{
   source::{
     actor_language::{CommunityLanguage, SiteLanguage},
     community::{Community, CommunityUpdateForm},
-    mod_log::moderator::{ModChangeCommunityVisibility, ModChangeCommunityVisibilityForm},
+    modlog::{Modlog, ModlogInsertForm},
   },
   traits::Crud,
   utils::diesel_string_update,
@@ -98,12 +98,11 @@ pub async fn update_community(
   let community = Community::update(&mut context.pool(), community_id, &community_form).await?;
 
   if old_community.visibility != community.visibility {
-    let form = ModChangeCommunityVisibilityForm {
-      mod_person_id: local_user_view.person.id,
-      community_id: community.id,
-      visibility: community.visibility,
-    };
-    ModChangeCommunityVisibility::create(&mut context.pool(), &form).await?;
+    let form = ModlogInsertForm::mod_change_community_visibility(
+      local_user_view.person.id,
+      data.community_id,
+    );
+    Modlog::create(&mut context.pool(), &[form]).await?;
   }
 
   ActivityChannel::submit_activity(

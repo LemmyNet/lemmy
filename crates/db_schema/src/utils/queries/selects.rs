@@ -5,7 +5,6 @@ use crate::{
     creator_home_instance_actions,
     creator_local_instance_actions,
     creator_local_user,
-    my_instance_persons_actions,
     person1,
     person2,
     CreatorCommunityInstanceActions,
@@ -13,7 +12,6 @@ use crate::{
     CreatorLocalInstanceActions,
   },
   utils::functions::{coalesce_2_nullable, coalesce_3_nullable},
-  MyInstancePersonsActionsAllColumnsTuple,
   Person1AliasAllColumnsTuple,
   Person2AliasAllColumnsTuple,
 };
@@ -315,12 +313,12 @@ pub fn post_select_remove_deletes() -> _ {
     post::url_content_type,
     post::alt_text,
     post::scheduled_publish_time_at,
+    post::newest_comment_time_necro_at,
+    post::newest_comment_time_at,
     post::comments,
     post::score,
     post::upvotes,
     post::downvotes,
-    post::newest_comment_time_necro_at,
-    post::newest_comment_time_at,
     post::hot_rank,
     post::hot_rank_active,
     post::controversy_rank,
@@ -364,11 +362,4 @@ pub fn person1_select() -> Person1AliasAllColumnsTuple {
 /// The select for the person2 alias.
 pub fn person2_select() -> Person2AliasAllColumnsTuple {
   person2.fields(person::all_columns)
-}
-
-/// The select for the my_instance_persons_actions alias
-pub fn my_instance_persons_actions_select() -> Nullable<MyInstancePersonsActionsAllColumnsTuple> {
-  my_instance_persons_actions
-    .fields(instance_actions::all_columns)
-    .nullable()
 }

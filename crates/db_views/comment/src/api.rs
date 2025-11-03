@@ -1,7 +1,6 @@
 use crate::{CommentSlimView, CommentView};
 use lemmy_db_schema::newtypes::{CommentId, CommunityId, LanguageId, PaginationCursor, PostId};
 use lemmy_db_schema_file::enums::{CommentSortType, ListingType};
-use lemmy_db_views_vote::VoteView;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -32,8 +31,8 @@ pub struct CreateComment {
 /// Like a comment.
 pub struct CreateCommentLike {
   pub comment_id: CommentId,
-  /// Must be -1, 0, or 1 .
-  pub score: i16,
+  /// True means Upvote, False means Downvote, and None means remove vote.
+  pub is_upvote: Option<bool>,
 }
 
 #[skip_serializing_none]
@@ -127,17 +126,6 @@ pub struct LockComment {
   pub comment_id: CommentId,
   pub locked: bool,
   pub reason: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// The comment likes response
-pub struct ListCommentLikesResponse {
-  pub comment_likes: Vec<VoteView>,
-  /// the pagination cursor to use to fetch the next page
-  pub next_page: Option<PaginationCursor>,
-  pub prev_page: Option<PaginationCursor>,
 }
 
 #[skip_serializing_none]

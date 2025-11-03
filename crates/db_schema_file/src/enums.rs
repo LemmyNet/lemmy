@@ -6,6 +6,7 @@ use strum::{Display, EnumString};
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
 )]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
   feature = "full",
@@ -32,6 +33,7 @@ pub enum PostSortType {
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
 )]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
   feature = "full",
@@ -53,6 +55,7 @@ pub enum CommentSortType {
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
 )]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
   feature = "full",
@@ -79,6 +82,7 @@ pub enum ListingType {
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
 )]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
   feature = "full",
@@ -101,6 +105,7 @@ pub enum RegistrationMode {
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash,
 )]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
   feature = "full",
@@ -123,6 +128,7 @@ pub enum PostListingMode {
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
 )]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
   feature = "full",
@@ -161,6 +167,7 @@ impl CommunityVisibility {
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
 )]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
   feature = "full",
@@ -194,6 +201,7 @@ pub enum ActorType {
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
   feature = "full",
@@ -206,11 +214,13 @@ pub enum CommunityFollowerState {
   Accepted,
   Pending,
   ApprovalRequired,
+  Denied,
 }
 
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash,
 )]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
   feature = "full",
@@ -230,6 +240,7 @@ pub enum VoteShow {
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash,
 )]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
   feature = "full",
@@ -249,6 +260,7 @@ pub enum PostNotificationsMode {
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash,
 )]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
   feature = "full",
@@ -267,6 +279,7 @@ pub enum CommunityNotificationsMode {
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
   feature = "full",
@@ -282,4 +295,37 @@ pub enum NotificationType {
   Subscribed,
   PrivateMessage,
   ModAction,
+}
+
+#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "full", derive(DbEnum))]
+#[cfg_attr(
+  feature = "full",
+  ExistingTypePath = "crate::schema::sql_types::ModlogKind"
+)]
+#[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
+/// Types of notifications which can be received in inbox
+pub enum ModlogKind {
+  AdminAdd,
+  AdminBan,
+  AdminAllowInstance,
+  AdminBlockInstance,
+  AdminPurgeComment,
+  AdminPurgeCommunity,
+  AdminPurgePerson,
+  AdminPurgePost,
+  ModAddToCommunity,
+  ModBanFromCommunity,
+  AdminFeaturePostSite,
+  ModFeaturePostCommunity,
+  ModChangeCommunityVisibility,
+  ModLockPost,
+  ModRemoveComment,
+  AdminRemoveCommunity,
+  ModRemovePost,
+  ModTransferCommunity,
+  ModLockComment,
 }

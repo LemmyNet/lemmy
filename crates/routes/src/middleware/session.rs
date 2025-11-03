@@ -117,8 +117,7 @@ mod tests {
   async fn test_session_auth() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
 
-    let inserted_instance =
-      Instance::read_or_create(&mut context.pool(), "my_domain.tld".to_string()).await?;
+    let inserted_instance = Instance::read_or_create(&mut context.pool(), "my_domain.tld").await?;
 
     let new_person = PersonInsertForm::test_form(inserted_instance.id, "Gerry9812");
 
@@ -130,7 +129,7 @@ mod tests {
       LocalUser::create(&mut context.pool(), &local_user_form, vec![]).await?;
 
     let req = TestRequest::default().to_http_request();
-    let jwt = Claims::generate(inserted_local_user.id, req, &context).await?;
+    let jwt = Claims::generate(inserted_local_user.id, None, req, &context).await?;
 
     let valid = Claims::validate(&jwt, &context).await;
     assert!(valid.is_ok());

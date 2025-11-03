@@ -413,7 +413,7 @@ mod tests {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
 
     let fiona_person = PersonInsertForm::test_form(inserted_instance.id, "fiona");
     let inserted_fiona_person = Person::create(pool, &fiona_person).await?;
@@ -453,7 +453,7 @@ mod tests {
 
     let darwin_email = "charles.darwin@gmail.com";
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
 
     let darwin_person = PersonInsertForm::test_form(inserted_instance.id, "darwin");
     let inserted_darwin_person = Person::create(pool, &darwin_person).await?;

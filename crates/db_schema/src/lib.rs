@@ -42,6 +42,7 @@ use {
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
 )]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// The search sort types.
@@ -54,6 +55,7 @@ pub enum SearchSortType {
 
 /// The community sort types. See here for descriptions: https://join-lemmy.org/docs/en/users/03-votes-and-ranking.html
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 pub enum CommunitySortType {
@@ -76,6 +78,7 @@ pub enum CommunitySortType {
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash,
 )]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// The type of content returned from a search.
@@ -90,32 +93,7 @@ pub enum SearchType {
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
-/// A list of possible types for the various modlog actions.
-pub enum ModlogActionType {
-  All,
-  ModRemovePost,
-  ModLockPost,
-  ModFeaturePost,
-  ModRemoveComment,
-  ModLockComment,
-  AdminRemoveCommunity,
-  ModBanFromCommunity,
-  ModAddToCommunity,
-  ModTransferCommunity,
-  AdminAdd,
-  AdminBan,
-  ModChangeCommunityVisibility,
-  AdminPurgePerson,
-  AdminPurgeCommunity,
-  AdminPurgePost,
-  AdminPurgeComment,
-  AdminBlockInstance,
-  AdminAllowInstance,
-}
-
-#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// A list of possible types for the inbox.
@@ -128,6 +106,7 @@ pub enum NotificationDataType {
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// A list of possible types for a person's content.
@@ -138,6 +117,7 @@ pub enum PersonContentType {
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// A list of possible types for reports.
@@ -152,6 +132,7 @@ pub enum ReportType {
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash,
 )]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// The feature type for a post.
@@ -166,6 +147,7 @@ pub enum PostFeatureType {
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash,
 )]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// The like_type for a persons liked content.
@@ -242,9 +224,9 @@ pub type Person2AliasAllColumnsTuple = (
 #[cfg(feature = "full")]
 /// A helper tuple for more my instance persons actions
 pub type MyInstancePersonsActionsAllColumnsTuple = (
+  AliasedField<aliases::MyInstancePersonsActions, instance_actions::blocked_communities_at>,
   AliasedField<aliases::MyInstancePersonsActions, instance_actions::person_id>,
   AliasedField<aliases::MyInstancePersonsActions, instance_actions::instance_id>,
-  AliasedField<aliases::MyInstancePersonsActions, instance_actions::blocked_communities_at>,
   AliasedField<aliases::MyInstancePersonsActions, instance_actions::received_ban_at>,
   AliasedField<aliases::MyInstancePersonsActions, instance_actions::ban_expires_at>,
   AliasedField<aliases::MyInstancePersonsActions, instance_actions::blocked_persons_at>,

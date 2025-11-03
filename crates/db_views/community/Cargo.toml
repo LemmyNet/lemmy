@@ -24,14 +24,12 @@ full = [
   "lemmy_db_schema/full",
   "lemmy_db_schema_file/full",
   "lemmy_db_views_community_moderator/full",
-  "lemmy_db_views_person/full",
 ]
 ts-rs = [
   "dep:ts-rs",
   "lemmy_db_schema/ts-rs",
   "lemmy_db_schema_file/ts-rs",
   "lemmy_db_views_community_moderator/ts-rs",
-  "lemmy_db_views_person/ts-rs",
 ]
 
 [dependencies]
@@ -39,7 +37,6 @@ lemmy_db_schema = { workspace = true }
 lemmy_utils = { workspace = true, optional = true }
 lemmy_db_schema_file = { workspace = true }
 lemmy_db_views_community_moderator = { workspace = true }
-lemmy_db_views_person = { workspace = true }
 diesel = { workspace = true, optional = true }
 diesel-async = { workspace = true, optional = true }
 serde = { workspace = true }

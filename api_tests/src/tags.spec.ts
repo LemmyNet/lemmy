@@ -34,7 +34,7 @@ test("Create, and delete a community tag", async () => {
   await followCommunity(beta, true, betaCommunity.community.id);
   await waitUntil(
     () => resolveCommunity(beta, alphaCommunity.community.ap_id),
-    g => g?.community_actions!.follow_state == "Accepted",
+    g => g?.community_actions!.follow_state == "accepted",
   );
   const communityId = alphaCommunity.community.id;
 
@@ -149,7 +149,7 @@ test("Create and update post tags", async () => {
   await followCommunity(beta, true, betaCommunity!.community.id);
   await waitUntil(
     () => resolveCommunity(beta, alphaCommunity.community.ap_id),
-    g => g!.community_actions?.follow_state == "Accepted",
+    g => g!.community_actions?.follow_state == "accepted",
   );
 
   // Create a post with tags

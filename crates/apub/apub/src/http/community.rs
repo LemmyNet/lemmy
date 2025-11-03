@@ -34,7 +34,7 @@ use lemmy_db_schema::{
   traits::ApubActor,
 };
 use lemmy_db_schema_file::enums::CommunityVisibility;
-use lemmy_db_views_community_follower::CommunityFollowerView;
+use lemmy_db_views_community_follower_approval::PendingFollowerView;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   FEDERATION_CONTEXT,
@@ -98,7 +98,7 @@ async fn check_is_follower(
   // also check for http sig so that followers are not exposed publicly
   let signing_actor =
     signing_actor::<SiteOrMultiOrCommunityOrUser>(&request, None, &context).await?;
-  CommunityFollowerView::check_has_followers_from_instance(
+  PendingFollowerView::check_has_followers_from_instance(
     community.id,
     get_instance_id(&signing_actor),
     &mut context.pool(),
@@ -106,7 +106,7 @@ async fn check_is_follower(
   .await?;
 
   let instance_id = get_instance_id(&is_follower.dereference(&context).await?);
-  let has_followers = CommunityFollowerView::check_has_followers_from_instance(
+  let has_followers = PendingFollowerView::check_has_followers_from_instance(
     community.id,
     instance_id,
     &mut context.pool(),

@@ -23,7 +23,6 @@ workspace = true
 
 [dependencies]
 lemmy_db_views_community_moderator = { workspace = true, features = ["full"] }
-lemmy_db_views_community_person_ban = { workspace = true, features = ["full"] }
 lemmy_db_views_local_user = { workspace = true, features = ["full"] }
 lemmy_db_views_site = { workspace = true, features = ["full"] }
 lemmy_db_views_private_message = { workspace = true, features = ["full"] }

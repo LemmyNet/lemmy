@@ -370,7 +370,7 @@ mod tests {
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
     Instance::read_all(pool).await?;
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
 
     let timmy_person_form = PersonInsertForm::test_form(inserted_instance.id, "timmy");
     let inserted_timmy_person = Person::create(pool, &timmy_person_form).await?;
@@ -456,7 +456,7 @@ mod tests {
       )
     );
 
-    let comment_like_form = CommentLikeForm::new(inserted_timmy_person.id, comment_0.id, 1);
+    let comment_like_form = CommentLikeForm::new(inserted_timmy_person.id, comment_0.id, true);
 
     CommentActions::like(pool, &comment_like_form).await?;
 
@@ -511,7 +511,7 @@ mod tests {
     assert!(read_comment_views_with_person[0]
       .comment_actions
       .as_ref()
-      .is_some_and(|x| x.like_score == Some(1)));
+      .is_some_and(|x| x.vote_is_upvote == Some(true)));
     assert!(read_comment_views_with_person[0].can_mod);
 
     // Make sure its 1, not showing the blocked comment
