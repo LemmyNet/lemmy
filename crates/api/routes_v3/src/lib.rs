@@ -3,7 +3,12 @@ use actix_web::{guard, web::*, HttpRequest, HttpResponse};
 use chrono::Utc;
 use lemmy_api::{
   comment::like::like_comment,
-  federation::{list_comments::list_comments, list_posts::list_posts},
+  federation::{
+    list_comments::list_comments,
+    list_posts::list_posts,
+    resolve_object::resolve_object,
+    search::search,
+  },
   local_user::{login::login, logout::logout},
   post::like::like_post,
 };
@@ -49,6 +54,7 @@ use lemmy_api_019::{
       tagline::Tagline as TaglineV3,
     },
     ListingType as ListingTypeV3,
+    SearchType as SearchTypeV3,
     SortType as SortTypeV3,
     SubscribedType as SubscribedTypeV3,
   },
@@ -68,12 +74,19 @@ use lemmy_api_019::{
     GetPostsResponse as GetPostsResponseV3,
     PostResponse as PostResponseV3,
   },
-  site::{GetSiteResponse as GetSiteResponseV3, MyUserInfo as MyUserInfoV3},
+  site::{
+    GetSiteResponse as GetSiteResponseV3,
+    MyUserInfo as MyUserInfoV3,
+    ResolveObject as ResolveObjectV3,
+    ResolveObjectResponse as ResolveObjectResponseV3,
+    Search as SearchV3,
+    SearchResponse as SearchResponseV3,
+  },
 };
 use lemmy_api_crud::{post::read::get_post, site::read::get_site, user::my_user::get_my_user};
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
-  newtypes::{CommentId, CommunityId, DbUrl, PostId},
+  newtypes::{CommentId, CommunityId, DbUrl, PersonId, PostId},
   sensitive::SensitiveString,
   source::{
     comment::Comment,
@@ -97,9 +110,9 @@ use lemmy_db_views_post::{
   api::{CreatePostLike, GetPosts},
   PostView,
 };
-use lemmy_db_views_search_combined::api::GetPost;
+use lemmy_db_views_search_combined::{api::GetPost, Search, SearchCombinedView};
 use lemmy_db_views_site::{
-  api::{GetSiteResponse, Login, LoginResponse, MyUserInfo},
+  api::{GetSiteResponse, Login, LoginResponse, MyUserInfo, ResolveObject},
   SiteView,
 };
 use lemmy_utils::{error::LemmyResult, rate_limit::RateLimit};
@@ -112,6 +125,16 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
       .wrap(rate_limit.message())
       // Site
       .service(scope("/site").route("", get().to(get_site_v3)))
+      .service(
+        resource("/search")
+          .wrap(rate_limit.search())
+          .route(get().to(search_v3)),
+      )
+      .service(
+        resource("/resolve_object")
+          .wrap(rate_limit.message())
+          .route(get().to(resolve_object_v3)),
+      )
       .service(
         scope("/post")
           .wrap(rate_limit.message())
@@ -137,6 +160,71 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("/logout", post().to(logout_v3)),
       ),
   );
+}
+
+async fn search_v3(
+  data: Query<SearchV3>,
+  context: ApubData<LemmyContext>,
+  local_user_view: Option<LocalUserView>,
+) -> LemmyResult<Json<SearchResponseV3>> {
+  let SearchV3 {
+    q,
+    community_id,
+    community_name,
+    creator_id,
+    limit,
+    type_,
+    ..
+  } = data.0;
+  let data = Search {
+    q,
+    community_id: community_id.map(|i| CommunityId(i.0)),
+    community_name,
+    creator_id: creator_id.map(|i| PersonId(i.0)),
+    limit,
+    ..Default::default()
+  };
+  let res = search(Query(data), context, local_user_view).await?;
+  Ok(Json(convert_search_response(res.0.results, type_)))
+}
+
+async fn resolve_object_v3(
+  data: Query<ResolveObjectV3>,
+  context: ApubData<LemmyContext>,
+  local_user_view: Option<LocalUserView>,
+) -> LemmyResult<Json<ResolveObjectResponseV3>> {
+  let data = ResolveObject { q: data.0.q };
+  let res = resolve_object(Query(data), context, local_user_view).await?;
+  let mut conv = convert_search_response(res.0.results, None);
+  Ok(Json(ResolveObjectResponseV3 {
+    comment: conv.comments.pop(),
+    post: conv.posts.pop(),
+    community: conv.communities.pop(),
+    person: conv.users.pop(),
+  }))
+}
+
+fn convert_search_response(
+  views: Vec<SearchCombinedView>,
+  type_: Option<SearchTypeV3>,
+) -> SearchResponseV3 {
+  let mut res = SearchResponseV3 {
+    type_: type_.unwrap_or(SearchTypeV3::All),
+    comments: vec![],
+    posts: vec![],
+    communities: vec![],
+    users: vec![],
+  };
+  for v in views {
+    match v {
+      SearchCombinedView::Post(p) => res.posts.push(convert_post_view(p)),
+      SearchCombinedView::Comment(c) => res.comments.push(convert_comment_view(c)),
+      SearchCombinedView::Community(c) => res.communities.push(convert_community_view(c)),
+      SearchCombinedView::Person(p) => res.users.push(convert_person_view(p)),
+      SearchCombinedView::MultiCommunity(_) => continue,
+    }
+  }
+  res
 }
 
 async fn like_comment_v3(
