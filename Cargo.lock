@@ -3584,6 +3584,7 @@ dependencies = [
  "lemmy_utils",
  "serde",
  "serde_with",
+ "tokio",
  "ts-rs",
 ]
 
@@ -3904,7 +3905,6 @@ dependencies = [
  "lemmy_utils",
  "serde",
  "serde_with",
- "serial_test",
  "tokio",
  "ts-rs",
  "url",

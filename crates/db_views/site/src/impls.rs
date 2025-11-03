@@ -238,10 +238,8 @@ mod tests {
     utils::build_db_pool_for_tests,
   };
   use lemmy_utils::error::LemmyResult;
-  use serial_test::serial;
 
   #[tokio::test]
-  #[serial]
   async fn test_instance_list() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();

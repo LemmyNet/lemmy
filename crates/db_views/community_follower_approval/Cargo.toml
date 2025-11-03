@@ -38,5 +38,4 @@ ts-rs = { workspace = true, optional = true }
 i-love-jesus = { workspace = true, optional = true }
 
 [dev-dependencies]
-serial_test = { workspace = true }
 tokio = { workspace = true }
