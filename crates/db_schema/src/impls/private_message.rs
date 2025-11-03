@@ -65,10 +65,9 @@ impl PrivateMessage {
 
   pub async fn read_from_apub_id(
     pool: &mut DbPool<'_>,
-    object_id: Url,
+    object_id: DbUrl,
   ) -> LemmyResult<Option<Self>> {
     let conn = &mut get_conn(pool).await?;
-    let object_id: DbUrl = object_id.into();
     private_message::table
       .filter(private_message::ap_id.eq(object_id))
       .first(conn)
@@ -121,7 +120,7 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
 
     let creator_form = PersonInsertForm::test_form(inserted_instance.id, "creator_pm");
 

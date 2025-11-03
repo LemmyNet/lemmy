@@ -24,6 +24,7 @@ import {
   gamma,
   getPosts,
   getComments,
+  statusNotFound,
 } from "./shared";
 
 beforeAll(setupLogins);
@@ -31,17 +32,14 @@ afterAll(unfollows);
 
 test("Follow a private community", async () => {
   // create private community
-  const community = await createCommunity(alpha, randomString(10), "Private");
-  expect(community.community_view.community.visibility).toBe("Private");
+  const community = await createCommunity(alpha, randomString(10), "private");
+  expect(community.community_view.community.visibility).toBe("private");
   const alphaCommunityId = community.community_view.community.id;
 
   // No pending follows yet
   const pendingFollows0 = await listCommunityPendingFollows(alpha);
   expect(pendingFollows0.items.length).toBe(0);
-  const pendingFollowsCount0 = await getCommunityPendingFollowsCount(
-    alpha,
-    alphaCommunityId,
-  );
+  const pendingFollowsCount0 = await getCommunityPendingFollowsCount(alpha);
   expect(pendingFollowsCount0.count).toBe(0);
 
   // follow as new user
@@ -51,7 +49,7 @@ test("Follow a private community", async () => {
     community.community_view.community.ap_id,
   );
   expect(betaCommunity).toBeDefined();
-  expect(betaCommunity?.community.visibility).toBe("Private");
+  expect(betaCommunity?.community.visibility).toBe("private");
   const betaCommunityId = betaCommunity!.community.id;
   const follow_form: FollowCommunity = {
     community_id: betaCommunityId,
@@ -62,7 +60,7 @@ test("Follow a private community", async () => {
   // Follow listed as pending
   const follow1 = await getCommunity(user, betaCommunityId);
   expect(follow1.community_view.community_actions?.follow_state).toBe(
-    "ApprovalRequired",
+    "approval_required",
   );
 
   // Wait for follow to federate, shown as pending
@@ -71,16 +69,13 @@ test("Follow a private community", async () => {
     f => f.items.length == 1,
   );
   expect(pendingFollows1.items[0].is_new_instance).toBe(true);
-  const pendingFollowsCount1 = await getCommunityPendingFollowsCount(
-    alpha,
-    alphaCommunityId,
-  );
+  const pendingFollowsCount1 = await getCommunityPendingFollowsCount(alpha);
   expect(pendingFollowsCount1.count).toBe(1);
 
   // user still sees approval required at this point
   const betaCommunity2 = await getCommunity(user, betaCommunityId);
   expect(betaCommunity2.community_view.community_actions?.follow_state).toBe(
-    "ApprovalRequired",
+    "approval_required",
   );
 
   // Approve the follow
@@ -94,14 +89,11 @@ test("Follow a private community", async () => {
   // Follow is confirmed
   await waitUntil(
     () => getCommunity(user, betaCommunityId),
-    c => c.community_view.community_actions?.follow_state == "Accepted",
+    c => c.community_view.community_actions?.follow_state == "accepted",
   );
   const pendingFollows2 = await listCommunityPendingFollows(alpha);
   expect(pendingFollows2.items.length).toBe(0);
-  const pendingFollowsCount2 = await getCommunityPendingFollowsCount(
-    alpha,
-    alphaCommunityId,
-  );
+  const pendingFollowsCount2 = await getCommunityPendingFollowsCount(alpha);
   expect(pendingFollowsCount2.count).toBe(0);
 
   // follow with another user from that instance, is_new_instance should be false now
@@ -124,8 +116,8 @@ test("Follow a private community", async () => {
 
 test("Only followers can view and interact with private community content", async () => {
   // create private community
-  const community = await createCommunity(alpha, randomString(10), "Private");
-  expect(community.community_view.community.visibility).toBe("Private");
+  const community = await createCommunity(alpha, randomString(10), "private");
+  expect(community.community_view.community.visibility).toBe("private");
   const alphaCommunityId = community.community_view.community.id;
 
   // create post and comment
@@ -142,13 +134,13 @@ test("Only followers can view and interact with private community content", asyn
     await resolveCommunity(user, community.community_view.community.ap_id)
   )?.community;
   await expect(resolvePost(user, post0.post_view.post)).rejects.toStrictEqual(
-    new LemmyError("not_found"),
+    new LemmyError("not_found", statusNotFound),
   );
   await expect(
     resolveComment(user, comment.comment_view.comment),
-  ).rejects.toStrictEqual(new LemmyError("not_found"));
+  ).rejects.toStrictEqual(new LemmyError("not_found", statusNotFound));
   await expect(createPost(user, betaCommunity!.id)).rejects.toStrictEqual(
-    new LemmyError("not_found"),
+    new LemmyError("not_found", statusNotFound),
   );
 
   // follow the community and approve
@@ -172,14 +164,14 @@ test("Only followers can view and interact with private community content", asyn
 
   const post1 = await createPost(user, betaCommunity!.id);
   expect(post1.post_view).toBeDefined();
-  const like = await likeComment(user, 1, resolvedComment!.comment);
-  expect(like.comment_view.comment_actions?.like_score).toBe(1);
+  const like = await likeComment(user, true, resolvedComment!.comment);
+  expect(like.comment_view.comment_actions?.vote_is_upvote).toBe(true);
 });
 
 test("Reject follower", async () => {
   // create private community
-  const community = await createCommunity(alpha, randomString(10), "Private");
-  expect(community.community_view.community.visibility).toBe("Private");
+  const community = await createCommunity(alpha, randomString(10), "private");
+  expect(community.community_view.community.visibility).toBe("private");
   const alphaCommunityId = community.community_view.community.id;
 
   // user is not following the community and cannot view nor create posts
@@ -195,7 +187,7 @@ test("Reject follower", async () => {
   };
   const follow = await user.followCommunity(follow_form);
   expect(follow.community_view.community_actions?.follow_state).toBe(
-    "ApprovalRequired",
+    "approval_required",
   );
 
   const pendingFollows1 = await waitUntil(
@@ -218,8 +210,8 @@ test("Reject follower", async () => {
 
 test("Follow a private community and receive activities", async () => {
   // create private community
-  const community = await createCommunity(alpha, randomString(10), "Private");
-  expect(community.community_view.community.visibility).toBe("Private");
+  const community = await createCommunity(alpha, randomString(10), "private");
+  expect(community.community_view.community.visibility).toBe("private");
   const alphaCommunityId = community.community_view.community.id;
 
   // follow with users from beta and gamma
@@ -250,11 +242,11 @@ test("Follow a private community and receive activities", async () => {
   // Follow is confirmed
   await waitUntil(
     () => getCommunity(beta, betaCommunityId),
-    c => c.community_view.community_actions?.follow_state == "Accepted",
+    c => c.community_view.community_actions?.follow_state == "accepted",
   );
   await waitUntil(
     () => getCommunity(gamma, gammaCommunityId),
-    c => c.community_view.community_actions?.follow_state == "Accepted",
+    c => c.community_view.community_actions?.follow_state == "accepted",
   );
 
   // create a post and comment from gamma
@@ -267,7 +259,7 @@ test("Follow a private community and receive activities", async () => {
 
   // post and comment were federated to beta
   let posts = await waitUntil(
-    () => getPosts(beta, "All", betaCommunityId),
+    () => getPosts(beta, "all", betaCommunityId),
     c => c.posts.length == 1,
   );
   expect(posts.posts[0].post.ap_id).toBe(post.post_view.post.ap_id);
@@ -286,8 +278,8 @@ test("Follow a private community and receive activities", async () => {
 
 test("Fetch remote content in private community", async () => {
   // create private community
-  const community = await createCommunity(alpha, randomString(10), "Private");
-  expect(community.community_view.community.visibility).toBe("Private");
+  const community = await createCommunity(alpha, randomString(10), "private");
+  expect(community.community_view.community.visibility).toBe("private");
   const alphaCommunityId = community.community_view.community.id;
 
   const betaCommunityId = (await resolveCommunity(
@@ -304,7 +296,7 @@ test("Fetch remote content in private community", async () => {
   // Follow is confirmed
   await waitUntil(
     () => getCommunity(beta, betaCommunityId),
-    c => c.community_view.community_actions?.follow_state == "Accepted",
+    c => c.community_view.community_actions?.follow_state == "accepted",
   );
 
   // beta creates post and comment
@@ -333,7 +325,7 @@ test("Fetch remote content in private community", async () => {
 
   // cannot fetch post yet
   await expect(resolvePost(gamma, post.post_view.post)).rejects.toStrictEqual(
-    new LemmyError("not_found"),
+    new LemmyError("not_found", statusNotFound),
   );
   // follow community and approve
   await gamma.followCommunity(follow_form);

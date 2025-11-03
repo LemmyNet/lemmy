@@ -6,7 +6,6 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::enums::{CommunityNotificationsMode, CommunityVisibility, ListingType};
 use lemmy_db_views_community_moderator::CommunityModeratorView;
-use lemmy_db_views_person::PersonView;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -56,15 +55,6 @@ pub struct BanFromCommunity {
   pub expires_at: Option<i64>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// The response for banning a user from a community.
-pub struct BanFromCommunityResponse {
-  pub person_view: PersonView,
-  pub banned: bool,
-}
-
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
@@ -72,16 +62,6 @@ pub struct BanFromCommunityResponse {
 pub struct BlockCommunity {
   pub community_id: CommunityId,
   pub block: bool,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// The block community response.
-pub struct BlockCommunityResponse {
-  pub community_view: CommunityView,
-  pub blocked: bool,
 }
 
 /// Parameter for setting community icon or banner. Can't use POST data here as it already contains
@@ -317,7 +297,8 @@ pub struct ListMultiCommunitiesResponse {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct GetMultiCommunity {
-  pub id: MultiCommunityId,
+  pub id: Option<MultiCommunityId>,
+  pub name: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -326,6 +307,13 @@ pub struct GetMultiCommunity {
 pub struct GetMultiCommunityResponse {
   pub multi_community_view: MultiCommunityView,
   pub communities: Vec<CommunityView>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+pub struct MultiCommunityResponse {
+  pub multi_community_view: MultiCommunityView,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]

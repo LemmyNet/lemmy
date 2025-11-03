@@ -7,12 +7,15 @@ use lemmy_api_utils::{
   utils::check_local_user_valid,
 };
 use lemmy_db_schema::{
-  source::community::{CommunityActions, CommunityBlockForm},
+  source::{
+    actor_language::CommunityLanguage,
+    community::{CommunityActions, CommunityBlockForm},
+  },
   traits::{Blockable, Followable},
   utils::get_conn,
 };
 use lemmy_db_views_community::{
-  api::{BlockCommunity, BlockCommunityResponse},
+  api::{BlockCommunity, CommunityResponse},
   CommunityView,
 };
 use lemmy_db_views_local_user::LocalUserView;
@@ -22,7 +25,7 @@ pub async fn user_block_community(
   data: Json<BlockCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> LemmyResult<Json<BlockCommunityResponse>> {
+) -> LemmyResult<Json<CommunityResponse>> {
   check_local_user_valid(&local_user_view)?;
   let community_id = data.community_id;
   let person_id = local_user_view.person.id;
@@ -68,8 +71,10 @@ pub async fn user_block_community(
     &context,
   )?;
 
-  Ok(Json(BlockCommunityResponse {
-    blocked: data.block,
+  let discussion_languages = CommunityLanguage::read(&mut context.pool(), community_id).await?;
+
+  Ok(Json(CommunityResponse {
     community_view,
+    discussion_languages,
   }))
 }

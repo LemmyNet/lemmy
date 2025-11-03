@@ -1,7 +1,6 @@
 import {
   ApproveCommunityPendingFollower,
   BlockCommunity,
-  BlockCommunityResponse,
   CommunityId,
   CommunityVisibility,
   CreatePrivateMessageReport,
@@ -27,73 +26,74 @@ import {
   GetModlog,
   CommunityView,
   CommentView,
+  Comment,
   PersonView,
   UserBlockInstanceCommunitiesParams,
   ListNotifications,
   ListNotificationsResponse,
   NotificationDataType,
+  PersonResponse,
+  AdminAllowInstanceParams,
+  BanFromCommunity,
+  BanPerson,
+  CommentReportResponse,
+  CommentResponse,
+  CommunityReportResponse,
+  CommunityResponse,
+  CreateComment,
+  CreateCommentLike,
+  CreateCommentReport,
+  CreateCommunity,
+  CreateCommunityReport,
+  CreatePost,
+  CreatePostLike,
+  CreatePostReport,
+  CreatePrivateMessage,
+  DeleteAccount,
+  DeleteComment,
+  DeleteCommunity,
+  DeletePost,
+  DeletePrivateMessage,
+  EditComment,
+  EditPost,
+  EditPrivateMessage,
+  EditSite,
+  FeaturePost,
+  FollowCommunity,
+  GetComments,
+  GetCommentsResponse,
+  GetCommunity,
+  GetCommunityResponse,
+  GetPersonDetails,
+  GetPersonDetailsResponse,
+  GetPost,
+  GetPostResponse,
+  GetPosts,
+  GetPostsResponse,
+  GetSiteResponse,
+  ListingType,
+  LockComment,
+  LockPost,
+  Login,
+  LoginResponse,
+  Post,
+  PostReportResponse,
+  PostResponse,
+  PrivateMessageResponse,
+  Register,
+  RemoveComment,
+  RemoveCommunity,
+  RemovePost,
+  ResolveObject,
+  SaveUserSettings,
+  Search,
 } from "lemmy-js-client";
-import { CreatePost } from "lemmy-js-client/dist/types/CreatePost";
-import { DeletePost } from "lemmy-js-client/dist/types/DeletePost";
-import { EditPost } from "lemmy-js-client/dist/types/EditPost";
-import { EditSite } from "lemmy-js-client/dist/types/EditSite";
-import { AdminAllowInstanceParams } from "lemmy-js-client/dist/types/AdminAllowInstanceParams";
-import { FeaturePost } from "lemmy-js-client/dist/types/FeaturePost";
-import { GetComments } from "lemmy-js-client/dist/types/GetComments";
-import { GetCommentsResponse } from "lemmy-js-client/dist/types/GetCommentsResponse";
-import { GetPost } from "lemmy-js-client/dist/types/GetPost";
-import { GetPostResponse } from "lemmy-js-client/dist/types/GetPostResponse";
-import { LockComment } from "lemmy-js-client/dist/types/LockComment";
-import { LockPost } from "lemmy-js-client/dist/types/LockPost";
-import { Login } from "lemmy-js-client/dist/types/Login";
-import { Post } from "lemmy-js-client/dist/types/Post";
-import { PostResponse } from "lemmy-js-client/dist/types/PostResponse";
-import { RemovePost } from "lemmy-js-client/dist/types/RemovePost";
-import { ResolveObject } from "lemmy-js-client/dist/types/ResolveObject";
-import { Search } from "lemmy-js-client/dist/types/Search";
-import { Comment } from "lemmy-js-client/dist/types/Comment";
-import { BanPersonResponse } from "lemmy-js-client/dist/types/BanPersonResponse";
-import { BanPerson } from "lemmy-js-client/dist/types/BanPerson";
-import { BanFromCommunityResponse } from "lemmy-js-client/dist/types/BanFromCommunityResponse";
-import { BanFromCommunity } from "lemmy-js-client/dist/types/BanFromCommunity";
-import { CommunityResponse } from "lemmy-js-client/dist/types/CommunityResponse";
-import { GetCommunityResponse } from "lemmy-js-client/dist/types/GetCommunityResponse";
-import { FollowCommunity } from "lemmy-js-client/dist/types/FollowCommunity";
-import { CreatePostLike } from "lemmy-js-client/dist/types/CreatePostLike";
-import { CommentResponse } from "lemmy-js-client/dist/types/CommentResponse";
-import { CreateComment } from "lemmy-js-client/dist/types/CreateComment";
-import { EditComment } from "lemmy-js-client/dist/types/EditComment";
-import { DeleteComment } from "lemmy-js-client/dist/types/DeleteComment";
-import { RemoveComment } from "lemmy-js-client/dist/types/RemoveComment";
-import { CreateCommentLike } from "lemmy-js-client/dist/types/CreateCommentLike";
-import { CreateCommunity } from "lemmy-js-client/dist/types/CreateCommunity";
-import { GetCommunity } from "lemmy-js-client/dist/types/GetCommunity";
-import { DeleteCommunity } from "lemmy-js-client/dist/types/DeleteCommunity";
-import { RemoveCommunity } from "lemmy-js-client/dist/types/RemoveCommunity";
-import { PrivateMessageResponse } from "lemmy-js-client/dist/types/PrivateMessageResponse";
-import { CreatePrivateMessage } from "lemmy-js-client/dist/types/CreatePrivateMessage";
-import { EditPrivateMessage } from "lemmy-js-client/dist/types/EditPrivateMessage";
-import { DeletePrivateMessage } from "lemmy-js-client/dist/types/DeletePrivateMessage";
-import { LoginResponse } from "lemmy-js-client/dist/types/LoginResponse";
-import { Register } from "lemmy-js-client/dist/types/Register";
-import { SaveUserSettings } from "lemmy-js-client/dist/types/SaveUserSettings";
-import { DeleteAccount } from "lemmy-js-client/dist/types/DeleteAccount";
-import { GetSiteResponse } from "lemmy-js-client/dist/types/GetSiteResponse";
-import { PostReportResponse } from "lemmy-js-client/dist/types/PostReportResponse";
-import { CreatePostReport } from "lemmy-js-client/dist/types/CreatePostReport";
-import { CommentReportResponse } from "lemmy-js-client/dist/types/CommentReportResponse";
-import { CreateCommentReport } from "lemmy-js-client/dist/types/CreateCommentReport";
-import { CommunityReportResponse } from "lemmy-js-client/dist/types/CommunityReportResponse";
-import { CreateCommunityReport } from "lemmy-js-client/dist/types/CreateCommunityReport";
-import { GetPostsResponse } from "lemmy-js-client/dist/types/GetPostsResponse";
-import { GetPosts } from "lemmy-js-client/dist/types/GetPosts";
-import { GetPersonDetailsResponse } from "lemmy-js-client/dist/types/GetPersonDetailsResponse";
-import { GetPersonDetails } from "lemmy-js-client/dist/types/GetPersonDetails";
-import { ListingType } from "lemmy-js-client/dist/types/ListingType";
-import { GetCommunityPendingFollowsCountI } from "lemmy-js-client/dist/other_types";
 
 export const fetchFunction = fetch;
 export const imageFetchLimit = 50;
+export const statusNotFound = 404;
+export const statusBadRequest = 400;
+export const statusUnauthorized = 401;
 export const sampleImage =
   "https://i.pinimg.com/originals/df/5f/5b/df5f5b1b174a2b4b6026cc6c8f9395c1.jpg";
 export const sampleSite = "https://w3.org";
@@ -160,7 +160,7 @@ export async function setupLogins() {
 
   // Registration applications are now enabled by default, need to disable them
   let editSiteForm: EditSite = {
-    registration_mode: "Open",
+    registration_mode: "open",
     rate_limit_message_max_requests: 999,
     rate_limit_post_max_requests: 999,
     rate_limit_comment_max_requests: 999,
@@ -302,7 +302,7 @@ export async function featurePost(
   let form: FeaturePost = {
     post_id: post.id,
     featured,
-    feature_type: "Community",
+    feature_type: "community",
   };
   return api.featurePost(form);
 }
@@ -330,7 +330,7 @@ export async function resolvePost(
   return api
     .resolveObject(form)
     .then(a => a.results.at(0))
-    .then(a => (a?.type_ == "Post" ? a : undefined));
+    .then(a => (a?.type_ == "post" ? a : undefined));
 }
 
 export async function searchPostLocal(
@@ -339,12 +339,12 @@ export async function searchPostLocal(
 ): Promise<PostView | undefined> {
   let form: Search = {
     q: post.name,
-    type_: "Posts",
-    listing_type: "All",
+    type_: "posts",
+    listing_type: "all",
   };
   let res = await api.search(form);
   let first = res.results.at(0);
-  return first?.type_ == "Post" ? first : undefined;
+  return first?.type_ == "post" ? first : undefined;
 }
 
 /// wait for a post to appear locally without pulling it
@@ -385,12 +385,12 @@ export async function lockComment(
 export async function getComments(
   api: LemmyHttp,
   post_id?: number,
-  listingType: ListingType = "All",
+  listingType: ListingType = "all",
 ): Promise<GetCommentsResponse> {
   let form: GetComments = {
     post_id: post_id,
     type_: listingType,
-    sort: "New",
+    sort: "new",
     limit: 50,
   };
   return api.getComments(form);
@@ -424,7 +424,7 @@ export async function resolveComment(
   return api
     .resolveObject(form)
     .then(a => a.results.at(0))
-    .then(a => (a?.type_ == "Comment" ? a : undefined));
+    .then(a => (a?.type_ == "comment" ? a : undefined));
 }
 
 export async function resolveBetaCommunity(
@@ -437,7 +437,7 @@ export async function resolveBetaCommunity(
   return api
     .resolveObject(form)
     .then(a => a.results.at(0))
-    .then(a => (a?.type_ == "Community" ? a : undefined));
+    .then(a => (a?.type_ == "community" ? a : undefined));
 }
 
 export async function resolveCommunity(
@@ -450,7 +450,7 @@ export async function resolveCommunity(
   return api
     .resolveObject(form)
     .then(a => a.results.at(0))
-    .then(a => (a?.type_ == "Community" ? a : undefined));
+    .then(a => (a?.type_ == "community" ? a : undefined));
 }
 
 export async function resolvePerson(
@@ -463,7 +463,7 @@ export async function resolvePerson(
   return api
     .resolveObject(form)
     .then(a => a.results.at(0))
-    .then(a => (a?.type_ == "Person" ? a : undefined));
+    .then(a => (a?.type_ == "person" ? a : undefined));
 }
 
 export async function banPersonFromSite(
@@ -471,7 +471,7 @@ export async function banPersonFromSite(
   person_id: number,
   ban: boolean,
   remove_or_restore_data: boolean,
-): Promise<BanPersonResponse> {
+): Promise<PersonResponse> {
   // Make sure lemmy-beta/c/main is cached on lemmy_alpha
   let form: BanPerson = {
     person_id,
@@ -488,7 +488,7 @@ export async function banPersonFromCommunity(
   community_id: number,
   remove_or_restore_data: boolean,
   ban: boolean,
-): Promise<BanFromCommunityResponse> {
+): Promise<PersonResponse> {
   let form: BanFromCommunity = {
     person_id,
     community_id,
@@ -513,7 +513,7 @@ export async function followCommunity(
     () => getCommunity(api, res.community_view.community.id),
     g => {
       let followState = g.community_view.community_actions?.follow_state;
-      return follow ? followState === "Accepted" : followState === undefined;
+      return follow ? followState === "accepted" : followState === undefined;
     },
   );
   // wait FOLLOW_ADDITIONS_RECHECK_DELAY (there's no API to wait for this currently)
@@ -523,12 +523,12 @@ export async function followCommunity(
 
 export async function likePost(
   api: LemmyHttp,
-  score: number,
+  is_upvote: boolean | undefined,
   post: Post,
 ): Promise<PostResponse> {
   let form: CreatePostLike = {
     post_id: post.id,
-    score: score,
+    is_upvote: is_upvote,
   };
 
   return api.likePost(form);
@@ -587,12 +587,12 @@ export async function removeComment(
 
 export async function likeComment(
   api: LemmyHttp,
-  score: number,
+  is_upvote: boolean | undefined,
   comment: Comment,
 ): Promise<CommentResponse> {
   let form: CreateCommentLike = {
     comment_id: comment.id,
-    score,
+    is_upvote,
   };
   return api.likeComment(form);
 }
@@ -600,7 +600,7 @@ export async function likeComment(
 export async function createCommunity(
   api: LemmyHttp,
   name_: string = randomString(10),
-  visibility: CommunityVisibility = "Public",
+  visibility: CommunityVisibility = "public",
 ): Promise<CommunityResponse> {
   let description = "a sample description";
   let form: CreateCommunity = {
@@ -738,8 +738,8 @@ export async function saveUserSettingsBio(
     show_nsfw: true,
     blur_nsfw: false,
     theme: "darkly",
-    default_post_sort_type: "Active",
-    default_listing_type: "All",
+    default_post_sort_type: "active",
+    default_listing_type: "all",
     interface_language: "en",
     show_avatars: true,
     send_notifications_to_email: false,
@@ -755,8 +755,8 @@ export async function saveUserSettingsFederated(
   let form: SaveUserSettings = {
     show_nsfw: false,
     blur_nsfw: true,
-    default_post_sort_type: "Hot",
-    default_listing_type: "All",
+    default_post_sort_type: "hot",
+    default_listing_type: "all",
     interface_language: "",
     display_name: "user321",
     show_avatars: false,
@@ -918,7 +918,7 @@ export function blockCommunity(
   api: LemmyHttp,
   community_id: CommunityId,
   block: boolean,
-): Promise<BlockCommunityResponse> {
+): Promise<CommunityResponse> {
   let form: BlockCommunity = {
     community_id,
     block,
@@ -930,7 +930,7 @@ export function listCommunityPendingFollows(
   api: LemmyHttp,
 ): Promise<ListCommunityPendingFollowsResponse> {
   let form: ListCommunityPendingFollows = {
-    pending_only: true,
+    unread_only: true,
     all_communities: false,
     limit: 50,
   };
@@ -939,10 +939,8 @@ export function listCommunityPendingFollows(
 
 export function getCommunityPendingFollowsCount(
   api: LemmyHttp,
-  community_id: CommunityId,
 ): Promise<GetCommunityPendingFollowsCountResponse> {
-  let form: GetCommunityPendingFollowsCountI = { community_id };
-  return api.getCommunityPendingFollowsCount(form);
+  return api.getCommunityPendingFollowsCount();
 }
 
 export function approveCommunityPendingFollow(
@@ -1021,7 +1019,7 @@ export async function unfollows() {
 
 export async function purgeAllPosts(api: LemmyHttp) {
   // The best way to get all federated items, is to find the posts
-  let res = await api.getPosts({ type_: "All", limit: 50 });
+  let res = await api.getPosts({ type_: "all", limit: 50 });
   await Promise.allSettled(
     Array.from(new Set(res.posts.map(p => p.post.id)))
       .map(post_id => api.purgePost({ post_id, reason: "purge" }))

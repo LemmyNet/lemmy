@@ -70,13 +70,13 @@ impl Object for ApubPrivateMessage {
     context: &Data<Self::DataType>,
   ) -> LemmyResult<Option<Self>> {
     Ok(
-      DbPrivateMessage::read_from_apub_id(&mut context.pool(), object_id)
+      DbPrivateMessage::read_from_apub_id(&mut context.pool(), object_id.into())
         .await?
         .map(Into::into),
     )
   }
 
-  async fn delete(self, _context: &Data<Self::DataType>) -> LemmyResult<()> {
+  async fn delete(&self, _context: &Data<Self::DataType>) -> LemmyResult<()> {
     // do nothing, because pm can't be fetched over http
     Err(LemmyErrorType::NotFound.into())
   }
@@ -163,12 +163,12 @@ impl Object for ApubPrivateMessage {
       ap_id: Some(note.id.into()),
       local: Some(false),
     };
-    form = plugin_hook_before("before_receive_federated_private_message", form).await?;
+    form = plugin_hook_before("federated_private_message_before_receive", form).await?;
     let timestamp = note.updated.or(note.published).unwrap_or_else(Utc::now);
     let pm = DbPrivateMessage::insert_apub(&mut context.pool(), timestamp, &form).await?;
-    plugin_hook_after("after_receive_federated_private_message", &pm)?;
+    plugin_hook_after("federated_private_message_after_receive", &pm);
     let view = PrivateMessageView::read(&mut context.pool(), pm.id).await?;
-    notify_private_message(&view, pm.updated_at.is_none(), context).await?;
+    notify_private_message(&view, pm.updated_at.is_none(), context);
     Ok(pm.into())
   }
 }

@@ -101,13 +101,13 @@ impl Object for ApubPost {
     context: &Data<Self::DataType>,
   ) -> LemmyResult<Option<Self>> {
     Ok(
-      Post::read_from_apub_id(&mut context.pool(), object_id)
+      Post::read_from_apub_id(&mut context.pool(), object_id.into())
         .await?
         .map(Into::into),
     )
   }
 
-  async fn delete(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
+  async fn delete(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     if !self.deleted {
       let form = PostUpdateForm {
         deleted: Some(true),
@@ -302,11 +302,11 @@ impl Object for ApubPost {
       language_id,
       ..PostInsertForm::new(name, creator.id, community.id)
     };
-    form = plugin_hook_before("before_receive_federated_post", form).await?;
+    form = plugin_hook_before("federated_post_after_receive", form).await?;
 
     let timestamp = page.updated.or(page.published).unwrap_or_else(Utc::now);
     let post = Post::insert_apub(&mut context.pool(), timestamp, &form).await?;
-    plugin_hook_after("after_receive_federated_post", &post)?;
+    plugin_hook_after("federated_post_after_receive", &post);
 
     update_apub_post_tags(&page, &post, context).await?;
 

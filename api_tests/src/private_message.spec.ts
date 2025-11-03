@@ -12,6 +12,7 @@ import {
   unfollows,
   listNotifications,
   resolvePerson,
+  statusBadRequest,
 } from "./shared";
 
 let recipient_id: number;
@@ -36,7 +37,7 @@ test("Create a private message", async () => {
   expect(pmRes.private_message_view.recipient.local).toBe(false);
 
   let betaPms = await waitUntil(
-    () => listNotifications(beta, "PrivateMessage"),
+    () => listNotifications(beta, "private_message"),
     e => !!e.notifications[0],
   );
   const firstPm = betaPms.notifications[0].data as PrivateMessageView;
@@ -59,9 +60,9 @@ test("Update a private message", async () => {
   );
 
   let betaPms = await waitUntil(
-    () => listNotifications(beta, "PrivateMessage"),
+    () => listNotifications(beta, "private_message"),
     p =>
-      p.notifications[0].data.type_ == "PrivateMessage" &&
+      p.notifications[0].data.type_ == "private_message" &&
       p.notifications[0].data.private_message.content === updatedContent,
   );
   let pm = betaPms.notifications[0].data as PrivateMessageView;
@@ -71,11 +72,11 @@ test("Update a private message", async () => {
 test("Delete a private message", async () => {
   let pmRes = await createPrivateMessage(alpha, recipient_id);
   let betaPms1 = await waitUntil(
-    () => listNotifications(beta, "PrivateMessage"),
+    () => listNotifications(beta, "private_message"),
     m =>
       !!m.notifications.find(
         e =>
-          e.data.type_ == "PrivateMessage" &&
+          e.data.type_ == "private_message" &&
           e.data.private_message.ap_id ===
             pmRes.private_message_view.private_message.ap_id,
       ),
@@ -91,7 +92,7 @@ test("Delete a private message", async () => {
   // even though they are in the actual database.
   // no reason to show them
   let betaPms2 = await waitUntil(
-    () => listNotifications(beta, "PrivateMessage"),
+    () => listNotifications(beta, "private_message"),
     p => p.notifications.length === betaPms1.notifications.length - 1,
   );
   expect(betaPms2.notifications.length).toBe(betaPms1.notifications.length - 1);
@@ -107,7 +108,7 @@ test("Delete a private message", async () => {
   );
 
   let betaPms3 = await waitUntil(
-    () => listNotifications(beta, "PrivateMessage"),
+    () => listNotifications(beta, "private_message"),
     p => p.notifications.length === betaPms1.notifications.length,
   );
   expect(betaPms3.notifications.length).toBe(betaPms1.notifications.length);
@@ -116,11 +117,11 @@ test("Delete a private message", async () => {
 test("Create a private message report", async () => {
   let pmRes = await createPrivateMessage(alpha, recipient_id);
   let betaPms1 = await waitUntil(
-    () => listNotifications(beta, "PrivateMessage"),
+    () => listNotifications(beta, "private_message"),
     m =>
       !!m.notifications.find(
         e =>
-          e.data.type_ == "PrivateMessage" &&
+          e.data.type_ == "private_message" &&
           e.data.private_message.ap_id ===
             pmRes.private_message_view.private_message.ap_id,
       ),
@@ -135,7 +136,9 @@ test("Create a private message report", async () => {
       pmRes.private_message_view.private_message.id,
       "a reason",
     ),
-  ).rejects.toStrictEqual(new LemmyError("couldnt_create_report"));
+  ).rejects.toStrictEqual(
+    new LemmyError("couldnt_create_report", statusBadRequest),
+  );
 
   // This one should pass
   let reason = "another reason";

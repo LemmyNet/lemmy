@@ -46,7 +46,7 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_utils::{
-  error::{FederationError, LemmyError, LemmyResult},
+  error::{LemmyError, LemmyResult, UntranslatedError},
   utils::markdown::markdown_to_html,
 };
 use std::ops::Deref;
@@ -83,13 +83,13 @@ impl Object for ApubComment {
     context: &Data<Self::DataType>,
   ) -> LemmyResult<Option<Self>> {
     Ok(
-      Comment::read_from_apub_id(&mut context.pool(), object_id)
+      Comment::read_from_apub_id(&mut context.pool(), object_id.into())
         .await?
         .map(Into::into),
     )
   }
 
-  async fn delete(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
+  async fn delete(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     if !self.deleted {
       let form = CommentUpdateForm {
         deleted: Some(true),
@@ -183,7 +183,7 @@ impl Object for ApubComment {
       .is_ok();
     let locked = post.locked || parent_comment.is_some_and(|c| c.locked);
     if locked && !is_mod_or_admin {
-      Err(FederationError::PostIsLocked)?
+      Err(UntranslatedError::PostIsLocked)?
     } else {
       Ok(())
     }
@@ -226,7 +226,7 @@ impl Object for ApubComment {
       federation_pending: Some(false),
       locked: None,
     };
-    form = plugin_hook_before("before_receive_federated_comment", form).await?;
+    form = plugin_hook_before("federated_comment_before_receive", form).await?;
     let parent_comment_path = parent_comment.map(|t| t.0.path);
     let timestamp: DateTime<Utc> = note.updated.or(note.published).unwrap_or_else(Utc::now);
     let comment = Comment::insert_apub(
@@ -236,7 +236,7 @@ impl Object for ApubComment {
       parent_comment_path.as_ref(),
     )
     .await?;
-    plugin_hook_after("after_receive_federated_comment", &comment)?;
+    plugin_hook_after("federated_comment_after_receive", &comment);
     Ok(comment.into())
   }
 }

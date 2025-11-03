@@ -93,8 +93,8 @@ SELECT
     upvotes,
     downvotes,
     published,
-    newest_comment_time_necro,
-    newest_comment_time,
+    coalesce(newest_comment_time_necro, published),
+    coalesce(newest_comment_time, published),
     featured_community,
     featured_local,
     hot_rank,
@@ -102,7 +102,13 @@ SELECT
     community_id,
     creator_id,
     controversy_rank,
-    instance_id,
+    (
+        SELECT
+            community.instance_id
+        FROM
+            community
+        WHERE
+            community.id = post.community_id) AS instance_id,
     scaled_rank,
     report_count,
     unresolved_report_count
@@ -139,7 +145,6 @@ ALTER TABLE post
     DROP COLUMN hot_rank,
     DROP COLUMN hot_rank_active,
     DROP COLUMN controversy_rank,
-    DROP COLUMN instance_id,
     DROP COLUMN scaled_rank,
     DROP COLUMN report_count,
     DROP COLUMN unresolved_report_count;
@@ -149,6 +154,10 @@ ALTER TABLE post_aggregates
     ALTER CONSTRAINT post_aggregates_creator_id_fkey DEFERRABLE INITIALLY DEFERRED,
     ALTER CONSTRAINT post_aggregates_instance_id_fkey DEFERRABLE INITIALLY DEFERRED,
     ALTER CONSTRAINT post_aggregates_post_id_fkey DEFERRABLE INITIALLY DEFERRED;
+
+CREATE INDEX IF NOT EXISTS idx_post_aggregates_creator ON post_aggregates USING btree (creator_id);
+
+CREATE INDEX IF NOT EXISTS idx_post_aggregates_community ON post_aggregates USING btree (community_id);
 
 CREATE INDEX IF NOT EXISTS idx_post_aggregates_community_active ON post_aggregates USING btree (community_id, featured_local DESC, hot_rank_active DESC, published DESC, post_id DESC);
 

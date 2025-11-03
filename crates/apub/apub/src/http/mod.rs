@@ -24,9 +24,9 @@ use lemmy_db_schema::{
   },
 };
 use lemmy_db_schema_file::enums::CommunityVisibility;
-use lemmy_db_views_community_follower::CommunityFollowerView;
+use lemmy_db_views_community_follower_approval::PendingFollowerView;
 use lemmy_utils::{
-  error::{FederationError, LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult, UntranslatedError},
   FEDERATION_CONTEXT,
 };
 use serde::Deserialize;
@@ -59,7 +59,7 @@ pub async fn shared_inbox(
   // consider the activity broken and move on.
   timeout(INCOMING_ACTIVITY_TIMEOUT, receive_fut)
     .await
-    .with_lemmy_type(FederationError::InboxTimeout.into())?
+    .with_lemmy_type(UntranslatedError::InboxTimeout.into())?
 }
 
 struct Dummy;
@@ -79,7 +79,7 @@ impl ReceiveActivityHook<SharedInboxActivities, UserOrCommunity, LemmyContext> f
     // This could also take the actor as param, but lifetimes and serde derives are tricky.
     // It is really a before hook, but doesnt allow modifying the data. It could use a
     // separate method so that error in plugin causes activity to be rejected.
-    plugin_hook_after("activity_received", activity)?;
+    plugin_hook_after("activity_after_receive", activity);
 
     // This method could also be used to check if actor is banned, instead of checking in each
     // activity handler.
@@ -138,7 +138,7 @@ async fn check_community_content_fetchable(
         signing_actor::<SiteOrMultiOrCommunityOrUser>(request, None, context).await?;
       if community.local {
         Ok(
-          CommunityFollowerView::check_has_followers_from_instance(
+          PendingFollowerView::check_has_followers_from_instance(
             community.id,
             get_instance_id(&signing_actor),
             &mut context.pool(),

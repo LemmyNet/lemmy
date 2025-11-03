@@ -70,6 +70,8 @@ pub struct Register {
   pub honeypot: Option<String>,
   /// An answer is mandatory if require application is enabled on the server
   pub answer: Option<String>,
+  /// If this is true the login is valid forever, otherwise it expires after one week.
+  pub stay_logged_in: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

@@ -26,19 +26,19 @@ ts-rs = [
   "lemmy_db_views_comment/ts-rs",
   "lemmy_db_views_community/ts-rs",
   "lemmy_db_views_community_follower/ts-rs",
+  "lemmy_db_views_community_follower_approval/ts-rs",
   "lemmy_db_views_community_moderator/ts-rs",
   "lemmy_db_views_custom_emoji/ts-rs",
   "lemmy_db_views_notification/ts-rs",
   "lemmy_db_views_local_image/ts-rs",
   "lemmy_db_views_local_user/ts-rs",
-  "lemmy_db_views_modlog_combined/ts-rs",
+  "lemmy_db_views_modlog/ts-rs",
   "lemmy_db_views_person/ts-rs",
   "lemmy_db_views_person_content_combined/ts-rs",
   "lemmy_db_views_person_liked_combined/ts-rs",
   "lemmy_db_views_person_saved_combined/ts-rs",
   "lemmy_db_views_post/ts-rs",
   "lemmy_db_views_private_message/ts-rs",
-  "lemmy_db_views_readable_federation_state/ts-rs",
   "lemmy_db_views_registration_applications/ts-rs",
   "lemmy_db_views_report_combined/ts-rs",
   "lemmy_db_views_search_combined/ts-rs",
@@ -53,19 +53,19 @@ lemmy_db_schema_file.workspace = true
 lemmy_db_views_comment.workspace = true
 lemmy_db_views_community.workspace = true
 lemmy_db_views_community_follower.workspace = true
+lemmy_db_views_community_follower_approval.workspace = true
 lemmy_db_views_community_moderator.workspace = true
 lemmy_db_views_custom_emoji.workspace = true
 lemmy_db_views_notification.workspace = true
 lemmy_db_views_local_image.workspace = true
 lemmy_db_views_local_user.workspace = true
-lemmy_db_views_modlog_combined.workspace = true
+lemmy_db_views_modlog.workspace = true
 lemmy_db_views_person.workspace = true
 lemmy_db_views_person_content_combined.workspace = true
 lemmy_db_views_person_liked_combined.workspace = true
 lemmy_db_views_person_saved_combined.workspace = true
 lemmy_db_views_post.workspace = true
 lemmy_db_views_private_message.workspace = true
-lemmy_db_views_readable_federation_state.workspace = true
 lemmy_db_views_registration_applications.workspace = true
 lemmy_db_views_report_combined.workspace = true
 lemmy_db_views_search_combined.workspace = true

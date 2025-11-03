@@ -8,21 +8,16 @@ use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
 use enum_map::{enum_map, EnumMap};
 use lemmy_db_schema::{
-  newtypes::{CommentId, CommunityId, DbUrl, InstanceId, PersonId, PostId, PostOrCommentId, TagId},
+  newtypes::{CommunityId, DbUrl, InstanceId, PersonId, PostId, PostOrCommentId, TagId},
   source::{
     comment::{Comment, CommentActions},
     community::{Community, CommunityActions, CommunityUpdateForm},
     images::{ImageDetails, RemoteImage},
-    instance::{Instance, InstanceActions},
+    instance::InstanceActions,
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
-    mod_log::moderator::{
-      ModRemoveComment,
-      ModRemoveCommentForm,
-      ModRemovePost,
-      ModRemovePostForm,
-    },
+    modlog::{Modlog, ModlogInsertForm},
     oauth_account::OAuthAccount,
     person::{Person, PersonUpdateForm},
     post::{Post, PostActions, PostReadCommentsForm},
@@ -35,17 +30,20 @@ use lemmy_db_schema::{
   utils::DbPool,
 };
 use lemmy_db_schema_file::enums::{FederationMode, RegistrationMode};
-use lemmy_db_views_community_follower::CommunityFollowerView;
-use lemmy_db_views_community_moderator::CommunityModeratorView;
-use lemmy_db_views_community_person_ban::CommunityPersonBanView;
+use lemmy_db_views_community_follower_approval::PendingFollowerView;
+use lemmy_db_views_community_moderator::{CommunityModeratorView, CommunityPersonBanView};
 use lemmy_db_views_local_image::LocalImageView;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_site::{
-  api::{FederatedInstances, InstanceWithFederationState},
-  SiteView,
-};
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
+  error::{
+    LemmyError,
+    LemmyErrorExt,
+    LemmyErrorExt2,
+    LemmyErrorType,
+    LemmyResult,
+    UntranslatedError,
+  },
   rate_limit::{ActionType, BucketConfig},
   settings::{structs::PictrsImageMode, SETTINGS},
   spawn_try_task,
@@ -252,7 +250,7 @@ pub async fn check_community_user_action(
   check_local_user_valid(local_user_view)?;
   check_community_deleted_removed(community)?;
   CommunityPersonBanView::check(pool, local_user_view.person.id, community.id).await?;
-  CommunityFollowerView::check_private_community_action(pool, local_user_view.person.id, community)
+  PendingFollowerView::check_private_community_action(pool, local_user_view.person.id, community)
     .await?;
   InstanceActions::check_ban(pool, local_user_view.person.id, community.instance_id).await?;
   Ok(())
@@ -304,7 +302,7 @@ pub fn check_comment_deleted_or_removed(comment: &Comment) -> LemmyResult<()> {
 }
 
 pub async fn check_local_vote_mode(
-  score: i16,
+  is_upvote: Option<bool>,
   post_or_comment_id: PostOrCommentId,
   local_site: &LocalSite,
   person_id: PersonId,
@@ -315,8 +313,8 @@ pub async fn check_local_vote_mode(
     PostOrCommentId::Comment(_) => (local_site.comment_downvotes, local_site.comment_upvotes),
   };
 
-  let downvote_fail = score == -1 && downvote_setting == FederationMode::Disable;
-  let upvote_fail = score == 1 && upvote_setting == FederationMode::Disable;
+  let downvote_fail = is_upvote == Some(false) && downvote_setting == FederationMode::Disable;
+  let upvote_fail = is_upvote == Some(true) && upvote_setting == FederationMode::Disable;
 
   // Undo previous vote for item if new vote fails
   if downvote_fail || upvote_fail {
@@ -356,44 +354,6 @@ pub fn check_private_messages_enabled(local_user_view: &LocalUserView) -> Result
     Err(LemmyErrorType::CouldntCreate)?
   } else {
     Ok(())
-  }
-}
-
-pub async fn build_federated_instances(
-  local_site: &LocalSite,
-  pool: &mut DbPool<'_>,
-) -> LemmyResult<Option<FederatedInstances>> {
-  if local_site.federation_enabled {
-    let mut linked = Vec::new();
-    let mut allowed = Vec::new();
-    let mut blocked = Vec::new();
-
-    let all = Instance::read_all_with_fed_state(pool).await?;
-    for (instance, federation_state, is_blocked, is_allowed) in all {
-      let i = InstanceWithFederationState {
-        instance,
-        federation_state: federation_state.map(std::convert::Into::into),
-      };
-      if is_blocked {
-        // blocked instances will only have an entry here if they had been federated with in the
-        // past.
-        blocked.push(i);
-      } else if is_allowed {
-        allowed.push(i.clone());
-        linked.push(i);
-      } else {
-        // not explicitly allowed but implicitly linked
-        linked.push(i);
-      }
-    }
-
-    Ok(Some(FederatedInstances {
-      linked,
-      allowed,
-      blocked,
-    }))
-  } else {
-    Ok(None)
   }
 }
 
@@ -610,7 +570,7 @@ pub async fn remove_or_restore_user_data(
   create_modlog_entries_for_removed_or_restored_posts(
     pool,
     mod_person_id,
-    removed_or_restored_posts.iter().map(|r| r.id).collect(),
+    &removed_or_restored_posts,
     removed,
     reason,
   )
@@ -622,7 +582,7 @@ pub async fn remove_or_restore_user_data(
   create_modlog_entries_for_removed_or_restored_comments(
     pool,
     mod_person_id,
-    removed_or_restored_comments.iter().map(|r| r.id).collect(),
+    &removed_or_restored_comments,
     removed,
     reason,
   )
@@ -637,22 +597,17 @@ pub async fn remove_or_restore_user_data(
 async fn create_modlog_entries_for_removed_or_restored_posts(
   pool: &mut DbPool<'_>,
   mod_person_id: PersonId,
-  post_ids: Vec<PostId>,
+  posts: &[Post],
   removed: bool,
   reason: &str,
 ) -> LemmyResult<()> {
   // Build the forms
-  let forms = post_ids
+  let forms: Vec<_> = posts
     .iter()
-    .map(|&post_id| ModRemovePostForm {
-      mod_person_id,
-      post_id,
-      removed: Some(removed),
-      reason: reason.to_string(),
-    })
+    .map(|post| ModlogInsertForm::mod_remove_post(mod_person_id, post, removed, reason))
     .collect();
 
-  ModRemovePost::create_multiple(pool, &forms).await?;
+  Modlog::create(pool, &forms).await?;
 
   Ok(())
 }
@@ -660,22 +615,17 @@ async fn create_modlog_entries_for_removed_or_restored_posts(
 async fn create_modlog_entries_for_removed_or_restored_comments(
   pool: &mut DbPool<'_>,
   mod_person_id: PersonId,
-  comment_ids: Vec<CommentId>,
+  comments: &[Comment],
   removed: bool,
   reason: &str,
 ) -> LemmyResult<()> {
   // Build the forms
-  let forms = comment_ids
+  let forms: Vec<_> = comments
     .iter()
-    .map(|&comment_id| ModRemoveCommentForm {
-      mod_person_id,
-      comment_id,
-      removed: Some(removed),
-      reason: reason.to_string(),
-    })
+    .map(|comment| ModlogInsertForm::mod_remove_comment(mod_person_id, comment, removed, reason))
     .collect();
 
-  ModRemoveComment::create_multiple(pool, &forms).await?;
+  Modlog::create(pool, &forms).await?;
 
   Ok(())
 }
@@ -700,24 +650,18 @@ pub async fn remove_or_restore_user_data_in_community(
     Post::update_removed_for_creator_and_community(pool, banned_person_id, community_id, remove)
       .await?;
 
-  create_modlog_entries_for_removed_or_restored_posts(
-    pool,
-    mod_person_id,
-    posts.iter().map(|r| r.id).collect(),
-    remove,
-    reason,
-  )
-  .await?;
+  create_modlog_entries_for_removed_or_restored_posts(pool, mod_person_id, &posts, remove, reason)
+    .await?;
 
   // Comments
-  let removed_comment_ids =
+  let removed_comments =
     Comment::update_removed_for_creator_and_community(pool, banned_person_id, community_id, remove)
       .await?;
 
   create_modlog_entries_for_removed_or_restored_comments(
     pool,
     mod_person_id,
-    removed_comment_ids,
+    &removed_comments,
     remove,
     reason,
   )
@@ -982,7 +926,7 @@ pub fn send_webmention(post: Post, community: &Community) {
         {
           Err(WebmentionError::NoEndpointDiscovered(_)) => Ok(()),
           Ok(_) => Ok(()),
-          Err(e) => Err(e).with_lemmy_type(LemmyErrorType::CouldntSendWebmention),
+          Err(e) => Err(e).with_lemmy_type(UntranslatedError::CouldntSendWebmention.into()),
         }
       });
     }
@@ -1026,7 +970,7 @@ pub async fn update_post_tags(
 mod tests {
   use super::*;
   use diesel_ltree::Ltree;
-  use lemmy_db_schema::newtypes::LanguageId;
+  use lemmy_db_schema::newtypes::{CommentId, LanguageId};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 

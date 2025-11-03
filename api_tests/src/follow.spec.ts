@@ -27,7 +27,7 @@ test("Follow local community", async () => {
   // Make sure the follow response went through
   expect(follow.community_view.community.local).toBe(true);
   expect(follow.community_view.community_actions?.follow_state).toBe(
-    "Accepted",
+    "accepted",
   );
   expect(follow.community_view.community.subscribers).toBe(
     community!.community.subscribers + 1,
@@ -64,16 +64,16 @@ test("Follow federated community", async () => {
     true,
     betaCommunityInitial.community.id,
   );
-  expect(follow.community_view.community_actions?.follow_state).toBe("Pending");
+  expect(follow.community_view.community_actions?.follow_state).toBe("pending");
   const betaCommunity = await waitUntil(
     () => resolveBetaCommunity(alpha),
-    c => c?.community_actions?.follow_state === "Accepted",
+    c => c?.community_actions?.follow_state === "accepted",
   );
 
   // Make sure the follow response went through
   expect(betaCommunity?.community.local).toBe(false);
   expect(betaCommunity?.community.name).toBe("main");
-  expect(betaCommunity?.community_actions?.follow_state).toBe("Accepted");
+  expect(betaCommunity?.community_actions?.follow_state).toBe("accepted");
   expect(betaCommunity?.community.subscribers_local).toBe(
     betaCommunityInitial.community.subscribers_local + 1,
   );

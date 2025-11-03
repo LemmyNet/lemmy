@@ -84,7 +84,7 @@ impl Object for ApubPerson {
     )
   }
 
-  async fn delete(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
+  async fn delete(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     let form = PersonUpdateForm {
       deleted: Some(true),
       ..Default::default()

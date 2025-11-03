@@ -36,8 +36,8 @@ importers:
         specifier: ^17.13.3
         version: 17.13.3
       lemmy-js-client:
-        specifier: 1.0.0-mod-reason-mandatory.0
-        version: 1.0.0-mod-reason-mandatory.0
+        specifier: 1.0.0-merge-modlog-tables.9
+        version: 1.0.0-merge-modlog-tables.9
       prettier:
         specifier: ^3.5.3
         version: 3.6.2
@@ -1656,8 +1656,8 @@ packages:
   keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
 
-  lemmy-js-client@1.0.0-mod-reason-mandatory.0:
-    resolution: {integrity: sha512-xo8O+RCdVtwtfK06fF+bLhMXHGyKOSxmhLg4aO50/JttMAT38uwDlQKSuDKhL/nySrO4yq7fFEzlRgbzM0Kpog==}
+  lemmy-js-client@1.0.0-merge-modlog-tables.9:
+    resolution: {integrity: sha512-NzI2JFh3EzaCgKJ6vLrvArLeH/CSshFQ3zvtMfPNGBMskz5n6W7DOtIb1gNxmlxPP5oR0AiTlVwjyqoBBpaP3w==}
 
   leven@3.1.0:
     resolution: {integrity: sha512-qsda+H8jTaUaN/x5vzW2rzc+8Rw4TAQ/4KjB46IwK5VH+IlVeeeje/EoZRpiXvIqjFgK84QffqPztGI3VBLG1A==}
@@ -4399,7 +4399,7 @@ snapshots:
     dependencies:
       json-buffer: 3.0.1
 
-  lemmy-js-client@1.0.0-mod-reason-mandatory.0:
+  lemmy-js-client@1.0.0-merge-modlog-tables.9:
     dependencies:
       '@tsoa/runtime': 6.6.0
     transitivePeerDependencies:

@@ -117,7 +117,7 @@ impl Activity for CreateOrUpdatePage {
 
       // allow mods to edit the post
       if let Ok(Some(post)) =
-        Post::read_from_apub_id(&mut context.pool(), self.object.id.clone().into_inner()).await
+        Post::read_from_apub_id(&mut context.pool(), self.object.id.clone().into()).await
       {
         let community = Community::read(&mut context.pool(), post.community_id).await?;
         if verify_mod_action(&self.actor, &community, context)
@@ -144,7 +144,7 @@ impl Activity for CreateOrUpdatePage {
     let post = ApubPost::from_json(self.object, context).await?;
 
     // author likes their own post by default
-    let like_form = PostLikeForm::new(post.id, post.creator_id, 1);
+    let like_form = PostLikeForm::new(post.id, post.creator_id, true);
     PostActions::like(&mut context.pool(), &like_form).await?;
 
     // Calculate initial hot_rank for post

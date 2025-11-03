@@ -59,7 +59,7 @@ pub(crate) async fn to_local_url(url: &str, context: &Data<LemmyContext>) -> Opt
     Left(Left(Right(comment))) => comment.local_url(context.settings()),
     Left(Right(Left(user))) => user.actor_url(context.settings()),
     Left(Right(Right(community))) => community.actor_url(context.settings()),
-    Right(multi) => multi.format_url(context.settings()),
+    Right(multi) => multi.actor_url(context.settings()),
   }
   .ok()
 }

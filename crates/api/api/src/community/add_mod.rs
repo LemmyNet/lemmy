@@ -11,7 +11,7 @@ use lemmy_db_schema::{
   source::{
     community::{Community, CommunityActions, CommunityModeratorForm},
     local_user::LocalUser,
-    mod_log::moderator::{ModAddToCommunity, ModAddToCommunityForm},
+    modlog::{Modlog, ModlogInsertForm},
   },
   traits::Crud,
   utils::get_conn,
@@ -75,21 +75,18 @@ pub async fn add_mod_to_community(
         }
 
         // Mod tables
-        let form = ModAddToCommunityForm {
-          mod_person_id: local_user_view.person.id,
-          other_person_id: tx_data.person_id,
-          community_id: tx_data.community_id,
-          removed: Some(!tx_data.added),
-        };
-
-        let action = ModAddToCommunity::create(&mut conn.into(), &form).await?;
-
-        Ok(action)
+        let form = ModlogInsertForm::mod_add_to_community(
+          local_user_view.person.id,
+          tx_data.community_id,
+          tx_data.person_id,
+          !tx_data.added,
+        );
+        Modlog::create(&mut conn.into(), &[form]).await
       }
       .scope_boxed()
     })
     .await?;
-  notify_mod_action(action.clone(), tx_data.person_id, &context);
+  notify_mod_action(action.clone(), &context);
 
   // Note: in case a remote mod is added, this returns the old moderators list, it will only get
   //       updated once we receive an activity from the community (like `Announce/Add/Moderator`)

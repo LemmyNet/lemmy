@@ -24,6 +24,9 @@ workspace = true
 [dependencies]
 lemmy_db_views_community_moderator = { workspace = true, features = ["full"] }
 lemmy_db_views_community_follower = { workspace = true, features = ["full"] }
+lemmy_db_views_community_follower_approval = { workspace = true, features = [
+  "full",
+] }
 lemmy_db_views_post = { workspace = true, features = ["full"] }
 lemmy_utils = { workspace = true, features = ["full"] }
 lemmy_db_schema = { workspace = true, features = ["full"] }
@@ -42,6 +45,7 @@ futures = { workspace = true }
 futures-util = { workspace = true }
 async-trait = { workspace = true }
 either = { workspace = true }
+chrono = { workspace = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

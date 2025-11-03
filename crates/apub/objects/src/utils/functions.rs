@@ -14,18 +14,17 @@ use html2md::parse_html;
 use lemmy_api_utils::{context::LemmyContext, utils::check_is_mod_or_admin};
 use lemmy_db_schema::{
   source::{
-    community::{Community, CommunityActions, CommunityModeratorForm},
+    community::Community,
     instance::{Instance, InstanceActions},
     local_site::LocalSite,
   },
   utils::DbPool,
 };
 use lemmy_db_schema_file::enums::{ActorType, CommunityVisibility};
-use lemmy_db_views_community_moderator::CommunityModeratorView;
-use lemmy_db_views_community_person_ban::CommunityPersonBanView;
+use lemmy_db_views_community_moderator::CommunityPersonBanView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
-  error::{FederationError, LemmyError, LemmyResult},
+  error::{LemmyError, LemmyResult, UntranslatedError},
   CacheLock,
   CACHE_DURATION_FEDERATION,
 };
@@ -108,7 +107,7 @@ pub async fn check_apub_id_valid_with_strictness(
 ) -> LemmyResult<()> {
   let domain = apub_id
     .domain()
-    .ok_or(FederationError::UrlWithoutDomain)?
+    .ok_or(UntranslatedError::UrlWithoutDomain)?
     .to_string();
   let local_instance = context.settings().get_hostname_without_port()?;
   if domain == local_instance {
@@ -132,10 +131,10 @@ pub async fn check_apub_id_valid_with_strictness(
 
     let domain = apub_id
       .domain()
-      .ok_or(FederationError::UrlWithoutDomain)?
+      .ok_or(UntranslatedError::UrlWithoutDomain)?
       .to_string();
     if !allowed_and_local.contains(&domain) {
-      Err(FederationError::FederationDisabledByStrictAllowList)?
+      Err(UntranslatedError::FederationDisabledByStrictAllowList)?
     }
   }
   Ok(())
@@ -151,7 +150,7 @@ pub async fn check_apub_id_valid_with_strictness(
 pub fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> LemmyResult<()> {
   let domain = apub_id
     .domain()
-    .ok_or(FederationError::UrlWithoutDomain)?
+    .ok_or(UntranslatedError::UrlWithoutDomain)?
     .to_string();
 
   if !local_site_data
@@ -160,7 +159,7 @@ pub fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Le
     .map(|l| l.federation_enabled)
     .unwrap_or(true)
   {
-    Err(FederationError::FederationDisabled)?
+    Err(UntranslatedError::FederationDisabled)?
   }
 
   if local_site_data
@@ -168,7 +167,7 @@ pub fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Le
     .iter()
     .any(|i| domain.to_lowercase().eq(&i.domain.to_lowercase()))
   {
-    Err(FederationError::DomainBlocked(domain.clone()))?
+    Err(UntranslatedError::DomainBlocked(domain.clone()))?
   }
 
   // Only check this if there are instances in the allowlist
@@ -178,7 +177,7 @@ pub fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Le
       .iter()
       .any(|i| domain.to_lowercase().eq(&i.domain.to_lowercase()))
   {
-    Err(FederationError::DomainNotInAllowList(domain))?
+    Err(UntranslatedError::DomainNotInAllowList(domain))?
   }
 
   Ok(())
@@ -195,41 +194,6 @@ impl<L: GetActorType, R: GetActorType> GetActorType for either::Either<L, R> {
       Either::Left(l) => l.actor_type(),
     }
   }
-}
-
-pub async fn handle_community_moderators(
-  new_mods: &Vec<ObjectId<ApubPerson>>,
-  community: &ApubCommunity,
-  context: &Data<LemmyContext>,
-) -> LemmyResult<()> {
-  let community_id = community.id;
-  let current_moderators =
-    CommunityModeratorView::for_community(&mut context.pool(), community_id).await?;
-  // Remove old mods from database which arent in the moderators collection anymore
-  for mod_user in &current_moderators {
-    let mod_id = ObjectId::from(mod_user.moderator.ap_id.clone());
-    if !new_mods.contains(&mod_id) {
-      let community_moderator_form =
-        CommunityModeratorForm::new(mod_user.community.id, mod_user.moderator.id);
-      CommunityActions::leave(&mut context.pool(), &community_moderator_form).await?;
-    }
-  }
-
-  // Add new mods to database which have been added to moderators collection
-  for mod_id in new_mods {
-    // Ignore errors as mod accounts might be deleted or instances unavailable.
-    let mod_user: Option<ApubPerson> = mod_id.dereference(context).await.ok();
-    if let Some(mod_user) = mod_user {
-      if !current_moderators
-        .iter()
-        .any(|x| x.moderator.ap_id == mod_user.ap_id)
-      {
-        let community_moderator_form = CommunityModeratorForm::new(community.id, mod_user.id);
-        CommunityActions::join(&mut context.pool(), &community_moderator_form).await?;
-      }
-    }
-  }
-  Ok(())
 }
 
 /// Marks object as public only if the community is public
@@ -278,7 +242,7 @@ pub async fn verify_person_in_site_or_community(
 
 pub fn verify_is_public(to: &[Url], cc: &[Url]) -> LemmyResult<()> {
   if ![to, cc].iter().any(|set| set.contains(&public())) {
-    Err(FederationError::ObjectIsNotPublic)?
+    Err(UntranslatedError::ObjectIsNotPublic)?
   } else {
     Ok(())
   }
@@ -290,8 +254,8 @@ pub fn verify_visibility(to: &[Url], cc: &[Url], community: &ApubCommunity) -> L
   use CommunityVisibility::*;
   let object_is_public = [to, cc].iter().any(|set| set.contains(&public()));
   match community.visibility {
-    Public | Unlisted if !object_is_public => Err(FederationError::ObjectIsNotPublic)?,
-    Private if object_is_public => Err(FederationError::ObjectIsNotPrivate)?,
+    Public | Unlisted if !object_is_public => Err(UntranslatedError::ObjectIsNotPublic)?,
+    Private if object_is_public => Err(UntranslatedError::ObjectIsNotPrivate)?,
     _ => Ok(()),
   }
 }

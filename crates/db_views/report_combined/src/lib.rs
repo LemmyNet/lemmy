@@ -50,7 +50,12 @@ pub struct ReportCombinedViewInternal {
   pub private_message_report: Option<PrivateMessageReport>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub community_report: Option<CommunityReport>,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[cfg_attr(feature = "full",
+    diesel(
+      select_expression_type = Person1AliasAllColumnsTuple,
+      select_expression = person1_select()
+    )
+  )]
   pub report_creator: Person,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub comment: Option<Comment>,
@@ -58,12 +63,7 @@ pub struct ReportCombinedViewInternal {
   pub private_message: Option<PrivateMessage>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub post: Option<Post>,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression_type = Nullable<Person1AliasAllColumnsTuple>,
-      select_expression = person1_select().nullable()
-    )
-  )]
+  #[cfg_attr(feature = "full", diesel(embed))]
   pub creator: Option<Person>,
   #[cfg_attr(feature = "full",
     diesel(
@@ -124,8 +124,7 @@ pub struct ReportCombinedViewInternal {
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
-// Use serde's internal tagging, to work easier with javascript libraries
-#[serde(tag = "type_")]
+#[serde(tag = "type_", rename_all = "snake_case")]
 pub enum ReportCombinedView {
   Post(PostReportView),
   Comment(CommentReportView),
@@ -146,6 +145,7 @@ pub struct PrivateMessageReportView {
   pub resolver: Option<Person>,
   pub creator_is_admin: bool,
   pub creator_banned: bool,
+  pub creator_ban_expires_at: Option<DateTime<Utc>>,
 }
 
 #[skip_serializing_none]
@@ -167,7 +167,9 @@ pub struct CommentReportView {
   pub creator_is_admin: bool,
   pub creator_is_moderator: bool,
   pub creator_banned: bool,
+  pub creator_ban_expires_at: Option<DateTime<Utc>>,
   pub creator_banned_from_community: bool,
+  pub creator_community_ban_expires_at: Option<DateTime<Utc>>,
 }
 
 #[skip_serializing_none]
@@ -183,7 +185,9 @@ pub struct CommunityReportView {
   pub creator_is_admin: bool,
   pub creator_is_moderator: bool,
   pub creator_banned: bool,
+  pub creator_ban_expires_at: Option<DateTime<Utc>>,
   pub creator_banned_from_community: bool,
+  pub creator_community_ban_expires_at: Option<DateTime<Utc>>,
 }
 
 #[skip_serializing_none]
@@ -204,5 +208,7 @@ pub struct PostReportView {
   pub creator_is_admin: bool,
   pub creator_is_moderator: bool,
   pub creator_banned: bool,
+  pub creator_ban_expires_at: Option<DateTime<Utc>>,
   pub creator_banned_from_community: bool,
+  pub creator_community_ban_expires_at: Option<DateTime<Utc>>,
 }
