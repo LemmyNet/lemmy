@@ -1,26 +1,38 @@
 use activitypub_federation::config::Data as ApubData;
-use actix_web::web::*;
+use actix_web::{guard, web::*, HttpRequest, HttpResponse};
 use chrono::Utc;
-use lemmy_api::federation::{list_comments::list_comments, list_posts::list_posts};
+use lemmy_api::{
+  federation::{list_comments::list_comments, list_posts::list_posts},
+  local_user::{login::login, logout::logout},
+};
 use lemmy_api_019::{
   comment::{GetComments as GetCommentsV3, GetCommentsResponse as GetCommentsResponseV3},
   lemmy_db_schema::{
-    aggregates::structs::{CommentAggregates, CommunityAggregates, PostAggregates, SiteAggregates},
+    aggregates::structs::{
+      CommentAggregates,
+      CommunityAggregates,
+      PersonAggregates,
+      PostAggregates,
+      SiteAggregates,
+    },
     newtypes::{
       CommentId as CommentIdV3,
       CommunityId as CommunityIdV3,
       DbUrl as DbUrlV3,
       InstanceId,
       LanguageId as LanguageIdV3,
+      LocalUserId as LocalUserIdV3,
       PersonId as PersonIdV3,
       PostId as PostIdV3,
       SiteId as SiteIdV3,
     },
+    sensitive::SensitiveString as SensitiveStringV3,
     source::{
       comment::Comment as CommentV3,
       community::Community as CommunityV3,
       local_site::LocalSite as LocalSiteV3,
       local_site_rate_limit::LocalSiteRateLimit as LocalSiteRateLimitV3,
+      local_user::LocalUser as LocalUserV3,
       person::Person as PersonV3,
       post::Post as PostV3,
       site::Site as SiteV3,
@@ -34,6 +46,7 @@ use lemmy_api_019::{
     SiteView as SiteViewV3,
   },
   lemmy_db_views_actor::structs::CommunityView as CommunityViewV3,
+  person::{Login as LoginV3, LoginResponse as LoginResponseV3},
   post::{
     GetPost as GetPostV3,
     GetPostResponse as GetPostResponseV3,
@@ -46,10 +59,12 @@ use lemmy_api_crud::{post::read::get_post, site::read::get_site, user::my_user::
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, DbUrl, PostId},
+  sensitive::SensitiveString,
   source::{
     comment::Comment,
     community::Community,
     local_site::LocalSite,
+    local_user::LocalUser,
     person::Person,
     post::Post,
     site::Site,
@@ -60,7 +75,10 @@ use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::{api::GetPosts, PostView};
 use lemmy_db_views_search_combined::api::GetPost;
-use lemmy_db_views_site::{api::MyUserInfo, SiteView};
+use lemmy_db_views_site::{
+  api::{Login, LoginResponse, MyUserInfo},
+  SiteView,
+};
 use lemmy_utils::{error::LemmyResult, rate_limit::RateLimit};
 use std::sync::LazyLock;
 use url::Url;
@@ -81,16 +99,71 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
         scope("/comment")
           .wrap(rate_limit.message())
           .route("/list", get().to(list_comments_v3)),
+      )
+      .service(
+        resource("/user/login")
+          .guard(guard::Post())
+          .wrap(rate_limit.register())
+          .route(post().to(login_v3)),
+      )
+      .service(
+        scope("/user")
+          .wrap(rate_limit.message())
+          .route("/logout", post().to(logout_v3)),
       ),
   );
 }
 
+async fn login_v3(
+  data: Json<LoginV3>,
+  req: HttpRequest,
+  context: Data<LemmyContext>,
+) -> LemmyResult<Json<LoginResponseV3>> {
+  let LoginV3 {
+    username_or_email,
+    password,
+    totp_2fa_token,
+  } = data.0;
+  let data = Login {
+    username_or_email: convert_sensitive(username_or_email),
+    password: convert_sensitive(password),
+    totp_2fa_token,
+    stay_logged_in: None,
+  };
+  let LoginResponse {
+    jwt,
+    registration_created,
+    verify_email_sent,
+  } = login(Json(data), req, context).await?.0;
+  Ok(Json(LoginResponseV3 {
+    jwt: jwt.map(convert_sensitive2),
+    registration_created,
+    verify_email_sent,
+  }))
+}
+
+fn convert_sensitive(s: SensitiveStringV3) -> SensitiveString {
+  SensitiveString::from(s.into_inner())
+}
+
+fn convert_sensitive2(s: SensitiveString) -> SensitiveStringV3 {
+  SensitiveStringV3::from(s.into_inner())
+}
+
+async fn logout_v3(
+  req: HttpRequest,
+  // require login
+  _local_user_view: LocalUserView,
+  context: ApubData<LemmyContext>,
+) -> LemmyResult<HttpResponse> {
+  logout(req, _local_user_view, context).await
+}
+
 async fn get_site_v3(
-  // TODO
-  //local_user_view: Option<LocalUserViewV3>,
+  local_user_view: Option<LocalUserView>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<GetSiteResponseV3>> {
-  let local_user_view = None; //local_user_view.map(convert_local_user_view);
+  //let local_user_view_019 = local_user_view.map(convert_local_user_view2);
   let site = get_site(local_user_view.clone(), context.clone()).await?.0;
   let my_user = if let Some(local_user_view) = local_user_view {
     Some(get_my_user(local_user_view, context).await?.0)
@@ -110,7 +183,7 @@ async fn get_site_v3(
   }))
 }
 
-pub async fn get_post_v3(
+async fn get_post_v3(
   data: Query<GetPostV3>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
@@ -133,7 +206,7 @@ pub async fn get_post_v3(
   }))
 }
 
-pub async fn list_posts_v3(
+async fn list_posts_v3(
   datav3: Query<GetPostsV3>,
   context: ApubData<LemmyContext>,
   local_user_view: Option<LocalUserView>,
@@ -174,7 +247,7 @@ pub async fn list_posts_v3(
   }))
 }
 
-pub async fn list_comments_v3(
+async fn list_comments_v3(
   data: Query<GetCommentsV3>,
   context: ApubData<LemmyContext>,
   local_user_view: Option<LocalUserView>,
@@ -213,11 +286,71 @@ pub async fn list_comments_v3(
 static DUMMY_URL: LazyLock<DbUrlV3> =
   LazyLock::new(|| Url::parse("http://example.com").unwrap().into());
 
-fn convert_local_user_view(local_user_view: LocalUserViewV3) -> LocalUserView {
-  todo!()
-}
 fn convert_local_user_view2(local_user_view: LocalUserView) -> LocalUserViewV3 {
-  todo!()
+  let LocalUserView {
+    local_user, person, ..
+  } = local_user_view;
+  let (person, counts) = convert_person(person);
+  LocalUserViewV3 {
+    local_user: convert_local_user(local_user),
+    local_user_vote_display_mode: Default::default(),
+    person,
+    counts,
+  }
+}
+
+fn convert_local_user(local_user: LocalUser) -> LocalUserV3 {
+  let LocalUser {
+    id,
+    person_id,
+    show_nsfw,
+    theme,
+    interface_language,
+    show_avatars,
+    send_notifications_to_email,
+    show_bot_accounts,
+    show_read_posts,
+    email_verified,
+    accepted_application,
+    open_links_in_new_tab,
+    blur_nsfw,
+    infinite_scroll_enabled,
+    totp_2fa_enabled,
+    enable_animated_images,
+    collapse_bot_comments,
+    last_donation_notification_at,
+    ..
+  } = local_user;
+  LocalUserV3 {
+    id: LocalUserIdV3(id.0),
+    person_id: PersonIdV3(person_id.0),
+    password_encrypted: Default::default(),
+    email: None,
+    show_nsfw,
+    theme,
+    default_sort_type: Default::default(),
+    default_listing_type: Default::default(),
+    interface_language,
+    show_avatars,
+    send_notifications_to_email,
+    show_scores: false,
+    show_bot_accounts,
+    show_read_posts,
+    email_verified,
+    accepted_application,
+    totp_2fa_secret: None,
+    open_links_in_new_tab,
+    blur_nsfw,
+    auto_expand: false,
+    infinite_scroll_enabled,
+    admin: false,
+    post_listing_mode: Default::default(),
+    totp_2fa_enabled,
+    enable_keyboard_navigation: false,
+    enable_animated_images,
+    collapse_bot_comments,
+    last_donation_notification: last_donation_notification_at,
+  }
 }
 
 fn convert_community_view(community_view: CommunityView) -> CommunityViewV3 {
@@ -257,7 +390,7 @@ fn convert_post_view(post_view: PostView) -> PostViewV3 {
   let (post, counts) = convert_post(post);
   PostViewV3 {
     post,
-    creator: convert_person(creator),
+    creator: convert_person(creator).0,
     community: convert_community(community),
     image_details: None,
     creator_banned_from_community,
@@ -289,7 +422,7 @@ fn convert_comment_view(comment_view: CommentView) -> CommentViewV3 {
   let (comment, counts) = convert_comment(comment);
   CommentViewV3 {
     comment,
-    creator: convert_person(creator),
+    creator: convert_person(creator).0,
     post: convert_post(post).0,
     community: convert_community(community),
     counts,
@@ -376,7 +509,7 @@ fn convert_my_user(my_user: Option<MyUserInfo>) -> Option<MyUserInfoV3> {
   }
 }
 
-fn convert_person(person: Person) -> PersonV3 {
+fn convert_person(person: Person) -> (PersonV3, PersonAggregates) {
   let Person {
     id,
     name,
@@ -393,31 +526,45 @@ fn convert_person(person: Person) -> PersonV3 {
     deleted,
     matrix_user_id,
     bot_account,
+    post_count,
+    post_score,
+    comment_count,
+    comment_score,
     ..
   } = person;
-  PersonV3 {
-    id: PersonIdV3(id.0),
-    name,
-    display_name,
-    avatar: avatar.map(convert_db_url),
-    banned: false,
-    published: published_at,
-    updated: updated_at,
-    actor_id: convert_db_url(ap_id),
-    bio,
-    local,
-    private_key: Default::default(),
-    public_key,
-    last_refreshed_at,
-    banner: banner.map(convert_db_url),
-    deleted,
-    inbox_url: DUMMY_URL.clone(),
-    shared_inbox_url: None,
-    matrix_user_id,
-    bot_account,
-    ban_expires: None,
-    instance_id: Default::default(),
-  }
+  let id = PersonIdV3(id.0);
+  (
+    PersonV3 {
+      id,
+      name,
+      display_name,
+      avatar: avatar.map(convert_db_url),
+      banned: false,
+      published: published_at,
+      updated: updated_at,
+      actor_id: convert_db_url(ap_id),
+      bio,
+      local,
+      private_key: Default::default(),
+      public_key,
+      last_refreshed_at,
+      banner: banner.map(convert_db_url),
+      deleted,
+      inbox_url: DUMMY_URL.clone(),
+      shared_inbox_url: None,
+      matrix_user_id,
+      bot_account,
+      ban_expires: None,
+      instance_id: Default::default(),
+    },
+    PersonAggregates {
+      person_id: id,
+      post_count: post_count.into(),
+      post_score: post_score.into(),
+      comment_count: comment_count.into(),
+      comment_score: comment_score.into(),
+    },
+  )
 }
 
 fn convert_community(community: Community) -> CommunityV3 {
