@@ -37,14 +37,19 @@ use lemmy_api_019::{
     source::{
       comment::Comment as CommentV3,
       community::Community as CommunityV3,
+      language::Language as LanguageV3,
       local_site::LocalSite as LocalSiteV3,
       local_site_rate_limit::LocalSiteRateLimit as LocalSiteRateLimitV3,
+      local_site_url_blocklist::LocalSiteUrlBlocklist as LocalSiteUrlBlocklistV3,
       local_user::LocalUser as LocalUserV3,
-      local_user_vote_display_mode::LocalUserVoteDisplayMode,
+      local_user_vote_display_mode::LocalUserVoteDisplayMode as LocalUserVoteDisplayModeV3,
       person::Person as PersonV3,
       post::Post as PostV3,
       site::Site as SiteV3,
+      tagline::Tagline as TaglineV3,
     },
+    ListingType as ListingTypeV3,
+    SortType as SortTypeV3,
     SubscribedType as SubscribedTypeV3,
   },
   lemmy_db_views::structs::{
@@ -53,7 +58,7 @@ use lemmy_api_019::{
     PostView as PostViewV3,
     SiteView as SiteViewV3,
   },
-  lemmy_db_views_actor::structs::CommunityView as CommunityViewV3,
+  lemmy_db_views_actor::structs::{CommunityView as CommunityViewV3, PersonView as PersonViewV3},
   person::{Login as LoginV3, LoginResponse as LoginResponseV3},
   post::{
     CreatePostLike as CreatePostLikeV3,
@@ -80,19 +85,21 @@ use lemmy_db_schema::{
     site::Site,
   },
 };
+use lemmy_db_schema_file::enums::{ListingType, PostSortType};
 use lemmy_db_views_comment::{
   api::{CreateCommentLike, GetComments},
   CommentView,
 };
 use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_person::PersonView;
 use lemmy_db_views_post::{
   api::{CreatePostLike, GetPosts},
   PostView,
 };
 use lemmy_db_views_search_combined::api::GetPost;
 use lemmy_db_views_site::{
-  api::{Login, LoginResponse, MyUserInfo},
+  api::{GetSiteResponse, Login, LoginResponse, MyUserInfo},
   SiteView,
 };
 use lemmy_utils::{error::LemmyResult, rate_limit::RateLimit};
@@ -213,37 +220,80 @@ fn convert_sensitive2(s: SensitiveString) -> SensitiveStringV3 {
 
 async fn logout_v3(
   req: HttpRequest,
-  // require login
-  _local_user_view: LocalUserView,
+  local_user_view: LocalUserView,
   context: ApubData<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
-  logout(req, _local_user_view, context).await
+  logout(req, local_user_view, context).await
 }
 
 async fn get_site_v3(
   local_user_view: Option<LocalUserView>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<GetSiteResponseV3>> {
-  //let local_user_view_019 = local_user_view.map(convert_local_user_view2);
-  let site = get_site(local_user_view.clone(), context.clone()).await?.0;
+  let GetSiteResponse {
+    site_view,
+    admins,
+    version,
+    all_languages,
+    discussion_languages,
+    tagline,
+    blocked_urls,
+    ..
+  } = get_site(local_user_view.clone(), context.clone()).await?.0;
   let my_user = if let Some(local_user_view) = local_user_view {
     Some(get_my_user(local_user_view, context).await?.0)
   } else {
     None
   };
   Ok(Json(GetSiteResponseV3 {
-    site_view: convert_site_view(site.site_view),
-    admins: vec![],
-    version: site.version,
+    site_view: convert_site_view(site_view),
+    admins: admins.into_iter().map(convert_person_view).collect(),
+    version,
     my_user: convert_my_user(my_user),
-    all_languages: vec![],
-    discussion_languages: vec![],
-    taglines: vec![],
+    all_languages: all_languages
+      .into_iter()
+      .map(|l| LanguageV3 {
+        id: LanguageIdV3(l.id.0),
+        code: l.code,
+        name: l.name,
+      })
+      .collect(),
+    discussion_languages: discussion_languages
+      .into_iter()
+      .map(|id| LanguageIdV3(id.0))
+      .collect(),
+    taglines: tagline
+      .into_iter()
+      .map(|t| TaglineV3 {
+        id: t.id.0,
+        local_site_id: Default::default(),
+        content: t.content,
+        published: t.published_at,
+        updated: t.updated_at,
+      })
+      .collect(),
     custom_emojis: vec![],
-    blocked_urls: vec![],
+    blocked_urls: blocked_urls
+      .into_iter()
+      .map(|b| LocalSiteUrlBlocklistV3 {
+        id: b.id,
+        url: b.url,
+        published: b.published_at,
+        updated: b.updated_at,
+      })
+      .collect(),
   }))
 }
 
+fn convert_person_view(person_view: PersonView) -> PersonViewV3 {
+  let PersonView { person, .. } = person_view;
+  let (person, counts) = convert_person(person);
+  PersonViewV3 {
+    person,
+    counts,
+    is_admin: false,
+  }
+}
 async fn get_post_v3(
   data: Query<GetPostV3>,
   context: Data<LemmyContext>,
@@ -279,11 +329,13 @@ async fn list_posts_v3(
     show_hidden,
     show_read,
     show_nsfw,
+    type_,
+    sort,
     ..
   } = datav3.0;
   let data = GetPosts {
-    type_: Default::default(),
-    sort: Default::default(),
+    type_: type_.map(convert_post_listing_type),
+    sort: sort.map(convert_post_listing_sort),
     time_range_seconds: Default::default(),
     community_id: community_id.map(|id| CommunityId(id.0)),
     community_name,
@@ -306,6 +358,40 @@ async fn list_posts_v3(
     posts: posts.into_iter().map(convert_post_view).collect(),
     next_page: None,
   }))
+}
+
+fn convert_post_listing_type(listing_type: ListingTypeV3) -> ListingType {
+  match listing_type {
+    ListingTypeV3::All => ListingType::All,
+    ListingTypeV3::Local => ListingType::Local,
+    ListingTypeV3::Subscribed => ListingType::Subscribed,
+    ListingTypeV3::ModeratorView => ListingType::ModeratorView,
+  }
+}
+
+fn convert_post_listing_sort(sort_type: SortTypeV3) -> PostSortType {
+  // TODO: also return time_range_seconds from here (for different top sorts)
+  match sort_type {
+    SortTypeV3::Active => PostSortType::Active,
+    SortTypeV3::Hot => PostSortType::Hot,
+    SortTypeV3::New => PostSortType::New,
+    SortTypeV3::Old => PostSortType::Old,
+    SortTypeV3::TopDay
+    | SortTypeV3::TopWeek
+    | SortTypeV3::TopMonth
+    | SortTypeV3::TopYear
+    | SortTypeV3::TopAll
+    | SortTypeV3::MostComments
+    | SortTypeV3::NewComments
+    | SortTypeV3::TopHour
+    | SortTypeV3::TopSixHour
+    | SortTypeV3::TopTwelveHour
+    | SortTypeV3::TopThreeMonths
+    | SortTypeV3::TopSixMonths
+    | SortTypeV3::TopNineMonths => PostSortType::Top,
+    SortTypeV3::Controversial => PostSortType::Controversial,
+    SortTypeV3::Scaled => PostSortType::Scaled,
+  }
 }
 
 async fn list_comments_v3(
@@ -354,7 +440,7 @@ fn convert_local_user_view2(local_user_view: LocalUserView) -> LocalUserViewV3 {
   let (person, counts) = convert_person(person);
   let local_user = convert_local_user(local_user);
   LocalUserViewV3 {
-    local_user_vote_display_mode: LocalUserVoteDisplayMode {
+    local_user_vote_display_mode: LocalUserVoteDisplayModeV3 {
       local_user_id: local_user.id,
       score: false,
       upvotes: true,
