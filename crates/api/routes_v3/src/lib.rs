@@ -68,6 +68,7 @@ use lemmy_api_019::{
   lemmy_db_views_actor::structs::{CommunityView as CommunityViewV3, PersonView as PersonViewV3},
   person::{Login as LoginV3, LoginResponse as LoginResponseV3},
   post::{
+    CreatePost as CreatePostV3,
     CreatePostLike as CreatePostLikeV3,
     GetPost as GetPostV3,
     GetPostResponse as GetPostResponseV3,
@@ -86,7 +87,7 @@ use lemmy_api_019::{
 };
 use lemmy_api_crud::{
   comment::create::create_comment,
-  post::read::get_post,
+  post::{create::create_post, read::get_post},
   site::read::get_site,
   user::my_user::get_my_user,
 };
@@ -113,7 +114,7 @@ use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
 use lemmy_db_views_post::{
-  api::{CreatePostLike, GetPosts},
+  api::{CreatePost, CreatePostLike, GetPosts},
   PostView,
 };
 use lemmy_db_views_search_combined::{api::GetPost, Search, SearchCombinedView};
@@ -142,6 +143,12 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route(get().to(resolve_object_v3)),
       )
       .service(
+        resource("/post")
+          .guard(guard::Post())
+          .wrap(rate_limit.post())
+          .route(post().to(create_post_v3)),
+      )
+      .service(
         scope("/post")
           .wrap(rate_limit.message())
           .route("", get().to(get_post_v3))
@@ -150,7 +157,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
       )
       // Comment
       .service(
-        // Handle POST to /comment separately to add the comment() rate limitter
         resource("/comment")
           .guard(guard::Post())
           .wrap(rate_limit.comment())
@@ -197,6 +203,41 @@ async fn create_comment_v3(
   Ok(Json(CommentResponseV3 {
     comment_view: convert_comment_view(res.0.comment_view),
     recipient_ids: vec![],
+  }))
+}
+
+async fn create_post_v3(
+  data: Json<CreatePostV3>,
+  context: ApubData<LemmyContext>,
+  local_user_view: LocalUserView,
+) -> LemmyResult<Json<PostResponseV3>> {
+  let CreatePostV3 {
+    name,
+    community_id,
+    url,
+    body,
+    alt_text,
+    honeypot,
+    nsfw,
+    language_id,
+    custom_thumbnail,
+  } = data.0;
+  let data = CreatePost {
+    name,
+    community_id: CommunityId(community_id.0),
+    url,
+    body,
+    alt_text,
+    honeypot,
+    nsfw,
+    language_id: language_id.map(|l| LanguageId(l.0)),
+    custom_thumbnail,
+    tags: None,
+    scheduled_publish_time_at: None,
+  };
+  let res = create_post(Json(data), context, local_user_view).await?;
+  Ok(Json(PostResponseV3 {
+    post_view: convert_post_view(res.0.post_view),
   }))
 }
 
