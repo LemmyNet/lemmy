@@ -6,7 +6,7 @@ license = "AGPL-3.0"
 homepage = "https://join-lemmy.org/"
 documentation = "https://join-lemmy.org/docs/en/index.html"
 repository = "https://github.com/LemmyNet/lemmy"
-rust-version = "1.90"
+rust-version = "1.91"
 
 # See https://github.com/johnthagen/min-sized-rust for additional optimizations
 [profile.release]
