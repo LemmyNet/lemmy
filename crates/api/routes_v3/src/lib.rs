@@ -15,6 +15,7 @@ use lemmy_api::{
 use lemmy_api_019::{
   comment::{
     CommentResponse as CommentResponseV3,
+    CreateComment as CreateCommentV3,
     CreateCommentLike as CreateCommentLikeV3,
     GetComments as GetCommentsV3,
     GetCommentsResponse as GetCommentsResponseV3,
@@ -83,10 +84,15 @@ use lemmy_api_019::{
     SearchResponse as SearchResponseV3,
   },
 };
-use lemmy_api_crud::{post::read::get_post, site::read::get_site, user::my_user::get_my_user};
+use lemmy_api_crud::{
+  comment::create::create_comment,
+  post::read::get_post,
+  site::read::get_site,
+  user::my_user::get_my_user,
+};
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
-  newtypes::{CommentId, CommunityId, DbUrl, PersonId, PostId},
+  newtypes::{CommentId, CommunityId, DbUrl, LanguageId, PersonId, PostId},
   sensitive::SensitiveString,
   source::{
     comment::Comment,
@@ -100,7 +106,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::enums::{ListingType, PostSortType};
 use lemmy_db_views_comment::{
-  api::{CreateCommentLike, GetComments},
+  api::{CreateComment, CreateCommentLike, GetComments},
   CommentView,
 };
 use lemmy_db_views_community::CommunityView;
@@ -142,6 +148,14 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("/list", get().to(list_posts_v3))
           .route("/like", post().to(like_post_v3)),
       )
+      // Comment
+      .service(
+        // Handle POST to /comment separately to add the comment() rate limitter
+        resource("/comment")
+          .guard(guard::Post())
+          .wrap(rate_limit.comment())
+          .route(post().to(create_comment_v3)),
+      )
       .service(
         scope("/comment")
           .wrap(rate_limit.message())
@@ -160,6 +174,30 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("/logout", post().to(logout_v3)),
       ),
   );
+}
+
+async fn create_comment_v3(
+  data: Json<CreateCommentV3>,
+  context: ApubData<LemmyContext>,
+  local_user_view: LocalUserView,
+) -> LemmyResult<Json<CommentResponseV3>> {
+  let CreateCommentV3 {
+    content,
+    post_id,
+    parent_id,
+    language_id,
+  } = data.0;
+  let data = CreateComment {
+    content,
+    post_id: PostId(post_id.0),
+    parent_id: parent_id.map(|i| CommentId(i.0)),
+    language_id: language_id.map(|l| LanguageId(l.0)),
+  };
+  let res = create_comment(Json(data), context, local_user_view).await?;
+  Ok(Json(CommentResponseV3 {
+    comment_view: convert_comment_view(res.0.comment_view),
+    recipient_ids: vec![],
+  }))
 }
 
 async fn search_v3(
