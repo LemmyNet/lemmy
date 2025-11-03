@@ -2,11 +2,18 @@ use activitypub_federation::config::Data as ApubData;
 use actix_web::{guard, web::*, HttpRequest, HttpResponse};
 use chrono::Utc;
 use lemmy_api::{
+  comment::like::like_comment,
   federation::{list_comments::list_comments, list_posts::list_posts},
   local_user::{login::login, logout::logout},
+  post::like::like_post,
 };
 use lemmy_api_019::{
-  comment::{GetComments as GetCommentsV3, GetCommentsResponse as GetCommentsResponseV3},
+  comment::{
+    CommentResponse as CommentResponseV3,
+    CreateCommentLike as CreateCommentLikeV3,
+    GetComments as GetCommentsV3,
+    GetCommentsResponse as GetCommentsResponseV3,
+  },
   lemmy_db_schema::{
     aggregates::structs::{
       CommentAggregates,
@@ -49,10 +56,12 @@ use lemmy_api_019::{
   lemmy_db_views_actor::structs::CommunityView as CommunityViewV3,
   person::{Login as LoginV3, LoginResponse as LoginResponseV3},
   post::{
+    CreatePostLike as CreatePostLikeV3,
     GetPost as GetPostV3,
     GetPostResponse as GetPostResponseV3,
     GetPosts as GetPostsV3,
     GetPostsResponse as GetPostsResponseV3,
+    PostResponse as PostResponseV3,
   },
   site::{GetSiteResponse as GetSiteResponseV3, MyUserInfo as MyUserInfoV3},
 };
@@ -71,10 +80,16 @@ use lemmy_db_schema::{
     site::Site,
   },
 };
-use lemmy_db_views_comment::{api::GetComments, CommentView};
+use lemmy_db_views_comment::{
+  api::{CreateCommentLike, GetComments},
+  CommentView,
+};
 use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_post::{api::GetPosts, PostView};
+use lemmy_db_views_post::{
+  api::{CreatePostLike, GetPosts},
+  PostView,
+};
 use lemmy_db_views_search_combined::api::GetPost;
 use lemmy_db_views_site::{
   api::{Login, LoginResponse, MyUserInfo},
@@ -94,11 +109,13 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
         scope("/post")
           .wrap(rate_limit.message())
           .route("", get().to(get_post_v3))
-          .route("/list", get().to(list_posts_v3)),
+          .route("/list", get().to(list_posts_v3))
+          .route("/like", post().to(like_post_v3)),
       )
       .service(
         scope("/comment")
           .wrap(rate_limit.message())
+          .route("/like", post().to(like_comment_v3))
           .route("/list", get().to(list_comments_v3)),
       )
       .service(
@@ -113,6 +130,49 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("/logout", post().to(logout_v3)),
       ),
   );
+}
+
+async fn like_comment_v3(
+  data: Json<CreateCommentLikeV3>,
+  context: ApubData<LemmyContext>,
+  local_user_view: LocalUserView,
+) -> LemmyResult<Json<CommentResponseV3>> {
+  let CreateCommentLikeV3 { comment_id, score } = data.0;
+  let data = CreateCommentLike {
+    comment_id: CommentId(comment_id.0),
+    is_upvote: convert_score(score),
+  };
+  let res = like_comment(Json(data), context, local_user_view).await?.0;
+  Ok(Json(CommentResponseV3 {
+    comment_view: convert_comment_view(res.comment_view),
+    recipient_ids: vec![],
+  }))
+}
+
+pub async fn like_post_v3(
+  data: Json<CreatePostLikeV3>,
+  context: ApubData<LemmyContext>,
+  local_user_view: LocalUserView,
+) -> LemmyResult<Json<PostResponseV3>> {
+  let CreatePostLikeV3 { post_id, score } = data.0;
+  let data = CreatePostLike {
+    post_id: PostId(post_id.0),
+    is_upvote: convert_score(score),
+  };
+  let res = like_post(Json(data), context, local_user_view).await?.0;
+  Ok(Json(PostResponseV3 {
+    post_view: convert_post_view(res.post_view),
+  }))
+}
+
+fn convert_score(score: i16) -> Option<bool> {
+  if score <= -1 {
+    Some(false)
+  } else if score >= 1 {
+    Some(true)
+  } else {
+    None
+  }
 }
 
 async fn login_v3(
