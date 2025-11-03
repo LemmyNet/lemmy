@@ -33,6 +33,7 @@ use lemmy_api_019::{
       local_site::LocalSite as LocalSiteV3,
       local_site_rate_limit::LocalSiteRateLimit as LocalSiteRateLimitV3,
       local_user::LocalUser as LocalUserV3,
+      local_user_vote_display_mode::LocalUserVoteDisplayMode,
       person::Person as PersonV3,
       post::Post as PostV3,
       site::Site as SiteV3,
@@ -291,9 +292,16 @@ fn convert_local_user_view2(local_user_view: LocalUserView) -> LocalUserViewV3 {
     local_user, person, ..
   } = local_user_view;
   let (person, counts) = convert_person(person);
+  let local_user = convert_local_user(local_user);
   LocalUserViewV3 {
-    local_user: convert_local_user(local_user),
-    local_user_vote_display_mode: Default::default(),
+    local_user_vote_display_mode: LocalUserVoteDisplayMode {
+      local_user_id: local_user.id,
+      score: false,
+      upvotes: true,
+      downvotes: true,
+      upvote_percentage: false,
+    },
+    local_user,
     person,
     counts,
   }
@@ -385,9 +393,14 @@ fn convert_post_view(post_view: PostView) -> PostViewV3 {
     creator_is_admin,
     creator_is_moderator,
     creator_banned_from_community,
+    post_actions,
     ..
   } = post_view;
   let (post, counts) = convert_post(post);
+  let my_vote = post_actions
+    .map(|pa| pa.vote_is_upvote)
+    .flatten()
+    .map(|vote_is_upvote| if vote_is_upvote { 1 } else { -1 });
   PostViewV3 {
     post,
     creator: convert_person(creator).0,
@@ -403,7 +416,7 @@ fn convert_post_view(post_view: PostView) -> PostViewV3 {
     read: false,
     hidden: false,
     creator_blocked: false,
-    my_vote: Default::default(),
+    my_vote,
     unread_comments: 0,
   }
 }
@@ -417,9 +430,14 @@ fn convert_comment_view(comment_view: CommentView) -> CommentViewV3 {
     creator_is_admin,
     creator_is_moderator,
     creator_banned_from_community,
+    comment_actions,
     ..
   } = comment_view;
   let (comment, counts) = convert_comment(comment);
+  let my_vote = comment_actions
+    .map(|pa| pa.vote_is_upvote)
+    .flatten()
+    .map(|vote_is_upvote| if vote_is_upvote { 1 } else { -1 });
   CommentViewV3 {
     comment,
     creator: convert_person(creator).0,
@@ -433,7 +451,7 @@ fn convert_comment_view(comment_view: CommentView) -> CommentViewV3 {
     subscribed: SubscribedTypeV3::NotSubscribed,
     saved: false,
     creator_blocked: false,
-    my_vote: None,
+    my_vote,
   }
 }
 
