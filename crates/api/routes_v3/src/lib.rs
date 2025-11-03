@@ -518,8 +518,11 @@ async fn list_comments_v3(
   }))
 }
 
-static DUMMY_URL: LazyLock<DbUrlV3> =
-  LazyLock::new(|| Url::parse("http://example.com").unwrap().into());
+static DUMMY_URL: LazyLock<DbUrlV3> = LazyLock::new(|| {
+  Url::parse("http://example.com")
+    .expect("parse dummy url")
+    .into()
+});
 
 fn convert_local_user_view2(local_user_view: LocalUserView) -> LocalUserViewV3 {
   let LocalUserView {
@@ -632,8 +635,7 @@ fn convert_post_view(post_view: PostView) -> PostViewV3 {
   } = post_view;
   let (post, counts) = convert_post(post);
   let my_vote = post_actions
-    .map(|pa| pa.vote_is_upvote)
-    .flatten()
+    .and_then(|pa| pa.vote_is_upvote)
     .map(|vote_is_upvote| if vote_is_upvote { 1 } else { -1 });
   PostViewV3 {
     post,
@@ -669,8 +671,7 @@ fn convert_comment_view(comment_view: CommentView) -> CommentViewV3 {
   } = comment_view;
   let (comment, counts) = convert_comment(comment);
   let my_vote = comment_actions
-    .map(|pa| pa.vote_is_upvote)
-    .flatten()
+    .and_then(|pa| pa.vote_is_upvote)
     .map(|vote_is_upvote| if vote_is_upvote { 1 } else { -1 });
   CommentViewV3 {
     comment,
