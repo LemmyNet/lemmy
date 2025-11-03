@@ -83,10 +83,10 @@ pub(super) async fn handle_community_moderators(
       && !current_moderators
         .iter()
         .any(|x| x.moderator.ap_id == mod_user.ap_id)
-      {
-        let community_moderator_form = CommunityModeratorForm::new(community.id, mod_user.id);
-        CommunityActions::join(&mut context.pool(), &community_moderator_form).await?;
-      }
+    {
+      let community_moderator_form = CommunityModeratorForm::new(community.id, mod_user.id);
+      CommunityActions::join(&mut context.pool(), &community_moderator_form).await?;
+    }
 
     // Only add the top mod in case of new instance
     if is_new_instance(context).await? {

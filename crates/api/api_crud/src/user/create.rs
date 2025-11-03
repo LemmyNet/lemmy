@@ -170,16 +170,18 @@ pub async fn register(
         )
         .await?;
 
-        if site_view.local_site.site_setup && require_registration_application
-          && let Some(answer) = tx_data.answer.clone() {
-            // Create the registration application
-            let form = RegistrationApplicationInsertForm {
-              local_user_id: local_user.id,
-              answer,
-            };
+        if site_view.local_site.site_setup
+          && require_registration_application
+          && let Some(answer) = tx_data.answer.clone()
+        {
+          // Create the registration application
+          let form = RegistrationApplicationInsertForm {
+            local_user_id: local_user.id,
+            answer,
+          };
 
-            RegistrationApplication::create(&mut conn.into(), &form).await?;
-          }
+          RegistrationApplication::create(&mut conn.into(), &form).await?;
+        }
 
         Ok(LocalUserView {
           person,
@@ -415,19 +417,20 @@ pub async fn authenticate_with_oauth(
               && require_registration_application
               && !local_user.accepted_application
               && !local_user.admin
-              && let Some(answer) = tx_data.answer.clone() {
-                // Create the registration application
-                RegistrationApplication::create(
-                  &mut conn.into(),
-                  &RegistrationApplicationInsertForm {
-                    local_user_id: local_user.id,
-                    answer,
-                  },
-                )
-                .await?;
+              && let Some(answer) = tx_data.answer.clone()
+            {
+              // Create the registration application
+              RegistrationApplication::create(
+                &mut conn.into(),
+                &RegistrationApplicationInsertForm {
+                  local_user_id: local_user.id,
+                  answer,
+                },
+              )
+              .await?;
 
-                login_response.registration_created = true;
-              }
+              login_response.registration_created = true;
+            }
             Ok(LocalUserView {
               person,
               local_user,
