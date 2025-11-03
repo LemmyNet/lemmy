@@ -15,8 +15,9 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
-  diesel::{dsl::Nullable, NullableExpressionMethods, Queryable, Selectable},
+  diesel::{NullableExpressionMethods, Queryable, Selectable, dsl::Nullable},
   lemmy_db_schema::utils::queries::selects::{
+    CreatorLocalHomeCommunityBanExpiresType,
     creator_ban_expires_from_community,
     creator_banned_from_community,
     creator_is_moderator,
@@ -25,7 +26,6 @@ use {
     local_user_is_admin,
     person1_select,
     person2_select,
-    CreatorLocalHomeCommunityBanExpiresType,
   },
   lemmy_db_schema::{Person1AliasAllColumnsTuple, Person2AliasAllColumnsTuple},
   lemmy_db_views_local_user::LocalUserView,

@@ -9,16 +9,16 @@ use lemmy_db_schema::{
 use lemmy_db_views_notification::NotificationView;
 use lemmy_db_views_site::api::PluginMetadata;
 use lemmy_utils::{
+  VERSION,
   error::{LemmyError, LemmyErrorType, LemmyResult},
   settings::SETTINGS,
-  VERSION,
 };
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::{
   env,
   ffi::OsStr,
-  fs::{read_dir, File},
+  fs::{File, read_dir},
   io::BufReader,
   ops::Deref,
   path::PathBuf,

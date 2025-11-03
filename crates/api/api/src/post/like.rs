@@ -22,8 +22,8 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::{
-  api::{CreatePostLike, PostResponse},
   PostView,
+  api::{CreatePostLike, PostResponse},
 };
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;

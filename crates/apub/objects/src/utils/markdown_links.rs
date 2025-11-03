@@ -142,7 +142,7 @@ mod tests {
 
     let context = LemmyContext::init_test_context().await;
     for (msg, input, expected) in &tests {
-      let result = markdown_rewrite_remote_links(input.to_string(), &context).await;
+      let result = markdown_rewrite_remote_links(input.clone(), &context).await;
 
       assert_eq!(
         &result, expected,

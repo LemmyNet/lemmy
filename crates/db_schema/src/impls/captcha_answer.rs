@@ -1,8 +1,8 @@
 use crate::{
   source::captcha_answer::{CaptchaAnswer, CaptchaAnswerForm, CheckCaptchaAnswer},
-  utils::{functions::lower, get_conn, DbPool},
+  utils::{DbPool, functions::lower, get_conn},
 };
-use diesel::{delete, dsl::exists, insert_into, select, ExpressionMethods, QueryDsl};
+use diesel::{ExpressionMethods, QueryDsl, delete, dsl::exists, insert_into, select};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::captcha_answer::dsl::{answer, captcha_answer};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};

@@ -8,8 +8,8 @@ use lemmy_api_utils::{
 use lemmy_apub_objects::objects::community::ApubCommunity;
 use lemmy_db_schema::source::{actor_language::CommunityLanguage, community::Community};
 use lemmy_db_views_community::{
-  api::{GetCommunity, GetCommunityResponse},
   CommunityView,
+  api::{GetCommunity, GetCommunityResponse},
 };
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;

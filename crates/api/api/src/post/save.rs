@@ -6,8 +6,8 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::{
-  api::{PostResponse, SavePost},
   PostView,
+  api::{PostResponse, SavePost},
 };
 use lemmy_utils::error::LemmyResult;
 

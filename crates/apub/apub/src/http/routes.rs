@@ -18,7 +18,7 @@ use crate::http::{
 };
 use actix_web::{
   guard::{Guard, GuardContext},
-  http::{header, Method},
+  http::{Method, header},
   web,
 };
 

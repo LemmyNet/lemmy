@@ -6,7 +6,7 @@ use lemmy_utils::{error::LemmyResult, settings::structs::FederationWorkerConfig}
 use stats::receive_print_stats;
 use std::{collections::HashMap, time::Duration};
 use tokio::{
-  sync::mpsc::{unbounded_channel, UnboundedSender},
+  sync::mpsc::{UnboundedSender, unbounded_channel},
   task::JoinHandle,
   time::sleep,
 };
@@ -150,16 +150,17 @@ impl SendManager {
               )
             }),
           );
-        } else if !should_federate {
-          if let Some(worker) = self.workers.remove(&instance.id) {
-            if let Err(e) = worker.cancel().await {
-              tracing::error!("error stopping worker: {e}");
-            }
-          }
+        } else if !should_federate
+          && let Some(worker) = self.workers.remove(&instance.id)
+          && let Err(e) = worker.cancel().await
+        {
+          tracing::error!("error stopping worker: {e}");
         }
       }
       let worker_count = self.workers.len();
-      tracing::info!("Federating to {worker_count}/{total_count} instances ({dead_count} dead, {disallowed_count} disallowed)");
+      tracing::info!(
+        "Federating to {worker_count}/{total_count} instances ({dead_count} dead, {disallowed_count} disallowed)"
+      );
       tokio::select! {
         () = sleep(INSTANCES_RECHECK_DELAY) => {},
         _ = cancel.cancelled() => { return Ok(()) }

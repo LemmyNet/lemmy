@@ -12,8 +12,8 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_report_combined::{
-  api::{CommunityReportResponse, ResolveCommunityReport},
   ReportCombinedViewInternal,
+  api::{CommunityReportResponse, ResolveCommunityReport},
 };
 use lemmy_utils::error::LemmyResult;
 

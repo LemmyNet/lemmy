@@ -11,24 +11,24 @@ use crate::{
   },
   traits::{Crud, Likeable, Saveable},
   utils::{
+    DELETED_REPLACEMENT_TEXT,
+    DbPool,
     functions::{coalesce, hot_rank},
     get_conn,
-    DbPool,
-    DELETED_REPLACEMENT_TEXT,
   },
 };
 use chrono::{DateTime, Utc};
 use diesel::{
-  dsl::{insert_into, not},
-  expression::SelectableHelper,
-  update,
   ExpressionMethods,
   JoinOnDsl,
   QueryDsl,
+  dsl::{insert_into, not},
+  expression::SelectableHelper,
+  update,
 };
 use diesel_async::RunQueryDsl;
-use diesel_ltree::{dsl::LtreeExtensions, Ltree};
-use diesel_uplete::{uplete, UpleteCount};
+use diesel_ltree::{Ltree, dsl::LtreeExtensions};
+use diesel_uplete::{UpleteCount, uplete};
 use lemmy_db_schema_file::schema::{comment, comment_actions, community, post};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
@@ -426,7 +426,7 @@ mod tests {
       post::{Post, PostInsertForm},
     },
     traits::{Crud, Likeable, Saveable},
-    utils::{build_db_pool_for_tests, RANK_DEFAULT},
+    utils::{RANK_DEFAULT, build_db_pool_for_tests},
   };
   use diesel_ltree::Ltree;
   use lemmy_utils::error::LemmyResult;

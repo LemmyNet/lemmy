@@ -1,8 +1,8 @@
 use crate::{
-  deletion::{receive_delete_action, verify_delete_activity, DeletableObjects},
-  generate_activity_id,
-  protocol::{deletion::delete::Delete, IdOrNestedObject},
   MOD_ACTION_DEFAULT_REASON,
+  deletion::{DeletableObjects, receive_delete_action, verify_delete_activity},
+  generate_activity_id,
+  protocol::{IdOrNestedObject, deletion::delete::Delete},
 };
 use activitypub_federation::{config::Data, kinds::activity::DeleteType, traits::Activity};
 use lemmy_api_utils::{context::LemmyContext, notify::notify_mod_action};

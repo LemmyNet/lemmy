@@ -3,8 +3,8 @@ use lemmy_api_utils::{context::LemmyContext, utils::check_local_user_valid};
 use lemmy_db_schema::source::post::{PostActions, PostHideForm};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::{
-  api::{HidePost, PostResponse},
   PostView,
+  api::{HidePost, PostResponse},
 };
 use lemmy_utils::error::LemmyResult;
 

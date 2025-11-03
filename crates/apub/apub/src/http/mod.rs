@@ -1,6 +1,6 @@
 use activitypub_federation::{
   actix_web::{
-    inbox::{receive_activity_with_hook, ReceiveActivityHook},
+    inbox::{ReceiveActivityHook, receive_activity_with_hook},
     response::create_http_response,
     signing_actor,
   },
@@ -8,9 +8,9 @@ use activitypub_federation::{
   traits::{Activity, Object},
 };
 use actix_web::{
-  web::{self, Bytes},
   HttpRequest,
   HttpResponse,
+  web::{self, Bytes},
 };
 use either::Either;
 use lemmy_api_utils::{context::LemmyContext, plugins::plugin_hook_after};
@@ -26,8 +26,8 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::enums::CommunityVisibility;
 use lemmy_db_views_community_follower_approval::PendingFollowerView;
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult, UntranslatedError},
   FEDERATION_CONTEXT,
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult, UntranslatedError},
 };
 use serde::Deserialize;
 use std::time::Duration;

@@ -3,9 +3,9 @@ use crate::{
   protocol::person::{Person, UserTypes},
   utils::{
     functions::{
+      GetActorType,
       check_apub_id_valid_with_strictness,
       read_from_string_or_source_opt,
-      GetActorType,
     },
     markdown_links::markdown_rewrite_remote_links_opt,
     protocol::{ImageObject, Source},

@@ -3,8 +3,8 @@ use activitypub_federation::{
   fetch::object_id::ObjectId,
   http_signatures::generate_actor_keypair,
 };
-use actix_web::{web::Json, HttpRequest};
-use diesel_async::{scoped_futures::ScopedFutureExt, AsyncPgConnection};
+use actix_web::{HttpRequest, web::Json};
+use diesel_async::{AsyncPgConnection, scoped_futures::ScopedFutureExt};
 use lemmy_api_utils::{
   claims::Claims,
   context::LemmyContext,
@@ -45,8 +45,8 @@ use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::impls::PersonQuery;
 use lemmy_db_views_registration_applications::api::Register;
 use lemmy_db_views_site::{
-  api::{AuthenticateWithOauth, LoginResponse},
   SiteView,
+  api::{AuthenticateWithOauth, LoginResponse},
 };
 use lemmy_email::{
   account::send_verification_email_if_required,
@@ -170,8 +170,8 @@ pub async fn register(
         )
         .await?;
 
-        if site_view.local_site.site_setup && require_registration_application {
-          if let Some(answer) = tx_data.answer.clone() {
+        if site_view.local_site.site_setup && require_registration_application
+          && let Some(answer) = tx_data.answer.clone() {
             // Create the registration application
             let form = RegistrationApplicationInsertForm {
               local_user_id: local_user.id,
@@ -180,7 +180,6 @@ pub async fn register(
 
             RegistrationApplication::create(&mut conn.into(), &form).await?;
           }
-        }
 
         Ok(LocalUserView {
           person,
@@ -416,8 +415,7 @@ pub async fn authenticate_with_oauth(
               && require_registration_application
               && !local_user.accepted_application
               && !local_user.admin
-            {
-              if let Some(answer) = tx_data.answer.clone() {
+              && let Some(answer) = tx_data.answer.clone() {
                 // Create the registration application
                 RegistrationApplication::create(
                   &mut conn.into(),
@@ -430,7 +428,6 @@ pub async fn authenticate_with_oauth(
 
                 login_response.registration_created = true;
               }
-            }
             Ok(LocalUserView {
               person,
               local_user,

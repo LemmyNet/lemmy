@@ -2,13 +2,13 @@ use crate::{
   newtypes::{PersonId, PrivateMessageId, PrivateMessageReportId},
   source::private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
   traits::Reportable,
-  utils::{get_conn, DbPool},
+  utils::{DbPool, get_conn},
 };
 use chrono::Utc;
 use diesel::{
-  dsl::{insert_into, update},
   ExpressionMethods,
   QueryDsl,
+  dsl::{insert_into, update},
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::private_message_report;

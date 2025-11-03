@@ -3,14 +3,14 @@ use actix_web::web::Json;
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_notification::{impls::NotificationQuery, NotificationData};
+use lemmy_db_views_notification::{NotificationData, impls::NotificationQuery};
 use lemmy_db_views_person_content_combined::{
-  impls::PersonContentCombinedQuery,
   PersonContentCombinedView,
+  impls::PersonContentCombinedQuery,
 };
 use lemmy_db_views_person_liked_combined::{
-  impls::PersonLikedCombinedQuery,
   PersonLikedCombinedView,
+  impls::PersonLikedCombinedQuery,
 };
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_site::{

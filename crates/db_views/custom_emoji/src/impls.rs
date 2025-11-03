@@ -1,10 +1,10 @@
 use crate::CustomEmojiView;
-use diesel::{dsl::Nullable, ExpressionMethods, JoinOnDsl, NullableExpressionMethods, QueryDsl};
+use diesel::{ExpressionMethods, JoinOnDsl, NullableExpressionMethods, QueryDsl, dsl::Nullable};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   newtypes::CustomEmojiId,
   source::{custom_emoji::CustomEmoji, custom_emoji_keyword::CustomEmojiKeyword},
-  utils::{get_conn, DbPool},
+  utils::{DbPool, get_conn},
 };
 use lemmy_db_schema_file::schema::{custom_emoji, custom_emoji_keyword};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
@@ -80,10 +80,10 @@ impl CustomEmojiView {
           keywords: Vec::new(),
         })
       }
-      if let Some(item_keyword) = &keyword {
-        if let Some(keywords) = hash.get_mut(&emoji_id) {
-          keywords.push(item_keyword.clone())
-        }
+      if let Some(item_keyword) = &keyword
+        && let Some(keywords) = hash.get_mut(&emoji_id)
+      {
+        keywords.push(item_keyword.clone())
       }
     }
     for emoji in &mut result {

@@ -11,7 +11,7 @@ use activitypub_federation::{
 };
 use either::Either::*;
 use lemmy_api_utils::context::LemmyContext;
-use lemmy_apub_objects::objects::{person::ApubPerson, CommunityOrMulti};
+use lemmy_apub_objects::objects::{CommunityOrMulti, person::ApubPerson};
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,

@@ -17,10 +17,12 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   self,
+  PersonContentType,
   newtypes::{InstanceId, PaginationCursor, PersonId},
-  source::combined::person_content::{person_content_combined_keys as key, PersonContentCombined},
+  source::combined::person_content::{PersonContentCombined, person_content_combined_keys as key},
   traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{
+    DbPool,
     get_conn,
     limit_fetch,
     paginate,
@@ -37,9 +39,7 @@ use lemmy_db_schema::{
       my_person_actions_join,
       my_post_actions_join,
     },
-    DbPool,
   },
-  PersonContentType,
 };
 use lemmy_db_schema_file::schema::{comment, person, person_content_combined, post};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
@@ -271,7 +271,7 @@ impl InternalToCombinedView for PersonContentCombinedViewInternal {
 #[expect(clippy::indexing_slicing)]
 mod tests {
 
-  use crate::{impls::PersonContentCombinedQuery, PersonContentCombinedView};
+  use crate::{PersonContentCombinedView, impls::PersonContentCombinedQuery};
   use lemmy_db_schema::{
     source::{
       comment::{Comment, CommentInsertForm},
@@ -281,7 +281,7 @@ mod tests {
       post::{Post, PostInsertForm},
     },
     traits::Crud,
-    utils::{build_db_pool_for_tests, DbPool},
+    utils::{DbPool, build_db_pool_for_tests},
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;

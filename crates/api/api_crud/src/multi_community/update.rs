@@ -9,8 +9,8 @@ use lemmy_db_schema::{
   utils::diesel_string_update,
 };
 use lemmy_db_views_community::{
-  api::{MultiCommunityResponse, UpdateMultiCommunity},
   MultiCommunityView,
+  api::{MultiCommunityResponse, UpdateMultiCommunity},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;

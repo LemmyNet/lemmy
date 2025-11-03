@@ -40,12 +40,12 @@ impl Activity for CreateOrUpdateNoteWrapper {
     // Convert self to a comment and get the community. If the conversion is
     // successful and a community is returned, this is a comment.
     let comment = from_value::<CreateOrUpdateNote>(val.clone());
-    if let Ok(comment) = comment {
-      if comment.community(context).await.is_ok() {
-        CreateOrUpdateNote::verify(&comment, context).await?;
-        CreateOrUpdateNote::receive(comment, context).await?;
-        return Ok(());
-      }
+    if let Ok(comment) = comment
+      && comment.community(context).await.is_ok()
+    {
+      CreateOrUpdateNote::verify(&comment, context).await?;
+      CreateOrUpdateNote::receive(comment, context).await?;
+      return Ok(());
     }
 
     // If any of the previous checks failed, we are dealing with a private message.

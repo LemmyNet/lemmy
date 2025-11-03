@@ -10,10 +10,10 @@ use lemmy_apub_objects::objects::community::ApubCommunity;
 use lemmy_db_schema::{source::community::Community, traits::PaginationCursorBuilder};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_search_combined::{
-  impls::SearchCombinedQuery,
   Search,
   SearchCombinedView,
   SearchResponse,
+  impls::SearchCombinedQuery,
 };
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;

@@ -7,7 +7,7 @@ use lemmy_db_schema::source::{
   modlog::{Modlog, ModlogInsertForm},
 };
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_site::{api::AdminAllowInstanceParams, FederatedInstanceView};
+use lemmy_db_views_site::{FederatedInstanceView, api::AdminAllowInstanceParams};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn admin_allow_instance(

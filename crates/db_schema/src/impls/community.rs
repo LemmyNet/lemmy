@@ -17,33 +17,33 @@ use crate::{
   },
   traits::{ApubActor, Bannable, Blockable, Crud, Followable},
   utils::{
+    DbPool,
     format_actor_url,
     functions::{coalesce, coalesce_2_nullable, lower, random_smallint},
     get_conn,
-    DbPool,
   },
 };
 use chrono::{DateTime, Utc};
 use diesel::{
-  dsl::{exists, insert_into, not},
-  expression::SelectableHelper,
-  select,
-  update,
   BoolExpressionMethods,
   ExpressionMethods,
   NullableExpressionMethods,
   QueryDsl,
+  dsl::{exists, insert_into, not},
+  expression::SelectableHelper,
+  select,
+  update,
 };
 use diesel_async::RunQueryDsl;
-use diesel_uplete::{uplete, UpleteCount};
+use diesel_uplete::{UpleteCount, uplete};
 use lemmy_db_schema_file::{
   enums::{CommunityFollowerState, CommunityNotificationsMode, CommunityVisibility, ListingType},
   schema::{comment, community, community_actions, instance, local_user, post},
 };
 use lemmy_utils::{
+  CACHE_DURATION_LARGEST_COMMUNITY,
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult, UntranslatedError},
   settings::structs::Settings,
-  CACHE_DURATION_LARGEST_COMMUNITY,
 };
 use moka::future::Cache;
 use std::sync::{Arc, LazyLock};
@@ -697,7 +697,7 @@ mod tests {
       post::{Post, PostInsertForm},
     },
     traits::{Bannable, Crud, Followable},
-    utils::{build_db_pool_for_tests, RANK_DEFAULT},
+    utils::{RANK_DEFAULT, build_db_pool_for_tests},
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;

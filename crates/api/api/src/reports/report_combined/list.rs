@@ -3,9 +3,9 @@ use lemmy_api_utils::{context::LemmyContext, utils::check_community_mod_of_any_o
 use lemmy_db_schema::traits::PaginationCursorBuilder;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_report_combined::{
+  ReportCombinedView,
   api::{ListReports, ListReportsResponse},
   impls::ReportCombinedQuery,
-  ReportCombinedView,
 };
 use lemmy_utils::error::LemmyResult;
 

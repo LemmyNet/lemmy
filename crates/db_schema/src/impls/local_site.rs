@@ -1,6 +1,6 @@
 use crate::{
   source::local_site::{LocalSite, LocalSiteInsertForm, LocalSiteUpdateForm},
-  utils::{get_conn, DbPool},
+  utils::{DbPool, get_conn},
 };
 use diesel::dsl::insert_into;
 use diesel_async::RunQueryDsl;
@@ -50,7 +50,7 @@ mod tests {
     },
     test_data::TestData,
     traits::Crud,
-    utils::{build_db_pool_for_tests, DbPool},
+    utils::{DbPool, build_db_pool_for_tests},
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;

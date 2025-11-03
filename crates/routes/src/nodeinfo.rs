@@ -1,11 +1,11 @@
-use actix_web::{web, Error, HttpResponse, Result};
+use actix_web::{Error, HttpResponse, Result, web};
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema_file::enums::RegistrationMode;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
+  VERSION,
   cache_header::{cache_1hour, cache_3days},
   error::LemmyResult,
-  VERSION,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

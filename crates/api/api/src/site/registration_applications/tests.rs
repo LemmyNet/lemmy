@@ -27,7 +27,7 @@ use lemmy_db_views_registration_applications::api::{
   ListRegistrationApplicationsResponse,
 };
 use lemmy_db_views_site::api::EditSite;
-use lemmy_utils::{error::LemmyResult, CACHE_DURATION_API};
+use lemmy_utils::{CACHE_DURATION_API, error::LemmyResult};
 use serial_test::serial;
 
 async fn create_test_site(context: &Data<LemmyContext>) -> LemmyResult<(TestData, LocalUserView)> {

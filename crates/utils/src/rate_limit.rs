@@ -1,16 +1,16 @@
 use actix_extensible_rate_limit::{
+  RateLimiter,
   backend::{
-    memory::InMemoryBackend,
-    raw_ip_key,
     RateLimitIpAddr,
     SimpleInput,
     SimpleInputFuture,
     SimpleOutput,
+    memory::InMemoryBackend,
+    raw_ip_key,
   },
-  RateLimiter,
 };
 use actix_web::dev::ServiceRequest;
-use enum_map::{enum_map, EnumMap};
+use enum_map::{EnumMap, enum_map};
 use std::{
   future::ready,
   sync::{Arc, RwLock},

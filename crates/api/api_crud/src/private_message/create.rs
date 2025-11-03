@@ -22,8 +22,8 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_private_message::{
-  api::{CreatePrivateMessage, PrivateMessageResponse},
   PrivateMessageView,
+  api::{CreatePrivateMessage, PrivateMessageResponse},
 };
 use lemmy_utils::{error::LemmyResult, utils::validation::is_valid_body_field};
 

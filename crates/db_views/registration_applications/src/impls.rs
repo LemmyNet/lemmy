@@ -1,11 +1,11 @@
 use crate::RegistrationApplicationView;
 use diesel::{
-  dsl::count,
   ExpressionMethods,
   JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
   SelectableHelper,
+  dsl::count,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
@@ -14,7 +14,7 @@ use lemmy_db_schema::{
   newtypes::{PaginationCursor, PersonId, RegistrationApplicationId},
   source::registration_application::RegistrationApplication,
   traits::{Crud, PaginationCursorBuilder},
-  utils::{get_conn, limit_fetch, paginate, DbPool},
+  utils::{DbPool, get_conn, limit_fetch, paginate},
 };
 use lemmy_db_schema_file::schema::{local_user, person, registration_application};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
@@ -138,7 +138,7 @@ impl RegistrationApplicationQuery {
 #[cfg(test)]
 mod tests {
 
-  use crate::{impls::RegistrationApplicationQuery, RegistrationApplicationView};
+  use crate::{RegistrationApplicationView, impls::RegistrationApplicationQuery};
   use lemmy_db_schema::{
     source::{
       instance::Instance,

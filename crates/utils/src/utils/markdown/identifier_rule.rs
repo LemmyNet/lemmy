@@ -1,10 +1,10 @@
 use crate::utils::markdown::link_rule::Link;
 use markdown_it::{
-  parser::inline::{InlineRule, InlineState},
   MarkdownIt,
   Node,
   NodeValue,
   Renderer,
+  parser::inline::{InlineRule, InlineState},
 };
 
 #[derive(Debug)]

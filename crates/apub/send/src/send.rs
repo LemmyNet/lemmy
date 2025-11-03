@@ -10,9 +10,9 @@ use chrono::{DateTime, Utc};
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{newtypes::ActivityId, source::activity::SentActivity};
 use lemmy_utils::{
+  FEDERATION_CONTEXT,
   error::{LemmyError, LemmyResult},
   federate_retry_sleep_duration,
-  FEDERATION_CONTEXT,
 };
 use reqwest::Url;
 use serde::{Deserialize, Serialize};

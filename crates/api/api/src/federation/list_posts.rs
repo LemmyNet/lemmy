@@ -16,9 +16,9 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::{
+  PostView,
   api::{GetPosts, GetPostsResponse},
   impls::PostQuery,
-  PostView,
 };
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
@@ -99,14 +99,13 @@ pub async fn list_posts(
   .await?;
 
   // If in their user settings (or as part of the API request), auto-mark fetched posts as read
-  if let Some(local_user) = local_user {
-    if data
+  if let Some(local_user) = local_user
+    && data
       .mark_as_read
       .unwrap_or(local_user.auto_mark_fetched_posts_as_read)
-    {
-      let post_ids = posts.iter().map(|p| p.post.id).collect::<Vec<PostId>>();
-      PostActions::mark_as_read(&mut context.pool(), local_user.person_id, &post_ids).await?;
-    }
+  {
+    let post_ids = posts.iter().map(|p| p.post.id).collect::<Vec<PostId>>();
+    PostActions::mark_as_read(&mut context.pool(), local_user.person_id, &post_ids).await?;
   }
 
   // if this page wasn't empty, then there is a next page after the last post on this page

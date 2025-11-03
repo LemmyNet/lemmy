@@ -20,6 +20,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::asc_if;
 use lemmy_db_schema::{
+  ReportType,
   aliases::{self, creator_community_actions},
   newtypes::{
     CommentReportId,
@@ -33,11 +34,12 @@ use lemmy_db_schema::{
     PrivateMessageReportId,
   },
   source::{
-    combined::report::{report_combined_keys as key, ReportCombined},
+    combined::report::{ReportCombined, report_combined_keys as key},
     person::Person,
   },
   traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{
+    DbPool,
     get_conn,
     limit_fetch,
     paginate,
@@ -46,9 +48,7 @@ use lemmy_db_schema::{
       creator_home_instance_actions_join,
       creator_local_instance_actions_join,
     },
-    DbPool,
   },
-  ReportType,
 };
 use lemmy_db_schema_file::schema::{
   comment,
@@ -579,15 +579,16 @@ impl InternalToCombinedView for ReportCombinedViewInternal {
 mod tests {
 
   use crate::{
-    impls::ReportCombinedQuery,
     LocalUserView,
     ReportCombinedView,
     ReportCombinedViewInternal,
+    impls::ReportCombinedQuery,
   };
   use chrono::{Days, Utc};
-  use diesel::{update, ExpressionMethods, QueryDsl};
+  use diesel::{ExpressionMethods, QueryDsl, update};
   use diesel_async::RunQueryDsl;
   use lemmy_db_schema::{
+    ReportType,
     assert_length,
     source::{
       comment::{Comment, CommentInsertForm},
@@ -603,8 +604,7 @@ mod tests {
       private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
     },
     traits::{Bannable, Crud, Reportable},
-    utils::{build_db_pool_for_tests, get_conn, DbPool},
-    ReportType,
+    utils::{DbPool, build_db_pool_for_tests, get_conn},
   };
   use lemmy_db_schema_file::schema::report_combined;
   use lemmy_utils::error::LemmyResult;

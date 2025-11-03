@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
+  PersonContentType,
   newtypes::{PaginationCursor, PersonId},
   source::{
     combined::person_content::PersonContentCombined,
@@ -10,7 +11,6 @@ use lemmy_db_schema::{
     post::{Post, PostActions},
     tag::TagsView,
   },
-  PersonContentType,
 };
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_post::PostView;
@@ -20,6 +20,7 @@ use serde_with::skip_serializing_none;
 use {
   diesel::{Queryable, Selectable},
   lemmy_db_schema::utils::queries::selects::{
+    CreatorLocalHomeBanExpiresType,
     creator_ban_expires_from_community,
     creator_banned_from_community,
     creator_is_admin,
@@ -28,7 +29,6 @@ use {
     creator_local_home_banned,
     local_user_can_mod,
     post_tags_fragment,
-    CreatorLocalHomeBanExpiresType,
   },
 
   lemmy_db_views_local_user::LocalUserView,

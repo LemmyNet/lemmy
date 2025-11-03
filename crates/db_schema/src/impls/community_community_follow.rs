@@ -2,7 +2,7 @@ use crate::{
   diesel::{ExpressionMethods, QueryDsl},
   newtypes::CommunityId,
   source::community_community_follow::CommunityCommunityFollow,
-  utils::{get_conn, DbPool},
+  utils::{DbPool, get_conn},
 };
 use diesel::{delete, dsl::insert_into};
 use diesel_async::RunQueryDsl;

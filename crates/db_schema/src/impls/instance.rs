@@ -11,23 +11,23 @@ use crate::{
   },
   traits::Bannable,
   utils::{
+    DbPool,
     functions::{coalesce, lower},
     get_conn,
     now,
-    DbPool,
   },
 };
 use chrono::Utc;
 use diesel::{
-  dsl::{count_star, exists, insert_into, not, select},
   ExpressionMethods,
   NullableExpressionMethods,
   OptionalExtension,
   QueryDsl,
   SelectableHelper,
+  dsl::{count_star, exists, insert_into, not, select},
 };
 use diesel_async::RunQueryDsl;
-use diesel_uplete::{uplete, UpleteCount};
+use diesel_uplete::{UpleteCount, uplete};
 use lemmy_db_schema_file::schema::{
   federation_allowlist,
   federation_blocklist,

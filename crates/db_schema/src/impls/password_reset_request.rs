@@ -1,14 +1,14 @@
 use crate::{
   newtypes::LocalUserId,
   source::password_reset_request::{PasswordResetRequest, PasswordResetRequestForm},
-  utils::{get_conn, DbPool},
+  utils::{DbPool, get_conn},
 };
 use diesel::{
-  delete,
-  dsl::{insert_into, now, IntervalDsl},
-  sql_types::Timestamptz,
   ExpressionMethods,
   IntoSql,
+  delete,
+  dsl::{IntervalDsl, insert_into, now},
+  sql_types::Timestamptz,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::password_reset_request;

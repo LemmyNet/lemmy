@@ -6,8 +6,8 @@ use lemmy_db_schema::source::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::{
-  api::{SuccessResponse, VerifyEmail},
   SiteView,
+  api::{SuccessResponse, VerifyEmail},
 };
 use lemmy_email::{account::send_email_verified_email, admin::send_new_applicant_email_to_admins};
 use lemmy_utils::error::LemmyResult;

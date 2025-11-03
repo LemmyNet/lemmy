@@ -8,8 +8,8 @@ use lemmy_api_utils::{
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::{
-  api::{GetPersonDetails, GetPersonDetailsResponse},
   PersonView,
+  api::{GetPersonDetails, GetPersonDetailsResponse},
 };
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;

@@ -1,8 +1,8 @@
 use crate::{CommunityView, MultiCommunityView};
 use lemmy_db_schema::{
+  CommunitySortType,
   newtypes::{CommunityId, LanguageId, MultiCommunityId, PaginationCursor, PersonId, TagId},
   source::site::Site,
-  CommunitySortType,
 };
 use lemmy_db_schema_file::enums::{CommunityNotificationsMode, CommunityVisibility, ListingType};
 use lemmy_db_views_community_moderator::CommunityModeratorView;

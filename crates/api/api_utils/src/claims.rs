@@ -1,7 +1,7 @@
 use crate::context::LemmyContext;
-use actix_web::{http::header::USER_AGENT, HttpRequest};
+use actix_web::{HttpRequest, http::header::USER_AGENT};
 use chrono::{DateTime, Duration, Utc};
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use lemmy_db_schema::{
   newtypes::LocalUserId,
   sensitive::SensitiveString,

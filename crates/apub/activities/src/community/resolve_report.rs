@@ -19,11 +19,11 @@ use either::Either;
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
   objects::{
+    PostOrComment,
+    ReportableObjects,
     community::ApubCommunity,
     instance::ApubSite,
     person::ApubPerson,
-    PostOrComment,
-    ReportableObjects,
   },
   utils::functions::verify_person_in_site_or_community,
 };

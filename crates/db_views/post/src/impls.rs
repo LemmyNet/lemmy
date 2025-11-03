@@ -1,10 +1,6 @@
 use crate::PostView;
 use diesel::{
   self,
-  debug_query,
-  dsl::{exists, not},
-  pg::Pg,
-  query_builder::AsQuery,
   BoolExpressionMethods,
   ExpressionMethods,
   NullableExpressionMethods,
@@ -12,9 +8,13 @@ use diesel::{
   QueryDsl,
   SelectableHelper,
   TextExpressionMethods,
+  debug_query,
+  dsl::{exists, not},
+  pg::Pg,
+  query_builder::AsQuery,
 };
 use diesel_async::RunQueryDsl;
-use i_love_jesus::{asc_if, SortDirection};
+use i_love_jesus::{SortDirection, asc_if};
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommunityId, InstanceId, MultiCommunityId, PaginationCursor, PersonId, PostId},
@@ -22,11 +22,14 @@ use lemmy_db_schema::{
     community::CommunityActions,
     local_user::LocalUser,
     person::Person,
-    post::{post_actions_keys as pa_key, post_keys as key, Post, PostActions},
+    post::{Post, PostActions, post_actions_keys as pa_key, post_keys as key},
     site::Site,
   },
   traits::PaginationCursorBuilder,
   utils::{
+    CoalesceKey,
+    Commented,
+    DbPool,
     get_conn,
     limit_fetch,
     now,
@@ -53,9 +56,6 @@ use lemmy_db_schema::{
       },
     },
     seconds_to_pg_interval,
-    CoalesceKey,
-    Commented,
-    DbPool,
   },
 };
 use lemmy_db_schema_file::{
@@ -384,7 +384,7 @@ impl PostQuery<'_> {
         query = query.filter(post::community_id.eq_any(communities))
       }
       (Some(_), Some(_)) => {
-        return Err(LemmyErrorType::CannotCombineCommunityIdAndMultiCommunityId.into())
+        return Err(LemmyErrorType::CannotCombineCommunityIdAndMultiCommunityId.into());
       }
       (None, None) => {
         if let (Some(ListingType::Subscribed), Some(id)) =
@@ -572,8 +572,8 @@ impl PostQuery<'_> {
 #[cfg(test)]
 mod tests {
   use crate::{
-    impls::{PostQuery, PostSortType},
     PostView,
+    impls::{PostQuery, PostSortType},
   };
   use chrono::{DateTime, Days, Utc};
   use diesel_async::SimpleAsyncConnection;
@@ -613,7 +613,7 @@ mod tests {
     },
     test_data::TestData,
     traits::{Bannable, Blockable, Crud, Followable, Likeable},
-    utils::{build_db_pool, get_conn, ActualDbPool, DbPool},
+    utils::{ActualDbPool, DbPool, build_db_pool, get_conn},
   };
   use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility, ListingType};
   use lemmy_db_views_local_user::LocalUserView;
@@ -624,7 +624,7 @@ mod tests {
     collections::HashSet,
     time::{Duration, Instant},
   };
-  use test_context::{test_context, AsyncTestContext};
+  use test_context::{AsyncTestContext, test_context};
   use url::Url;
 
   const POST_BY_BLOCKED_PERSON: &str = "post by blocked person";
@@ -927,9 +927,11 @@ mod tests {
       names(&read_post_listing_multiple_no_person)
     );
 
-    assert!(read_post_listing_multiple_no_person
-      .get(2)
-      .is_some_and(|x| x.post.id == data.post.id));
+    assert!(
+      read_post_listing_multiple_no_person
+        .get(2)
+        .is_some_and(|x| x.post.id == data.post.id)
+    );
     assert_eq!(false, read_post_listing_single_no_person.can_mod);
     Ok(())
   }
@@ -1050,9 +1052,11 @@ mod tests {
     )
     .await?;
 
-    assert!(post_listing
-      .person_actions
-      .is_some_and(|t| t.note == Some(note_str.to_string()) && t.noted_at.is_some()));
+    assert!(
+      post_listing
+        .person_actions
+        .is_some_and(|t| t.note == Some(note_str.to_string()) && t.noted_at.is_some())
+    );
 
     let note_removed =
       PersonActions::delete_note(pool, data.john.person.id, data.tegan.person.id).await?;
@@ -1611,9 +1615,11 @@ mod tests {
       vec![HOWARD_POST, POST_WITH_TAGS, POST_BY_BOT, POST],
       names(&post_listings_blocked)
     );
-    assert!(post_listings_blocked
-      .iter()
-      .all(|p| p.post.id != post_from_blocked_instance.id));
+    assert!(
+      post_listings_blocked
+        .iter()
+        .all(|p| p.post.id != post_from_blocked_instance.id)
+    );
 
     // Follow community from the blocked instance to see posts anyway
     let follow_form = CommunityFollowerForm::new(
@@ -1702,9 +1708,11 @@ mod tests {
       vec![POST_TO_UNBLOCKED_COMM, POST_WITH_TAGS, POST_BY_BOT, POST],
       names(&post_listings_blocked)
     );
-    assert!(post_listings_blocked
-      .iter()
-      .all(|p| p.post.id != post_from_blocked_instance.id));
+    assert!(
+      post_listings_blocked
+        .iter()
+        .all(|p| p.post.id != post_from_blocked_instance.id)
+    );
 
     // after unblocking it should return all posts again
     InstanceActions::unblock_persons(pool, &block_form).await?;
@@ -1903,10 +1911,11 @@ mod tests {
     );
 
     // Make sure that hidden field is true.
-    assert!(&post_listings_show_hidden.get(1).is_some_and(|p| p
-      .post_actions
-      .as_ref()
-      .is_some_and(|a| a.hidden_at.is_some())));
+    assert!(&post_listings_show_hidden.get(1).is_some_and(|p| {
+      p.post_actions
+        .as_ref()
+        .is_some_and(|a| a.hidden_at.is_some())
+    }));
 
     // Make sure only that one comes back for list_hidden
     let list_hidden =
@@ -2044,9 +2053,11 @@ mod tests {
     )
     .await?;
 
-    assert!(post_view
-      .community_actions
-      .is_some_and(|x| x.received_ban_at.is_some()));
+    assert!(
+      post_view
+        .community_actions
+        .is_some_and(|x| x.received_ban_at.is_some())
+    );
 
     Person::delete(pool, inserted_banned_from_comm_person.id).await?;
     Ok(())
