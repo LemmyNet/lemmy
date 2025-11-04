@@ -27,7 +27,6 @@ use lemmy_db_schema::{
     tag::{PostTag, Tag},
   },
   traits::{Crud, Likeable},
-  utils::DbPool,
 };
 use lemmy_diesel_utils::dburl::DbUrl;
 use lemmy_db_schema_file::enums::{FederationMode, RegistrationMode};
@@ -35,7 +34,7 @@ use lemmy_db_views_community_follower_approval::PendingFollowerView;
 use lemmy_db_views_community_moderator::{CommunityModeratorView, CommunityPersonBanView};
 use lemmy_db_views_local_image::LocalImageView;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_site::SiteView;
+use lemmy_db_views_site::SiteView;use lemmy_diesel_utils::connection::DbPool;
 use lemmy_utils::{
   CACHE_DURATION_FEDERATION,
   CacheLock,

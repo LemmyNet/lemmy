@@ -14,9 +14,7 @@ use crate::{
   traits::{Crud, Likeable, Saveable},
   utils::{
     functions::{coalesce, hot_rank, scaled_rank},
-    get_conn,
     now,
-    DbPool,
     DELETED_REPLACEMENT_TEXT,
     FETCH_LIMIT_MAX,
     SITEMAP_DAYS,
@@ -41,7 +39,10 @@ use lemmy_db_schema_file::{
   enums::PostNotificationsMode,
   schema::{community, local_user, person, post, post_actions},
 };
-use lemmy_diesel_utils::dburl::DbUrl;
+use lemmy_diesel_utils::{
+  connection::{get_conn, DbPool},
+  dburl::DbUrl,
+};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
@@ -597,8 +598,9 @@ mod tests {
       post::{Post, PostActions, PostInsertForm, PostLikeForm, PostSavedForm, PostUpdateForm},
     },
     traits::{Crud, Likeable, Saveable},
-    utils::{build_db_pool_for_tests, RANK_DEFAULT},
+    utils::{ RANK_DEFAULT},
   };
+  use lemmy_diesel_utils::connection::build_db_pool_for_tests;
   use chrono::DateTime;
   use diesel_uplete::UpleteCount;
   use lemmy_utils::error::LemmyResult;

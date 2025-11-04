@@ -11,8 +11,8 @@ use lemmy_db_schema::{
     private_message::{PrivateMessage, PrivateMessageInsertForm},
   },
   traits::Crud,
-  utils::{DbPool, build_db_pool_for_tests},
 };
+  use lemmy_diesel_utils::connection::{DbPool, build_db_pool_for_tests, get_conn};
 use lemmy_db_schema_file::enums::NotificationType;
 use lemmy_utils::error::LemmyResult;
 use pretty_assertions::assert_eq;

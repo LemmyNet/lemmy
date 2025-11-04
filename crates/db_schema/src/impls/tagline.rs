@@ -2,8 +2,9 @@ use crate::{
   newtypes::{PaginationCursor, TaglineId},
   source::tagline::{Tagline, TaglineInsertForm, TaglineUpdateForm, tagline_keys as key},
   traits::Crud,
-  utils::{DbPool, functions::random, get_conn, limit_fetch, paginate},
+  utils::{ functions::random, limit_fetch, paginate},
 };
+use lemmy_diesel_utils::connection::{DbPool,get_conn};
 use diesel::{QueryDsl, insert_into};
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;

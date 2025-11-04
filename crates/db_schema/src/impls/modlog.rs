@@ -6,8 +6,8 @@ use crate::{
     person::Person,
     post::Post,
   },
-  utils::{DbPool, get_conn},
 };
+use lemmy_diesel_utils::connection::{DbPool,get_conn};
 use chrono::{DateTime, Utc};
 use diesel::dsl::insert_into;
 use diesel_async::RunQueryDsl;

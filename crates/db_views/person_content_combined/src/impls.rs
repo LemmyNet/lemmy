@@ -15,6 +15,7 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
+use lemmy_diesel_utils::connection::{DbPool,get_conn};
 use lemmy_db_schema::{
   self,
   PersonContentType,
@@ -22,8 +23,6 @@ use lemmy_db_schema::{
   source::combined::person_content::{PersonContentCombined, person_content_combined_keys as key},
   traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{
-    DbPool,
-    get_conn,
     limit_fetch,
     paginate,
     queries::joins::{
@@ -281,8 +280,8 @@ mod tests {
       post::{Post, PostInsertForm},
     },
     traits::Crud,
-    utils::{DbPool, build_db_pool_for_tests},
   };
+  use lemmy_diesel_utils::connection::{DbPool, build_db_pool_for_tests, get_conn};
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;

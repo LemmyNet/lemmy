@@ -3,8 +3,9 @@ use crate::{
   newtypes::{PersonId, PrivateMessageId},
   source::private_message::{PrivateMessage, PrivateMessageInsertForm, PrivateMessageUpdateForm},
   traits::Crud,
-  utils::{functions::coalesce, get_conn, DbPool},
+  utils::{functions::coalesce},
 };
+use lemmy_diesel_utils::connection::{DbPool,get_conn};
 use chrono::{DateTime, Utc};
 use diesel::{dsl::insert_into, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
@@ -108,8 +109,8 @@ mod tests {
       private_message::{PrivateMessage, PrivateMessageInsertForm, PrivateMessageUpdateForm},
     },
     traits::Crud,
-    utils::build_db_pool_for_tests,
   };
+  use lemmy_diesel_utils::connection::build_db_pool_for_tests;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;

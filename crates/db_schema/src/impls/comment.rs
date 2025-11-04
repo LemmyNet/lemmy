@@ -12,9 +12,7 @@ use crate::{
   traits::{Crud, Likeable, Saveable},
   utils::{
     DELETED_REPLACEMENT_TEXT,
-    DbPool,
     functions::{coalesce, hot_rank},
-    get_conn,
   },
 };
 use lemmy_diesel_utils::dburl::DbUrl;
@@ -36,6 +34,7 @@ use lemmy_utils::{
   settings::structs::Settings,
 };
 use url::Url;
+use lemmy_diesel_utils::connection::{DbPool,get_conn};
 
 impl Comment {
   pub async fn permadelete_for_creator(
@@ -427,8 +426,9 @@ mod tests {
       post::{Post, PostInsertForm},
     },
     traits::{Crud, Likeable, Saveable},
-    utils::{RANK_DEFAULT, build_db_pool_for_tests},
+    utils::{RANK_DEFAULT, },
   };
+  use lemmy_diesel_utils::connection::build_db_pool_for_tests;
   use diesel_ltree::Ltree;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;

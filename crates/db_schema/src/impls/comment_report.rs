@@ -2,8 +2,8 @@ use crate::{
   newtypes::{CommentId, CommentReportId, PersonId},
   source::comment_report::{CommentReport, CommentReportForm},
   traits::Reportable,
-  utils::{DbPool, get_conn},
 };
+use lemmy_diesel_utils::connection::{DbPool,get_conn};
 use chrono::Utc;
 use diesel::{
   BoolExpressionMethods,

@@ -10,8 +10,7 @@ use lemmy_db_schema::{
   impls::actor_language::UNDETERMINED_ID,
   newtypes::LanguageId,
   source::language::Language,
-  utils::DbPool,
-};
+};use lemmy_diesel_utils::connection::{DbPool};
 use lemmy_diesel_utils::dburl::DbUrl;
 use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};

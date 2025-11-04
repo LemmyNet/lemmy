@@ -11,12 +11,11 @@ use crate::{
   },
   traits::Bannable,
   utils::{
-    DbPool,
     functions::{coalesce, lower},
-    get_conn,
     now,
   },
 };
+use lemmy_diesel_utils::connection::{DbPool,get_conn};
 use chrono::Utc;
 use diesel::{
   ExpressionMethods,

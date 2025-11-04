@@ -29,7 +29,6 @@ full = [
   "diesel_ltree",
   "diesel-async",
   "diesel-uplete",
-  "deadpool",
   "tokio",
   "tokio-postgres",
   "tokio-postgres-rustls",
@@ -62,7 +61,6 @@ diesel-async = { workspace = true, features = [
 diesel-uplete = { workspace = true, optional = true }
 diesel_ltree = { workspace = true, optional = true }
 tracing = { workspace = true }
-deadpool = { version = "0.12.3", optional = true, features = ["rt_tokio_1"] }
 ts-rs = { workspace = true, optional = true }
 futures-util = { workspace = true }
 tokio = { workspace = true, optional = true }

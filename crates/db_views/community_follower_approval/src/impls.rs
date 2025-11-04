@@ -12,6 +12,7 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
+use lemmy_diesel_utils::connection::{DbPool,get_conn};
 use lemmy_db_schema::{
   aliases,
   newtypes::{CommunityId, InstanceId, PaginationCursor, PersonId},
@@ -20,7 +21,7 @@ use lemmy_db_schema::{
     person::Person,
   },
   traits::PaginationCursorBuilder,
-  utils::{DbPool, get_conn, limit_fetch, paginate, queries::selects::person1_select},
+  utils::{ limit_fetch, paginate, queries::selects::person1_select},
 };
 use lemmy_db_schema_file::{
   enums::{CommunityFollowerState, CommunityVisibility},
@@ -236,8 +237,8 @@ mod tests {
       person::PersonInsertForm,
     },
     traits::{Crud, Followable},
-    utils::build_db_pool_for_tests,
   };
+  use lemmy_diesel_utils::connection::{DbPool, build_db_pool_for_tests, get_conn};
   use lemmy_db_schema_file::enums::CommunityVisibility;
   use serial_test::serial;
 

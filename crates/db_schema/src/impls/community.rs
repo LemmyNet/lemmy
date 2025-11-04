@@ -17,12 +17,11 @@ use crate::{
   },
   traits::{ApubActor, Bannable, Blockable, Crud, Followable},
   utils::{
-    DbPool,
     format_actor_url,
     functions::{coalesce, coalesce_2_nullable, lower, random_smallint},
-    get_conn,
   },
 };
+use lemmy_diesel_utils::connection::{DbPool,get_conn};
 use lemmy_diesel_utils::dburl::DbUrl;
 use chrono::{DateTime, Utc};
 use diesel::{
@@ -698,8 +697,9 @@ mod tests {
       post::{Post, PostInsertForm},
     },
     traits::{Bannable, Crud, Followable},
-    utils::{RANK_DEFAULT, build_db_pool_for_tests},
+    utils::{RANK_DEFAULT, },
   };
+  use lemmy_diesel_utils::connection::build_db_pool_for_tests;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;

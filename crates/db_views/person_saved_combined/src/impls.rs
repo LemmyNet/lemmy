@@ -16,13 +16,10 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  PersonContentType,
   newtypes::{InstanceId, PaginationCursor, PersonId},
-  source::combined::person_saved::{PersonSavedCombined, person_saved_combined_keys as key},
+  source::combined::person_saved::{person_saved_combined_keys as key, PersonSavedCombined},
   traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{
-    DbPool,
-    get_conn,
     limit_fetch,
     paginate,
     queries::joins::{
@@ -40,8 +37,10 @@ use lemmy_db_schema::{
       my_post_actions_join,
     },
   },
+  PersonContentType,
 };
 use lemmy_db_schema_file::schema::{comment, person, person_saved_combined, post};
+use lemmy_diesel_utils::connection::{get_conn, DbPool};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 #[derive(Default)]
@@ -250,7 +249,7 @@ impl InternalToCombinedView for PersonSavedCombinedViewInternal {
 #[expect(clippy::indexing_slicing)]
 mod tests {
 
-  use crate::{LocalUserView, PersonSavedCombinedView, impls::PersonSavedCombinedQuery};
+  use crate::{impls::PersonSavedCombinedQuery, LocalUserView, PersonSavedCombinedView};
   use lemmy_db_schema::{
     source::{
       comment::{Comment, CommentActions, CommentInsertForm, CommentSavedForm},
@@ -261,8 +260,8 @@ mod tests {
       post::{Post, PostActions, PostInsertForm, PostSavedForm},
     },
     traits::{Crud, Saveable},
-    utils::{DbPool, build_db_pool_for_tests},
   };
+  use lemmy_diesel_utils::connection::{DbPool, build_db_pool_for_tests, get_conn};
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;

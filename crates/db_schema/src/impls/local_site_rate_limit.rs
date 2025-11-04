@@ -5,8 +5,8 @@ use crate::{
     LocalSiteRateLimitInsertForm,
     LocalSiteRateLimitUpdateForm,
   },
-  utils::{DbPool, get_conn},
 };
+use lemmy_diesel_utils::connection::{DbPool,get_conn};
 use diesel::dsl::insert_into;
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::local_site_rate_limit;

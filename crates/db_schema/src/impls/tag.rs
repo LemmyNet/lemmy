@@ -6,8 +6,8 @@ use crate::{
     tag::{PostTag, PostTagForm, Tag, TagInsertForm, TagUpdateForm, TagsView},
   },
   traits::Crud,
-  utils::{get_conn, DbPool},
 };
+use lemmy_diesel_utils::connection::{DbPool,get_conn};
 use diesel::{
   delete,
   deserialize::FromSql,

@@ -7,9 +7,7 @@ use crate::{
   },
   utils::{
     functions::{coalesce, lower},
-    get_conn,
     now,
-    DbPool,
   },
 };
 use bcrypt::{hash, DEFAULT_COST};
@@ -26,7 +24,10 @@ use lemmy_db_schema_file::{
   enums::CommunityVisibility,
   schema::{community, community_actions, local_user, person, registration_application},
 };
-use lemmy_diesel_utils::dburl::DbUrl;
+use lemmy_diesel_utils::{
+  connection::{get_conn, DbPool},
+  dburl::DbUrl,
+};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl LocalUser {
@@ -405,8 +406,8 @@ mod tests {
       person::{Person, PersonInsertForm},
     },
     traits::Crud,
-    utils::build_db_pool_for_tests,
   };
+  use lemmy_diesel_utils::connection::build_db_pool_for_tests;
   use lemmy_utils::error::LemmyResult;
   use serial_test::serial;
 

@@ -9,6 +9,7 @@ use diesel::{
   SelectableHelper,
   dsl::not,
 };
+use lemmy_diesel_utils::connection::{DbPool,get_conn};
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
@@ -21,8 +22,6 @@ use lemmy_db_schema::{
   },
   traits::PaginationCursorBuilder,
   utils::{
-    DbPool,
-    get_conn,
     limit_fetch,
     paginate,
     queries::{

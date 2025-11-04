@@ -12,8 +12,7 @@ use lemmy_db_schema::{
     modlog::{Modlog, ModlogInsertForm},
   },
   traits::Crud,
-  utils::get_conn,
-};
+};use lemmy_diesel_utils::connection::{get_conn};
 use lemmy_db_views_community::{
   CommunityView,
   api::{GetCommunityResponse, TransferCommunity},

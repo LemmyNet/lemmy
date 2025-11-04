@@ -17,6 +17,7 @@ use diesel::{
   QueryDsl,
   SelectableHelper,
 };
+use lemmy_diesel_utils::connection::{DbPool,get_conn};
 use diesel_async::RunQueryDsl;
 use i_love_jesus::asc_if;
 use lemmy_db_schema::{
@@ -39,8 +40,6 @@ use lemmy_db_schema::{
   },
   traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{
-    DbPool,
-    get_conn,
     limit_fetch,
     paginate,
     queries::joins::{
@@ -604,8 +603,8 @@ mod tests {
       private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
     },
     traits::{Bannable, Crud, Reportable},
-    utils::{DbPool, build_db_pool_for_tests, get_conn},
   };
+  use lemmy_diesel_utils::connection::{DbPool, build_db_pool_for_tests, get_conn};
   use lemmy_db_schema_file::schema::report_combined;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;

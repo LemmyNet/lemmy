@@ -2,8 +2,8 @@ use crate::{
   newtypes::{PersonId, PostId, PostReportId},
   source::post_report::{PostReport, PostReportForm},
   traits::Reportable,
-  utils::{DbPool, get_conn},
 };
+use lemmy_diesel_utils::connection::{DbPool,get_conn};
 use chrono::Utc;
 use diesel::{
   BoolExpressionMethods,
@@ -101,8 +101,8 @@ mod tests {
       post::{Post, PostInsertForm},
     },
     traits::Crud,
-    utils::build_db_pool_for_tests,
   };
+  use lemmy_diesel_utils::connection::build_db_pool_for_tests;
   use serial_test::serial;
 
   async fn init(pool: &mut DbPool<'_>) -> LemmyResult<(Person, PostReport)> {

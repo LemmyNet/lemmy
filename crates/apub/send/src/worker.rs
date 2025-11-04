@@ -18,8 +18,7 @@ use lemmy_db_schema::{
     federation_queue_state::FederationQueueState,
     instance::{Instance, InstanceForm},
   },
-  utils::{ActualDbPool, DbPool},
-};
+};use lemmy_diesel_utils::connection::{ActualDbPool,DbPool,get_conn};
 use lemmy_utils::{
   error::LemmyResult,
   federate_retry_sleep_duration,

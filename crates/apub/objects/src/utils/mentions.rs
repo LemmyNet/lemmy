@@ -9,8 +9,8 @@ use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
   source::{comment::Comment, person::Person, post::Post},
   traits::Crud,
-  utils::DbPool,
 };
+use lemmy_diesel_utils::connection::DbPool;
 use lemmy_utils::{
   error::{LemmyResult, UntranslatedError},
   utils::mention::scrape_text_for_mentions,

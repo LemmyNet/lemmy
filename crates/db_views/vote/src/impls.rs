@@ -13,8 +13,6 @@ use lemmy_db_schema::{
   newtypes::{CommentId, InstanceId, PaginationCursor, PersonId, PostId},
   source::{comment::CommentActions, post::PostActions},
   utils::{
-    DbPool,
-    get_conn,
     limit_fetch,
     paginate,
     queries::{
@@ -23,6 +21,7 @@ use lemmy_db_schema::{
     },
   },
 };
+use lemmy_diesel_utils::connection::{DbPool,get_conn};
 use lemmy_db_schema_file::schema::{
   comment,
   comment_actions,
@@ -198,8 +197,8 @@ mod tests {
       post::{Post, PostActions, PostInsertForm, PostLikeForm},
     },
     traits::{Bannable, Crud, Likeable},
-    utils::build_db_pool_for_tests,
   };
+  use lemmy_diesel_utils::connection::{DbPool, build_db_pool_for_tests, get_conn};
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;

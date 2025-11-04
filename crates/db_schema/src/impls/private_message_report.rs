@@ -2,8 +2,8 @@ use crate::{
   newtypes::{PersonId, PrivateMessageId, PrivateMessageReportId},
   source::private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
   traits::Reportable,
-  utils::{DbPool, get_conn},
 };
+use lemmy_diesel_utils::connection::{DbPool,get_conn};
 use chrono::Utc;
 use diesel::{
   ExpressionMethods,

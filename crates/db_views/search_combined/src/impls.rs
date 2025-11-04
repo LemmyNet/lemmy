@@ -8,6 +8,7 @@ use crate::{
   SearchCombinedViewInternal,
 };
 use diesel::{
+  dsl::not,
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
@@ -15,24 +16,19 @@ use diesel::{
   PgTextExpressionMethods,
   QueryDsl,
   SelectableHelper,
-  dsl::not,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::asc_if;
 use lemmy_db_schema::{
-  SearchSortType::{self, *},
-  SearchType,
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommunityId, InstanceId, PaginationCursor, PersonId},
   source::{
-    combined::search::{SearchCombined, search_combined_keys as key},
+    combined::search::{search_combined_keys as key, SearchCombined},
     site::Site,
   },
   traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{
-    DbPool,
     fuzzy_search,
-    get_conn,
     limit_fetch,
     now,
     paginate,
@@ -57,6 +53,8 @@ use lemmy_db_schema::{
     },
     seconds_to_pg_interval,
   },
+  SearchSortType::{self, *},
+  SearchType,
 };
 use lemmy_db_schema_file::{
   enums::ListingType,
@@ -73,6 +71,7 @@ use lemmy_db_schema_file::{
   },
 };
 use lemmy_db_views_community::MultiCommunityView;
+use lemmy_diesel_utils::connection::{get_conn, DbPool};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 impl SearchCombinedViewInternal {
@@ -489,10 +488,8 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
 #[cfg(test)]
 #[expect(clippy::indexing_slicing)]
 mod tests {
-  use crate::{LocalUserView, SearchCombinedView, impls::SearchCombinedQuery};
+  use crate::{impls::SearchCombinedQuery, LocalUserView, SearchCombinedView};
   use lemmy_db_schema::{
-    SearchSortType,
-    SearchType,
     assert_length,
     source::{
       comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm, CommentUpdateForm},
@@ -505,8 +502,10 @@ mod tests {
       site::{Site, SiteInsertForm},
     },
     traits::{Crud, Likeable},
-    utils::{DbPool, build_db_pool_for_tests},
+    SearchSortType,
+    SearchType,
   };
+  use lemmy_diesel_utils::connection::{DbPool, build_db_pool_for_tests, get_conn};
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;

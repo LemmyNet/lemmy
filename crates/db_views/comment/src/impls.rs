@@ -1,29 +1,26 @@
 use crate::{CommentSlimView, CommentView};
 use diesel::{
+  dsl::exists,
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
   SelectableHelper,
-  dsl::exists,
 };
 use diesel_async::RunQueryDsl;
-use diesel_ltree::{Ltree, LtreeExtensions, nlevel};
+use diesel_ltree::{nlevel, Ltree, LtreeExtensions};
 use i_love_jesus::asc_if;
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommentId, CommunityId, InstanceId, PaginationCursor, PersonId, PostId},
   source::{
-    comment::{Comment, comment_keys as key},
+    comment::{comment_keys as key, Comment},
     local_user::LocalUser,
     site::Site,
   },
   traits::{Crud, PaginationCursorBuilder},
   utils::{
-    DbPool,
-    Subpath,
-    get_conn,
     limit_fetch,
     now,
     paginate,
@@ -43,6 +40,7 @@ use lemmy_db_schema::{
       },
     },
     seconds_to_pg_interval,
+    Subpath,
   },
 };
 use lemmy_db_schema_file::{
@@ -54,6 +52,7 @@ use lemmy_db_schema_file::{
   },
   schema::{comment, community, community_actions, local_user_language, person, post},
 };
+use lemmy_diesel_utils::connection::{get_conn, DbPool};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl PaginationCursorBuilder for CommentView {
@@ -320,10 +319,7 @@ impl CommentQuery<'_> {
 mod tests {
 
   use super::*;
-  use crate::{
-    CommentView,
-    impls::{CommentQuery, DbPool},
-  };
+  use crate::{impls::CommentQuery, CommentView};
   use lemmy_db_schema::{
     assert_length,
     impls::actor_language::UNDETERMINED_ID,
@@ -348,9 +344,9 @@ mod tests {
       site::{Site, SiteInsertForm},
     },
     traits::{Bannable, Blockable, Crud, Followable, Likeable},
-    utils::build_db_pool_for_tests,
   };
   use lemmy_db_views_local_user::LocalUserView;
+  use lemmy_diesel_utils::connection::{build_db_pool_for_tests, get_conn, DbPool};
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
@@ -510,12 +506,10 @@ mod tests {
     .list(&data.site, pool)
     .await?;
 
-    assert!(
-      read_comment_views_with_person[0]
-        .comment_actions
-        .as_ref()
-        .is_some_and(|x| x.vote_is_upvote == Some(true))
-    );
+    assert!(read_comment_views_with_person[0]
+      .comment_actions
+      .as_ref()
+      .is_some_and(|x| x.vote_is_upvote == Some(true)));
     assert!(read_comment_views_with_person[0].can_mod);
 
     // Make sure its 1, not showing the blocked comment
@@ -530,11 +524,9 @@ mod tests {
     .await?;
 
     // Make sure block set the creator blocked
-    assert!(
-      read_comment_from_blocked_person
-        .person_actions
-        .is_some_and(|x| x.blocked_at.is_some())
-    );
+    assert!(read_comment_from_blocked_person
+      .person_actions
+      .is_some_and(|x| x.blocked_at.is_some()));
 
     cleanup(data, pool).await
   }
@@ -607,12 +599,10 @@ mod tests {
         .map(|r| r.comment.content.as_str())
         .collect::<Vec<&str>>()
     );
-    assert!(
-      read_comment_views_parent_max_depth[1]
-        .comment
-        .content
-        .eq("Comment 3")
-    );
+    assert!(read_comment_views_parent_max_depth[1]
+      .comment
+      .content
+      .eq("Comment 3"));
     assert_length!(3, read_comment_views_parent_max_depth);
 
     cleanup(data, pool).await
@@ -857,11 +847,9 @@ mod tests {
     )
     .await?;
 
-    assert!(
-      comment_view
-        .community_actions
-        .is_some_and(|x| x.received_ban_at.is_some())
-    );
+    assert!(comment_view
+      .community_actions
+      .is_some_and(|x| x.received_ban_at.is_some()));
 
     Person::delete(pool, inserted_banned_from_comm_person.id).await?;
     cleanup(data, pool).await

@@ -14,6 +14,7 @@ use diesel::{
   SelectableHelper,
   dsl::not,
 };
+use lemmy_diesel_utils::connection::{DbPool,get_conn};
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
@@ -23,8 +24,6 @@ use lemmy_db_schema::{
   source::combined::person_liked::{PersonLikedCombined, person_liked_combined_keys as key},
   traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{
-    DbPool,
-    get_conn,
     limit_fetch,
     paginate,
     queries::joins::{
@@ -274,8 +273,8 @@ mod tests {
       post::{Post, PostActions, PostInsertForm, PostLikeForm},
     },
     traits::{Crud, Likeable},
-    utils::{DbPool, build_db_pool_for_tests},
   };
+  use lemmy_diesel_utils::connection::{DbPool, build_db_pool_for_tests, get_conn};
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;

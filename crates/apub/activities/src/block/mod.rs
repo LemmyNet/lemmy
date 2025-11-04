@@ -10,8 +10,7 @@ use lemmy_db_schema::{
   newtypes::CommunityId,
   source::{comment::Comment, community::Community, person::Person, post::Post, site::Site},
   traits::Crud,
-  utils::DbPool,
-};
+};use lemmy_diesel_utils::connection::{DbPool,get_conn};
 use lemmy_db_views_community::api::BanFromCommunity;
 use lemmy_utils::error::LemmyResult;
 use url::Url;

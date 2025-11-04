@@ -9,6 +9,7 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
+use lemmy_diesel_utils::connection::{DbPool,get_conn};
 use lemmy_db_schema::{
   aliases::creator_home_instance_actions,
   newtypes::{LocalUserId, OAuthProviderId, PaginationCursor, PersonId},
@@ -19,9 +20,8 @@ use lemmy_db_schema::{
   },
   traits::{Crud, PaginationCursorBuilder},
   utils::{
-    DbPool,
     functions::{coalesce, lower},
-    get_conn,
+   
     now,
     paginate,
     queries::joins::creator_home_instance_actions_join,
@@ -241,8 +241,8 @@ mod tests {
       person::{Person, PersonInsertForm},
     },
     traits::{Bannable, Crud},
-    utils::build_db_pool_for_tests,
   };
+  use lemmy_diesel_utils::connection::{DbPool, build_db_pool_for_tests, get_conn};
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;

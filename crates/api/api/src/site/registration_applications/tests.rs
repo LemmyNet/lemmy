@@ -17,8 +17,7 @@ use lemmy_db_schema::{
   },
   test_data::TestData,
   traits::Crud,
-  utils::DbPool,
-};
+};use lemmy_diesel_utils::connection::DbPool;
 use lemmy_db_schema_file::enums::RegistrationMode;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_notification::api::GetUnreadRegistrationApplicationCountResponse;

@@ -14,7 +14,7 @@ use crate::{
     },
   },
   traits::{ApubActor, Crud},
-  utils::{format_actor_url, functions::lower, get_conn, DbPool},
+  utils::{format_actor_url, functions::lower},
 };
 use diesel::{
   dsl::{delete, exists, insert_into, not},
@@ -32,7 +32,10 @@ use lemmy_db_schema_file::schema::{
   multi_community_follow,
   person,
 };
-use lemmy_diesel_utils::dburl::DbUrl;
+use lemmy_diesel_utils::{
+  connection::{get_conn, DbPool},
+  dburl::DbUrl,
+};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
@@ -349,8 +352,8 @@ mod tests {
       person::{Person, PersonInsertForm},
     },
     traits::Crud,
-    utils::build_db_pool_for_tests,
   };
+  use lemmy_diesel_utils::connection::build_db_pool_for_tests;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;

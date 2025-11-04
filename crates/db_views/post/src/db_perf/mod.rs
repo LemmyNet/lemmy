@@ -1,11 +1,11 @@
 mod series;
 
-use crate::{PostView, db_perf::series::ValuesFromSeries, impls::PostQuery};
+use crate::{db_perf::series::ValuesFromSeries, impls::PostQuery, PostView};
 use diesel::{
-  ExpressionMethods,
-  IntoSql,
   dsl::{self, sql},
   sql_types,
+  ExpressionMethods,
+  IntoSql,
 };
 use diesel_async::{RunQueryDsl, SimpleAsyncConnection};
 use lemmy_db_schema::{
@@ -16,9 +16,10 @@ use lemmy_db_schema::{
     site::Site,
   },
   traits::{Crud, PaginationCursorBuilder},
-  utils::{build_db_pool, get_conn, now},
+  utils::now,
 };
 use lemmy_db_schema_file::{enums::PostSortType, schema::post};
+use lemmy_diesel_utils::connection::{build_db_pool_for_tests,build_db_pool, get_conn, DbPool};
 use lemmy_utils::error::LemmyResult;
 use serial_test::serial;
 use std::{fmt::Display, num::NonZeroU32, str::FromStr};

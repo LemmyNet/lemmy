@@ -1,8 +1,8 @@
 use crate::{
   newtypes::PersonId,
   source::images::{ImageDetails, ImageDetailsInsertForm, LocalImage, LocalImageForm, RemoteImage},
-  utils::{get_conn, DbPool},
 };
+use lemmy_diesel_utils::connection::{DbPool,get_conn};
 use diesel::{
   dsl::exists,
   insert_into,

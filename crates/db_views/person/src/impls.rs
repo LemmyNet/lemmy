@@ -7,8 +7,6 @@ use lemmy_db_schema::{
   source::person::{Person, person_keys as key},
   traits::{Crud, PaginationCursorBuilder},
   utils::{
-    DbPool,
-    get_conn,
     limit_fetch,
     paginate,
     queries::joins::{
@@ -18,6 +16,7 @@ use lemmy_db_schema::{
     },
   },
 };
+use lemmy_diesel_utils::connection::{DbPool,get_conn};
 use lemmy_db_schema_file::schema::{local_user, person};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -135,8 +134,8 @@ mod tests {
       person::{Person, PersonActions, PersonInsertForm, PersonNoteForm, PersonUpdateForm},
     },
     traits::Crud,
-    utils::build_db_pool_for_tests,
   };
+  use lemmy_diesel_utils::connection::{DbPool, build_db_pool_for_tests, get_conn};
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;

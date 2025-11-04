@@ -7,8 +7,8 @@ use crate::{
     site::{Site, SiteInsertForm},
   },
   traits::Crud,
-  utils::DbPool,
 };
+use lemmy_diesel_utils::connection::{get_conn, DbPool};
 use lemmy_utils::error::LemmyResult;
 
 pub struct TestData {

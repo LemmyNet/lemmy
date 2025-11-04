@@ -36,7 +36,7 @@ pub async fn get_my_user(
     moderates,
     keyword_blocks,
     discussion_languages,
-  ) = lemmy_db_schema::try_join_with_pool!(pool => (
+  ) = lemmy_diesel_utils::try_join_with_pool!(pool => (
     |pool| CommunityFollowerView::for_person(pool, person_id),
     |pool| CommunityActions::read_blocks_for_person(pool, person_id),
     |pool| InstanceActions::read_communities_block_for_person(pool, person_id),

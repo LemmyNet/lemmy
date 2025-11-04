@@ -380,13 +380,13 @@ mod tests {
       private_message::{PrivateMessage, PrivateMessageInsertForm},
     },
     traits::{Blockable, Crud},
-    utils::{build_db_pool_for_tests, DbPool},
     NotificationDataType,
   };
   use lemmy_db_schema_file::enums::NotificationType;
   use lemmy_db_views_local_user::LocalUserView;
   use lemmy_db_views_notification::{impls::NotificationQuery, NotificationData, NotificationView};
   use lemmy_db_views_private_message::PrivateMessageView;
+  use lemmy_diesel_utils::connection::{build_db_pool_for_tests, get_conn, DbPool};
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;

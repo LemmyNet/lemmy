@@ -1,7 +1,6 @@
 use crate::{send::send_email, user_language};
-use lemmy_db_schema::utils::DbPool;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_utils::{error::LemmyResult, settings::structs::Settings};
+use lemmy_utils::{error::LemmyResult, settings::structs::Settings};use lemmy_diesel_utils::connection::DbPool;
 
 /// Send a new applicant email notification to all admins
 pub async fn send_new_applicant_email_to_admins(

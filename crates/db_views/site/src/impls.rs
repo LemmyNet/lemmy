@@ -1,8 +1,8 @@
 use crate::{
+  api::{GetFederatedInstances, GetFederatedInstancesKind, UserSettingsBackup},
   FederatedInstanceView,
   ReadableFederationState,
   SiteView,
-  api::{GetFederatedInstances, GetFederatedInstancesKind, UserSettingsBackup},
 };
 use diesel::{
   ExpressionMethods,
@@ -19,14 +19,14 @@ use lemmy_db_schema::{
   source::{
     actor_language::LocalUserLanguage,
     federation_queue_state::FederationQueueState,
-    instance::{Instance, instance_keys as key},
+    instance::{instance_keys as key, Instance},
     keyword_block::LocalUserKeywordBlock,
     language::Language,
     local_user::LocalUser,
     person::Person,
   },
   traits::{Crud, PaginationCursorBuilder},
-  utils::{DbPool, fuzzy_search, get_conn, limit_fetch, paginate},
+  utils::{fuzzy_search, limit_fetch, paginate},
 };
 use lemmy_db_schema_file::schema::{
   federation_allowlist,
@@ -38,11 +38,12 @@ use lemmy_db_schema_file::schema::{
   site,
 };
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_diesel_utils::connection::{get_conn, DbPool};
 use lemmy_utils::{
-  CacheLock,
   build_cache,
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   federate_retry_sleep_duration,
+  CacheLock,
 };
 use std::{
   collections::HashMap,
@@ -223,8 +224,8 @@ impl From<FederationQueueState> for ReadableFederationState {
 #[expect(clippy::indexing_slicing)]
 mod tests {
   use crate::{
-    FederatedInstanceView,
     api::{GetFederatedInstances, GetFederatedInstancesKind},
+    FederatedInstanceView,
   };
   use lemmy_db_schema::{
     assert_length,
@@ -235,8 +236,8 @@ mod tests {
       site::{Site, SiteInsertForm},
     },
     traits::Crud,
-    utils::build_db_pool_for_tests,
   };
+  use lemmy_diesel_utils::connection::{DbPool, build_db_pool_for_tests, get_conn};
   use lemmy_utils::error::LemmyResult;
   use serial_test::serial;
 

@@ -1,8 +1,4 @@
-use crate::{
-  newtypes::{CommunityId, PaginationCursor, PersonId},
-  utils::{DbPool, get_conn},
-};
-use lemmy_diesel_utils::dburl::DbUrl;
+use crate::newtypes::{CommunityId, PaginationCursor, PersonId};
 use diesel::{
   associations::HasTable,
   dsl,
@@ -10,11 +6,15 @@ use diesel::{
   query_dsl::methods::{FindDsl, LimitDsl},
 };
 use diesel_async::{
+  methods::{ExecuteDsl, LoadQuery},
   AsyncPgConnection,
   RunQueryDsl,
-  methods::{ExecuteDsl, LoadQuery},
 };
 use diesel_uplete::UpleteCount;
+use lemmy_diesel_utils::{
+  connection::{get_conn, DbPool},
+  dburl::DbUrl,
+};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,

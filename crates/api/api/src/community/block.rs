@@ -12,8 +12,8 @@ use lemmy_db_schema::{
     community::{CommunityActions, CommunityBlockForm},
   },
   traits::{Blockable, Followable},
-  utils::get_conn,
-};
+
+};use lemmy_diesel_utils::connection::{get_conn};
 use lemmy_db_views_community::{
   CommunityView,
   api::{BlockCommunity, CommunityResponse},

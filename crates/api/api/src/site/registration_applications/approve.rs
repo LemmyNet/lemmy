@@ -8,13 +8,14 @@ use lemmy_db_schema::{
     registration_application::{RegistrationApplication, RegistrationApplicationUpdateForm},
   },
   traits::Crud,
-  utils::{diesel_string_update, get_conn},
+  utils::diesel_string_update,
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_registration_applications::{
-  RegistrationApplicationView,
   api::{ApproveRegistrationApplication, RegistrationApplicationResponse},
+  RegistrationApplicationView,
 };
+use lemmy_diesel_utils::connection::get_conn;
 use lemmy_email::account::{send_application_approved_email, send_application_denied_email};
 use lemmy_utils::error::LemmyResult;
 

@@ -6,10 +6,10 @@ use lemmy_db_schema::{
     local_site::LocalSite,
     password_reset_request::PasswordResetRequest,
   },
-  utils::DbPool,
 };
 use lemmy_db_schema_file::enums::RegistrationMode;
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_diesel_utils::connection::DbPool;
 use lemmy_utils::{
   error::LemmyResult,
   settings::structs::Settings,

@@ -3,8 +3,7 @@ use chrono::{DateTime, TimeZone, Utc};
 use lemmy_db_schema::{
   newtypes::{CommunityId,  InstanceId},
   source::{activity::SentActivity, site::Site},
-  utils::{ActualDbPool, DbPool},
-};
+};use lemmy_diesel_utils::connection::{DbPool,ActualDbPool};
 use lemmy_db_views_community_follower::CommunityFollowerView;
 use lemmy_utils::error::LemmyResult;
 use reqwest::Url;

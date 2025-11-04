@@ -38,8 +38,8 @@ use lemmy_db_schema::{
     registration_application::{RegistrationApplication, RegistrationApplicationInsertForm},
   },
   traits::{ApubActor, Crud, Likeable},
-  utils::get_conn,
-};
+  
+};use lemmy_diesel_utils::connection::{get_conn};
 use lemmy_db_schema_file::enums::RegistrationMode;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::impls::PersonQuery;

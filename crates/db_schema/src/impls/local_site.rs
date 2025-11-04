@@ -1,10 +1,8 @@
-use crate::{
-  source::local_site::{LocalSite, LocalSiteInsertForm, LocalSiteUpdateForm},
-  utils::{DbPool, get_conn},
-};
+use crate::source::local_site::{LocalSite, LocalSiteInsertForm, LocalSiteUpdateForm};
 use diesel::dsl::insert_into;
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::local_site;
+use lemmy_diesel_utils::connection::{get_conn, DbPool};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl LocalSite {
@@ -50,8 +48,8 @@ mod tests {
     },
     test_data::TestData,
     traits::Crud,
-    utils::{DbPool, build_db_pool_for_tests},
   };
+  use lemmy_diesel_utils::connection::{build_db_pool_for_tests, DbPool};
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
