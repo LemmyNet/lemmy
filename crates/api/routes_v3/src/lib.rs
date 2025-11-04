@@ -184,7 +184,7 @@ async fn create_comment_v3(
   context: ApubData<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponseV3>> {
-  let res = create_comment(data, context, local_user_view).await?;
+  let res = Box::pin(create_comment(data, context, local_user_view)).await?;
   Ok(Json(CommentResponseV3 {
     comment_view: convert_comment_view(res.0.comment_view),
     recipient_ids: vec![],
@@ -220,7 +220,7 @@ async fn create_post_v3(
     tags: None,
     scheduled_publish_time_at: None,
   };
-  let res = create_post(Json(data), context, local_user_view).await?;
+  let res = Box::pin(create_post(Json(data), context, local_user_view)).await?;
   Ok(Json(PostResponseV3 {
     post_view: convert_post_view(res.0.post_view),
   }))
@@ -348,10 +348,6 @@ async fn login_v3(
     registration_created,
     verify_email_sent,
   }))
-}
-
-fn convert_sensitive(s: SensitiveStringV3) -> SensitiveString {
-  SensitiveString::from(s.into_inner())
 }
 
 fn convert_sensitive2(s: SensitiveString) -> SensitiveStringV3 {
@@ -565,6 +561,7 @@ async fn list_comments_v3(
   }))
 }
 
+#[allow(clippy::expect_used)]
 static DUMMY_URL: LazyLock<DbUrlV3> = LazyLock::new(|| {
   Url::parse("http://example.com")
     .expect("parse dummy url")
