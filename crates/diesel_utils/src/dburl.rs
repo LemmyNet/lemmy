@@ -1,7 +1,9 @@
+#[cfg(feature = "full")]
 use activitypub_federation::{
   fetch::{collection_id::CollectionId, object_id::ObjectId},
   traits::{Collection, Object},
 };
+#[cfg(feature = "full")]
 use diesel::{
   backend::Backend,
   deserialize::{FromSql, FromSqlRow},
@@ -18,8 +20,9 @@ use std::{
 use url::Url;
 
 #[repr(transparent)]
-#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug, Hash, AsExpression, FromSqlRow)]
-#[ diesel(sql_type = diesel::sql_types::Text)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug, Hash)]
+#[cfg_attr(feature = "full", derive(AsExpression, FromSqlRow))]
+#[cfg_attr(feature = "full", diesel(sql_type = diesel::sql_types::Text))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct DbUrl(pub Box<Url>);
@@ -56,6 +59,7 @@ impl Into<Url> for DbUrl {
   }
 }
 
+#[cfg(feature = "full")]
 impl<T> From<DbUrl> for ObjectId<T>
 where
   T: Object + Send + 'static,
@@ -67,6 +71,7 @@ where
   }
 }
 
+#[cfg(feature = "full")]
 impl<T> From<DbUrl> for CollectionId<T>
 where
   T: Collection + Send + 'static,
@@ -78,6 +83,7 @@ where
   }
 }
 
+#[cfg(feature = "full")]
 impl<T> From<CollectionId<T>> for DbUrl
 where
   T: Collection,
@@ -97,12 +103,14 @@ impl Deref for DbUrl {
   }
 }
 
+#[cfg(feature = "full")]
 impl ToSql<Text, Pg> for DbUrl {
   fn to_sql(&self, out: &mut Output<Pg>) -> diesel::serialize::Result {
     <std::string::String as ToSql<Text, Pg>>::to_sql(&self.0.to_string(), &mut out.reborrow())
   }
 }
 
+#[cfg(feature = "full")]
 impl<DB: Backend> FromSql<Text, DB> for DbUrl
 where
   String: FromSql<Text, DB>,
@@ -113,6 +121,7 @@ where
   }
 }
 
+#[cfg(feature = "full")]
 impl<Kind> From<ObjectId<Kind>> for DbUrl
 where
   Kind: Object + Send + 'static,

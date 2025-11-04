@@ -1,10 +1,10 @@
+#[cfg(feature = "full")]
 use diesel_derive_newtype::DieselNewType;
 use serde::{Deserialize, Serialize};
 use std::{fmt::Debug, ops::Deref};
 
-#[derive(
-  Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize, Serialize, Default, DieselNewType,
-)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize, Serialize, Default)]
+#[cfg_attr(feature = "full", derive(DieselNewType))]
 #[serde(transparent)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
