@@ -27,15 +27,10 @@ chrono = { workspace = true }
 diesel_migrations = { workspace = true }
 anyhow = { workspace = true }
 serde = { workspace = true }
-serde_with = { workspace = true }
 url = { workspace = true }
-strum = { workspace = true }
-serde_json = { workspace = true, optional = true }
 activitypub_federation = { workspace = true }
-bcrypt = { workspace = true, optional = true }
 diesel-derive-newtype = { workspace = true }
 diesel-async = { workspace = true, features = ["deadpool", "postgres"] }
-diesel-uplete = { workspace = true }
 diesel_ltree = { workspace = true }
 tracing = { workspace = true }
 deadpool = { version = "0.12.3", features = ["rt_tokio_1"] }
@@ -45,10 +40,7 @@ tokio = { workspace = true }
 tokio-postgres = { workspace = true }
 tokio-postgres-rustls = { workspace = true }
 rustls = { workspace = true }
-uuid.workspace = true
 i-love-jesus = { workspace = true }
-derive-new.workspace = true
-moka = { workspace = true, optional = true }
 lemmy_utils = { workspace = true }
 
 [dev-dependencies]
