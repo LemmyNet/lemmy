@@ -11,10 +11,7 @@ use lemmy_db_schema::{
   source::{comment::Comment, community::Community, person::Person, post::Post, site::Site},
 };
 use lemmy_db_views_community::api::BanFromCommunity;
-use lemmy_diesel_utils::{
-  connection::DbPool,
-  traits::Crud,
-};
+use lemmy_diesel_utils::{connection::DbPool, traits::Crud};
 use lemmy_utils::error::LemmyResult;
 use url::Url;
 

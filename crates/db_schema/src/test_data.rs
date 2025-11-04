@@ -5,10 +5,7 @@ use crate::source::{
   person::{Person, PersonInsertForm},
   site::{Site, SiteInsertForm},
 };
-use lemmy_diesel_utils::{
-  connection::DbPool,
-  traits::Crud,
-};
+use lemmy_diesel_utils::{connection::DbPool, traits::Crud};
 use lemmy_utils::error::LemmyResult;
 
 pub struct TestData {

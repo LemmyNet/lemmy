@@ -1,13 +1,7 @@
 use crate::newtypes::{CommunityId, PaginationCursor, PersonId};
 use diesel_uplete::UpleteCount;
-use lemmy_diesel_utils::{
-  connection::DbPool,
-  dburl::DbUrl,
-};
-use lemmy_utils::{
-  error::LemmyResult,
-  settings::structs::Settings,
-};
+use lemmy_diesel_utils::{connection::DbPool, dburl::DbUrl};
+use lemmy_utils::{error::LemmyResult, settings::structs::Settings};
 use std::future::Future;
 use url::Url;
 

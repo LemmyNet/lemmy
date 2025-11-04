@@ -242,10 +242,7 @@ mod tests {
     traits::Followable,
   };
   use lemmy_db_schema_file::enums::CommunityVisibility;
-  use lemmy_diesel_utils::{
-    connection::build_db_pool_for_tests,
-    traits::Crud,
-  };
+  use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use serial_test::serial;
 
   #[tokio::test]
