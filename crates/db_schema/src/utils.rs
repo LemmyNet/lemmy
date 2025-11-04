@@ -4,11 +4,9 @@ use crate::newtypes::DbUrl;
 use chrono::TimeDelta;
 use deadpool::Runtime;
 use diesel::{
-  Expression,
-  IntoSql,
   dsl,
   helper_types::AsExprOf,
-  pg::{Pg, data_types::PgInterval},
+  pg::{data_types::PgInterval, Pg},
   query_builder::{Query, QueryFragment},
   query_dsl::methods::LimitDsl,
   result::{
@@ -17,28 +15,27 @@ use diesel::{
     Error::{self as DieselError, QueryBuilderError},
   },
   sql_types::{self, Timestamptz},
+  Expression,
+  IntoSql,
 };
 use diesel_async::{
-  AsyncConnection,
   pg::AsyncPgConnection,
   pooled_connection::{
+    deadpool::{Hook, HookError, Object as PooledConnection, Pool},
     AsyncDieselConnectionManager,
     ManagerConfig,
-    deadpool::{Hook, HookError, Object as PooledConnection, Pool},
   },
   scoped_futures::ScopedBoxFuture,
+  AsyncConnection,
 };
-use futures_util::{FutureExt, future::BoxFuture};
+use futures_util::{future::BoxFuture, FutureExt};
 use i_love_jesus::{CursorKey, PaginatedQueryBuilder, SortDirection};
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
-  settings::{SETTINGS, structs::Settings},
+  settings::{structs::Settings, SETTINGS},
   utils::validation::clean_url,
 };
 use rustls::{
-  ClientConfig,
-  DigitallySignedStruct,
-  SignatureScheme,
   client::danger::{
     DangerousClientConfigBuilder,
     HandshakeSignatureValid,
@@ -47,6 +44,9 @@ use rustls::{
   },
   crypto::{self, verify_tls12_signature, verify_tls13_signature},
   pki_types::{CertificateDer, ServerName, UnixTime},
+  ClientConfig,
+  DigitallySignedStruct,
+  SignatureScheme,
 };
 use std::{
   ops::{Deref, DerefMut},
@@ -497,7 +497,10 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
     }))
     .build()?;
 
-  lemmy_db_schema_setup::run(lemmy_db_schema_setup::Options::default().run(), &db_url)?;
+  lemmy_diesel_utils::schema_setup::run(
+    lemmy_diesel_utils::schema_setup::Options::default().run(),
+    &db_url,
+  )?;
 
   Ok(pool)
 }

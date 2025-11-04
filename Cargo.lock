@@ -3647,7 +3647,7 @@ dependencies = [
  "futures-util",
  "i-love-jesus",
  "lemmy_db_schema_file",
- "lemmy_db_schema_setup",
+ "lemmy_diesel_utils",
  "lemmy_utils",
  "moka",
  "pretty_assertions",
@@ -3677,25 +3677,6 @@ dependencies = [
  "serde",
  "strum",
  "ts-rs",
-]
-
-[[package]]
-name = "lemmy_db_schema_setup"
-version = "1.0.0-alpha.11"
-dependencies = [
- "anyhow",
- "chrono",
- "diesel",
- "diesel_ltree",
- "diesel_migrations",
- "diff",
- "itertools 0.14.0",
- "lemmy_db_schema_file",
- "lemmy_utils",
- "pathfinding",
- "serial_test",
- "tracing",
- "unified-diff",
 ]
 
 [[package]]
@@ -4106,6 +4087,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "lemmy_diesel_utils"
+version = "1.0.0-alpha.11"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "diesel",
+ "diesel_ltree",
+ "diesel_migrations",
+ "diff",
+ "itertools 0.14.0",
+ "lemmy_db_schema_file",
+ "lemmy_utils",
+ "pathfinding",
+ "serial_test",
+ "tracing",
+ "unified-diff",
+]
+
+[[package]]
 name = "lemmy_email"
 version = "1.0.0-alpha.11"
 dependencies = [
@@ -4177,8 +4177,8 @@ dependencies = [
  "lemmy_apub_objects",
  "lemmy_apub_send",
  "lemmy_db_schema",
- "lemmy_db_schema_setup",
  "lemmy_db_views_site",
+ "lemmy_diesel_utils",
  "lemmy_routes",
  "lemmy_utils",
  "mimalloc",

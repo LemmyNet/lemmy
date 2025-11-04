@@ -1,11 +1,11 @@
 use activitypub_federation::config::{FederationConfig, FederationMiddleware};
 use actix_web::{
+  dev::{ServerHandle, ServiceResponse},
+  middleware::{self, Condition, ErrorHandlerResponse, ErrorHandlers},
+  web::{get, scope, Data},
   App,
   HttpResponse,
   HttpServer,
-  dev::{ServerHandle, ServiceResponse},
-  middleware::{self, Condition, ErrorHandlerResponse, ErrorHandlers},
-  web::{Data, get, scope},
 };
 use clap::{Parser, Subcommand};
 use lemmy_api::sitemap::get_sitemap;
@@ -16,9 +16,9 @@ use lemmy_api_utils::{
   utils::local_site_rate_limit_to_rate_limit_config,
 };
 use lemmy_apub::{
-  FEDERATION_HTTP_FETCH_LIMIT,
-  VerifyUrlData,
   collections::fetch_community_collections,
+  VerifyUrlData,
+  FEDERATION_HTTP_FETCH_LIMIT,
 };
 use lemmy_apub_activities::handle_outgoing_activities;
 use lemmy_apub_objects::objects::{community::FETCH_COMMUNITY_COLLECTIONS, instance::ApubSite};
@@ -41,11 +41,11 @@ use lemmy_routes::{
   webfinger,
 };
 use lemmy_utils::{
-  VERSION,
   error::{LemmyErrorType, LemmyResult},
   rate_limit::RateLimit,
   response::jsonify_plain_text_errors,
-  settings::{SETTINGS, structs::Settings},
+  settings::{structs::Settings, SETTINGS},
+  VERSION,
 };
 use reqwest_middleware::ClientBuilder;
 use reqwest_tracing::TracingMiddleware;
@@ -144,8 +144,8 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
   }) = args.subcommand
   {
     let mut options = match subcommand {
-      MigrationSubcommand::Run => lemmy_db_schema_setup::Options::default().run(),
-      MigrationSubcommand::Revert => lemmy_db_schema_setup::Options::default().revert(),
+      MigrationSubcommand::Run => lemmy_diesel_utils::schema_setup::Options::default().run(),
+      MigrationSubcommand::Revert => lemmy_diesel_utils::schema_setup::Options::default().revert(),
     }
     .print_output();
 
@@ -153,12 +153,12 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
       options = options.limit(number);
     }
 
-    lemmy_db_schema_setup::run(options, &SETTINGS.get_database_url_with_options()?)?;
+    lemmy_diesel_utils::schema_setup::run(options, &SETTINGS.get_database_url_with_options()?)?;
 
     #[cfg(debug_assertions)]
     if all && subcommand == MigrationSubcommand::Run {
       println!(
-        "Warning: you probably want this command instead, which requires less crates to be compiled: cargo run --package lemmy_db_schema_setup"
+        "Warning: you probably want this command instead, which requires less crates to be compiled: cargo run --package lemmy_diesel_utils"
       );
     }
 
