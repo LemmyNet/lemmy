@@ -1,22 +1,11 @@
 use crate::newtypes::{CommunityId, PaginationCursor, PersonId};
-use diesel::{
-  associations::HasTable,
-  dsl,
-  query_builder::{DeleteStatement, IntoUpdateTarget},
-  query_dsl::methods::{FindDsl, LimitDsl},
-};
-use diesel_async::{
-  AsyncPgConnection,
-  RunQueryDsl,
-  methods::{ExecuteDsl, LoadQuery},
-};
 use diesel_uplete::UpleteCount;
 use lemmy_diesel_utils::{
-  connection::{DbPool, get_conn},
+  connection::DbPool,
   dburl::DbUrl,
 };
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::LemmyResult,
   settings::structs::Settings,
 };
 use std::future::Future;

@@ -387,7 +387,7 @@ mod tests {
   use lemmy_db_views_notification::{NotificationData, NotificationView, impls::NotificationQuery};
   use lemmy_db_views_private_message::PrivateMessageView;
   use lemmy_diesel_utils::{
-    connection::{DbPool, build_db_pool_for_tests, get_conn},
+    connection::{DbPool, build_db_pool_for_tests},
     traits::Crud,
   };
   use lemmy_utils::error::LemmyResult;

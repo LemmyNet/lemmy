@@ -245,7 +245,7 @@ mod tests {
     traits::Bannable,
   };
   use lemmy_diesel_utils::{
-    connection::{DbPool, build_db_pool_for_tests, get_conn},
+    connection::{DbPool, build_db_pool_for_tests},
     traits::Crud,
   };
   use lemmy_utils::error::LemmyResult;

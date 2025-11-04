@@ -12,7 +12,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_community::api::BanFromCommunity;
 use lemmy_diesel_utils::{
-  connection::{DbPool, get_conn},
+  connection::DbPool,
   traits::Crud,
 };
 use lemmy_utils::error::LemmyResult;

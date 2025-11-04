@@ -1,16 +1,16 @@
 use crate::dburl::DbUrl;
 use diesel::{
-  Expression,
-  IntoSql,
   dsl,
   helper_types::AsExprOf,
-  pg::{Pg, data_types::PgInterval},
+  pg::{data_types::PgInterval, Pg},
   query_builder::{Query, QueryFragment, QueryId},
   query_dsl::methods::LimitDsl,
   result::Error::{self as DieselError},
   sql_types::{self, Timestamptz},
+  Expression,
+  IntoSql,
 };
-use futures_util::{FutureExt, future::BoxFuture};
+use futures_util::future::BoxFuture;
 use i_love_jesus::{CursorKey, PaginatedQueryBuilder, SortDirection};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},

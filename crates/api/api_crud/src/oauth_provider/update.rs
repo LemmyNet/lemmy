@@ -7,7 +7,7 @@ use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::api::EditOAuthProvider;
 use lemmy_diesel_utils::{
   traits::Crud,
-  utils::{diesel_required_string_update, diesel_required_url_update, diesel_string_update},
+  utils::{diesel_required_string_update, diesel_required_url_update},
 };
 use lemmy_utils::error::LemmyError;
 

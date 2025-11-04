@@ -1,58 +1,10 @@
 pub mod queries;
 
 use chrono::TimeDelta;
-use diesel::{
-  Expression,
-  IntoSql,
-  dsl,
-  helper_types::AsExprOf,
-  pg::{Pg, data_types::PgInterval},
-  query_builder::{Query, QueryFragment},
-  query_dsl::methods::LimitDsl,
-  result::{
-    ConnectionError,
-    ConnectionResult,
-    Error::{self as DieselError, QueryBuilderError},
-  },
-  sql_types::{self, Timestamptz},
-};
-use diesel_async::{
-  AsyncConnection,
-  pg::AsyncPgConnection,
-  pooled_connection::{
-    AsyncDieselConnectionManager,
-    ManagerConfig,
-    deadpool::{Hook, HookError, Object as PooledConnection, Pool},
-  },
-  scoped_futures::ScopedBoxFuture,
-};
-use futures_util::{FutureExt, future::BoxFuture};
-use i_love_jesus::{CursorKey, PaginatedQueryBuilder, SortDirection};
-use lemmy_diesel_utils::dburl::DbUrl;
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
-  settings::{SETTINGS, structs::Settings},
-  utils::validation::clean_url,
+  error::{LemmyErrorType, LemmyResult},
+  settings::structs::Settings,
 };
-use rustls::{
-  ClientConfig,
-  DigitallySignedStruct,
-  SignatureScheme,
-  client::danger::{
-    DangerousClientConfigBuilder,
-    HandshakeSignatureValid,
-    ServerCertVerified,
-    ServerCertVerifier,
-  },
-  crypto::{self, verify_tls12_signature, verify_tls13_signature},
-  pki_types::{CertificateDer, ServerName, UnixTime},
-};
-use std::{
-  ops::{Deref, DerefMut},
-  sync::Arc,
-  time::Duration,
-};
-use tracing::error;
 use url::Url;
 
 const FETCH_LIMIT_DEFAULT: i64 = 20;

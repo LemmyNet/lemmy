@@ -20,7 +20,7 @@ use lemmy_db_schema_file::schema::{local_user, person, registration_application}
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   traits::Crud,
-  utils::{CoalesceKey, Commented, paginate, seconds_to_pg_interval},
+  utils::paginate,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 

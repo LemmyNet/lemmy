@@ -1,7 +1,4 @@
-use crate::{
-  connection::{DbPool, get_conn},
-  dburl::DbUrl,
-};
+use crate::connection::{DbPool, get_conn};
 use diesel::{
   associations::HasTable,
   dsl,
@@ -13,13 +10,8 @@ use diesel_async::{
   RunQueryDsl,
   methods::{ExecuteDsl, LoadQuery},
 };
-use diesel_uplete::UpleteCount;
-use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
-  settings::structs::Settings,
-};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use std::future::Future;
-use url::Url;
 
 /// Returned by `diesel::delete`
 type Delete<T> = DeleteStatement<<T as HasTable>::Table, <T as IntoUpdateTarget>::WhereClause>;

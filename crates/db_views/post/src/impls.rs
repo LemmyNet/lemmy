@@ -614,7 +614,7 @@ mod tests {
   use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility, ListingType};
   use lemmy_db_views_local_user::LocalUserView;
   use lemmy_diesel_utils::{
-    connection::{ActualDbPool, DbPool, build_db_pool, build_db_pool_for_tests, get_conn},
+    connection::{ActualDbPool, DbPool, build_db_pool, get_conn},
     traits::Crud,
   };
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};

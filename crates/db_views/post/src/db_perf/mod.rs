@@ -19,7 +19,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::{enums::PostSortType, schema::post};
 use lemmy_diesel_utils::{
-  connection::{DbPool, build_db_pool, build_db_pool_for_tests, get_conn},
+  connection::{build_db_pool, get_conn},
   traits::Crud,
   utils::now,
 };

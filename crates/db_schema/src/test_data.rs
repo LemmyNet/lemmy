@@ -6,7 +6,7 @@ use crate::source::{
   site::{Site, SiteInsertForm},
 };
 use lemmy_diesel_utils::{
-  connection::{DbPool, get_conn},
+  connection::DbPool,
   traits::Crud,
 };
 use lemmy_utils::error::LemmyResult;
