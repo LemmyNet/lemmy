@@ -51,14 +51,13 @@ use lemmy_utils::{
     validation::truncate_description,
   },
 };
-use once_cell::sync::OnceCell;
-use std::ops::Deref;
+use std::{ops::Deref, sync::OnceLock};
 use url::Url;
 
 #[allow(clippy::type_complexity)]
-pub static FETCH_COMMUNITY_COLLECTIONS: OnceCell<
+pub static FETCH_COMMUNITY_COLLECTIONS: OnceLock<
   fn(ApubCommunity, Group, Data<LemmyContext>) -> (),
-> = OnceCell::new();
+> = OnceLock::new();
 
 #[derive(Clone, Debug)]
 pub struct ApubCommunity(Community);
