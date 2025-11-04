@@ -15,7 +15,6 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
-use lemmy_diesel_utils::connection::{DbPool,get_conn};
 use lemmy_db_schema::{
   self,
   PersonContentType,
@@ -24,7 +23,6 @@ use lemmy_db_schema::{
   traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{
     limit_fetch,
-    paginate,
     queries::joins::{
       community_join,
       creator_community_actions_join,
@@ -41,6 +39,10 @@ use lemmy_db_schema::{
   },
 };
 use lemmy_db_schema_file::schema::{comment, person, person_content_combined, post};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  utils::paginate,
+};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 impl PersonContentCombinedViewInternal {

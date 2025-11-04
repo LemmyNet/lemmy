@@ -1,4 +1,7 @@
-use activitypub_federation::{fetch::object_id::ObjectId, traits::Object};
+use activitypub_federation::{
+  fetch::{collection_id::CollectionId, object_id::ObjectId},
+  traits::{Collection, Object},
+};
 use diesel::{
   backend::Backend,
   deserialize::{FromSql, FromSqlRow},
@@ -12,7 +15,7 @@ use std::{
   fmt::{Display, Formatter},
   ops::Deref,
 };
-use url::Url;use activitypub_federation::traits::Collection;use activitypub_federation::fetch::collection_id::CollectionId;
+use url::Url;
 
 #[repr(transparent)]
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug, Hash, AsExpression, FromSqlRow)]

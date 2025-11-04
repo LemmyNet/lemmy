@@ -1,14 +1,14 @@
 use crate::{
-  newtypes::{ InstanceId, PersonId},
+  newtypes::{InstanceId, PersonId},
   sensitive::SensitiveString,
   source::placeholder_apub_url,
 };
-use lemmy_diesel_utils::dburl::DbUrl;
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::{person, person_actions};
+use lemmy_diesel_utils::dburl::DbUrl;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 

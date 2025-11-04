@@ -21,14 +21,13 @@ use lemmy_db_schema::{
     site::{Site, SiteUpdateForm},
   },
   traits::Crud,
-  utils::diesel_string_update,
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::{
-  api::{CreateSite, SiteResponse},
   SiteView,
+  api::{CreateSite, SiteResponse},
 };
-use lemmy_diesel_utils::dburl::DbUrl;
+use lemmy_diesel_utils::{dburl::DbUrl, utils::diesel_string_update};
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::{

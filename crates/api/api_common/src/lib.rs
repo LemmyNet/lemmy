@@ -18,8 +18,8 @@ pub mod search;
 pub mod site;
 pub mod tagline;
 
-pub use lemmy_diesel_utils::dburl::DbUrl;
-pub use lemmy_db_schema::{ sensitive::SensitiveString};
+pub use lemmy_db_schema::sensitive::SensitiveString;
 pub use lemmy_db_schema_file::enums::VoteShow;
 pub use lemmy_db_views_site::api::SuccessResponse;
 pub use lemmy_db_views_vote::VoteView;
+pub use lemmy_diesel_utils::dburl::DbUrl;

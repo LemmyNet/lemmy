@@ -1,10 +1,10 @@
-use crate::newtypes::{CommunityId,  PostId, TagId};
+use crate::newtypes::{CommunityId, PostId, TagId};
 use chrono::{DateTime, Utc};
-use lemmy_diesel_utils::dburl::DbUrl;
 #[cfg(feature = "full")]
 use diesel::{AsExpression, FromSqlRow, sql_types::Nullable};
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::{post_tag, tag};
+use lemmy_diesel_utils::dburl::DbUrl;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 

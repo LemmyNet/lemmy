@@ -14,14 +14,14 @@ use crate::{
     },
   },
   traits::{ApubActor, Crud},
-  utils::{format_actor_url, functions::lower},
+  utils::format_actor_url,
 };
 use diesel::{
+  ExpressionMethods,
+  QueryDsl,
   dsl::{delete, exists, insert_into, not},
   select,
   update,
-  ExpressionMethods,
-  QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::{
@@ -33,8 +33,9 @@ use lemmy_db_schema_file::schema::{
   person,
 };
 use lemmy_diesel_utils::{
-  connection::{get_conn, DbPool},
+  connection::{DbPool, get_conn},
   dburl::DbUrl,
+  utils::functions::lower,
 };
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},

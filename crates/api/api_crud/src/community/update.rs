@@ -22,11 +22,11 @@ use lemmy_db_schema::{
     modlog::{Modlog, ModlogInsertForm},
   },
   traits::Crud,
-  utils::diesel_string_update,
 };
 use lemmy_db_views_community::api::{CommunityResponse, EditCommunity};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::utils::diesel_string_update;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::{

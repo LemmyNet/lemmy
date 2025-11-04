@@ -38,8 +38,7 @@ use lemmy_db_schema::{
     registration_application::{RegistrationApplication, RegistrationApplicationInsertForm},
   },
   traits::{ApubActor, Crud, Likeable},
-  
-};use lemmy_diesel_utils::connection::{get_conn};
+};
 use lemmy_db_schema_file::enums::RegistrationMode;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::impls::PersonQuery;
@@ -48,6 +47,7 @@ use lemmy_db_views_site::{
   SiteView,
   api::{AuthenticateWithOauth, LoginResponse},
 };
+use lemmy_diesel_utils::connection::get_conn;
 use lemmy_email::{
   account::send_verification_email_if_required,
   admin::send_new_applicant_email_to_admins,

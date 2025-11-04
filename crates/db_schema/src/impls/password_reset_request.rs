@@ -3,15 +3,15 @@ use crate::{
   source::password_reset_request::{PasswordResetRequest, PasswordResetRequestForm},
 };
 use diesel::{
-  delete,
-  dsl::{insert_into, now, IntervalDsl},
-  sql_types::Timestamptz,
   ExpressionMethods,
   IntoSql,
+  delete,
+  dsl::{IntervalDsl, insert_into, now},
+  sql_types::Timestamptz,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::password_reset_request;
-use lemmy_diesel_utils::connection::{get_conn, DbPool};
+use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl PasswordResetRequest {

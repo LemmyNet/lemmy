@@ -10,12 +10,7 @@ use crate::{
     InstancePersonsBlockForm,
   },
   traits::Bannable,
-  utils::{
-    functions::{coalesce, lower},
-    now,
-  },
 };
-use lemmy_diesel_utils::connection::{DbPool,get_conn};
 use chrono::Utc;
 use diesel::{
   ExpressionMethods,
@@ -33,6 +28,13 @@ use lemmy_db_schema_file::schema::{
   federation_queue_state,
   instance,
   instance_actions,
+};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  utils::{
+    functions::{coalesce, lower},
+    now,
+  },
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 

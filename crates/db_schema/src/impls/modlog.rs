@@ -7,13 +7,13 @@ use crate::{
     post::Post,
   },
 };
-use lemmy_diesel_utils::connection::{DbPool,get_conn};
 use chrono::{DateTime, Utc};
 use diesel::dsl::insert_into;
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::enums::ModlogKind;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::modlog;
+use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Modlog {

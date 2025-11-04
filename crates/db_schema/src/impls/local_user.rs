@@ -5,19 +5,15 @@ use crate::{
     local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
     site::Site,
   },
-  utils::{
-    functions::{coalesce, lower},
-    now,
-  },
 };
-use bcrypt::{hash, DEFAULT_COST};
+use bcrypt::{DEFAULT_COST, hash};
 use diesel::{
-  dsl::{insert_into, not, IntervalDsl},
-  result::Error,
   CombineDsl,
   ExpressionMethods,
   JoinOnDsl,
   QueryDsl,
+  dsl::{IntervalDsl, insert_into, not},
+  result::Error,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::{
@@ -25,8 +21,12 @@ use lemmy_db_schema_file::{
   schema::{community, community_actions, local_user, person, registration_application},
 };
 use lemmy_diesel_utils::{
-  connection::{get_conn, DbPool},
+  connection::{DbPool, get_conn},
   dburl::DbUrl,
+  utils::{
+    functions::{coalesce, lower},
+    now,
+  },
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -322,9 +322,9 @@ pub trait LocalUserOptionHelper {
   fn visible_communities_only<Q>(&self, query: Q) -> Q
   where
     Q: diesel::query_dsl::methods::FilterDsl<
-      diesel::dsl::Eq<community::visibility, CommunityVisibility>,
-      Output = Q,
-    >;
+        diesel::dsl::Eq<community::visibility, CommunityVisibility>,
+        Output = Q,
+      >;
 }
 
 impl LocalUserOptionHelper for Option<&LocalUser> {
@@ -362,9 +362,9 @@ impl LocalUserOptionHelper for Option<&LocalUser> {
   fn visible_communities_only<Q>(&self, query: Q) -> Q
   where
     Q: diesel::query_dsl::methods::FilterDsl<
-      diesel::dsl::Eq<community::visibility, CommunityVisibility>,
-      Output = Q,
-    >,
+        diesel::dsl::Eq<community::visibility, CommunityVisibility>,
+        Output = Q,
+      >,
   {
     if self.is_none() {
       query.filter(community::visibility.eq(CommunityVisibility::Public))

@@ -1,4 +1,4 @@
-use crate::objects::{community::ApubCommunity, person::ApubPerson, UserOrCommunity};
+use crate::objects::{UserOrCommunity, community::ApubCommunity, person::ApubPerson};
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
@@ -10,8 +10,8 @@ use lemmy_db_schema::{
   impls::actor_language::UNDETERMINED_ID,
   newtypes::LanguageId,
   source::language::Language,
-};use lemmy_diesel_utils::connection::{DbPool};
-use lemmy_diesel_utils::dburl::DbUrl;
+};
+use lemmy_diesel_utils::{connection::DbPool, dburl::DbUrl};
 use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
 use std::{future::Future, ops::Deref};

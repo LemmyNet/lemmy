@@ -1,6 +1,6 @@
 use crate::{
   diesel::{DecoratableTarget, JoinOnDsl, OptionalExtension},
-  newtypes::{CommunityId,  PersonId},
+  newtypes::{CommunityId, PersonId},
   source::{
     actor_language::CommunityLanguage,
     community::{
@@ -16,13 +16,8 @@ use crate::{
     post::Post,
   },
   traits::{ApubActor, Bannable, Blockable, Crud, Followable},
-  utils::{
-    format_actor_url,
-    functions::{coalesce, coalesce_2_nullable, lower, random_smallint},
-  },
+  utils::format_actor_url,
 };
-use lemmy_diesel_utils::connection::{DbPool,get_conn};
-use lemmy_diesel_utils::dburl::DbUrl;
 use chrono::{DateTime, Utc};
 use diesel::{
   BoolExpressionMethods,
@@ -39,6 +34,11 @@ use diesel_uplete::{UpleteCount, uplete};
 use lemmy_db_schema_file::{
   enums::{CommunityFollowerState, CommunityNotificationsMode, CommunityVisibility, ListingType},
   schema::{comment, community, community_actions, instance, local_user, post},
+};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  dburl::DbUrl,
+  utils::functions::{coalesce, coalesce_2_nullable, lower, random_smallint},
 };
 use lemmy_utils::{
   CACHE_DURATION_LARGEST_COMMUNITY,
@@ -697,7 +697,7 @@ mod tests {
       post::{Post, PostInsertForm},
     },
     traits::{Bannable, Crud, Followable},
-    utils::{RANK_DEFAULT, },
+    utils::RANK_DEFAULT,
   };
   use lemmy_diesel_utils::connection::build_db_pool_for_tests;
   use lemmy_utils::error::LemmyResult;

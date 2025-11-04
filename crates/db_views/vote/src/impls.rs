@@ -14,14 +14,12 @@ use lemmy_db_schema::{
   source::{comment::CommentActions, post::PostActions},
   utils::{
     limit_fetch,
-    paginate,
     queries::{
       joins::{creator_home_instance_actions_join, creator_local_instance_actions_join},
       selects::creator_local_home_banned,
     },
   },
 };
-use lemmy_diesel_utils::connection::{DbPool,get_conn};
 use lemmy_db_schema_file::schema::{
   comment,
   comment_actions,
@@ -29,6 +27,10 @@ use lemmy_db_schema_file::schema::{
   person,
   post,
   post_actions,
+};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  utils::paginate,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 

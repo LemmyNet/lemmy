@@ -38,7 +38,7 @@ diesel-async = { workspace = true, features = [
   "postgres",
 ] }
 diesel-uplete = { workspace = true, optional = true }
-diesel_ltree = { workspace = true, optional = true }
+diesel_ltree = { workspace = true }
 tracing = { workspace = true }
 deadpool = { version = "0.12.3", features = ["rt_tokio_1"] }
 ts-rs = { workspace = true }
@@ -48,7 +48,7 @@ tokio-postgres = { workspace = true }
 tokio-postgres-rustls = { workspace = true }
 rustls = { workspace = true }
 uuid.workspace = true
-i-love-jesus = { workspace = true, optional = true }
+i-love-jesus = { workspace = true }
 derive-new.workspace = true
 moka = { workspace = true, optional = true }
 lemmy_utils = { workspace = true }
@@ -62,3 +62,4 @@ unified-diff = { workspace = true }
 diesel_ltree = { workspace = true }
 lemmy_db_schema_file = { workspace = true, features = ["full"] }
 lemmy_utils = { workspace = true, features = ["full"] }
+pretty_assertions = { workspace = true }

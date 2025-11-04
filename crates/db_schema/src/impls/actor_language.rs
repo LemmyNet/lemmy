@@ -15,14 +15,14 @@ use crate::{
   },
 };
 use diesel::{
+  ExpressionMethods,
+  QueryDsl,
   delete,
   dsl::{count, exists},
   insert_into,
   select,
-  ExpressionMethods,
-  QueryDsl,
 };
-use diesel_async::{scoped_futures::ScopedFutureExt, AsyncPgConnection, RunQueryDsl};
+use diesel_async::{AsyncPgConnection, RunQueryDsl, scoped_futures::ScopedFutureExt};
 use lemmy_db_schema_file::schema::{
   community_language,
   local_site,
@@ -30,7 +30,7 @@ use lemmy_db_schema_file::schema::{
   site,
   site_language,
 };
-use lemmy_diesel_utils::connection::{get_conn, DbPool};
+use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use tokio::sync::OnceCell;
 

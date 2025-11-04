@@ -3,7 +3,6 @@ use crate::{
   source::comment_report::{CommentReport, CommentReportForm},
   traits::Reportable,
 };
-use lemmy_diesel_utils::connection::{DbPool,get_conn};
 use chrono::Utc;
 use diesel::{
   BoolExpressionMethods,
@@ -13,6 +12,7 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::comment_report;
+use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Reportable for CommentReport {

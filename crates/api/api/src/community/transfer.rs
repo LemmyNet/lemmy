@@ -12,13 +12,14 @@ use lemmy_db_schema::{
     modlog::{Modlog, ModlogInsertForm},
   },
   traits::Crud,
-};use lemmy_diesel_utils::connection::{get_conn};
+};
 use lemmy_db_views_community::{
   CommunityView,
   api::{GetCommunityResponse, TransferCommunity},
 };
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_diesel_utils::connection::get_conn;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   location_info,

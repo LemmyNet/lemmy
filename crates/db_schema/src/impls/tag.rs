@@ -7,8 +7,9 @@ use crate::{
   },
   traits::Crud,
 };
-use lemmy_diesel_utils::connection::{DbPool,get_conn};
 use diesel::{
+  ExpressionMethods,
+  QueryDsl,
   delete,
   deserialize::FromSql,
   insert_into,
@@ -16,12 +17,13 @@ use diesel::{
   serialize::ToSql,
   sql_types::{Json, Nullable},
   upsert::excluded,
-  ExpressionMethods,
-  QueryDsl,
 };
-use diesel_async::{scoped_futures::ScopedFutureExt, RunQueryDsl};
+use diesel_async::{RunQueryDsl, scoped_futures::ScopedFutureExt};
 use lemmy_db_schema_file::schema::{post_tag, tag};
-use lemmy_diesel_utils::dburl::DbUrl;
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  dburl::DbUrl,
+};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use std::collections::HashSet;
 

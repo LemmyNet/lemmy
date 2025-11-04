@@ -10,12 +10,8 @@ use crate::{
     CommentUpdateForm,
   },
   traits::{Crud, Likeable, Saveable},
-  utils::{
-    DELETED_REPLACEMENT_TEXT,
-    functions::{coalesce, hot_rank},
-  },
+  utils::DELETED_REPLACEMENT_TEXT,
 };
-use lemmy_diesel_utils::dburl::DbUrl;
 use chrono::{DateTime, Utc};
 use diesel::{
   ExpressionMethods,
@@ -29,12 +25,16 @@ use diesel_async::RunQueryDsl;
 use diesel_ltree::{Ltree, dsl::LtreeExtensions};
 use diesel_uplete::{UpleteCount, uplete};
 use lemmy_db_schema_file::schema::{comment, comment_actions, community, post};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  dburl::DbUrl,
+  utils::functions::{coalesce, hot_rank},
+};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
 };
 use url::Url;
-use lemmy_diesel_utils::connection::{DbPool,get_conn};
 
 impl Comment {
   pub async fn permadelete_for_creator(
@@ -426,10 +426,10 @@ mod tests {
       post::{Post, PostInsertForm},
     },
     traits::{Crud, Likeable, Saveable},
-    utils::{RANK_DEFAULT, },
+    utils::RANK_DEFAULT,
   };
-  use lemmy_diesel_utils::connection::build_db_pool_for_tests;
   use diesel_ltree::Ltree;
+  use lemmy_diesel_utils::connection::build_db_pool_for_tests;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;

@@ -2,10 +2,10 @@ use crate::{
   inboxes::RealCommunityInboxCollector,
   send::{SendActivityResult, SendRetryTask, SendSuccessInfo},
   util::{
-    get_activity_cached,
-    get_latest_activity_id,
     FederationQueueStateWithDomain,
     WORK_FINISHED_RECHECK_DELAY,
+    get_activity_cached,
+    get_latest_activity_id,
   },
 };
 use activitypub_federation::config::FederationConfig;
@@ -18,7 +18,8 @@ use lemmy_db_schema::{
     federation_queue_state::FederationQueueState,
     instance::{Instance, InstanceForm},
   },
-};use lemmy_diesel_utils::connection::{ActualDbPool,DbPool,get_conn};
+};
+use lemmy_diesel_utils::connection::{ActualDbPool, DbPool, get_conn};
 use lemmy_utils::{
   error::LemmyResult,
   federate_retry_sleep_duration,
@@ -459,7 +460,7 @@ mod test {
     http_signatures::generate_actor_keypair,
     protocol::context::WithContext,
   };
-  use actix_web::{dev::ServerHandle, web, App, HttpResponse, HttpServer};
+  use actix_web::{App, HttpResponse, HttpServer, dev::ServerHandle, web};
   use futures::future::try_join_all;
   use lemmy_api_utils::utils::generate_inbox_url;
   use lemmy_db_schema::{
@@ -472,13 +473,13 @@ mod test {
   use lemmy_db_schema_file::enums::ActorType;
   use lemmy_diesel_utils::dburl::DbUrl;
   use lemmy_utils::error::LemmyResult;
-  use serde_json::{json, Value};
+  use serde_json::{Value, json};
   use serial_test::serial;
   use std::sync::{Arc, RwLock};
-  use test_context::{test_context, AsyncTestContext};
+  use test_context::{AsyncTestContext, test_context};
   use tokio::{
     spawn,
-    sync::mpsc::{error::TryRecvError, unbounded_channel, UnboundedReceiver},
+    sync::mpsc::{UnboundedReceiver, error::TryRecvError, unbounded_channel},
   };
   use tracing_test::traced_test;
   use url::Url;

@@ -12,7 +12,6 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
-use lemmy_diesel_utils::connection::{DbPool,get_conn};
 use lemmy_db_schema::{
   aliases,
   newtypes::{CommunityId, InstanceId, PaginationCursor, PersonId},
@@ -21,11 +20,15 @@ use lemmy_db_schema::{
     person::Person,
   },
   traits::PaginationCursorBuilder,
-  utils::{ limit_fetch, paginate, queries::selects::person1_select},
+  utils::{limit_fetch, queries::selects::person1_select},
 };
 use lemmy_db_schema_file::{
   enums::{CommunityFollowerState, CommunityVisibility},
   schema::{community, community_actions, person},
+};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  utils::paginate,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use std::collections::HashMap;
@@ -238,8 +241,8 @@ mod tests {
     },
     traits::{Crud, Followable},
   };
-  use lemmy_diesel_utils::connection::{DbPool, build_db_pool_for_tests, get_conn};
   use lemmy_db_schema_file::enums::CommunityVisibility;
+  use lemmy_diesel_utils::connection::{DbPool, build_db_pool_for_tests, get_conn};
   use serial_test::serial;
 
   #[tokio::test]

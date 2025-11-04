@@ -1,8 +1,7 @@
 use crate::util::{FederationQueueStateWithDomain, get_latest_activity_id};
 use chrono::Local;
-use lemmy_db_schema::{
-  newtypes::{ActivityId, InstanceId},
-};use lemmy_diesel_utils::connection::{DbPool,ActualDbPool};
+use lemmy_db_schema::newtypes::{ActivityId, InstanceId};
+use lemmy_diesel_utils::connection::{ActualDbPool, DbPool};
 use lemmy_utils::{error::LemmyResult, federate_retry_sleep_duration};
 use std::{collections::HashMap, time::Duration};
 use tokio::{sync::mpsc::UnboundedReceiver, time::interval};

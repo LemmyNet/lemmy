@@ -2,10 +2,10 @@ use crate::{
   newtypes::LocalUserId,
   source::oauth_account::{OAuthAccount, OAuthAccountInsertForm},
 };
-use diesel::{insert_into, ExpressionMethods, QueryDsl};
+use diesel::{ExpressionMethods, QueryDsl, insert_into};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::{oauth_account, oauth_account::dsl::local_user_id};
-use lemmy_diesel_utils::connection::{get_conn, DbPool};
+use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl OAuthAccount {

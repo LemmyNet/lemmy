@@ -8,18 +8,20 @@ use diesel::{
   dsl::{count_star, exists, not},
   select,
 };
-use lemmy_diesel_utils::dburl::DbUrl;
 use diesel_async::RunQueryDsl;
-use lemmy_diesel_utils::connection::{DbPool,get_conn};
 use lemmy_db_schema::{
   newtypes::{CommunityId, InstanceId, PaginationCursor, PersonId},
   source::community::CommunityActions,
   traits::PaginationCursorBuilder,
-  utils::{ functions::lower},
 };
 use lemmy_db_schema_file::{
   enums::CommunityFollowerState,
   schema::{community, community_actions, person},
+};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  dburl::DbUrl,
+  utils::functions::lower,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 

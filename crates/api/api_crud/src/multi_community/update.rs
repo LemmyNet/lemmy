@@ -6,13 +6,13 @@ use lemmy_api_utils::{context::LemmyContext, utils::check_local_user_valid};
 use lemmy_db_schema::{
   source::multi_community::{MultiCommunity, MultiCommunityUpdateForm},
   traits::Crud,
-  utils::diesel_string_update,
 };
 use lemmy_db_views_community::{
   MultiCommunityView,
   api::{MultiCommunityResponse, UpdateMultiCommunity},
 };
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_diesel_utils::utils::diesel_string_update;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn update_multi_community(

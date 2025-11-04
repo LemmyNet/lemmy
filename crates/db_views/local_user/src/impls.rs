@@ -9,7 +9,6 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
-use lemmy_diesel_utils::connection::{DbPool,get_conn};
 use lemmy_db_schema::{
   aliases::creator_home_instance_actions,
   newtypes::{LocalUserId, OAuthProviderId, PaginationCursor, PersonId},
@@ -19,15 +18,17 @@ use lemmy_db_schema::{
     person::{Person, PersonInsertForm, person_keys},
   },
   traits::{Crud, PaginationCursorBuilder},
-  utils::{
-    functions::{coalesce, lower},
-   
-    now,
-    paginate,
-    queries::joins::creator_home_instance_actions_join,
-  },
+  utils::queries::joins::creator_home_instance_actions_join,
 };
 use lemmy_db_schema_file::schema::{instance_actions, local_user, oauth_account, person};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  utils::{
+    functions::{coalesce, lower},
+    now,
+    paginate,
+  },
+};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
 use std::future::{Ready, ready};
 

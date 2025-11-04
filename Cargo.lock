@@ -4138,6 +4138,7 @@ dependencies = [
  "lemmy_utils",
  "moka",
  "pathfinding",
+ "pretty_assertions",
  "rustls 0.23.34",
  "serde",
  "serde_json",

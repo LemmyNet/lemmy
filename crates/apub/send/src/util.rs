@@ -14,8 +14,9 @@ use lemmy_db_schema::{
     site::Site,
   },
   traits::ApubActor,
-};use lemmy_diesel_utils::connection::{DbPool,get_conn};
+};
 use lemmy_db_schema_file::enums::ActorType;
+use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::error::LemmyError;
 use moka::future::Cache;
 use reqwest::Url;

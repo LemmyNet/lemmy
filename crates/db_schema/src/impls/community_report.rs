@@ -10,9 +10,9 @@ use diesel::{
   QueryDsl,
   dsl::{insert_into, update},
 };
-use lemmy_diesel_utils::connection::{DbPool,get_conn};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::community_report;
+use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Reportable for CommunityReport {

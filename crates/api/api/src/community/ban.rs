@@ -10,7 +10,7 @@ use lemmy_api_utils::{
     check_expire_time,
     remove_or_restore_user_data_in_community,
   },
-};use lemmy_diesel_utils::connection::{get_conn};
+};
 use lemmy_db_schema::{
   source::{
     community::{Community, CommunityActions, CommunityPersonBanForm},
@@ -22,6 +22,7 @@ use lemmy_db_schema::{
 use lemmy_db_views_community::api::BanFromCommunity;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::{PersonView, api::PersonResponse};
+use lemmy_diesel_utils::connection::get_conn;
 use lemmy_utils::{error::LemmyResult, utils::validation::is_valid_body_field};
 
 pub async fn ban_from_community(

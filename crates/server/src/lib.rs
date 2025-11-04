@@ -1,11 +1,11 @@
 use activitypub_federation::config::{FederationConfig, FederationMiddleware};
 use actix_web::{
-  dev::{ServerHandle, ServiceResponse},
-  middleware::{self, Condition, ErrorHandlerResponse, ErrorHandlers},
-  web::{get, scope, Data},
   App,
   HttpResponse,
   HttpServer,
+  dev::{ServerHandle, ServiceResponse},
+  middleware::{self, Condition, ErrorHandlerResponse, ErrorHandlers},
+  web::{Data, get, scope},
 };
 use clap::{Parser, Subcommand};
 use lemmy_api::sitemap::get_sitemap;
@@ -16,15 +16,16 @@ use lemmy_api_utils::{
   utils::local_site_rate_limit_to_rate_limit_config,
 };
 use lemmy_apub::{
-  collections::fetch_community_collections,
-  VerifyUrlData,
   FEDERATION_HTTP_FETCH_LIMIT,
+  VerifyUrlData,
+  collections::fetch_community_collections,
 };
 use lemmy_apub_activities::handle_outgoing_activities;
 use lemmy_apub_objects::objects::{community::FETCH_COMMUNITY_COLLECTIONS, instance::ApubSite};
 use lemmy_apub_send::{Opts, SendManager};
-use lemmy_db_schema::{source::secret::Secret, };use lemmy_diesel_utils::connection::build_db_pool;
+use lemmy_db_schema::source::secret::Secret;
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::connection::build_db_pool;
 use lemmy_routes::{
   feeds,
   middleware::{
@@ -41,11 +42,11 @@ use lemmy_routes::{
   webfinger,
 };
 use lemmy_utils::{
+  VERSION,
   error::{LemmyErrorType, LemmyResult},
   rate_limit::RateLimit,
   response::jsonify_plain_text_errors,
-  settings::{structs::Settings, SETTINGS},
-  VERSION,
+  settings::{SETTINGS, structs::Settings},
 };
 use reqwest_middleware::ClientBuilder;
 use reqwest_tracing::TracingMiddleware;

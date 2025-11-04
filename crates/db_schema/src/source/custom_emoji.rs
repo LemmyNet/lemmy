@@ -1,9 +1,9 @@
-use crate::newtypes::{CustomEmojiId, };
+use crate::newtypes::CustomEmojiId;
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::custom_emoji;
-use serde::{Deserialize, Serialize};
 use lemmy_diesel_utils::dburl::DbUrl;
+use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
 #[skip_serializing_none]

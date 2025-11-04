@@ -6,13 +6,13 @@ use diesel::{
   query_dsl::methods::{FindDsl, LimitDsl},
 };
 use diesel_async::{
-  methods::{ExecuteDsl, LoadQuery},
   AsyncPgConnection,
   RunQueryDsl,
+  methods::{ExecuteDsl, LoadQuery},
 };
 use diesel_uplete::UpleteCount;
 use lemmy_diesel_utils::{
-  connection::{get_conn, DbPool},
+  connection::{DbPool, get_conn},
   dburl::DbUrl,
 };
 use lemmy_utils::{

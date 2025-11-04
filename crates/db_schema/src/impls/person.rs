@@ -11,18 +11,18 @@ use crate::{
     PersonUpdateForm,
   },
   traits::{ApubActor, Blockable, Crud, Followable},
-  utils::{format_actor_url, functions::lower},
+  utils::format_actor_url,
 };
 use chrono::Utc;
 use diesel::{
-  dsl::{exists, insert_into, not, select},
-  expression::SelectableHelper,
   ExpressionMethods,
   JoinOnDsl,
   QueryDsl,
+  dsl::{exists, insert_into, not, select},
+  expression::SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
-use diesel_uplete::{uplete, UpleteCount};
+use diesel_uplete::{UpleteCount, uplete};
 use lemmy_db_schema_file::schema::{
   instance,
   instance_actions,
@@ -31,8 +31,9 @@ use lemmy_db_schema_file::schema::{
   person_actions,
 };
 use lemmy_diesel_utils::{
-  connection::{get_conn, DbPool},
+  connection::{DbPool, get_conn},
   dburl::DbUrl,
+  utils::functions::lower,
 };
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
@@ -449,8 +450,8 @@ mod tests {
     },
     traits::{Crud, Followable, Likeable},
   };
-  use lemmy_diesel_utils::connection::build_db_pool_for_tests;
   use diesel_uplete::UpleteCount;
+  use lemmy_diesel_utils::connection::build_db_pool_for_tests;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;

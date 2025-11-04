@@ -5,21 +5,24 @@ use diesel::result::{
   Error::{self as DieselError, QueryBuilderError},
 };
 use diesel_async::{
+  AsyncConnection,
   pg::AsyncPgConnection,
   pooled_connection::{
-    deadpool::{Hook, HookError, Object as PooledConnection, Pool},
     AsyncDieselConnectionManager,
     ManagerConfig,
+    deadpool::{Hook, HookError, Object as PooledConnection, Pool},
   },
   scoped_futures::ScopedBoxFuture,
-  AsyncConnection,
 };
-use futures_util::{future::BoxFuture, FutureExt};
+use futures_util::{FutureExt, future::BoxFuture};
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   settings::SETTINGS,
 };
 use rustls::{
+  ClientConfig,
+  DigitallySignedStruct,
+  SignatureScheme,
   client::danger::{
     DangerousClientConfigBuilder,
     HandshakeSignatureValid,
@@ -28,9 +31,6 @@ use rustls::{
   },
   crypto::{self, verify_tls12_signature, verify_tls13_signature},
   pki_types::{CertificateDer, ServerName, UnixTime},
-  ClientConfig,
-  DigitallySignedStruct,
-  SignatureScheme,
 };
 use std::{
   ops::{Deref, DerefMut},

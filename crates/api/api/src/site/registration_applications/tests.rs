@@ -17,7 +17,7 @@ use lemmy_db_schema::{
   },
   test_data::TestData,
   traits::Crud,
-};use lemmy_diesel_utils::connection::DbPool;
+};
 use lemmy_db_schema_file::enums::RegistrationMode;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_notification::api::GetUnreadRegistrationApplicationCountResponse;
@@ -26,6 +26,7 @@ use lemmy_db_views_registration_applications::api::{
   ListRegistrationApplicationsResponse,
 };
 use lemmy_db_views_site::api::EditSite;
+use lemmy_diesel_utils::connection::DbPool;
 use lemmy_utils::{CACHE_DURATION_API, error::LemmyResult};
 use serial_test::serial;
 

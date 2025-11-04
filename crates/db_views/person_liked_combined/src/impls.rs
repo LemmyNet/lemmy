@@ -14,7 +14,6 @@ use diesel::{
   SelectableHelper,
   dsl::not,
 };
-use lemmy_diesel_utils::connection::{DbPool,get_conn};
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
@@ -25,7 +24,6 @@ use lemmy_db_schema::{
   traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{
     limit_fetch,
-    paginate,
     queries::joins::{
       community_join,
       creator_community_actions_join,
@@ -43,6 +41,10 @@ use lemmy_db_schema::{
   },
 };
 use lemmy_db_schema_file::schema::{comment, person, person_liked_combined, post};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  utils::paginate,
+};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 #[derive(Default)]

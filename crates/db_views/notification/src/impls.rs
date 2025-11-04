@@ -9,7 +9,6 @@ use diesel::{
   SelectableHelper,
   dsl::not,
 };
-use lemmy_diesel_utils::connection::{DbPool,get_conn};
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
@@ -23,7 +22,6 @@ use lemmy_db_schema::{
   traits::PaginationCursorBuilder,
   utils::{
     limit_fetch,
-    paginate,
     queries::{
       filters::filter_blocked,
       joins::{
@@ -51,6 +49,10 @@ use lemmy_db_schema_file::{
 use lemmy_db_views_modlog::ModlogView;
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_private_message::PrivateMessageView;
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  utils::paginate,
+};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl NotificationView {

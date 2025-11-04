@@ -9,7 +9,6 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
-use lemmy_diesel_utils::connection::{DbPool,get_conn};
 use lemmy_db_schema::{
   aliases,
   impls::local_user::LocalUserOptionHelper,
@@ -21,7 +20,6 @@ use lemmy_db_schema::{
   traits::PaginationCursorBuilder,
   utils::{
     limit_fetch,
-    paginate,
     queries::filters::{
       filter_is_subscribed,
       filter_not_unlisted_or_is_subscribed,
@@ -32,6 +30,10 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::{
   enums::{ListingType, ModlogKind},
   schema::{comment, community, community_actions, instance, modlog, person, post},
+};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  utils::paginate,
 };
 use lemmy_utils::error::LemmyResult;
 

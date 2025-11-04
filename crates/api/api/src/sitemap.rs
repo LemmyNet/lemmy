@@ -1,7 +1,7 @@
 use actix_web::{
+  HttpResponse,
   http::header::{self, CacheDirective},
   web::Data,
-  HttpResponse,
 };
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::source::post::Post;

@@ -12,8 +12,8 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-  use lemmy_diesel_utils::connection::{DbPool, build_db_pool_for_tests, get_conn};
 use lemmy_db_schema_file::enums::NotificationType;
+use lemmy_diesel_utils::connection::{DbPool, build_db_pool_for_tests, get_conn};
 use lemmy_utils::error::LemmyResult;
 use pretty_assertions::assert_eq;
 use serial_test::serial;

@@ -1,11 +1,11 @@
-use crate::{
-  source::captcha_answer::{CaptchaAnswer, CaptchaAnswerForm, CheckCaptchaAnswer},
-  utils::functions::lower,
-};
-use diesel::{delete, dsl::exists, insert_into, select, ExpressionMethods, QueryDsl};
+use crate::source::captcha_answer::{CaptchaAnswer, CaptchaAnswerForm, CheckCaptchaAnswer};
+use diesel::{ExpressionMethods, QueryDsl, delete, dsl::exists, insert_into, select};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::captcha_answer::dsl::{answer, captcha_answer};
-use lemmy_diesel_utils::connection::{get_conn, DbPool};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  utils::functions::lower,
+};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl CaptchaAnswer {
@@ -47,9 +47,7 @@ impl CaptchaAnswer {
 #[cfg(test)]
 mod tests {
 
-  use crate::{
-    source::captcha_answer::{CaptchaAnswer, CaptchaAnswerForm, CheckCaptchaAnswer},
-  };
+  use crate::source::captcha_answer::{CaptchaAnswer, CaptchaAnswerForm, CheckCaptchaAnswer};
   use lemmy_diesel_utils::connection::build_db_pool_for_tests;
   use lemmy_utils::error::LemmyResult;
   use serial_test::serial;

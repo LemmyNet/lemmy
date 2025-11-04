@@ -8,7 +8,6 @@ use lemmy_db_schema::{
   traits::{Crud, PaginationCursorBuilder},
   utils::{
     limit_fetch,
-    paginate,
     queries::joins::{
       creator_home_instance_actions_join,
       creator_local_instance_actions_join,
@@ -16,8 +15,11 @@ use lemmy_db_schema::{
     },
   },
 };
-use lemmy_diesel_utils::connection::{DbPool,get_conn};
 use lemmy_db_schema_file::schema::{local_user, person};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  utils::paginate,
+};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl PaginationCursorBuilder for PersonView {

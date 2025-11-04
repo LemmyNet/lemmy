@@ -1,8 +1,8 @@
 use crate::newtypes::{CommentId, LanguageId, PersonId, PostId};
 use chrono::{DateTime, Utc};
+use lemmy_diesel_utils::dburl::DbUrl;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-use lemmy_diesel_utils::dburl::DbUrl;
 #[cfg(feature = "full")]
 use {
   crate::newtypes::LtreeDef,

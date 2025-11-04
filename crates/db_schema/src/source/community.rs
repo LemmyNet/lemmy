@@ -1,15 +1,15 @@
 use crate::{
-  newtypes::{CommunityId,  InstanceId, PersonId},
+  newtypes::{CommunityId, InstanceId, PersonId},
   sensitive::SensitiveString,
   source::placeholder_apub_url,
 };
-use lemmy_diesel_utils::dburl::DbUrl;
 use chrono::{DateTime, Utc};
 use lemmy_db_schema_file::enums::{
   CommunityFollowerState,
   CommunityNotificationsMode,
   CommunityVisibility,
 };
+use lemmy_diesel_utils::dburl::DbUrl;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]

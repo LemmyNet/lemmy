@@ -2,13 +2,16 @@ use crate::{
   newtypes::{PaginationCursor, TaglineId},
   source::tagline::{Tagline, TaglineInsertForm, TaglineUpdateForm, tagline_keys as key},
   traits::Crud,
-  utils::{ functions::random, limit_fetch, paginate},
+  utils::limit_fetch,
 };
-use lemmy_diesel_utils::connection::{DbPool,get_conn};
 use diesel::{QueryDsl, insert_into};
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema_file::schema::tagline;
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  utils::{functions::random, paginate},
+};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Crud for Tagline {

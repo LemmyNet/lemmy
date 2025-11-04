@@ -8,7 +8,6 @@ use crate::{
   SearchCombinedViewInternal,
 };
 use diesel::{
-  dsl::not,
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
@@ -16,22 +15,22 @@ use diesel::{
   PgTextExpressionMethods,
   QueryDsl,
   SelectableHelper,
+  dsl::not,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::asc_if;
 use lemmy_db_schema::{
+  SearchSortType::{self, *},
+  SearchType,
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommunityId, InstanceId, PaginationCursor, PersonId},
   source::{
-    combined::search::{search_combined_keys as key, SearchCombined},
+    combined::search::{SearchCombined, search_combined_keys as key},
     site::Site,
   },
   traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{
-    fuzzy_search,
     limit_fetch,
-    now,
-    paginate,
     queries::{
       filters::{
         filter_is_subscribed,
@@ -51,10 +50,7 @@ use lemmy_db_schema::{
         my_post_actions_join,
       },
     },
-    seconds_to_pg_interval,
   },
-  SearchSortType::{self, *},
-  SearchType,
 };
 use lemmy_db_schema_file::{
   enums::ListingType,
@@ -71,7 +67,10 @@ use lemmy_db_schema_file::{
   },
 };
 use lemmy_db_views_community::MultiCommunityView;
-use lemmy_diesel_utils::connection::{get_conn, DbPool};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  utils::{fuzzy_search, now, paginate, seconds_to_pg_interval},
+};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 impl SearchCombinedViewInternal {
@@ -488,8 +487,10 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
 #[cfg(test)]
 #[expect(clippy::indexing_slicing)]
 mod tests {
-  use crate::{impls::SearchCombinedQuery, LocalUserView, SearchCombinedView};
+  use crate::{LocalUserView, SearchCombinedView, impls::SearchCombinedQuery};
   use lemmy_db_schema::{
+    SearchSortType,
+    SearchType,
     assert_length,
     source::{
       comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm, CommentUpdateForm},
@@ -502,8 +503,6 @@ mod tests {
       site::{Site, SiteInsertForm},
     },
     traits::{Crud, Likeable},
-    SearchSortType,
-    SearchType,
   };
   use lemmy_diesel_utils::connection::{DbPool, build_db_pool_for_tests, get_conn};
   use lemmy_utils::error::LemmyResult;

@@ -9,14 +9,13 @@ use diesel::{
   select,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_diesel_utils::connection::{DbPool,get_conn};
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommunityId, PersonId},
   source::local_user::LocalUser,
- 
 };
 use lemmy_db_schema_file::schema::{community, community_actions, person};
+use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl CommunityModeratorView {

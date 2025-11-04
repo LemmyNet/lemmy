@@ -1,14 +1,13 @@
 use crate::request::client_builder;
 use activitypub_federation::config::{Data, FederationConfig};
-use lemmy_db_schema::{
-  source::secret::Secret,
-};
+use lemmy_db_schema::source::secret::Secret;
+use lemmy_diesel_utils::connection::{ActualDbPool, DbPool, build_db_pool_for_tests};
 use lemmy_utils::{
   rate_limit::RateLimit,
   settings::{SETTINGS, structs::Settings},
 };
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
-use std::sync::Arc;use lemmy_diesel_utils::connection::DbPool;use lemmy_diesel_utils::connection::ActualDbPool;use lemmy_diesel_utils::connection::build_db_pool_for_tests;
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct LemmyContext {
