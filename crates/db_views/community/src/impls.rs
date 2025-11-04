@@ -11,7 +11,7 @@ use lemmy_db_schema::{
     local_user::LocalUser,
     site::Site,
   },
-  traits::{Crud, PaginationCursorBuilder},
+  traits::PaginationCursorBuilder,
   utils::{
     limit_fetch,
     queries::{
@@ -43,6 +43,7 @@ use lemmy_db_schema_file::{
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
+  traits::Crud,
   utils::{LowerKey, now, paginate, seconds_to_pg_interval},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
@@ -282,10 +283,13 @@ mod tests {
       person::{Person, PersonInsertForm},
       site::Site,
     },
-    traits::{Crud, Followable},
+    traits::Followable,
   };
   use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility};
-  use lemmy_diesel_utils::connection::{DbPool, build_db_pool_for_tests, get_conn};
+  use lemmy_diesel_utils::{
+    connection::{DbPool, build_db_pool_for_tests, get_conn},
+    traits::Crud,
+  };
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use serial_test::serial;
   use std::collections::HashSet;

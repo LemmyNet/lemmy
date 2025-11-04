@@ -24,7 +24,7 @@ use chrono::{DateTime, Utc};
 use lemmy_api_utils::{
   context::LemmyContext,
   utils::{get_url_blocklist, process_markdown_opt, proxy_image_link_opt_apub, slur_regex},
-};use lemmy_diesel_utils::sensitive::SensitiveString;
+};
 use lemmy_db_schema::{
   newtypes::InstanceId,
   source::{
@@ -32,9 +32,9 @@ use lemmy_db_schema::{
     instance::Instance as DbInstance,
     site::{Site, SiteInsertForm},
   },
-  traits::Crud,
 };
 use lemmy_db_schema_file::enums::ActorType;
+use lemmy_diesel_utils::{sensitive::SensitiveString, traits::Crud};
 use lemmy_utils::{
   error::{LemmyError, LemmyResult, UntranslatedError},
   utils::{

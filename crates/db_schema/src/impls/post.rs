@@ -11,7 +11,7 @@ use crate::{
     PostSavedForm,
     PostUpdateForm,
   },
-  traits::{Crud, Likeable, Saveable},
+  traits::{Likeable, Saveable},
   utils::{DELETED_REPLACEMENT_TEXT, FETCH_LIMIT_MAX, SITEMAP_DAYS, SITEMAP_LIMIT},
 };
 use chrono::{DateTime, Utc};
@@ -35,6 +35,7 @@ use lemmy_db_schema_file::{
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   dburl::DbUrl,
+  traits::Crud,
   utils::{
     functions::{coalesce, hot_rank, scaled_rank},
     now,
@@ -594,12 +595,12 @@ mod tests {
       person::{Person, PersonInsertForm},
       post::{Post, PostActions, PostInsertForm, PostLikeForm, PostSavedForm, PostUpdateForm},
     },
-    traits::{Crud, Likeable, Saveable},
+    traits::{Likeable, Saveable},
     utils::RANK_DEFAULT,
   };
   use chrono::DateTime;
   use diesel_uplete::UpleteCount;
-  use lemmy_diesel_utils::connection::build_db_pool_for_tests;
+  use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;

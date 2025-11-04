@@ -28,7 +28,6 @@ use lemmy_db_schema::{
     local_user::LocalUser,
     post::{Post, PostUpdateForm},
   },
-  traits::Crud,
   utils::DELETED_REPLACEMENT_TEXT,
 };
 use lemmy_db_schema_file::schema::{
@@ -50,6 +49,7 @@ use lemmy_db_schema_file::schema::{
 use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
+  traits::Crud,
   utils::{functions::coalesce, now},
 };
 use lemmy_utils::{
@@ -719,8 +719,9 @@ mod tests {
       post::{Post, PostActions, PostInsertForm, PostLikeForm},
     },
     test_data::TestData,
-    traits::{Crud, Likeable},
+    traits::Likeable,
   };
+  use lemmy_diesel_utils::traits::Crud;
   use lemmy_utils::{
     error::{LemmyErrorType, LemmyResult},
     settings::structs::Settings,

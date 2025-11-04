@@ -8,17 +8,18 @@ use activitypub_federation::{
   protocol::verification::{verify_domains_match, verify_is_remote_object},
   traits::{Actor, Object},
 };
-use chrono::{DateTime, Utc};use lemmy_diesel_utils::sensitive::SensitiveString;
+use chrono::{DateTime, Utc};
 use lemmy_api_utils::{context::LemmyContext, utils::slur_regex};
 use lemmy_db_schema::{
   source::{
     multi_community::{MultiCommunity, MultiCommunityInsertForm},
     person::Person,
   },
-  traits::{ApubActor, Crud},
+  traits::ApubActor,
 };
 use lemmy_db_schema_file::enums::ActorType;
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::{sensitive::SensitiveString, traits::Crud};
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType, LemmyResult},
   utils::slurs::{check_slurs, check_slurs_opt},

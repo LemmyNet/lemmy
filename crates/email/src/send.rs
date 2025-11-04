@@ -5,11 +5,11 @@ use lemmy_utils::{
   spawn_try_task,
 };
 use lettre::{
-  message::{Mailbox, MultiPart},
-  transport::smtp::extension::ClientId,
   Address,
   AsyncTransport,
   Message,
+  message::{Mailbox, MultiPart},
+  transport::smtp::extension::ClientId,
 };
 use std::{str::FromStr, sync::OnceLock};
 use uuid::Uuid;

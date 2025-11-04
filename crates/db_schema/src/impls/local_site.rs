@@ -47,9 +47,11 @@ mod tests {
       site::Site,
     },
     test_data::TestData,
+  };
+  use lemmy_diesel_utils::{
+    connection::{DbPool, build_db_pool_for_tests},
     traits::Crud,
   };
-  use lemmy_diesel_utils::connection::{DbPool, build_db_pool_for_tests};
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;

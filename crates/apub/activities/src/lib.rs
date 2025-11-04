@@ -36,16 +36,14 @@ use lemmy_apub_objects::{
   objects::{PostOrComment, person::ApubPerson},
   utils::functions::GetActorType,
 };
-use lemmy_db_schema::{
-  source::{
-    activity::{ActivitySendTargets, SentActivity, SentActivityForm},
-    community::Community,
-    instance::InstanceActions,
-  },
-  traits::Crud,
+use lemmy_db_schema::source::{
+  activity::{ActivitySendTargets, SentActivity, SentActivityForm},
+  community::Community,
+  instance::InstanceActions,
 };
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::{LemmyError, LemmyResult, UntranslatedError};
 use serde::Serialize;
 use tracing::info;

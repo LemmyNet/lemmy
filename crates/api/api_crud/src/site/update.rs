@@ -13,16 +13,13 @@ use lemmy_api_utils::{
     slur_regex,
   },
 };
-use lemmy_db_schema::{
-  source::{
-    actor_language::SiteLanguage,
-    local_site::{LocalSite, LocalSiteUpdateForm},
-    local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitUpdateForm},
-    local_site_url_blocklist::LocalSiteUrlBlocklist,
-    local_user::LocalUser,
-    site::{Site, SiteUpdateForm},
-  },
-  traits::Crud,
+use lemmy_db_schema::source::{
+  actor_language::SiteLanguage,
+  local_site::{LocalSite, LocalSiteUpdateForm},
+  local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitUpdateForm},
+  local_site_url_blocklist::LocalSiteUrlBlocklist,
+  local_user::LocalUser,
+  site::{Site, SiteUpdateForm},
 };
 use lemmy_db_schema_file::enums::RegistrationMode;
 use lemmy_db_views_local_user::LocalUserView;
@@ -30,7 +27,10 @@ use lemmy_db_views_site::{
   SiteView,
   api::{EditSite, SiteResponse},
 };
-use lemmy_diesel_utils::utils::{diesel_opt_number_update, diesel_string_update};
+use lemmy_diesel_utils::{
+  traits::Crud,
+  utils::{diesel_opt_number_update, diesel_string_update},
+};
 use lemmy_utils::{
   error::LemmyResult,
   utils::{

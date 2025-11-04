@@ -273,17 +273,17 @@ impl InternalToCombinedView for PersonContentCombinedViewInternal {
 mod tests {
 
   use crate::{PersonContentCombinedView, impls::PersonContentCombinedQuery};
-  use lemmy_db_schema::{
-    source::{
-      comment::{Comment, CommentInsertForm},
-      community::{Community, CommunityInsertForm},
-      instance::Instance,
-      person::{Person, PersonInsertForm},
-      post::{Post, PostInsertForm},
-    },
+  use lemmy_db_schema::source::{
+    comment::{Comment, CommentInsertForm},
+    community::{Community, CommunityInsertForm},
+    instance::Instance,
+    person::{Person, PersonInsertForm},
+    post::{Post, PostInsertForm},
+  };
+  use lemmy_diesel_utils::{
+    connection::{DbPool, build_db_pool_for_tests, get_conn},
     traits::Crud,
   };
-  use lemmy_diesel_utils::connection::{DbPool, build_db_pool_for_tests, get_conn};
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;

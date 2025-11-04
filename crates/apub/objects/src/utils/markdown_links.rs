@@ -74,9 +74,9 @@ mod tests {
       post::{Post, PostInsertForm},
     },
     test_data::TestData,
-    traits::Crud,
   };
   use lemmy_db_views_local_user::LocalUserView;
+  use lemmy_diesel_utils::traits::Crud;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;

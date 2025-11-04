@@ -5,16 +5,14 @@ use lemmy_api_utils::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_local_user_valid,
 };
-use lemmy_db_schema::{
-  source::multi_community::{MultiCommunity, MultiCommunityFollowForm},
-  traits::Crud,
-};
+use lemmy_db_schema::source::multi_community::{MultiCommunity, MultiCommunityFollowForm};
 use lemmy_db_schema_file::enums::CommunityFollowerState;
 use lemmy_db_views_community::{
   MultiCommunityView,
   api::{FollowMultiCommunity, MultiCommunityResponse},
 };
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn follow_multi_community(

@@ -239,10 +239,13 @@ mod tests {
       instance::Instance,
       person::PersonInsertForm,
     },
-    traits::{Crud, Followable},
+    traits::Followable,
   };
   use lemmy_db_schema_file::enums::CommunityVisibility;
-  use lemmy_diesel_utils::connection::{DbPool, build_db_pool_for_tests, get_conn};
+  use lemmy_diesel_utils::{
+    connection::{DbPool, build_db_pool_for_tests, get_conn},
+    traits::Crud,
+  };
   use serial_test::serial;
 
   #[tokio::test]

@@ -38,7 +38,6 @@ use std::{
   time::Duration,
 };
 use tracing::error;
-use url::Url;
 
 pub type ActualDbPool = Pool<AsyncPgConnection>;
 

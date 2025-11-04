@@ -34,15 +34,12 @@ serde_json = { workspace = true, optional = true }
 activitypub_federation = { workspace = true }
 bcrypt = { workspace = true, optional = true }
 diesel-derive-newtype = { workspace = true }
-diesel-async = { workspace = true, features = [
-  "deadpool",
-  "postgres",
-] }
-diesel-uplete = { workspace = true, optional = true }
+diesel-async = { workspace = true, features = ["deadpool", "postgres"] }
+diesel-uplete = { workspace = true }
 diesel_ltree = { workspace = true }
 tracing = { workspace = true }
 deadpool = { version = "0.12.3", features = ["rt_tokio_1"] }
-ts-rs = { workspace = true,optional=true }
+ts-rs = { workspace = true, optional = true }
 futures-util = { workspace = true }
 tokio = { workspace = true }
 tokio-postgres = { workspace = true }

@@ -5,7 +5,7 @@ use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   newtypes::{InstanceId, PaginationCursor, PersonId},
   source::person::{Person, person_keys as key},
-  traits::{Crud, PaginationCursorBuilder},
+  traits::PaginationCursorBuilder,
   utils::{
     limit_fetch,
     queries::joins::{
@@ -18,6 +18,7 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::schema::{local_user, person};
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
+  traits::Crud,
   utils::paginate,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
@@ -135,9 +136,11 @@ mod tests {
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
       person::{Person, PersonActions, PersonInsertForm, PersonNoteForm, PersonUpdateForm},
     },
+  };
+  use lemmy_diesel_utils::{
+    connection::{DbPool, build_db_pool_for_tests, get_conn},
     traits::Crud,
   };
-  use lemmy_diesel_utils::connection::{DbPool, build_db_pool_for_tests, get_conn};
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;

@@ -13,7 +13,7 @@ use crate::{
       MultiCommunityUpdateForm,
     },
   },
-  traits::{ApubActor, Crud},
+  traits::ApubActor,
   utils::format_actor_url,
 };
 use diesel::{
@@ -35,6 +35,7 @@ use lemmy_db_schema_file::schema::{
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   dburl::DbUrl,
+  traits::Crud,
   utils::functions::lower,
 };
 use lemmy_utils::{
@@ -345,16 +346,13 @@ impl MultiCommunityEntry {
 #[allow(clippy::indexing_slicing)]
 mod tests {
   use super::*;
-  use crate::{
-    source::{
-      community::{Community, CommunityInsertForm},
-      instance::Instance,
-      multi_community::{MultiCommunity, MultiCommunityInsertForm},
-      person::{Person, PersonInsertForm},
-    },
-    traits::Crud,
+  use crate::source::{
+    community::{Community, CommunityInsertForm},
+    instance::Instance,
+    multi_community::{MultiCommunity, MultiCommunityInsertForm},
+    person::{Person, PersonInsertForm},
   };
-  use lemmy_diesel_utils::connection::build_db_pool_for_tests;
+  use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;

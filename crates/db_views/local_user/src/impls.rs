@@ -17,12 +17,13 @@ use lemmy_db_schema::{
     local_user::{LocalUser, LocalUserInsertForm},
     person::{Person, PersonInsertForm, person_keys},
   },
-  traits::{Crud, PaginationCursorBuilder},
+  traits::PaginationCursorBuilder,
   utils::queries::joins::creator_home_instance_actions_join,
 };
 use lemmy_db_schema_file::schema::{instance_actions, local_user, oauth_account, person};
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
+  traits::Crud,
   utils::{
     functions::{coalesce, lower},
     now,
@@ -241,9 +242,12 @@ mod tests {
       local_user::{LocalUser, LocalUserInsertForm},
       person::{Person, PersonInsertForm},
     },
-    traits::{Bannable, Crud},
+    traits::Bannable,
   };
-  use lemmy_diesel_utils::connection::{DbPool, build_db_pool_for_tests, get_conn};
+  use lemmy_diesel_utils::{
+    connection::{DbPool, build_db_pool_for_tests, get_conn},
+    traits::Crud,
+  };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;

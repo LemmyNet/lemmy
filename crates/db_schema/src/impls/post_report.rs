@@ -93,16 +93,13 @@ impl Reportable for PostReport {
 mod tests {
 
   use super::*;
-  use crate::{
-    source::{
-      community::{Community, CommunityInsertForm},
-      instance::Instance,
-      person::{Person, PersonInsertForm},
-      post::{Post, PostInsertForm},
-    },
-    traits::Crud,
+  use crate::source::{
+    community::{Community, CommunityInsertForm},
+    instance::Instance,
+    person::{Person, PersonInsertForm},
+    post::{Post, PostInsertForm},
   };
-  use lemmy_diesel_utils::connection::build_db_pool_for_tests;
+  use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use serial_test::serial;
 
   async fn init(pool: &mut DbPool<'_>) -> LemmyResult<(Person, PostReport)> {

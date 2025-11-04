@@ -15,11 +15,15 @@ use lemmy_db_schema::{
     person::{Person, PersonInsertForm},
     site::{Site, SiteInsertForm},
   },
-  traits::{ApubActor, Crud},
-};use lemmy_diesel_utils::sensitive::SensitiveString;
+  traits::ApubActor,
+};
 use lemmy_db_schema_file::schema::local_site;
 use lemmy_db_views_site::SiteView;
-use lemmy_diesel_utils::connection::{DbPool, get_conn};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  sensitive::SensitiveString,
+  traits::Crud,
+};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,

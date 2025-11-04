@@ -25,7 +25,7 @@ use lemmy_db_schema::{
     local_user::LocalUser,
     person::Person,
   },
-  traits::{Crud, PaginationCursorBuilder},
+  traits::PaginationCursorBuilder,
   utils::limit_fetch,
 };
 use lemmy_db_schema_file::schema::{
@@ -40,6 +40,7 @@ use lemmy_db_schema_file::schema::{
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
+  traits::Crud,
   utils::{fuzzy_search, paginate},
 };
 use lemmy_utils::{
@@ -238,9 +239,11 @@ mod tests {
       instance::Instance,
       site::{Site, SiteInsertForm},
     },
+  };
+  use lemmy_diesel_utils::{
+    connection::{DbPool, build_db_pool_for_tests, get_conn},
     traits::Crud,
   };
-  use lemmy_diesel_utils::connection::{DbPool, build_db_pool_for_tests, get_conn};
   use lemmy_utils::error::LemmyResult;
   use serial_test::serial;
 

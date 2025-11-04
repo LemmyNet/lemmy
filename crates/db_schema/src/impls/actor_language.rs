@@ -406,9 +406,8 @@ mod tests {
       person::{Person, PersonInsertForm},
     },
     test_data::TestData,
-    traits::Crud,
   };
-  use lemmy_diesel_utils::connection::build_db_pool_for_tests;
+  use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 

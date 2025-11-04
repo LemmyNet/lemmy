@@ -11,11 +11,12 @@ use lemmy_db_schema::{
     community::{Community, CommunityActions},
     multi_community::{MultiCommunity, MultiCommunityEntry, MultiCommunityEntryForm},
   },
-  traits::{Crud, Followable},
+  traits::Followable,
 };
 use lemmy_db_views_community::api::CreateOrDeleteMultiCommunityEntry;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::{SiteView, api::SuccessResponse};
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn delete_multi_community_entry(

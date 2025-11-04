@@ -31,9 +31,10 @@ use lemmy_db_schema::{
     person::Person,
     post::{Post, PostActions, PostLikeForm, PostUpdateForm},
   },
-  traits::{Crud, Likeable},
+  traits::Likeable,
 };
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 

@@ -30,8 +30,8 @@ use lemmy_db_schema::{
     modlog::{Modlog, ModlogInsertForm},
     post::{Post, PostUpdateForm},
   },
-  traits::Crud,
 };
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 

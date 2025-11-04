@@ -13,11 +13,12 @@ use lemmy_db_schema::{
     community_report::CommunityReport,
     modlog::{Modlog, ModlogInsertForm},
   },
-  traits::{Crud, Reportable},
+  traits::Reportable,
 };
 use lemmy_db_views_community::api::{CommunityResponse, RemoveCommunity};
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn remove_community(

@@ -19,7 +19,7 @@ use lemmy_db_schema::{
     local_user::LocalUser,
     site::Site,
   },
-  traits::{Crud, PaginationCursorBuilder},
+  traits::PaginationCursorBuilder,
   utils::{
     limit_fetch,
     queries::{
@@ -50,6 +50,7 @@ use lemmy_db_schema_file::{
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
+  traits::Crud,
   utils::{Subpath, now, paginate, seconds_to_pg_interval},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
@@ -342,10 +343,13 @@ mod tests {
       post::{Post, PostInsertForm, PostUpdateForm},
       site::{Site, SiteInsertForm},
     },
-    traits::{Bannable, Blockable, Crud, Followable, Likeable},
+    traits::{Bannable, Blockable, Followable, Likeable},
   };
   use lemmy_db_views_local_user::LocalUserView;
-  use lemmy_diesel_utils::connection::{DbPool, build_db_pool_for_tests, get_conn};
+  use lemmy_diesel_utils::{
+    connection::{DbPool, build_db_pool_for_tests, get_conn},
+    traits::Crud,
+  };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;

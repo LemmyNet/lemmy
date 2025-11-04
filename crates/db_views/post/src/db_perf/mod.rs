@@ -15,11 +15,12 @@ use lemmy_db_schema::{
     person::{Person, PersonInsertForm},
     site::Site,
   },
-  traits::{Crud, PaginationCursorBuilder},
+  traits::PaginationCursorBuilder,
 };
 use lemmy_db_schema_file::{enums::PostSortType, schema::post};
 use lemmy_diesel_utils::{
   connection::{DbPool, build_db_pool, build_db_pool_for_tests, get_conn},
+  traits::Crud,
   utils::now,
 };
 use lemmy_utils::error::LemmyResult;

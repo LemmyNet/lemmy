@@ -198,9 +198,12 @@ mod tests {
       person::{Person, PersonInsertForm},
       post::{Post, PostActions, PostInsertForm, PostLikeForm},
     },
-    traits::{Bannable, Crud, Likeable},
+    traits::{Bannable, Likeable},
   };
-  use lemmy_diesel_utils::connection::{DbPool, build_db_pool_for_tests, get_conn};
+  use lemmy_diesel_utils::{
+    connection::{DbPool, build_db_pool_for_tests, get_conn},
+    traits::Crud,
+  };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;

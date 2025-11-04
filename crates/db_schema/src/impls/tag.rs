@@ -5,7 +5,6 @@ use crate::{
     post::Post,
     tag::{PostTag, PostTagForm, Tag, TagInsertForm, TagUpdateForm, TagsView},
   },
-  traits::Crud,
 };
 use diesel::{
   ExpressionMethods,
@@ -23,6 +22,7 @@ use lemmy_db_schema_file::schema::{post_tag, tag};
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   dburl::DbUrl,
+  traits::Crud,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use std::collections::HashSet;

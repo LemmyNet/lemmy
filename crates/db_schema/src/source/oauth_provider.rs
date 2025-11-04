@@ -4,9 +4,9 @@ use chrono::{DateTime, Utc};
 use lemmy_db_schema_file::schema::oauth_provider;
 use lemmy_diesel_utils::{dburl::DbUrl, sensitive::SensitiveString};
 use serde::{
-  ser::{SerializeStruct, Serializer},
   Deserialize,
   Serialize,
+  ser::{SerializeStruct, Serializer},
 };
 use serde_with::skip_serializing_none;
 

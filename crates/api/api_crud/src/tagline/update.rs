@@ -5,12 +5,10 @@ use lemmy_api_utils::{
   context::LemmyContext,
   utils::{get_url_blocklist, is_admin, process_markdown, slur_regex},
 };
-use lemmy_db_schema::{
-  source::tagline::{Tagline, TaglineUpdateForm},
-  traits::Crud,
-};
+use lemmy_db_schema::source::tagline::{Tagline, TaglineUpdateForm};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::api::{TaglineResponse, UpdateTagline};
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyError;
 
 pub async fn update_tagline(

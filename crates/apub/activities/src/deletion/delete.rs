@@ -17,9 +17,10 @@ use lemmy_db_schema::{
     post::{Post, PostUpdateForm},
     post_report::PostReport,
   },
-  traits::{Crud, Reportable},
+  traits::Reportable,
 };
 use lemmy_db_views_community_moderator::CommunityModeratorView;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult, UntranslatedError};
 use url::Url;
 

@@ -46,16 +46,13 @@ impl PasswordResetRequest {
 #[cfg(test)]
 mod tests {
 
-  use crate::{
-    source::{
-      instance::Instance,
-      local_user::{LocalUser, LocalUserInsertForm},
-      password_reset_request::PasswordResetRequest,
-      person::{Person, PersonInsertForm},
-    },
-    traits::Crud,
+  use crate::source::{
+    instance::Instance,
+    local_user::{LocalUser, LocalUserInsertForm},
+    password_reset_request::PasswordResetRequest,
+    person::{Person, PersonInsertForm},
   };
-  use lemmy_diesel_utils::connection::build_db_pool_for_tests;
+  use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;

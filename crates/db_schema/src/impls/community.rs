@@ -15,7 +15,7 @@ use crate::{
     },
     post::Post,
   },
-  traits::{ApubActor, Bannable, Blockable, Crud, Followable},
+  traits::{ApubActor, Bannable, Blockable, Followable},
   utils::format_actor_url,
 };
 use chrono::{DateTime, Utc};
@@ -38,6 +38,7 @@ use lemmy_db_schema_file::{
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   dburl::DbUrl,
+  traits::Crud,
   utils::functions::{coalesce, coalesce_2_nullable, lower, random_smallint},
 };
 use lemmy_utils::{
@@ -696,10 +697,10 @@ mod tests {
       person::{Person, PersonInsertForm},
       post::{Post, PostInsertForm},
     },
-    traits::{Bannable, Crud, Followable},
+    traits::{Bannable, Followable},
     utils::RANK_DEFAULT,
   };
-  use lemmy_diesel_utils::connection::build_db_pool_for_tests;
+  use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
