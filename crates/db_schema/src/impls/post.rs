@@ -1,5 +1,5 @@
 use crate::{
-  newtypes::{CommunityId, DbUrl, InstanceId, PaginationCursor, PersonId, PostId},
+  newtypes::{CommunityId, InstanceId, PaginationCursor, PersonId, PostId},
   source::post::{
     Post,
     PostActions,
@@ -13,18 +13,20 @@ use crate::{
   },
   traits::{Crud, Likeable, Saveable},
   utils::{
-    DELETED_REPLACEMENT_TEXT,
-    DbPool,
-    FETCH_LIMIT_MAX,
-    SITEMAP_DAYS,
-    SITEMAP_LIMIT,
     functions::{coalesce, hot_rank, scaled_rank},
     get_conn,
     now,
+    DbPool,
+    DELETED_REPLACEMENT_TEXT,
+    FETCH_LIMIT_MAX,
+    SITEMAP_DAYS,
+    SITEMAP_LIMIT,
   },
 };
 use chrono::{DateTime, Utc};
 use diesel::{
+  dsl::{count, insert_into, not, update},
+  expression::SelectableHelper,
   BoolExpressionMethods,
   DecoratableTarget,
   ExpressionMethods,
@@ -32,15 +34,14 @@ use diesel::{
   NullableExpressionMethods,
   OptionalExtension,
   QueryDsl,
-  dsl::{count, insert_into, not, update},
-  expression::SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
-use diesel_uplete::{UpleteCount, uplete};
+use diesel_uplete::{uplete, UpleteCount};
 use lemmy_db_schema_file::{
   enums::PostNotificationsMode,
   schema::{community, local_user, person, post, post_actions},
 };
+use lemmy_diesel_utils::dburl::DbUrl;
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
@@ -596,7 +597,7 @@ mod tests {
       post::{Post, PostActions, PostInsertForm, PostLikeForm, PostSavedForm, PostUpdateForm},
     },
     traits::{Crud, Likeable, Saveable},
-    utils::{RANK_DEFAULT, build_db_pool_for_tests},
+    utils::{build_db_pool_for_tests, RANK_DEFAULT},
   };
   use chrono::DateTime;
   use diesel_uplete::UpleteCount;

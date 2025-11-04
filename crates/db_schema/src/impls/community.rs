@@ -1,6 +1,6 @@
 use crate::{
   diesel::{DecoratableTarget, JoinOnDsl, OptionalExtension},
-  newtypes::{CommunityId, DbUrl, PersonId},
+  newtypes::{CommunityId,  PersonId},
   source::{
     actor_language::CommunityLanguage,
     community::{
@@ -23,6 +23,7 @@ use crate::{
     get_conn,
   },
 };
+use lemmy_diesel_utils::dburl::DbUrl;
 use chrono::{DateTime, Utc};
 use diesel::{
   BoolExpressionMethods,

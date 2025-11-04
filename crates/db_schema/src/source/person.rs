@@ -1,8 +1,9 @@
 use crate::{
-  newtypes::{DbUrl, InstanceId, PersonId},
+  newtypes::{ InstanceId, PersonId},
   sensitive::SensitiveString,
   source::placeholder_apub_url,
 };
+use lemmy_diesel_utils::dburl::DbUrl;
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;

@@ -1,6 +1,7 @@
-use crate::newtypes::{CommunityId, DbUrl, LanguageId, PersonId, PostId};
+use crate::newtypes::{CommunityId, LanguageId, PersonId, PostId};
 use chrono::{DateTime, Utc};
 use lemmy_db_schema_file::enums::PostNotificationsMode;
+use lemmy_diesel_utils::dburl::DbUrl;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]

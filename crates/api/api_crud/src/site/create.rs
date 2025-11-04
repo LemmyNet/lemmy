@@ -15,7 +15,6 @@ use lemmy_api_utils::{
   },
 };
 use lemmy_db_schema::{
-  newtypes::DbUrl,
   source::{
     local_site::{LocalSite, LocalSiteUpdateForm},
     local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitUpdateForm},
@@ -26,9 +25,10 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::{
-  SiteView,
   api::{CreateSite, SiteResponse},
+  SiteView,
 };
+use lemmy_diesel_utils::dburl::DbUrl;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::{

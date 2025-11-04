@@ -1,13 +1,14 @@
 use crate::util::LEMMY_TEST_FAST_FEDERATION;
 use chrono::{DateTime, TimeZone, Utc};
 use lemmy_db_schema::{
-  newtypes::{CommunityId, DbUrl, InstanceId},
+  newtypes::{CommunityId,  InstanceId},
   source::{activity::SentActivity, site::Site},
   utils::{ActualDbPool, DbPool},
 };
 use lemmy_db_views_community_follower::CommunityFollowerView;
 use lemmy_utils::error::LemmyResult;
 use reqwest::Url;
+use lemmy_diesel_utils::dburl::DbUrl;
 use std::{
   collections::{HashMap, HashSet},
   sync::LazyLock,

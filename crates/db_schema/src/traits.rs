@@ -1,7 +1,8 @@
 use crate::{
-  newtypes::{CommunityId, DbUrl, PaginationCursor, PersonId},
+  newtypes::{CommunityId, PaginationCursor, PersonId},
   utils::{DbPool, get_conn},
 };
+use lemmy_diesel_utils::dburl::DbUrl;
 use diesel::{
   associations::HasTable,
   dsl,

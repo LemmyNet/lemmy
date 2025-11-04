@@ -1,6 +1,6 @@
 use crate::{
   diesel::{DecoratableTarget, OptionalExtension},
-  newtypes::{CommentId, CommunityId, DbUrl, InstanceId, PersonId, PostId},
+  newtypes::{CommentId, CommunityId, InstanceId, PersonId, PostId},
   source::comment::{
     Comment,
     CommentActions,
@@ -17,6 +17,7 @@ use crate::{
     get_conn,
   },
 };
+use lemmy_diesel_utils::dburl::DbUrl;
 use chrono::{DateTime, Utc};
 use diesel::{
   ExpressionMethods,

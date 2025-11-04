@@ -2,10 +2,10 @@ use crate::{
   inboxes::RealCommunityInboxCollector,
   send::{SendActivityResult, SendRetryTask, SendSuccessInfo},
   util::{
-    FederationQueueStateWithDomain,
-    WORK_FINISHED_RECHECK_DELAY,
     get_activity_cached,
     get_latest_activity_id,
+    FederationQueueStateWithDomain,
+    WORK_FINISHED_RECHECK_DELAY,
   },
 };
 use activitypub_federation::config::FederationConfig;
@@ -460,11 +460,10 @@ mod test {
     http_signatures::generate_actor_keypair,
     protocol::context::WithContext,
   };
-  use actix_web::{App, HttpResponse, HttpServer, dev::ServerHandle, web};
+  use actix_web::{dev::ServerHandle, web, App, HttpResponse, HttpServer};
   use futures::future::try_join_all;
   use lemmy_api_utils::utils::generate_inbox_url;
   use lemmy_db_schema::{
-    newtypes::DbUrl,
     source::{
       activity::{SentActivity, SentActivityForm},
       person::{Person, PersonInsertForm},
@@ -472,14 +471,15 @@ mod test {
     traits::Crud,
   };
   use lemmy_db_schema_file::enums::ActorType;
+  use lemmy_diesel_utils::dburl::DbUrl;
   use lemmy_utils::error::LemmyResult;
-  use serde_json::{Value, json};
+  use serde_json::{json, Value};
   use serial_test::serial;
   use std::sync::{Arc, RwLock};
-  use test_context::{AsyncTestContext, test_context};
+  use test_context::{test_context, AsyncTestContext};
   use tokio::{
     spawn,
-    sync::mpsc::{UnboundedReceiver, error::TryRecvError, unbounded_channel},
+    sync::mpsc::{error::TryRecvError, unbounded_channel, UnboundedReceiver},
   };
   use tracing_test::traced_test;
   use url::Url;

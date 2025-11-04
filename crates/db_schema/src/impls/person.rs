@@ -1,6 +1,6 @@
 use crate::{
   diesel::{BoolExpressionMethods, NullableExpressionMethods, OptionalExtension},
-  newtypes::{CommunityId, DbUrl, InstanceId, LocalUserId, PersonId},
+  newtypes::{CommunityId, InstanceId, LocalUserId, PersonId},
   source::person::{
     Person,
     PersonActions,
@@ -13,6 +13,7 @@ use crate::{
   traits::{ApubActor, Blockable, Crud, Followable},
   utils::{DbPool, format_actor_url, functions::lower, get_conn},
 };
+use lemmy_diesel_utils::dburl::DbUrl;
 use chrono::Utc;
 use diesel::{
   ExpressionMethods,

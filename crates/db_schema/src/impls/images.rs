@@ -1,18 +1,19 @@
 use crate::{
-  newtypes::{DbUrl, PersonId},
+  newtypes::PersonId,
   source::images::{ImageDetails, ImageDetailsInsertForm, LocalImage, LocalImageForm, RemoteImage},
-  utils::{DbPool, get_conn},
+  utils::{get_conn, DbPool},
 };
 use diesel::{
-  BoolExpressionMethods,
-  ExpressionMethods,
-  QueryDsl,
   dsl::exists,
   insert_into,
   select,
+  BoolExpressionMethods,
+  ExpressionMethods,
+  QueryDsl,
 };
-use diesel_async::{RunQueryDsl, scoped_futures::ScopedFutureExt};
+use diesel_async::{scoped_futures::ScopedFutureExt, RunQueryDsl};
 use lemmy_db_schema_file::schema::{image_details, local_image, remote_image};
+use lemmy_diesel_utils::dburl::DbUrl;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use url::Url;
 

@@ -1,5 +1,6 @@
-use crate::newtypes::{CommunityId, DbUrl, PostId, TagId};
+use crate::newtypes::{CommunityId,  PostId, TagId};
 use chrono::{DateTime, Utc};
+use lemmy_diesel_utils::dburl::DbUrl;
 #[cfg(feature = "full")]
 use diesel::{AsExpression, FromSqlRow, sql_types::Nullable};
 #[cfg(feature = "full")]

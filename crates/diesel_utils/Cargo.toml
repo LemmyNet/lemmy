@@ -24,8 +24,34 @@ full = []
 diesel = { workspace = true }
 chrono = { workspace = true }
 diesel_migrations = { workspace = true }
-tracing = { workspace = true }
 anyhow = { workspace = true }
+serde = { workspace = true }
+serde_with = { workspace = true }
+url = { workspace = true }
+strum = { workspace = true }
+serde_json = { workspace = true, optional = true }
+activitypub_federation = { workspace = true }
+lemmy_utils = { workspace = true, optional = true }
+bcrypt = { workspace = true, optional = true }
+diesel-derive-newtype = { workspace = true, optional = true }
+diesel-async = { workspace = true, features = [
+  "deadpool",
+  "postgres",
+], optional = true }
+diesel-uplete = { workspace = true, optional = true }
+diesel_ltree = { workspace = true, optional = true }
+tracing = { workspace = true }
+deadpool = { version = "0.12.3", optional = true, features = ["rt_tokio_1"] }
+ts-rs = { workspace = true }
+futures-util = { workspace = true }
+tokio = { workspace = true, optional = true }
+tokio-postgres = { workspace = true, optional = true }
+tokio-postgres-rustls = { workspace = true, optional = true }
+rustls = { workspace = true, optional = true }
+uuid.workspace = true
+i-love-jesus = { workspace = true, optional = true }
+derive-new.workspace = true
+moka = { workspace = true, optional = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

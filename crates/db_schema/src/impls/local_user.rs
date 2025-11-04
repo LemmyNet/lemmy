@@ -1,31 +1,32 @@
 use crate::{
-  newtypes::{CommunityId, DbUrl, LanguageId, LocalUserId, PersonId},
+  newtypes::{CommunityId, LanguageId, LocalUserId, PersonId},
   source::{
     actor_language::LocalUserLanguage,
     local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
     site::Site,
   },
   utils::{
-    DbPool,
     functions::{coalesce, lower},
     get_conn,
     now,
+    DbPool,
   },
 };
-use bcrypt::{DEFAULT_COST, hash};
+use bcrypt::{hash, DEFAULT_COST};
 use diesel::{
+  dsl::{insert_into, not, IntervalDsl},
+  result::Error,
   CombineDsl,
   ExpressionMethods,
   JoinOnDsl,
   QueryDsl,
-  dsl::{IntervalDsl, insert_into, not},
-  result::Error,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::{
   enums::CommunityVisibility,
   schema::{community, community_actions, local_user, person, registration_application},
 };
+use lemmy_diesel_utils::dburl::DbUrl;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl LocalUser {
@@ -320,9 +321,9 @@ pub trait LocalUserOptionHelper {
   fn visible_communities_only<Q>(&self, query: Q) -> Q
   where
     Q: diesel::query_dsl::methods::FilterDsl<
-        diesel::dsl::Eq<community::visibility, CommunityVisibility>,
-        Output = Q,
-      >;
+      diesel::dsl::Eq<community::visibility, CommunityVisibility>,
+      Output = Q,
+    >;
 }
 
 impl LocalUserOptionHelper for Option<&LocalUser> {
@@ -360,9 +361,9 @@ impl LocalUserOptionHelper for Option<&LocalUser> {
   fn visible_communities_only<Q>(&self, query: Q) -> Q
   where
     Q: diesel::query_dsl::methods::FilterDsl<
-        diesel::dsl::Eq<community::visibility, CommunityVisibility>,
-        Output = Q,
-      >,
+      diesel::dsl::Eq<community::visibility, CommunityVisibility>,
+      Output = Q,
+    >,
   {
     if self.is_none() {
       query.filter(community::visibility.eq(CommunityVisibility::Public))

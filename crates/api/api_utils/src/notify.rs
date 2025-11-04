@@ -1,6 +1,6 @@
 use crate::{context::LemmyContext, plugins::plugin_hook_notification};
 use lemmy_db_schema::{
-  newtypes::{DbUrl, PersonId},
+  newtypes::PersonId,
   source::{
     comment::Comment,
     community::{Community, CommunityActions},
@@ -20,7 +20,8 @@ use lemmy_db_schema_file::enums::{
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_private_message::PrivateMessageView;
 use lemmy_db_views_site::SiteView;
-use lemmy_email::notifications::{NotificationEmailData, send_notification_email};
+use lemmy_diesel_utils::dburl::DbUrl;
+use lemmy_email::notifications::{send_notification_email, NotificationEmailData};
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   spawn_try_task,
@@ -365,10 +366,9 @@ pub fn notify_mod_action(actions: Vec<Modlog>, context: &LemmyContext) {
 mod tests {
   use crate::{
     context::LemmyContext,
-    notify::{NotifyData, notify_private_message_internal},
+    notify::{notify_private_message_internal, NotifyData},
   };
   use lemmy_db_schema::{
-    NotificationDataType,
     assert_length,
     source::{
       comment::{Comment, CommentInsertForm},
@@ -380,11 +380,12 @@ mod tests {
       private_message::{PrivateMessage, PrivateMessageInsertForm},
     },
     traits::{Blockable, Crud},
-    utils::{DbPool, build_db_pool_for_tests},
+    utils::{build_db_pool_for_tests, DbPool},
+    NotificationDataType,
   };
   use lemmy_db_schema_file::enums::NotificationType;
   use lemmy_db_views_local_user::LocalUserView;
-  use lemmy_db_views_notification::{NotificationData, NotificationView, impls::NotificationQuery};
+  use lemmy_db_views_notification::{impls::NotificationQuery, NotificationData, NotificationView};
   use lemmy_db_views_private_message::PrivateMessageView;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;

@@ -1,14 +1,15 @@
 use crate::{
   diesel::{DecoratableTarget, OptionalExtension},
-  newtypes::{DbUrl, PersonId, PrivateMessageId},
+  newtypes::{PersonId, PrivateMessageId},
   source::private_message::{PrivateMessage, PrivateMessageInsertForm, PrivateMessageUpdateForm},
   traits::Crud,
-  utils::{DbPool, functions::coalesce, get_conn},
+  utils::{functions::coalesce, get_conn, DbPool},
 };
 use chrono::{DateTime, Utc};
-use diesel::{ExpressionMethods, QueryDsl, dsl::insert_into};
+use diesel::{dsl::insert_into, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::private_message;
+use lemmy_diesel_utils::dburl::DbUrl;
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,

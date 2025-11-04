@@ -57,6 +57,7 @@ actix-cors = "0.7.1"
 rand = "0.9.2"
 percent-encoding = "2.3.2"
 diesel-uplete.workspace = true
+lemmy_diesel_utils = { workspace = true }
 
 [dev-dependencies]
 pretty_assertions.workspace = true

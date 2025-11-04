@@ -1,6 +1,6 @@
 use crate::{
   diesel::{BoolExpressionMethods, OptionalExtension, PgExpressionMethods, SelectableHelper},
-  newtypes::{CommunityId, DbUrl, MultiCommunityId, PersonId},
+  newtypes::{CommunityId, MultiCommunityId, PersonId},
   source::{
     community::Community,
     multi_community::{
@@ -14,14 +14,14 @@ use crate::{
     },
   },
   traits::{ApubActor, Crud},
-  utils::{DbPool, format_actor_url, functions::lower, get_conn},
+  utils::{format_actor_url, functions::lower, get_conn, DbPool},
 };
 use diesel::{
-  ExpressionMethods,
-  QueryDsl,
   dsl::{delete, exists, insert_into, not},
   select,
   update,
+  ExpressionMethods,
+  QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::{
@@ -32,6 +32,7 @@ use lemmy_db_schema_file::schema::{
   multi_community_follow,
   person,
 };
+use lemmy_diesel_utils::dburl::DbUrl;
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,

@@ -8,9 +8,10 @@ use diesel::{
   dsl::{count_star, exists, not},
   select,
 };
+use lemmy_diesel_utils::dburl::DbUrl;
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  newtypes::{CommunityId, DbUrl, InstanceId, PaginationCursor, PersonId},
+  newtypes::{CommunityId, InstanceId, PaginationCursor, PersonId},
   source::community::CommunityActions,
   traits::PaginationCursorBuilder,
   utils::{DbPool, functions::lower, get_conn},

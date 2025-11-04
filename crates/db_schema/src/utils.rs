@@ -1,6 +1,6 @@
 pub mod queries;
 
-use crate::newtypes::DbUrl;
+use lemmy_diesel_utils::dburl::DbUrl;
 use chrono::TimeDelta;
 use deadpool::Runtime;
 use diesel::{
