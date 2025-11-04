@@ -1,6 +1,5 @@
 use chrono::{DateTime, Utc};
 use lemmy_db_schema::source::person::{Person, PersonActions};
-use lemmy_diesel_utils::utils::functions::coalesce;
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use {
@@ -11,6 +10,7 @@ use {
     creator_local_home_banned,
   },
   lemmy_db_schema_file::schema::local_user,
+  lemmy_diesel_utils::utils::functions::coalesce,
 };
 
 pub mod api;

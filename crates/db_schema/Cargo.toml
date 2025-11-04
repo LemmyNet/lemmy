@@ -32,7 +32,7 @@ full = [
   "i-love-jesus",
   "moka",
   "lemmy_db_schema_file/full",
-  "lemmy_diesel_utils",
+  "lemmy_diesel_utils/full",
 ]
 ts-rs = ["dep:ts-rs"]
 
@@ -45,7 +45,7 @@ strum = { workspace = true }
 serde_json = { workspace = true, optional = true }
 lemmy_utils = { workspace = true, optional = true }
 lemmy_db_schema_file = { workspace = true }
-lemmy_diesel_utils = { workspace = true, optional = true }
+lemmy_diesel_utils = { workspace = true }
 bcrypt = { workspace = true, optional = true }
 diesel = { workspace = true, optional = true }
 diesel-derive-newtype = { workspace = true, optional = true }

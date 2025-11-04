@@ -19,29 +19,48 @@ workspace = true
 
 [features]
 ts-rs = ["dep:ts-rs"]
-full = []
+full = [
+  "diesel-async",
+  "chrono",
+  "diesel_migrations",
+  "anyhow",
+  "diesel-async",
+  "diesel_ltree",
+  "tracing",
+  "deadpool",
+  "futures-util",
+  "tokio",
+  "tokio-postgres",
+  "tokio-postgres-rustls",
+  "rustls",
+  "i-love-jesus",
+  "lemmy_utils",
+]
 
 [dependencies]
 diesel = { workspace = true }
-chrono = { workspace = true }
-diesel_migrations = { workspace = true }
-anyhow = { workspace = true }
+chrono = { workspace = true, optional = true }
+diesel_migrations = { workspace = true, optional = true }
+anyhow = { workspace = true, optional = true }
 serde = { workspace = true }
 url = { workspace = true }
 activitypub_federation = { workspace = true }
 diesel-derive-newtype = { workspace = true }
-diesel-async = { workspace = true, features = ["deadpool", "postgres"] }
-diesel_ltree = { workspace = true }
-tracing = { workspace = true }
-deadpool = { version = "0.12.3", features = ["rt_tokio_1"] }
+diesel-async = { workspace = true, features = [
+  "deadpool",
+  "postgres",
+], optional = true }
+diesel_ltree = { workspace = true, optional = true }
+tracing = { workspace = true, optional = true }
+deadpool = { version = "0.12.3", features = ["rt_tokio_1"], optional = true }
 ts-rs = { workspace = true, optional = true }
-futures-util = { workspace = true }
-tokio = { workspace = true }
-tokio-postgres = { workspace = true }
-tokio-postgres-rustls = { workspace = true }
-rustls = { workspace = true }
-i-love-jesus = { workspace = true }
-lemmy_utils = { workspace = true }
+futures-util = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
+tokio-postgres = { workspace = true, optional = true }
+tokio-postgres-rustls = { workspace = true, optional = true }
+rustls = { workspace = true, optional = true }
+i-love-jesus = { workspace = true, optional = true }
+lemmy_utils = { workspace = true, optional = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }
