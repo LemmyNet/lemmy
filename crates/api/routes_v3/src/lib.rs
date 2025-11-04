@@ -15,7 +15,6 @@ use lemmy_api::{
 use lemmy_api_019::{
   comment::{
     CommentResponse as CommentResponseV3,
-    CreateComment as CreateCommentV3,
     CreateCommentLike as CreateCommentLikeV3,
     GetComments as GetCommentsV3,
     GetCommentsResponse as GetCommentsResponseV3,
@@ -66,11 +65,10 @@ use lemmy_api_019::{
     SiteView as SiteViewV3,
   },
   lemmy_db_views_actor::structs::{CommunityView as CommunityViewV3, PersonView as PersonViewV3},
-  person::{Login as LoginV3, LoginResponse as LoginResponseV3},
+  person::LoginResponse as LoginResponseV3,
   post::{
     CreatePost as CreatePostV3,
     CreatePostLike as CreatePostLikeV3,
-    GetPost as GetPostV3,
     GetPostResponse as GetPostResponseV3,
     GetPosts as GetPostsV3,
     GetPostsResponse as GetPostsResponseV3,
@@ -79,7 +77,6 @@ use lemmy_api_019::{
   site::{
     GetSiteResponse as GetSiteResponseV3,
     MyUserInfo as MyUserInfoV3,
-    ResolveObject as ResolveObjectV3,
     ResolveObjectResponse as ResolveObjectResponseV3,
     Search as SearchV3,
     SearchResponse as SearchResponseV3,
@@ -183,23 +180,11 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
 }
 
 async fn create_comment_v3(
-  data: Json<CreateCommentV3>,
+  data: Json<CreateComment>,
   context: ApubData<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponseV3>> {
-  let CreateCommentV3 {
-    content,
-    post_id,
-    parent_id,
-    language_id,
-  } = data.0;
-  let data = CreateComment {
-    content,
-    post_id: PostId(post_id.0),
-    parent_id: parent_id.map(|i| CommentId(i.0)),
-    language_id: language_id.map(|l| LanguageId(l.0)),
-  };
-  let res = create_comment(Json(data), context, local_user_view).await?;
+  let res = create_comment(data, context, local_user_view).await?;
   Ok(Json(CommentResponseV3 {
     comment_view: convert_comment_view(res.0.comment_view),
     recipient_ids: vec![],
@@ -268,12 +253,11 @@ async fn search_v3(
 }
 
 async fn resolve_object_v3(
-  data: Query<ResolveObjectV3>,
+  data: Query<ResolveObject>,
   context: ApubData<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<ResolveObjectResponseV3>> {
-  let data = ResolveObject { q: data.0.q };
-  let res = resolve_object(Query(data), context, local_user_view).await?;
+  let res = resolve_object(data, context, local_user_view).await?;
   let mut conv = convert_search_response(res.0.results, None);
   Ok(Json(ResolveObjectResponseV3 {
     comment: conv.comments.pop(),
@@ -350,26 +334,15 @@ fn convert_score(score: i16) -> Option<bool> {
 }
 
 async fn login_v3(
-  data: Json<LoginV3>,
+  data: Json<Login>,
   req: HttpRequest,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<LoginResponseV3>> {
-  let LoginV3 {
-    username_or_email,
-    password,
-    totp_2fa_token,
-  } = data.0;
-  let data = Login {
-    username_or_email: convert_sensitive(username_or_email),
-    password: convert_sensitive(password),
-    totp_2fa_token,
-    stay_logged_in: None,
-  };
   let LoginResponse {
     jwt,
     registration_created,
     verify_email_sent,
-  } = login(Json(data), req, context).await?.0;
+  } = login(data, req, context).await?.0;
   Ok(Json(LoginResponseV3 {
     jwt: jwt.map(convert_sensitive2),
     registration_created,
@@ -462,16 +435,11 @@ fn convert_person_view(person_view: PersonView) -> PersonViewV3 {
   }
 }
 async fn get_post_v3(
-  data: Query<GetPostV3>,
+  data: Query<GetPost>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<GetPostResponseV3>> {
-  let GetPostV3 { id, comment_id } = data.0;
-  let data = GetPost {
-    id: id.map(|id| PostId(id.0)),
-    comment_id: comment_id.map(|id| CommentId(id.0)),
-  };
-  let post = get_post(Query(data), context, local_user_view).await?.0;
+  let post = get_post(data, context, local_user_view).await?.0;
   Ok(Json(GetPostResponseV3 {
     post_view: convert_post_view(post.post_view),
     community_view: convert_community_view(post.community_view),
