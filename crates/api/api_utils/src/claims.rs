@@ -4,9 +4,8 @@ use chrono::{DateTime, Duration, Utc};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use lemmy_db_schema::{
   newtypes::LocalUserId,
-  sensitive::SensitiveString,
   source::login_token::{LoginToken, LoginTokenCreateForm},
-};
+};use lemmy_diesel_utils::sensitive::SensitiveString;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use serde::{Deserialize, Serialize};
 

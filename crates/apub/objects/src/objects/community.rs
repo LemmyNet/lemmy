@@ -31,9 +31,8 @@ use lemmy_api_utils::{
     proxy_image_link_opt_apub,
     slur_regex,
   },
-};
+};use lemmy_diesel_utils::sensitive::SensitiveString;
 use lemmy_db_schema::{
-  sensitive::SensitiveString,
   source::{
     actor_language::CommunityLanguage,
     community::{Community, CommunityInsertForm, CommunityUpdateForm},

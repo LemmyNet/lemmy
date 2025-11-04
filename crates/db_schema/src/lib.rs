@@ -8,7 +8,6 @@ extern crate diesel_derive_newtype;
 #[cfg(feature = "full")]
 pub mod impls;
 pub mod newtypes;
-pub mod sensitive;
 #[cfg(feature = "full")]
 pub mod test_data;
 #[cfg(feature = "full")]
@@ -162,7 +161,9 @@ pub enum LikeType {
 /// vec on failure.
 #[macro_export]
 macro_rules! assert_length {
-  ($len:expr, $vec:expr) => {{ assert_eq!($len, $vec.len(), "Vec has wrong length: {:?}", $vec) }};
+  ($len:expr, $vec:expr) => {{
+    assert_eq!($len, $vec.len(), "Vec has wrong length: {:?}", $vec)
+  }};
 }
 
 #[cfg(feature = "full")]

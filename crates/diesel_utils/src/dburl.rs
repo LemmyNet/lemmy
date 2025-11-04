@@ -20,8 +20,8 @@ use url::Url;
 #[repr(transparent)]
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug, Hash, AsExpression, FromSqlRow)]
 #[ diesel(sql_type = diesel::sql_types::Text)]
-#[derive(ts_rs::TS)]
-#[ts(optional_fields, export)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct DbUrl(pub Box<Url>);
 
 impl DbUrl {

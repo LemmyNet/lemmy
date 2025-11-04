@@ -8,7 +8,6 @@ use lemmy_db_schema::{
     PaginationCursor,
     TaglineId,
   },
-  sensitive::SensitiveString,
   source::{
     comment::Comment,
     community::Community,
@@ -23,7 +22,7 @@ use lemmy_db_schema::{
     private_message::PrivateMessage,
     tagline::Tagline,
   },
-};
+};use lemmy_diesel_utils::sensitive::SensitiveString;
 use lemmy_db_schema_file::enums::{
   CommentSortType,
   FederationMode,

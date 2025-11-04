@@ -8,10 +8,9 @@ use activitypub_federation::{
   protocol::verification::{verify_domains_match, verify_is_remote_object},
   traits::{Actor, Object},
 };
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Utc};use lemmy_diesel_utils::sensitive::SensitiveString;
 use lemmy_api_utils::{context::LemmyContext, utils::slur_regex};
 use lemmy_db_schema::{
-  sensitive::SensitiveString,
   source::{
     multi_community::{MultiCommunity, MultiCommunityInsertForm},
     person::Person,

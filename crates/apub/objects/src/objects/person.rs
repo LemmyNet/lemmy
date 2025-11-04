@@ -10,7 +10,7 @@ use crate::{
     markdown_links::markdown_rewrite_remote_links_opt,
     protocol::{ImageObject, Source},
   },
-};
+};use lemmy_diesel_utils::sensitive::SensitiveString;
 use activitypub_federation::{
   config::Data,
   protocol::verification::{verify_domains_match, verify_is_remote_object},
@@ -28,7 +28,6 @@ use lemmy_api_utils::{
   },
 };
 use lemmy_db_schema::{
-  sensitive::SensitiveString,
   source::person::{Person as DbPerson, PersonInsertForm, PersonUpdateForm},
   traits::{ApubActor, Crud},
 };

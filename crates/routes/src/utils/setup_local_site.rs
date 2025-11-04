@@ -7,7 +7,6 @@ use diesel::{
 use diesel_async::{RunQueryDsl, scoped_futures::ScopedFutureExt};
 use lemmy_api_utils::utils::generate_inbox_url;
 use lemmy_db_schema::{
-  sensitive::SensitiveString,
   source::{
     instance::Instance,
     local_site::{LocalSite, LocalSiteInsertForm},
@@ -17,7 +16,7 @@ use lemmy_db_schema::{
     site::{Site, SiteInsertForm},
   },
   traits::{ApubActor, Crud},
-};
+};use lemmy_diesel_utils::sensitive::SensitiveString;
 use lemmy_db_schema_file::schema::local_site;
 use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::connection::{DbPool, get_conn};

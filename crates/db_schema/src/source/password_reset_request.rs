@@ -1,7 +1,8 @@
-use crate::{newtypes::LocalUserId, sensitive::SensitiveString};
+use crate::newtypes::LocalUserId;
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::password_reset_request;
+use lemmy_diesel_utils::sensitive::SensitiveString;
 
 #[derive(PartialEq, Eq, Debug)]
 #[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]

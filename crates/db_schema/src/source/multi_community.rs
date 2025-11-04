@@ -1,8 +1,8 @@
 use crate::{
   newtypes::{CommunityId, InstanceId, MultiCommunityId, PersonId},
-  sensitive::SensitiveString,
   source::placeholder_apub_url,
 };
+use lemmy_diesel_utils::sensitive::SensitiveString;
 use chrono::{DateTime, Utc};
 use lemmy_db_schema_file::enums::CommunityFollowerState;
 #[cfg(feature = "full")]
