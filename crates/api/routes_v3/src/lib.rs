@@ -152,7 +152,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("/list", get().to(list_posts_v3))
           .route("/like", post().to(like_post_v3)),
       )
-      // Comment
       .service(
         resource("/comment")
           .guard(guard::Post())
