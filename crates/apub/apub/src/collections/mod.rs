@@ -20,7 +20,7 @@ use lemmy_apub_objects::{
   utils::protocol::{AttributedTo, PersonOrGroupType},
 };
 use lemmy_db_schema::source::{comment::Comment, post::Post};
-use lemmy_utils::{error::LemmyResult, spawn_try_task, FEDERATION_CONTEXT};
+use lemmy_utils::{FEDERATION_CONTEXT, error::LemmyResult, spawn_try_task};
 
 pub(crate) mod community_featured;
 pub(crate) mod community_follower;
@@ -41,11 +41,11 @@ pub fn fetch_community_collections(
     }
     // Dont fetch featured posts for new instances to save requests.
     // But need to run this in debug mode so that api tests can pass.
-    if cfg!(debug_assertions) || !is_new_instance(&context).await? {
-      if let Some(featured) = group.featured {
-        let featured: CollectionId<ApubCommunityFeatured> = featured.into();
-        featured.dereference(&community, &context).await.ok();
-      }
+    if (cfg!(debug_assertions) || !is_new_instance(&context).await?)
+      && let Some(featured) = group.featured
+    {
+      let featured: CollectionId<ApubCommunityFeatured> = featured.into();
+      featured.dereference(&community, &context).await.ok();
     }
     if let Some(moderators) = group.attributed_to {
       if let AttributedTo::Lemmy(l) = moderators {

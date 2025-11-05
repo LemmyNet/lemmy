@@ -4,7 +4,7 @@ use diesel::{
   dsl::{exists, not, select},
   query_builder::AsQuery,
 };
-use diesel_async::{scoped_futures::ScopedFutureExt, RunQueryDsl};
+use diesel_async::{RunQueryDsl, scoped_futures::ScopedFutureExt};
 use lemmy_api_utils::utils::generate_inbox_url;
 use lemmy_db_schema::{
   sensitive::SensitiveString,
@@ -17,7 +17,7 @@ use lemmy_db_schema::{
     site::{Site, SiteInsertForm},
   },
   traits::{ApubActor, Crud},
-  utils::{get_conn, DbPool},
+  utils::{DbPool, get_conn},
 };
 use lemmy_db_schema_file::schema::local_site;
 use lemmy_db_views_site::SiteView;
@@ -25,7 +25,7 @@ use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
 };
-use rand::{distr::Alphanumeric, Rng};
+use rand::{Rng, distr::Alphanumeric};
 use tracing::info;
 use url::Url;
 

@@ -1,15 +1,15 @@
 use diesel::{
-  dsl,
-  expression::{is_aggregate, ValidGrouping},
-  pg::Pg,
-  query_builder::{AsQuery, AstPass, QueryFragment},
-  result::Error,
-  sql_types,
   AppearsOnTable,
   Expression,
   Insertable,
   QueryId,
   SelectableExpression,
+  dsl,
+  expression::{ValidGrouping, is_aggregate},
+  pg::Pg,
+  query_builder::{AsQuery, AstPass, QueryFragment},
+  result::Error,
+  sql_types,
 };
 
 /// Gererates a series of rows for insertion.

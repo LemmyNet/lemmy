@@ -6,7 +6,7 @@ use activitypub_federation::{config::Data, protocol::context::WithContext, trait
 use assert_json_diff::assert_json_include;
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_utils::error::LemmyResult;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 use std::{collections::HashMap, fs::File, io::BufReader};
 use url::Url;
 

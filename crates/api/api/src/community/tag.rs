@@ -15,8 +15,8 @@ use lemmy_db_schema::{
   utils::diesel_string_update,
 };
 use lemmy_db_views_community::{
-  api::{CreateCommunityTag, DeleteCommunityTag, UpdateCommunityTag},
   CommunityView,
+  api::{CreateCommunityTag, DeleteCommunityTag, UpdateCommunityTag},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::{

@@ -1,11 +1,11 @@
 use crate::{
+  MOD_ACTION_DEFAULT_REASON,
   activity_lists::AnnouncableActivities,
   check_community_deleted_or_removed,
   community::send_activity_in_community,
   generate_activity_id,
   post_or_comment_community,
   protocol::community::lock::{LockPageOrNote, LockType, UndoLockPageOrNote},
-  MOD_ACTION_DEFAULT_REASON,
 };
 use activitypub_federation::{
   config::Data,
@@ -15,7 +15,7 @@ use activitypub_federation::{
 };
 use lemmy_api_utils::{context::LemmyContext, notify::notify_mod_action};
 use lemmy_apub_objects::{
-  objects::{community::ApubCommunity, PostOrComment},
+  objects::{PostOrComment, community::ApubCommunity},
   utils::{
     functions::{generate_to, verify_mod_action, verify_person_in_community, verify_visibility},
     protocol::InCommunity,

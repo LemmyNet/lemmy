@@ -8,11 +8,11 @@ use either::Either;
 use lemmy_api_utils::{context::LemmyContext, utils::is_admin};
 use lemmy_apub_objects::{
   objects::{
+    PostOrComment,
+    ReportableObjects,
     community::ApubCommunity,
     instance::ApubSite,
     person::ApubPerson,
-    PostOrComment,
-    ReportableObjects,
   },
   utils::functions::verify_mod_action,
 };

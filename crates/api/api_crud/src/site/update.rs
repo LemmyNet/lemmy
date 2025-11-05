@@ -28,8 +28,8 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::enums::RegistrationMode;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::{
-  api::{EditSite, SiteResponse},
   SiteView,
+  api::{EditSite, SiteResponse},
 };
 use lemmy_utils::{
   error::LemmyResult,

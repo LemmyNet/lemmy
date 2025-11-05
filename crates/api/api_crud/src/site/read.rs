@@ -9,8 +9,8 @@ use lemmy_db_schema::source::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::impls::PersonQuery;
-use lemmy_db_views_site::{api::GetSiteResponse, SiteView};
-use lemmy_utils::{build_cache, error::LemmyResult, CacheLock, VERSION};
+use lemmy_db_views_site::{SiteView, api::GetSiteResponse};
+use lemmy_utils::{CacheLock, VERSION, build_cache, error::LemmyResult};
 use std::sync::LazyLock;
 
 pub async fn get_site(

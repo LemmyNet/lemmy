@@ -10,8 +10,8 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views_comment::{
-  api::{CommentResponse, DistinguishComment},
   CommentView,
+  api::{CommentResponse, DistinguishComment},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};

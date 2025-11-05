@@ -1,5 +1,5 @@
 use crate::LocalUserView;
-use actix_web::{dev::Payload, FromRequest, HttpMessage, HttpRequest};
+use actix_web::{FromRequest, HttpMessage, HttpRequest, dev::Payload};
 use diesel::{
   BoolExpressionMethods,
   ExpressionMethods,
@@ -15,21 +15,21 @@ use lemmy_db_schema::{
   source::{
     instance::Instance,
     local_user::{LocalUser, LocalUserInsertForm},
-    person::{person_keys, Person, PersonInsertForm},
+    person::{Person, PersonInsertForm, person_keys},
   },
   traits::{Crud, PaginationCursorBuilder},
   utils::{
+    DbPool,
     functions::{coalesce, lower},
     get_conn,
     now,
     paginate,
     queries::joins::creator_home_instance_actions_join,
-    DbPool,
   },
 };
 use lemmy_db_schema_file::schema::{instance_actions, local_user, oauth_account, person};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
-use std::future::{ready, Ready};
+use std::future::{Ready, ready};
 
 impl LocalUserView {
   #[diesel::dsl::auto_type(no_type_alias)]

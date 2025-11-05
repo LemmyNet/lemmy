@@ -79,14 +79,13 @@ pub(super) async fn handle_community_moderators(
   for mod_id in new_mods {
     // Ignore errors as mod accounts might be deleted or instances unavailable.
     let mod_user: Option<ApubPerson> = mod_id.dereference(context).await.ok();
-    if let Some(mod_user) = mod_user {
-      if !current_moderators
+    if let Some(mod_user) = mod_user
+      && !current_moderators
         .iter()
         .any(|x| x.moderator.ap_id == mod_user.ap_id)
-      {
-        let community_moderator_form = CommunityModeratorForm::new(community.id, mod_user.id);
-        CommunityActions::join(&mut context.pool(), &community_moderator_form).await?;
-      }
+    {
+      let community_moderator_form = CommunityModeratorForm::new(community.id, mod_user.id);
+      CommunityActions::join(&mut context.pool(), &community_moderator_form).await?;
     }
 
     // Only add the top mod in case of new instance

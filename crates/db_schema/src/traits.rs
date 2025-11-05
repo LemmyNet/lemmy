@@ -1,6 +1,6 @@
 use crate::{
   newtypes::{CommunityId, DbUrl, PaginationCursor, PersonId},
-  utils::{get_conn, DbPool},
+  utils::{DbPool, get_conn},
 };
 use diesel::{
   associations::HasTable,
@@ -9,9 +9,9 @@ use diesel::{
   query_dsl::methods::{FindDsl, LimitDsl},
 };
 use diesel_async::{
-  methods::{ExecuteDsl, LoadQuery},
   AsyncPgConnection,
   RunQueryDsl,
+  methods::{ExecuteDsl, LoadQuery},
 };
 use diesel_uplete::UpleteCount;
 use lemmy_utils::{
@@ -34,7 +34,6 @@ where
   Self::Table: FindDsl<Self::IdType>,
   Find<Self>: LimitDsl + IntoUpdateTarget + Send,
   Delete<Find<Self>>: ExecuteDsl<AsyncPgConnection> + Send + 'static,
-
   // Used by `RunQueryDsl::first`
   dsl::Limit<Find<Self>>: LoadQuery<'static, AsyncPgConnection, Self> + Send + 'static,
 {

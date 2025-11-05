@@ -6,7 +6,7 @@ variables:
   # as well. Otherwise release builds can fail if Lemmy or dependencies rely on new Rust
   # features. In particular the ARM builder image needs to be updated manually in the repo below:
   # https://github.com/raskyld/lemmy-cross-toolchains
-  - &rust_image "rust:1.81"
+  - &rust_image "rust:1.91"
   - &rust_nightly_image "rustlang/rust:nightly"
   - &install_pnpm "npm install -g corepack@latest && corepack enable pnpm"
   - &install_binstall "wget -q -O- https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz | tar -xvz -C /usr/local/cargo/bin"
@@ -88,7 +88,7 @@ steps:
     image: *rust_nightly_image
     commands:
       - *install_binstall
-      - cargo binstall -y cargo-shear
+      - cargo binstall -y cargo-shear --disable-strategies compile
       - cargo shear
     when:
       - event: pull_request
@@ -146,8 +146,8 @@ steps:
     commands:
       # Install pg_dump for the schema setup test (must match server version)
       - apt update && apt install -y lsb-release
-      - sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-      - wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
+      - sh -c 'echo "deb [signed-by=/usr/share/keyrings/postgres-keyring.gpg] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+      - wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /usr/share/keyrings/postgres-keyring.gpg
       - apt update && apt install -y postgresql-client-16
       # Run tests (if they fail, try again)
       - cargo test --workspace --no-fail-fast || cargo test --workspace --no-fail-fast
@@ -205,8 +205,6 @@ steps:
       - cp crates/db_schema_file/src/schema.rs tmp.schema
       - target/lemmy_server migration --all run
       - apt-get update && apt-get install -y postgresql-client
-      # Disallow compilation from source as it doesnt work with Rust 1.81 which we use, and takes
-      # too long anyway.
       - cargo binstall diesel_cli@2.3.2 -y --disable-strategies compile
       - export PATH="$CARGO_HOME/bin:$PATH"
       - diesel print-schema
@@ -214,7 +212,7 @@ steps:
     when: *slow_check_paths
 
   run_federation_tests:
-    image: node:22-bookworm-slim
+    image: node:22-trixie-slim
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
       DO_WRITE_HOSTS_FILE: "1"
@@ -299,8 +297,7 @@ steps:
         from_secret: cargo_api_token
     commands:
       - *install_binstall
-      # Install cargo-workspaces, need pinned version for Rust 1.81 compat
-      - cargo binstall -y cargo-workspaces@0.3.6
+      - cargo binstall -y cargo-workspaces@0.4.1 --disable-strategies compile
       - cp -r migrations crates/db_schema/
       - cargo workspaces publish --token "$CARGO_API_TOKEN" --from-git --allow-dirty --no-verify --allow-branch "${CI_COMMIT_TAG}" --yes custom "${CI_COMMIT_TAG}"
     when:

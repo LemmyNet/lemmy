@@ -1,10 +1,10 @@
 use crate::aliases::my_instance_persons_actions;
 use diesel::{
-  helper_types::{Eq, NotEq},
   BoolExpressionMethods,
   ExpressionMethods,
   NullableExpressionMethods,
   QueryDsl,
+  helper_types::{Eq, NotEq},
 };
 use lemmy_db_schema_file::{
   enums::{CommunityFollowerState, CommunityVisibility},

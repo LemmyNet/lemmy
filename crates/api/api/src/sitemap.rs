@@ -1,7 +1,7 @@
 use actix_web::{
+  HttpResponse,
   http::header::{self, CacheDirective},
   web::Data,
-  HttpResponse,
 };
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{newtypes::DbUrl, source::post::Post};
@@ -80,14 +80,18 @@ pub(crate) mod tests {
 
     assert!(root.children().all(|url| url.tag().name() == "url"));
     assert!(root.children().all(|url| url.child_count() == 2));
-    assert!(root.children().all(|url| url
-      .children()
-      .next()
-      .is_some_and(|element| element.tag().name() == "loc")));
-    assert!(root.children().all(|url| url
-      .children()
-      .nth(1)
-      .is_some_and(|element| element.tag().name() == "lastmod")));
+    assert!(root.children().all(|url| {
+      url
+        .children()
+        .next()
+        .is_some_and(|element| element.tag().name() == "loc")
+    }));
+    assert!(root.children().all(|url| {
+      url
+        .children()
+        .nth(1)
+        .is_some_and(|element| element.tag().name() == "lastmod")
+    }));
 
     assert_eq!(
       root

@@ -1,6 +1,6 @@
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId, traits::Object};
 use actix_web::web::Json;
-use futures::{future::try_join_all, StreamExt};
+use futures::{StreamExt, future::try_join_all};
 use itertools::Itertools;
 use lemmy_api_utils::{context::LemmyContext, utils::check_local_user_valid};
 use lemmy_apub_objects::objects::{
@@ -247,8 +247,10 @@ pub async fn import_settings(
     }))
     .await?;
 
-    info!("Settings import completed for {}, the following items failed: {failed_followed_communities}, {failed_saved_posts}, {failed_saved_comments}, {failed_community_blocks}, {failed_user_blocks}",
-    local_user_view.person.name);
+    info!(
+      "Settings import completed for {}, the following items failed: {failed_followed_communities}, {failed_saved_posts}, {failed_saved_comments}, {failed_community_blocks}, {failed_user_blocks}",
+      local_user_view.person.name
+    );
 
     Ok(())
   });
@@ -281,10 +283,10 @@ where
   .into_iter()
   .enumerate()
   .for_each(|(i, r): (usize, LemmyResult<()>)| {
-    if r.is_err() {
-      if let Some(object) = objects.get(i) {
-        failed_items.push(object.inner().clone());
-      }
+    if r.is_err()
+      && let Some(object) = objects.get(i)
+    {
+      failed_items.push(object.inner().clone());
     }
   });
   Ok(failed_items.into_iter().join(","))

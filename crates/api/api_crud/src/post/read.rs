@@ -4,12 +4,12 @@ use lemmy_api_utils::{
   utils::{check_private_instance, is_mod_or_admin_opt, update_read_comments},
 };
 use lemmy_db_schema::{
+  SearchType,
   source::{
     comment::Comment,
     post::{Post, PostActions},
   },
   traits::Crud,
-  SearchType,
 };
 use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_local_user::LocalUserView;

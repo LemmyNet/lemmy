@@ -1,7 +1,7 @@
 use crate::{
   objects::ApubSite,
   protocol::multi_community::Feed,
-  utils::functions::{check_apub_id_valid_with_strictness, GetActorType},
+  utils::functions::{GetActorType, check_apub_id_valid_with_strictness},
 };
 use activitypub_federation::{
   config::Data,

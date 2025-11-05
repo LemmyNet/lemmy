@@ -6,7 +6,7 @@ use crate::{
     person::Person,
     post::Post,
   },
-  utils::{get_conn, DbPool},
+  utils::{DbPool, get_conn},
 };
 use chrono::{DateTime, Utc};
 use diesel::dsl::insert_into;

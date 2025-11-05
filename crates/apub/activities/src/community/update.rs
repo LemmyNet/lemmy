@@ -1,5 +1,5 @@
 use crate::{
-  community::{send_activity_in_community, AnnouncableActivities},
+  community::{AnnouncableActivities, send_activity_in_community},
   generate_activity_id,
   protocol::community::update::Update,
   send_lemmy_activity,

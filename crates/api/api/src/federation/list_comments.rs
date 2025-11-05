@@ -15,9 +15,9 @@ use lemmy_db_schema::{
   traits::{Crud, PaginationCursorBuilder},
 };
 use lemmy_db_views_comment::{
+  CommentView,
   api::{GetComments, GetCommentsResponse, GetCommentsSlimResponse},
   impls::CommentQuery,
-  CommentView,
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;

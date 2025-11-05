@@ -1,10 +1,10 @@
 use crate::{
   newtypes::LocalUserId,
   source::keyword_block::{LocalUserKeywordBlock, LocalUserKeywordBlockForm},
-  utils::{get_conn, DbPool},
+  utils::{DbPool, get_conn},
 };
-use diesel::{delete, insert_into, ExpressionMethods, QueryDsl};
-use diesel_async::{scoped_futures::ScopedFutureExt, RunQueryDsl};
+use diesel::{ExpressionMethods, QueryDsl, delete, insert_into};
+use diesel_async::{RunQueryDsl, scoped_futures::ScopedFutureExt};
 use lemmy_db_schema_file::schema::local_user_keyword_block;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 

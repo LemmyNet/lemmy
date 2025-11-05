@@ -9,19 +9,19 @@ use lemmy_db_schema::{
 use lemmy_db_views_notification::NotificationView;
 use lemmy_db_views_site::api::PluginMetadata;
 use lemmy_utils::{
+  VERSION,
   error::{LemmyError, LemmyErrorType, LemmyResult},
   settings::SETTINGS,
-  VERSION,
 };
-use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::{
   env,
   ffi::OsStr,
-  fs::{read_dir, File},
+  fs::{File, read_dir},
   io::BufReader,
   ops::Deref,
   path::PathBuf,
+  sync::LazyLock,
   time::Duration,
 };
 use tokio::task::spawn_blocking;
@@ -159,9 +159,7 @@ impl LemmyPlugin {
 impl LemmyPlugins {
   /// Load and initialize all plugins
   fn get_or_init() -> Self {
-    // TODO: use std::sync::OnceLock once get_mut_or_init() is stabilized
-    // https://doc.rust-lang.org/std/sync/struct.OnceLock.html#method.get_mut_or_init
-    static PLUGINS: Lazy<LemmyPlugins> = Lazy::new(|| {
+    static PLUGINS: LazyLock<LemmyPlugins> = LazyLock::new(|| {
       let dir = env::var("LEMMY_PLUGIN_PATH").unwrap_or("plugins".to_string());
       let plugin_paths = match read_dir(dir) {
         Ok(r) => r,

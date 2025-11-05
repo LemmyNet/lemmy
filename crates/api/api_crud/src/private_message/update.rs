@@ -14,8 +14,8 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_private_message::{
-  api::{EditPrivateMessage, PrivateMessageResponse},
   PrivateMessageView,
+  api::{EditPrivateMessage, PrivateMessageResponse},
 };
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},

@@ -4,7 +4,7 @@ use activitypub_federation::{
   kinds::activity::AcceptType,
   protocol::helpers::deserialize_skip_error,
 };
-use lemmy_apub_objects::objects::{community::ApubCommunity, UserOrCommunity};
+use lemmy_apub_objects::objects::{UserOrCommunity, community::ApubCommunity};
 use serde::{Deserialize, Serialize};
 use url::Url;
 

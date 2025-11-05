@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use either::Either::*;
@@ -14,7 +14,7 @@ use lemmy_db_schema::{
     site::Site,
   },
   traits::ApubActor,
-  utils::{get_conn, DbPool},
+  utils::{DbPool, get_conn},
 };
 use lemmy_db_schema_file::enums::ActorType;
 use lemmy_utils::error::LemmyError;

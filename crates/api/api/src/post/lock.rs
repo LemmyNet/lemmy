@@ -16,8 +16,8 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::{
-  api::{LockPost, PostResponse},
   PostView,
+  api::{LockPost, PostResponse},
 };
 use lemmy_utils::error::LemmyResult;
 

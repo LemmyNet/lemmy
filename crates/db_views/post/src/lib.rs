@@ -15,6 +15,7 @@ use {
   diesel::{Queryable, Selectable},
   lemmy_db_schema::utils::queries::selects::post_select_remove_deletes,
   lemmy_db_schema::utils::queries::selects::{
+    CreatorLocalHomeBanExpiresType,
     creator_ban_expires_from_community,
     creator_banned_from_community,
     creator_is_moderator,
@@ -23,7 +24,6 @@ use {
     local_user_can_mod_post,
     post_creator_is_admin,
     post_tags_fragment,
-    CreatorLocalHomeBanExpiresType,
   },
 };
 

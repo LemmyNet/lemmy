@@ -1,4 +1,4 @@
-use crate::{impls::NotificationQuery, NotificationData, NotificationView};
+use crate::{NotificationData, NotificationView, impls::NotificationQuery};
 use lemmy_db_schema::{
   assert_length,
   source::{
@@ -11,7 +11,7 @@ use lemmy_db_schema::{
     private_message::{PrivateMessage, PrivateMessageInsertForm},
   },
   traits::Crud,
-  utils::{build_db_pool_for_tests, DbPool},
+  utils::{DbPool, build_db_pool_for_tests},
 };
 use lemmy_db_schema_file::enums::NotificationType;
 use lemmy_utils::error::LemmyResult;

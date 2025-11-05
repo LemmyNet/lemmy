@@ -12,8 +12,8 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_registration_applications::{
-  api::{ApproveRegistrationApplication, RegistrationApplicationResponse},
   RegistrationApplicationView,
+  api::{ApproveRegistrationApplication, RegistrationApplicationResponse},
 };
 use lemmy_email::account::{send_application_approved_email, send_application_denied_email};
 use lemmy_utils::error::LemmyResult;

@@ -44,7 +44,7 @@ tokio = { workspace = true, features = ["full"] }
 serde.workspace = true
 tracing.workspace = true
 moka.workspace = true
-tokio-util = "0.7.16"
+tokio-util = "0.7.17"
 
 [dev-dependencies]
 serial_test = { workspace = true }
@@ -52,5 +52,5 @@ url.workspace = true
 actix-web.workspace = true
 tracing-test = "0.2.5"
 uuid.workspace = true
-test-context = "0.4.1"
+test-context = "0.5.0"
 mockall = "0.13.1"

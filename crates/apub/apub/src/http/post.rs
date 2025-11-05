@@ -1,7 +1,7 @@
 use super::check_community_content_fetchable;
 use crate::protocol::collections::url_collection::UrlCollection;
 use activitypub_federation::{config::Data, traits::Object};
-use actix_web::{web, HttpRequest, HttpResponse};
+use actix_web::{HttpRequest, HttpResponse, web};
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{objects::post::ApubPost, utils::functions::context_url};
 use lemmy_db_schema::{
@@ -10,8 +10,8 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_utils::{
-  error::{LemmyErrorType, LemmyResult},
   FEDERATION_CONTEXT,
+  error::{LemmyErrorType, LemmyResult},
 };
 use serde::Deserialize;
 

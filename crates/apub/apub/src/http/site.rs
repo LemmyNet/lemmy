@@ -4,7 +4,7 @@ use actix_web::HttpResponse;
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::objects::instance::ApubSite;
 use lemmy_db_schema::source::site::Site;
-use lemmy_utils::{error::LemmyResult, FEDERATION_CONTEXT};
+use lemmy_utils::{FEDERATION_CONTEXT, error::LemmyResult};
 
 pub(crate) async fn get_apub_site_http(context: Data<LemmyContext>) -> LemmyResult<HttpResponse> {
   let site: ApubSite = Site::read_local(&mut context.pool()).await?.into();

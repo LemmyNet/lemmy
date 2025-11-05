@@ -1,5 +1,5 @@
 use clap::Parser;
-use lemmy_server::{start_lemmy_server, CmdArgs};
+use lemmy_server::{CmdArgs, start_lemmy_server};
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   settings::SETTINGS,

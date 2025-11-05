@@ -1,8 +1,8 @@
 use activitypub_federation::config::Data;
-use actix_web::{cookie::Cookie, HttpRequest, HttpResponse};
+use actix_web::{HttpRequest, HttpResponse, cookie::Cookie};
 use lemmy_api_utils::{
   context::LemmyContext,
-  utils::{read_auth_token, AUTH_COOKIE_NAME},
+  utils::{AUTH_COOKIE_NAME, read_auth_token},
 };
 use lemmy_db_schema::source::login_token::LoginToken;
 use lemmy_db_views_local_user::LocalUserView;

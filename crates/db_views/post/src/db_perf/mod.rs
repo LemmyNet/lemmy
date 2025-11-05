@@ -1,11 +1,11 @@
 mod series;
 
-use crate::{db_perf::series::ValuesFromSeries, impls::PostQuery, PostView};
+use crate::{PostView, db_perf::series::ValuesFromSeries, impls::PostQuery};
 use diesel::{
-  dsl::{self, sql},
-  sql_types,
   ExpressionMethods,
   IntoSql,
+  dsl::{self, sql},
+  sql_types,
 };
 use diesel_async::{RunQueryDsl, SimpleAsyncConnection};
 use lemmy_db_schema::{

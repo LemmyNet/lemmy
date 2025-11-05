@@ -6,9 +6,9 @@ use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::oauth_provider;
 use serde::{
-  ser::{SerializeStruct, Serializer},
   Deserialize,
   Serialize,
+  ser::{SerializeStruct, Serializer},
 };
 use serde_with::skip_serializing_none;
 

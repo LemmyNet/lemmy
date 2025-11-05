@@ -30,8 +30,8 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::{
-  api::{EditPost, PostResponse},
   PostView,
+  api::{EditPost, PostResponse},
 };
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{

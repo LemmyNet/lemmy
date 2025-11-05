@@ -1,4 +1,4 @@
-use crate::objects::{community::ApubCommunity, person::ApubPerson, UserOrCommunity};
+use crate::objects::{UserOrCommunity, community::ApubCommunity, person::ApubPerson};
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,

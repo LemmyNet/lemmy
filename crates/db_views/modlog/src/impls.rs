@@ -15,10 +15,11 @@ use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, PaginationCursor, PersonId, PostId},
   source::{
     local_user::LocalUser,
-    modlog::{modlog_keys as key, Modlog},
+    modlog::{Modlog, modlog_keys as key},
   },
   traits::PaginationCursorBuilder,
   utils::{
+    DbPool,
     get_conn,
     limit_fetch,
     paginate,
@@ -27,7 +28,6 @@ use lemmy_db_schema::{
       filter_not_unlisted_or_is_subscribed,
       filter_suggested_communities,
     },
-    DbPool,
   },
 };
 use lemmy_db_schema_file::{
@@ -203,7 +203,7 @@ mod tests {
       post::{Post, PostInsertForm},
     },
     traits::Crud,
-    utils::{build_db_pool_for_tests, DbPool},
+    utils::{DbPool, build_db_pool_for_tests},
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
