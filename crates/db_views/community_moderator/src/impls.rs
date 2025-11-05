@@ -1,18 +1,19 @@
 use crate::{CommunityModeratorView, CommunityPersonBanView};
 use diesel::{
-  dsl::{exists, not},
-  select,
   ExpressionMethods,
   JoinOnDsl,
+  OptionalExtension,
   QueryDsl,
   SelectableHelper,
+  dsl::{exists, not},
+  select,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommunityId, PersonId},
   source::local_user::LocalUser,
-  utils::{get_conn, DbPool},
+  utils::{DbPool, get_conn},
 };
 use lemmy_db_schema_file::schema::{community, community_actions, person};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
@@ -68,6 +69,21 @@ impl CommunityModeratorView {
       .order_by(community_actions::became_moderator_at)
       .load::<Self>(conn)
       .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  pub async fn top_mod_for_community(
+    pool: &mut DbPool<'_>,
+    community_id: CommunityId,
+  ) -> LemmyResult<Option<PersonId>> {
+    let conn = &mut get_conn(pool).await?;
+    Self::joins()
+      .filter(community_actions::community_id.eq(community_id))
+      .select(person::id)
+      .order_by(community_actions::became_moderator_at)
+      .first(conn)
+      .await
+      .optional()
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
 

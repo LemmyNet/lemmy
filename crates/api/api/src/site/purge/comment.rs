@@ -9,11 +9,11 @@ use lemmy_db_schema::{
   source::{
     comment::Comment,
     local_user::LocalUser,
-    mod_log::admin::{AdminPurgeComment, AdminPurgeCommentForm},
+    modlog::{Modlog, ModlogInsertForm},
   },
   traits::Crud,
 };
-use lemmy_db_views_comment::{api::PurgeComment, CommentView};
+use lemmy_db_views_comment::{CommentView, api::PurgeComment};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::api::SuccessResponse;
 use lemmy_utils::error::LemmyResult;
@@ -46,19 +46,18 @@ pub async fn purge_comment(
   )
   .await?;
 
-  let post_id = comment_view.comment.post_id;
-
   // TODO read comments for pictrs images and purge them
 
   Comment::delete(&mut context.pool(), comment_id).await?;
 
   // Mod tables
-  let form = AdminPurgeCommentForm {
-    admin_person_id: local_user_view.person.id,
-    reason: data.reason.clone(),
-    post_id,
-  };
-  AdminPurgeComment::create(&mut context.pool(), &form).await?;
+  let form = ModlogInsertForm::admin_purge_comment(
+    local_user_view.person.id,
+    &comment_view.comment,
+    comment_view.community.id,
+    &data.reason,
+  );
+  Modlog::create(&mut context.pool(), &[form]).await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::RemoveComment {

@@ -12,6 +12,7 @@ use serde_with::skip_serializing_none;
 use {
   diesel::{Queryable, Selectable},
   lemmy_db_schema::utils::queries::selects::{
+    CreatorLocalHomeCommunityBanExpiresType,
     comment_creator_is_admin,
     comment_select_remove_deletes,
     creator_ban_expires_from_community,
@@ -21,7 +22,6 @@ use {
     creator_local_home_community_banned,
     local_user_can_mod_comment,
     post_tags_fragment,
-    CreatorLocalHomeCommunityBanExpiresType,
   },
 };
 

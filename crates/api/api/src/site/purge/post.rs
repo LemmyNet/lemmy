@@ -8,7 +8,7 @@ use lemmy_api_utils::{
 use lemmy_db_schema::{
   source::{
     local_user::LocalUser,
-    mod_log::admin::{AdminPurgePost, AdminPurgePostForm},
+    modlog::{Modlog, ModlogInsertForm},
     post::Post,
   },
   traits::Crud,
@@ -42,12 +42,9 @@ pub async fn purge_post(
   Post::delete(&mut context.pool(), data.post_id).await?;
 
   // Mod tables
-  let form = AdminPurgePostForm {
-    admin_person_id: local_user_view.person.id,
-    reason: data.reason.clone(),
-    community_id: post.community_id,
-  };
-  AdminPurgePost::create(&mut context.pool(), &form).await?;
+  let form =
+    ModlogInsertForm::admin_purge_post(local_user_view.person.id, post.community_id, &data.reason);
+  Modlog::create(&mut context.pool(), &[form]).await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::RemovePost {

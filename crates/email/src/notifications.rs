@@ -2,8 +2,8 @@ use crate::{inbox_link, send::send_email, user_language};
 use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{comment::Comment, community::Community, person::Person, post::Post},
-  ModlogActionType,
 };
+use lemmy_db_schema_file::enums::ModlogKind;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::{settings::structs::Settings, utils::markdown::markdown_to_html};
 
@@ -31,7 +31,7 @@ pub enum NotificationEmailData<'a> {
     content: &'a String,
   },
   ModAction {
-    kind: ModlogActionType,
+    kind: ModlogKind,
     reason: Option<&'a str>,
     is_revert: bool,
   },
@@ -123,14 +123,12 @@ pub fn send_notification_email(
       let reason = reason.unwrap_or_default();
       if is_revert {
         (
-          lang.notification_mod_action_subject(kind).to_string(),
+          lang.notification_mod_action_subject(kind).clone(),
           lang.notification_mod_action_body(reason, inbox_link),
         )
       } else {
         (
-          lang
-            .notification_mod_action_reverted_subject(kind)
-            .to_string(),
+          lang.notification_mod_action_reverted_subject(kind).clone(),
           lang.notification_mod_action_reverted_body(reason, inbox_link),
         )
       }

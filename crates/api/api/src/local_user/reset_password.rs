@@ -5,8 +5,8 @@ use lemmy_api_utils::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::{
-  api::{PasswordReset, SuccessResponse},
   SiteView,
+  api::{PasswordReset, SuccessResponse},
 };
 use lemmy_email::account::send_password_reset_email;
 use lemmy_utils::error::LemmyResult;

@@ -3,7 +3,7 @@ use crate::{
   check_community_deleted_or_removed,
   community::send_activity_in_community,
   generate_activity_id,
-  protocol::{create_or_update::page::CreateOrUpdatePage, CreateOrUpdateType},
+  protocol::{CreateOrUpdateType, create_or_update::page::CreateOrUpdatePage},
 };
 use activitypub_federation::{
   config::Data,
@@ -16,7 +16,7 @@ use lemmy_apub_objects::{
   objects::{
     community::ApubCommunity,
     person::ApubPerson,
-    post::{post_nsfw, update_apub_post_tags, ApubPost},
+    post::{ApubPost, post_nsfw, update_apub_post_tags},
   },
   utils::{
     functions::{generate_to, verify_mod_action, verify_person_in_community, verify_visibility},

@@ -3,12 +3,12 @@ use crate::{
   context::LemmyContext,
   request::{delete_image_alias, fetch_pictrs_proxied_image_details, purge_image_from_pictrs_url},
 };
-use actix_web::{http::header::Header, HttpRequest};
+use actix_web::{HttpRequest, http::header::Header};
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
-use enum_map::{enum_map, EnumMap};
+use enum_map::{EnumMap, enum_map};
 use lemmy_db_schema::{
-  newtypes::{CommentId, CommunityId, DbUrl, InstanceId, PersonId, PostId, PostOrCommentId, TagId},
+  newtypes::{CommunityId, DbUrl, InstanceId, PersonId, PostId, PostOrCommentId, TagId},
   source::{
     comment::{Comment, CommentActions},
     community::{Community, CommunityActions, CommunityUpdateForm},
@@ -17,12 +17,7 @@ use lemmy_db_schema::{
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
-    mod_log::moderator::{
-      ModRemoveComment,
-      ModRemoveCommentForm,
-      ModRemovePost,
-      ModRemovePostForm,
-    },
+    modlog::{Modlog, ModlogInsertForm},
     oauth_account::OAuthAccount,
     person::{Person, PersonUpdateForm},
     post::{Post, PostActions, PostReadCommentsForm},
@@ -41,6 +36,9 @@ use lemmy_db_views_local_image::LocalImageView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
+  CACHE_DURATION_FEDERATION,
+  CacheLock,
+  MAX_COMMENT_DEPTH_LIMIT,
   error::{
     LemmyError,
     LemmyErrorExt,
@@ -50,19 +48,16 @@ use lemmy_utils::{
     UntranslatedError,
   },
   rate_limit::{ActionType, BucketConfig},
-  settings::{structs::PictrsImageMode, SETTINGS},
+  settings::{SETTINGS, structs::PictrsImageMode},
   spawn_try_task,
   utils::{
     markdown::{image_links::markdown_rewrite_image_links, markdown_check_for_blocked_urls},
     slurs::remove_slurs,
     validation::{build_and_check_regex, clean_urls_in_text},
   },
-  CacheLock,
-  CACHE_DURATION_FEDERATION,
-  MAX_COMMENT_DEPTH_LIMIT,
 };
 use moka::future::Cache;
-use regex::{escape, Regex, RegexSet};
+use regex::{Regex, RegexSet, escape};
 use std::{collections::HashSet, sync::LazyLock};
 use tracing::Instrument;
 use url::{ParseError, Url};
@@ -575,7 +570,7 @@ pub async fn remove_or_restore_user_data(
   create_modlog_entries_for_removed_or_restored_posts(
     pool,
     mod_person_id,
-    removed_or_restored_posts.iter().map(|r| r.id).collect(),
+    &removed_or_restored_posts,
     removed,
     reason,
   )
@@ -587,7 +582,7 @@ pub async fn remove_or_restore_user_data(
   create_modlog_entries_for_removed_or_restored_comments(
     pool,
     mod_person_id,
-    removed_or_restored_comments.iter().map(|r| r.id).collect(),
+    &removed_or_restored_comments,
     removed,
     reason,
   )
@@ -602,22 +597,17 @@ pub async fn remove_or_restore_user_data(
 async fn create_modlog_entries_for_removed_or_restored_posts(
   pool: &mut DbPool<'_>,
   mod_person_id: PersonId,
-  post_ids: Vec<PostId>,
+  posts: &[Post],
   removed: bool,
   reason: &str,
 ) -> LemmyResult<()> {
   // Build the forms
-  let forms = post_ids
+  let forms: Vec<_> = posts
     .iter()
-    .map(|&post_id| ModRemovePostForm {
-      mod_person_id,
-      post_id,
-      removed: Some(removed),
-      reason: reason.to_string(),
-    })
+    .map(|post| ModlogInsertForm::mod_remove_post(mod_person_id, post, removed, reason))
     .collect();
 
-  ModRemovePost::create_multiple(pool, &forms).await?;
+  Modlog::create(pool, &forms).await?;
 
   Ok(())
 }
@@ -625,22 +615,17 @@ async fn create_modlog_entries_for_removed_or_restored_posts(
 async fn create_modlog_entries_for_removed_or_restored_comments(
   pool: &mut DbPool<'_>,
   mod_person_id: PersonId,
-  comment_ids: Vec<CommentId>,
+  comments: &[Comment],
   removed: bool,
   reason: &str,
 ) -> LemmyResult<()> {
   // Build the forms
-  let forms = comment_ids
+  let forms: Vec<_> = comments
     .iter()
-    .map(|&comment_id| ModRemoveCommentForm {
-      mod_person_id,
-      comment_id,
-      removed: Some(removed),
-      reason: reason.to_string(),
-    })
+    .map(|comment| ModlogInsertForm::mod_remove_comment(mod_person_id, comment, removed, reason))
     .collect();
 
-  ModRemoveComment::create_multiple(pool, &forms).await?;
+  Modlog::create(pool, &forms).await?;
 
   Ok(())
 }
@@ -665,24 +650,18 @@ pub async fn remove_or_restore_user_data_in_community(
     Post::update_removed_for_creator_and_community(pool, banned_person_id, community_id, remove)
       .await?;
 
-  create_modlog_entries_for_removed_or_restored_posts(
-    pool,
-    mod_person_id,
-    posts.iter().map(|r| r.id).collect(),
-    remove,
-    reason,
-  )
-  .await?;
+  create_modlog_entries_for_removed_or_restored_posts(pool, mod_person_id, &posts, remove, reason)
+    .await?;
 
   // Comments
-  let removed_comment_ids =
+  let removed_comments =
     Comment::update_removed_for_creator_and_community(pool, banned_person_id, community_id, remove)
       .await?;
 
   create_modlog_entries_for_removed_or_restored_comments(
     pool,
     mod_person_id,
-    removed_comment_ids,
+    &removed_comments,
     remove,
     reason,
   )
@@ -935,22 +914,22 @@ pub fn read_auth_token(req: &HttpRequest) -> LemmyResult<Option<String>> {
 }
 
 pub fn send_webmention(post: Post, community: &Community) {
-  if let Some(url) = post.url.clone() {
-    if community.visibility.can_view_without_login() {
-      spawn_try_task(async move {
-        let mut webmention = Webmention::new::<Url>(post.ap_id.clone().into(), url.clone().into())?;
-        webmention.set_checked(true);
-        match webmention
-          .send()
-          .instrument(tracing::info_span!("Sending webmention"))
-          .await
-        {
-          Err(WebmentionError::NoEndpointDiscovered(_)) => Ok(()),
-          Ok(_) => Ok(()),
-          Err(e) => Err(e).with_lemmy_type(UntranslatedError::CouldntSendWebmention.into()),
-        }
-      });
-    }
+  if let Some(url) = post.url.clone()
+    && community.visibility.can_view_without_login()
+  {
+    spawn_try_task(async move {
+      let mut webmention = Webmention::new::<Url>(post.ap_id.clone().into(), url.clone().into())?;
+      webmention.set_checked(true);
+      match webmention
+        .send()
+        .instrument(tracing::info_span!("Sending webmention"))
+        .await
+      {
+        Err(WebmentionError::NoEndpointDiscovered(_)) => Ok(()),
+        Ok(_) => Ok(()),
+        Err(e) => Err(e).with_lemmy_type(UntranslatedError::CouldntSendWebmention.into()),
+      }
+    });
   };
 }
 
@@ -991,7 +970,7 @@ pub async fn update_post_tags(
 mod tests {
   use super::*;
   use diesel_ltree::Ltree;
-  use lemmy_db_schema::newtypes::LanguageId;
+  use lemmy_db_schema::newtypes::{CommentId, LanguageId};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 

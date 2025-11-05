@@ -2,10 +2,10 @@ use crate::{
   inboxes::RealCommunityInboxCollector,
   send::{SendActivityResult, SendRetryTask, SendSuccessInfo},
   util::{
-    get_activity_cached,
-    get_latest_activity_id,
     FederationQueueStateWithDomain,
     WORK_FINISHED_RECHECK_DELAY,
+    get_activity_cached,
+    get_latest_activity_id,
   },
 };
 use activitypub_federation::config::FederationConfig;
@@ -172,11 +172,11 @@ impl InstanceWorker {
         // and sent_activity was completely emptied by scheduled task.
         if newest_id_opt.is_some() && next_id_to_send > ActivityId(newest_id.0 + 1) {
           tracing::error!(
-                "{}: next send id {} is higher than latest id {}+1 in table sent_activity (did the db get cleared?)",
-                self.instance.domain,
-                next_id_to_send.0,
-                newest_id.0
-              );
+            "{}: next send id {} is higher than latest id {}+1 in table sent_activity (did the db get cleared?)",
+            self.instance.domain,
+            next_id_to_send.0,
+            newest_id.0
+          );
         }
         // no more work to be done, wait before rechecking
         tokio::select! {
@@ -460,7 +460,7 @@ mod test {
     http_signatures::generate_actor_keypair,
     protocol::context::WithContext,
   };
-  use actix_web::{dev::ServerHandle, web, App, HttpResponse, HttpServer};
+  use actix_web::{App, HttpResponse, HttpServer, dev::ServerHandle, web};
   use futures::future::try_join_all;
   use lemmy_api_utils::utils::generate_inbox_url;
   use lemmy_db_schema::{
@@ -473,13 +473,13 @@ mod test {
   };
   use lemmy_db_schema_file::enums::ActorType;
   use lemmy_utils::error::LemmyResult;
-  use serde_json::{json, Value};
+  use serde_json::{Value, json};
   use serial_test::serial;
   use std::sync::{Arc, RwLock};
-  use test_context::{test_context, AsyncTestContext};
+  use test_context::{AsyncTestContext, test_context};
   use tokio::{
     spawn,
-    sync::mpsc::{error::TryRecvError, unbounded_channel, UnboundedReceiver},
+    sync::mpsc::{UnboundedReceiver, error::TryRecvError, unbounded_channel},
   };
   use tracing_test::traced_test;
   use url::Url;
@@ -635,7 +635,7 @@ mod test {
         .await?;
     sleep(2 * *WORK_FINISHED_RECHECK_DELAY).await;
     tracing::debug!("sent activity");
-    compare_sent_with_receive(data, sent).await?;
+    compare_sent_with_receive(&mut data, sent).await?;
 
     Ok(())
   }
@@ -664,7 +664,7 @@ mod test {
       .await?;
       sleep(2 * *WORK_FINISHED_RECHECK_DELAY).await;
       tracing::debug!("sent activity");
-      compare_sent_with_receive(data, sent).await?;
+      compare_sent_with_receive(&mut data, sent).await?;
     }
 
     Ok(())

@@ -4,10 +4,10 @@ use lemmy_db_schema::{
   newtypes::{CommentId, CommunityId, InstanceId, PostId},
   source::actor_language::CommunityLanguage,
 };
-use lemmy_db_views_comment::{api::CommentResponse, CommentView};
-use lemmy_db_views_community::{api::CommunityResponse, CommunityView};
+use lemmy_db_views_comment::{CommentView, api::CommentResponse};
+use lemmy_db_views_community::{CommunityView, api::CommunityResponse};
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_post::{api::PostResponse, PostView};
+use lemmy_db_views_post::{PostView, api::PostResponse};
 use lemmy_utils::error::LemmyResult;
 
 pub async fn build_comment_response(

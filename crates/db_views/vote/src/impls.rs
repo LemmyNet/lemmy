@@ -13,6 +13,7 @@ use lemmy_db_schema::{
   newtypes::{CommentId, InstanceId, PaginationCursor, PersonId, PostId},
   source::{comment::CommentActions, post::PostActions},
   utils::{
+    DbPool,
     get_conn,
     limit_fetch,
     paginate,
@@ -20,7 +21,6 @@ use lemmy_db_schema::{
       joins::{creator_home_instance_actions_join, creator_local_instance_actions_join},
       selects::creator_local_home_banned,
     },
-    DbPool,
   },
 };
 use lemmy_db_schema_file::schema::{
@@ -311,16 +311,20 @@ mod tests {
       VoteView::list_for_comment(pool, inserted_comment.id, None, None, None, InstanceId(1))
         .await?;
 
-    assert!(read_comment_vote_views_after_ban
-      .first()
-      .is_some_and(|c| c.creator_banned_from_community));
+    assert!(
+      read_comment_vote_views_after_ban
+        .first()
+        .is_some_and(|c| c.creator_banned_from_community)
+    );
 
     let read_post_vote_views_after_ban =
       VoteView::list_for_post(pool, inserted_post.id, None, None, None, InstanceId(1)).await?;
 
-    assert!(read_post_vote_views_after_ban
-      .get(1)
-      .is_some_and(|p| p.creator_banned_from_community));
+    assert!(
+      read_post_vote_views_after_ban
+        .get(1)
+        .is_some_and(|p| p.creator_banned_from_community)
+    );
 
     // Cleanup
     Instance::delete(pool, inserted_instance.id).await?;

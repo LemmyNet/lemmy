@@ -7,7 +7,7 @@ use activitypub_federation::{
 use either::Either;
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
-  objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson, ReportableObjects},
+  objects::{ReportableObjects, community::ApubCommunity, instance::ApubSite, person::ApubPerson},
   utils::protocol::InCommunity,
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};

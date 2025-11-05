@@ -21,8 +21,8 @@ use lemmy_db_schema::{
   traits::Likeable,
 };
 use lemmy_db_views_comment::{
-  api::{CommentResponse, CreateCommentLike},
   CommentView,
+  api::{CommentResponse, CreateCommentLike},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;

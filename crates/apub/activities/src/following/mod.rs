@@ -8,7 +8,7 @@ use crate::protocol::following::{
 use activitypub_federation::{config::Data, kinds::activity::FollowType, traits::Activity};
 use either::Either::*;
 use lemmy_api_utils::context::LemmyContext;
-use lemmy_apub_objects::objects::{person::ApubPerson, CommunityOrMulti, UserOrCommunityOrMulti};
+use lemmy_apub_objects::objects::{CommunityOrMulti, UserOrCommunityOrMulti, person::ApubPerson};
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
   source::{activity::ActivitySendTargets, community::Community, person::Person},

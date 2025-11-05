@@ -15,17 +15,17 @@ use activitypub_federation::{
   traits::{Collection, Object},
 };
 use actix_web::{
-  web::{Path, Query},
   HttpRequest,
   HttpResponse,
+  web::{Path, Query},
 };
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
   objects::{
+    SiteOrMultiOrCommunityOrUser,
     community::ApubCommunity,
     multi_community::ApubMultiCommunity,
     multi_community_collection::ApubFeedCollection,
-    SiteOrMultiOrCommunityOrUser,
   },
   protocol::tags::CommunityTag,
 };
@@ -36,8 +36,8 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::enums::CommunityVisibility;
 use lemmy_db_views_community_follower_approval::PendingFollowerView;
 use lemmy_utils::{
-  error::{LemmyErrorType, LemmyResult},
   FEDERATION_CONTEXT,
+  error::{LemmyErrorType, LemmyResult},
 };
 use serde::Deserialize;
 

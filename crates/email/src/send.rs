@@ -5,11 +5,11 @@ use lemmy_utils::{
   spawn_try_task,
 };
 use lettre::{
-  message::{Mailbox, MultiPart},
-  transport::smtp::extension::ClientId,
   Address,
   AsyncTransport,
   Message,
+  message::{Mailbox, MultiPart},
+  transport::smtp::extension::ClientId,
 };
 use std::{str::FromStr, sync::OnceLock};
 use uuid::Uuid;
@@ -49,16 +49,13 @@ pub(crate) fn send_email(
           ))?,
       )
       .to(Mailbox::new(
-        Some(to_username.to_string()),
+        Some(to_username.clone()),
         Address::from_str(&to_email)
           .with_lemmy_type(LemmyErrorType::InvalidEmailAddress(to_email.into_inner()))?,
       ))
       .message_id(Some(format!("<{}@{}>", Uuid::new_v4(), settings.hostname)))
       .subject(subject)
-      .multipart(MultiPart::alternative_plain_html(
-        plain_text,
-        html.to_string(),
-      ))
+      .multipart(MultiPart::alternative_plain_html(plain_text, html.clone()))
       .with_lemmy_type(LemmyErrorType::EmailSendFailed)?;
 
     mailer

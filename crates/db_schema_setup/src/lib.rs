@@ -1,19 +1,19 @@
 mod diff_check;
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use chrono::TimeDelta;
 use diesel::{
-  connection::SimpleConnection,
-  dsl::exists,
-  migration::{Migration, MigrationVersion},
-  pg::Pg,
-  select,
-  update,
   BoolExpressionMethods,
   Connection,
   ExpressionMethods,
   PgConnection,
   QueryDsl,
   RunQueryDsl,
+  connection::SimpleConnection,
+  dsl::exists,
+  migration::{Migration, MigrationVersion},
+  pg::Pg,
+  select,
+  update,
 };
 use diesel_migrations::MigrationHarness;
 use std::time::Instant;
@@ -235,7 +235,10 @@ pub fn run(options: Options, db_url: &str) -> anyhow::Result<Branch> {
 
       let after = diff_check::get_dump();
 
-      diff_check::check_dump_diff([&before, &after], "The code in crates/db_schema_setup/replaceable_schema incorrectly created or modified things outside of the `r` schema, causing these changes to be left behind after dropping the schema:");
+      diff_check::check_dump_diff(
+        [&before, &after],
+        "The code in crates/db_schema_setup/replaceable_schema incorrectly created or modified things outside of the `r` schema, causing these changes to be left behind after dropping the schema:",
+      );
 
       diff_check::deferr_constraint_check(&after);
     }
@@ -429,6 +432,10 @@ mod tests {
       1
     );
     assert_eq!(run(o.run().limit(1), &db_url)?, ReplaceableSchemaRebuilt);
+
+    // Get a new connection, workaround for error `cache lookup failed for function 26633`
+    // on `migrations/2025-10-15-114811-0000_merge-modlog-tables/down.sql`.
+    let conn = &mut PgConnection::establish(&db_url)?;
 
     // This should throw an error saying to use lemmy_server instead of diesel CLI
     conn.batch_execute("DROP OWNED BY CURRENT_USER;")?;

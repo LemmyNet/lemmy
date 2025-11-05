@@ -1,11 +1,11 @@
 use crate::{
+  MOD_ACTION_DEFAULT_REASON,
   activity_lists::AnnouncableActivities,
   check_community_deleted_or_removed,
   community::send_activity_in_community,
   generate_activity_id,
   post_or_comment_community,
   protocol::community::lock::{LockPageOrNote, LockType, UndoLockPageOrNote},
-  MOD_ACTION_DEFAULT_REASON,
 };
 use activitypub_federation::{
   config::Data,
@@ -15,7 +15,7 @@ use activitypub_federation::{
 };
 use lemmy_api_utils::{context::LemmyContext, notify::notify_mod_action};
 use lemmy_apub_objects::{
-  objects::{community::ApubCommunity, PostOrComment},
+  objects::{PostOrComment, community::ApubCommunity},
   utils::{
     functions::{generate_to, verify_mod_action, verify_person_in_community, verify_visibility},
     protocol::InCommunity,
@@ -25,7 +25,7 @@ use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
     comment::Comment,
-    mod_log::moderator::{ModLockComment, ModLockCommentForm, ModLockPost, ModLockPostForm},
+    modlog::{Modlog, ModlogInsertForm},
     person::Person,
     post::{Post, PostUpdateForm},
   },
@@ -57,40 +57,29 @@ impl Activity for LockPageOrNote {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
-    let locked = true;
     let reason = self
       .summary
       .unwrap_or_else(|| MOD_ACTION_DEFAULT_REASON.to_string());
-
+    let actor = self.actor.dereference(context).await?;
     match self.object.dereference(context).await? {
       PostOrComment::Left(post) => {
         let form = PostUpdateForm {
-          locked: Some(locked),
+          locked: Some(true),
           ..Default::default()
         };
         Post::update(&mut context.pool(), post.id, &form).await?;
 
-        let form = ModLockPostForm {
-          mod_person_id: self.actor.dereference(context).await?.id,
-          post_id: post.id,
-          locked: Some(locked),
-          reason,
-        };
-        let action = ModLockPost::create(&mut context.pool(), &form).await?;
-        notify_mod_action(action, post.creator_id, context);
+        let form = ModlogInsertForm::mod_lock_post(actor.id, &post, true, &reason);
+        let action = Modlog::create(&mut context.pool(), &[form]).await?;
+        notify_mod_action(action, context);
       }
       PostOrComment::Right(comment) => {
-        Comment::update_locked_for_comment_and_children(&mut context.pool(), &comment.path, locked)
+        Comment::update_locked_for_comment_and_children(&mut context.pool(), &comment.path, true)
           .await?;
 
-        let form = ModLockCommentForm {
-          mod_person_id: self.actor.dereference(context).await?.id,
-          comment_id: comment.id,
-          locked: Some(locked),
-          reason,
-        };
-        let action = ModLockComment::create(&mut context.pool(), &form).await?;
-        notify_mod_action(action, comment.creator_id, context);
+        let form = ModlogInsertForm::mod_lock_comment(actor.id, &comment, true, &reason);
+        let action = Modlog::create(&mut context.pool(), &[form]).await?;
+        notify_mod_action(action, context);
       }
     }
 
@@ -121,39 +110,31 @@ impl Activity for UndoLockPageOrNote {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
-    let locked = false;
     let reason = self
       .summary
       .unwrap_or_else(|| MOD_ACTION_DEFAULT_REASON.to_string());
+    let actor = self.actor.dereference(context).await?;
 
     match self.object.object.dereference(context).await? {
       PostOrComment::Left(post) => {
         let form = PostUpdateForm {
-          locked: Some(locked),
+          locked: Some(false),
           ..Default::default()
         };
 
         Post::update(&mut context.pool(), post.id, &form).await?;
 
-        let form = ModLockPostForm {
-          mod_person_id: self.actor.dereference(context).await?.id,
-          post_id: post.id,
-          locked: Some(locked),
-          reason,
-        };
-        ModLockPost::create(&mut context.pool(), &form).await?;
+        let form = ModlogInsertForm::mod_lock_post(actor.id, &post, false, &reason);
+        let action = Modlog::create(&mut context.pool(), &[form]).await?;
+        notify_mod_action(action, context);
       }
       PostOrComment::Right(comment) => {
-        Comment::update_locked_for_comment_and_children(&mut context.pool(), &comment.path, locked)
+        Comment::update_locked_for_comment_and_children(&mut context.pool(), &comment.path, false)
           .await?;
 
-        let form = ModLockCommentForm {
-          mod_person_id: self.actor.dereference(context).await?.id,
-          comment_id: comment.id,
-          locked: Some(locked),
-          reason,
-        };
-        ModLockComment::create(&mut context.pool(), &form).await?;
+        let form = ModlogInsertForm::mod_lock_comment(actor.id, &comment, false, &reason);
+        let action = Modlog::create(&mut context.pool(), &[form]).await?;
+        notify_mod_action(action, context);
       }
     }
 

@@ -2,8 +2,8 @@ use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_views_community::{
-  api::{ListMultiCommunities, ListMultiCommunitiesResponse},
   MultiCommunityView,
+  api::{ListMultiCommunities, ListMultiCommunitiesResponse},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;

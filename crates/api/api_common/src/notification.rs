@@ -1,11 +1,11 @@
 pub use lemmy_db_schema::{
+  NotificationDataType,
   newtypes::NotificationId,
   source::notification::Notification,
-  NotificationDataType,
 };
 pub use lemmy_db_views_notification::{
-  api::{GetUnreadCountResponse, MarkNotificationAsRead},
   ListNotifications,
   ListNotificationsResponse,
   NotificationView,
+  api::{GetUnreadCountResponse, MarkNotificationAsRead},
 };

@@ -6,8 +6,8 @@ use lemmy_api_utils::{
 use lemmy_db_schema::source::person::{PersonActions, PersonNoteForm};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::{
-  api::{NotePerson, PersonResponse},
   PersonView,
+  api::{NotePerson, PersonResponse},
 };
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},

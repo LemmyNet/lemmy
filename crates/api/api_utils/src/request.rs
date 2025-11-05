@@ -17,18 +17,18 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_post::api::{LinkMetadata, OpenGraphData};
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult, UntranslatedError},
-  settings::structs::{PictrsImageMode, Settings},
   REQWEST_TIMEOUT,
   VERSION,
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult, UntranslatedError},
+  settings::structs::{PictrsImageMode, Settings},
 };
 use mime::{Mime, TEXT_HTML};
 use reqwest::{
-  header::{CONTENT_TYPE, LOCATION, RANGE},
-  redirect::Policy,
   Client,
   ClientBuilder,
   Response,
+  header::{CONTENT_TYPE, LOCATION, RANGE},
+  redirect::Policy,
 };
 use reqwest_middleware::ClientWithMiddleware;
 use serde::{Deserialize, Serialize};
@@ -37,7 +37,7 @@ use tokio::net::lookup_host;
 use tracing::{info, warn};
 use url::Url;
 use urlencoding::encode;
-use webpage::{OpengraphObject, HTML};
+use webpage::{HTML, OpengraphObject};
 
 pub fn client_builder(settings: &Settings) -> ClientBuilder {
   let user_agent = format!("Lemmy/{VERSION}; +{}", settings.get_protocol_and_hostname());
@@ -272,12 +272,11 @@ fn extract_opengraph_data(html_bytes: &[u8], url: &Url) -> LemmyResult<OpenGraph
   // If the web page specifies that it isn't actually UTF-8, re-decode the received bytes with the
   // proper encoding. If the specified encoding cannot be found, fall back to the original UTF-8
   // version.
-  if let Some(charset) = page.meta.get("charset") {
-    if charset != UTF_8.name() {
-      if let Some(encoding) = Encoding::for_label(charset.as_bytes()) {
-        page = HTML::from_string(encoding.decode(html_bytes).0.into(), None)?;
-      }
-    }
+  if let Some(charset) = page.meta.get("charset")
+    && charset != UTF_8.name()
+    && let Some(encoding) = Encoding::for_label(charset.as_bytes())
+  {
+    page = HTML::from_string(encoding.decode(html_bytes).0.into(), None)?;
   }
 
   let page_title = page.title;
@@ -491,7 +490,7 @@ async fn generate_pictrs_thumbnail(
         proxy_image_link(image_url.clone(), true, context)
           .await?
           .into(),
-      )
+      );
     }
     _ => {}
   };

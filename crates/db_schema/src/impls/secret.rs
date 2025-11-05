@@ -1,6 +1,6 @@
 use crate::{
   source::secret::Secret,
-  utils::{get_conn, DbPool},
+  utils::{DbPool, get_conn},
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::secret::dsl::secret;

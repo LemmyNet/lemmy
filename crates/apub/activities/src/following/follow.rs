@@ -11,7 +11,7 @@ use activitypub_federation::{
 };
 use either::Either::*;
 use lemmy_api_utils::context::LemmyContext;
-use lemmy_apub_objects::objects::{person::ApubPerson, CommunityOrMulti};
+use lemmy_apub_objects::objects::{CommunityOrMulti, person::ApubPerson};
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
@@ -89,12 +89,12 @@ impl Activity for Follow {
     }
 
     // Handle remote community following a local community
-    if let (Right(community), Right(Left(follower))) = (&actor, &object) {
-      if community.visibility == Public || community.visibility == Unlisted {
-        CommunityCommunityFollow::follow(&mut context.pool(), community.id, follower.id).await?;
-        AcceptFollow::send(self, context).await?;
-        return Ok(());
-      }
+    if let (Right(community), Right(Left(follower))) = (&actor, &object)
+      && (community.visibility == Public || community.visibility == Unlisted)
+    {
+      CommunityCommunityFollow::follow(&mut context.pool(), community.id, follower.id).await?;
+      AcceptFollow::send(self, context).await?;
+      return Ok(());
     }
 
     let person = actor.left().ok_or(UntranslatedError::InvalidFollow(

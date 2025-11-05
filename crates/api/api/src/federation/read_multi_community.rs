@@ -5,9 +5,9 @@ use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::objects::multi_community::ApubMultiCommunity;
 use lemmy_db_schema::source::multi_community::MultiCommunity;
 use lemmy_db_views_community::{
+  MultiCommunityView,
   api::{GetMultiCommunity, GetMultiCommunityResponse},
   impls::CommunityQuery,
-  MultiCommunityView,
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;

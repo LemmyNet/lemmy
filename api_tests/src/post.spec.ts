@@ -631,7 +631,7 @@ test("Enforce community ban for federated user", async () => {
     true,
     true,
   );
-  expect(banAlpha.banned).toBe(true);
+  expect(banAlpha).toBeDefined();
 
   // ensure that the post by alpha got removed
   let removePostRes = await waitUntil(
@@ -659,14 +659,14 @@ test("Enforce community ban for federated user", async () => {
     false,
     false,
   );
-  expect(unBanAlpha.banned).toBe(false);
+  expect(unBanAlpha).toBeDefined();
 
   // Check that unban was federated to alpha
   await waitUntil(
     () => getModlog(alpha),
     m =>
-      m.modlog[0].type_ == "mod_ban_from_community" &&
-      m.modlog[0].mod_ban_from_community.banned == false,
+      m.modlog[0].modlog.kind == "mod_ban_from_community" &&
+      m.modlog[0].modlog.is_revert == true,
   );
 
   let postRes3 = await createPost(alpha, betaCommunity.community.id);

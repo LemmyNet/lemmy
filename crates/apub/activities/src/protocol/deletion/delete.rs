@@ -55,7 +55,7 @@ impl InCommunity for Delete {
       DeletableObjects::Post(p) => p.community_id,
       DeletableObjects::Person(_) => return Err(anyhow!("Person is not part of community").into()),
       DeletableObjects::PrivateMessage(_) => {
-        return Err(anyhow!("Private message is not part of community").into())
+        return Err(anyhow!("Private message is not part of community").into());
       }
     };
     let community = Community::read(&mut context.pool(), community_id).await?;

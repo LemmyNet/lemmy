@@ -4,9 +4,9 @@ use lemmy_api_utils::{context::LemmyContext, utils::is_admin};
 use lemmy_db_schema::traits::PaginationCursorBuilder;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_registration_applications::{
+  RegistrationApplicationView,
   api::{ListRegistrationApplications, ListRegistrationApplicationsResponse},
   impls::RegistrationApplicationQuery,
-  RegistrationApplicationView,
 };
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;

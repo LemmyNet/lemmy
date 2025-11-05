@@ -20,8 +20,8 @@ use lemmy_db_schema::{
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_report_combined::{
-  api::{CreatePostReport, PostReportResponse},
   ReportCombinedViewInternal,
+  api::{CreatePostReport, PostReportResponse},
 };
 use lemmy_db_views_site::SiteView;
 use lemmy_email::admin::send_new_report_email_to_admins;

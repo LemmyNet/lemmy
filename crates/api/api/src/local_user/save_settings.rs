@@ -16,8 +16,8 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::{
-  api::{SaveUserSettings, SuccessResponse},
   SiteView,
+  api::{SaveUserSettings, SuccessResponse},
 };
 use lemmy_email::account::send_verification_email;
 use lemmy_utils::{
@@ -70,10 +70,11 @@ pub async fn save_user_settings(
 
   // When the site requires email, make sure email is not Some(None). IE, an overwrite to a None
   // value
-  if let Some(email) = &email {
-    if email.is_none() && site_view.local_site.require_email_verification {
-      Err(LemmyErrorType::EmailRequired)?
-    }
+  if let Some(email) = &email
+    && email.is_none()
+    && site_view.local_site.require_email_verification
+  {
+    Err(LemmyErrorType::EmailRequired)?
   }
 
   if let Some(Some(bio)) = &bio {
@@ -88,10 +89,11 @@ pub async fn save_user_settings(
     is_valid_matrix_id(matrix_user_id)?;
   }
 
-  if let Some(send_notifications_to_email) = data.send_notifications_to_email {
-    if site_view.local_site.disable_email_notifications && send_notifications_to_email {
-      return Err(LemmyErrorType::EmailNotificationsDisabled.into());
-    }
+  if let Some(send_notifications_to_email) = data.send_notifications_to_email
+    && site_view.local_site.disable_email_notifications
+    && send_notifications_to_email
+  {
+    return Err(LemmyErrorType::EmailNotificationsDisabled.into());
   }
 
   let local_user_id = local_user_view.local_user.id;

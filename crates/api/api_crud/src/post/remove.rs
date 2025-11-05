@@ -11,7 +11,7 @@ use lemmy_db_schema::{
   source::{
     community::Community,
     local_user::LocalUser,
-    mod_log::moderator::{ModRemovePost, ModRemovePostForm},
+    modlog::{Modlog, ModlogInsertForm},
     post::{Post, PostUpdateForm},
     post_report::PostReport,
   },
@@ -61,14 +61,10 @@ pub async fn remove_post(
     .await?;
 
   // Mod tables
-  let form = ModRemovePostForm {
-    mod_person_id: local_user_view.person.id,
-    post_id: data.post_id,
-    removed: Some(removed),
-    reason: data.reason.clone(),
-  };
-  let action = ModRemovePost::create(&mut context.pool(), &form).await?;
-  notify_mod_action(action, post.creator_id, context.app_data());
+  let form =
+    ModlogInsertForm::mod_remove_post(local_user_view.person.id, &post, removed, &data.reason);
+  let action = Modlog::create(&mut context.pool(), &[form]).await?;
+  notify_mod_action(action, context.app_data());
 
   ActivityChannel::submit_activity(
     SendActivityData::RemovePost {

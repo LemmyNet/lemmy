@@ -3,8 +3,8 @@ use crate::{
   generate_activity_id,
   generate_announce_activity_id,
   protocol::{
-    community::announce::{AnnounceActivity, RawAnnouncableActivities},
     IdOrNestedObject,
+    community::announce::{AnnounceActivity, RawAnnouncableActivities},
   },
   send_lemmy_activity,
 };
@@ -61,11 +61,11 @@ impl Activity for RawAnnouncableActivities {
     activity.receive(context).await?;
 
     // if community is local, send activity to followers
-    if let Some(community) = community {
-      if community.local {
-        verify_person_in_community(&ap_id, &community, context).await?;
-        AnnounceActivity::send(self, &community, context).await?;
-      }
+    if let Some(community) = community
+      && community.local
+    {
+      verify_person_in_community(&ap_id, &community, context).await?;
+      AnnounceActivity::send(self, &community, context).await?;
     }
 
     Ok(())

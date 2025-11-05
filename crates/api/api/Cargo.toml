@@ -37,7 +37,7 @@ lemmy_db_views_search_combined = { workspace = true, features = ["full"] }
 lemmy_db_views_person = { workspace = true, features = ["full"] }
 lemmy_db_views_local_image = { workspace = true, features = ["full"] }
 lemmy_db_views_notification = { workspace = true, features = ["full"] }
-lemmy_db_views_modlog_combined = { workspace = true, features = ["full"] }
+lemmy_db_views_modlog = { workspace = true, features = ["full"] }
 lemmy_db_views_person_saved_combined = { workspace = true, features = ["full"] }
 lemmy_db_views_person_liked_combined = { workspace = true, features = ["full"] }
 lemmy_db_views_person_content_combined = { workspace = true, features = [
@@ -64,7 +64,7 @@ chrono = { workspace = true }
 url = { workspace = true }
 regex = { workspace = true }
 hound = "3.5.1"
-sitemap-rs = "0.2.2"
+sitemap-rs = "0.4.0"
 totp-rs = { version = "5.7.0", features = ["gen_secret", "otpauth"] }
 diesel-async = { workspace = true, features = ["deadpool", "postgres"] }
 either = { workspace = true }

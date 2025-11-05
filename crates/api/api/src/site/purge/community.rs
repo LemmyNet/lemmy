@@ -10,7 +10,7 @@ use lemmy_db_schema::{
   source::{
     community::Community,
     local_user::LocalUser,
-    mod_log::admin::{AdminPurgeCommunity, AdminPurgeCommunityForm},
+    modlog::{Modlog, ModlogInsertForm},
   },
   traits::Crud,
 };
@@ -49,11 +49,8 @@ pub async fn purge_community(
   Community::delete(&mut context.pool(), data.community_id).await?;
 
   // Mod tables
-  let form = AdminPurgeCommunityForm {
-    admin_person_id: local_user_view.person.id,
-    reason: data.reason.clone(),
-  };
-  AdminPurgeCommunity::create(&mut context.pool(), &form).await?;
+  let form = ModlogInsertForm::admin_purge_community(local_user_view.person.id, &data.reason);
+  Modlog::create(&mut context.pool(), &[form]).await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::RemoveCommunity {

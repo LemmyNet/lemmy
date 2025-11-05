@@ -9,8 +9,8 @@ use lemmy_api_utils::{
 use lemmy_db_schema::{source::comment_report::CommentReport, traits::Reportable};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_report_combined::{
-  api::{CommentReportResponse, ResolveCommentReport},
   ReportCombinedViewInternal,
+  api::{CommentReportResponse, ResolveCommentReport},
 };
 use lemmy_utils::error::LemmyResult;
 

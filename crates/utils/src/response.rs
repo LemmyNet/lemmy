@@ -1,9 +1,9 @@
 use crate::error::{LemmyError, LemmyErrorType};
 use actix_web::{
-  dev::ServiceResponse,
-  middleware::ErrorHandlerResponse,
   HttpRequest,
   HttpResponse,
+  dev::ServiceResponse,
+  middleware::ErrorHandlerResponse,
 };
 
 pub fn jsonify_plain_text_errors<BODY>(
@@ -17,10 +17,10 @@ pub fn jsonify_plain_text_errors<BODY>(
     return Ok(ErrorHandlerResponse::Response(res.map_into_left_body()));
   }
   // We're assuming that any LemmyError is already in JSON format, so we don't need to do anything
-  if let Some(maybe_error) = maybe_error {
-    if maybe_error.as_error::<LemmyError>().is_some() {
-      return Ok(ErrorHandlerResponse::Response(res.map_into_left_body()));
-    }
+  if let Some(maybe_error) = maybe_error
+    && maybe_error.as_error::<LemmyError>().is_some()
+  {
+    return Ok(ErrorHandlerResponse::Response(res.map_into_left_body()));
   }
 
   // convert other errors to json format
@@ -53,15 +53,15 @@ mod tests {
   use super::*;
   use crate::error::{LemmyError, LemmyErrorType};
   use actix_web::{
+    App,
+    Error,
+    Handler,
+    Responder,
     error::ErrorInternalServerError,
     http::StatusCode,
     middleware::ErrorHandlers,
     test,
     web,
-    App,
-    Error,
-    Handler,
-    Responder,
   };
   use pretty_assertions::assert_eq;
 

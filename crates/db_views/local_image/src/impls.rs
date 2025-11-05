@@ -4,9 +4,9 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   newtypes::{PaginationCursor, PersonId},
-  source::images::{local_image_keys as key, LocalImage},
+  source::images::{LocalImage, local_image_keys as key},
   traits::PaginationCursorBuilder,
-  utils::{get_conn, limit_fetch, paginate, DbPool},
+  utils::{DbPool, get_conn, limit_fetch, paginate},
 };
 use lemmy_db_schema_file::schema::{local_image, person, post};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};

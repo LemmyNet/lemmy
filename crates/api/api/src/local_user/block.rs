@@ -6,8 +6,8 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::{
-  api::{BlockPerson, PersonResponse},
   PersonView,
+  api::{BlockPerson, PersonResponse},
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 

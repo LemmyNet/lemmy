@@ -1,17 +1,17 @@
-use crate::{impls::NotificationQuery, NotificationData, NotificationView};
+use crate::{NotificationData, NotificationView, impls::NotificationQuery};
 use lemmy_db_schema::{
   assert_length,
   source::{
     community::{Community, CommunityInsertForm},
     instance::Instance,
-    mod_log::moderator::{ModRemovePost, ModRemovePostForm},
+    modlog::{Modlog, ModlogInsertForm},
     notification::{Notification, NotificationInsertForm},
     person::{Person, PersonInsertForm},
     post::{Post, PostInsertForm},
     private_message::{PrivateMessage, PrivateMessageInsertForm},
   },
   traits::Crud,
-  utils::{build_db_pool_for_tests, DbPool},
+  utils::{DbPool, build_db_pool_for_tests},
 };
 use lemmy_db_schema_file::enums::NotificationType;
 use lemmy_utils::error::LemmyResult;
@@ -115,15 +115,10 @@ async fn test_post() -> LemmyResult<()> {
   assert_eq!(0, count);
 
   // create a notification entry for removed post
-  let mod_remove_post_form = ModRemovePostForm {
-    mod_person_id: data.bob.id,
-    post_id: post.id,
-    reason: "reason".to_string(),
-    removed: Some(true),
-  };
-  let mod_remove_post = ModRemovePost::create(pool, &mod_remove_post_form).await?;
+  let mod_remove_post_form = ModlogInsertForm::mod_remove_post(data.bob.id, &post, true, "reason");
+  let mod_remove_post = &Modlog::create(pool, &[mod_remove_post_form]).await?[0];
   let notif_form = NotificationInsertForm {
-    mod_remove_post_id: Some(mod_remove_post.id),
+    modlog_id: Some(mod_remove_post.id),
     ..NotificationInsertForm::new(data.alice.id, NotificationType::ModAction)
   };
   Notification::create(pool, &[notif_form]).await?;
@@ -137,15 +132,12 @@ async fn test_post() -> LemmyResult<()> {
   .list(pool, &data.alice)
   .await?;
   assert_length!(1, notifs2);
-  assert_eq!(
-    Some(mod_remove_post.id),
-    notifs2[0].notification.mod_remove_post_id
-  );
+  assert_eq!(Some(mod_remove_post.id), notifs2[0].notification.modlog_id);
   assert!(!notifs2[0].notification.read);
-  let NotificationData::ModRemovePost(notif_remove_post) = &notifs2[0].data else {
+  let NotificationData::ModAction(notif_remove_post) = &notifs2[0].data else {
     panic!();
   };
-  assert_eq!(&mod_remove_post, notif_remove_post);
+  assert_eq!(mod_remove_post, &notif_remove_post.modlog);
 
   Notification::delete(pool, notifs1[0].notification.id).await?;
   Notification::delete(pool, notifs2[0].notification.id).await?;

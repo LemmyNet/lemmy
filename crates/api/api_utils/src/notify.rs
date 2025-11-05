@@ -5,11 +5,12 @@ use lemmy_db_schema::{
     comment::Comment,
     community::{Community, CommunityActions},
     instance::InstanceActions,
+    modlog::Modlog,
     notification::{Notification, NotificationInsertForm},
     person::{Person, PersonActions},
     post::{Post, PostActions},
   },
-  traits::{ApubActor, Blockable, Crud, ModActionNotify},
+  traits::{ApubActor, Blockable, Crud},
 };
 use lemmy_db_schema_file::enums::{
   CommunityNotificationsMode,
@@ -19,7 +20,7 @@ use lemmy_db_schema_file::enums::{
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_private_message::PrivateMessageView;
 use lemmy_db_views_site::SiteView;
-use lemmy_email::notifications::{send_notification_email, NotificationEmailData};
+use lemmy_email::notifications::{NotificationEmailData, send_notification_email};
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   spawn_try_task,
@@ -272,68 +273,89 @@ impl NotifyData {
 pub fn notify_private_message(view: &PrivateMessageView, is_create: bool, context: &LemmyContext) {
   let view = view.clone();
   let context = context.clone();
-  spawn_try_task(async move {
-    let Ok(local_recipient) =
-      LocalUserView::read_person(&mut context.pool(), view.recipient.id).await
-    else {
-      return Ok(());
-    };
+  spawn_try_task(async move { notify_private_message_internal(&view, is_create, &context).await })
+}
+async fn notify_private_message_internal(
+  view: &PrivateMessageView,
+  is_create: bool,
+  context: &LemmyContext,
+) -> LemmyResult<()> {
+  let Ok(local_recipient) =
+    LocalUserView::read_person(&mut context.pool(), view.recipient.id).await
+  else {
+    return Ok(());
+  };
 
-    let form = NotificationInsertForm::new_private_message(&view.private_message);
-    let notifications = Notification::create(&mut context.pool(), &[form]).await?;
+  let form = NotificationInsertForm::new_private_message(&view.private_message);
+  let notifications = Notification::create(&mut context.pool(), &[form]).await?;
 
-    if is_create {
-      plugin_hook_notification(notifications, &context).await?;
-      let site_view = SiteView::read_local(&mut context.pool()).await?;
-      if !site_view.local_site.disable_email_notifications {
-        let d = NotificationEmailData::PrivateMessage {
-          sender: &view.creator,
-          content: &view.private_message.content,
-        };
-        send_notification_email(
-          local_recipient,
-          view.private_message.local_url(context.settings())?,
-          d,
-          context.settings(),
-        );
-      }
+  if is_create {
+    plugin_hook_notification(notifications, context).await?;
+    let site_view = SiteView::read_local(&mut context.pool()).await?;
+    if !site_view.local_site.disable_email_notifications {
+      let d = NotificationEmailData::PrivateMessage {
+        sender: &view.creator,
+        content: &view.private_message.content,
+      };
+      send_notification_email(
+        local_recipient,
+        view.private_message.local_url(context.settings())?,
+        d,
+        context.settings(),
+      );
     }
-    Ok(())
-  })
+  }
+  Ok(())
 }
 
-pub fn notify_mod_action<T>(action: T, target_id: PersonId, context: &LemmyContext)
-where
-  T: ModActionNotify + Send + 'static,
-{
+pub fn notify_mod_action(actions: Vec<Modlog>, context: &LemmyContext) {
+  // Mod actions should notify the target person. If there is no target person then also no
+  // notification. This means each mod action can only notify a single person (eg it is not possible
+  // to notify all community mods when a community gets removed).
+  let actions: Vec<_> = actions
+    .into_iter()
+    .filter(|a| a.target_person_id.is_some())
+    .collect();
+  if actions.is_empty() {
+    return;
+  }
+
   let context = context.clone();
   spawn_try_task(async move {
-    let Ok(local_recipient) = LocalUserView::read_person(&mut context.pool(), target_id).await
-    else {
-      return Ok(());
-    };
+    for action in actions {
+      let Some(target_id) = action.target_person_id else {
+        continue;
+      };
+      let Ok(local_recipient) = LocalUserView::read_person(&mut context.pool(), target_id).await
+      else {
+        continue;
+      };
 
-    let form = action.insert_form(target_id);
-    let notifications = Notification::create(&mut context.pool(), &[form]).await?;
+      let form = NotificationInsertForm {
+        modlog_id: Some(action.id),
+        ..NotificationInsertForm::new(local_recipient.person.id, NotificationType::ModAction)
+      };
+      let notifications = Notification::create(&mut context.pool(), &[form]).await?;
+      plugin_hook_notification(notifications, &context).await?;
 
-    let modlog_url = format!(
-      "{}/modlog?userId={}&actionType={}",
-      context.settings().get_protocol_and_hostname(),
-      local_recipient.person.id.0,
-      action.kind()
-    );
-    let d = NotificationEmailData::ModAction {
-      kind: action.kind(),
-      reason: action.reason(),
-      is_revert: action.is_revert(),
-    };
-    plugin_hook_notification(notifications, &context).await?;
-    send_notification_email(
-      local_recipient,
-      Url::parse(&modlog_url)?.into(),
-      d,
-      context.settings(),
-    );
+      let modlog_url = format!(
+        "{}/modlog?userId={}&actionType={}",
+        context.settings().get_protocol_and_hostname(),
+        local_recipient.person.id.0,
+        action.kind
+      );
+      let d = NotificationEmailData::ModAction {
+        kind: action.kind,
+        reason: action.reason.as_deref(),
+        is_revert: action.is_revert,
+      };
+      send_notification_email(
+        local_recipient,
+        Url::parse(&modlog_url)?.into(),
+        d,
+        context.settings(),
+      );
+    }
     Ok(())
   })
 }
@@ -343,9 +365,10 @@ where
 mod tests {
   use crate::{
     context::LemmyContext,
-    notify::{notify_private_message, NotifyData},
+    notify::{NotifyData, notify_private_message_internal},
   };
   use lemmy_db_schema::{
+    NotificationDataType,
     assert_length,
     source::{
       comment::{Comment, CommentInsertForm},
@@ -357,12 +380,11 @@ mod tests {
       private_message::{PrivateMessage, PrivateMessageInsertForm},
     },
     traits::{Blockable, Crud},
-    utils::{build_db_pool_for_tests, DbPool},
-    NotificationDataType,
+    utils::{DbPool, build_db_pool_for_tests},
   };
   use lemmy_db_schema_file::enums::NotificationType;
   use lemmy_db_views_local_user::LocalUserView;
-  use lemmy_db_views_notification::{impls::NotificationQuery, NotificationData, NotificationView};
+  use lemmy_db_views_notification::{NotificationData, NotificationView, impls::NotificationQuery};
   use lemmy_db_views_private_message::PrivateMessageView;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
@@ -428,7 +450,7 @@ mod tests {
     let pool = &mut context.pool();
     let pm = PrivateMessage::create(pool, &form).await?;
     let view = PrivateMessageView::read(pool, pm.id).await?;
-    notify_private_message(&view, false, context);
+    notify_private_message_internal(&view, false, context).await?;
     Ok(())
   }
   async fn setup_private_messages(data: &Data, context: &LemmyContext) -> LemmyResult<()> {

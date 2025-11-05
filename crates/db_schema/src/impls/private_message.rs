@@ -3,10 +3,10 @@ use crate::{
   newtypes::{DbUrl, PersonId, PrivateMessageId},
   source::private_message::{PrivateMessage, PrivateMessageInsertForm, PrivateMessageUpdateForm},
   traits::Crud,
-  utils::{functions::coalesce, get_conn, DbPool},
+  utils::{DbPool, functions::coalesce, get_conn},
 };
 use chrono::{DateTime, Utc};
-use diesel::{dsl::insert_into, ExpressionMethods, QueryDsl};
+use diesel::{ExpressionMethods, QueryDsl, dsl::insert_into};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::private_message;
 use lemmy_utils::{

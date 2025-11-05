@@ -7,13 +7,13 @@ use lemmy_api_utils::{
   utils::{check_community_mod_action, is_admin},
 };
 use lemmy_db_schema::{
+  PostFeatureType,
   source::{
     community::Community,
-    mod_log::moderator::{ModFeaturePost, ModFeaturePostForm},
+    modlog::{Modlog, ModlogInsertForm},
     post::{Post, PostUpdateForm},
   },
   traits::Crud,
-  PostFeatureType,
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::api::{FeaturePost, PostResponse};
@@ -36,28 +36,35 @@ pub async fn feature_post(
 
   // Update the post
   let post_id = data.post_id;
-  let new_post: PostUpdateForm = if data.feature_type == PostFeatureType::Community {
-    PostUpdateForm {
-      featured_community: Some(data.featured),
-      ..Default::default()
-    }
+  let (post_form, modlog_form) = if data.feature_type == PostFeatureType::Community {
+    (
+      PostUpdateForm {
+        featured_community: Some(data.featured),
+        ..Default::default()
+      },
+      ModlogInsertForm::mod_feature_post_community(
+        local_user_view.person.id,
+        &orig_post,
+        data.featured,
+      ),
+    )
   } else {
-    PostUpdateForm {
-      featured_local: Some(data.featured),
-      ..Default::default()
-    }
+    (
+      PostUpdateForm {
+        featured_local: Some(data.featured),
+        ..Default::default()
+      },
+      ModlogInsertForm::admin_feature_post_site(
+        local_user_view.person.id,
+        &orig_post,
+        data.featured,
+      ),
+    )
   };
-  let post = Post::update(&mut context.pool(), post_id, &new_post).await?;
+  let post = Post::update(&mut context.pool(), post_id, &post_form).await?;
 
   // Mod tables
-  let form = ModFeaturePostForm {
-    mod_person_id: local_user_view.person.id,
-    post_id: data.post_id,
-    featured: Some(data.featured),
-    is_featured_community: Some(data.feature_type == PostFeatureType::Community),
-  };
-
-  ModFeaturePost::create(&mut context.pool(), &form).await?;
+  Modlog::create(&mut context.pool(), &[modlog_form]).await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::FeaturePost(post, local_user_view.person.clone(), data.featured),

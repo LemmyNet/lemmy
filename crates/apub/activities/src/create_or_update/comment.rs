@@ -3,7 +3,7 @@ use crate::{
   check_community_deleted_or_removed,
   community::send_activity_in_community,
   generate_activity_id,
-  protocol::{create_or_update::note::CreateOrUpdateNote, CreateOrUpdateType},
+  protocol::{CreateOrUpdateType, create_or_update::note::CreateOrUpdateNote},
 };
 use activitypub_federation::{
   config::Data,
@@ -134,11 +134,10 @@ impl Activity for CreateOrUpdateNote {
     let (post, _) = self.object.get_parents(context).await?;
     if let (Some(distinguished), Some(existing_comment)) =
       (self.object.distinguished, existing_comment)
+      && distinguished != existing_comment.distinguished
     {
-      if distinguished != existing_comment.distinguished {
-        let creator = self.actor.dereference(context).await?;
-        check_is_mod_or_admin(&mut context.pool(), creator.id, post.community_id).await?;
-      }
+      let creator = self.actor.dereference(context).await?;
+      check_is_mod_or_admin(&mut context.pool(), creator.id, post.community_id).await?;
     }
 
     let comment = ApubComment::from_json(self.object, context).await?;

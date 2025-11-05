@@ -1,5 +1,5 @@
 use crate::{
-  community::{send_activity_in_community, AnnouncableActivities},
+  community::{AnnouncableActivities, send_activity_in_community},
   generate_activity_id,
   protocol::community::update::Update,
   send_lemmy_activity,
@@ -18,15 +18,12 @@ use lemmy_apub_objects::{
     protocol::InCommunity,
   },
 };
-use lemmy_db_schema::{
-  source::{
-    activity::ActivitySendTargets,
-    community::Community,
-    mod_log::moderator::{ModChangeCommunityVisibility, ModChangeCommunityVisibilityForm},
-    multi_community::MultiCommunity,
-    person::Person,
-  },
-  traits::Crud,
+use lemmy_db_schema::source::{
+  activity::ActivitySendTargets,
+  community::Community,
+  modlog::{Modlog, ModlogInsertForm},
+  multi_community::MultiCommunity,
+  person::Person,
 };
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
@@ -119,12 +116,8 @@ impl Activity for Update {
 
         if old_community.visibility != community.visibility {
           let actor = self.actor.dereference(context).await?;
-          let form = ModChangeCommunityVisibilityForm {
-            mod_person_id: actor.id,
-            community_id: old_community.id,
-            visibility: old_community.visibility,
-          };
-          ModChangeCommunityVisibility::create(&mut context.pool(), &form).await?;
+          let form = ModlogInsertForm::mod_change_community_visibility(actor.id, old_community.id);
+          Modlog::create(&mut context.pool(), &[form]).await?;
         }
       }
       Either::Right(m) => {

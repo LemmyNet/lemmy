@@ -1,5 +1,6 @@
 use super::utils::{adapt_request, delete_old_image, make_send};
-use actix_web::{self, web::*, HttpRequest};
+use UploadType::*;
+use actix_web::{self, HttpRequest, web::*};
 use lemmy_api_utils::{
   context::LemmyContext,
   request::PictrsResponse,
@@ -20,7 +21,6 @@ use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use reqwest::Body;
 use std::time::Duration;
-use UploadType::*;
 
 pub enum UploadType {
   Avatar,
@@ -226,7 +226,7 @@ async fn do_upload_image(
     // but still a user may upload multiple and so we need to store all links in db for
     // to allow deletion via web ui.
     let form = LocalImageForm {
-      pictrs_alias: image.file.to_string(),
+      pictrs_alias: image.file.clone(),
       person_id: local_user_view.person.id,
       thumbnail_for_post_id: None,
     };

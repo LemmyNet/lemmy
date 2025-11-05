@@ -12,11 +12,11 @@ use lemmy_api_utils::{
   plugins::{plugin_hook_after, plugin_hook_before},
 };
 use lemmy_apub_objects::objects::{
+  PostOrComment,
   comment::ApubComment,
   community::ApubCommunity,
   person::ApubPerson,
   post::ApubPost,
-  PostOrComment,
 };
 use lemmy_db_schema::{
   newtypes::DbUrl,
