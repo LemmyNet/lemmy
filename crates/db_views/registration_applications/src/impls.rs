@@ -139,7 +139,6 @@ impl RegistrationApplicationQuery {
 mod tests {
 
   use crate::{RegistrationApplicationView, impls::RegistrationApplicationQuery};
-  use chrono::Utc;
   use lemmy_db_schema::{
     source::{
       instance::Instance,
@@ -301,7 +300,8 @@ mod tests {
     let approve_form = RegistrationApplicationUpdateForm {
       admin_id: Some(Some(timmy_person.id)),
       deny_reason: None,
-      updated_at: Some(Some(Utc::now())),
+      // Normally this would be Utc::now()
+      updated_at: None,
     };
 
     RegistrationApplication::update(pool, sara_app.id, &approve_form).await?;
