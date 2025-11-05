@@ -1,7 +1,7 @@
 use crate::PostView;
 use lemmy_db_schema::{
-  newtypes::{CommunityId, DbUrl, LanguageId, MultiCommunityId, PaginationCursor, PostId, TagId},
   PostFeatureType,
+  newtypes::{CommunityId, DbUrl, LanguageId, MultiCommunityId, PaginationCursor, PostId, TagId},
 };
 use lemmy_db_schema_file::enums::{ListingType, PostNotificationsMode, PostSortType};
 use serde::{Deserialize, Serialize};

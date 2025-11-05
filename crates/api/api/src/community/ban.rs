@@ -22,7 +22,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_community::api::BanFromCommunity;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_person::{api::PersonResponse, PersonView};
+use lemmy_db_views_person::{PersonView, api::PersonResponse};
 use lemmy_utils::{error::LemmyResult, utils::validation::is_valid_body_field};
 
 pub async fn ban_from_community(

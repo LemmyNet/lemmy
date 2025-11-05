@@ -13,7 +13,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
-use lemmy_db_views_comment::{api::PurgeComment, CommentView};
+use lemmy_db_views_comment::{CommentView, api::PurgeComment};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::api::SuccessResponse;
 use lemmy_utils::error::LemmyResult;

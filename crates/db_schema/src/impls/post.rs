@@ -13,20 +13,18 @@ use crate::{
   },
   traits::{Crud, Likeable, Saveable},
   utils::{
-    functions::{coalesce, hot_rank, scaled_rank},
-    get_conn,
-    now,
-    DbPool,
     DELETED_REPLACEMENT_TEXT,
+    DbPool,
     FETCH_LIMIT_MAX,
     SITEMAP_DAYS,
     SITEMAP_LIMIT,
+    functions::{coalesce, hot_rank, scaled_rank},
+    get_conn,
+    now,
   },
 };
 use chrono::{DateTime, Utc};
 use diesel::{
-  dsl::{count, insert_into, not, update},
-  expression::SelectableHelper,
   BoolExpressionMethods,
   DecoratableTarget,
   ExpressionMethods,
@@ -34,9 +32,11 @@ use diesel::{
   NullableExpressionMethods,
   OptionalExtension,
   QueryDsl,
+  dsl::{count, insert_into, not, update},
+  expression::SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
-use diesel_uplete::{uplete, UpleteCount};
+use diesel_uplete::{UpleteCount, uplete};
 use lemmy_db_schema_file::{
   enums::PostNotificationsMode,
   schema::{community, local_user, person, post, post_actions},
@@ -596,7 +596,7 @@ mod tests {
       post::{Post, PostActions, PostInsertForm, PostLikeForm, PostSavedForm, PostUpdateForm},
     },
     traits::{Crud, Likeable, Saveable},
-    utils::{build_db_pool_for_tests, RANK_DEFAULT},
+    utils::{RANK_DEFAULT, build_db_pool_for_tests},
   };
   use chrono::DateTime;
   use diesel_uplete::UpleteCount;

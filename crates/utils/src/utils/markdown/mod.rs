@@ -57,70 +57,68 @@ mod tests {
       (
         "headings",
         "# h1\n## h2\n### h3\n#### h4\n##### h5\n###### h6",
-        "<h1>h1</h1>\n<h2>h2</h2>\n<h3>h3</h3>\n<h4>h4</h4>\n<h5>h5</h5>\n<h6>h6</h6>\n"
+        "<h1>h1</h1>\n<h2>h2</h2>\n<h3>h3</h3>\n<h4>h4</h4>\n<h5>h5</h5>\n<h6>h6</h6>\n",
       ),
-      (
-        "line breaks",
-        "First\rSecond",
-        "<p>First\nSecond</p>\n"),
+      ("line breaks", "First\rSecond", "<p>First\nSecond</p>\n"),
       (
         "emphasis",
         "__bold__ **bold** *italic* ***bold+italic***",
-        "<p><strong>bold</strong> <strong>bold</strong> <em>italic</em> <em><strong>bold+italic</strong></em></p>\n"
+        "<p><strong>bold</strong> <strong>bold</strong> <em>italic</em> <em><strong>bold+italic</strong></em></p>\n",
       ),
       (
         "blockquotes",
         "> #### Hello\n > \n > - Hola\n > - 안영 \n>> Goodbye\n",
-        "<blockquote>\n<h4>Hello</h4>\n<ul>\n<li>Hola</li>\n<li>안영</li>\n</ul>\n<blockquote>\n<p>Goodbye</p>\n</blockquote>\n</blockquote>\n"
+        "<blockquote>\n<h4>Hello</h4>\n<ul>\n<li>Hola</li>\n<li>안영</li>\n</ul>\n<blockquote>\n<p>Goodbye</p>\n</blockquote>\n</blockquote>\n",
       ),
       (
         "lists (ordered, unordered)",
         "1. pen\n2. apple\n3. apple pen\n- pen\n- pineapple\n- pineapple pen",
-        "<ol>\n<li>pen</li>\n<li>apple</li>\n<li>apple pen</li>\n</ol>\n<ul>\n<li>pen</li>\n<li>pineapple</li>\n<li>pineapple pen</li>\n</ul>\n"
+        "<ol>\n<li>pen</li>\n<li>apple</li>\n<li>apple pen</li>\n</ol>\n<ul>\n<li>pen</li>\n<li>pineapple</li>\n<li>pineapple pen</li>\n</ul>\n",
       ),
       (
         "code and code blocks",
         "this is my amazing `code snippet` and my amazing ```code block```",
-        "<p>this is my amazing <code>code snippet</code> and my amazing <code>code block</code></p>\n"
+        "<p>this is my amazing <code>code snippet</code> and my amazing <code>code block</code></p>\n",
       ),
       // Links with added nofollow attribute
       (
         "links",
         "[Lemmy](https://join-lemmy.org/ \"Join Lemmy!\")",
-        "<p><a href=\"https://join-lemmy.org/\" rel=\"nofollow\" title=\"Join Lemmy!\">Lemmy</a></p>\n"
+        "<p><a href=\"https://join-lemmy.org/\" rel=\"nofollow\" title=\"Join Lemmy!\">Lemmy</a></p>\n",
       ),
       // Remote images with proxy
       (
         "images",
         "![My linked image](https://example.com/image.png \"image alt text\")",
-        "<p><img src=\"https://example.com/image.png\" alt=\"My linked image\" title=\"image alt text\" /></p>\n"
+        "<p><img src=\"https://example.com/image.png\" alt=\"My linked image\" title=\"image alt text\" /></p>\n",
       ),
       // Local images without proxy
       (
         "images",
         "![My linked image](https://lemmy-alpha/image.png \"image alt text\")",
-        "<p><img src=\"https://lemmy-alpha/image.png\" alt=\"My linked image\" title=\"image alt text\" /></p>\n"
+        "<p><img src=\"https://lemmy-alpha/image.png\" alt=\"My linked image\" title=\"image alt text\" /></p>\n",
       ),
       // Ensure spoiler plugin is added
       (
         "basic spoiler",
         "::: spoiler click to see more\nhow spicy!\n:::\n",
-        "<details><summary>click to see more</summary>how spicy!\n</details>\n"
+        "<details><summary>click to see more</summary>how spicy!\n</details>\n",
       ),
       (
         "escape html special chars",
         "<script>alert('xss');</script> hello &\"",
-        "<p>&lt;script&gt;alert(‘xss’);&lt;/script&gt; hello &amp;&quot;</p>\n"
-      ),("subscript","log~2~(a)","<p>log<sub>2</sub>(a)</p>\n"),
+        "<p>&lt;script&gt;alert(‘xss’);&lt;/script&gt; hello &amp;&quot;</p>\n",
+      ),
+      ("subscript", "log~2~(a)", "<p>log<sub>2</sub>(a)</p>\n"),
       (
         "superscript",
         "Markdown^TM^",
-        "<p>Markdown<sup>TM</sup></p>\n"
+        "<p>Markdown<sup>TM</sup></p>\n",
       ),
       (
         "ruby text",
         "{漢|Kan}{字|ji}",
-        "<p><ruby>漢<rp>(</rp><rt>Kan</rt><rp>)</rp></ruby><ruby>字<rp>(</rp><rt>ji</rt><rp>)</rp></ruby></p>\n"
+        "<p><ruby>漢<rp>(</rp><rt>Kan</rt><rp>)</rp></ruby><ruby>字<rp>(</rp><rt>ji</rt><rp>)</rp></ruby></p>\n",
       ),
       (
         "footnotes",
@@ -131,13 +129,13 @@ mod tests {
 	 <ol class=\"footnotes-list\">\n\
 	 <li id=\"fn1\" class=\"footnote-item\">\n\
 	 <p>example.com <a href=\"#fnref1\" class=\"footnote-backref\">↩︎</a></p>\n\
-	 </li>\n</ol>\n</section>\n"
+	 </li>\n</ol>\n</section>\n",
       ),
       (
         "mention links",
         "[@example@example.com](https://example.com/u/example)",
-        "<p><a href=\"https://example.com/u/example\" rel=\"nofollow\" class=\"u-url mention\">@example@example.com</a></p>\n"
-      )
+        "<p><a href=\"https://example.com/u/example\" rel=\"nofollow\" class=\"u-url mention\">@example@example.com</a></p>\n",
+      ),
     ];
 
     tests.iter().for_each(|&(msg, input, expected)| {
@@ -170,11 +168,13 @@ mod tests {
       markdown_check_for_blocked_urls(&String::from("[](https://example.com)"), &set).is_err()
     );
 
-    assert!(markdown_check_for_blocked_urls(
-      &String::from("Go to https://example.com to get free Robux"),
-      &set
-    )
-    .is_err());
+    assert!(
+      markdown_check_for_blocked_urls(
+        &String::from("Go to https://example.com to get free Robux"),
+        &set
+      )
+      .is_err()
+    );
 
     assert!(
       markdown_check_for_blocked_urls(&String::from("[](https://example.blog)"), &set).is_ok()
@@ -182,15 +182,17 @@ mod tests {
 
     assert!(markdown_check_for_blocked_urls(&String::from("example.com"), &set).is_err());
 
-    assert!(markdown_check_for_blocked_urls(
-      "Odio exercitationem culpa sed sunt
+    assert!(
+      markdown_check_for_blocked_urls(
+        "Odio exercitationem culpa sed sunt
       et. Sit et similique tempora deserunt doloremque. Cupiditate iusto
       repellat et quis qui. Cum veritatis facere quasi repellendus sunt
       eveniet nemo sint. Cumque sit unde est. https://example.com Alias
       repellendus at quos.",
-      &set
-    )
-    .is_err());
+        &set
+      )
+      .is_err()
+    );
 
     let set = create_url_blocklist_test_regex_set(vec!["example.com/spam.jpg"])?;
     assert!(markdown_check_for_blocked_urls("![](https://example.com/spam.jpg)", &set).is_err());

@@ -162,9 +162,7 @@ pub enum LikeType {
 /// vec on failure.
 #[macro_export]
 macro_rules! assert_length {
-  ($len:expr, $vec:expr) => {{
-    assert_eq!($len, $vec.len(), "Vec has wrong length: {:?}", $vec)
-  }};
+  ($len:expr, $vec:expr) => {{ assert_eq!($len, $vec.len(), "Vec has wrong length: {:?}", $vec) }};
 }
 
 #[cfg(feature = "full")]

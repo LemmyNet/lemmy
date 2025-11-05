@@ -7,8 +7,8 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
-  diesel::{helper_types::Nullable, NullableExpressionMethods, Queryable, Selectable},
-  lemmy_db_schema::{utils::queries::selects::person1_select, Person1AliasAllColumnsTuple},
+  diesel::{NullableExpressionMethods, Queryable, Selectable, helper_types::Nullable},
+  lemmy_db_schema::{Person1AliasAllColumnsTuple, utils::queries::selects::person1_select},
 };
 
 pub mod api;

@@ -20,9 +20,9 @@ use lemmy_utils::error::LemmyResult;
 use std::sync::LazyLock;
 use tokio::{
   sync::{
+    Mutex,
     mpsc,
     mpsc::{UnboundedReceiver, UnboundedSender, WeakUnboundedSender},
-    Mutex,
   },
   task::JoinHandle,
 };

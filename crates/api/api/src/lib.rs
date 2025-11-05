@@ -1,4 +1,4 @@
-use base64::{engine::general_purpose::STANDARD_NO_PAD as base64, Engine};
+use base64::{Engine, engine::general_purpose::STANDARD_NO_PAD as base64};
 use captcha::Captcha;
 use lemmy_api_utils::{context::LemmyContext, utils::is_mod_or_admin_opt};
 use lemmy_db_schema::newtypes::CommunityId;

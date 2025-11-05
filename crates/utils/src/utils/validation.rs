@@ -314,11 +314,11 @@ fn truncate_for_db(text: &str, len: usize) -> String {
     let mut index = 0;
     // Walk the string backwards and find the first char within our length
     for idx in (0..graphemes.len()).rev() {
-      if let Some(grapheme) = graphemes.get(idx) {
-        if grapheme.0 < offset.0 {
-          index = idx;
-          break;
-        }
+      if let Some(grapheme) = graphemes.get(idx)
+        && grapheme.0 < offset.0
+      {
+        index = idx;
+        break;
       }
     }
     let grapheme = graphemes.get(index).unwrap_or(&(0, ""));
@@ -351,6 +351,10 @@ mod tests {
   use crate::{
     error::{LemmyErrorType, LemmyResult},
     utils::validation::{
+      BIO_MAX_LENGTH,
+      SITE_DESCRIPTION_MAX_LENGTH,
+      SITE_NAME_MAX_LENGTH,
+      URL_MAX_LENGTH,
       build_and_check_regex,
       check_urls_are_valid,
       clean_url,
@@ -365,10 +369,6 @@ mod tests {
       is_valid_url,
       site_name_length_check,
       truncate_for_db,
-      BIO_MAX_LENGTH,
-      SITE_DESCRIPTION_MAX_LENGTH,
-      SITE_NAME_MAX_LENGTH,
-      URL_MAX_LENGTH,
     },
   };
   use pretty_assertions::assert_eq;
@@ -396,7 +396,7 @@ mod tests {
     let text = format!("[a link]({URL_WITH_TRACKING})");
     let cleaned = clean_urls_in_text(&text);
     let expected = format!("[a link]({URL_TRACKING_REMOVED})");
-    assert_eq!(expected.to_string(), cleaned.to_string());
+    assert_eq!(expected.clone(), cleaned.clone());
 
     let text = "[a link](https://example.com/path/123)";
     let cleaned = clean_urls_in_text(text);
@@ -436,12 +436,14 @@ mod tests {
     // empty
     assert!(is_valid_actor_name("",).is_err());
     // newline
-    assert!(is_valid_actor_name(
-      r"Line1
+    assert!(
+      is_valid_actor_name(
+        r"Line1
 
 Line3",
-    )
-    .is_err());
+      )
+      .is_err()
+    );
     assert!(is_valid_actor_name("Line1\nLine3",).is_err());
   }
 
@@ -460,10 +462,12 @@ Line3",
   #[test]
   fn test_valid_post_title() {
     assert!(is_valid_post_title("Post Title").is_ok());
-    assert!(is_valid_post_title(
-      "აშშ ითხოვს ირანს დაუყოვნებლივ გაანთავისუფლოს დაკავებული ნავთობის ტანკერი"
-    )
-    .is_ok());
+    assert!(
+      is_valid_post_title(
+        "აშშ ითხოვს ირანს დაუყოვნებლივ გაანთავისუფლოს დაკავებული ნავთობის ტანკერი"
+      )
+      .is_ok()
+    );
     assert!(is_valid_post_title("   POST TITLE 😃😃😃😃😃").is_ok());
     assert!(is_valid_post_title("\n \n \n \n    		").is_err()); // tabs/spaces/newlines
     assert!(is_valid_post_title("\u{206a}").is_err()); // invisible chars
@@ -537,12 +541,14 @@ Line3",
 
   #[test]
   fn test_valid_site_description() {
-    assert!(description_length_check(
-      &(0..SITE_DESCRIPTION_MAX_LENGTH)
-        .map(|_| 'A')
-        .collect::<String>()
-    )
-    .is_ok());
+    assert!(
+      description_length_check(
+        &(0..SITE_DESCRIPTION_MAX_LENGTH)
+          .map(|_| 'A')
+          .collect::<String>()
+      )
+      .is_ok()
+    );
 
     let invalid_result = description_length_check(
       &(0..SITE_DESCRIPTION_MAX_LENGTH + 1)
@@ -604,12 +610,16 @@ Line3",
     assert!(is_valid_url(&Url::parse("http://example.com")?).is_ok());
     assert!(is_valid_url(&Url::parse("https://example.com")?).is_ok());
     assert!(is_valid_url(&Url::parse("https://example.com")?).is_ok());
-    assert!(is_valid_url(&Url::parse("ftp://example.com")?)
-      .is_err_and(|e| e.error_type.eq(&LemmyErrorType::InvalidUrlScheme)));
-    assert!(is_valid_url(&Url::parse("javascript:void")?)
-      .is_err_and(|e| e.error_type.eq(&LemmyErrorType::InvalidUrlScheme)));
+    assert!(
+      is_valid_url(&Url::parse("ftp://example.com")?)
+        .is_err_and(|e| e.error_type.eq(&LemmyErrorType::InvalidUrlScheme))
+    );
+    assert!(
+      is_valid_url(&Url::parse("javascript:void")?)
+        .is_err_and(|e| e.error_type.eq(&LemmyErrorType::InvalidUrlScheme))
+    );
 
-    let magnet_link="magnet:?xt=urn:btih:4b390af3891e323778959d5abfff4b726510f14c&dn=Ravel%20Complete%20Piano%20Sheet%20Music%20-%20Public%20Domain&tr=udp%3A%2F%2Fopen.tracker.cl%3A1337%2Fannounce";
+    let magnet_link = "magnet:?xt=urn:btih:4b390af3891e323778959d5abfff4b726510f14c&dn=Ravel%20Complete%20Piano%20Sheet%20Music%20-%20Public%20Domain&tr=udp%3A%2F%2Fopen.tracker.cl%3A1337%2Fannounce";
     assert!(is_valid_url(&Url::parse(magnet_link)?).is_ok());
 
     // Also make sure the length overflow hits an error

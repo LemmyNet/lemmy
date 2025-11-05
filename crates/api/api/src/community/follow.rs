@@ -7,8 +7,8 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views_community::{
-  api::{CommunityResponse, FollowCommunity},
   CommunityView,
+  api::{CommunityResponse, FollowCommunity},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;

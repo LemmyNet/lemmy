@@ -10,8 +10,8 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::enums::CommunityFollowerState;
 use lemmy_db_views_community::{
-  api::{CreateMultiCommunity, MultiCommunityResponse},
   MultiCommunityView,
+  api::{CreateMultiCommunity, MultiCommunityResponse},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;

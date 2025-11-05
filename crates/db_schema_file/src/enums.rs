@@ -307,7 +307,7 @@ pub enum NotificationType {
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
-/// Types of notifications which can be received in inbox
+/// A list of possible types for the various modlog actions.
 pub enum ModlogKind {
   AdminAdd,
   AdminBan,

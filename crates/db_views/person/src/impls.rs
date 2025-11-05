@@ -4,9 +4,10 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   newtypes::{InstanceId, PaginationCursor, PersonId},
-  source::person::{person_keys as key, Person},
+  source::person::{Person, person_keys as key},
   traits::{Crud, PaginationCursorBuilder},
   utils::{
+    DbPool,
     get_conn,
     limit_fetch,
     paginate,
@@ -15,7 +16,6 @@ use lemmy_db_schema::{
       creator_local_instance_actions_join,
       my_person_actions_join,
     },
-    DbPool,
   },
 };
 use lemmy_db_schema_file::schema::{local_user, person};
@@ -265,9 +265,11 @@ mod tests {
     )
     .await?;
 
-    assert!(read
-      .person_actions
-      .is_some_and(|t| t.note == Some(note_str.to_string()) && t.noted_at.is_some()));
+    assert!(
+      read
+        .person_actions
+        .is_some_and(|t| t.note == Some(note_str.to_string()) && t.noted_at.is_some())
+    );
 
     cleanup(data, pool).await
   }

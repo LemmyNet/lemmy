@@ -1,4 +1,5 @@
 pub use lemmy_db_schema::{
+  ReportType,
   newtypes::{CommentReportId, CommunityReportId, PostReportId, PrivateMessageReportId},
   source::{
     comment_report::CommentReport,
@@ -6,9 +7,13 @@ pub use lemmy_db_schema::{
     post_report::PostReport,
     private_message_report::PrivateMessageReport,
   },
-  ReportType,
 };
 pub use lemmy_db_views_report_combined::{
+  CommentReportView,
+  CommunityReportView,
+  PostReportView,
+  PrivateMessageReportView,
+  ReportCombinedView,
   api::{
     CommentReportResponse,
     CommunityReportResponse,
@@ -27,9 +32,4 @@ pub use lemmy_db_views_report_combined::{
     ResolvePostReport,
     ResolvePrivateMessageReport,
   },
-  CommentReportView,
-  CommunityReportView,
-  PostReportView,
-  PrivateMessageReportView,
-  ReportCombinedView,
 };

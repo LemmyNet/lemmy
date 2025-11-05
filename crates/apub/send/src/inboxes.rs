@@ -137,10 +137,10 @@ impl<T: DataSource> CommunityInboxCollector<T> {
         inbox_urls.insert(site.inbox_url.inner().clone());
       }
     }
-    if let Some(t) = &activity.send_community_followers_of {
-      if let Some(urls) = self.followed_communities.get(t) {
-        inbox_urls.extend(urls.iter().cloned());
-      }
+    if let Some(t) = &activity.send_community_followers_of
+      && let Some(urls) = self.followed_communities.get(t)
+    {
+      inbox_urls.extend(urls.iter().cloned());
     }
     inbox_urls.extend(
       activity

@@ -11,18 +11,18 @@ use crate::{
     PersonUpdateForm,
   },
   traits::{ApubActor, Blockable, Crud, Followable},
-  utils::{format_actor_url, functions::lower, get_conn, DbPool},
+  utils::{DbPool, format_actor_url, functions::lower, get_conn},
 };
 use chrono::Utc;
 use diesel::{
-  dsl::{exists, insert_into, not, select},
-  expression::SelectableHelper,
   ExpressionMethods,
   JoinOnDsl,
   QueryDsl,
+  dsl::{exists, insert_into, not, select},
+  expression::SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
-use diesel_uplete::{uplete, UpleteCount};
+use diesel_uplete::{UpleteCount, uplete};
 use lemmy_db_schema_file::schema::{
   instance,
   instance_actions,

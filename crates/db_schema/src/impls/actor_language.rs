@@ -13,17 +13,17 @@ use crate::{
     language::Language,
     site::Site,
   },
-  utils::{get_conn, DbPool},
+  utils::{DbPool, get_conn},
 };
 use diesel::{
+  ExpressionMethods,
+  QueryDsl,
   delete,
   dsl::{count, exists},
   insert_into,
   select,
-  ExpressionMethods,
-  QueryDsl,
 };
-use diesel_async::{scoped_futures::ScopedFutureExt, AsyncPgConnection, RunQueryDsl};
+use diesel_async::{AsyncPgConnection, RunQueryDsl, scoped_futures::ScopedFutureExt};
 use lemmy_db_schema_file::schema::{
   community_language,
   local_site,

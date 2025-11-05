@@ -16,7 +16,7 @@ use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_search_combined::{SearchCombinedView, SearchResponse};
-use lemmy_db_views_site::{api::ResolveObject, SiteView};
+use lemmy_db_views_site::{SiteView, api::ResolveObject};
 use lemmy_utils::error::{LemmyErrorExt2, LemmyErrorType, LemmyResult};
 use url::Url;
 

@@ -5,8 +5,8 @@ use lemmy_db_schema::{
   traits::Saveable,
 };
 use lemmy_db_views_comment::{
-  api::{CommentResponse, SaveComment},
   CommentView,
+  api::{CommentResponse, SaveComment},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;

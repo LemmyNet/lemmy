@@ -4,7 +4,7 @@ use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   aliases,
   newtypes::PrivateMessageId,
-  utils::{get_conn, DbPool},
+  utils::{DbPool, get_conn},
 };
 use lemmy_db_schema_file::schema::{instance_actions, person, person_actions, private_message};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};

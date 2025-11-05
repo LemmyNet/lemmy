@@ -9,8 +9,8 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_db_views_custom_emoji::{
-  api::{CustomEmojiResponse, EditCustomEmoji},
   CustomEmojiView,
+  api::{CustomEmojiResponse, EditCustomEmoji},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
@@ -24,7 +24,7 @@ pub async fn update_custom_emoji(
   is_admin(&local_user_view)?;
 
   let emoji_form = CustomEmojiUpdateForm {
-    image_url: data.image_url.clone().map(Into::into),
+    image_url: data.image_url.clone(),
     shortcode: data
       .shortcode
       .clone()

@@ -17,8 +17,8 @@ use lemmy_db_schema::{
   traits::{Crud, Reportable},
 };
 use lemmy_db_views_comment::{
-  api::{CommentResponse, RemoveComment},
   CommentView,
+  api::{CommentResponse, RemoveComment},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};

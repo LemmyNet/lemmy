@@ -7,9 +7,9 @@ use crate::{
     PublicOAuthProvider,
   },
   traits::Crud,
-  utils::{get_conn, DbPool},
+  utils::{DbPool, get_conn},
 };
-use diesel::{dsl::insert_into, QueryDsl};
+use diesel::{QueryDsl, dsl::insert_into};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::oauth_provider;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};

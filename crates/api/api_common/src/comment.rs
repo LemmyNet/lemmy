@@ -3,9 +3,9 @@ pub use lemmy_db_schema::{
   source::comment::{Comment, CommentActions},
 };
 pub use lemmy_db_views_comment::{
-  api::{CommentResponse, GetComment, GetComments, GetCommentsResponse, GetCommentsSlimResponse},
   CommentSlimView,
   CommentView,
+  api::{CommentResponse, GetComment, GetComments, GetCommentsResponse, GetCommentsSlimResponse},
 };
 
 pub mod actions {

@@ -1,10 +1,10 @@
 use crate::{
   objects::{
+    PostOrComment,
     comment::ApubComment,
     community::ApubCommunity,
     person::ApubPerson,
     post::ApubPost,
-    PostOrComment,
   },
   protocol::page::Attachment,
   utils::{
@@ -28,8 +28,8 @@ use lemmy_db_schema::{
   traits::Crud,
 };
 use lemmy_utils::{
-  error::{LemmyErrorType, LemmyResult},
   MAX_COMMENT_DEPTH_LIMIT,
+  error::{LemmyErrorType, LemmyResult},
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;

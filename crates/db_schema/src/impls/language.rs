@@ -3,15 +3,15 @@ use crate::{
   diesel::ExpressionMethods,
   newtypes::LanguageId,
   source::language::Language,
-  utils::{get_conn, DbPool},
+  utils::{DbPool, get_conn},
 };
-use diesel::{dsl::count, QueryDsl};
+use diesel::{QueryDsl, dsl::count};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::{language, post};
 use lemmy_utils::{
+  CacheLock,
   build_cache,
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
-  CacheLock,
 };
 use std::sync::LazyLock;
 

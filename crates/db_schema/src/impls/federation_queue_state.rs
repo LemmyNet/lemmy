@@ -1,7 +1,7 @@
 use crate::{
   newtypes::InstanceId,
   source::federation_queue_state::FederationQueueState,
-  utils::{get_conn, DbPool},
+  utils::{DbPool, get_conn},
 };
 use diesel::{ExpressionMethods, Insertable, OptionalExtension, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;

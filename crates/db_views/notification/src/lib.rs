@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
+  NotificationDataType,
   newtypes::PaginationCursor,
   source::{
     comment::{Comment, CommentActions},
@@ -12,7 +13,6 @@ use lemmy_db_schema::{
     private_message::PrivateMessage,
     tag::TagsView,
   },
-  NotificationDataType,
 };
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_modlog::ModlogView;
@@ -24,21 +24,21 @@ use serde_with::skip_serializing_none;
 use {
   diesel::{Queryable, Selectable},
   lemmy_db_schema::{
+    Person1AliasAllColumnsTuple,
+    utils::queries::selects::{
+      CreatorLocalHomeBanExpiresType,
+      creator_is_admin,
+      creator_is_moderator,
+      creator_local_home_ban_expires,
+      creator_local_home_banned,
+      local_user_can_mod,
+    },
     utils::queries::selects::{
       creator_ban_expires_from_community,
       creator_banned_from_community,
       person1_select,
       post_tags_fragment,
     },
-    utils::queries::selects::{
-      creator_is_admin,
-      creator_is_moderator,
-      creator_local_home_ban_expires,
-      creator_local_home_banned,
-      local_user_can_mod,
-      CreatorLocalHomeBanExpiresType,
-    },
-    Person1AliasAllColumnsTuple,
   },
 };
 

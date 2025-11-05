@@ -6,6 +6,7 @@ use crate::{
   ReportCombinedView,
 };
 use lemmy_db_schema::{
+  ReportType,
   newtypes::{
     CommentId,
     CommentReportId,
@@ -17,7 +18,6 @@ use lemmy_db_schema::{
     PrivateMessageId,
     PrivateMessageReportId,
   },
-  ReportType,
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;

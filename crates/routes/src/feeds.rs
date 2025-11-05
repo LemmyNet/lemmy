@@ -1,10 +1,11 @@
-use actix_web::{error::ErrorBadRequest, web, Error, HttpRequest, HttpResponse, Result};
+use actix_web::{Error, HttpRequest, HttpResponse, Result, error::ErrorBadRequest, web};
 use chrono::{DateTime, Utc};
 use lemmy_api_utils::{
   context::LemmyContext,
   utils::{check_private_instance, local_user_view_from_jwt},
 };
 use lemmy_db_schema::{
+  PersonContentType,
   source::{
     community::Community,
     multi_community::MultiCommunity,
@@ -12,13 +13,12 @@ use lemmy_db_schema::{
     person::Person,
   },
   traits::ApubActor,
-  PersonContentType,
 };
 use lemmy_db_schema_file::enums::{ListingType, ModlogKind, NotificationType, PostSortType};
-use lemmy_db_views_modlog::{impls::ModlogQuery, ModlogView};
-use lemmy_db_views_notification::{impls::NotificationQuery, NotificationData, NotificationView};
+use lemmy_db_views_modlog::{ModlogView, impls::ModlogQuery};
+use lemmy_db_views_notification::{NotificationData, NotificationView, impls::NotificationQuery};
 use lemmy_db_views_person_content_combined::impls::PersonContentCombinedQuery;
-use lemmy_db_views_post::{impls::PostQuery, PostView};
+use lemmy_db_views_post::{PostView, impls::PostQuery};
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   cache_header::cache_1hour,
@@ -27,12 +27,12 @@ use lemmy_utils::{
   utils::markdown::markdown_to_html,
 };
 use rss::{
-  extension::{dublincore::DublinCoreExtension, ExtensionBuilder, ExtensionMap},
   Category,
   Channel,
   EnclosureBuilder,
   Guid,
   Item,
+  extension::{ExtensionBuilder, ExtensionMap, dublincore::DublinCoreExtension},
 };
 use serde::Deserialize;
 use std::{collections::BTreeMap, str::FromStr, sync::LazyLock};
@@ -635,27 +635,15 @@ fn create_modlog_items(modlog: Vec<ModlogView>, settings: &Settings) -> LemmyRes
 }
 
 fn removed_added_str(is_revert: bool) -> &'static str {
-  if is_revert {
-    "Added"
-  } else {
-    "Removed"
-  }
+  if is_revert { "Added" } else { "Removed" }
 }
 
 fn banned_unbanned_str(is_revert: bool) -> &'static str {
-  if is_revert {
-    "Unbanned"
-  } else {
-    "Banned"
-  }
+  if is_revert { "Unbanned" } else { "Banned" }
 }
 
 fn removed_restored_str(is_revert: bool) -> &'static str {
-  if is_revert {
-    "Restored"
-  } else {
-    "Removed"
-  }
+  if is_revert { "Restored" } else { "Removed" }
 }
 
 fn build_modlog_item<T: Into<String>>(
@@ -741,14 +729,16 @@ fn create_post_items(posts: Vec<PostView>, settings: &Settings) -> LemmyResult<V
       permalink: true,
       value: post_url.to_string(),
     });
-    let mut description = format!("submitted by <a href=\"{}\">{}</a> to <a href=\"{}\">{}</a><br>{} points | <a href=\"{}\">{} comments</a>",
-    p.creator.actor_url(settings)?,
-    &p.creator.name,
-    community_url,
-    &p.community.name,
-    p.post.score,
-    post_url,
-    p.post.comments);
+    let mut description = format!(
+      "submitted by <a href=\"{}\">{}</a> to <a href=\"{}\">{}</a><br>{} points | <a href=\"{}\">{} comments</a>",
+      p.creator.actor_url(settings)?,
+      &p.creator.name,
+      community_url,
+      &p.community.name,
+      p.post.score,
+      post_url,
+      p.post.comments
+    );
 
     // If its a url post, add it to the description
     // and see if we can parse it as a media enclosure.

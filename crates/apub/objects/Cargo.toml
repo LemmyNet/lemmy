@@ -50,7 +50,6 @@ stringreader = "0.1.1"
 semver = "1.0.27"
 either = "1.15.0"
 assert-json-diff = "2.0.2"
-once_cell = { version = "1.21.3" }
 
 [dev-dependencies]
 serial_test = { workspace = true }

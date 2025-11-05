@@ -123,14 +123,12 @@ pub fn send_notification_email(
       let reason = reason.unwrap_or_default();
       if is_revert {
         (
-          lang.notification_mod_action_subject(kind).to_string(),
+          lang.notification_mod_action_subject(kind).clone(),
           lang.notification_mod_action_body(reason, inbox_link),
         )
       } else {
         (
-          lang
-            .notification_mod_action_reverted_subject(kind)
-            .to_string(),
+          lang.notification_mod_action_reverted_subject(kind).clone(),
           lang.notification_mod_action_reverted_body(reason, inbox_link),
         )
       }

@@ -2,9 +2,9 @@ use actix_web::web::{Data, Json, Query};
 use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
 use lemmy_db_schema::traits::PaginationCursorBuilder;
 use lemmy_db_views_community::{
+  CommunityView,
   api::{ListCommunities, ListCommunitiesResponse},
   impls::CommunityQuery,
-  CommunityView,
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;

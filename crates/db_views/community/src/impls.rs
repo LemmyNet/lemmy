@@ -3,15 +3,18 @@ use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use i_love_jesus::asc_if;
 use lemmy_db_schema::{
+  CommunitySortType,
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommunityId, MultiCommunityId, PaginationCursor, PersonId},
   source::{
-    community::{community_keys as key, Community},
+    community::{Community, community_keys as key},
     local_user::LocalUser,
     site::Site,
   },
   traits::{Crud, PaginationCursorBuilder},
   utils::{
+    DbPool,
+    LowerKey,
     get_conn,
     limit_fetch,
     now,
@@ -30,10 +33,7 @@ use lemmy_db_schema::{
       },
     },
     seconds_to_pg_interval,
-    DbPool,
-    LowerKey,
   },
-  CommunitySortType,
 };
 use lemmy_db_schema_file::{
   enums::ListingType,
@@ -251,10 +251,8 @@ impl MultiCommunityView {
       query = query.filter(multi_community::creator_id.eq(creator_id));
     }
 
-    if followed_only {
-      if let Some(my_person_id) = my_person_id {
-        query = query.filter(multi_community_follow::person_id.eq(my_person_id));
-      }
+    if followed_only && let Some(my_person_id) = my_person_id {
+      query = query.filter(multi_community_follow::person_id.eq(my_person_id));
     }
 
     query
@@ -268,8 +266,9 @@ impl MultiCommunityView {
 #[allow(clippy::indexing_slicing)]
 mod tests {
 
-  use crate::{impls::CommunityQuery, CommunityView, MultiCommunityView};
+  use crate::{CommunityView, MultiCommunityView, impls::CommunityQuery};
   use lemmy_db_schema::{
+    CommunitySortType,
     source::{
       community::{
         Community,
@@ -286,8 +285,7 @@ mod tests {
       site::Site,
     },
     traits::{Crud, Followable},
-    utils::{build_db_pool_for_tests, DbPool},
-    CommunitySortType,
+    utils::{DbPool, build_db_pool_for_tests},
   };
   use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility};
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
@@ -408,9 +406,11 @@ mod tests {
 
     let with_pending_follow =
       CommunityView::read(pool, community.id, Some(&data.local_user), false).await?;
-    assert!(with_pending_follow
-      .community_actions
-      .is_some_and(|x| x.follow_state == Some(CommunityFollowerState::Pending)));
+    assert!(
+      with_pending_follow
+        .community_actions
+        .is_some_and(|x| x.follow_state == Some(CommunityFollowerState::Pending))
+    );
 
     // mark community private and set follow as approval required
     Community::update(
@@ -431,9 +431,11 @@ mod tests {
 
     let with_approval_required_follow =
       CommunityView::read(pool, community.id, Some(&data.local_user), false).await?;
-    assert!(with_approval_required_follow
-      .community_actions
-      .is_some_and(|x| x.follow_state == Some(CommunityFollowerState::ApprovalRequired)));
+    assert!(
+      with_approval_required_follow
+        .community_actions
+        .is_some_and(|x| x.follow_state == Some(CommunityFollowerState::ApprovalRequired))
+    );
 
     let form = CommunityFollowerForm::new(
       community.id,
@@ -443,9 +445,11 @@ mod tests {
     CommunityActions::follow(pool, &form).await?;
     let with_accepted_follow =
       CommunityView::read(pool, community.id, Some(&data.local_user), false).await?;
-    assert!(with_accepted_follow
-      .community_actions
-      .is_some_and(|x| x.follow_state == Some(CommunityFollowerState::Accepted)));
+    assert!(
+      with_accepted_follow
+        .community_actions
+        .is_some_and(|x| x.follow_state == Some(CommunityFollowerState::Accepted))
+    );
 
     cleanup(data, pool).await
   }

@@ -2,11 +2,11 @@ use crate::request::client_builder;
 use activitypub_federation::config::{Data, FederationConfig};
 use lemmy_db_schema::{
   source::secret::Secret,
-  utils::{build_db_pool_for_tests, ActualDbPool, DbPool},
+  utils::{ActualDbPool, DbPool, build_db_pool_for_tests},
 };
 use lemmy_utils::{
   rate_limit::RateLimit,
-  settings::{structs::Settings, SETTINGS},
+  settings::{SETTINGS, structs::Settings},
 };
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use std::sync::Arc;

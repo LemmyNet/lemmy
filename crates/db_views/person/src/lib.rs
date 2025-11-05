@@ -3,13 +3,13 @@ use lemmy_db_schema::source::person::{Person, PersonActions};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use {
-  diesel::{helper_types::Nullable, NullableExpressionMethods, Queryable, Selectable},
+  diesel::{NullableExpressionMethods, Queryable, Selectable, helper_types::Nullable},
   lemmy_db_schema::utils::{
     functions::coalesce,
     queries::selects::{
+      CreatorLocalHomeBanExpiresType,
       creator_local_home_ban_expires,
       creator_local_home_banned,
-      CreatorLocalHomeBanExpiresType,
     },
   },
   lemmy_db_schema_file::schema::local_user,

@@ -2,9 +2,9 @@ use crate::{
   diesel::OptionalExtension,
   newtypes::{ActivityId, DbUrl},
   source::activity::{ReceivedActivity, SentActivity, SentActivityForm},
-  utils::{get_conn, DbPool},
+  utils::{DbPool, get_conn},
 };
-use diesel::{dsl::insert_into, ExpressionMethods, QueryDsl};
+use diesel::{ExpressionMethods, QueryDsl, dsl::insert_into};
 use diesel_async::RunQueryDsl;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 

@@ -5,7 +5,7 @@ use crate::{
     LocalSiteRateLimitInsertForm,
     LocalSiteRateLimitUpdateForm,
   },
-  utils::{get_conn, DbPool},
+  utils::{DbPool, get_conn},
 };
 use diesel::dsl::insert_into;
 use diesel_async::RunQueryDsl;

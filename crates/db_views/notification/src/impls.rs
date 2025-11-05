@@ -1,6 +1,5 @@
 use crate::{CommentView, NotificationData, NotificationView, NotificationViewInternal};
 use diesel::{
-  dsl::not,
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
@@ -8,18 +7,21 @@ use diesel::{
   PgExpressionMethods,
   QueryDsl,
   SelectableHelper,
+  dsl::not,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
+  NotificationDataType,
   aliases,
   newtypes::{NotificationId, PaginationCursor},
   source::{
-    notification::{notification_keys, Notification},
+    notification::{Notification, notification_keys},
     person::Person,
   },
   traits::PaginationCursorBuilder,
   utils::{
+    DbPool,
     get_conn,
     limit_fetch,
     paginate,
@@ -41,9 +43,7 @@ use lemmy_db_schema::{
         my_post_actions_join,
       },
     },
-    DbPool,
   },
-  NotificationDataType,
 };
 use lemmy_db_schema_file::{
   enums::NotificationType,

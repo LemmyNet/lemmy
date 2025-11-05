@@ -3,10 +3,10 @@ use crate::{
   context::LemmyContext,
   request::{delete_image_alias, fetch_pictrs_proxied_image_details, purge_image_from_pictrs_url},
 };
-use actix_web::{http::header::Header, HttpRequest};
+use actix_web::{HttpRequest, http::header::Header};
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
-use enum_map::{enum_map, EnumMap};
+use enum_map::{EnumMap, enum_map};
 use lemmy_db_schema::{
   newtypes::{CommunityId, DbUrl, InstanceId, PersonId, PostId, PostOrCommentId, TagId},
   source::{
@@ -36,6 +36,9 @@ use lemmy_db_views_local_image::LocalImageView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
+  CACHE_DURATION_FEDERATION,
+  CacheLock,
+  MAX_COMMENT_DEPTH_LIMIT,
   error::{
     LemmyError,
     LemmyErrorExt,
@@ -45,19 +48,16 @@ use lemmy_utils::{
     UntranslatedError,
   },
   rate_limit::{ActionType, BucketConfig},
-  settings::{structs::PictrsImageMode, SETTINGS},
+  settings::{SETTINGS, structs::PictrsImageMode},
   spawn_try_task,
   utils::{
     markdown::{image_links::markdown_rewrite_image_links, markdown_check_for_blocked_urls},
     slurs::remove_slurs,
     validation::{build_and_check_regex, clean_urls_in_text},
   },
-  CacheLock,
-  CACHE_DURATION_FEDERATION,
-  MAX_COMMENT_DEPTH_LIMIT,
 };
 use moka::future::Cache;
-use regex::{escape, Regex, RegexSet};
+use regex::{Regex, RegexSet, escape};
 use std::{collections::HashSet, sync::LazyLock};
 use tracing::Instrument;
 use url::{ParseError, Url};
@@ -914,22 +914,22 @@ pub fn read_auth_token(req: &HttpRequest) -> LemmyResult<Option<String>> {
 }
 
 pub fn send_webmention(post: Post, community: &Community) {
-  if let Some(url) = post.url.clone() {
-    if community.visibility.can_view_without_login() {
-      spawn_try_task(async move {
-        let mut webmention = Webmention::new::<Url>(post.ap_id.clone().into(), url.clone().into())?;
-        webmention.set_checked(true);
-        match webmention
-          .send()
-          .instrument(tracing::info_span!("Sending webmention"))
-          .await
-        {
-          Err(WebmentionError::NoEndpointDiscovered(_)) => Ok(()),
-          Ok(_) => Ok(()),
-          Err(e) => Err(e).with_lemmy_type(UntranslatedError::CouldntSendWebmention.into()),
-        }
-      });
-    }
+  if let Some(url) = post.url.clone()
+    && community.visibility.can_view_without_login()
+  {
+    spawn_try_task(async move {
+      let mut webmention = Webmention::new::<Url>(post.ap_id.clone().into(), url.clone().into())?;
+      webmention.set_checked(true);
+      match webmention
+        .send()
+        .instrument(tracing::info_span!("Sending webmention"))
+        .await
+      {
+        Err(WebmentionError::NoEndpointDiscovered(_)) => Ok(()),
+        Ok(_) => Ok(()),
+        Err(e) => Err(e).with_lemmy_type(UntranslatedError::CouldntSendWebmention.into()),
+      }
+    });
   };
 }
 

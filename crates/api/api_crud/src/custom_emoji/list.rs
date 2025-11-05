@@ -1,8 +1,8 @@
 use actix_web::web::{Data, Json, Query};
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_views_custom_emoji::{
-  api::{ListCustomEmojis, ListCustomEmojisResponse},
   CustomEmojiView,
+  api::{ListCustomEmojis, ListCustomEmojisResponse},
 };
 use lemmy_utils::error::LemmyError;
 

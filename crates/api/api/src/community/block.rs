@@ -15,8 +15,8 @@ use lemmy_db_schema::{
   utils::get_conn,
 };
 use lemmy_db_views_community::{
-  api::{BlockCommunity, CommunityResponse},
   CommunityView,
+  api::{BlockCommunity, CommunityResponse},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;

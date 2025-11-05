@@ -1,5 +1,5 @@
 use crate::{
-  deletion::{receive_delete_action, verify_delete_activity, DeletableObjects},
+  deletion::{DeletableObjects, receive_delete_action, verify_delete_activity},
   generate_activity_id,
   protocol::deletion::{delete::Delete, undo_delete::UndoDelete},
 };

@@ -1,4 +1,4 @@
-use crate::util::{get_latest_activity_id, FederationQueueStateWithDomain};
+use crate::util::{FederationQueueStateWithDomain, get_latest_activity_id};
 use chrono::Local;
 use lemmy_db_schema::{
   newtypes::{ActivityId, InstanceId},

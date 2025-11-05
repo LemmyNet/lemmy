@@ -2,7 +2,7 @@ use crate::{
   diesel::{ExpressionMethods, QueryDsl},
   newtypes::LocalUserId,
   source::login_token::{LoginToken, LoginTokenCreateForm},
-  utils::{get_conn, DbPool},
+  utils::{DbPool, get_conn},
 };
 use diesel::{delete, dsl::exists, insert_into, select};
 use diesel_async::RunQueryDsl;

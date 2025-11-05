@@ -1,17 +1,17 @@
 use actix_web::{
+  HttpRequest,
   http::{
-    header::{HeaderName, ACCEPT_ENCODING, HOST},
     Method,
+    header::{ACCEPT_ENCODING, HOST, HeaderName},
   },
   web::Data,
-  HttpRequest,
 };
 use diesel::NotFound;
 use futures::stream::{Stream, StreamExt};
 use http::HeaderValue;
 use lemmy_api_utils::{context::LemmyContext, request::delete_image_alias};
 use lemmy_db_schema::newtypes::DbUrl;
-use lemmy_utils::{error::LemmyResult, REQWEST_TIMEOUT};
+use lemmy_utils::{REQWEST_TIMEOUT, error::LemmyResult};
 use reqwest_middleware::RequestBuilder;
 
 pub(super) fn adapt_request(

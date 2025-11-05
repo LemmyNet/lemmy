@@ -49,7 +49,6 @@ lemmy_email = { workspace = true }
 anyhow = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-once_cell = { version = "1.21.3" }
 tokio = { workspace = true }
 tracing = { workspace = true }
 lemmy_utils = { workspace = true }
@@ -73,7 +72,7 @@ webmention = { version = "0.6.0" }
 urlencoding = { workspace = true }
 webpage = { version = "2.0", default-features = false, features = ["serde"] }
 regex = { workspace = true }
-jsonwebtoken = { version = "9.3.1" }
+jsonwebtoken = { version = "10.1.0", features = ["rust_crypto"] }
 either.workspace = true
 derive-new.workspace = true
 
