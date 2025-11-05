@@ -838,6 +838,7 @@ diesel::table! {
         admin_id -> Nullable<Int4>,
         deny_reason -> Nullable<Text>,
         published_at -> Timestamptz,
+        updated_at -> Nullable<Timestamptz>,
     }
 }
 

@@ -338,6 +338,10 @@ pub struct GetSiteResponse {
   // banners can be set.
   pub image_upload_disabled: bool,
   pub active_plugins: Vec<PluginMetadata>,
+  /// The number of seconds between the last application published, and approved / denied time.
+  ///
+  /// Useful for estimating when your application will be approved.
+  pub last_application_duration_seconds: Option<i64>,
 }
 
 #[skip_serializing_none]
