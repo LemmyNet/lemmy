@@ -1,6 +1,6 @@
 use crate::federation::{
   fetch_limit_with_default,
-  fetcher::resolve_ap_identifier,
+  fetcher::{resolve_community_identifier, resolve_multi_community_identifier},
   listing_type_with_default,
   post_sort_type_with_default,
   post_time_range_seconds_with_default,
@@ -8,15 +8,9 @@ use crate::federation::{
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
-use lemmy_apub_objects::objects::{community::ApubCommunity, multi_community::ApubMultiCommunity};
 use lemmy_db_schema::{
   newtypes::PostId,
-  source::{
-    community::Community,
-    keyword_block::LocalUserKeywordBlock,
-    multi_community::MultiCommunity,
-    post::PostActions,
-  },
+  source::{keyword_block::LocalUserKeywordBlock, post::PostActions},
   traits::PaginationCursorBuilder,
 };
 use lemmy_db_views_local_user::LocalUserView;
@@ -38,30 +32,21 @@ pub async fn list_posts(
 
   check_private_instance(&local_user_view, &site_view.local_site)?;
 
-  let community_id = if let Some(name) = &data.community_name {
-    Some(
-      resolve_ap_identifier::<ApubCommunity, Community>(name, &context, &local_user_view, true)
-        .await?
-        .id,
-    )
-  } else {
-    data.community_id
-  };
+  let community_id = resolve_community_identifier(
+    &data.community_name,
+    data.community_id,
+    &context,
+    &local_user_view,
+  )
+  .await?;
 
-  let multi_community_id = if let Some(name) = &data.multi_community_name {
-    Some(
-      resolve_ap_identifier::<ApubMultiCommunity, MultiCommunity>(
-        name,
-        &context,
-        &local_user_view,
-        true,
-      )
-      .await?
-      .id,
-    )
-  } else {
-    data.multi_community_id
-  };
+  let multi_community_id = resolve_multi_community_identifier(
+    &data.multi_community_name,
+    data.multi_community_id,
+    &context,
+    &local_user_view,
+  )
+  .await?;
 
   let show_hidden = data.show_hidden;
   let show_read = data.show_read;
