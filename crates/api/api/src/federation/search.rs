@@ -1,4 +1,7 @@
-use crate::federation::{fetcher::resolve_ap_identifier, resolve_object::resolve_object_internal};
+use crate::federation::{
+  fetcher::resolve_community_identifier,
+  resolve_object::resolve_object_internal,
+};
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use futures::future::join;
@@ -6,8 +9,7 @@ use lemmy_api_utils::{
   context::LemmyContext,
   utils::{check_conflicting_like_filters, check_private_instance},
 };
-use lemmy_apub_objects::objects::community::ApubCommunity;
-use lemmy_db_schema::{source::community::Community, traits::PaginationCursorBuilder};
+use lemmy_db_schema::traits::PaginationCursorBuilder;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_search_combined::{
   Search,
@@ -29,15 +31,13 @@ pub async fn search(
   check_private_instance(&local_user_view, &local_site)?;
   check_conflicting_like_filters(data.liked_only, data.disliked_only)?;
 
-  let community_id = if let Some(name) = &data.community_name {
-    Some(
-      resolve_ap_identifier::<ApubCommunity, Community>(name, &context, &local_user_view, false)
-        .await?,
-    )
-    .map(|c| c.id)
-  } else {
-    data.community_id
-  };
+  let community_id = resolve_community_identifier(
+    &data.community_name,
+    data.community_id,
+    &context,
+    &local_user_view,
+  )
+  .await?;
 
   let cursor_data = if let Some(cursor) = &data.page_cursor {
     Some(SearchCombinedView::from_cursor(cursor, &mut context.pool()).await?)

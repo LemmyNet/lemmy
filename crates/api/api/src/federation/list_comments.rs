@@ -1,17 +1,16 @@
 use crate::federation::{
   comment_sort_type_with_default,
   fetch_limit_with_default,
-  fetcher::resolve_ap_identifier,
+  fetcher::resolve_community_identifier,
   listing_type_with_default,
   post_time_range_seconds_with_default,
 };
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
-use lemmy_apub_objects::objects::community::ApubCommunity;
 use lemmy_db_schema::{
   newtypes::PaginationCursor,
-  source::{comment::Comment, community::Community},
+  source::comment::Comment,
   traits::{Crud, PaginationCursorBuilder},
 };
 use lemmy_db_views_comment::{
@@ -40,15 +39,13 @@ async fn list_comments_common(
 
   check_private_instance(&local_user_view, local_site)?;
 
-  let community_id = if let Some(name) = &data.community_name {
-    Some(
-      resolve_ap_identifier::<ApubCommunity, Community>(name, &context, &local_user_view, true)
-        .await?
-        .id,
-    )
-  } else {
-    data.community_id
-  };
+  let community_id = resolve_community_identifier(
+    &data.community_name,
+    data.community_id,
+    &context,
+    &local_user_view,
+  )
+  .await?;
   let local_user = local_user_view.as_ref().map(|u| &u.local_user);
   let sort = Some(comment_sort_type_with_default(
     data.sort, local_user, local_site,
