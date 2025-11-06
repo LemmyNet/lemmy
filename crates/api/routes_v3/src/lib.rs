@@ -470,6 +470,7 @@ async fn list_posts_v3(
     community_id: community_id.map(|id| CommunityId(id.0)),
     community_name,
     multi_community_id: None,
+    multi_community_name: None,
     show_hidden,
     show_read,
     show_nsfw,

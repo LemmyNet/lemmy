@@ -33,6 +33,7 @@ use lemmy_db_schema_file::enums::{
   RegistrationMode,
   VoteShow,
 };
+use lemmy_db_views_community::MultiCommunityView;
 use lemmy_db_views_community_follower::CommunityFollowerView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
@@ -458,6 +459,7 @@ pub struct MyUserInfo {
   pub local_user_view: LocalUserView,
   pub follows: Vec<CommunityFollowerView>,
   pub moderates: Vec<CommunityModeratorView>,
+  pub multi_community_follows: Vec<MultiCommunityView>,
   pub community_blocks: Vec<Community>,
   pub instance_communities_blocks: Vec<Instance>,
   pub instance_persons_blocks: Vec<Instance>,
