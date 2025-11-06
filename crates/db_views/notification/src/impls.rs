@@ -20,123 +20,19 @@ use lemmy_db_schema::{
     person::Person,
   },
   traits::PaginationCursorBuilder,
-  utils::{
-    DbPool,
-    get_conn,
-    limit_fetch,
-    paginate,
-    queries::{
-      filters::filter_blocked,
-      joins::{
-        community_join,
-        creator_community_actions_join,
-        creator_home_instance_actions_join,
-        creator_local_instance_actions_join,
-        creator_local_user_admin_join,
-        image_details_join,
-        my_comment_actions_join,
-        my_community_actions_join,
-        my_instance_communities_actions_join,
-        my_instance_persons_actions_join_1,
-        my_local_user_admin_join,
-        my_person_actions_join,
-        my_post_actions_join,
-      },
-    },
-  },
+  utils::{DbPool, get_conn, limit_fetch, paginate, queries::filters::filter_blocked},
 };
 use lemmy_db_schema_file::{
   enums::NotificationType,
   schema::{comment, modlog, notification, person, post, private_message},
 };
 use lemmy_db_views_modlog::ModlogView;
+use lemmy_db_views_notification_sql::joins;
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_private_message::PrivateMessageView;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl NotificationView {
-  #[diesel::dsl::auto_type(no_type_alias)]
-  fn joins(my_person: &Person) -> _ {
-    let item_creator = person::id;
-    let recipient_person = aliases::person1.field(person::id);
-
-    let item_creator_join = person::table.on(
-      comment::creator_id
-        .eq(item_creator)
-        .or(
-          notification::post_id
-            .is_not_null()
-            .and(post::creator_id.eq(item_creator)),
-        )
-        .or(private_message::creator_id.eq(item_creator))
-        .or(modlog::mod_id.eq(item_creator)),
-    );
-
-    let recipient_join = aliases::person1.on(notification::recipient_id.eq(recipient_person));
-
-    let comment_join = comment::table.on(
-      notification::comment_id
-        .eq(comment::id.nullable())
-        // Filter out the deleted / removed
-        .and(not(comment::deleted))
-        .and(not(comment::removed)),
-    );
-
-    let post_join = post::table.on(
-      notification::post_id
-        .eq(post::id.nullable())
-        .or(comment::post_id.eq(post::id))
-        // Filter out the deleted / removed
-        .and(not(post::deleted))
-        .and(not(post::removed)),
-    );
-
-    // This could be a simple join, but you need to check for deleted here
-    let private_message_join = private_message::table.on(
-      notification::private_message_id
-        .eq(private_message::id.nullable())
-        .and(not(private_message::deleted))
-        .and(not(private_message::removed)),
-    );
-
-    let my_community_actions_join: my_community_actions_join =
-      my_community_actions_join(Some(my_person.id));
-    let my_post_actions_join: my_post_actions_join = my_post_actions_join(Some(my_person.id));
-    let my_comment_actions_join: my_comment_actions_join =
-      my_comment_actions_join(Some(my_person.id));
-    let my_instance_communities_actions_join: my_instance_communities_actions_join =
-      my_instance_communities_actions_join(Some(my_person.id));
-    let my_instance_persons_actions_join_1: my_instance_persons_actions_join_1 =
-      my_instance_persons_actions_join_1(Some(my_person.id));
-    let my_person_actions_join: my_person_actions_join = my_person_actions_join(Some(my_person.id));
-    let creator_local_instance_actions_join: creator_local_instance_actions_join =
-      creator_local_instance_actions_join(my_person.instance_id);
-    let my_local_user_admin_join: my_local_user_admin_join =
-      my_local_user_admin_join(Some(my_person.id));
-
-    // Note: avoid adding any more joins here as it will significantly slow down compilation.
-    notification::table
-      .left_join(modlog::table)
-      .left_join(private_message_join)
-      .left_join(comment_join)
-      .left_join(post_join)
-      .left_join(community_join())
-      .left_join(item_creator_join)
-      .inner_join(recipient_join)
-      .left_join(image_details_join())
-      .left_join(creator_community_actions_join())
-      .left_join(creator_local_user_admin_join())
-      .left_join(creator_home_instance_actions_join())
-      .left_join(creator_local_instance_actions_join)
-      .left_join(my_local_user_admin_join)
-      .left_join(my_community_actions_join)
-      .left_join(my_instance_communities_actions_join)
-      .left_join(my_instance_persons_actions_join_1)
-      .left_join(my_post_actions_join)
-      .left_join(my_person_actions_join)
-      .left_join(my_comment_actions_join)
-  }
-
   /// Gets the number of unread mentions
   pub async fn get_unread_count(
     pool: &mut DbPool<'_>,
@@ -148,7 +44,7 @@ impl NotificationView {
 
     let unread_filter = notification::read.eq(false);
 
-    let mut query = Self::joins(my_person)
+    let mut query = joins(my_person)
       // Filter for your user
       .filter(notification::recipient_id.eq(my_person.id))
       // Filter unreads
@@ -176,7 +72,7 @@ impl NotificationView {
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
 
-    let res = Self::joins(my_person)
+    let res = joins(my_person)
       .filter(notification::id.eq(id))
       .select(NotificationViewInternal::as_select())
       .get_result::<NotificationViewInternal>(conn)
@@ -230,7 +126,7 @@ impl NotificationQuery {
   ) -> LemmyResult<Vec<NotificationView>> {
     let conn = &mut get_conn(pool).await?;
 
-    let mut query = NotificationView::joins(my_person)
+    let mut query = joins(my_person)
       .select(NotificationViewInternal::as_select())
       .into_boxed();
 
