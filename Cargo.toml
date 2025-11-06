@@ -53,7 +53,6 @@ members = [
   "crates/api/api_utils",
   "crates/api/routes",
   "crates/api/routes_v3",
-
   "crates/apub/apub",
   "crates/apub/activities",
   "crates/apub/objects",
