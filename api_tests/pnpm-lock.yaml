@@ -38,6 +38,9 @@ importers:
       lemmy-js-client:
         specifier: 1.0.0-merge-modlog-tables.9
         version: 1.0.0-merge-modlog-tables.9
+      lemmy-js-client-019:
+        specifier: npm:lemmy-js-client@0.19.5-alpha.1
+        version: lemmy-js-client@0.19.5-alpha.1
       prettier:
         specifier: ^3.5.3
         version: 3.6.2
@@ -1655,6 +1658,9 @@ packages:
 
   keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
+
+  lemmy-js-client@0.19.5-alpha.1:
+    resolution: {integrity: sha512-GOhaiTQzrpwdmc3DFYemT2SmNmpuQJe2BWUms9QOzdYlkA1WZ0uu7axPE3s+T5OOxfy7K9Q2gsLe72dcVSlffw==}
 
   lemmy-js-client@1.0.0-merge-modlog-tables.9:
     resolution: {integrity: sha512-NzI2JFh3EzaCgKJ6vLrvArLeH/CSshFQ3zvtMfPNGBMskz5n6W7DOtIb1gNxmlxPP5oR0AiTlVwjyqoBBpaP3w==}
@@ -4398,6 +4404,8 @@ snapshots:
   keyv@4.5.4:
     dependencies:
       json-buffer: 3.0.1
+
+  lemmy-js-client@0.19.5-alpha.1: {}
 
   lemmy-js-client@1.0.0-merge-modlog-tables.9:
     dependencies:

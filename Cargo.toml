@@ -52,6 +52,7 @@ members = [
   "crates/api/api_common",
   "crates/api/api_utils",
   "crates/api/routes",
+  "crates/api/routes_v3",
   "crates/apub/apub",
   "crates/apub/activities",
   "crates/apub/objects",
@@ -93,6 +94,7 @@ large_futures = "deny"
 lemmy_api = { version = "=1.0.0-alpha.12", path = "./crates/api/api" }
 lemmy_api_crud = { version = "=1.0.0-alpha.12", path = "./crates/api/api_crud" }
 lemmy_api_routes = { version = "=1.0.0-alpha.12", path = "./crates/api/routes" }
+lemmy_api_routes_v3 = { version = "=1.0.0-alpha.12", path = "./crates/api/routes_v3" }
 lemmy_apub = { version = "=1.0.0-alpha.12", path = "./crates/apub/apub" }
 lemmy_apub_activities = { version = "=1.0.0-alpha.12", path = "./crates/apub/activities" }
 lemmy_apub_objects = { version = "=1.0.0-alpha.12", path = "./crates/apub/objects" }
