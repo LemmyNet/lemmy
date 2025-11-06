@@ -10,7 +10,7 @@
   "scripts": {
     "lint": "tsc --noEmit && eslint --report-unused-disable-directives && prettier --check 'src/**/*.ts'",
     "fix": "prettier --write src && eslint --fix src",
-    "api-test": "jest -i follow.spec.ts && jest -i image.spec.ts && jest -i user.spec.ts && jest -i private_message.spec.ts && jest -i community.spec.ts && jest -i private_comm.spec.ts && jest -i post.spec.ts && jest -i comment.spec.ts && jest -i tags.spec.ts",
+    "api-test": "jest -i follow.spec.ts && jest -i image.spec.ts && jest -i user.spec.ts && jest -i private_message.spec.ts && jest -i community.spec.ts && jest -i private_comm.spec.ts && jest -i post.spec.ts && jest -i comment.spec.ts && jest -i tags.spec.ts && jest -i apiv3.spec.ts",
     "api-test-follow": "jest -i follow.spec.ts",
     "api-test-comment": "jest -i comment.spec.ts",
     "api-test-post": "jest -i post.spec.ts",
@@ -19,7 +19,8 @@
     "api-test-private-community": "jest -i private_comm.spec.ts",
     "api-test-private-message": "jest -i private_message.spec.ts",
     "api-test-image": "jest -i image.spec.ts",
-    "api-test-tags": "jest -i tags.spec.ts"
+    "api-test-tags": "jest -i tags.spec.ts",
+    "api-test-apiv3": "jest -i apiv3.spec.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.29.0",
@@ -32,6 +33,7 @@
     "jest": "^30.0.0",
     "joi": "^17.13.3",
     "lemmy-js-client": "1.0.0-merge-modlog-tables.9",
+    "lemmy-js-client-019": "npm:lemmy-js-client@0.19.5-alpha.1",
     "prettier": "^3.5.3",
     "ts-jest": "^29.4.0",
     "tsoa": "^6.6.0",

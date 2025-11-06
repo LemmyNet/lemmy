@@ -23,6 +23,7 @@ default = []
 [dependencies]
 lemmy_api = { workspace = true }
 lemmy_api_routes = { workspace = true }
+lemmy_api_routes_v3 = { workspace = true }
 lemmy_apub = { workspace = true }
 lemmy_apub_activities = { workspace = true }
 lemmy_apub_objects = { workspace = true }
