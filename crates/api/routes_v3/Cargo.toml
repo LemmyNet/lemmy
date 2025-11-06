@@ -1,0 +1,40 @@
+[package]
+name = "lemmy_api_routes_v3"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lib]
+doctest = false
+
+[lints]
+workspace = true
+
+[features]
+default = []
+
+[dependencies]
+lemmy_api = { workspace = true }
+lemmy_api_crud = { workspace = true }
+lemmy_db_schema = { workspace = true }
+lemmy_db_views_site = { workspace = true }
+lemmy_db_views_post = { workspace = true }
+lemmy_utils = { workspace = true }
+lemmy_api_utils = { workspace = true }
+lemmy_db_views_local_user = { workspace = true }
+actix-web = { workspace = true }
+chrono = { workspace = true }
+url = { workspace = true }
+lemmy_api_019 = { package = "lemmy_api_common", version = "0.19.12" }
+lemmy_db_views_comment = { workspace = true, features = ["full"] }
+lemmy_db_views_community = { workspace = true, features = ["full"] }
+lemmy_db_views_search_combined = { workspace = true, features = ["full"] }
+lemmy_db_views_person = { workspace = true, features = ["full"] }
+lemmy_db_schema_file = { workspace = true }
+activitypub_federation = { workspace = true }
