@@ -366,12 +366,15 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
               .route("", delete().to(delete_image))
               .route("/list", get().to(list_media)),
           )
-          .route("/notifications", get().to(list_notifications))
+          .service(
+            scope("/notifications")
+              .route("", get().to(list_notifications))
+              .route("/mark_as_read/all", post().to(mark_all_notifications_read))
+              .route("/mark_as_read", post().to(mark_notification_as_read))
+              .route("/unread_count", get().to(unread_count)),
+          )
           .route("/delete", post().to(delete_account))
-          .route("/mark_as_read/all", post().to(mark_all_notifications_read))
-          .route("/mark_as_read", post().to(mark_notification_as_read))
           .route("/report_count", get().to(report_count))
-          .route("/unread_count", get().to(unread_count))
           .route("/list_logins", get().to(list_logins))
           .route("/validate_auth", get().to(validate_auth))
           .route("/donation_dialog_shown", post().to(donation_dialog_shown))
