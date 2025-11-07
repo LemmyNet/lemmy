@@ -1,14 +1,8 @@
-use actix_extensible_rate_limit::{
-  RateLimiter,
-  backend::{
-    RateLimitIpAddr,
-    SimpleInput,
-    SimpleInputFuture,
-    SimpleOutput,
-    memory::InMemoryBackend,
-    raw_ip_key,
-  },
+use crate::rate_limit::{
+  backend::LemmyBackend,
+  input::{LemmyInput, LemmyInputFuture, raw_ip_key},
 };
+use actix_extensible_rate_limit::{RateLimiter, backend::SimpleOutput};
 use actix_web::dev::ServiceRequest;
 use enum_map::{EnumMap, enum_map};
 use std::{
@@ -17,6 +11,9 @@ use std::{
   time::Duration,
 };
 use strum::{AsRefStr, Display};
+
+mod backend;
+mod input;
 
 #[derive(Debug, enum_map::Enum, Copy, Clone, Display, AsRefStr)]
 pub enum ActionType {
@@ -38,14 +35,14 @@ pub struct BucketConfig {
 #[derive(Clone)]
 pub struct RateLimit {
   configs: Arc<RwLock<EnumMap<ActionType, BucketConfig>>>,
-  backends: EnumMap<ActionType, InMemoryBackend<RateLimitIpAddr>>,
+  backends: EnumMap<ActionType, LemmyBackend>,
 }
 
 impl RateLimit {
   pub fn new(configs: EnumMap<ActionType, BucketConfig>) -> Self {
     Self {
       configs: Arc::new(RwLock::new(configs)),
-      backends: EnumMap::from_fn(|_| InMemoryBackend::<RateLimitIpAddr>::builder().build()),
+      backends: EnumMap::from_fn(|_| LemmyBackend::default()),
     }
   }
 
@@ -90,11 +87,8 @@ impl RateLimit {
   fn build_rate_limiter(
     &self,
     action_type: ActionType,
-  ) -> RateLimiter<
-    InMemoryBackend<RateLimitIpAddr>,
-    SimpleOutput,
-    impl Fn(&ServiceRequest) -> SimpleInputFuture<RateLimitIpAddr> + 'static,
-  > {
+  ) -> RateLimiter<LemmyBackend, SimpleOutput, impl Fn(&ServiceRequest) -> LemmyInputFuture + 'static>
+  {
     let input = new_input(action_type, self.configs.clone());
 
     RateLimiter::builder(self.backends[action_type].clone(), input)
@@ -106,66 +100,45 @@ impl RateLimit {
 
   pub fn message(
     &self,
-  ) -> RateLimiter<
-    InMemoryBackend<RateLimitIpAddr>,
-    SimpleOutput,
-    impl Fn(&ServiceRequest) -> SimpleInputFuture<RateLimitIpAddr> + 'static,
-  > {
+  ) -> RateLimiter<LemmyBackend, SimpleOutput, impl Fn(&ServiceRequest) -> LemmyInputFuture + 'static>
+  {
     self.build_rate_limiter(ActionType::Message)
   }
 
   pub fn search(
     &self,
-  ) -> RateLimiter<
-    InMemoryBackend<RateLimitIpAddr>,
-    SimpleOutput,
-    impl Fn(&ServiceRequest) -> SimpleInputFuture<RateLimitIpAddr> + 'static,
-  > {
+  ) -> RateLimiter<LemmyBackend, SimpleOutput, impl Fn(&ServiceRequest) -> LemmyInputFuture + 'static>
+  {
     self.build_rate_limiter(ActionType::Search)
   }
   pub fn register(
     &self,
-  ) -> RateLimiter<
-    InMemoryBackend<RateLimitIpAddr>,
-    SimpleOutput,
-    impl Fn(&ServiceRequest) -> SimpleInputFuture<RateLimitIpAddr> + 'static,
-  > {
+  ) -> RateLimiter<LemmyBackend, SimpleOutput, impl Fn(&ServiceRequest) -> LemmyInputFuture + 'static>
+  {
     self.build_rate_limiter(ActionType::Register)
   }
   pub fn post(
     &self,
-  ) -> RateLimiter<
-    InMemoryBackend<RateLimitIpAddr>,
-    SimpleOutput,
-    impl Fn(&ServiceRequest) -> SimpleInputFuture<RateLimitIpAddr> + 'static,
-  > {
+  ) -> RateLimiter<LemmyBackend, SimpleOutput, impl Fn(&ServiceRequest) -> LemmyInputFuture + 'static>
+  {
     self.build_rate_limiter(ActionType::Post)
   }
   pub fn image(
     &self,
-  ) -> RateLimiter<
-    InMemoryBackend<RateLimitIpAddr>,
-    SimpleOutput,
-    impl Fn(&ServiceRequest) -> SimpleInputFuture<RateLimitIpAddr> + 'static,
-  > {
+  ) -> RateLimiter<LemmyBackend, SimpleOutput, impl Fn(&ServiceRequest) -> LemmyInputFuture + 'static>
+  {
     self.build_rate_limiter(ActionType::Image)
   }
   pub fn comment(
     &self,
-  ) -> RateLimiter<
-    InMemoryBackend<RateLimitIpAddr>,
-    SimpleOutput,
-    impl Fn(&ServiceRequest) -> SimpleInputFuture<RateLimitIpAddr> + 'static,
-  > {
+  ) -> RateLimiter<LemmyBackend, SimpleOutput, impl Fn(&ServiceRequest) -> LemmyInputFuture + 'static>
+  {
     self.build_rate_limiter(ActionType::Comment)
   }
   pub fn import_user_settings(
     &self,
-  ) -> RateLimiter<
-    InMemoryBackend<RateLimitIpAddr>,
-    SimpleOutput,
-    impl Fn(&ServiceRequest) -> SimpleInputFuture<RateLimitIpAddr> + 'static,
-  > {
+  ) -> RateLimiter<LemmyBackend, SimpleOutput, impl Fn(&ServiceRequest) -> LemmyInputFuture + 'static>
+  {
     self.build_rate_limiter(ActionType::ImportUserSettings)
   }
 }
@@ -173,7 +146,7 @@ impl RateLimit {
 fn new_input(
   action_type: ActionType,
   configs: Arc<RwLock<EnumMap<ActionType, BucketConfig>>>,
-) -> impl Fn(&ServiceRequest) -> SimpleInputFuture<RateLimitIpAddr> + 'static {
+) -> impl Fn(&ServiceRequest) -> LemmyInputFuture + 'static {
   move |req| {
     ready({
       let info = req.connection_info();
@@ -184,7 +157,7 @@ fn new_input(
 
       let interval = Duration::from_secs(config.interval.into());
       let max_requests = config.max_requests.into();
-      Ok(SimpleInput {
+      Ok(LemmyInput {
         interval,
         max_requests,
         key,

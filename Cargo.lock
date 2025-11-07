@@ -92,14 +92,14 @@ dependencies = [
 [[package]]
 name = "actix-extensible-rate-limit"
 version = "0.4.0"
-source = "git+https://github.com/Nutomic/actix-extensible-rate-limit.git?branch=make-extensible#704529406eff4a0a76bc6da4a4d132e9e4df46f6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "65f69685bde52e3c1d9ec47aa42ae4eca7f27c04661774423b68b26a06757181"
 dependencies = [
  "actix-web",
  "dashmap",
  "futures",
  "log",
  "thiserror 1.0.69",
- "tokio",
 ]
 
 [[package]]
@@ -4333,6 +4333,7 @@ dependencies = [
  "anyhow",
  "cfg-if",
  "clearurls",
+ "dashmap",
  "deser-hjson",
  "diesel",
  "doku",
