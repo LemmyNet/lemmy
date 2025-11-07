@@ -1,5 +1,7 @@
+use actix_web::web::Json;
 use chrono::Utc;
 use lemmy_api_019::{
+  comment::CommentResponse as CommentResponseV3,
   lemmy_db_schema::{
     ListingType as ListingTypeV3,
     SearchType as SearchTypeV3,
@@ -43,6 +45,7 @@ use lemmy_api_019::{
     SiteView as SiteViewV3,
   },
   lemmy_db_views_actor::structs::{CommunityView as CommunityViewV3, PersonView as PersonViewV3},
+  post::PostResponse as PostResponseV3,
   site::{MyUserInfo as MyUserInfoV3, SearchResponse as SearchResponseV3},
 };
 use lemmy_db_schema::source::{
@@ -55,14 +58,15 @@ use lemmy_db_schema::source::{
   site::Site,
 };
 use lemmy_db_schema_file::enums::{ListingType, PostSortType};
-use lemmy_db_views_comment::CommentView;
+use lemmy_db_views_comment::{CommentView, api::CommentResponse};
 use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
-use lemmy_db_views_post::PostView;
+use lemmy_db_views_post::{PostView, api::PostResponse};
 use lemmy_db_views_search_combined::SearchCombinedView;
 use lemmy_db_views_site::{SiteView, api::MyUserInfo};
 use lemmy_diesel_utils::{dburl::DbUrl, sensitive::SensitiveString};
+use lemmy_utils::error::LemmyResult;
 use std::sync::LazyLock;
 use url::Url;
 
@@ -180,10 +184,12 @@ pub(crate) fn convert_post_view(post_view: PostView) -> PostViewV3 {
     creator_is_moderator,
     creator_banned_from_community,
     post_actions,
+    community_actions,
     ..
   } = post_view;
   let (post, counts) = convert_post(post);
   let my_vote = post_actions
+    .as_ref()
     .and_then(|pa| pa.vote_is_upvote)
     .map(|vote_is_upvote| if vote_is_upvote { 1 } else { -1 });
   PostViewV3 {
@@ -192,14 +198,14 @@ pub(crate) fn convert_post_view(post_view: PostView) -> PostViewV3 {
     community: convert_community(community),
     image_details: None,
     creator_banned_from_community,
-    banned_from_community: false,
+    banned_from_community: community_actions.and_then(|c| c.received_ban_at).is_some(),
     creator_is_moderator,
     creator_is_admin,
     counts,
     subscribed: SubscribedTypeV3::NotSubscribed,
-    saved: false,
-    read: false,
-    hidden: false,
+    saved: post_actions.as_ref().map(|p| p.saved_at).is_some(),
+    read: post_actions.as_ref().map(|p| p.read_at).is_some(),
+    hidden: post_actions.as_ref().map(|p| p.hidden_at).is_some(),
     creator_blocked: false,
     my_vote,
     unread_comments: 0,
@@ -720,4 +726,17 @@ pub(crate) fn convert_post_listing_type(listing_type: ListingTypeV3) -> ListingT
     ListingTypeV3::Subscribed => ListingType::Subscribed,
     ListingTypeV3::ModeratorView => ListingType::ModeratorView,
   }
+}
+pub(crate) fn convert_post_response(res: Json<PostResponse>) -> LemmyResult<Json<PostResponseV3>> {
+  Ok(Json(PostResponseV3 {
+    post_view: convert_post_view(res.0.post_view),
+  }))
+}
+pub(crate) fn convert_comment_response(
+  res: Json<CommentResponse>,
+) -> LemmyResult<Json<CommentResponseV3>> {
+  Ok(Json(CommentResponseV3 {
+    comment_view: convert_comment_view(res.0.comment_view),
+    recipient_ids: vec![],
+  }))
 }

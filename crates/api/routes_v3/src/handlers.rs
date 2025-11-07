@@ -1,10 +1,12 @@
 use crate::convert::{
+  convert_comment_response,
   convert_comment_view,
   convert_community_view,
   convert_my_user,
   convert_person_view,
   convert_post_listing_sort,
   convert_post_listing_type,
+  convert_post_response,
   convert_post_view,
   convert_score,
   convert_search_response,
@@ -22,7 +24,7 @@ use lemmy_api::{
     search::search,
   },
   local_user::{login::login, logout::logout},
-  post::like::like_post,
+  post::{like::like_post, save::save_post},
 };
 use lemmy_api_019::{
   comment::{
@@ -65,7 +67,7 @@ use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::newtypes::{CommentId, CommunityId, LanguageId, PersonId, PostId};
 use lemmy_db_views_comment::api::{CreateComment, CreateCommentLike, GetComments};
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_post::api::{CreatePost, CreatePostLike, GetPosts};
+use lemmy_db_views_post::api::{CreatePost, CreatePostLike, GetPosts, SavePost};
 use lemmy_db_views_search_combined::{Search, api::GetPost};
 use lemmy_db_views_site::api::{GetSiteResponse, Login, LoginResponse, ResolveObject};
 use lemmy_utils::error::LemmyResult;
@@ -256,11 +258,8 @@ pub(crate) async fn like_comment_v3(
     comment_id: CommentId(comment_id.0),
     is_upvote: convert_score(score),
   };
-  let res = like_comment(Json(data), context, local_user_view).await?.0;
-  Ok(Json(CommentResponseV3 {
-    comment_view: convert_comment_view(res.comment_view),
-    recipient_ids: vec![],
-  }))
+  let res = like_comment(Json(data), context, local_user_view).await?;
+  convert_comment_response(res)
 }
 
 pub(crate) async fn like_post_v3(
@@ -273,10 +272,8 @@ pub(crate) async fn like_post_v3(
     post_id: PostId(post_id.0),
     is_upvote: convert_score(score),
   };
-  let res = like_post(Json(data), context, local_user_view).await?.0;
-  Ok(Json(PostResponseV3 {
-    post_view: convert_post_view(res.post_view),
-  }))
+  let res = like_post(Json(data), context, local_user_view).await?;
+  convert_post_response(res)
 }
 
 pub(crate) async fn create_comment_v3(
@@ -285,10 +282,7 @@ pub(crate) async fn create_comment_v3(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponseV3>> {
   let res = Box::pin(create_comment(data, context, local_user_view)).await?;
-  Ok(Json(CommentResponseV3 {
-    comment_view: convert_comment_view(res.0.comment_view),
-    recipient_ids: vec![],
-  }))
+  convert_comment_response(res)
 }
 
 pub(crate) async fn create_post_v3(
@@ -321,9 +315,7 @@ pub(crate) async fn create_post_v3(
     scheduled_publish_time_at: None,
   };
   let res = Box::pin(create_post(Json(data), context, local_user_view)).await?;
-  Ok(Json(PostResponseV3 {
-    post_view: convert_post_view(res.0.post_view),
-  }))
+  convert_post_response(res)
 }
 
 pub(crate) async fn search_v3(
@@ -365,4 +357,13 @@ pub(crate) async fn resolve_object_v3(
     community: conv.communities.pop(),
     person: conv.users.pop(),
   }))
+}
+
+pub(crate) async fn save_post_v3(
+  data: Json<SavePost>,
+  context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
+) -> LemmyResult<Json<PostResponseV3>> {
+  let res = save_post(data, context, local_user_view).await?;
+  convert_post_response(res)
 }

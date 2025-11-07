@@ -10,6 +10,7 @@ use crate::handlers::{
   login_v3,
   logout_v3,
   resolve_object_v3,
+  save_post_v3,
   search_v3,
 };
 use actix_web::{guard, web::*};
@@ -45,7 +46,8 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .wrap(rate_limit.message())
           .route("", get().to(get_post_v3))
           .route("/list", get().to(list_posts_v3))
-          .route("/like", post().to(like_post_v3)),
+          .route("/like", post().to(like_post_v3))
+          .route("/save", put().to(save_post_v3)),
       )
       .service(
         resource("/comment")
