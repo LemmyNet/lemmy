@@ -367,7 +367,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
               .route("/list", get().to(list_media)),
           )
           .service(
-            scope("/notifications")
+            scope("/notification")
               .route("", get().to(list_notifications))
               .route("/mark_as_read/all", post().to(mark_all_notifications_read))
               .route("/mark_as_read", post().to(mark_notification_as_read))
@@ -421,21 +421,15 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
       .service(
         scope("/admin")
           .route("/add", post().to(add_admin))
-          .route(
-            "/registration_application/count",
-            get().to(get_unread_registration_application_count),
-          )
-          .route(
-            "/registration_application/list",
-            get().to(list_registration_applications),
-          )
-          .route(
-            "/registration_application/approve",
-            put().to(approve_registration_application),
-          )
-          .route(
-            "/registration_application",
-            get().to(get_registration_application),
+          .service(
+            scope("/registration_application")
+              .route("", get().to(get_registration_application))
+              .route(
+                "/count",
+                get().to(get_unread_registration_application_count),
+              )
+              .route("/list", get().to(list_registration_applications))
+              .route("/approve", put().to(approve_registration_application)),
           )
           .service(
             scope("/purge")
