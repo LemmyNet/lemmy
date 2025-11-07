@@ -1,9 +1,7 @@
-use crate::federation::resolve_ap_identifier;
+use crate::federation::fetcher::resolve_multi_community_identifier;
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use lemmy_api_utils::context::LemmyContext;
-use lemmy_apub_objects::objects::multi_community::ApubMultiCommunity;
-use lemmy_db_schema::source::multi_community::MultiCommunity;
 use lemmy_db_views_community::{
   MultiCommunityView,
   api::{GetMultiCommunity, GetMultiCommunityResponse},
@@ -19,20 +17,9 @@ pub async fn read_multi_community(
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<GetMultiCommunityResponse>> {
   let my_person_id = local_user_view.as_ref().map(|l| l.person.id);
-  let id = match (data.id, &data.name) {
-    (Some(id), _) => id,
-    (_, Some(name)) => {
-      resolve_ap_identifier::<ApubMultiCommunity, MultiCommunity>(
-        name,
-        &context,
-        &local_user_view,
-        true,
-      )
-      .await?
-      .id
-    }
-    _ => Err(LemmyErrorType::NoIdGiven)?,
-  };
+  let id = resolve_multi_community_identifier(&data.name, data.id, &context, &local_user_view)
+    .await?
+    .ok_or(LemmyErrorType::NoIdGiven)?;
   let multi_community_view =
     MultiCommunityView::read(&mut context.pool(), id, my_person_id).await?;
 

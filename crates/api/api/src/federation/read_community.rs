@@ -1,12 +1,11 @@
-use crate::federation::fetcher::resolve_ap_identifier;
+use crate::federation::fetcher::resolve_community_identifier;
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use lemmy_api_utils::{
   context::LemmyContext,
   utils::{check_private_instance, is_mod_or_admin_opt, read_site_for_actor},
 };
-use lemmy_apub_objects::objects::community::ApubCommunity;
-use lemmy_db_schema::source::{actor_language::CommunityLanguage, community::Community};
+use lemmy_db_schema::source::actor_language::CommunityLanguage;
 use lemmy_db_views_community::{
   CommunityView,
   api::{GetCommunity, GetCommunityResponse},
@@ -31,15 +30,9 @@ pub async fn get_community(
 
   let local_user = local_user_view.as_ref().map(|u| &u.local_user);
 
-  let community_id = match data.id {
-    Some(id) => id,
-    None => {
-      let name = data.name.clone().unwrap_or_else(|| "main".to_string());
-      resolve_ap_identifier::<ApubCommunity, Community>(&name, &context, &local_user_view, true)
-        .await?
-        .id
-    }
-  };
+  let community_id = resolve_community_identifier(&data.name, data.id, &context, &local_user_view)
+    .await?
+    .ok_or(LemmyErrorType::NoIdGiven)?;
 
   let is_mod_or_admin = is_mod_or_admin_opt(
     &mut context.pool(),
