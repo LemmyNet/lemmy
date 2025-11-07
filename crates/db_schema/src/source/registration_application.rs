@@ -20,6 +20,7 @@ pub struct RegistrationApplication {
   pub admin_id: Option<PersonId>,
   pub deny_reason: Option<String>,
   pub published_at: DateTime<Utc>,
+  pub updated_at: Option<DateTime<Utc>>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable))]
@@ -34,4 +35,5 @@ pub struct RegistrationApplicationInsertForm {
 pub struct RegistrationApplicationUpdateForm {
   pub admin_id: Option<Option<PersonId>>,
   pub deny_reason: Option<Option<String>>,
+  pub updated_at: Option<Option<DateTime<Utc>>>,
 }

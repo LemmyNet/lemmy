@@ -1,5 +1,6 @@
 use crate::PersonView;
 use lemmy_db_schema::{newtypes::PersonId, source::site::Site};
+use lemmy_db_views_community::MultiCommunityView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -78,6 +79,7 @@ pub struct GetPersonDetailsResponse {
   pub person_view: PersonView,
   pub site: Option<Site>,
   pub moderates: Vec<CommunityModeratorView>,
+  pub multi_communities_created: Vec<MultiCommunityView>,
 }
 
 #[skip_serializing_none]

@@ -56,6 +56,26 @@ impl RegistrationApplication {
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
+  /// Fetches the most recent updated application.
+  pub async fn last_updated(pool: &mut DbPool<'_>) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+    registration_application::table
+      .filter(registration_application::updated_at.is_not_null())
+      .order_by(registration_application::updated_at.desc())
+      .first(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  /// The duration between the last application creation, and its approval / denial time.
+  ///
+  /// Useful for estimating when your application will be approved.
+  pub fn updated_published_duration(&self) -> Option<i64> {
+    self
+      .updated_at
+      .map(|updated| (updated - self.published_at).num_seconds())
+  }
+
   /// A missing admin id, means the application is unread
   #[diesel::dsl::auto_type(no_type_alias)]
   pub fn is_unread() -> _ {
