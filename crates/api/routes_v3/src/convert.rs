@@ -203,9 +203,9 @@ pub(crate) fn convert_post_view(post_view: PostView) -> PostViewV3 {
     creator_is_admin,
     counts,
     subscribed: SubscribedTypeV3::NotSubscribed,
-    saved: post_actions.as_ref().map(|p| p.saved_at).is_some(),
-    read: post_actions.as_ref().map(|p| p.read_at).is_some(),
-    hidden: post_actions.as_ref().map(|p| p.hidden_at).is_some(),
+    saved: post_actions.as_ref().and_then(|p| p.saved_at).is_some(),
+    read: post_actions.as_ref().and_then(|p| p.read_at).is_some(),
+    hidden: post_actions.as_ref().and_then(|p| p.hidden_at).is_some(),
     creator_blocked: false,
     my_vote,
     unread_comments: 0,
@@ -226,6 +226,7 @@ pub(crate) fn convert_comment_view(comment_view: CommentView) -> CommentViewV3 {
   } = comment_view;
   let (comment, counts) = convert_comment(comment);
   let my_vote = comment_actions
+    .as_ref()
     .and_then(|pa| pa.vote_is_upvote)
     .map(|vote_is_upvote| if vote_is_upvote { 1 } else { -1 });
   CommentViewV3 {
@@ -239,7 +240,7 @@ pub(crate) fn convert_comment_view(comment_view: CommentView) -> CommentViewV3 {
     creator_is_moderator,
     creator_is_admin,
     subscribed: SubscribedTypeV3::NotSubscribed,
-    saved: false,
+    saved: comment_actions.and_then(|c| c.saved_at).is_some(),
     creator_blocked: false,
     my_vote,
   }

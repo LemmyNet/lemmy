@@ -16,7 +16,7 @@ use crate::convert::{
 use activitypub_federation::config::Data as ApubData;
 use actix_web::{HttpRequest, HttpResponse, web::*};
 use lemmy_api::{
-  comment::like::like_comment,
+  comment::{like::like_comment, save::save_comment},
   federation::{
     list_comments::list_comments,
     list_posts::list_posts,
@@ -65,7 +65,7 @@ use lemmy_api_crud::{
 };
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::newtypes::{CommentId, CommunityId, LanguageId, PersonId, PostId};
-use lemmy_db_views_comment::api::{CreateComment, CreateCommentLike, GetComments};
+use lemmy_db_views_comment::api::{CreateComment, CreateCommentLike, GetComments, SaveComment};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::api::{CreatePost, CreatePostLike, GetPosts, SavePost};
 use lemmy_db_views_search_combined::{Search, api::GetPost};
@@ -367,4 +367,13 @@ pub(crate) async fn save_post_v3(
 ) -> LemmyResult<Json<PostResponseV3>> {
   let res = save_post(data, context, local_user_view).await?;
   convert_post_response(res)
+}
+
+pub(crate) async fn save_comment_v3(
+  data: Json<SaveComment>,
+  context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
+) -> LemmyResult<Json<CommentResponseV3>> {
+  let res = save_comment(data, context, local_user_view).await?;
+  convert_comment_response(res)
 }

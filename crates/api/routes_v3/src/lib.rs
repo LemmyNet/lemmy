@@ -10,6 +10,7 @@ use crate::handlers::{
   login_v3,
   logout_v3,
   resolve_object_v3,
+  save_comment_v3,
   save_post_v3,
   search_v3,
 };
@@ -59,7 +60,8 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
         scope("/comment")
           .wrap(rate_limit.message())
           .route("/like", post().to(like_comment_v3))
-          .route("/list", get().to(list_comments_v3)),
+          .route("/list", get().to(list_comments_v3))
+          .route("/save", put().to(save_comment_v3)),
       )
       .service(
         resource("/user/login")
