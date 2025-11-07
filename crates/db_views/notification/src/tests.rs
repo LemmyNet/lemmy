@@ -189,6 +189,9 @@ async fn test_modlog() -> LemmyResult<()> {
   };
   assert_eq!(notification, &notifs[0].notification);
   assert_eq!(modlog, &m.modlog);
+  assert_eq!(Some(data.alice.id), m.moderator.as_ref().map(|m| m.id));
+  assert_eq!(Some(data.bob.id), m.target_person.as_ref().map(|p| p.id));
+  assert_eq!(Some(comment.id), m.target_comment.as_ref().map(|c| c.id));
 
   cleanup(data, pool).await
 }

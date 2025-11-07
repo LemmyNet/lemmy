@@ -60,8 +60,9 @@ impl NotificationView {
     let recipient_person = aliases::person1.field(person::id);
 
     let item_creator_join = person::table.on(
-      comment::creator_id
-        .eq(item_creator)
+      notification::comment_id
+        .is_not_null()
+        .and(comment::creator_id.eq(item_creator))
         .or(
           notification::post_id
             .is_not_null()
