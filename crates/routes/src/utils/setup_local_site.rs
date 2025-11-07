@@ -97,22 +97,22 @@ pub async fn setup_local_site(pool: &mut DbPool<'_>, settings: &Settings) -> Lem
           // create multi-comm follower account
           let r: String = rand::rng()
             .sample_iter(&Alphanumeric)
-            .take(11)
+            .take(14)
             .map(char::from)
             .collect();
-          let name = format!("multicomm{}", r);
+          let name = format!("lemmy_{}", r);
           let form = PersonInsertForm {
             private_key: site.private_key.map(SensitiveString::into_inner),
             inbox_url: Some(site.inbox_url),
             bot_account: Some(true),
             ..PersonInsertForm::new(name, site.public_key, instance.id)
           };
-          let multi_comm_follower = Person::create(&mut conn.into(), &form).await?;
+          let system_account = Person::create(&mut conn.into(), &form).await?;
 
           // Finally create the local_site row
           let local_site_form = LocalSiteInsertForm {
             site_setup: Some(settings.setup.is_some()),
-            multi_comm_follower: Some(multi_comm_follower.id),
+            system_account: Some(system_account.id),
             ..LocalSiteInsertForm::new(site.id)
           };
           let local_site = LocalSite::create(&mut conn.into(), &local_site_form).await?;

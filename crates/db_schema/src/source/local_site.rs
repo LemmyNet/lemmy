@@ -94,7 +94,7 @@ pub struct LocalSite {
   pub disable_email_notifications: bool,
   pub suggested_communities: Option<MultiCommunityId>,
   #[serde(skip)]
-  pub multi_comm_follower: PersonId,
+  pub system_account: PersonId,
   pub default_items_per_page: i32,
 }
 
@@ -160,7 +160,7 @@ pub struct LocalSiteInsertForm {
   #[new(default)]
   pub suggested_communities: Option<MultiCommunityId>,
   #[new(default)]
-  pub multi_comm_follower: Option<PersonId>,
+  pub system_account: Option<PersonId>,
 }
 
 #[derive(Clone, Default)]

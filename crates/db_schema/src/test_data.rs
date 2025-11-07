@@ -22,7 +22,7 @@ impl TestData {
 
     let person = Person::create(pool, &PersonInsertForm::test_form(instance.id, "langs")).await?;
     let local_site_form = LocalSiteInsertForm {
-      multi_comm_follower: Some(person.id),
+      system_account: Some(person.id),
       ..LocalSiteInsertForm::new(site.id)
     };
     let local_site = LocalSite::create(pool, &local_site_form).await?;
