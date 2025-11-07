@@ -67,7 +67,7 @@ use lemmy_db_views_search_combined::SearchCombinedView;
 use lemmy_db_views_site::{SiteView, api::MyUserInfo};
 use lemmy_diesel_utils::{dburl::DbUrl, sensitive::SensitiveString};
 use lemmy_utils::error::LemmyResult;
-use std::sync::LazyLock;
+use std::{i32, sync::LazyLock};
 use url::Url;
 
 #[allow(clippy::expect_used)]
@@ -514,11 +514,23 @@ pub(crate) fn convert_site_view(site_view: SiteView) -> SiteViewV3 {
   let SiteView {
     site, local_site, ..
   } = site_view;
+
+  let counts = SiteAggregates {
+    site_id: SiteIdV3(site.id.0),
+    users: local_site.users.into(),
+    posts: local_site.posts.into(),
+    comments: local_site.comments.into(),
+    communities: local_site.communities.into(),
+    users_active_day: local_site.users_active_day.into(),
+    users_active_week: local_site.users_active_week.into(),
+    users_active_month: local_site.users_active_month.into(),
+    users_active_half_year: local_site.users_active_half_year.into(),
+  };
   SiteViewV3 {
     site: convert_site(site),
     local_site: convert_local_site(local_site),
     local_site_rate_limit: dummy_local_site_rate_limit(),
-    counts: dummy_local_site_counts(),
+    counts,
   }
 }
 
@@ -635,30 +647,17 @@ fn dummy_local_site_rate_limit() -> LocalSiteRateLimitV3 {
   }
 }
 
-fn dummy_local_site_counts() -> SiteAggregates {
-  SiteAggregates {
-    site_id: Default::default(),
-    users: 0,
-    posts: 0,
-    comments: 0,
-    communities: 0,
-    users_active_day: 0,
-    users_active_week: 0,
-    users_active_month: 0,
-    users_active_half_year: 0,
-  }
-}
-
 pub(crate) fn convert_person_view(person_view: PersonView) -> PersonViewV3 {
   let PersonView { person, .. } = person_view;
   let (person, counts) = convert_person(person);
   PersonViewV3 {
     person,
     counts,
+    // explicitly set to false to hide all admin options from ui
     is_admin: false,
   }
 }
-pub(crate) fn convert_sensitive2(s: SensitiveString) -> SensitiveStringV3 {
+pub(crate) fn convert_sensitive(s: SensitiveString) -> SensitiveStringV3 {
   SensitiveStringV3::from(s.into_inner())
 }
 
@@ -694,28 +693,39 @@ pub(crate) fn convert_search_response(
   res
 }
 
-pub(crate) fn convert_post_listing_sort(sort_type: SortTypeV3) -> PostSortType {
-  // TODO: also return time_range_seconds from here (for different top sorts)
+pub(crate) fn convert_post_listing_sort(
+  sort_type: Option<SortTypeV3>,
+) -> (Option<PostSortType>, Option<i32>) {
+  let Some(sort_type) = sort_type else {
+    return (Some(PostSortType::default()), Some(i32::MAX));
+  };
+  let max = |s| (Some(s), Some(i32::MAX));
+  let top = |t| (Some(PostSortType::Top), Some(t));
+  const HOUR: i32 = 60 * 60;
+  const DAY: i32 = 24 * HOUR;
+  const WEEK: i32 = 7 * DAY;
+  const MONTH: i32 = 30 * DAY;
+  const YEAR: i32 = 365 * DAY;
   match sort_type {
-    SortTypeV3::Active => PostSortType::Active,
-    SortTypeV3::Hot => PostSortType::Hot,
-    SortTypeV3::New => PostSortType::New,
-    SortTypeV3::Old => PostSortType::Old,
-    SortTypeV3::TopDay
-    | SortTypeV3::TopWeek
-    | SortTypeV3::TopMonth
-    | SortTypeV3::TopYear
-    | SortTypeV3::TopAll
-    | SortTypeV3::MostComments
-    | SortTypeV3::NewComments
-    | SortTypeV3::TopHour
-    | SortTypeV3::TopSixHour
-    | SortTypeV3::TopTwelveHour
-    | SortTypeV3::TopThreeMonths
-    | SortTypeV3::TopSixMonths
-    | SortTypeV3::TopNineMonths => PostSortType::Top,
-    SortTypeV3::Controversial => PostSortType::Controversial,
-    SortTypeV3::Scaled => PostSortType::Scaled,
+    SortTypeV3::Active => max(PostSortType::Active),
+    SortTypeV3::Hot => max(PostSortType::Hot),
+    SortTypeV3::New => max(PostSortType::New),
+    SortTypeV3::Old => max(PostSortType::Old),
+    SortTypeV3::Controversial => max(PostSortType::Controversial),
+    SortTypeV3::MostComments => max(PostSortType::MostComments),
+    SortTypeV3::NewComments => max(PostSortType::NewComments),
+    SortTypeV3::Scaled => max(PostSortType::Scaled),
+    SortTypeV3::TopHour => top(HOUR),
+    SortTypeV3::TopSixHour => top(6 * HOUR),
+    SortTypeV3::TopTwelveHour => top(12 * HOUR),
+    SortTypeV3::TopDay => top(DAY),
+    SortTypeV3::TopWeek => top(WEEK),
+    SortTypeV3::TopAll => top(i32::MAX),
+    SortTypeV3::TopMonth => top(MONTH),
+    SortTypeV3::TopThreeMonths => top(3 * MONTH),
+    SortTypeV3::TopSixMonths => top(6 * MONTH),
+    SortTypeV3::TopNineMonths => top(9 * MONTH),
+    SortTypeV3::TopYear => top(YEAR),
   }
 }
 

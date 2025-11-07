@@ -10,7 +10,7 @@ use crate::convert::{
   convert_post_view,
   convert_score,
   convert_search_response,
-  convert_sensitive2,
+  convert_sensitive,
   convert_site_view,
 };
 use activitypub_federation::config::Data as ApubData;
@@ -106,10 +106,11 @@ pub(crate) async fn list_posts_v3(
     sort,
     ..
   } = datav3.0;
+  let (sort, time_range_seconds) = convert_post_listing_sort(sort);
   let data = GetPosts {
     type_: type_.map(convert_post_listing_type),
-    sort: sort.map(convert_post_listing_sort),
-    time_range_seconds: Default::default(),
+    sort,
+    time_range_seconds,
     community_id: community_id.map(|id| CommunityId(id.0)),
     community_name,
     show_hidden,
@@ -242,7 +243,7 @@ pub(crate) async fn login_v3(
     verify_email_sent,
   } = login(data, req, context).await?.0;
   Ok(Json(LoginResponseV3 {
-    jwt: jwt.map(convert_sensitive2),
+    jwt: jwt.map(convert_sensitive),
     registration_created,
     verify_email_sent,
   }))
