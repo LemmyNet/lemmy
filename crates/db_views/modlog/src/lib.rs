@@ -23,7 +23,7 @@ pub mod impls;
 #[cfg_attr(feature = "full", derive(Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(export, optional_fields))]
 #[skip_serializing_none]
 pub struct ModlogView {
   #[cfg_attr(feature = "full", diesel(embed))]
