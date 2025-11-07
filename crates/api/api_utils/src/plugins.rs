@@ -2,12 +2,10 @@ use crate::context::LemmyContext;
 use anyhow::anyhow;
 use extism::{Manifest, PluginBuilder, Pool, PoolPlugin};
 use extism_convert::Json;
-use lemmy_db_schema::{
-  source::{notification::Notification, person::Person},
-  traits::Crud,
-};
+use lemmy_db_schema::source::{notification::Notification, person::Person};
 use lemmy_db_views_notification::NotificationView;
 use lemmy_db_views_site::api::PluginMetadata;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::{
   VERSION,
   error::{LemmyError, LemmyErrorType, LemmyResult},

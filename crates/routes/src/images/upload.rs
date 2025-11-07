@@ -6,18 +6,16 @@ use lemmy_api_utils::{
   request::PictrsResponse,
   utils::{is_admin, is_mod_or_admin},
 };
-use lemmy_db_schema::{
-  source::{
-    community::{Community, CommunityUpdateForm},
-    images::{LocalImage, LocalImageForm},
-    person::{Person, PersonUpdateForm},
-    site::{Site, SiteUpdateForm},
-  },
-  traits::Crud,
+use lemmy_db_schema::source::{
+  community::{Community, CommunityUpdateForm},
+  images::{LocalImage, LocalImageForm},
+  person::{Person, PersonUpdateForm},
+  site::{Site, SiteUpdateForm},
 };
 use lemmy_db_views_community::api::CommunityIdQuery;
 use lemmy_db_views_local_image::api::UploadImageResponse;
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use reqwest::Body;
 use std::time::Duration;

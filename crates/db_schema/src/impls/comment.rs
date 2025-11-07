@@ -1,6 +1,6 @@
 use crate::{
   diesel::{DecoratableTarget, OptionalExtension},
-  newtypes::{CommentId, CommunityId, DbUrl, InstanceId, PersonId, PostId},
+  newtypes::{CommentId, CommunityId, InstanceId, PersonId, PostId},
   source::comment::{
     Comment,
     CommentActions,
@@ -9,13 +9,8 @@ use crate::{
     CommentSavedForm,
     CommentUpdateForm,
   },
-  traits::{Crud, Likeable, Saveable},
-  utils::{
-    DELETED_REPLACEMENT_TEXT,
-    DbPool,
-    functions::{coalesce, hot_rank},
-    get_conn,
-  },
+  traits::{Likeable, Saveable},
+  utils::DELETED_REPLACEMENT_TEXT,
 };
 use chrono::{DateTime, Utc};
 use diesel::{
@@ -30,6 +25,12 @@ use diesel_async::RunQueryDsl;
 use diesel_ltree::{Ltree, dsl::LtreeExtensions};
 use diesel_uplete::{UpleteCount, uplete};
 use lemmy_db_schema_file::schema::{comment, comment_actions, community, post};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  dburl::DbUrl,
+  traits::Crud,
+  utils::functions::{coalesce, hot_rank},
+};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
@@ -425,10 +426,11 @@ mod tests {
       person::{Person, PersonInsertForm},
       post::{Post, PostInsertForm},
     },
-    traits::{Crud, Likeable, Saveable},
-    utils::{RANK_DEFAULT, build_db_pool_for_tests},
+    traits::{Likeable, Saveable},
+    utils::RANK_DEFAULT,
   };
   use diesel_ltree::Ltree;
+  use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;

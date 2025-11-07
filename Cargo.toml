@@ -24,7 +24,7 @@ members = [
   "crates/utils",
   "crates/db_schema",
   "crates/db_schema_file",
-  "crates/db_schema_setup",
+  "crates/diesel_utils",
   "crates/email",
   "crates/db_views/private_message",
   "crates/db_views/local_user",
@@ -101,7 +101,7 @@ lemmy_apub_objects = { version = "=1.0.0-alpha.12", path = "./crates/apub/object
 lemmy_utils = { version = "=1.0.0-alpha.12", path = "./crates/utils", default-features = false }
 lemmy_db_schema = { version = "=1.0.0-alpha.12", path = "./crates/db_schema" }
 lemmy_db_schema_file = { version = "=1.0.0-alpha.12", path = "./crates/db_schema_file" }
-lemmy_db_schema_setup = { version = "=1.0.0-alpha.12", path = "./crates/db_schema_setup" }
+lemmy_diesel_utils = { version = "=1.0.0-alpha.12", path = "./crates/diesel_utils" }
 lemmy_api_utils = { version = "=1.0.0-alpha.12", path = "./crates/api/api_utils" }
 lemmy_routes = { version = "=1.0.0-alpha.12", path = "./crates/routes" }
 lemmy_apub_send = { version = "=1.0.0-alpha.12", path = "./crates/apub/send" }

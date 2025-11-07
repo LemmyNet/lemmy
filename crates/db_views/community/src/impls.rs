@@ -11,14 +11,9 @@ use lemmy_db_schema::{
     local_user::LocalUser,
     site::Site,
   },
-  traits::{Crud, PaginationCursorBuilder},
+  traits::PaginationCursorBuilder,
   utils::{
-    DbPool,
-    LowerKey,
-    get_conn,
     limit_fetch,
-    now,
-    paginate,
     queries::{
       filters::{
         filter_is_subscribed,
@@ -32,7 +27,6 @@ use lemmy_db_schema::{
         my_multi_community_follower_join,
       },
     },
-    seconds_to_pg_interval,
   },
 };
 use lemmy_db_schema_file::{
@@ -46,6 +40,11 @@ use lemmy_db_schema_file::{
     multi_community_follow,
     person,
   },
+};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  traits::Crud,
+  utils::{LowerKey, now, paginate, seconds_to_pg_interval},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -284,10 +283,13 @@ mod tests {
       person::{Person, PersonInsertForm},
       site::Site,
     },
-    traits::{Crud, Followable},
-    utils::{DbPool, build_db_pool_for_tests},
+    traits::Followable,
   };
   use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility};
+  use lemmy_diesel_utils::{
+    connection::{DbPool, build_db_pool_for_tests},
+    traits::Crud,
+  };
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use serial_test::serial;
   use std::collections::HashSet;

@@ -33,6 +33,7 @@ lemmy_db_schema = { workspace = true, features = ["full"] }
 lemmy_api_utils = { workspace = true, features = ["full"] }
 lemmy_apub_activities = { workspace = true }
 lemmy_apub_objects = { workspace = true }
+lemmy_diesel_utils = { workspace = true }
 activitypub_federation = { workspace = true }
 lemmy_db_schema_file = { workspace = true }
 serde_json = { workspace = true }

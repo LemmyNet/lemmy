@@ -1,6 +1,6 @@
 use crate::{context::LemmyContext, plugins::plugin_hook_notification};
 use lemmy_db_schema::{
-  newtypes::{DbUrl, PersonId},
+  newtypes::PersonId,
   source::{
     comment::Comment,
     community::{Community, CommunityActions},
@@ -10,7 +10,7 @@ use lemmy_db_schema::{
     person::{Person, PersonActions},
     post::{Post, PostActions},
   },
-  traits::{ApubActor, Blockable, Crud},
+  traits::{ApubActor, Blockable},
 };
 use lemmy_db_schema_file::enums::{
   CommunityNotificationsMode,
@@ -20,6 +20,7 @@ use lemmy_db_schema_file::enums::{
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_private_message::PrivateMessageView;
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::{dburl::DbUrl, traits::Crud};
 use lemmy_email::notifications::{NotificationEmailData, send_notification_email};
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
@@ -379,13 +380,16 @@ mod tests {
       post::{Post, PostInsertForm},
       private_message::{PrivateMessage, PrivateMessageInsertForm},
     },
-    traits::{Blockable, Crud},
-    utils::{DbPool, build_db_pool_for_tests},
+    traits::Blockable,
   };
   use lemmy_db_schema_file::enums::NotificationType;
   use lemmy_db_views_local_user::LocalUserView;
   use lemmy_db_views_notification::{NotificationData, NotificationView, impls::NotificationQuery};
   use lemmy_db_views_private_message::PrivateMessageView;
+  use lemmy_diesel_utils::{
+    connection::{DbPool, build_db_pool_for_tests},
+    traits::Crud,
+  };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;

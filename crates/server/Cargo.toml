@@ -29,7 +29,7 @@ lemmy_apub_activities = { workspace = true }
 lemmy_apub_objects = { workspace = true }
 lemmy_utils = { workspace = true }
 lemmy_db_schema = { workspace = true }
-lemmy_db_schema_setup = { workspace = true }
+lemmy_diesel_utils = { workspace = true }
 lemmy_api_utils = { workspace = true }
 lemmy_routes = { workspace = true }
 lemmy_apub_send = { workspace = true }

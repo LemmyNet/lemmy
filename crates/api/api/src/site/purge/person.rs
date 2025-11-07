@@ -12,11 +12,12 @@ use lemmy_db_schema::{
     modlog::{Modlog, ModlogInsertForm},
     person::Person,
   },
-  traits::{Bannable, Crud},
+  traits::Bannable,
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::api::PurgePerson;
 use lemmy_db_views_site::api::SuccessResponse;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn purge_person(

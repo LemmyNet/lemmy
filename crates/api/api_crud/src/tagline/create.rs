@@ -4,12 +4,10 @@ use lemmy_api_utils::{
   context::LemmyContext,
   utils::{get_url_blocklist, is_admin, process_markdown, slur_regex},
 };
-use lemmy_db_schema::{
-  source::tagline::{Tagline, TaglineInsertForm},
-  traits::Crud,
-};
+use lemmy_db_schema::source::tagline::{Tagline, TaglineInsertForm};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::api::{CreateTagline, TaglineResponse};
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyError;
 
 pub async fn create_tagline(

@@ -30,12 +30,7 @@ use lemmy_db_schema::{
   },
   traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{
-    DbPool,
-    fuzzy_search,
-    get_conn,
     limit_fetch,
-    now,
-    paginate,
     queries::{
       filters::{
         filter_is_subscribed,
@@ -55,7 +50,6 @@ use lemmy_db_schema::{
         my_post_actions_join,
       },
     },
-    seconds_to_pg_interval,
   },
 };
 use lemmy_db_schema_file::{
@@ -73,6 +67,10 @@ use lemmy_db_schema_file::{
   },
 };
 use lemmy_db_views_community::MultiCommunityView;
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  utils::{fuzzy_search, now, paginate, seconds_to_pg_interval},
+};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 impl SearchCombinedViewInternal {
@@ -504,8 +502,11 @@ mod tests {
       post::{Post, PostActions, PostInsertForm, PostLikeForm, PostUpdateForm},
       site::{Site, SiteInsertForm},
     },
-    traits::{Crud, Likeable},
-    utils::{DbPool, build_db_pool_for_tests},
+    traits::Likeable,
+  };
+  use lemmy_diesel_utils::{
+    connection::{DbPool, build_db_pool_for_tests},
+    traits::Crud,
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;

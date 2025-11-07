@@ -7,8 +7,8 @@ use lemmy_apub_objects::{objects::comment::ApubComment, utils::functions::contex
 use lemmy_db_schema::{
   newtypes::CommentId,
   source::{comment::Comment, community::Community, post::Post},
-  traits::Crud,
 };
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::{
   FEDERATION_CONTEXT,
   error::{LemmyErrorType, LemmyResult},

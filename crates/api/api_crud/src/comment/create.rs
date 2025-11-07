@@ -24,12 +24,13 @@ use lemmy_db_schema::{
     comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm},
     notification::Notification,
   },
-  traits::{Crud, Likeable},
+  traits::Likeable,
 };
 use lemmy_db_views_comment::api::{CommentResponse, CreateComment};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::validation::is_valid_body_field,

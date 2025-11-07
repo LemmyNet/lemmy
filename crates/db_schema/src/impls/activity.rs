@@ -1,11 +1,14 @@
 use crate::{
   diesel::OptionalExtension,
-  newtypes::{ActivityId, DbUrl},
+  newtypes::ActivityId,
   source::activity::{ReceivedActivity, SentActivity, SentActivityForm},
-  utils::{DbPool, get_conn},
 };
 use diesel::{ExpressionMethods, QueryDsl, dsl::insert_into};
 use diesel_async::RunQueryDsl;
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  dburl::DbUrl,
+};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl SentActivity {
@@ -62,8 +65,8 @@ impl ReceivedActivity {
 mod tests {
 
   use super::*;
-  use crate::utils::build_db_pool_for_tests;
   use lemmy_db_schema_file::enums::ActorType;
+  use lemmy_diesel_utils::connection::build_db_pool_for_tests;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serde_json::json;

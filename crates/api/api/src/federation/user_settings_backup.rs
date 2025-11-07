@@ -21,7 +21,7 @@ use lemmy_db_schema::{
     person::{Person, PersonActions, PersonBlockForm, PersonUpdateForm},
     post::{PostActions, PostSavedForm},
   },
-  traits::{Blockable, Crud, Followable, Saveable},
+  traits::{Blockable, Followable, Saveable},
 };
 use lemmy_db_schema_file::enums::CommunityFollowerState;
 use lemmy_db_views_local_user::LocalUserView;
@@ -29,6 +29,7 @@ use lemmy_db_views_site::{
   api::{SuccessResponse, UserSettingsBackup},
   impls::user_backup_list_to_user_settings_backup,
 };
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::{
   error::LemmyResult,
   spawn_try_task,
@@ -306,10 +307,11 @@ pub(crate) mod tests {
       person::Person,
     },
     test_data::TestData,
-    traits::{Crud, Followable},
+    traits::Followable,
   };
   use lemmy_db_views_community_follower::CommunityFollowerView;
   use lemmy_db_views_local_user::LocalUserView;
+  use lemmy_diesel_utils::traits::Crud;
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use serial_test::serial;
   use std::time::Duration;

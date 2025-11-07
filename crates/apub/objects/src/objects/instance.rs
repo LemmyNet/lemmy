@@ -27,15 +27,14 @@ use lemmy_api_utils::{
 };
 use lemmy_db_schema::{
   newtypes::InstanceId,
-  sensitive::SensitiveString,
   source::{
     actor_language::SiteLanguage,
     instance::Instance as DbInstance,
     site::{Site, SiteInsertForm},
   },
-  traits::Crud,
 };
 use lemmy_db_schema_file::enums::ActorType;
+use lemmy_diesel_utils::{sensitive::SensitiveString, traits::Crud};
 use lemmy_utils::{
   error::{LemmyError, LemmyResult, UntranslatedError},
   utils::{

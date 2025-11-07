@@ -1,5 +1,6 @@
-use lemmy_db_schema::{sensitive::SensitiveString, source::local_user::LocalUser};
+use lemmy_db_schema::source::local_user::LocalUser;
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_diesel_utils::sensitive::SensitiveString;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   settings::structs::Settings,

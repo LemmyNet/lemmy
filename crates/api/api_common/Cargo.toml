@@ -71,3 +71,4 @@ lemmy_db_views_report_combined.workspace = true
 lemmy_db_views_search_combined.workspace = true
 lemmy_db_views_site.workspace = true
 lemmy_db_views_vote.workspace = true
+lemmy_diesel_utils.workspace = true

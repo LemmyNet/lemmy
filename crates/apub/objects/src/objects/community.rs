@@ -33,16 +33,16 @@ use lemmy_api_utils::{
   },
 };
 use lemmy_db_schema::{
-  sensitive::SensitiveString,
   source::{
     actor_language::CommunityLanguage,
     community::{Community, CommunityInsertForm, CommunityUpdateForm},
     tag::Tag,
   },
-  traits::{ApubActor, Crud},
+  traits::ApubActor,
 };
 use lemmy_db_schema_file::enums::{ActorType, CommunityVisibility};
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::{sensitive::SensitiveString, traits::Crud};
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   utils::{

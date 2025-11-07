@@ -25,8 +25,6 @@ use lemmy_db_schema::{
     community::Community,
     post::{Post, PostUpdateForm},
   },
-  traits::Crud,
-  utils::{diesel_string_update, diesel_url_update},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::{
@@ -34,6 +32,10 @@ use lemmy_db_views_post::{
   api::{EditPost, PostResponse},
 };
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::{
+  traits::Crud,
+  utils::{diesel_string_update, diesel_url_update},
+};
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::{

@@ -6,9 +6,13 @@ use lemmy_db_schema::{
   newtypes::{PaginationCursor, PersonId},
   source::images::{LocalImage, local_image_keys as key},
   traits::PaginationCursorBuilder,
-  utils::{DbPool, get_conn, limit_fetch, paginate},
+  utils::limit_fetch,
 };
 use lemmy_db_schema_file::schema::{local_image, person, post};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  utils::paginate,
+};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl LocalImageView {

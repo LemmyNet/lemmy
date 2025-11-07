@@ -7,18 +7,16 @@ use lemmy_api_utils::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_community_mod_action,
 };
-use lemmy_db_schema::{
-  source::{
-    modlog::{Modlog, ModlogInsertForm},
-    post::{Post, PostUpdateForm},
-  },
-  traits::Crud,
+use lemmy_db_schema::source::{
+  modlog::{Modlog, ModlogInsertForm},
+  post::{Post, PostUpdateForm},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::{
   PostView,
   api::{LockPost, PostResponse},
 };
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn lock_post(

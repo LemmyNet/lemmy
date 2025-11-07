@@ -5,15 +5,13 @@ use lemmy_api_utils::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_community_mod_action, check_community_user_action},
 };
-use lemmy_db_schema::{
-  source::comment::{Comment, CommentUpdateForm},
-  traits::Crud,
-};
+use lemmy_db_schema::source::comment::{Comment, CommentUpdateForm};
 use lemmy_db_views_comment::{
   CommentView,
   api::{CommentResponse, DistinguishComment},
 };
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn distinguish_comment(

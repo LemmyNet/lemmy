@@ -7,18 +7,15 @@ use lemmy_api_utils::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_community_mod_action,
 };
-use lemmy_db_schema::{
-  source::{
-    community::{Community, CommunityActions, CommunityModeratorForm},
-    local_user::LocalUser,
-    modlog::{Modlog, ModlogInsertForm},
-  },
-  traits::Crud,
-  utils::get_conn,
+use lemmy_db_schema::source::{
+  community::{Community, CommunityActions, CommunityModeratorForm},
+  local_user::LocalUser,
+  modlog::{Modlog, ModlogInsertForm},
 };
 use lemmy_db_views_community::api::{AddModToCommunity, AddModToCommunityResponse};
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_diesel_utils::{connection::get_conn, traits::Crud};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn add_mod_to_community(

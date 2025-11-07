@@ -8,7 +8,6 @@ use lemmy_db_schema::{
     PaginationCursor,
     TaglineId,
   },
-  sensitive::SensitiveString,
   source::{
     comment::Comment,
     community::Community,
@@ -38,6 +37,7 @@ use lemmy_db_views_community_follower::CommunityFollowerView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
+use lemmy_diesel_utils::sensitive::SensitiveString;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;

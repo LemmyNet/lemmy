@@ -45,6 +45,7 @@ serde.workspace = true
 tracing.workspace = true
 moka.workspace = true
 tokio-util = "0.7.17"
+lemmy_diesel_utils = { workspace = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

@@ -3,6 +3,6 @@ file = "crates/db_schema_file/src/schema.rs"
 patch_file = "crates/db_schema_file/diesel_ltree.patch"
 # Required for https://github.com/adwhit/diesel-derive-enum
 custom_type_derives = ["diesel::query_builder::QueryId"]
-# This table is in the db_schema_setup crate instead.
+# This table is in the lemmy_diesel_utils crate instead.
 filter = { except_tables = ["previously_run_sql"] }
 allow_tables_to_appear_in_same_query_config = "fk_related_tables"

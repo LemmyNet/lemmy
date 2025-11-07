@@ -12,8 +12,8 @@ use lemmy_apub_objects::objects::{CommunityOrMulti, UserOrCommunityOrMulti, pers
 use lemmy_db_schema::{
   newtypes::{CommunityId, PersonId},
   source::{activity::ActivitySendTargets, community::Community, person::Person},
-  traits::Crud,
 };
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use serde::Serialize;
 

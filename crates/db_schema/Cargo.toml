@@ -24,20 +24,15 @@ full = [
   "diesel-derive-newtype",
   "bcrypt",
   "lemmy_utils",
-  "activitypub_federation",
   "serde_json",
   "diesel_ltree",
   "diesel-async",
   "diesel-uplete",
-  "deadpool",
   "tokio",
-  "tokio-postgres",
-  "tokio-postgres-rustls",
-  "rustls",
   "i-love-jesus",
   "moka",
   "lemmy_db_schema_file/full",
-  "lemmy_db_schema_setup",
+  "lemmy_diesel_utils/full",
 ]
 ts-rs = ["dep:ts-rs"]
 
@@ -48,10 +43,9 @@ serde_with = { workspace = true }
 url = { workspace = true }
 strum = { workspace = true }
 serde_json = { workspace = true, optional = true }
-activitypub_federation = { workspace = true, optional = true }
 lemmy_utils = { workspace = true, optional = true }
 lemmy_db_schema_file = { workspace = true }
-lemmy_db_schema_setup = { workspace = true, optional = true }
+lemmy_diesel_utils = { workspace = true }
 bcrypt = { workspace = true, optional = true }
 diesel = { workspace = true, optional = true }
 diesel-derive-newtype = { workspace = true, optional = true }
@@ -61,14 +55,8 @@ diesel-async = { workspace = true, features = [
 ], optional = true }
 diesel-uplete = { workspace = true, optional = true }
 diesel_ltree = { workspace = true, optional = true }
-tracing = { workspace = true }
-deadpool = { version = "0.12.3", optional = true, features = ["rt_tokio_1"] }
 ts-rs = { workspace = true, optional = true }
-futures-util = { workspace = true }
 tokio = { workspace = true, optional = true }
-tokio-postgres = { workspace = true, optional = true }
-tokio-postgres-rustls = { workspace = true, optional = true }
-rustls = { workspace = true, optional = true }
 uuid.workspace = true
 i-love-jesus = { workspace = true, optional = true }
 derive-new.workspace = true

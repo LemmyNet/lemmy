@@ -23,10 +23,7 @@ use lemmy_db_schema::{
   source::combined::person_liked::{PersonLikedCombined, person_liked_combined_keys as key},
   traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{
-    DbPool,
-    get_conn,
     limit_fetch,
-    paginate,
     queries::joins::{
       community_join,
       creator_community_actions_join,
@@ -44,6 +41,10 @@ use lemmy_db_schema::{
   },
 };
 use lemmy_db_schema_file::schema::{comment, person, person_liked_combined, post};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  utils::paginate,
+};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 #[derive(Default)]
@@ -273,8 +274,11 @@ mod tests {
       person::{Person, PersonInsertForm},
       post::{Post, PostActions, PostInsertForm, PostLikeForm},
     },
-    traits::{Crud, Likeable},
-    utils::{DbPool, build_db_pool_for_tests},
+    traits::Likeable,
+  };
+  use lemmy_diesel_utils::{
+    connection::{DbPool, build_db_pool_for_tests},
+    traits::Crud,
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;

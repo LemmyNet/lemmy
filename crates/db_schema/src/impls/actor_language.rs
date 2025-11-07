@@ -13,7 +13,6 @@ use crate::{
     language::Language,
     site::Site,
   },
-  utils::{DbPool, get_conn},
 };
 use diesel::{
   ExpressionMethods,
@@ -31,6 +30,7 @@ use lemmy_db_schema_file::schema::{
   site,
   site_language,
 };
+use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use tokio::sync::OnceCell;
 
@@ -406,9 +406,8 @@ mod tests {
       person::{Person, PersonInsertForm},
     },
     test_data::TestData,
-    traits::Crud,
-    utils::build_db_pool_for_tests,
   };
+  use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 

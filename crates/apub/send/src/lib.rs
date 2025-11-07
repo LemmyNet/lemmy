@@ -197,15 +197,13 @@ mod test {
   use super::*;
   use activitypub_federation::config::Data;
   use chrono::DateTime;
-  use lemmy_db_schema::{
-    source::{
-      federation_allowlist::{FederationAllowList, FederationAllowListForm},
-      federation_blocklist::{FederationBlockList, FederationBlockListForm},
-      instance::InstanceForm,
-      person::{Person, PersonInsertForm},
-    },
-    traits::Crud,
+  use lemmy_db_schema::source::{
+    federation_allowlist::{FederationAllowList, FederationAllowListForm},
+    federation_blocklist::{FederationBlockList, FederationBlockListForm},
+    instance::InstanceForm,
+    person::{Person, PersonInsertForm},
   };
+  use lemmy_diesel_utils::traits::Crud;
   use lemmy_utils::error::LemmyError;
   use serial_test::serial;
   use std::{

@@ -13,7 +13,6 @@ use crate::{
     person1,
     person2,
   },
-  utils::functions::{coalesce_2_nullable, coalesce_3_nullable},
 };
 use diesel::{
   BoolExpressionMethods,
@@ -38,6 +37,7 @@ use lemmy_db_schema_file::schema::{
   post_tag,
   tag,
 };
+use lemmy_diesel_utils::utils::functions::{coalesce_2_nullable, coalesce_3_nullable};
 
 /// Checks that the creator_local_user is an admin.
 #[diesel::dsl::auto_type]

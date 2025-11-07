@@ -1,9 +1,7 @@
-use crate::{
-  source::secret::Secret,
-  utils::{DbPool, get_conn},
-};
+use crate::source::secret::Secret;
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::secret::dsl::secret;
+use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Secret {

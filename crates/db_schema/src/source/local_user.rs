@@ -1,7 +1,4 @@
-use crate::{
-  newtypes::{LocalUserId, PersonId},
-  sensitive::SensitiveString,
-};
+use crate::newtypes::{LocalUserId, PersonId};
 use chrono::{DateTime, Utc};
 use lemmy_db_schema_file::enums::{
   CommentSortType,
@@ -12,6 +9,7 @@ use lemmy_db_schema_file::enums::{
 };
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::local_user;
+use lemmy_diesel_utils::sensitive::SensitiveString;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 

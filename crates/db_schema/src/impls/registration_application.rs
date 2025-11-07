@@ -5,12 +5,14 @@ use crate::{
     RegistrationApplicationInsertForm,
     RegistrationApplicationUpdateForm,
   },
-  traits::Crud,
-  utils::{DbPool, get_conn},
 };
 use diesel::{ExpressionMethods, QueryDsl, insert_into};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::registration_application;
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  traits::Crud,
+};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Crud for RegistrationApplication {

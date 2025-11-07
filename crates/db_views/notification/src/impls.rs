@@ -21,10 +21,7 @@ use lemmy_db_schema::{
   },
   traits::PaginationCursorBuilder,
   utils::{
-    DbPool,
-    get_conn,
     limit_fetch,
-    paginate,
     queries::{
       filters::filter_blocked,
       joins::{
@@ -52,6 +49,10 @@ use lemmy_db_schema_file::{
 use lemmy_db_views_modlog::ModlogView;
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_private_message::PrivateMessageView;
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  utils::paginate,
+};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl NotificationView {

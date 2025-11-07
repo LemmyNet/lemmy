@@ -27,13 +27,7 @@ use lemmy_db_schema::{
   },
   traits::PaginationCursorBuilder,
   utils::{
-    CoalesceKey,
-    Commented,
-    DbPool,
-    get_conn,
     limit_fetch,
-    now,
-    paginate,
     queries::{
       filters::{
         filter_blocked,
@@ -55,7 +49,6 @@ use lemmy_db_schema::{
         my_post_actions_join,
       },
     },
-    seconds_to_pg_interval,
   },
 };
 use lemmy_db_schema_file::{
@@ -74,6 +67,10 @@ use lemmy_db_schema_file::{
     post,
     post_actions,
   },
+};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  utils::{CoalesceKey, Commented, now, paginate, seconds_to_pg_interval},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use tracing::debug;
@@ -612,11 +609,14 @@ mod tests {
       tag::{PostTag, Tag, TagInsertForm},
     },
     test_data::TestData,
-    traits::{Bannable, Blockable, Crud, Followable, Likeable},
-    utils::{ActualDbPool, DbPool, build_db_pool, get_conn},
+    traits::{Bannable, Blockable, Followable, Likeable},
   };
   use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility, ListingType};
   use lemmy_db_views_local_user::LocalUserView;
+  use lemmy_diesel_utils::{
+    connection::{ActualDbPool, DbPool, build_db_pool, get_conn},
+    traits::Crud,
+  };
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use pretty_assertions::assert_eq;
   use serial_test::serial;

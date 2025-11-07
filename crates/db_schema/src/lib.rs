@@ -8,7 +8,6 @@ extern crate diesel_derive_newtype;
 #[cfg(feature = "full")]
 pub mod impls;
 pub mod newtypes;
-pub mod sensitive;
 #[cfg(feature = "full")]
 pub mod test_data;
 #[cfg(feature = "full")]

@@ -16,16 +16,14 @@ use lemmy_apub_objects::{
   },
   utils::functions::verify_mod_action,
 };
-use lemmy_db_schema::{
-  source::{
-    activity::ActivitySendTargets,
-    person::{Person, PersonActions},
-    site::Site,
-  },
-  traits::Crud,
+use lemmy_db_schema::source::{
+  activity::ActivitySendTargets,
+  person::{Person, PersonActions},
+  site::Site,
 };
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 
 pub mod announce;

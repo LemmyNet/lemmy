@@ -1,14 +1,11 @@
-use crate::{
-  source::{
-    instance::Instance,
-    local_site::{LocalSite, LocalSiteInsertForm},
-    local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitInsertForm},
-    person::{Person, PersonInsertForm},
-    site::{Site, SiteInsertForm},
-  },
-  traits::Crud,
-  utils::DbPool,
+use crate::source::{
+  instance::Instance,
+  local_site::{LocalSite, LocalSiteInsertForm},
+  local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitInsertForm},
+  person::{Person, PersonInsertForm},
+  site::{Site, SiteInsertForm},
 };
+use lemmy_diesel_utils::{connection::DbPool, traits::Crud};
 use lemmy_utils::error::LemmyResult;
 
 pub struct TestData {

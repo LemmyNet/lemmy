@@ -127,8 +127,8 @@ mod tests {
       post::{Post, PostInsertForm, PostUpdateForm},
     },
     test_data::TestData,
-    traits::Crud,
   };
+  use lemmy_diesel_utils::traits::Crud;
   use serial_test::serial;
 
   #[tokio::test]

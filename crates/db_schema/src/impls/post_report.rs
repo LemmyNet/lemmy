@@ -2,7 +2,6 @@ use crate::{
   newtypes::{PersonId, PostId, PostReportId},
   source::post_report::{PostReport, PostReportForm},
   traits::Reportable,
-  utils::{DbPool, get_conn},
 };
 use chrono::Utc;
 use diesel::{
@@ -13,6 +12,7 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::post_report;
+use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Reportable for PostReport {
@@ -93,16 +93,13 @@ impl Reportable for PostReport {
 mod tests {
 
   use super::*;
-  use crate::{
-    source::{
-      community::{Community, CommunityInsertForm},
-      instance::Instance,
-      person::{Person, PersonInsertForm},
-      post::{Post, PostInsertForm},
-    },
-    traits::Crud,
-    utils::build_db_pool_for_tests,
+  use crate::source::{
+    community::{Community, CommunityInsertForm},
+    instance::Instance,
+    person::{Person, PersonInsertForm},
+    post::{Post, PostInsertForm},
   };
+  use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use serial_test::serial;
 
   async fn init(pool: &mut DbPool<'_>) -> LemmyResult<(Person, PostReport)> {

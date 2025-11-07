@@ -90,8 +90,7 @@ use lemmy_api_crud::{
 };
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
-  newtypes::{CommentId, CommunityId, DbUrl, LanguageId, PersonId, PostId},
-  sensitive::SensitiveString,
+  newtypes::{CommentId, CommunityId, LanguageId, PersonId, PostId},
   source::{
     comment::Comment,
     community::Community,
@@ -119,6 +118,7 @@ use lemmy_db_views_site::{
   SiteView,
   api::{GetSiteResponse, Login, LoginResponse, MyUserInfo, ResolveObject},
 };
+use lemmy_diesel_utils::{dburl::DbUrl, sensitive::SensitiveString};
 use lemmy_utils::{error::LemmyResult, rate_limit::RateLimit};
 use std::sync::LazyLock;
 use url::Url;
@@ -469,17 +469,11 @@ async fn list_posts_v3(
     time_range_seconds: Default::default(),
     community_id: community_id.map(|id| CommunityId(id.0)),
     community_name,
-    multi_community_id: None,
-    multi_community_name: None,
     show_hidden,
     show_read,
     show_nsfw,
-    hide_media: None,
-    mark_as_read: None,
-    no_comments_only: None,
-    page_cursor: None,
-    page_back: None,
     limit,
+    ..Default::default()
   };
   let posts = list_posts(Query(data), context, local_user_view)
     .await?

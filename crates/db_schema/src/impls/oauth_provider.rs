@@ -6,12 +6,14 @@ use crate::{
     OAuthProviderUpdateForm,
     PublicOAuthProvider,
   },
-  traits::Crud,
-  utils::{DbPool, get_conn},
 };
 use diesel::{QueryDsl, dsl::insert_into};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::oauth_provider;
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  traits::Crud,
+};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Crud for OAuthProvider {

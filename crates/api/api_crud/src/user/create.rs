@@ -37,8 +37,7 @@ use lemmy_db_schema::{
     post::{Post, PostActions, PostInsertForm, PostLikeForm},
     registration_application::{RegistrationApplication, RegistrationApplicationInsertForm},
   },
-  traits::{ApubActor, Crud, Likeable},
-  utils::get_conn,
+  traits::{ApubActor, Likeable},
 };
 use lemmy_db_schema_file::enums::RegistrationMode;
 use lemmy_db_views_local_user::LocalUserView;
@@ -48,6 +47,7 @@ use lemmy_db_views_site::{
   SiteView,
   api::{AuthenticateWithOauth, LoginResponse},
 };
+use lemmy_diesel_utils::{connection::get_conn, traits::Crud};
 use lemmy_email::{
   account::send_verification_email_if_required,
   admin::send_new_applicant_email_to_admins,

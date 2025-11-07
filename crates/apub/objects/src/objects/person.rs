@@ -28,11 +28,11 @@ use lemmy_api_utils::{
   },
 };
 use lemmy_db_schema::{
-  sensitive::SensitiveString,
   source::person::{Person as DbPerson, PersonInsertForm, PersonUpdateForm},
-  traits::{ApubActor, Crud},
+  traits::ApubActor,
 };
 use lemmy_db_schema_file::enums::ActorType;
+use lemmy_diesel_utils::{sensitive::SensitiveString, traits::Crud};
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   utils::{

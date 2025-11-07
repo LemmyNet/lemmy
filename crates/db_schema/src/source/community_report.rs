@@ -1,7 +1,8 @@
-use crate::newtypes::{CommunityId, CommunityReportId, DbUrl, PersonId};
+use crate::newtypes::{CommunityId, CommunityReportId, PersonId};
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::community_report;
+use lemmy_diesel_utils::dburl::DbUrl;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
