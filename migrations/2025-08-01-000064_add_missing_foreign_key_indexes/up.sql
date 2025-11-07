@@ -98,7 +98,7 @@ CREATE INDEX idx_mod_remove_post_mod ON mod_remove_post (mod_person_id);
 
 CREATE INDEX idx_mod_transfer_community_mod ON mod_transfer_community (mod_person_id);
 
-CREATE INDEX idx_local_site_multi_comm_follower ON local_site (multi_comm_follower);
+CREATE INDEX idx_local_site_system_account ON local_site (system_account);
 
 CREATE INDEX idx_search_combined_multi_community ON search_combined (multi_community_id)
 WHERE

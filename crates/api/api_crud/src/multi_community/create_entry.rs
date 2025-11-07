@@ -45,7 +45,7 @@ pub async fn create_multi_community_entry(
   let inserted_entry = MultiCommunityEntry::create(&mut context.pool(), &form).await?;
 
   if !community.local {
-    let multicomm_follower = SiteView::read_multicomm_follower(&mut context.pool()).await?;
+    let multicomm_follower = SiteView::read_system_account(&mut context.pool()).await?;
     let actions = CommunityActions::read(&mut context.pool(), community.id, multicomm_follower.id)
       .await
       .unwrap_or_default();
