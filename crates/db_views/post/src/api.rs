@@ -117,6 +117,7 @@ pub struct GetPosts {
   pub community_id: Option<CommunityId>,
   pub community_name: Option<String>,
   pub multi_community_id: Option<MultiCommunityId>,
+  pub multi_community_name: Option<String>,
   pub show_hidden: Option<bool>,
   /// If true, then show the read posts (even if your user setting is to hide them)
   pub show_read: Option<bool>,

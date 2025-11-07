@@ -43,9 +43,9 @@ async fn list_comments_common(
   let community_id = if let Some(name) = &data.community_name {
     Some(
       resolve_ap_identifier::<ApubCommunity, Community>(name, &context, &local_user_view, true)
-        .await?,
+        .await?
+        .id,
     )
-    .map(|c| c.id)
   } else {
     data.community_id
   };
