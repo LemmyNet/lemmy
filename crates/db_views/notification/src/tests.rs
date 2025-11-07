@@ -111,7 +111,7 @@ async fn test_post() -> LemmyResult<()> {
     panic!();
   };
   assert_eq!(post, notif_post.post);
-  Notification::mark_read_by_id_and_person(pool, notifs1[0].notification.id, true, data.alice.id)
+  Notification::mark_read_by_id_and_person(pool, notifs1[0].notification.id, data.alice.id, true)
     .await?;
   let count = NotificationView::get_unread_count(pool, &data.alice, false).await?;
   assert_eq!(0, count);

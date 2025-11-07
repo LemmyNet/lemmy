@@ -1,5 +1,5 @@
 use crate::{
-  newtypes::{CommentId, NotificationId, PersonId},
+  newtypes::{CommentId, NotificationId, PersonId, PostId},
   source::notification::{Notification, NotificationInsertForm},
 };
 use diesel::{
@@ -27,16 +27,40 @@ impl Notification {
       .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
-  pub async fn read_by_comment_id(
+  pub async fn mark_read_by_comment_and_recipient(
     pool: &mut DbPool<'_>,
     comment_id: CommentId,
-  ) -> LemmyResult<Self> {
+    recipient_id: PersonId,
+    read: bool,
+  ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
-    notification::table
-      .filter(notification::comment_id.eq(comment_id))
-      .get_result::<Self>(conn)
-      .await
-      .with_lemmy_type(LemmyErrorType::NotFound)
+    update(
+      notification::table
+        .filter(notification::comment_id.eq(comment_id))
+        .filter(notification::recipient_id.eq(recipient_id)),
+    )
+    .set(notification::read.eq(read))
+    .execute(conn)
+    .await
+    .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  pub async fn mark_read_by_post_and_recipient(
+    pool: &mut DbPool<'_>,
+    post_id: PostId,
+    recipient_id: PersonId,
+    read: bool,
+  ) -> LemmyResult<usize> {
+    let conn = &mut get_conn(pool).await?;
+    update(
+      notification::table
+        .filter(notification::post_id.eq(post_id))
+        .filter(notification::recipient_id.eq(recipient_id)),
+    )
+    .set(notification::read.eq(read))
+    .execute(conn)
+    .await
+    .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
   pub async fn mark_all_as_read(
@@ -58,14 +82,14 @@ impl Notification {
   pub async fn mark_read_by_id_and_person(
     pool: &mut DbPool<'_>,
     notification_id: NotificationId,
+    recipient_id: PersonId,
     read: bool,
-    for_recipient_id: PersonId,
   ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
     update(
       notification::table
         .filter(notification::id.eq(notification_id))
-        .filter(notification::recipient_id.eq(for_recipient_id)),
+        .filter(notification::recipient_id.eq(recipient_id)),
     )
     .set(notification::read.eq(read))
     .execute(conn)
