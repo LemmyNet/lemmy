@@ -1,3 +1,4 @@
+use crate::federation::ApubPerson;
 use activitypub_federation::{
   config::Data,
   fetch::webfinger::webfinger_resolve_actor,
@@ -6,7 +7,12 @@ use activitypub_federation::{
 use diesel::NotFound;
 use itertools::Itertools;
 use lemmy_api_utils::context::LemmyContext;
-use lemmy_db_schema::traits::ApubActor;
+use lemmy_apub_objects::objects::{community::ApubCommunity, multi_community::ApubMultiCommunity};
+use lemmy_db_schema::{
+  newtypes::{CommunityId, MultiCommunityId, PersonId},
+  source::{community::Community, multi_community::MultiCommunity, person::Person},
+  traits::ApubActor,
+};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
 
@@ -14,7 +20,7 @@ use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
 ///
 /// In case the requesting user is logged in and the object was not found locally, it is attempted
 /// to fetch via webfinger from the original instance.
-pub(crate) async fn resolve_ap_identifier<ActorType, DbActor>(
+async fn resolve_ap_identifier<ActorType, DbActor>(
   identifier: &str,
   context: &Data<LemmyContext>,
   local_user_view: &Option<LocalUserView>,
@@ -61,4 +67,63 @@ where
         .into(),
     )
   }
+}
+
+pub(crate) async fn resolve_community_identifier(
+  name: &Option<String>,
+  id: Option<CommunityId>,
+  context: &Data<LemmyContext>,
+  local_user_view: &Option<LocalUserView>,
+) -> LemmyResult<Option<CommunityId>> {
+  Ok(if let Some(name) = name {
+    Some(
+      resolve_ap_identifier::<ApubCommunity, Community>(name, context, local_user_view, true)
+        .await?
+        .id,
+    )
+  } else {
+    id
+  })
+}
+
+pub(crate) async fn resolve_person_identifier(
+  id: Option<PersonId>,
+  username: &Option<String>,
+  context: &Data<LemmyContext>,
+  local_user_view: &Option<LocalUserView>,
+) -> LemmyResult<PersonId> {
+  Ok(
+    if let Some(name) = username {
+      Some(
+        resolve_ap_identifier::<ApubPerson, Person>(name, context, local_user_view, true)
+          .await?
+          .id,
+      )
+    } else {
+      id
+    }
+    .ok_or(LemmyErrorType::NoIdGiven)?,
+  )
+}
+
+pub(crate) async fn resolve_multi_community_identifier(
+  name: &Option<String>,
+  id: Option<MultiCommunityId>,
+  context: &Data<LemmyContext>,
+  local_user_view: &Option<LocalUserView>,
+) -> LemmyResult<Option<MultiCommunityId>> {
+  Ok(if let Some(name) = name {
+    Some(
+      resolve_ap_identifier::<ApubMultiCommunity, MultiCommunity>(
+        name,
+        context,
+        local_user_view,
+        true,
+      )
+      .await?
+      .id,
+    )
+  } else {
+    id
+  })
 }

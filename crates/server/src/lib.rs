@@ -363,6 +363,7 @@ fn create_http_server(
     // The routes
     app
       .configure(|cfg| lemmy_api_routes::config(cfg, &rate_limit))
+      .configure(|cfg| lemmy_api_routes_v3::config(cfg, &rate_limit))
       .configure(|cfg| {
         if site_view.local_site.federation_enabled {
           lemmy_apub::http::routes::config(cfg);

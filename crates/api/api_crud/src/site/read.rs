@@ -5,6 +5,7 @@ use lemmy_db_schema::source::{
   language::Language,
   local_site_url_blocklist::LocalSiteUrlBlocklist,
   oauth_provider::OAuthProvider,
+  registration_application::RegistrationApplication,
   tagline::Tagline,
 };
 use lemmy_db_views_local_user::LocalUserView;
@@ -48,6 +49,11 @@ async fn read_site(context: &LemmyContext) -> LemmyResult<GetSiteResponse> {
   let tagline = Tagline::get_random(&mut context.pool()).await.ok();
   let admin_oauth_providers = OAuthProvider::get_all(&mut context.pool()).await?;
   let oauth_providers = OAuthProvider::convert_providers_to_public(admin_oauth_providers.clone());
+  let last_application_duration_seconds =
+    RegistrationApplication::last_updated(&mut context.pool())
+      .await
+      .ok()
+      .and_then(|u| u.updated_published_duration());
 
   Ok(GetSiteResponse {
     site_view,
@@ -61,5 +67,6 @@ async fn read_site(context: &LemmyContext) -> LemmyResult<GetSiteResponse> {
     admin_oauth_providers,
     image_upload_disabled: context.settings().pictrs()?.image_upload_disabled,
     active_plugins: plugin_metadata(),
+    last_application_duration_seconds,
   })
 }
