@@ -469,17 +469,11 @@ async fn list_posts_v3(
     time_range_seconds: Default::default(),
     community_id: community_id.map(|id| CommunityId(id.0)),
     community_name,
-    multi_community_id: None,
-    multi_community_name: None,
     show_hidden,
     show_read,
     show_nsfw,
-    hide_media: None,
-    mark_as_read: None,
-    no_comments_only: None,
-    page_cursor: None,
-    page_back: None,
     limit,
+    ..Default::default()
   };
   let posts = list_posts(Query(data), context, local_user_view)
     .await?
