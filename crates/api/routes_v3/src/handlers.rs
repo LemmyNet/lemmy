@@ -23,7 +23,11 @@ use lemmy_api::{
     resolve_object::resolve_object,
     search::search,
   },
-  local_user::{login::login, logout::logout},
+  local_user::{
+    login::login,
+    logout::logout,
+    notifications::{mark_all_read::mark_all_notifications_read, unread_count::unread_count},
+  },
   post::{like::like_post, save::save_post},
 };
 use lemmy_api_019::{
@@ -41,7 +45,11 @@ use lemmy_api_019::{
       tagline::Tagline as TaglineV3,
     },
   },
-  person::LoginResponse as LoginResponseV3,
+  person::{
+    GetRepliesResponse as GetRepliesResponseV3,
+    GetUnreadCountResponse as GetUnreadCountResponseV3,
+    LoginResponse as LoginResponseV3,
+  },
   post::{
     CreatePost as CreatePostV3,
     CreatePostLike as CreatePostLikeV3,
@@ -376,4 +384,24 @@ pub(crate) async fn save_comment_v3(
 ) -> LemmyResult<Json<CommentResponseV3>> {
   let res = save_comment(data, context, local_user_view).await?;
   convert_comment_response(res)
+}
+
+pub async fn unread_count_v3(
+  context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
+) -> LemmyResult<Json<GetUnreadCountResponseV3>> {
+  let res = unread_count(context, local_user_view).await?;
+  Ok(Json(GetUnreadCountResponseV3 {
+    replies: res.count,
+    mentions: 0,
+    private_messages: 0,
+  }))
+}
+
+pub async fn mark_all_notifications_read_v3(
+  context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
+) -> LemmyResult<Json<GetRepliesResponseV3>> {
+  mark_all_notifications_read(context, local_user_view).await?;
+  Ok(Json(GetRepliesResponseV3 { replies: vec![] }))
 }

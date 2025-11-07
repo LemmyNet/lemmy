@@ -9,10 +9,12 @@ use crate::handlers::{
   list_posts_v3,
   login_v3,
   logout_v3,
+  mark_all_notifications_read_v3,
   resolve_object_v3,
   save_comment_v3,
   save_post_v3,
   search_v3,
+  unread_count_v3,
 };
 use actix_web::{guard, web::*};
 use lemmy_utils::rate_limit::RateLimit;
@@ -72,7 +74,12 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
       .service(
         scope("/user")
           .wrap(rate_limit.message())
-          .route("/logout", post().to(logout_v3)),
+          .route("/logout", post().to(logout_v3))
+          .route("/unread_count", get().to(unread_count_v3))
+          .route(
+            "/mark_all_as_read",
+            post().to(mark_all_notifications_read_v3),
+          ),
       ),
   );
 }
