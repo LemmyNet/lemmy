@@ -43,7 +43,8 @@ full = [
   "itertools",
   "markdown-it",
   "moka",
-  "actix-extensible-rate-limit","dashmap"
+  "actix-extensible-rate-limit",
+  "dashmap",
 ]
 ts-rs = ["dep:ts-rs"]
 
@@ -83,10 +84,9 @@ git-version = "0.3.9"
 unicode-segmentation = "1.12.0"
 invisible-characters = "0.1.5"
 actix-extensible-rate-limit = { version = "0.4.0", optional = true }
-dashmap = {version = "6.1.0", optional = true }
+dashmap = { version = "6.1.0", optional = true }
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }
 unified-diff = { workspace = true }
-tokio = { workspace = true,features = ["test-util"] }
-
+tokio = { workspace = true, features = ["test-util"] }

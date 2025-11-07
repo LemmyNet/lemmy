@@ -27,7 +27,11 @@ impl From<IpAddr> for RateLimitIpAddr {
   fn from(value: IpAddr) -> Self {
     match value {
       IpAddr::V4(addr) => RateLimitIpAddr::V4(addr),
-      IpAddr::V6(addr) => RateLimitIpAddr::V6(addr.segments()[..4].try_into().unwrap()),
+      IpAddr::V6(addr) => RateLimitIpAddr::V6(
+        addr.segments()[..4]
+          .try_into()
+          .expect("byte array is correct length"),
+      ),
     }
   }
 }
@@ -51,13 +55,14 @@ fn parse_ip(addr: Option<&str>) -> IpAddr {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::error::LemmyResult;
 
   #[test]
-  fn test_get_ip() {
+  fn test_get_ip() -> LemmyResult<()> {
     // Check that IPv4 addresses are preserved
     assert_eq!(
       raw_ip_key(Some("142.250.187.206")),
-      "142.250.187.206".parse::<IpAddr>().unwrap().into()
+      "142.250.187.206".parse::<IpAddr>()?.into()
     );
     // Check that IPv6 addresses are grouped into /64 subnets
     assert_eq!(
@@ -68,5 +73,6 @@ mod tests {
       raw_ip_key(Some("[2a00:1450:4009:81f::200e]:123")),
       RateLimitIpAddr::V6([0x2a00, 0x1450, 0x4009, 0x81f])
     );
+    Ok(())
   }
 }
