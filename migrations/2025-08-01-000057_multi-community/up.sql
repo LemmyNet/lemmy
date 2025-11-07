@@ -39,7 +39,7 @@ ALTER TABLE local_site
 WITH x AS (
 INSERT INTO person (name, public_key, private_key, instance_id, inbox_url, bot_account)
     SELECT
-        'multicomm' || substr(gen_random_uuid ()::text, 0, 11),
+        'lemmy_' || substr(gen_random_uuid ()::text, 0, 14),
         public_key,
         private_key,
         instance_id,
