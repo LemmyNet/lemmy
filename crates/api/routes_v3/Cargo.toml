@@ -38,4 +38,5 @@ lemmy_db_views_community = { workspace = true, features = ["full"] }
 lemmy_db_views_search_combined = { workspace = true, features = ["full"] }
 lemmy_db_views_person = { workspace = true, features = ["full"] }
 lemmy_db_schema_file = { workspace = true }
+lemmy_db_views_report_combined  = { workspace = true, features = ["full"] }
 activitypub_federation = { workspace = true }

@@ -1,9 +1,13 @@
 use crate::convert::{
+  convert_comment,
   convert_comment_response,
   convert_comment_view,
+  convert_community,
   convert_community_view,
   convert_my_user,
+  convert_person,
   convert_person_view,
+  convert_post,
   convert_post_listing_sort,
   convert_post_listing_type,
   convert_post_response,
@@ -29,21 +33,33 @@ use lemmy_api::{
     notifications::{mark_all_read::mark_all_notifications_read, unread_count::unread_count},
   },
   post::{like::like_post, save::save_post},
+  reports::{
+    comment_report::create::create_comment_report,
+    post_report::create::create_post_report,
+  },
 };
 use lemmy_api_019::{
   comment::{
+    CommentReportResponse as CommentReportResponseV3,
     CommentResponse as CommentResponseV3,
     CreateCommentLike as CreateCommentLikeV3,
     GetComments as GetCommentsV3,
     GetCommentsResponse as GetCommentsResponseV3,
   },
   lemmy_db_schema::{
+    SubscribedType as SubscribedTypeV3,
     newtypes::LanguageId as LanguageIdV3,
     source::{
+      comment_report::CommentReport as CommentReportV3,
       language::Language as LanguageV3,
       local_site_url_blocklist::LocalSiteUrlBlocklist as LocalSiteUrlBlocklistV3,
+      post_report::PostReport as PostReportV3,
       tagline::Tagline as TaglineV3,
     },
+  },
+  lemmy_db_views::structs::{
+    CommentReportView as CommentReportViewV3,
+    PostReportView as PostReportViewV3,
   },
   person::{
     GetRepliesResponse as GetRepliesResponseV3,
@@ -56,6 +72,7 @@ use lemmy_api_019::{
     GetPostResponse as GetPostResponseV3,
     GetPosts as GetPostsV3,
     GetPostsResponse as GetPostsResponseV3,
+    PostReportResponse as PostReportResponseV3,
     PostResponse as PostResponseV3,
   },
   site::{
@@ -76,6 +93,7 @@ use lemmy_db_schema::newtypes::{CommentId, CommunityId, LanguageId, PersonId, Po
 use lemmy_db_views_comment::api::{CreateComment, CreateCommentLike, GetComments, SaveComment};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::api::{CreatePost, CreatePostLike, GetPosts, SavePost};
+use lemmy_db_views_report_combined::api::{CreateCommentReport, CreatePostReport};
 use lemmy_db_views_search_combined::{Search, api::GetPost};
 use lemmy_db_views_site::api::{GetSiteResponse, Login, LoginResponse, ResolveObject};
 use lemmy_utils::error::LemmyResult;
@@ -404,4 +422,92 @@ pub async fn mark_all_notifications_read_v3(
 ) -> LemmyResult<Json<GetRepliesResponseV3>> {
   mark_all_notifications_read(context, local_user_view).await?;
   Ok(Json(GetRepliesResponseV3 { replies: vec![] }))
+}
+
+pub async fn create_post_report_v3(
+  data: Json<CreatePostReport>,
+  context: ApubData<LemmyContext>,
+  local_user_view: LocalUserView,
+) -> LemmyResult<Json<PostReportResponseV3>> {
+  let res = create_post_report(data, context, local_user_view)
+    .await?
+    .0
+    .post_report_view;
+  let (post, counts) = convert_post(res.post);
+  let post_report = PostReportV3 {
+    id: Default::default(),
+    creator_id: Default::default(),
+    post_id: Default::default(),
+    original_post_name: Default::default(),
+    original_post_url: Default::default(),
+    original_post_body: Default::default(),
+    reason: Default::default(),
+    resolved: Default::default(),
+    resolver_id: Default::default(),
+    published: Default::default(),
+    updated: Default::default(),
+  };
+  Ok(Json(PostReportResponseV3 {
+    post_report_view: PostReportViewV3 {
+      post_report,
+      post,
+      community: convert_community(res.community),
+      creator: convert_person(res.creator).0,
+      post_creator: convert_person(res.post_creator).0,
+      creator_banned_from_community: false,
+      creator_is_moderator: false,
+      creator_is_admin: false,
+      subscribed: SubscribedTypeV3::NotSubscribed,
+      saved: false,
+      read: false,
+      hidden: false,
+      creator_blocked: false,
+      my_vote: None,
+      unread_comments: 0,
+      counts,
+      resolver: None,
+    },
+  }))
+}
+
+pub async fn create_comment_report_v3(
+  data: Json<CreateCommentReport>,
+  context: ApubData<LemmyContext>,
+  local_user_view: LocalUserView,
+) -> LemmyResult<Json<CommentReportResponseV3>> {
+  let res = create_comment_report(data, context, local_user_view)
+    .await?
+    .0
+    .comment_report_view;
+  let (comment, counts) = convert_comment(res.comment);
+  let comment_report = CommentReportV3 {
+    id: Default::default(),
+    creator_id: Default::default(),
+    comment_id: Default::default(),
+    original_comment_text: Default::default(),
+    reason: Default::default(),
+    resolved: Default::default(),
+    resolver_id: Default::default(),
+    published: Default::default(),
+    updated: Default::default(),
+  };
+  Ok(Json(CommentReportResponseV3 {
+    comment_report_view: CommentReportViewV3 {
+      comment_report,
+      comment,
+      post: convert_post(res.post).0,
+      community: convert_community(res.community),
+      creator: convert_person(res.creator).0,
+      comment_creator: convert_person(res.comment_creator).0,
+      creator_banned_from_community: false,
+      creator_is_moderator: false,
+      creator_is_admin: false,
+      subscribed: SubscribedTypeV3::NotSubscribed,
+      saved: false,
+      creator_blocked: false,
+      my_vote: None,
+      counts,
+      resolver: None,
+    },
+  }))
 }

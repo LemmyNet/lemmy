@@ -1,5 +1,7 @@
 use crate::handlers::{
+  create_comment_report_v3,
   create_comment_v3,
+  create_post_report_v3,
   create_post_v3,
   get_post_v3,
   get_site_v3,
@@ -50,7 +52,8 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("", get().to(get_post_v3))
           .route("/list", get().to(list_posts_v3))
           .route("/like", post().to(like_post_v3))
-          .route("/save", put().to(save_post_v3)),
+          .route("/save", put().to(save_post_v3))
+          .route("/report", post().to(create_post_report_v3)),
       )
       .service(
         resource("/comment")
@@ -63,7 +66,8 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .wrap(rate_limit.message())
           .route("/like", post().to(like_comment_v3))
           .route("/list", get().to(list_comments_v3))
-          .route("/save", put().to(save_comment_v3)),
+          .route("/save", put().to(save_comment_v3))
+          .route("/report", post().to(create_comment_report_v3)),
       )
       .service(
         resource("/user/login")
