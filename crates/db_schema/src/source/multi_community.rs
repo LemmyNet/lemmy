@@ -43,6 +43,9 @@ pub struct MultiCommunity {
   pub following_url: DbUrl,
   pub published_at: DateTime<Utc>,
   pub updated_at: Option<DateTime<Utc>>,
+  pub subscribers: i32,
+  pub subscribers_local: i32,
+  pub communities: i32,
 }
 
 #[derive(Debug, Clone, derive_new::new)]
