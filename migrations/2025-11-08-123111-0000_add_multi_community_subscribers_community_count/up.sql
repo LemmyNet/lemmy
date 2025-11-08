@@ -12,5 +12,5 @@ CREATE INDEX idx_multi_community_subscribers_local ON multi_community (subscribe
 
 CREATE INDEX idx_multi_community_communities ON multi_community (communities DESC, id DESC);
 
-CREATE INDEX idx_multi_community_published ON multi_community (published DESC, id DESC);
+CREATE INDEX idx_multi_community_published ON multi_community (published_at DESC, id DESC);
 
