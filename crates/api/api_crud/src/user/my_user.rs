@@ -1,6 +1,8 @@
 use actix_web::web::{Data, Json};
 use lemmy_api_utils::{context::LemmyContext, utils::check_local_user_deleted};
 use lemmy_db_schema::{
+  MultiCommunityListingType,
+  MultiCommunitySortType,
   source::{
     actor_language::LocalUserLanguage,
     community::CommunityActions,
@@ -10,7 +12,7 @@ use lemmy_db_schema::{
   },
   traits::Blockable,
 };
-use lemmy_db_views_community::MultiCommunityView;
+use lemmy_db_views_community::impls::MultiCommunityQuery;
 use lemmy_db_views_community_follower::CommunityFollowerView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
@@ -45,12 +47,14 @@ pub async fn get_my_user(
     |pool| InstanceActions::read_persons_block_for_person(pool, person_id),
     |pool| PersonActions::read_blocks_for_person(pool, person_id),
     |pool| CommunityModeratorView::for_person(pool, person_id, Some(&local_user_view.local_user)),
-    |pool| MultiCommunityView::list(
-      pool,
-      None,
-      Some(person_id),
-      true,
-    ),
+    |pool| MultiCommunityQuery {
+      my_person_id: Some(person_id),
+      listing_type: Some(MultiCommunityListingType::Subscribed),
+      sort: Some(MultiCommunitySortType::NameAsc),
+      no_limit: Some(true),
+      ..Default::default()
+    }
+    .list(pool),
     |pool| LocalUserKeywordBlock::read(pool, local_user_id),
     |pool| LocalUserLanguage::read(pool, local_user_id)
   ))?;

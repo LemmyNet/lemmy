@@ -1,6 +1,8 @@
 use crate::{CommunityView, MultiCommunityView};
 use lemmy_db_schema::{
   CommunitySortType,
+  MultiCommunityListingType,
+  MultiCommunitySortType,
   newtypes::{CommunityId, LanguageId, MultiCommunityId, PaginationCursor, PersonId, TagId},
   source::site::Site,
 };
@@ -282,8 +284,15 @@ pub struct CreateOrDeleteMultiCommunityEntry {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct ListMultiCommunities {
+  pub type_: Option<MultiCommunityListingType>,
+  pub sort: Option<MultiCommunitySortType>,
   pub creator_id: Option<PersonId>,
-  pub followed_only: Option<bool>,
+  /// Filter to within a given time range, in seconds.
+  /// IE 60 would give results for the past minute.
+  pub time_range_seconds: Option<i32>,
+  pub page_cursor: Option<PaginationCursor>,
+  pub page_back: Option<bool>,
+  pub limit: Option<i64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -291,6 +300,9 @@ pub struct ListMultiCommunities {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct ListMultiCommunitiesResponse {
   pub multi_communities: Vec<MultiCommunityView>,
+  /// the pagination cursor to use to fetch the next page
+  pub next_page: Option<PaginationCursor>,
+  pub prev_page: Option<PaginationCursor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

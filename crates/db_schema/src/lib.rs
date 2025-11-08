@@ -74,6 +74,36 @@ pub enum CommunitySortType {
   SubscribersLocal,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
+pub enum MultiCommunitySortType {
+  New,
+  Old,
+  NameAsc,
+  NameDesc,
+  Communities,
+  #[default]
+  Subscribers,
+  SubscribersLocal,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
+/// A listing type for multi-community fetches.
+pub enum MultiCommunityListingType {
+  /// Content from your own site, as well as all connected / federated sites.
+  All,
+  /// Content from your site only.
+  #[default]
+  Local,
+  /// Content only from communities you've subscribed to.
+  Subscribed,
+}
+
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash,
 )]
