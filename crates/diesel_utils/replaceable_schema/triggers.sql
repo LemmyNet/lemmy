@@ -782,8 +782,18 @@ BEGIN
     RETURN NULL;
 END
 $$;
+CREATE TRIGGER multi_community_update_add_subscribers
+    AFTER UPDATE OF follow_state ON multi_community_follow
+    FOR EACH ROW
+    WHEN (OLD.follow_state != 'Accepted' AND NEW.follow_state = 'Accepted')
+    EXECUTE FUNCTION r.multicommunity_subscribers_increment ();
+CREATE TRIGGER multi_community_update_remove_subscribers
+    AFTER UPDATE OF follow_state ON multi_community_follow
+    FOR EACH ROW
+    WHEN (OLD.follow_state = 'Accepted' AND NEW.follow_state != 'Accepted')
+    EXECUTE FUNCTION r.multicommunity_subscribers_decrement ();
 CREATE TRIGGER multi_community_add_subscribers
-    AFTER INSERT OR UPDATE OF follow_state ON multi_community_follow
+    AFTER INSERT ON multi_community_follow
     FOR EACH ROW
     WHEN (NEW.follow_state = 'Accepted')
     EXECUTE FUNCTION r.multicommunity_subscribers_increment ();
@@ -829,8 +839,18 @@ BEGIN
     RETURN NULL;
 END
 $$;
+CREATE TRIGGER multi_community_update_add_subscribers_local
+    AFTER UPDATE OF follow_state ON multi_community_follow
+    FOR EACH ROW
+    WHEN (OLD.follow_state != 'Accepted' AND NEW.follow_state = 'Accepted')
+    EXECUTE FUNCTION r.multicommunity_subscribers_local_increment ();
+CREATE TRIGGER multi_community_update_remove_subscribers_local
+    AFTER UPDATE OF follow_state ON multi_community_follow
+    FOR EACH ROW
+    WHEN (OLD.follow_state = 'Accepted' AND NEW.follow_state != 'Accepted')
+    EXECUTE FUNCTION r.multicommunity_subscribers_local_decrement ();
 CREATE TRIGGER multi_community_add_subscribers_local
-    AFTER INSERT OR UPDATE OF follow_state ON multi_community_follow
+    AFTER INSERT ON multi_community_follow
     FOR EACH ROW
     WHEN (NEW.follow_state = 'Accepted')
     EXECUTE FUNCTION r.multicommunity_subscribers_local_increment ();
