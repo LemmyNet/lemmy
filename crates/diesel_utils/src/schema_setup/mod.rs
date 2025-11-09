@@ -103,6 +103,8 @@ impl MigrationHarness<Pg> for Options {
     &mut self,
     migration: &dyn Migration<Pg>,
   ) -> diesel::migration::Result<MigrationVersion<'static>> {
+    // Drop `r` schema, so migrations don't need to be made to work both with and without things in
+    // it existing
     revert_replaceable_schema(&mut self.conn)?;
 
     #[cfg(test)]
@@ -130,6 +132,8 @@ impl MigrationHarness<Pg> for Options {
     &mut self,
     migration: &dyn Migration<Pg>,
   ) -> diesel::migration::Result<MigrationVersion<'static>> {
+    // Drop `r` schema, so migrations don't need to be made to work both with and without things in
+    // it existing
     revert_replaceable_schema(&mut self.conn)?;
 
     let start_time = Instant::now();
@@ -238,10 +242,6 @@ pub fn run(mut options: Options) -> anyhow::Result<Branch> {
   options.print("Waiting for lock...");
   options.conn.batch_execute("SELECT pg_advisory_lock(0);")?;
   options.print("Running Database migrations (This may take a long time)...");
-
-  // Drop `r` schema, so migrations don't need to be made to work both with and without things in
-  // it existing
-  revert_replaceable_schema(&mut options.conn)?;
 
   run_selected_migrations(&mut options).map_err(convert_err)?;
 
