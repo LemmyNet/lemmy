@@ -175,16 +175,17 @@ pub enum Branch {
   ReplaceableSchemaNotRebuilt,
 }
 
-pub fn run(options: Options, db_url: &str) -> anyhow::Result<Branch> {
+pub fn run(mut options: Options) -> anyhow::Result<Branch> {
   // Migrations don't support async connection, and this function doesn't need to be async
-  let conn = &mut PgConnection::establish(db_url)?;
+  //let conn = &mut PgConnection::establish(db_url)?;
 
   // If possible, skip getting a lock and recreating the "r" schema, so
   // lemmy_server processes in a horizontally scaled setup can start without causing locks
   if !options.revert
     && options.run
     && options.limit.is_none()
-    && !conn
+    && !options
+      .conn
       .has_pending_migration(migrations())
       .map_err(convert_err)?
   {
@@ -196,7 +197,7 @@ pub fn run(options: Options, db_url: &str) -> anyhow::Result<Branch> {
 
     let schema_exists = exists(pg_namespace::table.find("r"));
 
-    if select(sql_unchanged.and(schema_exists)).get_result(conn)? {
+    if select(sql_unchanged.and(schema_exists)).get_result(&mut options.conn)? {
       return Ok(Branch::EarlyReturn);
     }
   }
@@ -204,18 +205,19 @@ pub fn run(options: Options, db_url: &str) -> anyhow::Result<Branch> {
   // Block concurrent attempts to run migrations until `conn` is closed, and disable the
   // trigger that prevents the Diesel CLI from running migrations
   options.print("Waiting for lock...");
-  conn.batch_execute("SELECT pg_advisory_lock(0);")?;
+  options.conn.batch_execute("SELECT pg_advisory_lock(0);")?;
   options.print("Running Database migrations (This may take a long time)...");
 
   // Drop `r` schema, so migrations don't need to be made to work both with and without things in
   // it existing
-  revert_replaceable_schema(conn)?;
+  revert_replaceable_schema(&mut options.conn)?;
 
-  run_selected_migrations(conn, &options).map_err(convert_err)?;
+  run_selected_migrations(&mut options).map_err(convert_err)?;
 
   // Only run replaceable_schema if newest migration was applied
   let output = if (options.run && options.limit.is_none())
-    || !conn
+    || !options
+      .conn
       .has_pending_migration(migrations())
       .map_err(convert_err)?
   {
@@ -223,8 +225,8 @@ pub fn run(options: Options, db_url: &str) -> anyhow::Result<Branch> {
     if options.enable_diff_check {
       let before = diff_check::get_dump();
 
-      run_replaceable_schema(conn)?;
-      revert_replaceable_schema(conn)?;
+      run_replaceable_schema(&mut options.conn)?;
+      revert_replaceable_schema(&mut options.conn)?;
 
       let after = diff_check::get_dump();
 
@@ -236,7 +238,7 @@ pub fn run(options: Options, db_url: &str) -> anyhow::Result<Branch> {
       diff_check::deferr_constraint_check(&after);
     }
 
-    run_replaceable_schema(conn)?;
+    run_replaceable_schema(&mut options.conn)?;
 
     Branch::ReplaceableSchemaRebuilt
   } else {
@@ -275,34 +277,24 @@ fn revert_replaceable_schema(conn: &mut PgConnection) -> anyhow::Result<()> {
   Ok(())
 }
 
-fn run_selected_migrations(
-  conn: &mut PgConnection,
-  options: &Options,
-) -> diesel::migration::Result<()> {
-  let mut wrapper = MigrationHarnessWrapper {
-    conn,
-    options,
-    #[cfg(test)]
-    enable_diff_check: options.enable_diff_check,
-  };
-
+fn run_selected_migrations(options: &mut Options) -> diesel::migration::Result<()> {
   if options.revert {
     if let Some(limit) = options.limit {
       for _ in 0..limit {
-        wrapper.revert_last_migration(migrations())?;
+        options.revert_last_migration(migrations())?;
       }
     } else {
-      wrapper.revert_all_migrations(migrations())?;
+      options.revert_all_migrations(migrations())?;
     }
   }
 
   if options.run {
     if let Some(limit) = options.limit {
       for _ in 0..limit {
-        wrapper.run_next_migration(migrations())?;
+        options.run_next_migration(migrations())?;
       }
     } else {
-      wrapper.run_pending_migrations(migrations())?;
+      options.run_pending_migrations(migrations())?;
     }
   }
 
