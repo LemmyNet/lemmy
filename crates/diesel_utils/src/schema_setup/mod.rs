@@ -299,6 +299,7 @@ fn run_replaceable_schema(conn: &mut PgConnection) -> anyhow::Result<()> {
   })
 }
 
+/// this shouldn't be run in the same transaction as the next stuff, since [todo finish explanation]
 fn revert_replaceable_schema(conn: &mut (impl SimpleConnection + ?Sized)) -> anyhow::Result<()> {
   conn
     .batch_execute("DROP SCHEMA IF EXISTS r CASCADE;")
