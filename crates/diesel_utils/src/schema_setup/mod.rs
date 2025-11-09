@@ -52,14 +52,7 @@ fn replaceable_schema() -> String {
 
 const REPLACEABLE_SCHEMA_PATH: &str = "crates/diesel_utils/replaceable_schema";
 
-struct MigrationHarnessWrapper<'a> {
-  conn: &'a mut PgConnection,
-  #[cfg(test)]
-  enable_diff_check: bool,
-  options: &'a Options,
-}
-
-impl MigrationHarnessWrapper<'_> {
+impl Options {
   fn run_migration_inner(
     &mut self,
     migration: &dyn Migration<Pg>,
@@ -72,13 +65,13 @@ impl MigrationHarnessWrapper<'_> {
       .map(|d| d.to_string())
       .unwrap_or_default();
     let name = migration.name();
-    self.options.print(&format!("{duration} run {name}"));
+    self.print(&format!("{duration} run {name}"));
 
     result
   }
 }
 
-impl MigrationHarness<Pg> for MigrationHarnessWrapper<'_> {
+impl MigrationHarness<Pg> for Options {
   fn run_migration(
     &mut self,
     migration: &dyn Migration<Pg>,
@@ -116,7 +109,7 @@ impl MigrationHarness<Pg> for MigrationHarnessWrapper<'_> {
       .map(|d| d.to_string())
       .unwrap_or_default();
     let name = migration.name();
-    self.options.print(&format!("{duration} revert {name}"));
+    self.print(&format!("{duration} revert {name}"));
 
     result
   }
@@ -126,7 +119,6 @@ impl MigrationHarness<Pg> for MigrationHarnessWrapper<'_> {
   }
 }
 
-#[derive(Default, Clone, Copy)]
 pub struct Options {
   #[cfg(test)]
   enable_diff_check: bool,
@@ -134,6 +126,7 @@ pub struct Options {
   run: bool,
   print_output: bool,
   limit: Option<u64>,
+  conn: PgConnection,
 }
 
 impl Options {
