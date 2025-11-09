@@ -10,7 +10,7 @@ use diesel::{
   RunQueryDsl,
   connection::SimpleConnection,
   dsl::exists,
-  migration::{Migration, MigrationVersion},
+  migration::{Migration, MigrationMetadata, MigrationVersion},
   pg::Pg,
   select,
   update,
@@ -31,6 +31,33 @@ diesel::table! {
     content -> Text,
   }
 }
+
+/*struct MigrationWrapper(Box<dyn Migration<Pg>>);
+
+impl Migration<Pg> for MigrationWrapper {
+  fn metadata(&self) -> &dyn diesel::migration::MigrationMetadata {
+    struct TodoRename;
+
+    impl MigrationMetadata for TodoRename {
+      fn run_in_transaction(&self) -> bool {
+        false
+      }
+    }
+
+    &TodoRename
+  }
+
+  fn name(&self) -> &dyn diesel::migration::MigrationName {
+      self.0.name()
+  }
+
+  fn revert(&self, conn: &mut dyn diesel::connection::BoxableConnection<Pg>) -> diesel::migration::Result<()> {
+      revert_replaceable_schema(conn)?;
+
+  }
+}
+
+struct LemmyMigrations;*/
 
 fn migrations() -> diesel_migrations::EmbeddedMigrations {
   // Using `const` here is required by the borrow checker
@@ -76,6 +103,8 @@ impl MigrationHarness<Pg> for Options {
     &mut self,
     migration: &dyn Migration<Pg>,
   ) -> diesel::migration::Result<MigrationVersion<'static>> {
+    revert_replaceable_schema(&mut self.conn)?;
+
     #[cfg(test)]
     if self.enable_diff_check {
       let before = diff_check::get_dump();
@@ -101,6 +130,8 @@ impl MigrationHarness<Pg> for Options {
     &mut self,
     migration: &dyn Migration<Pg>,
   ) -> diesel::migration::Result<MigrationVersion<'static>> {
+    revert_replaceable_schema(&mut self.conn)?;
+
     let start_time = Instant::now();
 
     let result = self.conn.revert_migration(migration);
@@ -251,6 +282,8 @@ pub fn run(mut options: Options) -> anyhow::Result<Branch> {
 }
 
 fn run_replaceable_schema(conn: &mut PgConnection) -> anyhow::Result<()> {
+  revert_replaceable_schema(conn)?;
+
   conn.transaction(|conn| {
     conn
       .batch_execute(&replaceable_schema())
@@ -266,7 +299,7 @@ fn run_replaceable_schema(conn: &mut PgConnection) -> anyhow::Result<()> {
   })
 }
 
-fn revert_replaceable_schema(conn: &mut PgConnection) -> anyhow::Result<()> {
+fn revert_replaceable_schema(conn: &mut (impl SimpleConnection + ?Sized)) -> anyhow::Result<()> {
   conn
     .batch_execute("DROP SCHEMA IF EXISTS r CASCADE;")
     .with_context(|| format!("Failed to revert SQL files in {REPLACEABLE_SCHEMA_PATH}"))?;
