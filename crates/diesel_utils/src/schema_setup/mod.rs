@@ -161,6 +161,7 @@ pub struct Options {
   run: bool,
   print_output: bool,
   limit: Option<u64>,
+  // Migrations don't support async connection, and non-async migration execution is okay
   conn: PgConnection,
 }
 
@@ -208,6 +209,20 @@ pub enum Branch {
   EarlyReturn,
   ReplaceableSchemaRebuilt,
   ReplaceableSchemaNotRebuilt,
+}
+
+impl Options {
+  pub fn new(db_url: &str) -> anyhow::Result<Self> {
+    Ok(Options {
+      #[cfg(test)]
+      enable_diff_check: false,
+      revert: false,
+      run: false,
+      print_output: false,
+      limit: None,
+      conn: PgConnection::establish(db_url)?,
+    })
+  }
 }
 
 pub fn run(mut options: Options) -> anyhow::Result<Branch> {
