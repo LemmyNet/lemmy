@@ -10,16 +10,14 @@ use diesel::{
   RunQueryDsl,
   connection::SimpleConnection,
   dsl::exists,
-  migration::{Migration, MigrationSource, MigrationVersion},
+  migration::{Migration, MigrationVersion},
   pg::Pg,
   select,
   update,
 };
-use diesel_migrations::{EmbeddedMigrations, MigrationHarness};
+use diesel_migrations::MigrationHarness;
 use std::time::Instant;
 use tracing::debug;
-
-// TODO: add duration logging to diesel
 
 diesel::table! {
   pg_namespace (nspname) {
@@ -34,62 +32,10 @@ diesel::table! {
   }
 }
 
-struct MigrationWrapper {
-  embedded_migration: Box<dyn Migration<Pg>>,
-}
-
-impl Migration<Pg> for MigrationWrapper {
-  fn run(
-    &self,
-    conn: &mut dyn diesel::connection::BoxableConnection<Pg>,
-  ) -> diesel::migration::Result<()> {
-    // Drop `r` schema, so migrations don't need to be made to work both with and without things in
-    // it existing
-    revert_replaceable_schema(conn)?;
-
-    self.embedded_migration.run(conn)
-  }
-
-  fn revert(
-    &self,
-    conn: &mut dyn diesel::connection::BoxableConnection<Pg>,
-  ) -> diesel::migration::Result<()> {
-    // Drop `r` schema, so migrations don't need to be made to work both with and without things in
-    // it existing
-    revert_replaceable_schema(conn)?;
-
-    self.embedded_migration.revert(conn)
-  }
-
-  fn metadata(&self) -> &dyn diesel::migration::MigrationMetadata {
-    self.embedded_migration.metadata()
-  }
-
-  fn name(&self) -> &dyn diesel::migration::MigrationName {
-    self.embedded_migration.name()
-  }
-}
-
-struct LemmyMigrations;
-
-impl MigrationSource<Pg> for LemmyMigrations {
-  fn migrations(&self) -> diesel::migration::Result<Vec<Box<dyn Migration<Pg>>>> {
-    // Using `const` here is required by the borrow checker
-    const MIGRATIONS: diesel_migrations::EmbeddedMigrations =
-      diesel_migrations::embed_migrations!();
-
-    Ok(
-      MIGRATIONS
-        .migrations()?
-        .into_iter()
-        .map(|migration| -> Box<dyn Migration<Pg>> {
-          Box::new(MigrationWrapper {
-            embedded_migration: migration,
-          })
-        })
-        .collect(),
-    )
-  }
+fn migrations() -> diesel_migrations::EmbeddedMigrations {
+  // Using `const` here is required by the borrow checker
+  const MIGRATIONS: diesel_migrations::EmbeddedMigrations = diesel_migrations::embed_migrations!();
+  MIGRATIONS
 }
 
 /// This SQL code sets up the `r` schema, which contains things that can be safely dropped and
@@ -246,7 +192,7 @@ pub fn run(options: Options, db_url: &str) -> anyhow::Result<Branch> {
     && options.run
     && options.limit.is_none()
     && !conn
-      .has_pending_migration(LemmyMigrations)
+      .has_pending_migration(migrations())
       .map_err(convert_err)?
   {
     // The condition above implies that the migration that creates the previously_run_sql table was
@@ -265,7 +211,6 @@ pub fn run(options: Options, db_url: &str) -> anyhow::Result<Branch> {
   // Block concurrent attempts to run migrations until `conn` is closed, and disable the
   // trigger that prevents the Diesel CLI from running migrations
   options.print("Waiting for lock...");
-  // TODO: maybe make diesel do something similar, and disable the trigger in some other way:
   conn.batch_execute("SELECT pg_advisory_lock(0);")?;
   options.print("Running Database migrations (This may take a long time)...");
 
@@ -326,7 +271,7 @@ fn run_replaceable_schema(conn: &mut PgConnection) -> anyhow::Result<()> {
   })
 }
 
-fn revert_replaceable_schema(conn: &mut (impl SimpleConnection + ?Sized)) -> anyhow::Result<()> {
+fn revert_replaceable_schema(conn: &mut PgConnection) -> anyhow::Result<()> {
   conn
     .batch_execute("DROP SCHEMA IF EXISTS r CASCADE;")
     .with_context(|| format!("Failed to revert SQL files in {REPLACEABLE_SCHEMA_PATH}"))?;
