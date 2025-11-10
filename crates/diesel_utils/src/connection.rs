@@ -17,6 +17,7 @@ use diesel_async::{
   },
   scoped_futures::ScopedBoxFuture,
 };
+use diesel_migrations::MigrationHarness;
 use futures_util::{FutureExt, future::BoxFuture};
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
@@ -182,7 +183,7 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
     }))
     .build()?;
 
-  let mut harness = crate::schema_setup::Options::new(&db_url)?.run();
+  let mut harness = crate::schema_setup::Options::new(&db_url)?;
 
   // If possible, skip getting a lock and recreating the "r" schema, so lemmy_server processes in a
   // horizontally scaled setup can start without causing locks
@@ -194,7 +195,12 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
     harness.conn.batch_execute("SELECT pg_advisory_lock(0);")?;
 
     harness.print("Running Database migrations (This may take a long time)...");
-    crate::schema_setup::run(harness)?;
+    harness
+      .run_pending_migrations(crate::schema_setup::migrations())
+      .map_err(crate::schema_setup::convert_err)?;
+    crate::schema_setup::run_replaceable_schema(&mut harness.conn)?;
+
+    harness.print("Database migrations complete.");
   }
 
   Ok(pool)

@@ -59,7 +59,7 @@ impl Migration<Pg> for MigrationWrapper {
 
 struct LemmyMigrations;*/
 
-fn migrations() -> diesel_migrations::EmbeddedMigrations {
+pub fn migrations() -> diesel_migrations::EmbeddedMigrations {
   // Using `const` here is required by the borrow checker
   const MIGRATIONS: diesel_migrations::EmbeddedMigrations = diesel_migrations::embed_migrations!();
   MIGRATIONS
@@ -249,11 +249,11 @@ impl Options {
   }
 }
 
-pub fn run(mut options: Options) -> anyhow::Result<Branch> {
+pub fn after_run(mut options: Options) -> anyhow::Result<Branch> {
   // Migrations don't support async connection, and this function doesn't need to be async
   //let conn = &mut PgConnection::establish(db_url)?;
 
-  run_selected_migrations(&mut options).map_err(convert_err)?;
+  //run_selected_migrations(&mut options).map_err(convert_err)?;
 
   // Only run replaceable_schema if newest migration was applied
   let output = if (options.run && options.limit.is_none())
@@ -291,7 +291,7 @@ pub fn run(mut options: Options) -> anyhow::Result<Branch> {
   Ok(output)
 }
 
-fn run_replaceable_schema(conn: &mut PgConnection) -> anyhow::Result<()> {
+pub fn run_replaceable_schema(conn: &mut PgConnection) -> anyhow::Result<()> {
   revert_replaceable_schema(conn)?;
 
   conn.transaction(|conn| {
@@ -346,7 +346,7 @@ fn run_selected_migrations(options: &mut Options) -> diesel::migration::Result<(
 }
 
 /// Makes `diesel::migration::Result` work with `anyhow` and `LemmyError`
-fn convert_err(e: Box<dyn std::error::Error + Send + Sync>) -> anyhow::Error {
+pub fn convert_err(e: Box<dyn std::error::Error + Send + Sync>) -> anyhow::Error {
   anyhow!(e)
 }
 
