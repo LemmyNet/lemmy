@@ -5,11 +5,7 @@ use crate::rate_limit::{
 use actix_extensible_rate_limit::{RateLimiter, backend::SimpleOutput};
 use actix_web::dev::ServiceRequest;
 use enum_map::{EnumMap, enum_map};
-use std::{
-  future::ready,
-  sync::{Arc, RwLock},
-  time::Duration,
-};
+use std::future::ready;
 use strum::{AsRefStr, Display};
 
 mod backend;
@@ -34,19 +30,17 @@ pub struct BucketConfig {
 
 #[derive(Clone)]
 pub struct RateLimit {
-  configs: Arc<RwLock<EnumMap<ActionType, BucketConfig>>>,
   backend: LemmyBackend,
 }
 
 impl RateLimit {
   pub fn new(configs: EnumMap<ActionType, BucketConfig>) -> Self {
     Self {
-      configs: Arc::new(RwLock::new(configs)),
-      backend: LemmyBackend::default(),
+      backend: LemmyBackend::new(configs, true),
     }
   }
 
-  pub fn with_test_config() -> Self {
+  pub fn with_debug_config() -> Self {
     Self::new(enum_map! {
       ActionType::Message => BucketConfig {
         max_requests: 180,
@@ -81,7 +75,7 @@ impl RateLimit {
 
   #[allow(clippy::expect_used)]
   pub fn set_config(&self, configs: EnumMap<ActionType, BucketConfig>) {
-    *self.configs.write().expect("write rwlock") = configs;
+    *self.backend.configs.write().expect("write rwlock") = configs;
   }
 
   fn build_rate_limiter(
@@ -89,7 +83,7 @@ impl RateLimit {
     action_type: ActionType,
   ) -> RateLimiter<LemmyBackend, SimpleOutput, impl Fn(&ServiceRequest) -> LemmyInputFuture + 'static>
   {
-    let input = new_input(action_type, self.configs.clone());
+    let input = new_input(action_type);
 
     RateLimiter::builder(self.backend.clone(), input)
       .add_headers()
@@ -143,26 +137,13 @@ impl RateLimit {
   }
 }
 
-fn new_input(
-  action_type: ActionType,
-  configs: Arc<RwLock<EnumMap<ActionType, BucketConfig>>>,
-) -> impl Fn(&ServiceRequest) -> LemmyInputFuture + 'static {
+fn new_input(action_type: ActionType) -> impl Fn(&ServiceRequest) -> LemmyInputFuture + 'static {
   move |req| {
     ready({
       let info = req.connection_info();
       let key = raw_ip_key(info.realip_remote_addr());
 
-      #[allow(clippy::expect_used)]
-      let config = configs.read().expect("read rwlock")[action_type];
-
-      let interval = Duration::from_secs(config.interval.into());
-      let max_requests = config.max_requests.into();
-      Ok(LemmyInput {
-        interval,
-        max_requests,
-        key,
-        action_type,
-      })
+      Ok(LemmyInput { key, action_type })
     })
   }
 }

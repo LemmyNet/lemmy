@@ -1,7 +1,11 @@
-//! The content in this file is all copy-pasted from library code, only changing some names.
+//! The content in this file is mostly copy-pasted from library code:
 //! https://github.com/jacob-pro/actix-extensible-rate-limit/blob/master/src/backend/memory.rs
 
-use crate::rate_limit::input::{LemmyInput, RateLimitIpAddr};
+use crate::rate_limit::{
+  ActionType,
+  BucketConfig,
+  input::{LemmyInput, RateLimitIpAddr},
+};
 use actix_extensible_rate_limit::backend::{
   Backend,
   Decision,
@@ -10,7 +14,12 @@ use actix_extensible_rate_limit::backend::{
 };
 use actix_web::rt::{task::JoinHandle, time::Instant};
 use dashmap::DashMap;
-use std::{convert::Infallible, sync::Arc, time::Duration};
+use enum_map::EnumMap;
+use std::{
+  convert::Infallible,
+  sync::{Arc, RwLock},
+  time::Duration,
+};
 
 /// A Fixed Window rate limiter [Backend] that uses [Dashmap](dashmap::DashMap) to store keys
 /// in memory.
@@ -18,6 +27,7 @@ use std::{convert::Infallible, sync::Arc, time::Duration};
 pub struct LemmyBackend {
   map: Arc<DashMap<RateLimitIpAddr, Value>>,
   gc_handle: Option<Arc<JoinHandle<()>>>,
+  pub(super) configs: Arc<RwLock<EnumMap<ActionType, BucketConfig>>>,
 }
 
 struct Value {
@@ -26,7 +36,7 @@ struct Value {
 }
 
 impl LemmyBackend {
-  fn new(enable_gc: bool) -> Self {
+  pub(crate) fn new(configs: EnumMap<ActionType, BucketConfig>, enable_gc: bool) -> Self {
     let map = Arc::new(DashMap::<RateLimitIpAddr, Value>::new());
     let gc_handle = enable_gc.then(|| {
       Arc::new(LemmyBackend::garbage_collector(
@@ -34,7 +44,11 @@ impl LemmyBackend {
         Duration::from_secs(DEFAULT_GC_INTERVAL_SECONDS),
       ))
     });
-    LemmyBackend { map, gc_handle }
+    LemmyBackend {
+      map,
+      gc_handle,
+      configs: Arc::new(RwLock::new(configs)),
+    }
   }
 
   fn garbage_collector(
@@ -55,12 +69,6 @@ impl LemmyBackend {
   }
 }
 
-impl Default for LemmyBackend {
-  fn default() -> Self {
-    Self::new(true)
-  }
-}
-
 impl Backend<LemmyInput> for LemmyBackend {
   type Output = SimpleOutput;
   type RollbackToken = RateLimitIpAddr;
@@ -70,10 +78,16 @@ impl Backend<LemmyInput> for LemmyBackend {
     &self,
     input: LemmyInput,
   ) -> Result<(Decision, Self::Output, Self::RollbackToken), Self::Error> {
+    #[allow(clippy::expect_used)]
+    let config = self.configs.read().expect("read rwlock")[input.action_type];
+
+    let max_requests: u64 = config.max_requests.into();
+    let interval = Duration::from_secs(config.interval.into());
+
     let now = Instant::now();
     let mut count = 1;
     let mut expiry = now
-      .checked_add(input.interval)
+      .checked_add(interval)
       .expect("Interval unexpectedly large");
     self
       .map
@@ -95,10 +109,10 @@ impl Backend<LemmyInput> for LemmyBackend {
         ttl: expiry,
         count,
       });
-    let allow = count <= input.max_requests;
+    let allow = count <= max_requests;
     let output = SimpleOutput {
-      limit: input.max_requests,
-      remaining: input.max_requests.saturating_sub(count),
+      limit: max_requests,
+      remaining: max_requests.saturating_sub(count),
       reset: expiry,
     };
     Ok((Decision::from_allowed(allow), output, input.key))
@@ -128,16 +142,48 @@ mod tests {
     rate_limit::{ActionType, input::raw_ip_key},
   };
 
+  const MINUTE_SECS: u32 = 60;
   const MINUTE: Duration = Duration::from_secs(60);
+
+  fn test_config(interval: u32, max_requests: u32) -> EnumMap<ActionType, BucketConfig> {
+    enum_map! {
+        ActionType::Message => BucketConfig {
+          max_requests,
+          interval
+        },
+        ActionType::Post => BucketConfig {
+          max_requests: 1,
+          interval: 120,
+        },
+        ActionType::Register => BucketConfig {
+          max_requests: 0,
+          interval: 0,
+        },
+        ActionType::Image => BucketConfig {
+          max_requests: 0,
+          interval: 0,
+        },
+        ActionType::Comment => BucketConfig {
+          max_requests: 0,
+          interval: 0,
+        },
+        ActionType::Search => BucketConfig {
+          max_requests: 0,
+          interval: 0,
+        },
+        ActionType::ImportUserSettings => BucketConfig {
+          max_requests: 0,
+          interval: 0,
+        },
+    }
+  }
 
   #[actix_web::test]
   async fn test_allow_deny() -> LemmyResult<()> {
     tokio::time::pause();
-    let backend = LemmyBackend::default();
+    let backend = LemmyBackend::new(test_config(MINUTE_SECS, 5), true);
     let key = raw_ip_key(Some("127.0.0.2"));
     let input = LemmyInput {
-      interval: MINUTE,
-      max_requests: 5,
       key,
       action_type: ActionType::Message,
     };
@@ -155,11 +201,9 @@ mod tests {
   #[actix_web::test]
   async fn test_reset() -> LemmyResult<()> {
     tokio::time::pause();
-    let backend = LemmyBackend::new(false);
+    let backend = LemmyBackend::new(test_config(MINUTE_SECS, 1), false);
     let key = raw_ip_key(Some("127.0.0.3"));
     let input = LemmyInput {
-      interval: MINUTE,
-      max_requests: 1,
       key,
       action_type: ActionType::Message,
     };
@@ -181,23 +225,19 @@ mod tests {
   #[actix_web::test]
   async fn test_garbage_collection() -> LemmyResult<()> {
     tokio::time::pause();
-    let backend = LemmyBackend::default();
+    let backend = LemmyBackend::new(test_config(MINUTE_SECS, 1), true);
     let key1 = raw_ip_key(Some("127.0.0.4"));
     let key2 = raw_ip_key(Some("127.0.0.5"));
     backend
       .request(LemmyInput {
-        interval: MINUTE,
-        max_requests: 1,
         key: key1,
         action_type: ActionType::Message,
       })
       .await?;
     backend
       .request(LemmyInput {
-        interval: MINUTE * 2,
-        max_requests: 1,
         key: key2,
-        action_type: ActionType::Message,
+        action_type: ActionType::Post,
       })
       .await?;
     assert!(backend.map.contains_key(&key1));
@@ -213,11 +253,9 @@ mod tests {
   #[actix_web::test]
   async fn test_output() -> LemmyResult<()> {
     tokio::time::pause();
-    let backend = LemmyBackend::default();
+    let backend = LemmyBackend::new(test_config(MINUTE_SECS, 2), true);
     let key = raw_ip_key(Some("127.0.0.6"));
     let input = LemmyInput {
-      interval: MINUTE,
-      max_requests: 2,
       key,
       action_type: ActionType::Message,
     };
@@ -245,11 +283,9 @@ mod tests {
   #[actix_web::test]
   async fn test_rollback() -> LemmyResult<()> {
     tokio::time::pause();
-    let backend = LemmyBackend::default();
+    let backend = LemmyBackend::new(test_config(MINUTE_SECS, 5), true);
     let key = raw_ip_key(Some("127.0.0.7"));
     let input = LemmyInput {
-      interval: MINUTE,
-      max_requests: 5,
       key,
       action_type: ActionType::Message,
     };

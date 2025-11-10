@@ -1,19 +1,12 @@
+use crate::rate_limit::ActionType;
 use std::{
   future::Ready,
   net::{IpAddr, Ipv4Addr, SocketAddr},
   str::FromStr,
-  time::Duration,
 };
-
-use crate::rate_limit::ActionType;
 
 #[derive(Debug, Clone)]
 pub struct LemmyInput {
-  /// The rate limiting interval.
-  pub interval: Duration,
-  /// The total requests to be allowed within the interval.
-  pub max_requests: u64,
-  /// The rate limit key to be used for this request.
   pub key: RateLimitIpAddr,
   pub action_type: ActionType,
 }
