@@ -761,11 +761,19 @@ CREATE FUNCTION r.multicommunity_subscribers_increment ()
     AS $$
 BEGIN
     UPDATE
-        multi_community
+        multi_community AS m
     SET
-        subscribers = subscribers + 1
+        subscribers = subscribers + 1,
+        subscribers_local = CASE WHEN p.local THEN
+            subscribers_local + 1
+        ELSE
+            subscribers_local
+        END
+    FROM
+        person AS p
     WHERE
-        id = NEW.multi_community_id;
+        m.id = NEW.multi_community_id
+        AND p.id = NEW.person_id;
     RETURN NULL;
 END
 $$;
@@ -775,11 +783,19 @@ CREATE FUNCTION r.multicommunity_subscribers_decrement ()
     AS $$
 BEGIN
     UPDATE
-        multi_community
+        multi_community AS m
     SET
-        subscribers = subscribers - 1
+        subscribers = subscribers - 1,
+        subscribers_local = CASE WHEN p.local THEN
+            subscribers_local - 1
+        ELSE
+            subscribers_local
+        END
+    FROM
+        person AS p
     WHERE
-        id = OLD.multi_community_id;
+        m.id = OLD.multi_community_id
+        AND p.id = OLD.person_id;
     RETURN NULL;
 END
 $$;
@@ -803,60 +819,3 @@ CREATE TRIGGER multi_community_remove_subscribers
     FOR EACH ROW
     WHEN (OLD.follow_state = 'Accepted')
     EXECUTE FUNCTION r.multicommunity_subscribers_decrement ();
--- Increment / decrement multi_community subscribers_local counts
-CREATE FUNCTION r.multicommunity_subscribers_local_increment ()
-    RETURNS TRIGGER
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-    UPDATE
-        multi_community AS m
-    SET
-        subscribers_local = subscribers_local + 1
-    FROM
-        person AS p
-    WHERE
-        m.id = NEW.multi_community_id
-        AND p.id = NEW.person_id
-        AND p.local;
-    RETURN NULL;
-END
-$$;
-CREATE FUNCTION r.multicommunity_subscribers_local_decrement ()
-    RETURNS TRIGGER
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-    UPDATE
-        multi_community AS m
-    SET
-        subscribers_local = subscribers_local - 1
-    FROM
-        person AS p
-    WHERE
-        m.id = OLD.multi_community_id
-        AND p.id = NEW.person_id
-        AND p.local;
-    RETURN NULL;
-END
-$$;
-CREATE TRIGGER multi_community_update_add_subscribers_local
-    AFTER UPDATE OF follow_state ON multi_community_follow
-    FOR EACH ROW
-    WHEN (OLD.follow_state != 'Accepted' AND NEW.follow_state = 'Accepted')
-    EXECUTE FUNCTION r.multicommunity_subscribers_local_increment ();
-CREATE TRIGGER multi_community_update_remove_subscribers_local
-    AFTER UPDATE OF follow_state ON multi_community_follow
-    FOR EACH ROW
-    WHEN (OLD.follow_state = 'Accepted' AND NEW.follow_state != 'Accepted')
-    EXECUTE FUNCTION r.multicommunity_subscribers_local_decrement ();
-CREATE TRIGGER multi_community_add_subscribers_local
-    AFTER INSERT ON multi_community_follow
-    FOR EACH ROW
-    WHEN (NEW.follow_state = 'Accepted')
-    EXECUTE FUNCTION r.multicommunity_subscribers_local_increment ();
-CREATE TRIGGER multi_community_remove_subscribers_local
-    AFTER DELETE ON multi_community_follow
-    FOR EACH ROW
-    WHEN (OLD.follow_state = 'Accepted')
-    EXECUTE FUNCTION r.multicommunity_subscribers_local_decrement ();

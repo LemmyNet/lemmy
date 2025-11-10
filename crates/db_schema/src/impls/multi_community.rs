@@ -445,6 +445,9 @@ mod tests {
     let after_accepted_follow = MultiCommunity::read(pool, data.multi.id).await?;
     assert_eq!(1, after_accepted_follow.subscribers);
     assert_eq!(1, after_accepted_follow.subscribers_local);
+
+    Instance::delete(pool, data.instance.id).await?;
+
     Ok(())
   }
 
