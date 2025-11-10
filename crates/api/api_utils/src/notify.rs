@@ -548,8 +548,8 @@ mod tests {
     Notification::mark_read_by_id_and_person(
       pool,
       timmy_inbox[0].notification.id,
-      true,
       data.timmy.person.id,
+      true,
     )
     .await?;
 
@@ -569,8 +569,8 @@ mod tests {
     Notification::mark_read_by_id_and_person(
       pool,
       timmy_inbox[0].notification.id,
-      false,
       data.timmy.person.id,
+      false,
     )
     .await?;
 
