@@ -70,7 +70,7 @@ use lemmy_db_views_search_combined::SearchCombinedView;
 use lemmy_db_views_site::{SiteView, api::MyUserInfo};
 use lemmy_diesel_utils::{dburl::DbUrl, sensitive::SensitiveString};
 use lemmy_utils::error::LemmyResult;
-use std::{i32, sync::LazyLock};
+use std::sync::LazyLock;
 use url::Url;
 
 #[allow(clippy::expect_used)]
@@ -717,16 +717,17 @@ pub(crate) fn convert_search_response(
 pub(crate) fn convert_post_listing_sort(
   sort_type: Option<SortTypeV3>,
 ) -> (Option<PostSortType>, Option<i32>) {
-  let Some(sort_type) = sort_type else {
-    return (Some(PostSortType::default()), Some(i32::MAX));
-  };
-  let max = |s| (Some(s), Some(i32::MAX));
-  let top = |t| (Some(PostSortType::Top), Some(t));
   const HOUR: i32 = 60 * 60;
   const DAY: i32 = 24 * HOUR;
   const WEEK: i32 = 7 * DAY;
   const MONTH: i32 = 30 * DAY;
   const YEAR: i32 = 365 * DAY;
+
+  let Some(sort_type) = sort_type else {
+    return (Some(PostSortType::default()), Some(i32::MAX));
+  };
+  let max = |s| (Some(s), Some(i32::MAX));
+  let top = |t| (Some(PostSortType::Top), Some(t));
   match sort_type {
     SortTypeV3::Active => max(PostSortType::Active),
     SortTypeV3::Hot => max(PostSortType::Hot),

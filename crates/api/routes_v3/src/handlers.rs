@@ -437,7 +437,7 @@ pub async fn create_post_report_v3(
   context: ApubData<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostReportResponseV3>> {
-  let res = create_post_report(data, context, local_user_view)
+  let res = Box::pin(create_post_report(data, context, local_user_view))
     .await?
     .0
     .post_report_view;
@@ -483,7 +483,7 @@ pub async fn create_comment_report_v3(
   context: ApubData<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentReportResponseV3>> {
-  let res = create_comment_report(data, context, local_user_view)
+  let res = Box::pin(create_comment_report(data, context, local_user_view))
     .await?
     .0
     .comment_report_view;
