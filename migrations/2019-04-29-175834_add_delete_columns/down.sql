@@ -137,30 +137,30 @@ SELECT
     ap.*,
     u.id AS user_id,
     coalesce(pl.score, 0) AS my_vote,
-    (
-        SELECT
-            cf.id::bool
-        FROM
-            community_follower cf
-        WHERE
-            u.id = cf.user_id
-            AND cf.community_id = ap.community_id) AS subscribed,
-    (
-        SELECT
-            pr.id::bool
-        FROM
-            post_read pr
-        WHERE
-            u.id = pr.user_id
-            AND pr.post_id = ap.id) AS read,
-    (
-        SELECT
-            ps.id::bool
-        FROM
-            post_saved ps
-        WHERE
-            u.id = ps.user_id
-            AND ps.post_id = ap.id) AS saved
+(
+    SELECT
+        cf.id::bool
+    FROM
+        community_follower cf
+    WHERE
+        u.id = cf.user_id
+        AND cf.community_id = ap.community_id) AS subscribed,
+(
+    SELECT
+        pr.id::bool
+    FROM
+        post_read pr
+    WHERE
+        u.id = pr.user_id
+        AND pr.post_id = ap.id) AS read,
+(
+    SELECT
+        ps.id::bool
+    FROM
+        post_saved ps
+    WHERE
+        u.id = ps.user_id
+        AND ps.post_id = ap.id) AS saved
 FROM
     user_ u
     CROSS JOIN all_post ap
@@ -213,38 +213,38 @@ with all_comment AS (
                         WHERE
                             c.creator_id = user_.id) AS creator_name,
                         coalesce(sum(cl.score), 0) AS score,
-                    count(
-                        CASE WHEN cl.score = 1 THEN
-                            1
-                        ELSE
-                            NULL
-                        END) AS upvotes,
-                    count(
-                        CASE WHEN cl.score = -1 THEN
-                            1
-                        ELSE
-                            NULL
-                        END) AS downvotes
-                FROM
-                    comment c
-                LEFT JOIN comment_like cl ON c.id = cl.comment_id
-            GROUP BY
-                c.id
+                        count(
+                            CASE WHEN cl.score = 1 THEN
+                                1
+                            ELSE
+                                NULL
+                            END) AS upvotes,
+                        count(
+                            CASE WHEN cl.score = -1 THEN
+                                1
+                            ELSE
+                                NULL
+                            END) AS downvotes
+                    FROM
+                        comment c
+                    LEFT JOIN comment_like cl ON c.id = cl.comment_id
+                GROUP BY
+                    c.id
 )
-    SELECT
-        ac.*,
-        u.id AS user_id,
-        coalesce(cl.score, 0) AS my_vote,
-    (
         SELECT
-            cs.id::bool
-        FROM
-            comment_saved cs
-        WHERE
-            u.id = cs.user_id
-            AND cs.comment_id = ac.id) AS saved
-FROM
-    user_ u
+            ac.*,
+            u.id AS user_id,
+            coalesce(cl.score, 0) AS my_vote,
+        (
+            SELECT
+                cs.id::bool
+            FROM
+                comment_saved cs
+            WHERE
+                u.id = cs.user_id
+                AND cs.comment_id = ac.id) AS saved
+    FROM
+        user_ u
     CROSS JOIN all_comment ac
     LEFT JOIN comment_like cl ON u.id = cl.user_id
         AND ac.id = cl.comment_id
