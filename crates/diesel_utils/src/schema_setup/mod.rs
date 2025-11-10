@@ -162,7 +162,7 @@ pub struct Options {
   print_output: bool,
   limit: Option<u64>,
   // Migrations don't support async connection, and non-async migration execution is okay
-  conn: PgConnection,
+  pub conn: PgConnection,
 }
 
 impl Options {
@@ -194,7 +194,7 @@ impl Options {
     self
   }
 
-  fn print(&self, text: &str) {
+  pub fn print(&self, text: &str) {
     if self.print_output {
       println!("{text}");
     } else {
@@ -252,11 +252,6 @@ impl Options {
 pub fn run(mut options: Options) -> anyhow::Result<Branch> {
   // Migrations don't support async connection, and this function doesn't need to be async
   //let conn = &mut PgConnection::establish(db_url)?;
-
-  // Block concurrent attempts to run migrations until `conn` is closed
-  options.print("Waiting for lock...");
-  options.conn.batch_execute("SELECT pg_advisory_lock(0);")?;
-  options.print("Running Database migrations (This may take a long time)...");
 
   run_selected_migrations(&mut options).map_err(convert_err)?;
 

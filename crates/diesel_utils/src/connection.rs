@@ -1,8 +1,11 @@
 use deadpool::Runtime;
-use diesel::result::{
-  ConnectionError,
-  ConnectionResult,
-  Error::{self as DieselError, QueryBuilderError},
+use diesel::{
+  connection::SimpleConnection,
+  result::{
+    ConnectionError,
+    ConnectionResult,
+    Error::{self as DieselError, QueryBuilderError},
+  },
 };
 use diesel_async::{
   AsyncConnection,
@@ -184,6 +187,13 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
   // If possible, skip getting a lock and recreating the "r" schema, so lemmy_server processes in a
   // horizontally scaled setup can start without causing locks
   if harness.need_schema_setup()? {
+    // Block concurrent attempts to run migrations until `conn` is closed (otherwise, in a
+    // horizontally scaled setup, it's possible for multiple processes to try running the same
+    // migration, which would throw a unique violation error)
+    harness.print("Waiting for lock...");
+    harness.conn.batch_execute("SELECT pg_advisory_lock(0);")?;
+
+    harness.print("Running Database migrations (This may take a long time)...");
     crate::schema_setup::run(harness)?;
   }
 
