@@ -179,7 +179,13 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
     }))
     .build()?;
 
-  crate::schema_setup::run(crate::schema_setup::Options::default().run(), &db_url)?;
+  let mut harness = crate::schema_setup::Options::new(&db_url)?.run();
+
+  // If possible, skip getting a lock and recreating the "r" schema, so lemmy_server processes in a
+  // horizontally scaled setup can start without causing locks
+  if harness.need_schema_setup()? {
+    crate::schema_setup::run(harness)?;
+  }
 
   Ok(pool)
 }

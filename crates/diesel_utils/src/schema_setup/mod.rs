@@ -223,34 +223,35 @@ impl Options {
       conn: PgConnection::establish(db_url)?,
     })
   }
+
+  pub fn need_schema_setup(&mut self) -> anyhow::Result<bool> {
+    if !self.revert
+      && self.run
+      && self.limit.is_none()
+      && !self
+        .conn
+        .has_pending_migration(migrations())
+        .map_err(convert_err)?
+    {
+      // The condition above implies that the migration that creates the previously_run_sql table
+      // was already run
+      let sql_unchanged = exists(
+        previously_run_sql::table.filter(previously_run_sql::content.eq(replaceable_schema())),
+      );
+
+      let schema_exists = exists(pg_namespace::table.find("r"));
+
+      if select(sql_unchanged.and(schema_exists)).get_result(&mut self.conn)? {
+        return Ok(false);
+      }
+    }
+    Ok(true)
+  }
 }
 
 pub fn run(mut options: Options) -> anyhow::Result<Branch> {
   // Migrations don't support async connection, and this function doesn't need to be async
   //let conn = &mut PgConnection::establish(db_url)?;
-
-  // If possible, skip getting a lock and recreating the "r" schema, so
-  // lemmy_server processes in a horizontally scaled setup can start without causing locks
-  if !options.revert
-    && options.run
-    && options.limit.is_none()
-    && !options
-      .conn
-      .has_pending_migration(migrations())
-      .map_err(convert_err)?
-  {
-    // The condition above implies that the migration that creates the previously_run_sql table was
-    // already run
-    let sql_unchanged = exists(
-      previously_run_sql::table.filter(previously_run_sql::content.eq(replaceable_schema())),
-    );
-
-    let schema_exists = exists(pg_namespace::table.find("r"));
-
-    if select(sql_unchanged.and(schema_exists)).get_result(&mut options.conn)? {
-      return Ok(Branch::EarlyReturn);
-    }
-  }
 
   // Block concurrent attempts to run migrations until `conn` is closed
   options.print("Waiting for lock...");

@@ -11,9 +11,9 @@ pub mod structs;
 static DEFAULT_CONFIG_FILE: &str = "config/config.hjson";
 
 const CONNECTION_OPTIONS: [&str; 2] = [
-  "geqo_threshold=12",      // speed up queries
+  "geqo_threshold=12", // speed up queries
   "application_name=lemmy", /* disable the trigger that prevents the Diesel CLI from running
-                             * migrations */
+                        * migrations */
 ];
 
 #[allow(clippy::expect_used)]
