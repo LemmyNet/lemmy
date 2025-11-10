@@ -20,11 +20,15 @@ use lemmy_db_schema::{
     person::Person,
   },
   traits::PaginationCursorBuilder,
-  utils::{DbPool, get_conn, limit_fetch, paginate, queries::selects::person1_select},
+  utils::{limit_fetch, queries::selects::person1_select},
 };
 use lemmy_db_schema_file::{
   enums::{CommunityFollowerState, CommunityVisibility},
   schema::{community, community_actions, person},
+};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  utils::paginate,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use std::collections::HashMap;
@@ -235,10 +239,10 @@ mod tests {
       instance::Instance,
       person::PersonInsertForm,
     },
-    traits::{Crud, Followable},
-    utils::build_db_pool_for_tests,
+    traits::Followable,
   };
   use lemmy_db_schema_file::enums::CommunityVisibility;
+  use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use serial_test::serial;
 
   #[tokio::test]

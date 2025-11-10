@@ -1,14 +1,11 @@
-use crate::{
-  source::{
-    instance::Instance,
-    local_site::{LocalSite, LocalSiteInsertForm},
-    local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitInsertForm},
-    person::{Person, PersonInsertForm},
-    site::{Site, SiteInsertForm},
-  },
-  traits::Crud,
-  utils::DbPool,
+use crate::source::{
+  instance::Instance,
+  local_site::{LocalSite, LocalSiteInsertForm},
+  local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitInsertForm},
+  person::{Person, PersonInsertForm},
+  site::{Site, SiteInsertForm},
 };
+use lemmy_diesel_utils::{connection::DbPool, traits::Crud};
 use lemmy_utils::error::LemmyResult;
 
 pub struct TestData {
@@ -25,7 +22,7 @@ impl TestData {
 
     let person = Person::create(pool, &PersonInsertForm::test_form(instance.id, "langs")).await?;
     let local_site_form = LocalSiteInsertForm {
-      multi_comm_follower: Some(person.id),
+      system_account: Some(person.id),
       ..LocalSiteInsertForm::new(site.id)
     };
     let local_site = LocalSite::create(pool, &local_site_form).await?;

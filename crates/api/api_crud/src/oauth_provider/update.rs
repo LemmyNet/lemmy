@@ -2,13 +2,13 @@ use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use chrono::Utc;
 use lemmy_api_utils::{context::LemmyContext, utils::is_admin};
-use lemmy_db_schema::{
-  source::oauth_provider::{OAuthProvider, OAuthProviderUpdateForm},
+use lemmy_db_schema::source::oauth_provider::{OAuthProvider, OAuthProviderUpdateForm};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::api::EditOAuthProvider;
+use lemmy_diesel_utils::{
   traits::Crud,
   utils::{diesel_required_string_update, diesel_required_url_update},
 };
-use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_site::api::EditOAuthProvider;
 use lemmy_utils::error::LemmyError;
 
 pub async fn update_oauth_provider(

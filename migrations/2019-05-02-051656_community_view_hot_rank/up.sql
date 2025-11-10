@@ -47,8 +47,8 @@ with all_community AS (
             FROM community_follower cf
             WHERE
                 cf.community_id = c.id), c.published) AS hot_rank
-FROM
-    community c
+    FROM
+        community c
 )
 SELECT
     ac.*,

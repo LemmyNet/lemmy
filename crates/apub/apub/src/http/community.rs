@@ -240,8 +240,8 @@ pub(crate) mod tests {
       post::{Post, PostInsertForm},
     },
     test_data::TestData,
-    traits::Crud,
   };
+  use lemmy_diesel_utils::traits::Crud;
   use serde::de::DeserializeOwned;
   use serial_test::serial;
   use url::Url;

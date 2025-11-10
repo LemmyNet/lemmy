@@ -17,17 +17,19 @@ use lemmy_db_schema::{
     local_user::{LocalUser, LocalUserInsertForm},
     person::{Person, PersonInsertForm, person_keys},
   },
-  traits::{Crud, PaginationCursorBuilder},
-  utils::{
-    DbPool,
-    functions::{coalesce, lower},
-    get_conn,
-    now,
-    paginate,
-    queries::joins::creator_home_instance_actions_join,
-  },
+  traits::PaginationCursorBuilder,
+  utils::queries::joins::creator_home_instance_actions_join,
 };
 use lemmy_db_schema_file::schema::{instance_actions, local_user, oauth_account, person};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  traits::Crud,
+  utils::{
+    functions::{coalesce, lower},
+    now,
+    paginate,
+  },
+};
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
 use std::future::{Ready, ready};
 
@@ -240,8 +242,11 @@ mod tests {
       local_user::{LocalUser, LocalUserInsertForm},
       person::{Person, PersonInsertForm},
     },
-    traits::{Bannable, Crud},
-    utils::build_db_pool_for_tests,
+    traits::Bannable,
+  };
+  use lemmy_diesel_utils::{
+    connection::{DbPool, build_db_pool_for_tests},
+    traits::Crud,
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;

@@ -12,12 +12,12 @@ use lemmy_db_schema::{
     local_user::LocalUser,
     modlog::{Modlog, ModlogInsertForm},
   },
-  traits::Crud,
 };
 use lemmy_db_views_community::api::PurgeCommunity;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::api::SuccessResponse;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn purge_community(

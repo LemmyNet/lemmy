@@ -12,17 +12,15 @@ use activitypub_federation::{
 use either::Either;
 use html2md::parse_html;
 use lemmy_api_utils::{context::LemmyContext, utils::check_is_mod_or_admin};
-use lemmy_db_schema::{
-  source::{
-    community::Community,
-    instance::{Instance, InstanceActions},
-    local_site::LocalSite,
-  },
-  utils::DbPool,
+use lemmy_db_schema::source::{
+  community::Community,
+  instance::{Instance, InstanceActions},
+  local_site::LocalSite,
 };
 use lemmy_db_schema_file::enums::{ActorType, CommunityVisibility};
 use lemmy_db_views_community_moderator::CommunityPersonBanView;
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::connection::DbPool;
 use lemmy_utils::{
   CACHE_DURATION_FEDERATION,
   CacheLock,
@@ -81,7 +79,7 @@ pub async fn local_site_data_cached(pool: &mut DbPool<'_>) -> LemmyResult<Arc<Lo
     Box::pin(CACHE
       .try_get_with((), async {
         let (local_site, allowed_instances, blocked_instances) =
-          lemmy_db_schema::try_join_with_pool!(pool => (
+          lemmy_diesel_utils::try_join_with_pool!(pool => (
             // LocalSite may be missing
             |pool| async {
               Ok(SiteView::read_local(pool).await.ok().map(|s| s.local_site))

@@ -15,10 +15,14 @@ use lemmy_db_schema::{
     person::{Person, PersonInsertForm},
     site::Site,
   },
-  traits::{Crud, PaginationCursorBuilder},
-  utils::{build_db_pool, get_conn, now},
+  traits::PaginationCursorBuilder,
 };
 use lemmy_db_schema_file::{enums::PostSortType, schema::post};
+use lemmy_diesel_utils::{
+  connection::{build_db_pool, get_conn},
+  traits::Crud,
+  utils::now,
+};
 use lemmy_utils::error::LemmyResult;
 use serial_test::serial;
 use std::{fmt::Display, num::NonZeroU32, str::FromStr};

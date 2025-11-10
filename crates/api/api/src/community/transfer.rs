@@ -6,13 +6,9 @@ use lemmy_api_utils::{
   notify::notify_mod_action,
   utils::{check_community_user_action, is_admin, is_top_mod},
 };
-use lemmy_db_schema::{
-  source::{
-    community::{Community, CommunityActions, CommunityModeratorForm},
-    modlog::{Modlog, ModlogInsertForm},
-  },
-  traits::Crud,
-  utils::get_conn,
+use lemmy_db_schema::source::{
+  community::{Community, CommunityActions, CommunityModeratorForm},
+  modlog::{Modlog, ModlogInsertForm},
 };
 use lemmy_db_views_community::{
   CommunityView,
@@ -20,6 +16,7 @@ use lemmy_db_views_community::{
 };
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_diesel_utils::{connection::get_conn, traits::Crud};
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   location_info,

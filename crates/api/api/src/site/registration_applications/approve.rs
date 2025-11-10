@@ -1,20 +1,18 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
+use chrono::Utc;
 use diesel_async::scoped_futures::ScopedFutureExt;
 use lemmy_api_utils::{context::LemmyContext, utils::is_admin};
-use lemmy_db_schema::{
-  source::{
-    local_user::{LocalUser, LocalUserUpdateForm},
-    registration_application::{RegistrationApplication, RegistrationApplicationUpdateForm},
-  },
-  traits::Crud,
-  utils::{diesel_string_update, get_conn},
+use lemmy_db_schema::source::{
+  local_user::{LocalUser, LocalUserUpdateForm},
+  registration_application::{RegistrationApplication, RegistrationApplicationUpdateForm},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_registration_applications::{
   RegistrationApplicationView,
   api::{ApproveRegistrationApplication, RegistrationApplicationResponse},
 };
+use lemmy_diesel_utils::{connection::get_conn, traits::Crud, utils::diesel_string_update};
 use lemmy_email::account::{send_application_approved_email, send_application_denied_email};
 use lemmy_utils::error::LemmyResult;
 
@@ -39,6 +37,7 @@ pub async fn approve_registration_application(
         let app_form = RegistrationApplicationUpdateForm {
           admin_id: Some(Some(local_user_view.person.id)),
           deny_reason,
+          updated_at: Some(Some(Utc::now())),
         };
 
         let registration_application =

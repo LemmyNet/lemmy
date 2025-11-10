@@ -1,13 +1,9 @@
 use super::actor_language::UNDETERMINED_ID;
-use crate::{
-  diesel::ExpressionMethods,
-  newtypes::LanguageId,
-  source::language::Language,
-  utils::{DbPool, get_conn},
-};
+use crate::{diesel::ExpressionMethods, newtypes::LanguageId, source::language::Language};
 use diesel::{QueryDsl, dsl::count};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::{language, post};
+use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::{
   CacheLock,
   build_cache,
@@ -61,7 +57,8 @@ impl Language {
 #[expect(clippy::indexing_slicing)]
 mod tests {
 
-  use crate::{source::language::Language, utils::build_db_pool_for_tests};
+  use crate::source::language::Language;
+  use lemmy_diesel_utils::connection::build_db_pool_for_tests;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;

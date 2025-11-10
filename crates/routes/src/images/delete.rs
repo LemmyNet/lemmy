@@ -5,19 +5,17 @@ use lemmy_api_utils::{
   request::{delete_image_alias, purge_image_from_pictrs},
   utils::{is_admin, is_mod_or_admin},
 };
-use lemmy_db_schema::{
-  source::{
-    community::{Community, CommunityUpdateForm},
-    images::LocalImage,
-    person::{Person, PersonUpdateForm},
-    site::{Site, SiteUpdateForm},
-  },
-  traits::Crud,
+use lemmy_db_schema::source::{
+  community::{Community, CommunityUpdateForm},
+  images::LocalImage,
+  person::{Person, PersonUpdateForm},
+  site::{Site, SiteUpdateForm},
 };
 use lemmy_db_views_community::api::CommunityIdQuery;
 use lemmy_db_views_local_image::api::DeleteImageParams;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::api::SuccessResponse;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn delete_site_icon(

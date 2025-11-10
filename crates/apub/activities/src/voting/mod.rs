@@ -19,7 +19,6 @@ use lemmy_apub_objects::objects::{
   post::ApubPost,
 };
 use lemmy_db_schema::{
-  newtypes::DbUrl,
   source::{
     activity::ActivitySendTargets,
     comment::{CommentActions, CommentLikeForm},
@@ -29,6 +28,7 @@ use lemmy_db_schema::{
   },
   traits::Likeable,
 };
+use lemmy_diesel_utils::dburl::DbUrl;
 use lemmy_utils::error::LemmyResult;
 
 pub mod undo_vote;

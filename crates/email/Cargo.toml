@@ -35,6 +35,7 @@ lettre = { version = "0.11.19", default-features = false, features = [
   "tokio1-rustls-tls",
   "pool",
 ] }
+lemmy_diesel_utils = { workspace = true }
 
 [dev-dependencies]
 

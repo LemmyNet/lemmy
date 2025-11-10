@@ -19,10 +19,7 @@ use lemmy_db_schema::{
   },
   traits::PaginationCursorBuilder,
   utils::{
-    DbPool,
-    get_conn,
     limit_fetch,
-    paginate,
     queries::filters::{
       filter_is_subscribed,
       filter_not_unlisted_or_is_subscribed,
@@ -33,6 +30,10 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::{
   enums::{ListingType, ModlogKind},
   schema::{comment, community, community_actions, instance, modlog, person, post},
+};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  utils::paginate,
 };
 use lemmy_utils::error::LemmyResult;
 
@@ -194,16 +195,16 @@ impl ModlogView {
 #[expect(clippy::indexing_slicing)]
 mod tests {
   use super::*;
-  use lemmy_db_schema::{
-    source::{
-      comment::{Comment, CommentInsertForm},
-      community::{Community, CommunityInsertForm},
-      instance::Instance,
-      person::{Person, PersonInsertForm},
-      post::{Post, PostInsertForm},
-    },
+  use lemmy_db_schema::source::{
+    comment::{Comment, CommentInsertForm},
+    community::{Community, CommunityInsertForm},
+    instance::Instance,
+    person::{Person, PersonInsertForm},
+    post::{Post, PostInsertForm},
+  };
+  use lemmy_diesel_utils::{
+    connection::{DbPool, build_db_pool_for_tests},
     traits::Crud,
-    utils::{DbPool, build_db_pool_for_tests},
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;

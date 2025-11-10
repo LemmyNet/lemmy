@@ -9,7 +9,6 @@ use lemmy_db_schema::{
     comment::Comment,
     post::{Post, PostActions},
   },
-  traits::Crud,
 };
 use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_local_user::LocalUserView;
@@ -19,6 +18,7 @@ use lemmy_db_views_search_combined::{
   impls::SearchCombinedQuery,
 };
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn get_post(

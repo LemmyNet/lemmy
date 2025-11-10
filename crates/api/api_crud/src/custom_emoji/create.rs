@@ -1,18 +1,16 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_utils::{context::LemmyContext, utils::is_admin};
-use lemmy_db_schema::{
-  source::{
-    custom_emoji::{CustomEmoji, CustomEmojiInsertForm},
-    custom_emoji_keyword::CustomEmojiKeyword,
-  },
-  traits::Crud,
+use lemmy_db_schema::source::{
+  custom_emoji::{CustomEmoji, CustomEmojiInsertForm},
+  custom_emoji_keyword::CustomEmojiKeyword,
 };
 use lemmy_db_views_custom_emoji::{
   CustomEmojiView,
   api::{CreateCustomEmoji, CustomEmojiResponse},
 };
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn create_custom_emoji(

@@ -1,3 +1,5 @@
+#[cfg(feature = "full")]
+use diesel_derive_newtype::DieselNewType;
 use serde::{Deserialize, Serialize};
 use std::{fmt::Debug, ops::Deref};
 

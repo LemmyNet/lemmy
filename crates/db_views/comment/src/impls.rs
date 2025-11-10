@@ -19,14 +19,9 @@ use lemmy_db_schema::{
     local_user::LocalUser,
     site::Site,
   },
-  traits::{Crud, PaginationCursorBuilder},
+  traits::PaginationCursorBuilder,
   utils::{
-    DbPool,
-    Subpath,
-    get_conn,
     limit_fetch,
-    now,
-    paginate,
     queries::{
       filters::{filter_blocked, filter_suggested_communities},
       joins::{
@@ -42,7 +37,6 @@ use lemmy_db_schema::{
         my_person_actions_join,
       },
     },
-    seconds_to_pg_interval,
   },
 };
 use lemmy_db_schema_file::{
@@ -53,6 +47,11 @@ use lemmy_db_schema_file::{
     ListingType,
   },
   schema::{comment, community, community_actions, local_user_language, person, post},
+};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  traits::Crud,
+  utils::{Subpath, now, paginate, seconds_to_pg_interval},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -320,10 +319,7 @@ impl CommentQuery<'_> {
 mod tests {
 
   use super::*;
-  use crate::{
-    CommentView,
-    impls::{CommentQuery, DbPool},
-  };
+  use crate::{CommentView, impls::CommentQuery};
   use lemmy_db_schema::{
     assert_length,
     impls::actor_language::UNDETERMINED_ID,
@@ -347,10 +343,13 @@ mod tests {
       post::{Post, PostInsertForm, PostUpdateForm},
       site::{Site, SiteInsertForm},
     },
-    traits::{Bannable, Blockable, Crud, Followable, Likeable},
-    utils::build_db_pool_for_tests,
+    traits::{Bannable, Blockable, Followable, Likeable},
   };
   use lemmy_db_views_local_user::LocalUserView;
+  use lemmy_diesel_utils::{
+    connection::{DbPool, build_db_pool_for_tests},
+    traits::Crud,
+  };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;

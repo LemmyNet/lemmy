@@ -1,6 +1,6 @@
 use crate::{
   diesel::{BoolExpressionMethods, OptionalExtension, PgExpressionMethods, SelectableHelper},
-  newtypes::{CommunityId, DbUrl, MultiCommunityId, PersonId},
+  newtypes::{CommunityId, MultiCommunityId, PersonId},
   source::{
     community::Community,
     multi_community::{
@@ -13,8 +13,8 @@ use crate::{
       MultiCommunityUpdateForm,
     },
   },
-  traits::{ApubActor, Crud},
-  utils::{DbPool, format_actor_url, functions::lower, get_conn},
+  traits::ApubActor,
+  utils::format_actor_url,
 };
 use diesel::{
   ExpressionMethods,
@@ -31,6 +31,12 @@ use lemmy_db_schema_file::schema::{
   multi_community_entry,
   multi_community_follow,
   person,
+};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  dburl::DbUrl,
+  traits::Crud,
+  utils::functions::lower,
 };
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
@@ -340,16 +346,13 @@ impl MultiCommunityEntry {
 #[allow(clippy::indexing_slicing)]
 mod tests {
   use super::*;
-  use crate::{
-    source::{
-      community::{Community, CommunityInsertForm},
-      instance::Instance,
-      multi_community::{MultiCommunity, MultiCommunityInsertForm},
-      person::{Person, PersonInsertForm},
-    },
-    traits::Crud,
-    utils::build_db_pool_for_tests,
+  use crate::source::{
+    community::{Community, CommunityInsertForm},
+    instance::Instance,
+    multi_community::{MultiCommunity, MultiCommunityInsertForm},
+    person::{Person, PersonInsertForm},
   };
+  use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;

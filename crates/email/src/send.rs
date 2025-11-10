@@ -1,4 +1,4 @@
-use lemmy_db_schema::sensitive::SensitiveString;
+use lemmy_diesel_utils::sensitive::SensitiveString;
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType},
   settings::structs::Settings,

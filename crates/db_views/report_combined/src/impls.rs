@@ -39,10 +39,7 @@ use lemmy_db_schema::{
   },
   traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{
-    DbPool,
-    get_conn,
     limit_fetch,
-    paginate,
     queries::joins::{
       creator_community_instance_actions_join,
       creator_home_instance_actions_join,
@@ -66,6 +63,10 @@ use lemmy_db_schema_file::schema::{
   private_message,
   private_message_report,
   report_combined,
+};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  utils::paginate,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -603,10 +604,13 @@ mod tests {
       private_message::{PrivateMessage, PrivateMessageInsertForm},
       private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
     },
-    traits::{Bannable, Crud, Reportable},
-    utils::{DbPool, build_db_pool_for_tests, get_conn},
+    traits::{Bannable, Reportable},
   };
   use lemmy_db_schema_file::schema::report_combined;
+  use lemmy_diesel_utils::{
+    connection::{DbPool, build_db_pool_for_tests, get_conn},
+    traits::Crud,
+  };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;

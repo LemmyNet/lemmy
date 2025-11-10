@@ -10,6 +10,7 @@ use lemmy_db_schema::{
   },
   traits::Blockable,
 };
+use lemmy_db_views_community::MultiCommunityView;
 use lemmy_db_views_community_follower::CommunityFollowerView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
@@ -34,15 +35,22 @@ pub async fn get_my_user(
     instance_persons_blocks,
     person_blocks,
     moderates,
+    multi_community_follows,
     keyword_blocks,
     discussion_languages,
-  ) = lemmy_db_schema::try_join_with_pool!(pool => (
+  ) = lemmy_diesel_utils::try_join_with_pool!(pool => (
     |pool| CommunityFollowerView::for_person(pool, person_id),
     |pool| CommunityActions::read_blocks_for_person(pool, person_id),
     |pool| InstanceActions::read_communities_block_for_person(pool, person_id),
     |pool| InstanceActions::read_persons_block_for_person(pool, person_id),
     |pool| PersonActions::read_blocks_for_person(pool, person_id),
     |pool| CommunityModeratorView::for_person(pool, person_id, Some(&local_user_view.local_user)),
+    |pool| MultiCommunityView::list(
+      pool,
+      None,
+      Some(person_id),
+      true,
+    ),
     |pool| LocalUserKeywordBlock::read(pool, local_user_id),
     |pool| LocalUserLanguage::read(pool, local_user_id)
   ))?;
@@ -51,6 +59,7 @@ pub async fn get_my_user(
     local_user_view: local_user_view.clone(),
     follows,
     moderates,
+    multi_community_follows,
     community_blocks,
     instance_communities_blocks,
     instance_persons_blocks,

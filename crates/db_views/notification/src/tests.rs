@@ -10,10 +10,12 @@ use lemmy_db_schema::{
     post::{Post, PostInsertForm},
     private_message::{PrivateMessage, PrivateMessageInsertForm},
   },
-  traits::Crud,
-  utils::{DbPool, build_db_pool_for_tests},
 };
 use lemmy_db_schema_file::enums::NotificationType;
+use lemmy_diesel_utils::{
+  connection::{DbPool, build_db_pool_for_tests},
+  traits::Crud,
+};
 use lemmy_utils::error::LemmyResult;
 use pretty_assertions::assert_eq;
 use serial_test::serial;
@@ -109,7 +111,7 @@ async fn test_post() -> LemmyResult<()> {
     panic!();
   };
   assert_eq!(post, notif_post.post);
-  Notification::mark_read_by_id_and_person(pool, notifs1[0].notification.id, true, data.alice.id)
+  Notification::mark_read_by_id_and_person(pool, notifs1[0].notification.id, data.alice.id, true)
     .await?;
   let count = NotificationView::get_unread_count(pool, &data.alice, false).await?;
   assert_eq!(0, count);

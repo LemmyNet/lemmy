@@ -5,12 +5,9 @@ use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   newtypes::{InstanceId, PaginationCursor, PersonId},
   source::person::{Person, person_keys as key},
-  traits::{Crud, PaginationCursorBuilder},
+  traits::PaginationCursorBuilder,
   utils::{
-    DbPool,
-    get_conn,
     limit_fetch,
-    paginate,
     queries::joins::{
       creator_home_instance_actions_join,
       creator_local_instance_actions_join,
@@ -19,6 +16,11 @@ use lemmy_db_schema::{
   },
 };
 use lemmy_db_schema_file::schema::{local_user, person};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  traits::Crud,
+  utils::paginate,
+};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl PaginationCursorBuilder for PersonView {
@@ -134,8 +136,10 @@ mod tests {
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
       person::{Person, PersonActions, PersonInsertForm, PersonNoteForm, PersonUpdateForm},
     },
+  };
+  use lemmy_diesel_utils::{
+    connection::{DbPool, build_db_pool_for_tests},
     traits::Crud,
-    utils::build_db_pool_for_tests,
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;

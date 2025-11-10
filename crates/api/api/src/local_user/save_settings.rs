@@ -11,13 +11,16 @@ use lemmy_db_schema::{
     local_user::{LocalUser, LocalUserUpdateForm},
     person::{Person, PersonUpdateForm},
   },
-  traits::Crud,
-  utils::{diesel_opt_number_update, diesel_string_update, limit_fetch_check},
+  utils::limit_fetch_check,
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::{
   SiteView,
   api::{SaveUserSettings, SuccessResponse},
+};
+use lemmy_diesel_utils::{
+  traits::Crud,
+  utils::{diesel_opt_number_update, diesel_string_update},
 };
 use lemmy_email::account::send_verification_email;
 use lemmy_utils::{

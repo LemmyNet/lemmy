@@ -1,6 +1,5 @@
 use crate::{
-  newtypes::{CommunityId, DbUrl, InstanceId, MultiCommunityId, PersonId},
-  sensitive::SensitiveString,
+  newtypes::{CommunityId, InstanceId, MultiCommunityId, PersonId},
   source::placeholder_apub_url,
 };
 use chrono::{DateTime, Utc};
@@ -11,6 +10,7 @@ use lemmy_db_schema_file::schema::{
   multi_community_entry,
   multi_community_follow,
 };
+use lemmy_diesel_utils::{dburl::DbUrl, sensitive::SensitiveString};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 

@@ -4,7 +4,8 @@ use actix_web::{
   web::Data,
 };
 use lemmy_api_utils::context::LemmyContext;
-use lemmy_db_schema::{newtypes::DbUrl, source::post::Post};
+use lemmy_db_schema::source::post::Post;
+use lemmy_diesel_utils::dburl::DbUrl;
 use lemmy_utils::error::LemmyResult;
 use sitemap_rs::{url::Url, url_set::UrlSet};
 use tracing::info;
@@ -45,7 +46,7 @@ pub(crate) mod tests {
   use crate::sitemap::generate_urlset;
   use chrono::{DateTime, NaiveDate, Utc};
   use elementtree::Element;
-  use lemmy_db_schema::newtypes::DbUrl;
+  use lemmy_diesel_utils::dburl::DbUrl;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use url::Url;
