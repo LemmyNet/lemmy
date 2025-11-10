@@ -15,6 +15,7 @@ use crate::convert::{
   convert_score,
   convert_search_response,
   convert_sensitive,
+  convert_site,
   convert_site_view,
 };
 use activitypub_federation::config::Data as ApubData;
@@ -24,6 +25,7 @@ use lemmy_api::{
   federation::{
     list_comments::list_comments,
     list_posts::list_posts,
+    read_community::get_community,
     resolve_object::resolve_object,
     search::search,
   },
@@ -46,6 +48,7 @@ use lemmy_api_019::{
     GetComments as GetCommentsV3,
     GetCommentsResponse as GetCommentsResponseV3,
   },
+  community::GetCommunityResponse as GetCommunityResponseV3,
   lemmy_db_schema::{
     SubscribedType as SubscribedTypeV3,
     newtypes::LanguageId as LanguageIdV3,
@@ -61,6 +64,7 @@ use lemmy_api_019::{
     CommentReportView as CommentReportViewV3,
     PostReportView as PostReportViewV3,
   },
+  lemmy_db_views_actor::structs::CommunityModeratorView as CommunityModeratorViewV3,
   person::{
     GetRepliesResponse as GetRepliesResponseV3,
     GetUnreadCountResponse as GetUnreadCountResponseV3,
@@ -91,6 +95,7 @@ use lemmy_api_crud::{
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::newtypes::{CommentId, CommunityId, LanguageId, PersonId, PostId};
 use lemmy_db_views_comment::api::{CreateComment, CreateCommentLike, GetComments, SaveComment};
+use lemmy_db_views_community::api::GetCommunity;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::api::{CreatePost, CreatePostLike, GetPosts, SavePost};
 use lemmy_db_views_report_combined::api::{CreateCommentReport, CreatePostReport};
@@ -509,5 +514,30 @@ pub async fn create_comment_report_v3(
       counts,
       resolver: None,
     },
+  }))
+}
+
+pub(crate) async fn get_community_v3(
+  data: Query<GetCommunity>,
+  context: ApubData<LemmyContext>,
+  local_user_view: Option<LocalUserView>,
+) -> LemmyResult<Json<GetCommunityResponseV3>> {
+  let res = get_community(data, context, local_user_view).await?.0;
+  Ok(Json(GetCommunityResponseV3 {
+    community_view: convert_community_view(res.community_view),
+    site: res.site.map(convert_site),
+    moderators: res
+      .moderators
+      .into_iter()
+      .map(|m| CommunityModeratorViewV3 {
+        community: convert_community(m.community),
+        moderator: convert_person(m.moderator).0,
+      })
+      .collect(),
+    discussion_languages: res
+      .discussion_languages
+      .into_iter()
+      .map(|l| LanguageIdV3(l.0))
+      .collect(),
   }))
 }
