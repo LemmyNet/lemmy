@@ -35,14 +35,14 @@ pub struct BucketConfig {
 #[derive(Clone)]
 pub struct RateLimit {
   configs: Arc<RwLock<EnumMap<ActionType, BucketConfig>>>,
-  backends: EnumMap<ActionType, LemmyBackend>,
+  backend: LemmyBackend,
 }
 
 impl RateLimit {
   pub fn new(configs: EnumMap<ActionType, BucketConfig>) -> Self {
     Self {
       configs: Arc::new(RwLock::new(configs)),
-      backends: EnumMap::from_fn(|_| LemmyBackend::default()),
+      backend: LemmyBackend::default(),
     }
   }
 
@@ -91,7 +91,7 @@ impl RateLimit {
   {
     let input = new_input(action_type, self.configs.clone());
 
-    RateLimiter::builder(self.backends[action_type].clone(), input)
+    RateLimiter::builder(self.backend.clone(), input)
       .add_headers()
       // rollback rate limit on any error 500
       .rollback_server_errors()
@@ -161,6 +161,7 @@ fn new_input(
         interval,
         max_requests,
         key,
+        action_type,
       })
     })
   }

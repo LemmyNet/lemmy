@@ -5,6 +5,8 @@ use std::{
   time::Duration,
 };
 
+use crate::rate_limit::ActionType;
+
 #[derive(Debug, Clone)]
 pub struct LemmyInput {
   /// The rate limiting interval.
@@ -13,6 +15,7 @@ pub struct LemmyInput {
   pub max_requests: u64,
   /// The rate limit key to be used for this request.
   pub key: RateLimitIpAddr,
+  pub action_type: ActionType,
 }
 
 pub type LemmyInputFuture = Ready<Result<LemmyInput, actix_web::Error>>;

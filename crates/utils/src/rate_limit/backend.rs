@@ -1,3 +1,6 @@
+//! The content in this file is all copy-pasted from library code, only changing some names.
+//! https://github.com/jacob-pro/actix-extensible-rate-limit/blob/master/src/backend/memory.rs
+
 use crate::rate_limit::input::{LemmyInput, RateLimitIpAddr};
 use actix_extensible_rate_limit::backend::{
   Backend,
@@ -120,7 +123,10 @@ impl Drop for LemmyBackend {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::{error::LemmyResult, rate_limit::input::raw_ip_key};
+  use crate::{
+    error::LemmyResult,
+    rate_limit::{ActionType, input::raw_ip_key},
+  };
 
   const MINUTE: Duration = Duration::from_secs(60);
 
@@ -133,6 +139,7 @@ mod tests {
       interval: MINUTE,
       max_requests: 5,
       key,
+      action_type: ActionType::Message,
     };
     for _ in 0..5 {
       // First 5 should be allowed
@@ -154,6 +161,7 @@ mod tests {
       interval: MINUTE,
       max_requests: 1,
       key,
+      action_type: ActionType::Message,
     };
     // Make first request, should be allowed
     let (decision, _, _) = backend.request(input.clone()).await?;
@@ -181,6 +189,7 @@ mod tests {
         interval: MINUTE,
         max_requests: 1,
         key: key1,
+        action_type: ActionType::Message,
       })
       .await?;
     backend
@@ -188,6 +197,7 @@ mod tests {
         interval: MINUTE * 2,
         max_requests: 1,
         key: key2,
+        action_type: ActionType::Message,
       })
       .await?;
     assert!(backend.map.contains_key(&key1));
@@ -209,6 +219,7 @@ mod tests {
       interval: MINUTE,
       max_requests: 2,
       key,
+      action_type: ActionType::Message,
     };
     // First of 2 should be allowed.
     let (decision, output, _) = backend.request(input.clone()).await?;
@@ -240,6 +251,7 @@ mod tests {
       interval: MINUTE,
       max_requests: 5,
       key,
+      action_type: ActionType::Message,
     };
     let (_, output, rollback) = backend.request(input.clone()).await?;
     assert_eq!(output.remaining, 4);
