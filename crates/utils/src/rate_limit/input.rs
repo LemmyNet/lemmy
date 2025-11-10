@@ -19,6 +19,7 @@ pub enum RateLimitIpAddr {
   V6([u16; 4]),
 }
 
+#[expect(clippy::expect_used)]
 impl From<IpAddr> for RateLimitIpAddr {
   fn from(value: IpAddr) -> Self {
     match value {
@@ -62,7 +63,7 @@ mod tests {
     );
     // Check that IPv6 addresses are grouped into /64 subnets
     assert_eq!(
-      dbg!(raw_ip_key(Some("2a00:1450:4009:81f::200e"))),
+      raw_ip_key(Some("2a00:1450:4009:81f::200e")),
       RateLimitIpAddr::V6([0x2a00, 0x1450, 0x4009, 0x81f])
     );
     assert_eq!(

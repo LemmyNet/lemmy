@@ -74,6 +74,7 @@ impl Backend<LemmyInput> for LemmyBackend {
   type RollbackToken = RateLimitIpAddr;
   type Error = Infallible;
 
+  #[expect(clippy::expect_used)]
   async fn request(
     &self,
     input: LemmyInput,
@@ -91,7 +92,7 @@ impl Backend<LemmyInput> for LemmyBackend {
       .expect("Interval unexpectedly large");
     self
       .map
-      .entry(input.key.clone())
+      .entry(input.key)
       .and_modify(|v| {
         // If this bucket hasn't yet expired, increment and extract the count/expiry
         if v.ttl > now {
@@ -141,6 +142,7 @@ mod tests {
     error::LemmyResult,
     rate_limit::{ActionType, input::raw_ip_key},
   };
+  use enum_map::enum_map;
 
   const MINUTE_SECS: u32 = 60;
   const MINUTE: Duration = Duration::from_secs(60);
