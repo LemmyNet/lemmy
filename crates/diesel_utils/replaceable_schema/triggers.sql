@@ -36,15 +36,15 @@ BEGIN
                     AND (diff.upvotes, diff.downvotes) != (0, 0)
                 RETURNING
                     a.creator_id AS creator_id, diff.upvotes - diff.downvotes AS score)
-            UPDATE
-                person AS a
-            SET
-                thing_score = a.thing_score + diff.score FROM (
-                    SELECT
-                        creator_id, sum(score) AS score FROM thing_diff GROUP BY creator_id) AS diff
-                WHERE
-                    a.id = diff.creator_id
-                    AND diff.score != 0;
+                UPDATE
+                    person AS a
+                SET
+                    thing_score = a.thing_score + diff.score FROM (
+                        SELECT
+                            creator_id, sum(score) AS score FROM thing_diff GROUP BY creator_id) AS diff
+                    WHERE
+                        a.id = diff.creator_id
+                        AND diff.score != 0;
                 RETURN NULL;
             END;
     $$);
@@ -69,7 +69,8 @@ BEGIN ATOMIC
     FROM
         string_to_table (ltree2text (path), '.') AS comment_id
     -- Skip first and last
-LIMIT (nlevel (path) - 2) OFFSET 1;
+LIMIT (nlevel (path) - 2)
+    OFFSET 1;
 END;
 CALL r.create_triggers ('comment', $$
 BEGIN
@@ -267,9 +268,9 @@ BEGIN
         SELECT
             (community_actions).community_id, coalesce(sum(count_diff) FILTER (WHERE community.local), 0) AS subscribers, coalesce(sum(count_diff) FILTER (WHERE person.local), 0) AS subscribers_local
         FROM select_old_and_new_rows AS old_and_new_rows
-    LEFT JOIN community ON community.id = (community_actions).community_id
-    LEFT JOIN person ON person.id = (community_actions).person_id
-    WHERE (community_actions).followed_at IS NOT NULL GROUP BY (community_actions).community_id) AS diff
+        LEFT JOIN community ON community.id = (community_actions).community_id
+        LEFT JOIN person ON person.id = (community_actions).person_id
+        WHERE (community_actions).followed_at IS NOT NULL GROUP BY (community_actions).community_id) AS diff
 WHERE
     a.id = diff.community_id
         AND (diff.subscribers, diff.subscribers_local) != (0, 0);
