@@ -252,8 +252,7 @@ pub fn run(mut options: Options) -> anyhow::Result<Branch> {
     }
   }
 
-  // Block concurrent attempts to run migrations until `conn` is closed, and disable the
-  // trigger that prevents the Diesel CLI from running migrations
+  // Block concurrent attempts to run migrations until `conn` is closed
   options.print("Waiting for lock...");
   options.conn.batch_execute("SELECT pg_advisory_lock(0);")?;
   options.print("Running Database migrations (This may take a long time)...");
