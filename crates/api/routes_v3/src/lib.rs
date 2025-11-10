@@ -1,8 +1,10 @@
 use crate::handlers::{
+  block_community_v3,
   create_comment_report_v3,
   create_comment_v3,
   create_post_report_v3,
   create_post_v3,
+  follow_community_v3,
   get_community_v3,
   get_post_v3,
   get_site_v3,
@@ -44,7 +46,9 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
       .service(
         scope("/community")
           .wrap(rate_limit.message())
-          .route("", get().to(get_community_v3)),
+          .route("", get().to(get_community_v3))
+          .route("/follow", post().to(follow_community_v3))
+          .route("/block", post().to(block_community_v3)),
       )
       .service(
         resource("/post")

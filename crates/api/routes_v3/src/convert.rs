@@ -48,16 +48,19 @@ use lemmy_api_019::{
   post::PostResponse as PostResponseV3,
   site::{MyUserInfo as MyUserInfoV3, SearchResponse as SearchResponseV3},
 };
-use lemmy_db_schema::source::{
-  comment::Comment,
-  community::Community,
-  local_site::LocalSite,
-  local_user::LocalUser,
-  person::Person,
-  post::Post,
-  site::Site,
+use lemmy_db_schema::{
+  newtypes::LanguageId,
+  source::{
+    comment::Comment,
+    community::Community,
+    local_site::LocalSite,
+    local_user::LocalUser,
+    person::Person,
+    post::Post,
+    site::Site,
+  },
 };
-use lemmy_db_schema_file::enums::{ListingType, PostSortType};
+use lemmy_db_schema_file::enums::{CommunityFollowerState, ListingType, PostSortType};
 use lemmy_db_views_comment::{CommentView, api::CommentResponse};
 use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_local_user::LocalUserView;
@@ -152,7 +155,11 @@ pub(crate) fn convert_local_user(local_user: LocalUser) -> LocalUserV3 {
 }
 
 pub(crate) fn convert_community_view(community_view: CommunityView) -> CommunityViewV3 {
-  let CommunityView { community, .. } = community_view;
+  let CommunityView {
+    community,
+    community_actions,
+    ..
+  } = community_view;
   let counts = CommunityAggregates {
     community_id: CommunityIdV3(community.id.0),
     subscribers: community.subscribers.into(),
@@ -168,10 +175,23 @@ pub(crate) fn convert_community_view(community_view: CommunityView) -> Community
   };
   CommunityViewV3 {
     community: convert_community(community),
-    subscribed: SubscribedTypeV3::NotSubscribed,
-    blocked: false,
+    subscribed: convert_subscribed_type(community_actions.as_ref().and_then(|c| c.follow_state)),
+    blocked: community_actions
+      .as_ref()
+      .and_then(|c| c.blocked_at)
+      .is_some(),
     counts,
-    banned_from_community: false,
+    banned_from_community: community_actions.and_then(|c| c.received_ban_at).is_some(),
+  }
+}
+
+fn convert_subscribed_type(state: Option<CommunityFollowerState>) -> SubscribedTypeV3 {
+  match state {
+    Some(CommunityFollowerState::Accepted) => SubscribedTypeV3::Subscribed,
+    Some(CommunityFollowerState::Pending) => SubscribedTypeV3::Pending,
+    Some(CommunityFollowerState::ApprovalRequired) => SubscribedTypeV3::Pending,
+    Some(CommunityFollowerState::Denied) => SubscribedTypeV3::NotSubscribed,
+    None => SubscribedTypeV3::NotSubscribed,
   }
 }
 
@@ -750,4 +770,8 @@ pub(crate) fn convert_comment_response(
     comment_view: convert_comment_view(res.0.comment_view),
     recipient_ids: vec![],
   }))
+}
+
+pub(crate) fn convert_language_ids(data: Vec<LanguageId>) -> Vec<LanguageIdV3> {
+  data.into_iter().map(|l| LanguageIdV3(l.0)).collect()
 }

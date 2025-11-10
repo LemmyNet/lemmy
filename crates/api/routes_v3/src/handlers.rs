@@ -4,6 +4,7 @@ use crate::convert::{
   convert_comment_view,
   convert_community,
   convert_community_view,
+  convert_language_ids,
   convert_my_user,
   convert_person,
   convert_person_view,
@@ -22,6 +23,7 @@ use activitypub_federation::config::Data as ApubData;
 use actix_web::{HttpRequest, HttpResponse, web::*};
 use lemmy_api::{
   comment::{like::like_comment, save::save_comment},
+  community::{block::user_block_community, follow::follow_community},
   federation::{
     list_comments::list_comments,
     list_posts::list_posts,
@@ -48,7 +50,11 @@ use lemmy_api_019::{
     GetComments as GetCommentsV3,
     GetCommentsResponse as GetCommentsResponseV3,
   },
-  community::GetCommunityResponse as GetCommunityResponseV3,
+  community::{
+    BlockCommunityResponse as BlockCommunityResponseV3,
+    CommunityResponse as CommunityResponseV3,
+    GetCommunityResponse as GetCommunityResponseV3,
+  },
   lemmy_db_schema::{
     SubscribedType as SubscribedTypeV3,
     newtypes::LanguageId as LanguageIdV3,
@@ -95,7 +101,7 @@ use lemmy_api_crud::{
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::newtypes::{CommentId, CommunityId, LanguageId, PersonId, PostId};
 use lemmy_db_views_comment::api::{CreateComment, CreateCommentLike, GetComments, SaveComment};
-use lemmy_db_views_community::api::GetCommunity;
+use lemmy_db_views_community::api::{BlockCommunity, FollowCommunity, GetCommunity};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::api::{CreatePost, CreatePostLike, GetPosts, SavePost};
 use lemmy_db_views_report_combined::api::{CreateCommentReport, CreatePostReport};
@@ -236,10 +242,7 @@ pub(crate) async fn get_site_v3(
         name: l.name,
       })
       .collect(),
-    discussion_languages: discussion_languages
-      .into_iter()
-      .map(|id| LanguageIdV3(id.0))
-      .collect(),
+    discussion_languages: convert_language_ids(discussion_languages),
     taglines: tagline
       .into_iter()
       .map(|t| TaglineV3 {
@@ -534,10 +537,33 @@ pub(crate) async fn get_community_v3(
         moderator: convert_person(m.moderator).0,
       })
       .collect(),
-    discussion_languages: res
-      .discussion_languages
-      .into_iter()
-      .map(|l| LanguageIdV3(l.0))
-      .collect(),
+    discussion_languages: convert_language_ids(res.discussion_languages),
+  }))
+}
+
+pub async fn follow_community_v3(
+  data: Json<FollowCommunity>,
+  context: ApubData<LemmyContext>,
+  local_user_view: LocalUserView,
+) -> LemmyResult<Json<CommunityResponseV3>> {
+  let res = follow_community(data, context, local_user_view).await?.0;
+  Ok(Json(CommunityResponseV3 {
+    community_view: convert_community_view(res.community_view),
+    discussion_languages: convert_language_ids(res.discussion_languages),
+  }))
+}
+
+pub async fn block_community_v3(
+  data: Json<BlockCommunity>,
+  context: ApubData<LemmyContext>,
+  local_user_view: LocalUserView,
+) -> LemmyResult<Json<BlockCommunityResponseV3>> {
+  let blocked = data.block;
+  let res = user_block_community(data, context, local_user_view)
+    .await?
+    .0;
+  Ok(Json(BlockCommunityResponseV3 {
+    community_view: convert_community_view(res.community_view),
+    blocked,
   }))
 }
