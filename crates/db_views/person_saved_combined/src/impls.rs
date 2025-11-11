@@ -1,29 +1,31 @@
 use crate::{
-    CommentView,
-    LocalUserView,
-    PersonSavedCombinedView,
-    PersonSavedCombinedViewInternal,
-    PostView,
+  CommentView,
+  LocalUserView,
+  PersonSavedCombinedView,
+  PersonSavedCombinedViewInternal,
+  PostView,
 };
 use diesel::{
-    BoolExpressionMethods,
-    ExpressionMethods,
-    JoinOnDsl,
-    NullableExpressionMethods,
-    QueryDsl,
-    SelectableHelper,
+  BoolExpressionMethods,
+  ExpressionMethods,
+  JoinOnDsl,
+  NullableExpressionMethods,
+  QueryDsl,
+  SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-    newtypes::PaginationCursor,
-    source::combined::person_saved::{person_saved_combined_keys as key, PersonSavedCombined},
-    traits::{InternalToCombinedView, PaginationCursorBuilder},
-    utils::limit_fetch,
-    PersonContentType,
+  PersonContentType,
+  newtypes::PaginationCursor,
+  source::combined::person_saved::{PersonSavedCombined, person_saved_combined_keys as key},
+  traits::{InternalToCombinedView, PaginationCursorBuilder},
+  utils::limit_fetch,
 };
-use lemmy_db_schema_file::{InstanceId, PersonId};
-use lemmy_db_schema_file::joins::{
+use lemmy_db_schema_file::{
+  InstanceId,
+  PersonId,
+  joins::{
     community_join,
     creator_community_actions_join,
     creator_community_instance_actions_join,
@@ -36,11 +38,12 @@ use lemmy_db_schema_file::joins::{
     my_local_user_admin_join,
     my_person_actions_join,
     my_post_actions_join,
+  },
+  schema::{comment, person, person_saved_combined, post},
 };
-use lemmy_db_schema_file::schema::{comment, person, person_saved_combined, post};
 use lemmy_diesel_utils::{
-    connection::{get_conn, DbPool},
-    utils::paginate,
+  connection::{DbPool, get_conn},
+  utils::paginate,
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
@@ -250,21 +253,21 @@ impl InternalToCombinedView for PersonSavedCombinedViewInternal {
 #[expect(clippy::indexing_slicing)]
 mod tests {
 
-  use crate::{impls::PersonSavedCombinedQuery, LocalUserView, PersonSavedCombinedView};
+  use crate::{LocalUserView, PersonSavedCombinedView, impls::PersonSavedCombinedQuery};
   use lemmy_db_schema::{
-      source::{
-          comment::{Comment, CommentActions, CommentInsertForm, CommentSavedForm},
-          community::{Community, CommunityInsertForm},
-          instance::Instance,
-          local_user::{LocalUser, LocalUserInsertForm},
-          person::{Person, PersonInsertForm},
-          post::{Post, PostActions, PostInsertForm, PostSavedForm},
-      },
-      traits::Saveable,
+    source::{
+      comment::{Comment, CommentActions, CommentInsertForm, CommentSavedForm},
+      community::{Community, CommunityInsertForm},
+      instance::Instance,
+      local_user::{LocalUser, LocalUserInsertForm},
+      person::{Person, PersonInsertForm},
+      post::{Post, PostActions, PostInsertForm, PostSavedForm},
+    },
+    traits::Saveable,
   };
   use lemmy_diesel_utils::{
-      connection::{build_db_pool_for_tests, DbPool},
-      traits::Crud,
+    connection::{DbPool, build_db_pool_for_tests},
+    traits::Crud,
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;

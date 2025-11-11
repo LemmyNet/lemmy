@@ -3,7 +3,16 @@ use lemmy_db_schema::{
   NotificationDataType,
   newtypes::PaginationCursor,
   source::{
-    comment::{Comment, CommentActions}, community::{Community, CommunityActions}, images::ImageDetails, instance::Instance, modlog::Modlog, notification::Notification, person::{Person, PersonActions}, post::{Post, PostActions}, private_message::PrivateMessage, tag::TagsView
+    comment::{Comment, CommentActions},
+    community::{Community, CommunityActions},
+    images::ImageDetails,
+    instance::Instance,
+    modlog::Modlog,
+    notification::Notification,
+    person::{Person, PersonActions},
+    post::{Post, PostActions},
+    private_message::PrivateMessage,
+    tag::TagsView,
   },
 };
 use lemmy_db_views_comment::CommentView;

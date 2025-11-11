@@ -1,9 +1,11 @@
 use crate::ModlogView;
 use lemmy_db_schema::newtypes::{CommentId, CommunityId, PaginationCursor, PostId};
-use lemmy_db_schema_file::enums::{ListingType, ModlogKind};
+use lemmy_db_schema_file::{
+  PersonId,
+  enums::{ListingType, ModlogKind},
+};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-use lemmy_db_schema_file::PersonId;
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]

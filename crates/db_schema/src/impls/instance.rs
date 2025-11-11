@@ -1,41 +1,43 @@
 use crate::{
-    diesel::dsl::IntervalDsl
-    ,
-    source::instance::{
-        Instance,
-        InstanceActions,
-        InstanceBanForm,
-        InstanceCommunitiesBlockForm,
-        InstanceForm,
-        InstancePersonsBlockForm,
-    },
-    traits::Bannable,
+  diesel::dsl::IntervalDsl,
+  source::instance::{
+    Instance,
+    InstanceActions,
+    InstanceBanForm,
+    InstanceCommunitiesBlockForm,
+    InstanceForm,
+    InstancePersonsBlockForm,
+  },
+  traits::Bannable,
 };
 use chrono::Utc;
 use diesel::{
-    dsl::{count_star, exists, insert_into, not, select},
-    ExpressionMethods,
-    NullableExpressionMethods,
-    OptionalExtension,
-    QueryDsl,
-    SelectableHelper,
+  ExpressionMethods,
+  NullableExpressionMethods,
+  OptionalExtension,
+  QueryDsl,
+  SelectableHelper,
+  dsl::{count_star, exists, insert_into, not, select},
 };
 use diesel_async::RunQueryDsl;
-use diesel_uplete::{uplete, UpleteCount};
-use lemmy_db_schema_file::{InstanceId, PersonId};
-use lemmy_db_schema_file::schema::{
+use diesel_uplete::{UpleteCount, uplete};
+use lemmy_db_schema_file::{
+  InstanceId,
+  PersonId,
+  schema::{
     federation_allowlist,
     federation_blocklist,
     federation_queue_state,
     instance,
     instance_actions,
+  },
 };
 use lemmy_diesel_utils::{
-    connection::{get_conn, DbPool},
-    utils::{
-        functions::{coalesce, lower},
-        now,
-    },
+  connection::{DbPool, get_conn},
+  utils::{
+    functions::{coalesce, lower},
+    now,
+  },
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 

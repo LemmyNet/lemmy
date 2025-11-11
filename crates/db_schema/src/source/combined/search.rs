@@ -1,18 +1,12 @@
-use crate::newtypes::{
-    CommentId,
-    CommunityId,
-    MultiCommunityId,
-    PostId,
-    SearchCombinedId,
-};
+use crate::newtypes::{CommentId, CommunityId, MultiCommunityId, PostId, SearchCombinedId};
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;
+use lemmy_db_schema_file::PersonId;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::search_combined;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-use lemmy_db_schema_file::PersonId;
 
 #[skip_serializing_none]
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug, Clone)]

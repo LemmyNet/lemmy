@@ -1,26 +1,29 @@
 use crate::RegistrationApplicationView;
 use diesel::{
-    dsl::count,
-    ExpressionMethods,
-    JoinOnDsl,
-    NullableExpressionMethods,
-    QueryDsl,
-    SelectableHelper,
+  ExpressionMethods,
+  JoinOnDsl,
+  NullableExpressionMethods,
+  QueryDsl,
+  SelectableHelper,
+  dsl::count,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-    newtypes::{PaginationCursor, RegistrationApplicationId},
-    source::registration_application::RegistrationApplication,
-    traits::PaginationCursorBuilder,
-    utils::limit_fetch,
+  newtypes::{PaginationCursor, RegistrationApplicationId},
+  source::registration_application::RegistrationApplication,
+  traits::PaginationCursorBuilder,
+  utils::limit_fetch,
 };
-use lemmy_db_schema_file::{aliases, PersonId};
-use lemmy_db_schema_file::schema::{local_user, person, registration_application};
+use lemmy_db_schema_file::{
+  PersonId,
+  aliases,
+  schema::{local_user, person, registration_application},
+};
 use lemmy_diesel_utils::{
-    connection::{get_conn, DbPool},
-    traits::Crud,
-    utils::paginate,
+  connection::{DbPool, get_conn},
+  traits::Crud,
+  utils::paginate,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -143,16 +146,16 @@ impl RegistrationApplicationQuery {
 #[cfg(test)]
 mod tests {
 
-  use crate::{impls::RegistrationApplicationQuery, RegistrationApplicationView};
+  use crate::{RegistrationApplicationView, impls::RegistrationApplicationQuery};
   use lemmy_db_schema::source::{
-      instance::Instance,
-      local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
-      person::{Person, PersonInsertForm},
-      registration_application::{
-          RegistrationApplication,
-          RegistrationApplicationInsertForm,
-          RegistrationApplicationUpdateForm,
-      },
+    instance::Instance,
+    local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
+    person::{Person, PersonInsertForm},
+    registration_application::{
+      RegistrationApplication,
+      RegistrationApplicationInsertForm,
+      RegistrationApplicationUpdateForm,
+    },
   };
   use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use lemmy_utils::error::LemmyResult;

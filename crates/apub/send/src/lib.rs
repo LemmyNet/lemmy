@@ -2,17 +2,17 @@ use crate::{util::CancellableTask, worker::InstanceWorker};
 use activitypub_federation::config::FederationConfig;
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::source::instance::Instance;
+use lemmy_db_schema_file::InstanceId;
 use lemmy_utils::{error::LemmyResult, settings::structs::FederationWorkerConfig};
 use stats::receive_print_stats;
 use std::{collections::HashMap, time::Duration};
 use tokio::{
-    sync::mpsc::{unbounded_channel, UnboundedSender},
-    task::JoinHandle,
-    time::sleep,
+  sync::mpsc::{UnboundedSender, unbounded_channel},
+  task::JoinHandle,
+  time::sleep,
 };
 use tokio_util::sync::CancellationToken;
 use tracing::info;
-use lemmy_db_schema_file::InstanceId;
 use util::FederationQueueStateWithDomain;
 
 mod inboxes;
@@ -199,17 +199,17 @@ mod test {
   use activitypub_federation::config::Data;
   use chrono::DateTime;
   use lemmy_db_schema::source::{
-      federation_allowlist::{FederationAllowList, FederationAllowListForm},
-      federation_blocklist::{FederationBlockList, FederationBlockListForm},
-      instance::InstanceForm,
-      person::{Person, PersonInsertForm},
+    federation_allowlist::{FederationAllowList, FederationAllowListForm},
+    federation_blocklist::{FederationBlockList, FederationBlockListForm},
+    instance::InstanceForm,
+    person::{Person, PersonInsertForm},
   };
   use lemmy_diesel_utils::traits::Crud;
   use lemmy_utils::error::LemmyError;
   use serial_test::serial;
   use std::{
-      collections::HashSet,
-      sync::{Arc, Mutex},
+    collections::HashSet,
+    sync::{Arc, Mutex},
   };
   use tokio::spawn;
 

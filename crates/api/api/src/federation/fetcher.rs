@@ -1,17 +1,17 @@
 use crate::federation::ApubPerson;
 use activitypub_federation::{
-    config::Data,
-    fetch::webfinger::webfinger_resolve_actor,
-    traits::{Actor, Object},
+  config::Data,
+  fetch::webfinger::webfinger_resolve_actor,
+  traits::{Actor, Object},
 };
 use diesel::NotFound;
 use itertools::Itertools;
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::objects::{community::ApubCommunity, multi_community::ApubMultiCommunity};
 use lemmy_db_schema::{
-    newtypes::{CommunityId, MultiCommunityId},
-    source::{community::Community, multi_community::MultiCommunity, person::Person},
-    traits::ApubActor,
+  newtypes::{CommunityId, MultiCommunityId},
+  source::{community::Community, multi_community::MultiCommunity, person::Person},
+  traits::ApubActor,
 };
 use lemmy_db_schema_file::PersonId;
 use lemmy_db_views_local_user::LocalUserView;

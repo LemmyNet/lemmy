@@ -1,29 +1,33 @@
 use crate::{
-    newtypes::{CommunityId, LanguageId, LocalUserId},
-    source::{
-        actor_language::LocalUserLanguage,
-        local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
-        site::Site,
-    },
+  newtypes::{CommunityId, LanguageId, LocalUserId},
+  source::{
+    actor_language::LocalUserLanguage,
+    local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
+    site::Site,
+  },
 };
-use bcrypt::{hash, DEFAULT_COST};
+use bcrypt::{DEFAULT_COST, hash};
 use diesel::{
-    dsl::{insert_into, not, IntervalDsl},
-    result::Error,
-    CombineDsl,
-    ExpressionMethods,
-    JoinOnDsl,
-    QueryDsl,
+  CombineDsl,
+  ExpressionMethods,
+  JoinOnDsl,
+  QueryDsl,
+  dsl::{IntervalDsl, insert_into, not},
+  result::Error,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::{enums::CommunityVisibility, schema::{community, community_actions, local_user, person, registration_application}, PersonId};
+use lemmy_db_schema_file::{
+  PersonId,
+  enums::CommunityVisibility,
+  schema::{community, community_actions, local_user, person, registration_application},
+};
 use lemmy_diesel_utils::{
-    connection::{get_conn, DbPool},
-    dburl::DbUrl,
-    utils::{
-        functions::{coalesce, lower},
-        now,
-    },
+  connection::{DbPool, get_conn},
+  dburl::DbUrl,
+  utils::{
+    functions::{coalesce, lower},
+    now,
+  },
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -397,9 +401,9 @@ pub struct UserBackupLists {
 #[cfg(test)]
 mod tests {
   use crate::source::{
-      instance::Instance,
-      local_user::{LocalUser, LocalUserInsertForm},
-      person::{Person, PersonInsertForm},
+    instance::Instance,
+    local_user::{LocalUser, LocalUserInsertForm},
+    person::{Person, PersonInsertForm},
   };
   use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use lemmy_utils::error::LemmyResult;

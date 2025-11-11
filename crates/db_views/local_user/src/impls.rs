@@ -1,38 +1,40 @@
 use crate::LocalUserView;
-use actix_web::{dev::Payload, FromRequest, HttpMessage, HttpRequest};
+use actix_web::{FromRequest, HttpMessage, HttpRequest, dev::Payload};
 use diesel::{
-    BoolExpressionMethods,
-    ExpressionMethods,
-    NullableExpressionMethods,
-    QueryDsl,
-    SelectableHelper,
+  BoolExpressionMethods,
+  ExpressionMethods,
+  NullableExpressionMethods,
+  QueryDsl,
+  SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-    newtypes::{LocalUserId, OAuthProviderId, PaginationCursor},
-    source::{
-        instance::Instance,
-        local_user::{LocalUser, LocalUserInsertForm},
-        person::{person_keys, Person, PersonInsertForm},
-    },
-    traits::PaginationCursorBuilder,
+  newtypes::{LocalUserId, OAuthProviderId, PaginationCursor},
+  source::{
+    instance::Instance,
+    local_user::{LocalUser, LocalUserInsertForm},
+    person::{Person, PersonInsertForm, person_keys},
+  },
+  traits::PaginationCursorBuilder,
 };
-use lemmy_db_schema_file::schema::{instance_actions, local_user, oauth_account, person};
+use lemmy_db_schema_file::{
+  PersonId,
+  aliases::creator_home_instance_actions,
+  joins::creator_home_instance_actions_join,
+  schema::{instance_actions, local_user, oauth_account, person},
+};
 use lemmy_diesel_utils::{
-    connection::{get_conn, DbPool},
-    traits::Crud,
-    utils::{
-        functions::{coalesce, lower},
-        now,
-        paginate,
-    },
+  connection::{DbPool, get_conn},
+  traits::Crud,
+  utils::{
+    functions::{coalesce, lower},
+    now,
+    paginate,
+  },
 };
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
-use std::future::{ready, Ready};
-use lemmy_db_schema_file::aliases::creator_home_instance_actions;
-use lemmy_db_schema_file::joins::creator_home_instance_actions_join;
-use lemmy_db_schema_file::PersonId;
+use std::future::{Ready, ready};
 
 impl LocalUserView {
   #[diesel::dsl::auto_type(no_type_alias)]
@@ -237,17 +239,17 @@ mod tests {
 
   use super::*;
   use lemmy_db_schema::{
-      assert_length,
-      source::{
-          instance::{Instance, InstanceActions, InstanceBanForm},
-          local_user::{LocalUser, LocalUserInsertForm},
-          person::{Person, PersonInsertForm},
-      },
-      traits::Bannable,
+    assert_length,
+    source::{
+      instance::{Instance, InstanceActions, InstanceBanForm},
+      local_user::{LocalUser, LocalUserInsertForm},
+      person::{Person, PersonInsertForm},
+    },
+    traits::Bannable,
   };
   use lemmy_diesel_utils::{
-      connection::{build_db_pool_for_tests, DbPool},
-      traits::Crud,
+    connection::{DbPool, build_db_pool_for_tests},
+    traits::Crud,
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;

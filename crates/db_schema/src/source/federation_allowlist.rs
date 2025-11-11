@@ -1,5 +1,5 @@
-use lemmy_db_schema_file::InstanceId;
 use chrono::{DateTime, Utc};
+use lemmy_db_schema_file::InstanceId;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::federation_allowlist;
 use serde::{Deserialize, Serialize};

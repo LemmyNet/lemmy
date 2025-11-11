@@ -4,10 +4,10 @@ use chrono::{DateTime, Utc};
 use i_love_jesus::CursorKeysModule;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::{person, person_actions};
+use lemmy_db_schema_file::{InstanceId, PersonId};
 use lemmy_diesel_utils::{dburl::DbUrl, sensitive::SensitiveString};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-use lemmy_db_schema_file::{InstanceId, PersonId};
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]

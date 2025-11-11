@@ -1,14 +1,16 @@
 use crate::{CommunityView, MultiCommunityView};
 use lemmy_db_schema::{
-    newtypes::{CommunityId, LanguageId, MultiCommunityId, PaginationCursor, TagId},
-    source::site::Site,
-    CommunitySortType,
+  CommunitySortType,
+  newtypes::{CommunityId, LanguageId, MultiCommunityId, PaginationCursor, TagId},
+  source::site::Site,
 };
-use lemmy_db_schema_file::enums::{CommunityNotificationsMode, CommunityVisibility, ListingType};
+use lemmy_db_schema_file::{
+  PersonId,
+  enums::{CommunityNotificationsMode, CommunityVisibility, ListingType},
+};
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-use lemmy_db_schema_file::PersonId;
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]

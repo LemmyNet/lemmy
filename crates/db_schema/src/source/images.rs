@@ -1,15 +1,15 @@
 use crate::newtypes::PostId;
 use chrono::{DateTime, Utc};
+use lemmy_db_schema_file::PersonId;
 use lemmy_diesel_utils::dburl::DbUrl;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use std::fmt::Debug;
 #[cfg(feature = "full")]
 use {
-    i_love_jesus::CursorKeysModule,
-    lemmy_db_schema_file::schema::{image_details, local_image, remote_image},
+  i_love_jesus::CursorKeysModule,
+  lemmy_db_schema_file::schema::{image_details, local_image, remote_image},
 };
-use lemmy_db_schema_file::PersonId;
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]

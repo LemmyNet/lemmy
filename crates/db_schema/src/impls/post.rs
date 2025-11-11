@@ -1,46 +1,51 @@
 use crate::{
-    newtypes::{CommunityId, PaginationCursor, PostId},
-    source::post::{
-        Post,
-        PostActions,
-        PostHideForm,
-        PostInsertForm,
-        PostLikeForm,
-        PostReadCommentsForm,
-        PostReadForm,
-        PostSavedForm,
-        PostUpdateForm,
-    },
-    traits::{Likeable, Saveable},
-    utils::{DELETED_REPLACEMENT_TEXT, FETCH_LIMIT_MAX, SITEMAP_DAYS, SITEMAP_LIMIT},
+  newtypes::{CommunityId, PaginationCursor, PostId},
+  source::post::{
+    Post,
+    PostActions,
+    PostHideForm,
+    PostInsertForm,
+    PostLikeForm,
+    PostReadCommentsForm,
+    PostReadForm,
+    PostSavedForm,
+    PostUpdateForm,
+  },
+  traits::{Likeable, Saveable},
+  utils::{DELETED_REPLACEMENT_TEXT, FETCH_LIMIT_MAX, SITEMAP_DAYS, SITEMAP_LIMIT},
 };
 use chrono::{DateTime, Utc};
 use diesel::{
-    dsl::{count, insert_into, not, update},
-    expression::SelectableHelper,
-    BoolExpressionMethods,
-    DecoratableTarget,
-    ExpressionMethods,
-    JoinOnDsl,
-    NullableExpressionMethods,
-    OptionalExtension,
-    QueryDsl,
+  BoolExpressionMethods,
+  DecoratableTarget,
+  ExpressionMethods,
+  JoinOnDsl,
+  NullableExpressionMethods,
+  OptionalExtension,
+  QueryDsl,
+  dsl::{count, insert_into, not, update},
+  expression::SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
-use diesel_uplete::{uplete, UpleteCount};
-use lemmy_db_schema_file::{enums::PostNotificationsMode, schema::{community, local_user, person, post, post_actions}, InstanceId, PersonId};
+use diesel_uplete::{UpleteCount, uplete};
+use lemmy_db_schema_file::{
+  InstanceId,
+  PersonId,
+  enums::PostNotificationsMode,
+  schema::{community, local_user, person, post, post_actions},
+};
 use lemmy_diesel_utils::{
-    connection::{get_conn, DbPool},
-    dburl::DbUrl,
-    traits::Crud,
-    utils::{
-        functions::{coalesce, hot_rank, scaled_rank},
-        now,
-    },
+  connection::{DbPool, get_conn},
+  dburl::DbUrl,
+  traits::Crud,
+  utils::{
+    functions::{coalesce, hot_rank, scaled_rank},
+    now,
+  },
 };
 use lemmy_utils::{
-    error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
-    settings::structs::Settings,
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  settings::structs::Settings,
 };
 use url::Url;
 
@@ -585,15 +590,15 @@ impl PostActions {
 #[cfg(test)]
 mod tests {
   use crate::{
-      source::{
-          comment::{Comment, CommentInsertForm, CommentUpdateForm},
-          community::{Community, CommunityInsertForm},
-          instance::Instance,
-          person::{Person, PersonInsertForm},
-          post::{Post, PostActions, PostInsertForm, PostLikeForm, PostSavedForm, PostUpdateForm},
-      },
-      traits::{Likeable, Saveable},
-      utils::RANK_DEFAULT,
+    source::{
+      comment::{Comment, CommentInsertForm, CommentUpdateForm},
+      community::{Community, CommunityInsertForm},
+      instance::Instance,
+      person::{Person, PersonInsertForm},
+      post::{Post, PostActions, PostInsertForm, PostLikeForm, PostSavedForm, PostUpdateForm},
+    },
+    traits::{Likeable, Saveable},
+    utils::RANK_DEFAULT,
   };
   use chrono::DateTime;
   use diesel_uplete::UpleteCount;

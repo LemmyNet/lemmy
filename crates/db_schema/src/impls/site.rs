@@ -1,22 +1,24 @@
 use crate::{
-    newtypes::SiteId,
-    source::{
-        actor_language::SiteLanguage,
-        site::{Site, SiteInsertForm, SiteUpdateForm},
-    },
+  newtypes::SiteId,
+  source::{
+    actor_language::SiteLanguage,
+    site::{Site, SiteInsertForm, SiteUpdateForm},
+  },
 };
-use diesel::{dsl::insert_into, ExpressionMethods, OptionalExtension, QueryDsl};
+use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, dsl::insert_into};
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::{local_site, site};
+use lemmy_db_schema_file::{
+  InstanceId,
+  schema::{local_site, site},
+};
 use lemmy_diesel_utils::{
-    connection::{get_conn, DbPool},
-    dburl::DbUrl,
-    traits::Crud,
-    utils::functions::lower,
+  connection::{DbPool, get_conn},
+  dburl::DbUrl,
+  traits::Crud,
+  utils::functions::lower,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use url::Url;
-use lemmy_db_schema_file::InstanceId;
 
 impl Crud for Site {
   type InsertForm = SiteInsertForm;

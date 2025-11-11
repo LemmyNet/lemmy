@@ -1,62 +1,51 @@
 use crate::PostView;
 use diesel::{
-    self,
-    debug_query,
-    dsl::{exists, not},
-    pg::Pg,
-    query_builder::AsQuery,
-    BoolExpressionMethods,
-    ExpressionMethods,
-    NullableExpressionMethods,
-    PgTextExpressionMethods,
-    QueryDsl,
-    SelectableHelper,
-    TextExpressionMethods,
+  self,
+  BoolExpressionMethods,
+  ExpressionMethods,
+  NullableExpressionMethods,
+  PgTextExpressionMethods,
+  QueryDsl,
+  SelectableHelper,
+  TextExpressionMethods,
+  debug_query,
+  dsl::{exists, not},
+  pg::Pg,
+  query_builder::AsQuery,
 };
 use diesel_async::RunQueryDsl;
-use i_love_jesus::{asc_if, SortDirection};
+use i_love_jesus::{SortDirection, asc_if};
 use lemmy_db_schema::{
-    impls::local_user::LocalUserOptionHelper,
-    newtypes::{CommunityId, MultiCommunityId, PaginationCursor, PostId},
-    source::{
-        community::CommunityActions,
-        local_user::LocalUser,
-        person::Person,
-        post::{post_actions_keys as pa_key, post_keys as key, Post, PostActions},
-        site::Site,
+  impls::local_user::LocalUserOptionHelper,
+  newtypes::{CommunityId, MultiCommunityId, PaginationCursor, PostId},
+  source::{
+    community::CommunityActions,
+    local_user::LocalUser,
+    person::Person,
+    post::{Post, PostActions, post_actions_keys as pa_key, post_keys as key},
+    site::Site,
+  },
+  traits::PaginationCursorBuilder,
+  utils::{
+    limit_fetch,
+    queries::filters::{
+      filter_blocked,
+      filter_is_subscribed,
+      filter_not_unlisted_or_is_subscribed,
+      filter_suggested_communities,
     },
-    traits::PaginationCursorBuilder,
-    utils::{
-        limit_fetch,
-        queries::filters::{
-            filter_blocked,
-            filter_is_subscribed,
-            filter_not_unlisted_or_is_subscribed,
-            filter_suggested_communities,
-        },
-    },
+  },
 };
-use lemmy_db_schema_file::{enums::{
+use lemmy_db_schema_file::{
+  InstanceId,
+  PersonId,
+  enums::{
     CommunityFollowerState,
     CommunityVisibility,
     ListingType,
     PostSortType::{self, *},
-}, schema::{
-    community,
-    community_actions,
-    local_user_language,
-    multi_community_entry,
-    person,
-    post,
-    post_actions,
-}, InstanceId, PersonId};
-use lemmy_diesel_utils::{
-    connection::{get_conn, DbPool},
-    utils::{now, paginate, seconds_to_pg_interval, CoalesceKey, Commented},
-};
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
-use tracing::debug;
-use lemmy_db_schema_file::joins::{
+  },
+  joins::{
     creator_community_actions_join,
     creator_community_instance_actions_join,
     creator_home_instance_actions_join,
@@ -68,7 +57,23 @@ use lemmy_db_schema_file::joins::{
     my_local_user_admin_join,
     my_person_actions_join,
     my_post_actions_join,
+  },
+  schema::{
+    community,
+    community_actions,
+    local_user_language,
+    multi_community_entry,
+    person,
+    post,
+    post_actions,
+  },
 };
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  utils::{CoalesceKey, Commented, now, paginate, seconds_to_pg_interval},
+};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use tracing::debug;
 
 impl PaginationCursorBuilder for PostView {
   type CursorData = Post;
@@ -564,62 +569,62 @@ impl PostQuery<'_> {
 #[cfg(test)]
 mod tests {
   use crate::{
-      impls::{PostQuery, PostSortType},
-      PostView,
+    PostView,
+    impls::{PostQuery, PostSortType},
   };
   use chrono::{DateTime, Days, Utc};
   use diesel_async::SimpleAsyncConnection;
   use diesel_uplete::UpleteCount;
   use lemmy_db_schema::{
-      impls::actor_language::UNDETERMINED_ID,
-      newtypes::LanguageId,
-      source::{
-          actor_language::LocalUserLanguage,
-          comment::{Comment, CommentInsertForm},
-          community::{
-              Community,
-              CommunityActions,
-              CommunityBlockForm,
-              CommunityFollowerForm,
-              CommunityInsertForm,
-              CommunityModeratorForm,
-              CommunityPersonBanForm,
-              CommunityUpdateForm,
-          },
-          instance::{
-              Instance,
-              InstanceActions,
-              InstanceBanForm,
-              InstanceCommunitiesBlockForm,
-              InstancePersonsBlockForm,
-          },
-          keyword_block::LocalUserKeywordBlock,
-          language::Language,
-          local_site::{LocalSite, LocalSiteUpdateForm},
-          local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
-          multi_community::{MultiCommunity, MultiCommunityInsertForm},
-          person::{Person, PersonActions, PersonBlockForm, PersonInsertForm, PersonNoteForm},
-          post::{Post, PostActions, PostHideForm, PostInsertForm, PostLikeForm, PostUpdateForm},
-          site::Site,
-          tag::{PostTag, Tag, TagInsertForm},
+    impls::actor_language::UNDETERMINED_ID,
+    newtypes::LanguageId,
+    source::{
+      actor_language::LocalUserLanguage,
+      comment::{Comment, CommentInsertForm},
+      community::{
+        Community,
+        CommunityActions,
+        CommunityBlockForm,
+        CommunityFollowerForm,
+        CommunityInsertForm,
+        CommunityModeratorForm,
+        CommunityPersonBanForm,
+        CommunityUpdateForm,
       },
-      test_data::TestData,
-      traits::{Bannable, Blockable, Followable, Likeable},
+      instance::{
+        Instance,
+        InstanceActions,
+        InstanceBanForm,
+        InstanceCommunitiesBlockForm,
+        InstancePersonsBlockForm,
+      },
+      keyword_block::LocalUserKeywordBlock,
+      language::Language,
+      local_site::{LocalSite, LocalSiteUpdateForm},
+      local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
+      multi_community::{MultiCommunity, MultiCommunityInsertForm},
+      person::{Person, PersonActions, PersonBlockForm, PersonInsertForm, PersonNoteForm},
+      post::{Post, PostActions, PostHideForm, PostInsertForm, PostLikeForm, PostUpdateForm},
+      site::Site,
+      tag::{PostTag, Tag, TagInsertForm},
+    },
+    test_data::TestData,
+    traits::{Bannable, Blockable, Followable, Likeable},
   };
   use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility, ListingType};
   use lemmy_db_views_local_user::LocalUserView;
   use lemmy_diesel_utils::{
-      connection::{build_db_pool, get_conn, ActualDbPool, DbPool},
-      traits::Crud,
+    connection::{ActualDbPool, DbPool, build_db_pool, get_conn},
+    traits::Crud,
   };
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
   use std::{
-      collections::HashSet,
-      time::{Duration, Instant},
+    collections::HashSet,
+    time::{Duration, Instant},
   };
-  use test_context::{test_context, AsyncTestContext};
+  use test_context::{AsyncTestContext, test_context};
   use url::Url;
 
   const POST_BY_BLOCKED_PERSON: &str = "post by blocked person";

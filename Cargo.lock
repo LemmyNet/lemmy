@@ -4153,6 +4153,7 @@ dependencies = [
  "lemmy_db_schema 1.0.0-alpha.12",
  "lemmy_db_schema_file",
  "lemmy_db_views_local_user",
+ "lemmy_db_views_report_combined_sql",
  "lemmy_diesel_utils",
  "lemmy_utils 1.0.0-alpha.12",
  "pretty_assertions",
@@ -4161,6 +4162,14 @@ dependencies = [
  "serial_test",
  "tokio",
  "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_report_combined_sql"
+version = "1.0.0-alpha.12"
+dependencies = [
+ "diesel",
+ "lemmy_db_schema_file",
 ]
 
 [[package]]

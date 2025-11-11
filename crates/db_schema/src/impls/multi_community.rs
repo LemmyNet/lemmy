@@ -1,49 +1,51 @@
 use crate::{
-    diesel::{BoolExpressionMethods, OptionalExtension, PgExpressionMethods, SelectableHelper},
-    newtypes::{CommunityId, MultiCommunityId},
-    source::{
-        community::Community,
-        multi_community::{
-            MultiCommunity,
-            MultiCommunityEntry,
-            MultiCommunityEntryForm,
-            MultiCommunityFollow,
-            MultiCommunityFollowForm,
-            MultiCommunityInsertForm,
-            MultiCommunityUpdateForm,
-        },
+  diesel::{BoolExpressionMethods, OptionalExtension, PgExpressionMethods, SelectableHelper},
+  newtypes::{CommunityId, MultiCommunityId},
+  source::{
+    community::Community,
+    multi_community::{
+      MultiCommunity,
+      MultiCommunityEntry,
+      MultiCommunityEntryForm,
+      MultiCommunityFollow,
+      MultiCommunityFollowForm,
+      MultiCommunityInsertForm,
+      MultiCommunityUpdateForm,
     },
-    traits::ApubActor,
-    utils::format_actor_url,
+  },
+  traits::ApubActor,
+  utils::format_actor_url,
 };
 use diesel::{
-    dsl::{delete, exists, insert_into, not},
-    select,
-    update,
-    ExpressionMethods,
-    QueryDsl,
+  ExpressionMethods,
+  QueryDsl,
+  dsl::{delete, exists, insert_into, not},
+  select,
+  update,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::{
+use lemmy_db_schema_file::{
+  PersonId,
+  schema::{
     community,
     instance,
     multi_community,
     multi_community_entry,
     multi_community_follow,
     person,
+  },
 };
 use lemmy_diesel_utils::{
-    connection::{get_conn, DbPool},
-    dburl::DbUrl,
-    traits::Crud,
-    utils::functions::lower,
+  connection::{DbPool, get_conn},
+  dburl::DbUrl,
+  traits::Crud,
+  utils::functions::lower,
 };
 use lemmy_utils::{
-    error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
-    settings::structs::Settings,
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  settings::structs::Settings,
 };
 use url::Url;
-use lemmy_db_schema_file::PersonId;
 
 const MULTI_COMMUNITY_ENTRY_LIMIT: i8 = 50;
 
@@ -348,10 +350,10 @@ impl MultiCommunityEntry {
 mod tests {
   use super::*;
   use crate::source::{
-      community::{Community, CommunityInsertForm},
-      instance::Instance,
-      multi_community::{MultiCommunity, MultiCommunityInsertForm},
-      person::{Person, PersonInsertForm},
+    community::{Community, CommunityInsertForm},
+    instance::Instance,
+    multi_community::{MultiCommunity, MultiCommunityInsertForm},
+    person::{Person, PersonInsertForm},
   };
   use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use lemmy_utils::error::LemmyResult;

@@ -1,7 +1,7 @@
 use crate::PrivateMessageView;
 use lemmy_db_schema::newtypes::PrivateMessageId;
-use serde::{Deserialize, Serialize};
 use lemmy_db_schema_file::PersonId;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]

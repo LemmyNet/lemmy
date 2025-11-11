@@ -1,128 +1,130 @@
 use activitypub_federation::config::Data as ApubData;
-use actix_web::{guard, web::*, HttpRequest, HttpResponse};
+use actix_web::{HttpRequest, HttpResponse, guard, web::*};
 use chrono::Utc;
 use lemmy_api::{
-    comment::like::like_comment,
-    federation::{
-        list_comments::list_comments,
-        list_posts::list_posts,
-        resolve_object::resolve_object,
-        search::search,
-    },
-    local_user::{login::login, logout::logout},
-    post::like::like_post,
+  comment::like::like_comment,
+  federation::{
+    list_comments::list_comments,
+    list_posts::list_posts,
+    resolve_object::resolve_object,
+    search::search,
+  },
+  local_user::{login::login, logout::logout},
+  post::like::like_post,
 };
 use lemmy_api_019::{
-    comment::{
-        CommentResponse as CommentResponseV3,
-        CreateCommentLike as CreateCommentLikeV3,
-        GetComments as GetCommentsV3,
-        GetCommentsResponse as GetCommentsResponseV3,
+  comment::{
+    CommentResponse as CommentResponseV3,
+    CreateCommentLike as CreateCommentLikeV3,
+    GetComments as GetCommentsV3,
+    GetCommentsResponse as GetCommentsResponseV3,
+  },
+  lemmy_db_schema::{
+    ListingType as ListingTypeV3,
+    SearchType as SearchTypeV3,
+    SortType as SortTypeV3,
+    SubscribedType as SubscribedTypeV3,
+    aggregates::structs::{
+      CommentAggregates,
+      CommunityAggregates,
+      PersonAggregates,
+      PostAggregates,
+      SiteAggregates,
     },
-    lemmy_db_schema::{
-        aggregates::structs::{
-            CommentAggregates,
-            CommunityAggregates,
-            PersonAggregates,
-            PostAggregates,
-            SiteAggregates,
-        },
-        newtypes::{
-            CommentId as CommentIdV3,
-            CommunityId as CommunityIdV3,
-            DbUrl as DbUrlV3,
-            InstanceId,
-            LanguageId as LanguageIdV3,
-            LocalUserId as LocalUserIdV3,
-            PersonId as PersonIdV3,
-            PostId as PostIdV3,
-            SiteId as SiteIdV3,
-        },
-        sensitive::SensitiveString as SensitiveStringV3,
-        source::{
-            comment::Comment as CommentV3,
-            community::Community as CommunityV3,
-            language::Language as LanguageV3,
-            local_site::LocalSite as LocalSiteV3,
-            local_site_rate_limit::LocalSiteRateLimit as LocalSiteRateLimitV3,
-            local_site_url_blocklist::LocalSiteUrlBlocklist as LocalSiteUrlBlocklistV3,
-            local_user::LocalUser as LocalUserV3,
-            local_user_vote_display_mode::LocalUserVoteDisplayMode as LocalUserVoteDisplayModeV3,
-            person::Person as PersonV3,
-            post::Post as PostV3,
-            site::Site as SiteV3,
-            tagline::Tagline as TaglineV3,
-        },
-        ListingType as ListingTypeV3,
-        SearchType as SearchTypeV3,
-        SortType as SortTypeV3,
-        SubscribedType as SubscribedTypeV3,
+    newtypes::{
+      CommentId as CommentIdV3,
+      CommunityId as CommunityIdV3,
+      DbUrl as DbUrlV3,
+      InstanceId,
+      LanguageId as LanguageIdV3,
+      LocalUserId as LocalUserIdV3,
+      PersonId as PersonIdV3,
+      PostId as PostIdV3,
+      SiteId as SiteIdV3,
     },
-    lemmy_db_views::structs::{
-        CommentView as CommentViewV3,
-        LocalUserView as LocalUserViewV3,
-        PostView as PostViewV3,
-        SiteView as SiteViewV3,
+    sensitive::SensitiveString as SensitiveStringV3,
+    source::{
+      comment::Comment as CommentV3,
+      community::Community as CommunityV3,
+      language::Language as LanguageV3,
+      local_site::LocalSite as LocalSiteV3,
+      local_site_rate_limit::LocalSiteRateLimit as LocalSiteRateLimitV3,
+      local_site_url_blocklist::LocalSiteUrlBlocklist as LocalSiteUrlBlocklistV3,
+      local_user::LocalUser as LocalUserV3,
+      local_user_vote_display_mode::LocalUserVoteDisplayMode as LocalUserVoteDisplayModeV3,
+      person::Person as PersonV3,
+      post::Post as PostV3,
+      site::Site as SiteV3,
+      tagline::Tagline as TaglineV3,
     },
-    lemmy_db_views_actor::structs::{CommunityView as CommunityViewV3, PersonView as PersonViewV3},
-    person::LoginResponse as LoginResponseV3,
-    post::{
-        CreatePost as CreatePostV3,
-        CreatePostLike as CreatePostLikeV3,
-        GetPostResponse as GetPostResponseV3,
-        GetPosts as GetPostsV3,
-        GetPostsResponse as GetPostsResponseV3,
-        PostResponse as PostResponseV3,
-    },
-    site::{
-        GetSiteResponse as GetSiteResponseV3,
-        MyUserInfo as MyUserInfoV3,
-        ResolveObjectResponse as ResolveObjectResponseV3,
-        Search as SearchV3,
-        SearchResponse as SearchResponseV3,
-    },
+  },
+  lemmy_db_views::structs::{
+    CommentView as CommentViewV3,
+    LocalUserView as LocalUserViewV3,
+    PostView as PostViewV3,
+    SiteView as SiteViewV3,
+  },
+  lemmy_db_views_actor::structs::{CommunityView as CommunityViewV3, PersonView as PersonViewV3},
+  person::LoginResponse as LoginResponseV3,
+  post::{
+    CreatePost as CreatePostV3,
+    CreatePostLike as CreatePostLikeV3,
+    GetPostResponse as GetPostResponseV3,
+    GetPosts as GetPostsV3,
+    GetPostsResponse as GetPostsResponseV3,
+    PostResponse as PostResponseV3,
+  },
+  site::{
+    GetSiteResponse as GetSiteResponseV3,
+    MyUserInfo as MyUserInfoV3,
+    ResolveObjectResponse as ResolveObjectResponseV3,
+    Search as SearchV3,
+    SearchResponse as SearchResponseV3,
+  },
 };
 use lemmy_api_crud::{
-    comment::create::create_comment,
-    post::{create::create_post, read::get_post},
-    site::read::get_site,
-    user::my_user::get_my_user,
+  comment::create::create_comment,
+  post::{create::create_post, read::get_post},
+  site::read::get_site,
+  user::my_user::get_my_user,
 };
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
-    newtypes::{CommentId, CommunityId, LanguageId, PostId},
-    source::{
-        comment::Comment,
-        community::Community,
-        local_site::LocalSite,
-        local_user::LocalUser,
-        person::Person,
-        post::Post,
-        site::Site,
-    },
+  newtypes::{CommentId, CommunityId, LanguageId, PostId},
+  source::{
+    comment::Comment,
+    community::Community,
+    local_site::LocalSite,
+    local_user::LocalUser,
+    person::Person,
+    post::Post,
+    site::Site,
+  },
 };
-use lemmy_db_schema_file::enums::{ListingType, PostSortType};
+use lemmy_db_schema_file::{
+  PersonId,
+  enums::{ListingType, PostSortType},
+};
 use lemmy_db_views_comment::{
-    api::{CreateComment, CreateCommentLike, GetComments},
-    CommentView,
+  CommentView,
+  api::{CreateComment, CreateCommentLike, GetComments},
 };
 use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
 use lemmy_db_views_post::{
-    api::{CreatePost, CreatePostLike, GetPosts},
-    PostView,
+  PostView,
+  api::{CreatePost, CreatePostLike, GetPosts},
 };
-use lemmy_db_views_search_combined::{api::GetPost, Search, SearchCombinedView};
+use lemmy_db_views_search_combined::{Search, SearchCombinedView, api::GetPost};
 use lemmy_db_views_site::{
-    api::{GetSiteResponse, Login, LoginResponse, MyUserInfo, ResolveObject},
-    SiteView,
+  SiteView,
+  api::{GetSiteResponse, Login, LoginResponse, MyUserInfo, ResolveObject},
 };
 use lemmy_diesel_utils::{dburl::DbUrl, sensitive::SensitiveString};
 use lemmy_utils::{error::LemmyResult, rate_limit::RateLimit};
 use std::sync::LazyLock;
 use url::Url;
-use lemmy_db_schema_file::PersonId;
 
 pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
   cfg.service(

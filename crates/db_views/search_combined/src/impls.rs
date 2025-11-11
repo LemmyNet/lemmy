@@ -1,55 +1,48 @@
 use crate::{
-    CommentView,
-    CommunityView,
-    LocalUserView,
-    PersonView,
-    PostView,
-    SearchCombinedView,
-    SearchCombinedViewInternal,
+  CommentView,
+  CommunityView,
+  LocalUserView,
+  PersonView,
+  PostView,
+  SearchCombinedView,
+  SearchCombinedViewInternal,
 };
 use diesel::{
-    dsl::not,
-    BoolExpressionMethods,
-    ExpressionMethods,
-    JoinOnDsl,
-    NullableExpressionMethods,
-    PgTextExpressionMethods,
-    QueryDsl,
-    SelectableHelper,
+  BoolExpressionMethods,
+  ExpressionMethods,
+  JoinOnDsl,
+  NullableExpressionMethods,
+  PgTextExpressionMethods,
+  QueryDsl,
+  SelectableHelper,
+  dsl::not,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::asc_if;
 use lemmy_db_schema::{
-    impls::local_user::LocalUserOptionHelper,
-    newtypes::{CommunityId, PaginationCursor},
-    source::{
-        combined::search::{search_combined_keys as key, SearchCombined},
-        site::Site,
+  SearchSortType::{self, *},
+  SearchType,
+  impls::local_user::LocalUserOptionHelper,
+  newtypes::{CommunityId, PaginationCursor},
+  source::{
+    combined::search::{SearchCombined, search_combined_keys as key},
+    site::Site,
+  },
+  traits::{InternalToCombinedView, PaginationCursorBuilder},
+  utils::{
+    limit_fetch,
+    queries::filters::{
+      filter_is_subscribed,
+      filter_not_unlisted_or_is_subscribed,
+      filter_suggested_communities,
     },
-    traits::{InternalToCombinedView, PaginationCursorBuilder},
-    utils::{
-        limit_fetch,
-        queries::filters::{
-            filter_is_subscribed,
-            filter_not_unlisted_or_is_subscribed,
-            filter_suggested_communities,
-        },
-    },
-    SearchSortType::{self, *},
-    SearchType,
+  },
 };
-use lemmy_db_schema_file::{enums::ListingType, schema::{
-    comment,
-    comment_actions,
-    community,
-    community_actions,
-    multi_community,
-    person,
-    post,
-    post_actions,
-    search_combined,
-}, InstanceId, PersonId};
-use lemmy_db_schema_file::joins::{
+use lemmy_db_schema_file::{
+  InstanceId,
+  PersonId,
+  enums::ListingType,
+  joins::{
     creator_community_actions_join,
     creator_home_instance_actions_join,
     creator_local_instance_actions_join,
@@ -60,11 +53,23 @@ use lemmy_db_schema_file::joins::{
     my_local_user_admin_join,
     my_person_actions_join,
     my_post_actions_join,
+  },
+  schema::{
+    comment,
+    comment_actions,
+    community,
+    community_actions,
+    multi_community,
+    person,
+    post,
+    post_actions,
+    search_combined,
+  },
 };
 use lemmy_db_views_community::MultiCommunityView;
 use lemmy_diesel_utils::{
-    connection::{get_conn, DbPool},
-    utils::{fuzzy_search, now, paginate, seconds_to_pg_interval},
+  connection::{DbPool, get_conn},
+  utils::{fuzzy_search, now, paginate, seconds_to_pg_interval},
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
@@ -482,26 +487,26 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
 #[cfg(test)]
 #[expect(clippy::indexing_slicing)]
 mod tests {
-  use crate::{impls::SearchCombinedQuery, LocalUserView, SearchCombinedView};
+  use crate::{LocalUserView, SearchCombinedView, impls::SearchCombinedQuery};
   use lemmy_db_schema::{
-      assert_length,
-      source::{
-          comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm, CommentUpdateForm},
-          community::{Community, CommunityInsertForm},
-          instance::Instance,
-          local_user::{LocalUser, LocalUserInsertForm},
-          multi_community::{MultiCommunity, MultiCommunityInsertForm},
-          person::{Person, PersonInsertForm},
-          post::{Post, PostActions, PostInsertForm, PostLikeForm, PostUpdateForm},
-          site::{Site, SiteInsertForm},
-      },
-      traits::Likeable,
-      SearchSortType,
-      SearchType,
+    SearchSortType,
+    SearchType,
+    assert_length,
+    source::{
+      comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm, CommentUpdateForm},
+      community::{Community, CommunityInsertForm},
+      instance::Instance,
+      local_user::{LocalUser, LocalUserInsertForm},
+      multi_community::{MultiCommunity, MultiCommunityInsertForm},
+      person::{Person, PersonInsertForm},
+      post::{Post, PostActions, PostInsertForm, PostLikeForm, PostUpdateForm},
+      site::{Site, SiteInsertForm},
+    },
+    traits::Likeable,
   };
   use lemmy_diesel_utils::{
-      connection::{build_db_pool_for_tests, DbPool},
-      traits::Crud,
+    connection::{DbPool, build_db_pool_for_tests},
+    traits::Crud,
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;

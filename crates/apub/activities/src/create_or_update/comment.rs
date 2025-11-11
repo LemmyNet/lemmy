@@ -1,45 +1,45 @@
 use crate::{
-    activity_lists::AnnouncableActivities,
-    check_community_deleted_or_removed,
-    community::send_activity_in_community,
-    generate_activity_id,
-    protocol::{create_or_update::note::CreateOrUpdateNote, CreateOrUpdateType},
+  activity_lists::AnnouncableActivities,
+  check_community_deleted_or_removed,
+  community::send_activity_in_community,
+  generate_activity_id,
+  protocol::{CreateOrUpdateType, create_or_update::note::CreateOrUpdateNote},
 };
 use activitypub_federation::{
-    config::Data,
-    fetch::object_id::ObjectId,
-    protocol::verification::{verify_domains_match, verify_urls_match},
-    traits::{Activity, Actor, Object},
+  config::Data,
+  fetch::object_id::ObjectId,
+  protocol::verification::{verify_domains_match, verify_urls_match},
+  traits::{Activity, Actor, Object},
 };
 use lemmy_api_utils::{
-    context::LemmyContext,
-    notify::NotifyData,
-    utils::{check_is_mod_or_admin, check_post_deleted_or_removed},
+  context::LemmyContext,
+  notify::NotifyData,
+  utils::{check_is_mod_or_admin, check_post_deleted_or_removed},
 };
 use lemmy_apub_objects::{
-    objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
-    utils::{
-        functions::{generate_to, verify_person_in_community, verify_visibility},
-        mentions::MentionOrValue,
-        protocol::InCommunity,
-    },
+  objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
+  utils::{
+    functions::{generate_to, verify_person_in_community, verify_visibility},
+    mentions::MentionOrValue,
+    protocol::InCommunity,
+  },
 };
 use lemmy_db_schema::{
-    source::{
-        activity::ActivitySendTargets,
-        comment::{Comment, CommentActions, CommentLikeForm},
-        community::Community,
-        person::Person,
-        post::Post,
-    },
-    traits::Likeable,
+  source::{
+    activity::ActivitySendTargets,
+    comment::{Comment, CommentActions, CommentLikeForm},
+    community::Community,
+    person::Person,
+    post::Post,
+  },
+  traits::Likeable,
 };
+use lemmy_db_schema_file::PersonId;
 use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use serde_json::{from_value, to_value};
 use url::Url;
-use lemmy_db_schema_file::PersonId;
 
 impl CreateOrUpdateNote {
   pub(crate) async fn send(

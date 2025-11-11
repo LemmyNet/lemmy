@@ -1,22 +1,18 @@
-use crate::{
-    newtypes::CommunityId,
-    source::placeholder_apub_url,
-};
+use crate::{newtypes::CommunityId, source::placeholder_apub_url};
 use chrono::{DateTime, Utc};
-use lemmy_db_schema_file::enums::{
-    CommunityFollowerState,
-    CommunityNotificationsMode,
-    CommunityVisibility,
+use lemmy_db_schema_file::{
+  InstanceId,
+  PersonId,
+  enums::{CommunityFollowerState, CommunityNotificationsMode, CommunityVisibility},
 };
 use lemmy_diesel_utils::{dburl::DbUrl, sensitive::SensitiveString};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
-    i_love_jesus::CursorKeysModule,
-    lemmy_db_schema_file::schema::{community, community_actions},
+  i_love_jesus::CursorKeysModule,
+  lemmy_db_schema_file::schema::{community, community_actions},
 };
-use lemmy_db_schema_file::{InstanceId, PersonId};
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]

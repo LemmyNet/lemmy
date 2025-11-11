@@ -1,5 +1,5 @@
 [package]
-name = "lemmy_db_views_notification_sql"
+name = "lemmy_db_views_report_combined_sql"
 version.workspace = true
 edition.workspace = true
 description.workspace = true
@@ -8,7 +8,6 @@ homepage.workspace = true
 documentation.workspace = true
 repository.workspace = true
 rust-version.workspace = true
-publish = false
 
 [lib]
 doctest = false

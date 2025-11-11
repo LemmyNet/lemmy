@@ -1,35 +1,30 @@
 use diesel::{
-  dsl::not,
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
+  dsl::not,
 };
-use lemmy_db_schema_file::{aliases, InstanceId, PersonId};
-use lemmy_db_schema_file::joins::{
-  creator_community_actions_join,
-  creator_home_instance_actions_join,
-  creator_local_instance_actions_join,
-  creator_local_user_admin_join,
-  image_details_join,
-  my_comment_actions_join,
-  my_community_actions_join,
-  my_instance_communities_actions_join,
-  my_instance_persons_actions_join_1,
-  my_local_user_admin_join,
-  my_person_actions_join,
-  my_post_actions_join,
-};
-use lemmy_db_schema_file::schema::{
-  comment,
-  community,
-  instance,
-  modlog,
-  notification,
-  person,
-  post,
-  private_message,
+use lemmy_db_schema_file::{
+  InstanceId,
+  PersonId,
+  aliases,
+  joins::{
+    creator_community_actions_join,
+    creator_home_instance_actions_join,
+    creator_local_instance_actions_join,
+    creator_local_user_admin_join,
+    image_details_join,
+    my_comment_actions_join,
+    my_community_actions_join,
+    my_instance_communities_actions_join,
+    my_instance_persons_actions_join_1,
+    my_local_user_admin_join,
+    my_person_actions_join,
+    my_post_actions_join,
+  },
+  schema::{comment, community, instance, modlog, notification, person, post, private_message},
 };
 
 #[diesel::dsl::auto_type(no_type_alias)]
@@ -92,8 +87,7 @@ pub fn notification_joins(person_id: PersonId, instance_id: InstanceId) -> _ {
   let my_community_actions_join: my_community_actions_join =
     my_community_actions_join(Some(person_id));
   let my_post_actions_join: my_post_actions_join = my_post_actions_join(Some(person_id));
-  let my_comment_actions_join: my_comment_actions_join =
-    my_comment_actions_join(Some(person_id));
+  let my_comment_actions_join: my_comment_actions_join = my_comment_actions_join(Some(person_id));
   let my_instance_communities_actions_join: my_instance_communities_actions_join =
     my_instance_communities_actions_join(Some(person_id));
   let my_instance_persons_actions_join_1: my_instance_persons_actions_join_1 =

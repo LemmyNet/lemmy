@@ -2,9 +2,9 @@ use crate::newtypes::ActivityId;
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use diesel::prelude::*;
+use lemmy_db_schema_file::InstanceId;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-use lemmy_db_schema_file::InstanceId;
 
 #[skip_serializing_none]
 #[derive(Clone, Debug, Serialize, Deserialize)]

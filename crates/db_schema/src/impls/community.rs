@@ -1,47 +1,51 @@
 use crate::{
-    diesel::{DecoratableTarget, JoinOnDsl, OptionalExtension},
-    newtypes::CommunityId,
-    source::{
-        actor_language::CommunityLanguage,
-        community::{
-            Community,
-            CommunityActions,
-            CommunityBlockForm,
-            CommunityFollowerForm,
-            CommunityInsertForm,
-            CommunityModeratorForm,
-            CommunityPersonBanForm,
-            CommunityUpdateForm,
-        },
-        post::Post,
+  diesel::{DecoratableTarget, JoinOnDsl, OptionalExtension},
+  newtypes::CommunityId,
+  source::{
+    actor_language::CommunityLanguage,
+    community::{
+      Community,
+      CommunityActions,
+      CommunityBlockForm,
+      CommunityFollowerForm,
+      CommunityInsertForm,
+      CommunityModeratorForm,
+      CommunityPersonBanForm,
+      CommunityUpdateForm,
     },
-    traits::{ApubActor, Bannable, Blockable, Followable},
-    utils::format_actor_url,
+    post::Post,
+  },
+  traits::{ApubActor, Bannable, Blockable, Followable},
+  utils::format_actor_url,
 };
 use chrono::{DateTime, Utc};
 use diesel::{
-    dsl::{exists, insert_into, not},
-    expression::SelectableHelper,
-    select,
-    update,
-    BoolExpressionMethods,
-    ExpressionMethods,
-    NullableExpressionMethods,
-    QueryDsl,
+  BoolExpressionMethods,
+  ExpressionMethods,
+  NullableExpressionMethods,
+  QueryDsl,
+  dsl::{exists, insert_into, not},
+  expression::SelectableHelper,
+  select,
+  update,
 };
 use diesel_async::RunQueryDsl;
-use diesel_uplete::{uplete, UpleteCount};
-use lemmy_db_schema_file::{enums::{CommunityFollowerState, CommunityNotificationsMode, CommunityVisibility, ListingType}, schema::{comment, community, community_actions, instance, local_user, post}, PersonId};
+use diesel_uplete::{UpleteCount, uplete};
+use lemmy_db_schema_file::{
+  PersonId,
+  enums::{CommunityFollowerState, CommunityNotificationsMode, CommunityVisibility, ListingType},
+  schema::{comment, community, community_actions, instance, local_user, post},
+};
 use lemmy_diesel_utils::{
-    connection::{get_conn, DbPool},
-    dburl::DbUrl,
-    traits::Crud,
-    utils::functions::{coalesce, coalesce_2_nullable, lower, random_smallint},
+  connection::{DbPool, get_conn},
+  dburl::DbUrl,
+  traits::Crud,
+  utils::functions::{coalesce, coalesce_2_nullable, lower, random_smallint},
 };
 use lemmy_utils::{
-    error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult, UntranslatedError},
-    settings::structs::Settings,
-    CACHE_DURATION_LARGEST_COMMUNITY,
+  CACHE_DURATION_LARGEST_COMMUNITY,
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult, UntranslatedError},
+  settings::structs::Settings,
 };
 use moka::future::Cache;
 use std::sync::{Arc, LazyLock};
@@ -678,24 +682,24 @@ impl ApubActor for Community {
 mod tests {
   use super::*;
   use crate::{
-      source::{
-          comment::{Comment, CommentInsertForm},
-          community::{
-              Community,
-              CommunityActions,
-              CommunityFollowerForm,
-              CommunityInsertForm,
-              CommunityModeratorForm,
-              CommunityPersonBanForm,
-              CommunityUpdateForm,
-          },
-          instance::Instance,
-          local_user::LocalUser,
-          person::{Person, PersonInsertForm},
-          post::{Post, PostInsertForm},
+    source::{
+      comment::{Comment, CommentInsertForm},
+      community::{
+        Community,
+        CommunityActions,
+        CommunityFollowerForm,
+        CommunityInsertForm,
+        CommunityModeratorForm,
+        CommunityPersonBanForm,
+        CommunityUpdateForm,
       },
-      traits::{Bannable, Followable},
-      utils::RANK_DEFAULT,
+      instance::Instance,
+      local_user::LocalUser,
+      person::{Person, PersonInsertForm},
+      post::{Post, PostInsertForm},
+    },
+    traits::{Bannable, Followable},
+    utils::RANK_DEFAULT,
   };
   use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use lemmy_utils::error::LemmyResult;

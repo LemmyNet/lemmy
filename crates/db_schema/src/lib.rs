@@ -8,14 +8,15 @@ extern crate diesel_derive_newtype;
 #[cfg(feature = "full")]
 pub mod impls;
 pub mod newtypes;
+pub mod source;
 #[cfg(feature = "full")]
 pub mod test_data;
-pub mod source;
 #[cfg(feature = "full")]
 pub mod traits;
 #[cfg(feature = "full")]
 pub mod utils;
 
+use lemmy_db_schema_file::aliases;
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
 #[cfg(feature = "full")]
@@ -23,7 +24,6 @@ use {
   diesel::query_source::AliasedField,
   lemmy_db_schema_file::schema::{instance_actions, person},
 };
-use lemmy_db_schema_file::aliases;
 
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,

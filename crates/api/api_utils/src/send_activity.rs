@@ -2,17 +2,18 @@ use crate::context::LemmyContext;
 use activitypub_federation::config::Data;
 use either::Either;
 use lemmy_db_schema::{
-    newtypes::CommunityId,
-    source::{
-        comment::Comment,
-        community::Community,
-        multi_community::MultiCommunity,
-        person::Person,
-        post::Post,
-        private_message::PrivateMessage,
-        site::Site,
-    },
+  newtypes::CommunityId,
+  source::{
+    comment::Comment,
+    community::Community,
+    multi_community::MultiCommunity,
+    person::Person,
+    post::Post,
+    private_message::PrivateMessage,
+    site::Site,
+  },
 };
+use lemmy_db_schema_file::PersonId;
 use lemmy_db_views_community::api::BanFromCommunity;
 use lemmy_db_views_post::api::DeletePost;
 use lemmy_db_views_private_message::PrivateMessageView;
@@ -20,15 +21,14 @@ use lemmy_diesel_utils::dburl::DbUrl;
 use lemmy_utils::error::LemmyResult;
 use std::sync::LazyLock;
 use tokio::{
-    sync::{
-        mpsc,
-        mpsc::{UnboundedReceiver, UnboundedSender, WeakUnboundedSender},
-        Mutex,
-    },
-    task::JoinHandle,
+  sync::{
+    Mutex,
+    mpsc,
+    mpsc::{UnboundedReceiver, UnboundedSender, WeakUnboundedSender},
+  },
+  task::JoinHandle,
 };
 use url::Url;
-use lemmy_db_schema_file::PersonId;
 
 #[derive(Debug)]
 pub enum SendActivityData {

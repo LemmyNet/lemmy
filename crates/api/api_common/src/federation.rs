@@ -1,25 +1,24 @@
 pub use lemmy_db_schema::{
-    newtypes::ActivityId,
-    source::{
-        federation_allowlist::FederationAllowList,
-        federation_blocklist::FederationBlockList,
-        federation_queue_state::FederationQueueState,
-        instance::{Instance, InstanceActions},
-    },
+  newtypes::ActivityId,
+  source::{
+    federation_allowlist::FederationAllowList,
+    federation_blocklist::FederationBlockList,
+    federation_queue_state::FederationQueueState,
+    instance::{Instance, InstanceActions},
+  },
 };
-pub use lemmy_db_schema_file::enums::FederationMode;
-pub use lemmy_db_schema_file::InstanceId;
+pub use lemmy_db_schema_file::{InstanceId, enums::FederationMode};
 pub use lemmy_db_views_site::{
-    api::{
-        GetFederatedInstances,
-        GetFederatedInstancesKind,
-        GetFederatedInstancesResponse,
-        InstanceWithFederationState,
-        ResolveObject,
-        UserBlockInstanceCommunitiesParams,
-        UserBlockInstancePersonsParams,
-    },
-    ReadableFederationState,
+  ReadableFederationState,
+  api::{
+    GetFederatedInstances,
+    GetFederatedInstancesKind,
+    GetFederatedInstancesResponse,
+    InstanceWithFederationState,
+    ResolveObject,
+    UserBlockInstanceCommunitiesParams,
+    UserBlockInstancePersonsParams,
+  },
 };
 
 pub mod administration {

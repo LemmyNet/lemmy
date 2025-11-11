@@ -1,33 +1,32 @@
 use crate::site::registration_applications::{
-    approve::approve_registration_application,
-    list::list_registration_applications,
-    unread_count::get_unread_registration_application_count,
+  approve::approve_registration_application,
+  list::list_registration_applications,
+  unread_count::get_unread_registration_application_count,
 };
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use lemmy_api_crud::site::update::update_site;
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
-    source::{
-        local_site::{LocalSite, LocalSiteUpdateForm},
-        local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
-        person::{Person, PersonInsertForm},
-        registration_application::{RegistrationApplication, RegistrationApplicationInsertForm},
-    },
-    test_data::TestData,
+  source::{
+    local_site::{LocalSite, LocalSiteUpdateForm},
+    local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
+    person::{Person, PersonInsertForm},
+    registration_application::{RegistrationApplication, RegistrationApplicationInsertForm},
+  },
+  test_data::TestData,
 };
-use lemmy_db_schema_file::enums::RegistrationMode;
+use lemmy_db_schema_file::{InstanceId, enums::RegistrationMode};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_notification::api::GetUnreadRegistrationApplicationCountResponse;
 use lemmy_db_views_registration_applications::api::{
-    ApproveRegistrationApplication,
-    ListRegistrationApplicationsResponse,
+  ApproveRegistrationApplication,
+  ListRegistrationApplicationsResponse,
 };
 use lemmy_db_views_site::api::EditSite;
 use lemmy_diesel_utils::{connection::DbPool, traits::Crud};
-use lemmy_utils::{error::LemmyResult, CACHE_DURATION_API};
+use lemmy_utils::{CACHE_DURATION_API, error::LemmyResult};
 use serial_test::serial;
-use lemmy_db_schema_file::InstanceId;
 
 async fn create_test_site(context: &Data<LemmyContext>) -> LemmyResult<(TestData, LocalUserView)> {
   let pool = &mut context.pool();

@@ -1,14 +1,15 @@
-use diesel::{BoolExpressionMethods, ExpressionMethods, JoinOnDsl, NullableExpressionMethods};
-use crate::aliases::{
+use crate::{
+  InstanceId,
+  PersonId,
+  aliases::{
     creator_community_actions,
     creator_community_instance_actions,
     creator_home_instance_actions,
     creator_local_instance_actions,
     creator_local_user,
     my_instance_persons_actions,
-};
-use crate::{InstanceId, PersonId};
-use crate::schema::{
+  },
+  schema::{
     comment,
     comment_actions,
     community,
@@ -22,7 +23,9 @@ use crate::schema::{
     person_actions,
     post,
     post_actions,
+  },
 };
+use diesel::{BoolExpressionMethods, ExpressionMethods, JoinOnDsl, NullableExpressionMethods};
 
 #[diesel::dsl::auto_type]
 pub fn creator_local_user_admin_join() -> _ {

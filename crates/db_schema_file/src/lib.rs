@@ -1,13 +1,13 @@
 use core::default::Default;
-use serde::{Deserialize, Serialize};
 use diesel_derive_newtype::DieselNewType;
+use serde::{Deserialize, Serialize};
 
 pub mod enums;
+pub mod joins;
 #[cfg(feature = "full")]
 pub mod schema;
 #[cfg(feature = "full")]
 pub mod table_impls;
-pub mod joins;
 
 #[cfg(feature = "full")]
 pub mod aliases {

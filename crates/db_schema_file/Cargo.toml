@@ -18,7 +18,13 @@ doctest = false
 workspace = true
 
 [features]
-full = ["diesel", "diesel_ltree", "diesel-derive-enum", "diesel-uplete","diesel-derive-newtype"]
+full = [
+  "diesel",
+  "diesel_ltree",
+  "diesel-derive-enum",
+  "diesel-uplete",
+  "diesel-derive-newtype",
+]
 ts-rs = ["dep:ts-rs"]
 
 [dependencies]

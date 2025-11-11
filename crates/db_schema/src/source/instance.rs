@@ -1,13 +1,13 @@
 use chrono::{DateTime, Utc};
+use lemmy_db_schema_file::{InstanceId, PersonId};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use std::fmt::Debug;
 #[cfg(feature = "full")]
 use {
-    i_love_jesus::CursorKeysModule,
-    lemmy_db_schema_file::schema::{instance, instance_actions},
+  i_love_jesus::CursorKeysModule,
+  lemmy_db_schema_file::schema::{instance, instance_actions},
 };
-use lemmy_db_schema_file::{InstanceId, PersonId};
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
