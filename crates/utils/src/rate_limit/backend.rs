@@ -25,7 +25,7 @@ use std::{
 /// in memory.
 #[derive(Clone)]
 pub struct LemmyBackend {
-  map: Arc<DashMap<RateLimitIpAddr, Value>>,
+  map: Arc<DashMap<(RateLimitIpAddr, ActionType), Value>>,
   gc_handle: Option<Arc<JoinHandle<()>>>,
   pub(super) configs: Arc<RwLock<EnumMap<ActionType, BucketConfig>>>,
 }
@@ -37,7 +37,7 @@ struct Value {
 
 impl LemmyBackend {
   pub(crate) fn new(configs: EnumMap<ActionType, BucketConfig>, enable_gc: bool) -> Self {
-    let map = Arc::new(DashMap::<RateLimitIpAddr, Value>::new());
+    let map = Arc::new(DashMap::<(RateLimitIpAddr, ActionType), Value>::new());
     let gc_handle = enable_gc.then(|| {
       Arc::new(LemmyBackend::garbage_collector(
         map.clone(),
@@ -52,7 +52,7 @@ impl LemmyBackend {
   }
 
   fn garbage_collector(
-    map: Arc<DashMap<RateLimitIpAddr, Value>>,
+    map: Arc<DashMap<(RateLimitIpAddr, ActionType), Value>>,
     interval: Duration,
   ) -> JoinHandle<()> {
     assert!(
@@ -71,7 +71,7 @@ impl LemmyBackend {
 
 impl Backend<LemmyInput> for LemmyBackend {
   type Output = SimpleOutput;
-  type RollbackToken = RateLimitIpAddr;
+  type RollbackToken = (RateLimitIpAddr, ActionType);
   type Error = Infallible;
 
   #[expect(clippy::expect_used)]
@@ -80,7 +80,7 @@ impl Backend<LemmyInput> for LemmyBackend {
     input: LemmyInput,
   ) -> Result<(Decision, Self::Output, Self::RollbackToken), Self::Error> {
     #[allow(clippy::expect_used)]
-    let config = self.configs.read().expect("read rwlock")[input.action_type];
+    let config = self.configs.read().expect("read rwlock")[input.key.1];
 
     let max_requests: u64 = config.max_requests.into();
     let interval = Duration::from_secs(config.interval.into());
@@ -186,8 +186,7 @@ mod tests {
     let backend = LemmyBackend::new(test_config(MINUTE_SECS, 5), true);
     let key = raw_ip_key(Some("127.0.0.2"));
     let input = LemmyInput {
-      key,
-      action_type: ActionType::Message,
+      key: (key, ActionType::Message),
     };
     for _ in 0..5 {
       // First 5 should be allowed
@@ -204,11 +203,8 @@ mod tests {
   async fn test_reset() -> LemmyResult<()> {
     tokio::time::pause();
     let backend = LemmyBackend::new(test_config(MINUTE_SECS, 1), false);
-    let key = raw_ip_key(Some("127.0.0.3"));
-    let input = LemmyInput {
-      key,
-      action_type: ActionType::Message,
-    };
+    let key = (raw_ip_key(Some("127.0.0.3")), ActionType::Message);
+    let input = LemmyInput { key };
     // Make first request, should be allowed
     let (decision, _, _) = backend.request(input.clone()).await?;
     assert!(decision.is_allowed());
@@ -228,20 +224,10 @@ mod tests {
   async fn test_garbage_collection() -> LemmyResult<()> {
     tokio::time::pause();
     let backend = LemmyBackend::new(test_config(MINUTE_SECS, 1), true);
-    let key1 = raw_ip_key(Some("127.0.0.4"));
-    let key2 = raw_ip_key(Some("127.0.0.5"));
-    backend
-      .request(LemmyInput {
-        key: key1,
-        action_type: ActionType::Message,
-      })
-      .await?;
-    backend
-      .request(LemmyInput {
-        key: key2,
-        action_type: ActionType::Post,
-      })
-      .await?;
+    let key1 = (raw_ip_key(Some("127.0.0.4")), ActionType::Message);
+    let key2 = (raw_ip_key(Some("127.0.0.5")), ActionType::Post);
+    backend.request(LemmyInput { key: key1 }).await?;
+    backend.request(LemmyInput { key: key2 }).await?;
     assert!(backend.map.contains_key(&key1));
     assert!(backend.map.contains_key(&key2));
     // Advance time such that the garbage collector runs,
@@ -258,8 +244,7 @@ mod tests {
     let backend = LemmyBackend::new(test_config(MINUTE_SECS, 2), true);
     let key = raw_ip_key(Some("127.0.0.6"));
     let input = LemmyInput {
-      key,
-      action_type: ActionType::Message,
+      key: (key, ActionType::Message),
     };
     // First of 2 should be allowed.
     let (decision, output, _) = backend.request(input.clone()).await?;
@@ -288,8 +273,7 @@ mod tests {
     let backend = LemmyBackend::new(test_config(MINUTE_SECS, 5), true);
     let key = raw_ip_key(Some("127.0.0.7"));
     let input = LemmyInput {
-      key,
-      action_type: ActionType::Message,
+      key: (key, ActionType::Message),
     };
     let (_, output, rollback) = backend.request(input.clone()).await?;
     assert_eq!(output.remaining, 4);

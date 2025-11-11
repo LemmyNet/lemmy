@@ -11,7 +11,7 @@ use strum::{AsRefStr, Display};
 mod backend;
 mod input;
 
-#[derive(Debug, enum_map::Enum, Copy, Clone, Display, AsRefStr)]
+#[derive(Debug, enum_map::Enum, Copy, Clone, Display, AsRefStr, Eq, PartialEq, Hash)]
 pub enum ActionType {
   Message,
   Register,
@@ -143,7 +143,9 @@ fn new_input(action_type: ActionType) -> impl Fn(&ServiceRequest) -> LemmyInputF
       let info = req.connection_info();
       let key = raw_ip_key(info.realip_remote_addr());
 
-      Ok(LemmyInput { key, action_type })
+      Ok(LemmyInput {
+        key: (key, action_type),
+      })
     })
   }
 }

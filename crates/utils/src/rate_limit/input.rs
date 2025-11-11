@@ -7,8 +7,7 @@ use std::{
 
 #[derive(Debug, Clone)]
 pub struct LemmyInput {
-  pub key: RateLimitIpAddr,
-  pub action_type: ActionType,
+  pub key: (RateLimitIpAddr, ActionType),
 }
 
 pub type LemmyInputFuture = Ready<Result<LemmyInput, actix_web::Error>>;
