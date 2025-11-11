@@ -3,14 +3,15 @@ use crate::convert::{
   convert_comment_response,
   convert_comment_view,
   convert_community,
+  convert_community_listing_sort,
   convert_community_view,
   convert_language_ids,
+  convert_listing_type,
   convert_my_user,
   convert_person,
   convert_person_view,
   convert_post,
   convert_post_listing_sort,
-  convert_post_listing_type,
   convert_post_response,
   convert_post_view,
   convert_score,
@@ -54,6 +55,8 @@ use lemmy_api_019::{
     BlockCommunityResponse as BlockCommunityResponseV3,
     CommunityResponse as CommunityResponseV3,
     GetCommunityResponse as GetCommunityResponseV3,
+    ListCommunities as ListCommunitiesV3,
+    ListCommunitiesResponse as ListCommunitiesResponseV3,
   },
   lemmy_db_schema::{
     SubscribedType as SubscribedTypeV3,
@@ -93,17 +96,37 @@ use lemmy_api_019::{
   },
 };
 use lemmy_api_crud::{
-  comment::create::create_comment,
-  post::{create::create_post, read::get_post},
+  comment::{create::create_comment, delete::delete_comment, update::update_comment},
+  community::list::list_communities,
+  post::{create::create_post, delete::delete_post, read::get_post, update::update_post},
   site::read::get_site,
   user::my_user::get_my_user,
 };
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::newtypes::{CommentId, CommunityId, LanguageId, PersonId, PostId};
-use lemmy_db_views_comment::api::{CreateComment, CreateCommentLike, GetComments, SaveComment};
-use lemmy_db_views_community::api::{BlockCommunity, FollowCommunity, GetCommunity};
+use lemmy_db_views_comment::api::{
+  CreateComment,
+  CreateCommentLike,
+  DeleteComment,
+  EditComment,
+  GetComments,
+  SaveComment,
+};
+use lemmy_db_views_community::api::{
+  BlockCommunity,
+  FollowCommunity,
+  GetCommunity,
+  ListCommunities,
+};
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_post::api::{CreatePost, CreatePostLike, GetPosts, SavePost};
+use lemmy_db_views_post::api::{
+  CreatePost,
+  CreatePostLike,
+  DeletePost,
+  EditPost,
+  GetPosts,
+  SavePost,
+};
 use lemmy_db_views_report_combined::api::{CreateCommentReport, CreatePostReport};
 use lemmy_db_views_search_combined::{Search, api::GetPost};
 use lemmy_db_views_site::api::{GetSiteResponse, Login, LoginResponse, ResolveObject};
@@ -145,7 +168,7 @@ pub(crate) async fn list_posts_v3(
   } = datav3.0;
   let (sort, time_range_seconds) = convert_post_listing_sort(sort);
   let data = GetPosts {
-    type_: type_.map(convert_post_listing_type),
+    type_: type_.map(convert_listing_type),
     sort,
     time_range_seconds,
     community_id: community_id.map(|id| CommunityId(id.0)),
@@ -541,7 +564,7 @@ pub(crate) async fn get_community_v3(
   }))
 }
 
-pub async fn follow_community_v3(
+pub(crate) async fn follow_community_v3(
   data: Json<FollowCommunity>,
   context: ApubData<LemmyContext>,
   local_user_view: LocalUserView,
@@ -553,7 +576,7 @@ pub async fn follow_community_v3(
   }))
 }
 
-pub async fn block_community_v3(
+pub(crate) async fn block_community_v3(
   data: Json<BlockCommunity>,
   context: ApubData<LemmyContext>,
   local_user_view: LocalUserView,
@@ -565,5 +588,68 @@ pub async fn block_community_v3(
   Ok(Json(BlockCommunityResponseV3 {
     community_view: convert_community_view(res.community_view),
     blocked,
+  }))
+}
+
+pub(crate) async fn delete_post_v3(
+  data: Json<DeletePost>,
+  context: ApubData<LemmyContext>,
+  local_user_view: LocalUserView,
+) -> LemmyResult<Json<PostResponseV3>> {
+  let res = delete_post(data, context, local_user_view).await?;
+  convert_post_response(res)
+}
+pub(crate) async fn update_post_v3(
+  data: Json<EditPost>,
+  context: ApubData<LemmyContext>,
+  local_user_view: LocalUserView,
+) -> LemmyResult<Json<PostResponseV3>> {
+  let res = Box::pin(update_post(data, context, local_user_view)).await?;
+  convert_post_response(res)
+}
+pub(crate) async fn delete_comment_v3(
+  data: Json<DeleteComment>,
+  context: ApubData<LemmyContext>,
+  local_user_view: LocalUserView,
+) -> LemmyResult<Json<CommentResponseV3>> {
+  let res = delete_comment(data, context, local_user_view).await?;
+  convert_comment_response(res)
+}
+pub(crate) async fn update_comment_v3(
+  data: Json<EditComment>,
+  context: ApubData<LemmyContext>,
+  local_user_view: LocalUserView,
+) -> LemmyResult<Json<CommentResponseV3>> {
+  let res = Box::pin(update_comment(data, context, local_user_view)).await?;
+  convert_comment_response(res)
+}
+pub async fn list_communities_v3(
+  data: Query<ListCommunitiesV3>,
+  context: Data<LemmyContext>,
+  local_user_view: Option<LocalUserView>,
+) -> LemmyResult<Json<ListCommunitiesResponseV3>> {
+  let ListCommunitiesV3 {
+    type_,
+    sort,
+    show_nsfw,
+    limit,
+    ..
+  } = data.0;
+  let (sort, time_range_seconds) = convert_community_listing_sort(sort);
+  let data = ListCommunities {
+    type_: type_.map(convert_listing_type),
+    sort,
+    time_range_seconds,
+    show_nsfw,
+    page_cursor: None,
+    page_back: None,
+    limit,
+  };
+  let res = list_communities(Query(data), context, local_user_view)
+    .await?
+    .0
+    .communities;
+  Ok(Json(ListCommunitiesResponseV3 {
+    communities: res.into_iter().map(convert_community_view).collect(),
   }))
 }

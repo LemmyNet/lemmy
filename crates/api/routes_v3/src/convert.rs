@@ -49,6 +49,7 @@ use lemmy_api_019::{
   site::{MyUserInfo as MyUserInfoV3, SearchResponse as SearchResponseV3},
 };
 use lemmy_db_schema::{
+  CommunitySortType,
   newtypes::LanguageId,
   source::{
     comment::Comment,
@@ -751,7 +752,44 @@ pub(crate) fn convert_post_listing_sort(
   }
 }
 
-pub(crate) fn convert_post_listing_type(listing_type: ListingTypeV3) -> ListingType {
+pub(crate) fn convert_community_listing_sort(
+  sort_type: Option<SortTypeV3>,
+) -> (Option<CommunitySortType>, Option<i32>) {
+  const HOUR: i32 = 60 * 60;
+  const DAY: i32 = 24 * HOUR;
+  const WEEK: i32 = 7 * DAY;
+  const MONTH: i32 = 30 * DAY;
+  const YEAR: i32 = 365 * DAY;
+
+  let Some(sort_type) = sort_type else {
+    return (Some(CommunitySortType::default()), Some(i32::MAX));
+  };
+  let max = |s| (Some(s), Some(i32::MAX));
+  let top = |t| (Some(CommunitySortType::Hot), Some(t));
+  match sort_type {
+    SortTypeV3::Active
+    | SortTypeV3::Hot
+    | SortTypeV3::MostComments
+    | SortTypeV3::NewComments
+    | SortTypeV3::Controversial
+    | SortTypeV3::Scaled => max(CommunitySortType::Hot),
+    SortTypeV3::New => max(CommunitySortType::New),
+    SortTypeV3::Old => max(CommunitySortType::Old),
+    SortTypeV3::TopHour => top(HOUR),
+    SortTypeV3::TopSixHour => top(6 * HOUR),
+    SortTypeV3::TopTwelveHour => top(12 * HOUR),
+    SortTypeV3::TopDay => top(DAY),
+    SortTypeV3::TopWeek => top(WEEK),
+    SortTypeV3::TopAll => top(i32::MAX),
+    SortTypeV3::TopMonth => top(MONTH),
+    SortTypeV3::TopThreeMonths => top(3 * MONTH),
+    SortTypeV3::TopSixMonths => top(6 * MONTH),
+    SortTypeV3::TopNineMonths => top(9 * MONTH),
+    SortTypeV3::TopYear => top(YEAR),
+  }
+}
+
+pub(crate) fn convert_listing_type(listing_type: ListingTypeV3) -> ListingType {
   match listing_type {
     ListingTypeV3::All => ListingType::All,
     ListingTypeV3::Local => ListingType::Local,

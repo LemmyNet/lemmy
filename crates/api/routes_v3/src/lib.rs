@@ -4,6 +4,8 @@ use crate::handlers::{
   create_comment_v3,
   create_post_report_v3,
   create_post_v3,
+  delete_comment_v3,
+  delete_post_v3,
   follow_community_v3,
   get_community_v3,
   get_post_v3,
@@ -11,6 +13,7 @@ use crate::handlers::{
   like_comment_v3,
   like_post_v3,
   list_comments_v3,
+  list_communities_v3,
   list_posts_v3,
   login_v3,
   logout_v3,
@@ -20,6 +23,8 @@ use crate::handlers::{
   save_post_v3,
   search_v3,
   unread_count_v3,
+  update_comment_v3,
+  update_post_v3,
 };
 use actix_web::{guard, web::*};
 use lemmy_utils::rate_limit::RateLimit;
@@ -47,6 +52,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
         scope("/community")
           .wrap(rate_limit.message())
           .route("", get().to(get_community_v3))
+          .route("/list", get().to(list_communities_v3))
           .route("/follow", post().to(follow_community_v3))
           .route("/block", post().to(block_community_v3)),
       )
@@ -60,6 +66,8 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
         scope("/post")
           .wrap(rate_limit.message())
           .route("", get().to(get_post_v3))
+          .route("", put().to(update_post_v3))
+          .route("/delete", post().to(delete_post_v3))
           .route("/list", get().to(list_posts_v3))
           .route("/like", post().to(like_post_v3))
           .route("/save", put().to(save_post_v3))
@@ -74,6 +82,8 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
       .service(
         scope("/comment")
           .wrap(rate_limit.message())
+          .route("", put().to(update_comment_v3))
+          .route("/delete", post().to(delete_comment_v3))
           .route("/like", post().to(like_comment_v3))
           .route("/list", get().to(list_comments_v3))
           .route("/save", put().to(save_comment_v3))

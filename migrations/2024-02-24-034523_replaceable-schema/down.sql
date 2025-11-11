@@ -242,9 +242,9 @@ BEGIN
             subscribers_local = subscribers_local + person.local::int
         FROM
             community
-        LEFT JOIN person ON person.id = NEW.person_id
-    WHERE
-        community.id = NEW.community_id
+            LEFT JOIN person ON person.id = NEW.person_id
+        WHERE
+            community.id = NEW.community_id
             AND community.id = ca.community_id
             AND person.local IS NOT NULL;
     ELSIF (TG_OP = 'DELETE') THEN
@@ -255,9 +255,9 @@ BEGIN
             subscribers_local = subscribers_local - person.local::int
         FROM
             community
-        LEFT JOIN person ON person.id = OLD.person_id
-    WHERE
-        community.id = OLD.community_id
+            LEFT JOIN person ON person.id = OLD.person_id
+        WHERE
+            community.id = OLD.community_id
             AND community.id = ca.community_id
             AND person.local IS NOT NULL;
     END IF;
