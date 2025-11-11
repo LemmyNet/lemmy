@@ -34,7 +34,7 @@ full = [
   "tokio-postgres-rustls",
   "rustls",
   "i-love-jesus",
-  "lemmy_utils",
+  "lemmy_utils/full",
   "diesel",
   "activitypub_federation",
 ]
