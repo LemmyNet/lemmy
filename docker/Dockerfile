@@ -58,6 +58,8 @@ ENV PATH="/home/lemmy/.cargo/bin:${PATH}"
 ENV RUST_RELEASE_MODE=${RUST_RELEASE_MODE} \
     CARGO_BUILD_FEATURES=${CARGO_BUILD_FEATURES}
 
+RUN rustup target add aarch64-unknown-linux-gnu
+
 # Debug build
 RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
     if [ "${RUST_RELEASE_MODE}" = "debug" ]; then \
