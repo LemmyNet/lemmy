@@ -1,8 +1,13 @@
+use core::default::Default;
+use serde::{Deserialize, Serialize};
+use diesel_derive_newtype::DieselNewType;
+
 pub mod enums;
 #[cfg(feature = "full")]
 pub mod schema;
 #[cfg(feature = "full")]
 pub mod table_impls;
+pub mod joins;
 
 #[cfg(feature = "full")]
 pub mod aliases {
@@ -17,4 +22,26 @@ pub mod aliases {
     person as person1: Person1,
     person as person2: Person2,
   );
+}
+
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "full", derive(DieselNewType))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+/// The person id.
+pub struct PersonId(pub i32);
+
+#[derive(
+  Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default, Ord, PartialOrd,
+)]
+#[cfg_attr(feature = "full", derive(DieselNewType))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+/// The instance id.
+pub struct InstanceId(pub i32);
+
+impl InstanceId {
+  pub fn inner(self) -> i32 {
+    self.0
+  }
 }

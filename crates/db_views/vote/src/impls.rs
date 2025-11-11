@@ -9,17 +9,16 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-    newtypes::{CommentId, InstanceId, PaginationCursor, PersonId, PostId},
+    newtypes::{CommentId, PaginationCursor, PostId},
     source::{comment::CommentActions, post::PostActions},
     utils::{
         limit_fetch,
-        queries::{
-            joins::{creator_home_instance_actions_join, creator_local_instance_actions_join},
-            selects::creator_local_home_banned,
-        },
+        queries::selects::creator_local_home_banned,
     },
 };
 use lemmy_db_schema_file::aliases::creator_community_actions;
+use lemmy_db_schema_file::{InstanceId, PersonId};
+use lemmy_db_schema_file::joins::{creator_home_instance_actions_join, creator_local_instance_actions_join};
 use lemmy_db_schema_file::schema::{
     comment,
     comment_actions,
@@ -190,7 +189,6 @@ impl VoteView {
 mod tests {
   use crate::VoteView;
   use lemmy_db_schema::{
-      newtypes::InstanceId,
       source::{
           comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm},
           community::{Community, CommunityActions, CommunityInsertForm, CommunityPersonBanForm},
@@ -204,8 +202,9 @@ mod tests {
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
+    use lemmy_db_schema_file::InstanceId;
 
-  #[tokio::test]
+    #[tokio::test]
   #[serial]
   async fn post_and_comment_vote_views() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();

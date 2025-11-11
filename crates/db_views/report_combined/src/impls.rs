@@ -1,72 +1,68 @@
 use crate::{
-    CommentReportView,
-    CommunityReportView,
-    LocalUserView,
-    PostReportView,
-    PrivateMessageReportView,
-    ReportCombinedView,
-    ReportCombinedViewInternal,
+  CommentReportView,
+  CommunityReportView,
+  LocalUserView,
+  PostReportView,
+  PrivateMessageReportView,
+  ReportCombinedView,
+  ReportCombinedViewInternal,
 };
 use chrono::{DateTime, Days, Utc};
 use diesel::{
-    BoolExpressionMethods,
-    ExpressionMethods,
-    JoinOnDsl,
-    NullableExpressionMethods,
-    PgExpressionMethods,
-    QueryDsl,
-    SelectableHelper,
+  BoolExpressionMethods,
+  ExpressionMethods,
+  JoinOnDsl,
+  NullableExpressionMethods,
+  PgExpressionMethods,
+  QueryDsl,
+  SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::asc_if;
 use lemmy_db_schema::{
-    newtypes::{
-        CommentReportId,
-        CommunityId,
-        CommunityReportId,
-        InstanceId,
-        PaginationCursor,
-        PersonId,
-        PostId,
-        PostReportId,
-        PrivateMessageReportId,
-    },
-    source::{
-        combined::report::{report_combined_keys as key, ReportCombined},
-        person::Person,
-    },
-    traits::{InternalToCombinedView, PaginationCursorBuilder},
-    utils::{
-        limit_fetch,
-        queries::joins::{
-            creator_community_instance_actions_join,
-            creator_home_instance_actions_join,
-            creator_local_instance_actions_join,
-        },
-    },
-    ReportType,
-};use lemmy_db_schema_file::aliases;
-use lemmy_db_schema_file::aliases::{ creator_community_actions};
+  newtypes::{
+    CommentReportId,
+    CommunityId,
+    CommunityReportId,
+    PaginationCursor,
+    PostId,
+    PostReportId,
+    PrivateMessageReportId,
+  },
+  source::{
+    combined::report::{report_combined_keys as key, ReportCombined},
+    person::Person,
+  },
+  traits::{InternalToCombinedView, PaginationCursorBuilder},
+  utils::limit_fetch,
+  ReportType,
+};use lemmy_db_schema_file::{aliases, InstanceId, PersonId};
+use lemmy_db_schema_file::aliases::creator_community_actions;
+use lemmy_db_schema_file::joins::{
+  creator_community_instance_actions_join,
+  creator_home_instance_actions_join,
+  creator_local_instance_actions_join,
+};
 use lemmy_db_schema_file::schema::{
-    comment,
-    comment_actions,
-    comment_report,
-    community,
-    community_actions,
-    community_report,
-    local_user,
-    person,
-    person_actions,
-    post,
-    post_actions,
-    post_report,
-    private_message,
-    private_message_report,
-    report_combined,
+  comment,
+  comment_actions,
+  comment_report,
+  community,
+  community_actions,
+  community_report,
+  local_user,
+  person,
+  person_actions,
+  post,
+  post_actions,
+  post_report,
+  private_message,
+  private_message_report,
+  report_combined,
 };
 use lemmy_diesel_utils::{
-    connection::{get_conn, DbPool},
-    utils::paginate,
+  connection::{get_conn, DbPool},
+  utils::paginate,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -580,36 +576,36 @@ impl InternalToCombinedView for ReportCombinedViewInternal {
 mod tests {
 
   use crate::{
-      impls::ReportCombinedQuery,
-      LocalUserView,
-      ReportCombinedView,
-      ReportCombinedViewInternal,
+    impls::ReportCombinedQuery,
+    LocalUserView,
+    ReportCombinedView,
+    ReportCombinedViewInternal,
   };
   use chrono::{Days, Utc};
   use diesel::{update, ExpressionMethods, QueryDsl};
   use diesel_async::RunQueryDsl;
   use lemmy_db_schema::{
-      assert_length,
-      source::{
-          comment::{Comment, CommentInsertForm},
-          comment_report::{CommentReport, CommentReportForm},
-          community::{Community, CommunityActions, CommunityInsertForm, CommunityModeratorForm},
-          community_report::{CommunityReport, CommunityReportForm},
-          instance::{Instance, InstanceActions, InstanceBanForm},
-          local_user::{LocalUser, LocalUserInsertForm},
-          person::{Person, PersonInsertForm},
-          post::{Post, PostInsertForm},
-          post_report::{PostReport, PostReportForm},
-          private_message::{PrivateMessage, PrivateMessageInsertForm},
-          private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
-      },
-      traits::{Bannable, Reportable},
-      ReportType,
+    assert_length,
+    source::{
+      comment::{Comment, CommentInsertForm},
+      comment_report::{CommentReport, CommentReportForm},
+      community::{Community, CommunityActions, CommunityInsertForm, CommunityModeratorForm},
+      community_report::{CommunityReport, CommunityReportForm},
+      instance::{Instance, InstanceActions, InstanceBanForm},
+      local_user::{LocalUser, LocalUserInsertForm},
+      person::{Person, PersonInsertForm},
+      post::{Post, PostInsertForm},
+      post_report::{PostReport, PostReportForm},
+      private_message::{PrivateMessage, PrivateMessageInsertForm},
+      private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
+    },
+    traits::{Bannable, Reportable},
+    ReportType,
   };
   use lemmy_db_schema_file::schema::report_combined;
   use lemmy_diesel_utils::{
-      connection::{build_db_pool_for_tests, get_conn, DbPool},
-      traits::Crud,
+    connection::{build_db_pool_for_tests, get_conn, DbPool},
+    traits::Crud,
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;

@@ -1,18 +1,19 @@
 use crate::{
-  newtypes::{PersonId, PostId, PostReportId},
-  source::post_report::{PostReport, PostReportForm},
-  traits::Reportable,
+    newtypes::{PostId, PostReportId},
+    source::post_report::{PostReport, PostReportForm},
+    traits::Reportable,
 };
 use chrono::Utc;
 use diesel::{
-  BoolExpressionMethods,
-  ExpressionMethods,
-  QueryDsl,
-  dsl::{insert_into, update},
+    dsl::{insert_into, update},
+    BoolExpressionMethods,
+    ExpressionMethods,
+    QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::PersonId;
 use lemmy_db_schema_file::schema::post_report;
-use lemmy_diesel_utils::connection::{DbPool, get_conn};
+use lemmy_diesel_utils::connection::{get_conn, DbPool};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Reportable for PostReport {
@@ -94,10 +95,10 @@ mod tests {
 
   use super::*;
   use crate::source::{
-    community::{Community, CommunityInsertForm},
-    instance::Instance,
-    person::{Person, PersonInsertForm},
-    post::{Post, PostInsertForm},
+      community::{Community, CommunityInsertForm},
+      instance::Instance,
+      person::{Person, PersonInsertForm},
+      post::{Post, PostInsertForm},
   };
   use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use serial_test::serial;

@@ -1,36 +1,35 @@
 use crate::{FederatedInstanceView, ReadableFederationState, SiteView};
 use lemmy_db_schema::{
-  newtypes::{
-    InstanceId,
-    LanguageId,
-    MultiCommunityId,
-    OAuthProviderId,
-    PaginationCursor,
-    TaglineId,
-  },
-  source::{
-    comment::Comment,
-    community::Community,
-    instance::Instance,
-    language::Language,
-    local_site_url_blocklist::LocalSiteUrlBlocklist,
-    local_user::LocalUser,
-    login_token::LoginToken,
-    oauth_provider::{OAuthProvider, PublicOAuthProvider},
-    person::Person,
-    post::Post,
-    private_message::PrivateMessage,
-    tagline::Tagline,
-  },
+    newtypes::{
+        LanguageId,
+        MultiCommunityId,
+        OAuthProviderId,
+        PaginationCursor,
+        TaglineId,
+    },
+    source::{
+        comment::Comment,
+        community::Community,
+        instance::Instance,
+        language::Language,
+        local_site_url_blocklist::LocalSiteUrlBlocklist,
+        local_user::LocalUser,
+        login_token::LoginToken,
+        oauth_provider::{OAuthProvider, PublicOAuthProvider},
+        person::Person,
+        post::Post,
+        private_message::PrivateMessage,
+        tagline::Tagline,
+    },
 };
 use lemmy_db_schema_file::enums::{
-  CommentSortType,
-  FederationMode,
-  ListingType,
-  PostListingMode,
-  PostSortType,
-  RegistrationMode,
-  VoteShow,
+    CommentSortType,
+    FederationMode,
+    ListingType,
+    PostListingMode,
+    PostSortType,
+    RegistrationMode,
+    VoteShow,
 };
 use lemmy_db_views_community::MultiCommunityView;
 use lemmy_db_views_community_follower::CommunityFollowerView;
@@ -43,9 +42,10 @@ use serde_with::skip_serializing_none;
 use url::Url;
 #[cfg(feature = "full")]
 use {
-  extism::FromBytes,
-  extism_convert::{Json, encoding},
+    extism::FromBytes,
+    extism_convert::{encoding, Json},
 };
+use lemmy_db_schema_file::InstanceId;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]

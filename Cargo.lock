@@ -3753,6 +3753,7 @@ version = "1.0.0-alpha.12"
 dependencies = [
  "diesel",
  "diesel-derive-enum",
+ "diesel-derive-newtype",
  "diesel-uplete",
  "diesel_ltree",
  "serde",
@@ -3988,7 +3989,6 @@ name = "lemmy_db_views_notification_sql"
 version = "1.0.0-alpha.12"
 dependencies = [
  "diesel",
- "lemmy_db_schema 1.0.0-alpha.12",
  "lemmy_db_schema_file",
 ]
 

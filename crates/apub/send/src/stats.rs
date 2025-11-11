@@ -1,11 +1,12 @@
-use crate::util::{FederationQueueStateWithDomain, get_latest_activity_id};
+use crate::util::{get_latest_activity_id, FederationQueueStateWithDomain};
 use chrono::Local;
-use lemmy_db_schema::newtypes::{ActivityId, InstanceId};
+use lemmy_db_schema::newtypes::ActivityId;
 use lemmy_diesel_utils::connection::{ActualDbPool, DbPool};
 use lemmy_utils::{error::LemmyResult, federate_retry_sleep_duration};
 use std::{collections::HashMap, time::Duration};
 use tokio::{sync::mpsc::UnboundedReceiver, time::interval};
 use tracing::{debug, info, warn};
+use lemmy_db_schema_file::InstanceId;
 
 /// every 60s, print the state for every instance. exits if the receiver is done (all senders
 /// dropped)

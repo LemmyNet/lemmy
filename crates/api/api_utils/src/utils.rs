@@ -1,32 +1,32 @@
 use crate::{
-  claims::Claims,
-  context::LemmyContext,
-  request::{delete_image_alias, fetch_pictrs_proxied_image_details, purge_image_from_pictrs_url},
+    claims::Claims,
+    context::LemmyContext,
+    request::{delete_image_alias, fetch_pictrs_proxied_image_details, purge_image_from_pictrs_url},
 };
-use actix_web::{HttpRequest, http::header::Header};
+use actix_web::{http::header::Header, HttpRequest};
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
-use enum_map::{EnumMap, enum_map};
+use enum_map::{enum_map, EnumMap};
 use lemmy_db_schema::{
-  newtypes::{CommunityId, InstanceId, PersonId, PostId, PostOrCommentId, TagId},
-  source::{
-    comment::{Comment, CommentActions},
-    community::{Community, CommunityActions, CommunityUpdateForm},
-    images::{ImageDetails, RemoteImage},
-    instance::InstanceActions,
-    local_site::LocalSite,
-    local_site_rate_limit::LocalSiteRateLimit,
-    local_site_url_blocklist::LocalSiteUrlBlocklist,
-    modlog::{Modlog, ModlogInsertForm},
-    oauth_account::OAuthAccount,
-    person::{Person, PersonUpdateForm},
-    post::{Post, PostActions, PostReadCommentsForm},
-    private_message::PrivateMessage,
-    registration_application::RegistrationApplication,
-    site::Site,
-    tag::{PostTag, Tag},
-  },
-  traits::Likeable,
+    newtypes::{CommunityId, PostId, PostOrCommentId, TagId},
+    source::{
+        comment::{Comment, CommentActions},
+        community::{Community, CommunityActions, CommunityUpdateForm},
+        images::{ImageDetails, RemoteImage},
+        instance::InstanceActions,
+        local_site::LocalSite,
+        local_site_rate_limit::LocalSiteRateLimit,
+        local_site_url_blocklist::LocalSiteUrlBlocklist,
+        modlog::{Modlog, ModlogInsertForm},
+        oauth_account::OAuthAccount,
+        person::{Person, PersonUpdateForm},
+        post::{Post, PostActions, PostReadCommentsForm},
+        private_message::PrivateMessage,
+        registration_application::RegistrationApplication,
+        site::Site,
+        tag::{PostTag, Tag},
+    },
+    traits::Likeable,
 };
 use lemmy_db_schema_file::enums::{FederationMode, RegistrationMode};
 use lemmy_db_views_community_follower_approval::PendingFollowerView;
@@ -36,33 +36,34 @@ use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::{connection::DbPool, dburl::DbUrl, traits::Crud};
 use lemmy_utils::{
-  CACHE_DURATION_FEDERATION,
-  CacheLock,
-  MAX_COMMENT_DEPTH_LIMIT,
-  error::{
-    LemmyError,
-    LemmyErrorExt,
-    LemmyErrorExt2,
-    LemmyErrorType,
-    LemmyResult,
-    UntranslatedError,
-  },
-  rate_limit::{ActionType, BucketConfig},
-  settings::{SETTINGS, structs::PictrsImageMode},
-  spawn_try_task,
-  utils::{
-    markdown::{image_links::markdown_rewrite_image_links, markdown_check_for_blocked_urls},
-    slurs::remove_slurs,
-    validation::{build_and_check_regex, clean_urls_in_text},
-  },
+    error::{
+        LemmyError,
+        LemmyErrorExt,
+        LemmyErrorExt2,
+        LemmyErrorType,
+        LemmyResult,
+        UntranslatedError,
+    },
+    rate_limit::{ActionType, BucketConfig},
+    settings::{structs::PictrsImageMode, SETTINGS},
+    spawn_try_task,
+    utils::{
+        markdown::{image_links::markdown_rewrite_image_links, markdown_check_for_blocked_urls},
+        slurs::remove_slurs,
+        validation::{build_and_check_regex, clean_urls_in_text},
+    },
+    CacheLock,
+    CACHE_DURATION_FEDERATION,
+    MAX_COMMENT_DEPTH_LIMIT,
 };
 use moka::future::Cache;
-use regex::{Regex, RegexSet, escape};
+use regex::{escape, Regex, RegexSet};
 use std::{collections::HashSet, sync::LazyLock};
 use tracing::Instrument;
 use url::{ParseError, Url};
 use urlencoding::encode;
 use webmention::{Webmention, WebmentionError};
+use lemmy_db_schema_file::{InstanceId, PersonId};
 
 pub const AUTH_COOKIE_NAME: &str = "jwt";
 

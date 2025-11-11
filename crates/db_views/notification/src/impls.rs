@@ -44,7 +44,7 @@ impl NotificationView {
 
     let unread_filter = notification::read.eq(false);
 
-    let mut query = notification_joins(my_person)
+    let mut query = notification_joins(my_person.id,my_person.instance_id)
       // Filter for your user
       .filter(notification::recipient_id.eq(my_person.id))
       // Filter unreads
@@ -72,7 +72,7 @@ impl NotificationView {
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
 
-    let res = notification_joins(my_person)
+    let res = notification_joins(my_person.id,my_person.instance_id)
       .filter(notification::id.eq(id))
       .select(NotificationViewInternal::as_select())
       .get_result::<NotificationViewInternal>(conn)
@@ -126,7 +126,7 @@ impl NotificationQuery {
   ) -> LemmyResult<Vec<NotificationView>> {
     let conn = &mut get_conn(pool).await?;
 
-    let mut query = notification_joins(my_person)
+    let mut query = notification_joins(my_person.id,my_person.instance_id)
       .select(NotificationViewInternal::as_select())
       .into_boxed();
 

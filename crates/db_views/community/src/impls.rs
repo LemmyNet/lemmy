@@ -3,35 +3,25 @@ use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use i_love_jesus::asc_if;
 use lemmy_db_schema::{
-  CommunitySortType,
-  impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommunityId, MultiCommunityId, PaginationCursor, PersonId},
-  source::{
-    community::{Community, community_keys as key},
-    local_user::LocalUser,
-    site::Site,
-  },
-  traits::PaginationCursorBuilder,
-  utils::{
-    limit_fetch,
-    queries::{
-      filters::{
-        filter_is_subscribed,
-        filter_not_unlisted_or_is_subscribed,
-        filter_suggested_communities,
-      },
-      joins::{
-        my_community_actions_join,
-        my_instance_communities_actions_join,
-        my_local_user_admin_join,
-        my_multi_community_follower_join,
-      },
+    impls::local_user::LocalUserOptionHelper,
+    newtypes::{CommunityId, MultiCommunityId, PaginationCursor},
+    source::{
+        community::{community_keys as key, Community},
+        local_user::LocalUser,
+        site::Site,
     },
-  },
+    traits::PaginationCursorBuilder,
+    utils::{
+        limit_fetch,
+        queries::filters::{
+            filter_is_subscribed,
+            filter_not_unlisted_or_is_subscribed,
+            filter_suggested_communities,
+        },
+    },
+    CommunitySortType,
 };
-use lemmy_db_schema_file::{
-  enums::ListingType,
-  schema::{
+use lemmy_db_schema_file::{enums::ListingType, schema::{
     community,
     community_actions,
     instance_actions,
@@ -39,12 +29,17 @@ use lemmy_db_schema_file::{
     multi_community_entry,
     multi_community_follow,
     person,
-  },
+}, PersonId};
+use lemmy_db_schema_file::joins::{
+    my_community_actions_join,
+    my_instance_communities_actions_join,
+    my_local_user_admin_join,
+    my_multi_community_follower_join,
 };
 use lemmy_diesel_utils::{
-  connection::{DbPool, get_conn},
-  traits::Crud,
-  utils::{LowerKey, now, paginate, seconds_to_pg_interval},
+    connection::{get_conn, DbPool},
+    traits::Crud,
+    utils::{now, paginate, seconds_to_pg_interval, LowerKey},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -265,30 +260,30 @@ impl MultiCommunityView {
 #[allow(clippy::indexing_slicing)]
 mod tests {
 
-  use crate::{CommunityView, MultiCommunityView, impls::CommunityQuery};
+  use crate::{impls::CommunityQuery, CommunityView, MultiCommunityView};
   use lemmy_db_schema::{
-    CommunitySortType,
-    source::{
-      community::{
-        Community,
-        CommunityActions,
-        CommunityFollowerForm,
-        CommunityInsertForm,
-        CommunityModeratorForm,
-        CommunityUpdateForm,
+      source::{
+          community::{
+              Community,
+              CommunityActions,
+              CommunityFollowerForm,
+              CommunityInsertForm,
+              CommunityModeratorForm,
+              CommunityUpdateForm,
+          },
+          instance::Instance,
+          local_user::{LocalUser, LocalUserInsertForm},
+          multi_community::{MultiCommunity, MultiCommunityFollowForm, MultiCommunityInsertForm},
+          person::{Person, PersonInsertForm},
+          site::Site,
       },
-      instance::Instance,
-      local_user::{LocalUser, LocalUserInsertForm},
-      multi_community::{MultiCommunity, MultiCommunityFollowForm, MultiCommunityInsertForm},
-      person::{Person, PersonInsertForm},
-      site::Site,
-    },
-    traits::Followable,
+      traits::Followable,
+      CommunitySortType,
   };
   use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility};
   use lemmy_diesel_utils::{
-    connection::{DbPool, build_db_pool_for_tests},
-    traits::Crud,
+      connection::{build_db_pool_for_tests, DbPool},
+      traits::Crud,
   };
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use serial_test::serial;

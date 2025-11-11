@@ -1,18 +1,19 @@
 use crate::{
-  newtypes::{CommentId, CommentReportId, PersonId},
-  source::comment_report::{CommentReport, CommentReportForm},
-  traits::Reportable,
+    newtypes::{CommentId, CommentReportId},
+    source::comment_report::{CommentReport, CommentReportForm},
+    traits::Reportable,
 };
 use chrono::Utc;
 use diesel::{
-  BoolExpressionMethods,
-  ExpressionMethods,
-  QueryDsl,
-  dsl::{insert_into, update},
+    dsl::{insert_into, update},
+    BoolExpressionMethods,
+    ExpressionMethods,
+    QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::PersonId;
 use lemmy_db_schema_file::schema::comment_report;
-use lemmy_diesel_utils::connection::{DbPool, get_conn};
+use lemmy_diesel_utils::connection::{get_conn, DbPool};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Reportable for CommentReport {

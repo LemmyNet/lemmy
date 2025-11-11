@@ -1,46 +1,47 @@
 use crate::{
-  diesel::{BoolExpressionMethods, NullableExpressionMethods, OptionalExtension},
-  newtypes::{CommunityId, InstanceId, LocalUserId, PersonId},
-  source::person::{
-    Person,
-    PersonActions,
-    PersonBlockForm,
-    PersonFollowerForm,
-    PersonInsertForm,
-    PersonNoteForm,
-    PersonUpdateForm,
-  },
-  traits::{ApubActor, Blockable, Followable},
-  utils::format_actor_url,
+    diesel::{BoolExpressionMethods, NullableExpressionMethods, OptionalExtension},
+    newtypes::{CommunityId, LocalUserId},
+    source::person::{
+        Person,
+        PersonActions,
+        PersonBlockForm,
+        PersonFollowerForm,
+        PersonInsertForm,
+        PersonNoteForm,
+        PersonUpdateForm,
+    },
+    traits::{ApubActor, Blockable, Followable},
+    utils::format_actor_url,
 };
 use chrono::Utc;
 use diesel::{
-  ExpressionMethods,
-  JoinOnDsl,
-  QueryDsl,
-  dsl::{exists, insert_into, not, select},
-  expression::SelectableHelper,
+    dsl::{exists, insert_into, not, select},
+    expression::SelectableHelper,
+    ExpressionMethods,
+    JoinOnDsl,
+    QueryDsl,
 };
 use diesel_async::RunQueryDsl;
-use diesel_uplete::{UpleteCount, uplete};
+use diesel_uplete::{uplete, UpleteCount};
 use lemmy_db_schema_file::schema::{
-  instance,
-  instance_actions,
-  local_user,
-  person,
-  person_actions,
+    instance,
+    instance_actions,
+    local_user,
+    person,
+    person_actions,
 };
 use lemmy_diesel_utils::{
-  connection::{DbPool, get_conn},
-  dburl::DbUrl,
-  traits::Crud,
-  utils::functions::lower,
+    connection::{get_conn, DbPool},
+    dburl::DbUrl,
+    traits::Crud,
+    utils::functions::lower,
 };
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
-  settings::structs::Settings,
+    error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+    settings::structs::Settings,
 };
 use url::Url;
+use lemmy_db_schema_file::{InstanceId, PersonId};
 
 impl Crud for Person {
   type InsertForm = PersonInsertForm;
@@ -442,14 +443,14 @@ impl PersonActions {
 mod tests {
 
   use crate::{
-    source::{
-      comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm, CommentUpdateForm},
-      community::{Community, CommunityInsertForm},
-      instance::Instance,
-      person::{Person, PersonActions, PersonFollowerForm, PersonInsertForm, PersonUpdateForm},
-      post::{Post, PostActions, PostInsertForm, PostLikeForm},
-    },
-    traits::{Followable, Likeable},
+      source::{
+          comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm, CommentUpdateForm},
+          community::{Community, CommunityInsertForm},
+          instance::Instance,
+          person::{Person, PersonActions, PersonFollowerForm, PersonInsertForm, PersonUpdateForm},
+          post::{Post, PostActions, PostInsertForm, PostLikeForm},
+      },
+      traits::{Followable, Likeable},
   };
   use diesel_uplete::UpleteCount;
   use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};

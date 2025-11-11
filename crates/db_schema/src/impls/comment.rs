@@ -1,41 +1,42 @@
 use crate::{
-  diesel::{DecoratableTarget, OptionalExtension},
-  newtypes::{CommentId, CommunityId, InstanceId, PersonId, PostId},
-  source::comment::{
-    Comment,
-    CommentActions,
-    CommentInsertForm,
-    CommentLikeForm,
-    CommentSavedForm,
-    CommentUpdateForm,
-  },
-  traits::{Likeable, Saveable},
-  utils::DELETED_REPLACEMENT_TEXT,
+    diesel::{DecoratableTarget, OptionalExtension},
+    newtypes::{CommentId, CommunityId, PostId},
+    source::comment::{
+        Comment,
+        CommentActions,
+        CommentInsertForm,
+        CommentLikeForm,
+        CommentSavedForm,
+        CommentUpdateForm,
+    },
+    traits::{Likeable, Saveable},
+    utils::DELETED_REPLACEMENT_TEXT,
 };
 use chrono::{DateTime, Utc};
 use diesel::{
-  ExpressionMethods,
-  JoinOnDsl,
-  QueryDsl,
-  dsl::{insert_into, not},
-  expression::SelectableHelper,
-  update,
+    dsl::{insert_into, not},
+    expression::SelectableHelper,
+    update,
+    ExpressionMethods,
+    JoinOnDsl,
+    QueryDsl,
 };
 use diesel_async::RunQueryDsl;
-use diesel_ltree::{Ltree, dsl::LtreeExtensions};
-use diesel_uplete::{UpleteCount, uplete};
+use diesel_ltree::{dsl::LtreeExtensions, Ltree};
+use diesel_uplete::{uplete, UpleteCount};
 use lemmy_db_schema_file::schema::{comment, comment_actions, community, post};
 use lemmy_diesel_utils::{
-  connection::{DbPool, get_conn},
-  dburl::DbUrl,
-  traits::Crud,
-  utils::functions::{coalesce, hot_rank},
+    connection::{get_conn, DbPool},
+    dburl::DbUrl,
+    traits::Crud,
+    utils::functions::{coalesce, hot_rank},
 };
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
-  settings::structs::Settings,
+    error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+    settings::structs::Settings,
 };
 use url::Url;
+use lemmy_db_schema_file::{InstanceId, PersonId};
 
 impl Comment {
   pub async fn permadelete_for_creator(
@@ -419,15 +420,15 @@ mod tests {
 
   use super::*;
   use crate::{
-    newtypes::LanguageId,
-    source::{
-      community::{Community, CommunityInsertForm},
-      instance::Instance,
-      person::{Person, PersonInsertForm},
-      post::{Post, PostInsertForm},
-    },
-    traits::{Likeable, Saveable},
-    utils::RANK_DEFAULT,
+      newtypes::LanguageId,
+      source::{
+          community::{Community, CommunityInsertForm},
+          instance::Instance,
+          person::{Person, PersonInsertForm},
+          post::{Post, PostInsertForm},
+      },
+      traits::{Likeable, Saveable},
+      utils::RANK_DEFAULT,
   };
   use diesel_ltree::Ltree;
   use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};

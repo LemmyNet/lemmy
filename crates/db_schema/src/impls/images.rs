@@ -1,23 +1,21 @@
-use crate::{
-  newtypes::PersonId,
-  source::images::{ImageDetails, ImageDetailsInsertForm, LocalImage, LocalImageForm, RemoteImage},
-};
+use crate::source::images::{ImageDetails, ImageDetailsInsertForm, LocalImage, LocalImageForm, RemoteImage};
 use diesel::{
-  BoolExpressionMethods,
-  ExpressionMethods,
-  QueryDsl,
-  dsl::exists,
-  insert_into,
-  select,
+    dsl::exists,
+    insert_into,
+    select,
+    BoolExpressionMethods,
+    ExpressionMethods,
+    QueryDsl,
 };
-use diesel_async::{RunQueryDsl, scoped_futures::ScopedFutureExt};
+use diesel_async::{scoped_futures::ScopedFutureExt, RunQueryDsl};
 use lemmy_db_schema_file::schema::{image_details, local_image, remote_image};
 use lemmy_diesel_utils::{
-  connection::{DbPool, get_conn},
-  dburl::DbUrl,
+    connection::{get_conn, DbPool},
+    dburl::DbUrl,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use url::Url;
+use lemmy_db_schema_file::PersonId;
 
 impl LocalImage {
   pub async fn create(

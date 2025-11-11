@@ -1,17 +1,18 @@
 use crate::{
-  newtypes::{PersonId, PrivateMessageId, PrivateMessageReportId},
-  source::private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
-  traits::Reportable,
+    newtypes::{PrivateMessageId, PrivateMessageReportId},
+    source::private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
+    traits::Reportable,
 };
 use chrono::Utc;
 use diesel::{
-  ExpressionMethods,
-  QueryDsl,
-  dsl::{insert_into, update},
+    dsl::{insert_into, update},
+    ExpressionMethods,
+    QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::PersonId;
 use lemmy_db_schema_file::schema::private_message_report;
-use lemmy_diesel_utils::connection::{DbPool, get_conn};
+use lemmy_diesel_utils::connection::{get_conn, DbPool};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult, UntranslatedError};
 
 impl Reportable for PrivateMessageReport {

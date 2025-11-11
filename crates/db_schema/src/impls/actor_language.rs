@@ -1,38 +1,39 @@
 use crate::{
-  diesel::JoinOnDsl,
-  newtypes::{CommunityId, InstanceId, LanguageId, LocalUserId, SiteId},
-  source::{
-    actor_language::{
-      CommunityLanguage,
-      CommunityLanguageForm,
-      LocalUserLanguage,
-      LocalUserLanguageForm,
-      SiteLanguage,
-      SiteLanguageForm,
+    diesel::JoinOnDsl,
+    newtypes::{CommunityId, LanguageId, LocalUserId, SiteId},
+    source::{
+        actor_language::{
+            CommunityLanguage,
+            CommunityLanguageForm,
+            LocalUserLanguage,
+            LocalUserLanguageForm,
+            SiteLanguage,
+            SiteLanguageForm,
+        },
+        language::Language,
+        site::Site,
     },
-    language::Language,
-    site::Site,
-  },
 };
 use diesel::{
-  ExpressionMethods,
-  QueryDsl,
-  delete,
-  dsl::{count, exists},
-  insert_into,
-  select,
+    delete,
+    dsl::{count, exists},
+    insert_into,
+    select,
+    ExpressionMethods,
+    QueryDsl,
 };
-use diesel_async::{AsyncPgConnection, RunQueryDsl, scoped_futures::ScopedFutureExt};
+use diesel_async::{scoped_futures::ScopedFutureExt, AsyncPgConnection, RunQueryDsl};
 use lemmy_db_schema_file::schema::{
-  community_language,
-  local_site,
-  local_user_language,
-  site,
-  site_language,
+    community_language,
+    local_site,
+    local_user_language,
+    site,
+    site_language,
 };
-use lemmy_diesel_utils::connection::{DbPool, get_conn};
+use lemmy_diesel_utils::connection::{get_conn, DbPool};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use tokio::sync::OnceCell;
+use lemmy_db_schema_file::InstanceId;
 
 pub const UNDETERMINED_ID: LanguageId = LanguageId(0);
 
@@ -399,13 +400,13 @@ mod tests {
 
   use super::*;
   use crate::{
-    source::{
-      community::{Community, CommunityInsertForm},
-      local_site::LocalSite,
-      local_user::{LocalUser, LocalUserInsertForm},
-      person::{Person, PersonInsertForm},
-    },
-    test_data::TestData,
+      source::{
+          community::{Community, CommunityInsertForm},
+          local_site::LocalSite,
+          local_user::{LocalUser, LocalUserInsertForm},
+          person::{Person, PersonInsertForm},
+      },
+      test_data::TestData,
   };
   use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use pretty_assertions::assert_eq;

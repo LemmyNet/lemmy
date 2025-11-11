@@ -1,17 +1,18 @@
-use crate::newtypes::{LocalSiteId, MultiCommunityId, PersonId, SiteId};
+use crate::newtypes::{LocalSiteId, MultiCommunityId, SiteId};
 use chrono::{DateTime, Utc};
 use lemmy_db_schema_file::enums::{
-  CommentSortType,
-  FederationMode,
-  ListingType,
-  PostListingMode,
-  PostSortType,
-  RegistrationMode,
+    CommentSortType,
+    FederationMode,
+    ListingType,
+    PostListingMode,
+    PostSortType,
+    RegistrationMode,
 };
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::local_site;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
+use lemmy_db_schema_file::PersonId;
 
 #[skip_serializing_none]
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize, Default)]

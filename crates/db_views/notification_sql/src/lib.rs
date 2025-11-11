@@ -6,24 +6,21 @@ use diesel::{
   NullableExpressionMethods,
   QueryDsl,
 };
-use lemmy_db_schema::{
-  source::person::Person,
-  utils::queries::joins::{
-    creator_community_actions_join,
-    creator_home_instance_actions_join,
-    creator_local_instance_actions_join,
-    creator_local_user_admin_join,
-    image_details_join,
-    my_comment_actions_join,
-    my_community_actions_join,
-    my_instance_communities_actions_join,
-    my_instance_persons_actions_join_1,
-    my_local_user_admin_join,
-    my_person_actions_join,
-    my_post_actions_join,
-  },
+use lemmy_db_schema_file::{aliases, InstanceId, PersonId};
+use lemmy_db_schema_file::joins::{
+  creator_community_actions_join,
+  creator_home_instance_actions_join,
+  creator_local_instance_actions_join,
+  creator_local_user_admin_join,
+  image_details_join,
+  my_comment_actions_join,
+  my_community_actions_join,
+  my_instance_communities_actions_join,
+  my_instance_persons_actions_join_1,
+  my_local_user_admin_join,
+  my_person_actions_join,
+  my_post_actions_join,
 };
-use lemmy_db_schema_file::aliases;
 use lemmy_db_schema_file::schema::{
   comment,
   community,
@@ -36,7 +33,7 @@ use lemmy_db_schema_file::schema::{
 };
 
 #[diesel::dsl::auto_type(no_type_alias)]
-pub fn notification_joins(my_person: &Person) -> _ {
+pub fn notification_joins(person_id: PersonId, instance_id: InstanceId) -> _ {
   let item_creator = person::id;
   let recipient_person = aliases::person1.field(person::id);
 
@@ -93,19 +90,19 @@ pub fn notification_joins(my_person: &Person) -> _ {
   let instance_join = instance::table.on(modlog::target_instance_id.eq(instance::id.nullable()));
 
   let my_community_actions_join: my_community_actions_join =
-    my_community_actions_join(Some(my_person.id));
-  let my_post_actions_join: my_post_actions_join = my_post_actions_join(Some(my_person.id));
+    my_community_actions_join(Some(person_id));
+  let my_post_actions_join: my_post_actions_join = my_post_actions_join(Some(person_id));
   let my_comment_actions_join: my_comment_actions_join =
-    my_comment_actions_join(Some(my_person.id));
+    my_comment_actions_join(Some(person_id));
   let my_instance_communities_actions_join: my_instance_communities_actions_join =
-    my_instance_communities_actions_join(Some(my_person.id));
+    my_instance_communities_actions_join(Some(person_id));
   let my_instance_persons_actions_join_1: my_instance_persons_actions_join_1 =
-    my_instance_persons_actions_join_1(Some(my_person.id));
-  let my_person_actions_join: my_person_actions_join = my_person_actions_join(Some(my_person.id));
+    my_instance_persons_actions_join_1(Some(person_id));
+  let my_person_actions_join: my_person_actions_join = my_person_actions_join(Some(person_id));
   let creator_local_instance_actions_join: creator_local_instance_actions_join =
-    creator_local_instance_actions_join(my_person.instance_id);
+    creator_local_instance_actions_join(instance_id);
   let my_local_user_admin_join: my_local_user_admin_join =
-    my_local_user_admin_join(Some(my_person.id));
+    my_local_user_admin_join(Some(person_id));
 
   // Note: avoid adding any more joins here as it will significantly slow down compilation.
   notification::table

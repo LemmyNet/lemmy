@@ -1,9 +1,10 @@
 use crate::PersonView;
-use lemmy_db_schema::{newtypes::PersonId, source::site::Site};
+use lemmy_db_schema::source::site::Site;
 use lemmy_db_views_community::MultiCommunityView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
+use lemmy_db_schema_file::PersonId;
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]

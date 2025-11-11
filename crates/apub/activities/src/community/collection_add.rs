@@ -1,41 +1,42 @@
 use crate::{
-  activity_lists::AnnouncableActivities,
-  community::send_activity_in_community,
-  generate_activity_id,
-  protocol::community::{collection_add::CollectionAdd, collection_remove::CollectionRemove},
+    activity_lists::AnnouncableActivities,
+    community::send_activity_in_community,
+    generate_activity_id,
+    protocol::community::{collection_add::CollectionAdd, collection_remove::CollectionRemove},
 };
 use activitypub_federation::{
-  config::Data,
-  fetch::object_id::ObjectId,
-  kinds::activity::AddType,
-  traits::{Activity, Actor, Object},
+    config::Data,
+    fetch::object_id::ObjectId,
+    kinds::activity::AddType,
+    traits::{Activity, Actor, Object},
 };
 use lemmy_api_utils::{
-  context::LemmyContext,
-  notify::notify_mod_action,
-  utils::{generate_featured_url, generate_moderators_url},
+    context::LemmyContext,
+    notify::notify_mod_action,
+    utils::{generate_featured_url, generate_moderators_url},
 };
 use lemmy_apub_objects::{
-  objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
-  utils::{
-    functions::{generate_to, verify_mod_action, verify_person_in_community, verify_visibility},
-    protocol::InCommunity,
-  },
+    objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
+    utils::{
+        functions::{generate_to, verify_mod_action, verify_person_in_community, verify_visibility},
+        protocol::InCommunity,
+    },
 };
 use lemmy_db_schema::{
-  impls::community::CollectionType,
-  newtypes::{CommunityId, PersonId},
-  source::{
-    activity::ActivitySendTargets,
-    community::{Community, CommunityActions, CommunityModeratorForm},
-    modlog::{Modlog, ModlogInsertForm},
-    person::Person,
-    post::{Post, PostUpdateForm},
-  },
+    impls::community::CollectionType,
+    newtypes::CommunityId,
+    source::{
+        activity::ActivitySendTargets,
+        community::{Community, CommunityActions, CommunityModeratorForm},
+        modlog::{Modlog, ModlogInsertForm},
+        person::Person,
+        post::{Post, PostUpdateForm},
+    },
 };
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
+use lemmy_db_schema_file::PersonId;
 
 impl CollectionAdd {
   async fn send_add_mod(

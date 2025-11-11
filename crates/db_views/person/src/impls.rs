@@ -3,23 +3,22 @@ use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  newtypes::{InstanceId, PaginationCursor, PersonId},
-  source::person::{Person, person_keys as key},
-  traits::PaginationCursorBuilder,
-  utils::{
-    limit_fetch,
-    queries::joins::{
-      creator_home_instance_actions_join,
-      creator_local_instance_actions_join,
-      my_person_actions_join,
-    },
-  },
+    newtypes::PaginationCursor,
+    source::person::{person_keys as key, Person},
+    traits::PaginationCursorBuilder,
+    utils::limit_fetch,
+};
+use lemmy_db_schema_file::{InstanceId, PersonId};
+use lemmy_db_schema_file::joins::{
+    creator_home_instance_actions_join,
+    creator_local_instance_actions_join,
+    my_person_actions_join,
 };
 use lemmy_db_schema_file::schema::{local_user, person};
 use lemmy_diesel_utils::{
-  connection::{DbPool, get_conn},
-  traits::Crud,
-  utils::paginate,
+    connection::{get_conn, DbPool},
+    traits::Crud,
+    utils::paginate,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -130,16 +129,16 @@ mod tests {
 
   use super::*;
   use lemmy_db_schema::{
-    assert_length,
-    source::{
-      instance::Instance,
-      local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
-      person::{Person, PersonActions, PersonInsertForm, PersonNoteForm, PersonUpdateForm},
-    },
+      assert_length,
+      source::{
+          instance::Instance,
+          local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
+          person::{Person, PersonActions, PersonInsertForm, PersonNoteForm, PersonUpdateForm},
+      },
   };
   use lemmy_diesel_utils::{
-    connection::{DbPool, build_db_pool_for_tests},
-    traits::Crud,
+      connection::{build_db_pool_for_tests, DbPool},
+      traits::Crud,
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;

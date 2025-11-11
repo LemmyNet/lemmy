@@ -1,6 +1,5 @@
-use crate::newtypes::{InstanceId, PersonId};
 use diesel::{BoolExpressionMethods, ExpressionMethods, JoinOnDsl, NullableExpressionMethods};
-use lemmy_db_schema_file::aliases::{
+use crate::aliases::{
     creator_community_actions,
     creator_community_instance_actions,
     creator_home_instance_actions,
@@ -8,7 +7,8 @@ use lemmy_db_schema_file::aliases::{
     creator_local_user,
     my_instance_persons_actions,
 };
-use lemmy_db_schema_file::schema::{
+use crate::{InstanceId, PersonId};
+use crate::schema::{
     comment,
     comment_actions,
     community,

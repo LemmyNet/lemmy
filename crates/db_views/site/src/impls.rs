@@ -1,58 +1,59 @@
 use crate::{
-  FederatedInstanceView,
-  ReadableFederationState,
-  SiteView,
-  api::{GetFederatedInstances, GetFederatedInstancesKind, UserSettingsBackup},
+    api::{GetFederatedInstances, GetFederatedInstancesKind, UserSettingsBackup},
+    FederatedInstanceView,
+    ReadableFederationState,
+    SiteView,
 };
 use diesel::{
-  ExpressionMethods,
-  JoinOnDsl,
-  OptionalExtension,
-  PgTextExpressionMethods,
-  QueryDsl,
-  SelectableHelper,
+    ExpressionMethods,
+    JoinOnDsl,
+    OptionalExtension,
+    PgTextExpressionMethods,
+    QueryDsl,
+    SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  newtypes::{InstanceId, PaginationCursor},
-  source::{
-    actor_language::LocalUserLanguage,
-    federation_queue_state::FederationQueueState,
-    instance::{Instance, instance_keys as key},
-    keyword_block::LocalUserKeywordBlock,
-    language::Language,
-    local_user::LocalUser,
-    person::Person,
-  },
-  traits::PaginationCursorBuilder,
-  utils::limit_fetch,
+    newtypes::PaginationCursor,
+    source::{
+        actor_language::LocalUserLanguage,
+        federation_queue_state::FederationQueueState,
+        instance::{instance_keys as key, Instance},
+        keyword_block::LocalUserKeywordBlock,
+        language::Language,
+        local_user::LocalUser,
+        person::Person,
+    },
+    traits::PaginationCursorBuilder,
+    utils::limit_fetch,
 };
 use lemmy_db_schema_file::schema::{
-  federation_allowlist,
-  federation_blocklist,
-  federation_queue_state,
-  instance,
-  local_site,
-  local_site_rate_limit,
-  site,
+    federation_allowlist,
+    federation_blocklist,
+    federation_queue_state,
+    instance,
+    local_site,
+    local_site_rate_limit,
+    site,
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_diesel_utils::{
-  connection::{DbPool, get_conn},
-  traits::Crud,
-  utils::{fuzzy_search, paginate},
+    connection::{get_conn, DbPool},
+    traits::Crud,
+    utils::{fuzzy_search, paginate},
 };
 use lemmy_utils::{
-  CacheLock,
-  build_cache,
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
-  federate_retry_sleep_duration,
+    build_cache,
+    error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
+    federate_retry_sleep_duration,
+    CacheLock,
 };
 use std::{
-  collections::HashMap,
-  sync::{Arc, LazyLock},
+    collections::HashMap,
+    sync::{Arc, LazyLock},
 };
+use lemmy_db_schema_file::InstanceId;
 
 impl SiteView {
   pub async fn read_local(pool: &mut DbPool<'_>) -> LemmyResult<Self> {
@@ -228,17 +229,17 @@ impl From<FederationQueueState> for ReadableFederationState {
 #[expect(clippy::indexing_slicing)]
 mod tests {
   use crate::{
-    FederatedInstanceView,
-    api::{GetFederatedInstances, GetFederatedInstancesKind},
+      api::{GetFederatedInstances, GetFederatedInstancesKind},
+      FederatedInstanceView,
   };
   use lemmy_db_schema::{
-    assert_length,
-    source::{
-      federation_allowlist::{FederationAllowList, FederationAllowListForm},
-      federation_queue_state::FederationQueueState,
-      instance::Instance,
-      site::{Site, SiteInsertForm},
-    },
+      assert_length,
+      source::{
+          federation_allowlist::{FederationAllowList, FederationAllowListForm},
+          federation_queue_state::FederationQueueState,
+          instance::Instance,
+          site::{Site, SiteInsertForm},
+      },
   };
   use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use lemmy_utils::error::LemmyResult;

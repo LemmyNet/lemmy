@@ -1,50 +1,48 @@
 use crate::{
-  protocol::instance::Instance,
-  utils::{
-    functions::{
-      GetActorType,
-      check_apub_id_valid_with_strictness,
-      read_from_string_or_source_opt,
+    protocol::instance::Instance,
+    utils::{
+        functions::{
+            check_apub_id_valid_with_strictness,
+            read_from_string_or_source_opt,
+            GetActorType,
+        },
+        markdown_links::markdown_rewrite_remote_links_opt,
+        protocol::{ImageObject, LanguageTag, Source},
     },
-    markdown_links::markdown_rewrite_remote_links_opt,
-    protocol::{ImageObject, LanguageTag, Source},
-  },
 };
 use activitypub_federation::{
-  config::Data,
-  fetch::object_id::ObjectId,
-  kinds::actor::ApplicationType,
-  protocol::{
-    values::MediaTypeHtml,
-    verification::{verify_domains_match, verify_is_remote_object},
-  },
-  traits::{Actor, Object},
+    config::Data,
+    fetch::object_id::ObjectId,
+    kinds::actor::ApplicationType,
+    protocol::{
+        values::MediaTypeHtml,
+        verification::{verify_domains_match, verify_is_remote_object},
+    },
+    traits::{Actor, Object},
 };
 use chrono::{DateTime, Utc};
 use lemmy_api_utils::{
-  context::LemmyContext,
-  utils::{get_url_blocklist, process_markdown_opt, proxy_image_link_opt_apub, slur_regex},
+    context::LemmyContext,
+    utils::{get_url_blocklist, process_markdown_opt, proxy_image_link_opt_apub, slur_regex},
 };
-use lemmy_db_schema::{
-  newtypes::InstanceId,
-  source::{
+use lemmy_db_schema::source::{
     actor_language::SiteLanguage,
     instance::Instance as DbInstance,
     site::{Site, SiteInsertForm},
-  },
 };
 use lemmy_db_schema_file::enums::ActorType;
 use lemmy_diesel_utils::{sensitive::SensitiveString, traits::Crud};
 use lemmy_utils::{
-  error::{LemmyError, LemmyResult, UntranslatedError},
-  utils::{
-    markdown::markdown_to_html,
-    slurs::{check_slurs, check_slurs_opt},
-  },
+    error::{LemmyError, LemmyResult, UntranslatedError},
+    utils::{
+        markdown::markdown_to_html,
+        slurs::{check_slurs, check_slurs_opt},
+    },
 };
 use std::ops::Deref;
 use tracing::debug;
 use url::Url;
+use lemmy_db_schema_file::InstanceId;
 
 #[derive(Clone, Debug)]
 pub struct ApubSite(pub Site);

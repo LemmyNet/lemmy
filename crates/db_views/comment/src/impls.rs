@@ -1,57 +1,52 @@
 use crate::{CommentSlimView, CommentView};
 use diesel::{
-  BoolExpressionMethods,
-  ExpressionMethods,
-  JoinOnDsl,
-  NullableExpressionMethods,
-  QueryDsl,
-  SelectableHelper,
-  dsl::exists,
+    dsl::exists,
+    BoolExpressionMethods,
+    ExpressionMethods,
+    JoinOnDsl,
+    NullableExpressionMethods,
+    QueryDsl,
+    SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
-use diesel_ltree::{Ltree, LtreeExtensions, nlevel};
+use diesel_ltree::{nlevel, Ltree, LtreeExtensions};
 use i_love_jesus::asc_if;
 use lemmy_db_schema::{
-  impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommentId, CommunityId, InstanceId, PaginationCursor, PersonId, PostId},
-  source::{
-    comment::{Comment, comment_keys as key},
-    local_user::LocalUser,
-    site::Site,
-  },
-  traits::PaginationCursorBuilder,
-  utils::{
-    limit_fetch,
-    queries::{
-      filters::{filter_blocked, filter_suggested_communities},
-      joins::{
-        creator_community_actions_join,
-        creator_community_instance_actions_join,
-        creator_home_instance_actions_join,
-        creator_local_instance_actions_join,
-        my_comment_actions_join,
-        my_community_actions_join,
-        my_instance_communities_actions_join,
-        my_instance_persons_actions_join_1,
-        my_local_user_admin_join,
-        my_person_actions_join,
-      },
+    impls::local_user::LocalUserOptionHelper,
+    newtypes::{CommentId, CommunityId, PaginationCursor, PostId},
+    source::{
+        comment::{comment_keys as key, Comment},
+        local_user::LocalUser,
+        site::Site,
     },
-  },
+    traits::PaginationCursorBuilder,
+    utils::{
+        limit_fetch,
+        queries::filters::{filter_blocked, filter_suggested_communities},
+    },
 };
-use lemmy_db_schema_file::{
-  enums::{
+use lemmy_db_schema_file::{enums::{
     CommentSortType::{self, *},
     CommunityFollowerState,
     CommunityVisibility,
     ListingType,
-  },
-  schema::{comment, community, community_actions, local_user_language, person, post},
+}, schema::{comment, community, community_actions, local_user_language, person, post}, InstanceId, PersonId};
+use lemmy_db_schema_file::joins::{
+    creator_community_actions_join,
+    creator_community_instance_actions_join,
+    creator_home_instance_actions_join,
+    creator_local_instance_actions_join,
+    my_comment_actions_join,
+    my_community_actions_join,
+    my_instance_communities_actions_join,
+    my_instance_persons_actions_join_1,
+    my_local_user_admin_join,
+    my_person_actions_join,
 };
 use lemmy_diesel_utils::{
-  connection::{DbPool, get_conn},
-  traits::Crud,
-  utils::{Subpath, now, paginate, seconds_to_pg_interval},
+    connection::{get_conn, DbPool},
+    traits::Crud,
+    utils::{now, paginate, seconds_to_pg_interval, Subpath},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -319,36 +314,36 @@ impl CommentQuery<'_> {
 mod tests {
 
   use super::*;
-  use crate::{CommentView, impls::CommentQuery};
+  use crate::{impls::CommentQuery, CommentView};
   use lemmy_db_schema::{
-    assert_length,
-    impls::actor_language::UNDETERMINED_ID,
-    newtypes::CommentId,
-    source::{
-      actor_language::LocalUserLanguage,
-      comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm, CommentUpdateForm},
-      community::{
-        Community,
-        CommunityActions,
-        CommunityFollowerForm,
-        CommunityInsertForm,
-        CommunityModeratorForm,
-        CommunityPersonBanForm,
-        CommunityUpdateForm,
+      assert_length,
+      impls::actor_language::UNDETERMINED_ID,
+      newtypes::CommentId,
+      source::{
+          actor_language::LocalUserLanguage,
+          comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm, CommentUpdateForm},
+          community::{
+              Community,
+              CommunityActions,
+              CommunityFollowerForm,
+              CommunityInsertForm,
+              CommunityModeratorForm,
+              CommunityPersonBanForm,
+              CommunityUpdateForm,
+          },
+          instance::Instance,
+          language::Language,
+          local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
+          person::{Person, PersonActions, PersonBlockForm, PersonInsertForm},
+          post::{Post, PostInsertForm, PostUpdateForm},
+          site::{Site, SiteInsertForm},
       },
-      instance::Instance,
-      language::Language,
-      local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
-      person::{Person, PersonActions, PersonBlockForm, PersonInsertForm},
-      post::{Post, PostInsertForm, PostUpdateForm},
-      site::{Site, SiteInsertForm},
-    },
-    traits::{Bannable, Blockable, Followable, Likeable},
+      traits::{Bannable, Blockable, Followable, Likeable},
   };
   use lemmy_db_views_local_user::LocalUserView;
   use lemmy_diesel_utils::{
-    connection::{DbPool, build_db_pool_for_tests},
-    traits::Crud,
+      connection::{build_db_pool_for_tests, DbPool},
+      traits::Crud,
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;

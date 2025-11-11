@@ -1,11 +1,9 @@
-use crate::{
-  newtypes::InstanceId,
-  source::federation_blocklist::{FederationBlockList, FederationBlockListForm},
-};
-use diesel::{ExpressionMethods, QueryDsl, delete, dsl::insert_into};
+use crate::source::federation_blocklist::{FederationBlockList, FederationBlockListForm};
+use diesel::{delete, dsl::insert_into, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::InstanceId;
 use lemmy_db_schema_file::schema::federation_blocklist;
-use lemmy_diesel_utils::connection::{DbPool, get_conn};
+use lemmy_diesel_utils::connection::{get_conn, DbPool};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl FederationBlockList {

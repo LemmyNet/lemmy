@@ -1,27 +1,24 @@
 use crate::{CommunityFollowerView, PendingFollow};
 use chrono::Utc;
 use diesel::{
-  ExpressionMethods,
-  JoinOnDsl,
-  QueryDsl,
-  SelectableHelper,
-  dsl::{count_star, exists, not},
-  select,
+    dsl::{count_star, exists, not},
+    select,
+    ExpressionMethods,
+    JoinOnDsl,
+    QueryDsl,
+    SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  newtypes::{CommunityId, InstanceId, PaginationCursor, PersonId},
-  source::community::CommunityActions,
-  traits::PaginationCursorBuilder,
+    newtypes::{CommunityId, PaginationCursor},
+    source::community::CommunityActions,
+    traits::PaginationCursorBuilder,
 };
-use lemmy_db_schema_file::{
-  enums::CommunityFollowerState,
-  schema::{community, community_actions, person},
-};
+use lemmy_db_schema_file::{enums::CommunityFollowerState, schema::{community, community_actions, person}, InstanceId, PersonId};
 use lemmy_diesel_utils::{
-  connection::{DbPool, get_conn},
-  dburl::DbUrl,
-  utils::functions::lower,
+    connection::{get_conn, DbPool},
+    dburl::DbUrl,
+    utils::functions::lower,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 

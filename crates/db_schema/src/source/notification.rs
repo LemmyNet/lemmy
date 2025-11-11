@@ -1,6 +1,6 @@
 use crate::{
-  newtypes::{CommentId, ModlogId, NotificationId, PersonId, PostId, PrivateMessageId},
-  source::private_message::PrivateMessage,
+    newtypes::{CommentId, ModlogId, NotificationId, PostId, PrivateMessageId},
+    source::private_message::PrivateMessage,
 };
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
@@ -9,6 +9,7 @@ use lemmy_db_schema_file::enums::NotificationType;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::notification;
 use serde::{Deserialize, Serialize};
+use lemmy_db_schema_file::PersonId;
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(

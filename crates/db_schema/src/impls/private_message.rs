@@ -1,23 +1,24 @@
 use crate::{
-  diesel::{DecoratableTarget, OptionalExtension},
-  newtypes::{PersonId, PrivateMessageId},
-  source::private_message::{PrivateMessage, PrivateMessageInsertForm, PrivateMessageUpdateForm},
+    diesel::{DecoratableTarget, OptionalExtension},
+    newtypes::PrivateMessageId,
+    source::private_message::{PrivateMessage, PrivateMessageInsertForm, PrivateMessageUpdateForm},
 };
 use chrono::{DateTime, Utc};
-use diesel::{ExpressionMethods, QueryDsl, dsl::insert_into};
+use diesel::{dsl::insert_into, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::private_message;
 use lemmy_diesel_utils::{
-  connection::{DbPool, get_conn},
-  dburl::DbUrl,
-  traits::Crud,
-  utils::functions::coalesce,
+    connection::{get_conn, DbPool},
+    dburl::DbUrl,
+    traits::Crud,
+    utils::functions::coalesce,
 };
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
-  settings::structs::Settings,
+    error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+    settings::structs::Settings,
 };
 use url::Url;
+use lemmy_db_schema_file::PersonId;
 
 impl Crud for PrivateMessage {
   type InsertForm = PrivateMessageInsertForm;
@@ -105,9 +106,9 @@ impl PrivateMessage {
 mod tests {
 
   use crate::source::{
-    instance::Instance,
-    person::{Person, PersonInsertForm},
-    private_message::{PrivateMessage, PrivateMessageInsertForm, PrivateMessageUpdateForm},
+      instance::Instance,
+      person::{Person, PersonInsertForm},
+      private_message::{PrivateMessage, PrivateMessageInsertForm, PrivateMessageUpdateForm},
   };
   use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use lemmy_utils::error::LemmyResult;

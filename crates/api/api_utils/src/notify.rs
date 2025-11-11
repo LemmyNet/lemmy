@@ -1,37 +1,37 @@
 use crate::{context::LemmyContext, plugins::plugin_hook_notification};
 use lemmy_db_schema::{
-  newtypes::PersonId,
-  source::{
-    comment::Comment,
-    community::{Community, CommunityActions},
-    instance::InstanceActions,
-    modlog::Modlog,
-    notification::{Notification, NotificationInsertForm},
-    person::{Person, PersonActions},
-    post::{Post, PostActions},
-  },
-  traits::{ApubActor, Blockable},
+    source::{
+        comment::Comment,
+        community::{Community, CommunityActions},
+        instance::InstanceActions,
+        modlog::Modlog,
+        notification::{Notification, NotificationInsertForm},
+        person::{Person, PersonActions},
+        post::{Post, PostActions},
+    },
+    traits::{ApubActor, Blockable},
 };
 use lemmy_db_schema_file::enums::{
-  CommunityNotificationsMode,
-  NotificationType,
-  PostNotificationsMode,
+    CommunityNotificationsMode,
+    NotificationType,
+    PostNotificationsMode,
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_private_message::PrivateMessageView;
 use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::{dburl::DbUrl, traits::Crud};
-use lemmy_email::notifications::{NotificationEmailData, send_notification_email};
+use lemmy_email::notifications::{send_notification_email, NotificationEmailData};
 use lemmy_utils::{
-  error::{LemmyErrorType, LemmyResult},
-  spawn_try_task,
-  utils::mention::scrape_text_for_mentions,
+    error::{LemmyErrorType, LemmyResult},
+    spawn_try_task,
+    utils::mention::scrape_text_for_mentions,
 };
 use std::{
-  collections::HashSet,
-  hash::{Hash, Hasher},
+    collections::HashSet,
+    hash::{Hash, Hasher},
 };
 use url::Url;
+use lemmy_db_schema_file::PersonId;
 
 #[derive(derive_new::new, Debug, Clone)]
 pub struct NotifyData {
@@ -365,30 +365,30 @@ pub fn notify_mod_action(actions: Vec<Modlog>, context: &LemmyContext) {
 #[expect(clippy::indexing_slicing)]
 mod tests {
   use crate::{
-    context::LemmyContext,
-    notify::{NotifyData, notify_private_message_internal},
+      context::LemmyContext,
+      notify::{notify_private_message_internal, NotifyData},
   };
   use lemmy_db_schema::{
-    NotificationDataType,
-    assert_length,
-    source::{
-      comment::{Comment, CommentInsertForm},
-      community::{Community, CommunityInsertForm},
-      instance::{Instance, InstanceActions, InstancePersonsBlockForm},
-      notification::{Notification, NotificationInsertForm},
-      person::{Person, PersonActions, PersonBlockForm, PersonInsertForm, PersonUpdateForm},
-      post::{Post, PostInsertForm},
-      private_message::{PrivateMessage, PrivateMessageInsertForm},
-    },
-    traits::Blockable,
+      assert_length,
+      source::{
+          comment::{Comment, CommentInsertForm},
+          community::{Community, CommunityInsertForm},
+          instance::{Instance, InstanceActions, InstancePersonsBlockForm},
+          notification::{Notification, NotificationInsertForm},
+          person::{Person, PersonActions, PersonBlockForm, PersonInsertForm, PersonUpdateForm},
+          post::{Post, PostInsertForm},
+          private_message::{PrivateMessage, PrivateMessageInsertForm},
+      },
+      traits::Blockable,
+      NotificationDataType,
   };
   use lemmy_db_schema_file::enums::NotificationType;
   use lemmy_db_views_local_user::LocalUserView;
-  use lemmy_db_views_notification::{NotificationData, NotificationView, impls::NotificationQuery};
+  use lemmy_db_views_notification::{impls::NotificationQuery, NotificationData, NotificationView};
   use lemmy_db_views_private_message::PrivateMessageView;
   use lemmy_diesel_utils::{
-    connection::{DbPool, build_db_pool_for_tests},
-    traits::Crud,
+      connection::{build_db_pool_for_tests, DbPool},
+      traits::Crud,
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;

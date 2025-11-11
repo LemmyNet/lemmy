@@ -11,7 +11,7 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
     impls::local_user::LocalUserOptionHelper,
-    newtypes::{CommentId, CommunityId, PaginationCursor, PersonId, PostId},
+    newtypes::{CommentId, CommunityId, PaginationCursor, PostId},
     source::{
         local_user::LocalUser,
         modlog::{modlog_keys as key, Modlog},
@@ -26,7 +26,7 @@ use lemmy_db_schema::{
         },
     },
 };
-use lemmy_db_schema_file::{aliases, enums::{ListingType, ModlogKind}, schema::{comment, community, community_actions, instance, modlog, person, post}};
+use lemmy_db_schema_file::{aliases, enums::{ListingType, ModlogKind}, schema::{comment, community, community_actions, instance, modlog, person, post}, PersonId};
 use lemmy_diesel_utils::{
     connection::{get_conn, DbPool},
     utils::paginate,

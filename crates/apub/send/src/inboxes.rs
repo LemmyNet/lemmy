@@ -1,20 +1,21 @@
 use crate::util::LEMMY_TEST_FAST_FEDERATION;
 use chrono::{DateTime, TimeZone, Utc};
 use lemmy_db_schema::{
-  newtypes::{CommunityId, InstanceId},
-  source::{activity::SentActivity, site::Site},
+    newtypes::CommunityId,
+    source::{activity::SentActivity, site::Site},
 };
 use lemmy_db_views_community_follower::CommunityFollowerView;
 use lemmy_diesel_utils::{
-  connection::{ActualDbPool, DbPool},
-  dburl::DbUrl,
+    connection::{ActualDbPool, DbPool},
+    dburl::DbUrl,
 };
 use lemmy_utils::error::LemmyResult;
 use reqwest::Url;
 use std::{
-  collections::{HashMap, HashSet},
-  sync::LazyLock,
+    collections::{HashMap, HashSet},
+    sync::LazyLock,
 };
+use lemmy_db_schema_file::InstanceId;
 
 /// interval with which new additions to community_followers are queried.
 ///
@@ -223,14 +224,16 @@ impl<T: DataSource> CommunityInboxCollector<T> {
 mod tests {
   use super::*;
   use lemmy_db_schema::{
-    newtypes::{ActivityId, CommunityId, InstanceId, SiteId},
-    source::activity::SentActivity,
+      newtypes::{ActivityId, CommunityId, SiteId},
+      source::activity::SentActivity,
   };
   use lemmy_db_schema_file::enums::ActorType;
   use lemmy_utils::error::LemmyResult;
-  use mockall::{mock, predicate::*};
+  use mockall::mock;
   use serde_json::json;
-  mock! {
+    use lemmy_db_schema_file::InstanceId;
+
+    mock! {
       DataSource {}
       impl DataSource for DataSource {
           async fn read_site_from_instance_id(&self, instance_id: InstanceId) -> LemmyResult<Site>;

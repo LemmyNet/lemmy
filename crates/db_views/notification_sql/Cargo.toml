@@ -17,6 +17,5 @@ doctest = false
 workspace = true
 
 [dependencies]
-lemmy_db_schema = { workspace = true, features = ["full"] }
 lemmy_db_schema_file = { workspace = true, features = ["full"] }
 diesel = { workspace = true}

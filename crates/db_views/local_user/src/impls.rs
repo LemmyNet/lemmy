@@ -10,14 +10,13 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-    newtypes::{LocalUserId, OAuthProviderId, PaginationCursor, PersonId},
+    newtypes::{LocalUserId, OAuthProviderId, PaginationCursor},
     source::{
         instance::Instance,
         local_user::{LocalUser, LocalUserInsertForm},
         person::{person_keys, Person, PersonInsertForm},
     },
     traits::PaginationCursorBuilder,
-    utils::queries::joins::creator_home_instance_actions_join,
 };
 use lemmy_db_schema_file::schema::{instance_actions, local_user, oauth_account, person};
 use lemmy_diesel_utils::{
@@ -32,6 +31,8 @@ use lemmy_diesel_utils::{
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
 use std::future::{ready, Ready};
 use lemmy_db_schema_file::aliases::creator_home_instance_actions;
+use lemmy_db_schema_file::joins::creator_home_instance_actions_join;
+use lemmy_db_schema_file::PersonId;
 
 impl LocalUserView {
   #[diesel::dsl::auto_type(no_type_alias)]

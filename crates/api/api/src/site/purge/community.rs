@@ -1,18 +1,16 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_utils::{
-  context::LemmyContext,
-  send_activity::{ActivityChannel, SendActivityData},
-  utils::is_admin,
+    context::LemmyContext,
+    send_activity::{ActivityChannel, SendActivityData},
+    utils::is_admin,
 };
-use lemmy_db_schema::{
-  newtypes::PersonId,
-  source::{
+use lemmy_db_schema::source::{
     community::Community,
     local_user::LocalUser,
     modlog::{Modlog, ModlogInsertForm},
-  },
 };
+use lemmy_db_schema_file::PersonId;
 use lemmy_db_views_community::api::PurgeCommunity;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;

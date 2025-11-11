@@ -1,18 +1,19 @@
 use crate::{
-  newtypes::{CommunityId, InstanceId, MultiCommunityId, PersonId},
-  source::placeholder_apub_url,
+    newtypes::{CommunityId, MultiCommunityId},
+    source::placeholder_apub_url,
 };
 use chrono::{DateTime, Utc};
 use lemmy_db_schema_file::enums::CommunityFollowerState;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::{
-  multi_community,
-  multi_community_entry,
-  multi_community_follow,
+    multi_community,
+    multi_community_entry,
+    multi_community_follow,
 };
 use lemmy_diesel_utils::{dburl::DbUrl, sensitive::SensitiveString};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
+use lemmy_db_schema_file::{InstanceId, PersonId};
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
