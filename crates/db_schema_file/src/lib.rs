@@ -1,8 +1,10 @@
 use core::default::Default;
+#[cfg(feature = "full")]
 use diesel_derive_newtype::DieselNewType;
 use serde::{Deserialize, Serialize};
 
 pub mod enums;
+#[cfg(feature = "full")]
 pub mod joins;
 #[cfg(feature = "full")]
 pub mod schema;

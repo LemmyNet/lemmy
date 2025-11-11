@@ -16,6 +16,7 @@ pub mod traits;
 #[cfg(feature = "full")]
 pub mod utils;
 
+#[cfg(feature = "full")]
 use lemmy_db_schema_file::aliases;
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
