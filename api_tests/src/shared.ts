@@ -161,6 +161,12 @@ export async function setupLogins() {
   // Registration applications are now enabled by default, need to disable them
   let editSiteForm: EditSite = {
     registration_mode: "open",
+    rate_limit_message_max_requests: 999,
+    rate_limit_post_max_requests: 999,
+    rate_limit_comment_max_requests: 999,
+    rate_limit_register_max_requests: 999,
+    rate_limit_search_max_requests: 999,
+    rate_limit_image_max_requests: 999,
   };
   await alpha.editSite(editSiteForm);
   await beta.editSite(editSiteForm);
