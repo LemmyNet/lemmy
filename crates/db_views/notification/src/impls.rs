@@ -25,7 +25,6 @@ use lemmy_db_schema::{
     queries::{
       filters::filter_blocked,
       joins::{
-        community_join,
         creator_community_actions_join,
         creator_home_instance_actions_join,
         creator_local_instance_actions_join,
@@ -44,7 +43,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::{
   enums::NotificationType,
-  schema::{comment, modlog, notification, person, post, private_message},
+  schema::{comment, community, modlog, notification, person, post, private_message},
 };
 use lemmy_db_views_modlog::ModlogView;
 use lemmy_db_views_post::PostView;
@@ -62,8 +61,9 @@ impl NotificationView {
     let recipient_person = aliases::person1.field(person::id);
 
     let item_creator_join = person::table.on(
-      comment::creator_id
-        .eq(item_creator)
+      notification::comment_id
+        .is_not_null()
+        .and(comment::creator_id.eq(item_creator))
         .or(
           notification::post_id
             .is_not_null()
@@ -73,6 +73,8 @@ impl NotificationView {
         .or(modlog::mod_id.eq(item_creator)),
     );
 
+    // No need to join on `modlog::target_person_id` as it is identical to
+    // `notification::recipient_id`.
     let recipient_join = aliases::person1.on(notification::recipient_id.eq(recipient_person));
 
     let comment_join = comment::table.on(
@@ -80,7 +82,8 @@ impl NotificationView {
         .eq(comment::id.nullable())
         // Filter out the deleted / removed
         .and(not(comment::deleted))
-        .and(not(comment::removed)),
+        .and(not(comment::removed))
+        .or(modlog::target_comment_id.eq(comment::id.nullable())),
     );
 
     let post_join = post::table.on(
@@ -89,7 +92,14 @@ impl NotificationView {
         .or(comment::post_id.eq(post::id))
         // Filter out the deleted / removed
         .and(not(post::deleted))
-        .and(not(post::removed)),
+        .and(not(post::removed))
+        .or(modlog::target_post_id.eq(post::id.nullable())),
+    );
+
+    let community_join = community::table.on(
+      post::community_id
+        .eq(community::id)
+        .or(modlog::target_community_id.eq(community::id.nullable())),
     );
 
     // This could be a simple join, but you need to check for deleted here
@@ -121,7 +131,7 @@ impl NotificationView {
       .left_join(private_message_join)
       .left_join(comment_join)
       .left_join(post_join)
-      .left_join(community_join())
+      .left_join(community_join)
       .left_join(item_creator_join)
       .inner_join(recipient_join)
       .left_join(image_details_join())
@@ -280,6 +290,9 @@ impl NotificationQuery {
         NotificationDataType::Subscribed => {
           query.filter(notification::kind.eq(NotificationType::Subscribed))
         }
+        NotificationDataType::ModAction => {
+          query.filter(notification::kind.eq(NotificationType::ModAction))
+        }
       }
     }
 
@@ -310,7 +323,21 @@ impl NotificationQuery {
 }
 
 fn map_to_enum(v: NotificationViewInternal, hide_modlog_name: bool) -> Option<NotificationView> {
-  let data = if let (Some(comment), Some(post), Some(community), Some(creator)) = (
+  let data = if let (Some(modlog), Some(creator)) = (v.modlog.clone(), v.creator.clone()) {
+    let m = ModlogView {
+      modlog,
+      moderator: Some(creator),
+      target_person: Some(v.recipient),
+      target_community: v.community,
+      target_post: v.post,
+      target_comment: v.comment,
+      // TODO: probably need to set this in case user gets banned by remote instance,
+      // means we need to join it
+      target_instance: None,
+    };
+    let m = m.hide_mod_name(hide_modlog_name);
+    NotificationData::ModAction(m)
+  } else if let (Some(comment), Some(post), Some(community), Some(creator)) = (
     v.comment.clone(),
     v.post.clone(),
     v.community.clone(),
@@ -361,20 +388,6 @@ fn map_to_enum(v: NotificationViewInternal, hide_modlog_name: bool) -> Option<No
       creator,
       recipient: v.recipient,
     })
-  } else if let (Some(modlog), Some(creator)) = (v.modlog, v.creator) {
-    let m = ModlogView {
-      modlog,
-      moderator: Some(creator),
-      target_person: Some(v.recipient),
-      target_community: v.community,
-      target_post: v.post,
-      target_comment: v.comment,
-      // TODO: probably need to set this in case user gets banned by remote instance,
-      // means we need to join it
-      target_instance: None,
-    };
-    let m = m.hide_mod_name(hide_modlog_name);
-    NotificationData::ModAction(m)
   } else {
     return None;
   };

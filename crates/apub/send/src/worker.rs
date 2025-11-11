@@ -632,7 +632,7 @@ mod test {
         .await?;
     sleep(2 * *WORK_FINISHED_RECHECK_DELAY).await;
     tracing::debug!("sent activity");
-    compare_sent_with_receive(&mut data, sent).await?;
+    compare_sent_with_receive(data, sent).await?;
 
     Ok(())
   }
@@ -661,7 +661,7 @@ mod test {
       .await?;
       sleep(2 * *WORK_FINISHED_RECHECK_DELAY).await;
       tracing::debug!("sent activity");
-      compare_sent_with_receive(&mut data, sent).await?;
+      compare_sent_with_receive(data, sent).await?;
     }
 
     Ok(())

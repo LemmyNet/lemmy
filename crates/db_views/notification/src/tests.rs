@@ -2,6 +2,7 @@ use crate::{NotificationData, NotificationView, impls::NotificationQuery};
 use lemmy_db_schema::{
   assert_length,
   source::{
+    comment::{Comment, CommentInsertForm},
     community::{Community, CommunityInsertForm},
     instance::Instance,
     modlog::{Modlog, ModlogInsertForm},
@@ -143,5 +144,56 @@ async fn test_post() -> LemmyResult<()> {
 
   Notification::delete(pool, notifs1[0].notification.id).await?;
   Notification::delete(pool, notifs2[0].notification.id).await?;
+  cleanup(data, pool).await
+}
+
+#[tokio::test]
+#[serial]
+async fn test_modlog() -> LemmyResult<()> {
+  let pool = &build_db_pool_for_tests();
+  let pool = &mut pool.into();
+  let data = init_data(pool).await?;
+
+  // create a community and post
+  let form = CommunityInsertForm::new(
+    data.alice.instance_id,
+    "test".to_string(),
+    "test".to_string(),
+    String::new(),
+  );
+  let community = Community::create(pool, &form).await?;
+
+  let form = PostInsertForm {
+    ..PostInsertForm::new("123".to_string(), data.bob.id, community.id)
+  };
+  let post = Post::create(pool, &form).await?;
+
+  let form = CommentInsertForm {
+    removed: Some(true),
+    ..CommentInsertForm::new(data.bob.id, post.id, String::new())
+  };
+  let comment = Comment::create(pool, &form, None).await?;
+
+  // remove the comment and check notifs
+  let form = ModlogInsertForm::mod_remove_comment(data.alice.id, &comment, true, "rule 1");
+  let modlog = &Modlog::create(pool, &[form]).await?[0];
+
+  let form = NotificationInsertForm {
+    modlog_id: Some(modlog.id),
+    ..NotificationInsertForm::new(data.bob.id, NotificationType::ModAction)
+  };
+  let notification = &Notification::create(pool, &[form]).await?[0];
+
+  let notifs = NotificationQuery::default().list(pool, &data.bob).await?;
+  assert_length!(1, notifs);
+  let NotificationData::ModAction(m) = &notifs[0].data else {
+    panic!();
+  };
+  assert_eq!(notification, &notifs[0].notification);
+  assert_eq!(modlog, &m.modlog);
+  assert_eq!(Some(data.alice.id), m.moderator.as_ref().map(|m| m.id));
+  assert_eq!(Some(data.bob.id), m.target_person.as_ref().map(|p| p.id));
+  assert_eq!(Some(comment.id), m.target_comment.as_ref().map(|c| c.id));
+
   cleanup(data, pool).await
 }
