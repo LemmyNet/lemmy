@@ -372,7 +372,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
               .route("/list", get().to(list_notifications))
               .route("/mark_as_read/all", post().to(mark_all_notifications_read))
               .route("/mark_as_read", post().to(mark_notification_as_read))
-              .route("/unread_count", get().to(unread_count)),
+              .route("/count", get().to(unread_count)),
           )
           .route("", delete().to(delete_account))
           .route("/login/list", get().to(list_logins))
