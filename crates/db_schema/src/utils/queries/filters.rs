@@ -1,4 +1,4 @@
-use crate::aliases::my_instance_persons_actions;
+use lemmy_db_schema_file::aliases::my_instance_persons_actions;
 use diesel::{
   BoolExpressionMethods,
   ExpressionMethods,

@@ -1,13 +1,12 @@
 use diesel::{
+  dsl::not,
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
-  dsl::not,
 };
 use lemmy_db_schema::{
-  aliases,
   source::person::Person,
   utils::queries::joins::{
     creator_community_actions_join,
@@ -24,6 +23,7 @@ use lemmy_db_schema::{
     my_post_actions_join,
   },
 };
+use lemmy_db_schema_file::aliases;
 use lemmy_db_schema_file::schema::{
   comment,
   community,

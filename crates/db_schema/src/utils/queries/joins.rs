@@ -1,29 +1,27 @@
-use crate::{
-  aliases::{
+use crate::newtypes::{InstanceId, PersonId};
+use diesel::{BoolExpressionMethods, ExpressionMethods, JoinOnDsl, NullableExpressionMethods};
+use lemmy_db_schema_file::aliases::{
     creator_community_actions,
     creator_community_instance_actions,
     creator_home_instance_actions,
     creator_local_instance_actions,
     creator_local_user,
     my_instance_persons_actions,
-  },
-  newtypes::{InstanceId, PersonId},
 };
-use diesel::{BoolExpressionMethods, ExpressionMethods, JoinOnDsl, NullableExpressionMethods};
 use lemmy_db_schema_file::schema::{
-  comment,
-  comment_actions,
-  community,
-  community_actions,
-  image_details,
-  instance_actions,
-  local_user,
-  multi_community,
-  multi_community_follow,
-  person,
-  person_actions,
-  post,
-  post_actions,
+    comment,
+    comment_actions,
+    community,
+    community_actions,
+    image_details,
+    instance_actions,
+    local_user,
+    multi_community,
+    multi_community_follow,
+    person,
+    person_actions,
+    post,
+    post_actions,
 };
 
 #[diesel::dsl::auto_type]

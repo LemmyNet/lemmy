@@ -1,34 +1,30 @@
 use crate::PendingFollowerView;
 use diesel::{
-  BoolExpressionMethods,
-  ExpressionMethods,
-  JoinOnDsl,
-  NullableExpressionMethods,
-  QueryDsl,
-  dsl::{count, exists, sql},
-  pg::sql_types::Array,
-  select,
-  sql_types::Integer,
+    dsl::{count, exists, sql},
+    pg::sql_types::Array,
+    select,
+    sql_types::Integer,
+    BoolExpressionMethods,
+    ExpressionMethods,
+    JoinOnDsl,
+    NullableExpressionMethods,
+    QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  aliases,
-  newtypes::{CommunityId, InstanceId, PaginationCursor, PersonId},
-  source::{
-    community::{Community, CommunityActions, community_actions_keys as key},
-    person::Person,
-  },
-  traits::PaginationCursorBuilder,
-  utils::{limit_fetch, queries::selects::person1_select},
+    newtypes::{CommunityId, InstanceId, PaginationCursor, PersonId},
+    source::{
+        community::{community_actions_keys as key, Community, CommunityActions},
+        person::Person,
+    },
+    traits::PaginationCursorBuilder,
+    utils::{limit_fetch, queries::selects::person1_select},
 };
-use lemmy_db_schema_file::{
-  enums::{CommunityFollowerState, CommunityVisibility},
-  schema::{community, community_actions, person},
-};
+use lemmy_db_schema_file::{aliases, enums::{CommunityFollowerState, CommunityVisibility}, schema::{community, community_actions, person}};
 use lemmy_diesel_utils::{
-  connection::{DbPool, get_conn},
-  utils::paginate,
+    connection::{get_conn, DbPool},
+    utils::paginate,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use std::collections::HashMap;
@@ -228,18 +224,18 @@ mod tests {
   use super::*;
   use crate::PendingFollowerView;
   use lemmy_db_schema::{
-    assert_length,
-    source::{
-      community::{
-        CommunityActions,
-        CommunityFollowerForm,
-        CommunityInsertForm,
-        CommunityModeratorForm,
+      assert_length,
+      source::{
+          community::{
+              CommunityActions,
+              CommunityFollowerForm,
+              CommunityInsertForm,
+              CommunityModeratorForm,
+          },
+          instance::Instance,
+          person::PersonInsertForm,
       },
-      instance::Instance,
-      person::PersonInsertForm,
-    },
-    traits::Followable,
+      traits::Followable,
   };
   use lemmy_db_schema_file::enums::CommunityVisibility;
   use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};

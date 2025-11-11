@@ -1,10 +1,20 @@
 use crate::{
-  Person1AliasAllColumnsTuple,
-  Person2AliasAllColumnsTuple,
-  aliases::{
-    CreatorCommunityInstanceActions,
-    CreatorHomeInstanceActions,
-    CreatorLocalInstanceActions,
+    Person1AliasAllColumnsTuple,
+    Person2AliasAllColumnsTuple,
+};
+use diesel::{
+    dsl::{case_when, exists, not},
+    expression::SqlLiteral,
+    helper_types::Nullable,
+    query_source::AliasedField,
+    sql_types::{Json, Timestamptz},
+    BoolExpressionMethods,
+    ExpressionMethods,
+    NullableExpressionMethods,
+    PgExpressionMethods,
+    QueryDsl,
+};
+use lemmy_db_schema_file::aliases::{
     creator_community_actions,
     creator_community_instance_actions,
     creator_home_instance_actions,
@@ -12,30 +22,20 @@ use crate::{
     creator_local_user,
     person1,
     person2,
-  },
-};
-use diesel::{
-  BoolExpressionMethods,
-  ExpressionMethods,
-  NullableExpressionMethods,
-  PgExpressionMethods,
-  QueryDsl,
-  dsl::{case_when, exists, not},
-  expression::SqlLiteral,
-  helper_types::Nullable,
-  query_source::AliasedField,
-  sql_types::{Json, Timestamptz},
+    CreatorCommunityInstanceActions,
+    CreatorHomeInstanceActions,
+    CreatorLocalInstanceActions,
 };
 use lemmy_db_schema_file::schema::{
-  comment,
-  community,
-  community_actions,
-  instance_actions,
-  local_user,
-  person,
-  post,
-  post_tag,
-  tag,
+    comment,
+    community,
+    community_actions,
+    instance_actions,
+    local_user,
+    person,
+    post,
+    post_tag,
+    tag,
 };
 use lemmy_diesel_utils::utils::functions::{coalesce_2_nullable, coalesce_3_nullable};
 

@@ -1,36 +1,36 @@
 use crate::VoteView;
 use diesel::{
-  BoolExpressionMethods,
-  ExpressionMethods,
-  JoinOnDsl,
-  NullableExpressionMethods,
-  QueryDsl,
+    BoolExpressionMethods,
+    ExpressionMethods,
+    JoinOnDsl,
+    NullableExpressionMethods,
+    QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  aliases::creator_community_actions,
-  newtypes::{CommentId, InstanceId, PaginationCursor, PersonId, PostId},
-  source::{comment::CommentActions, post::PostActions},
-  utils::{
-    limit_fetch,
-    queries::{
-      joins::{creator_home_instance_actions_join, creator_local_instance_actions_join},
-      selects::creator_local_home_banned,
+    newtypes::{CommentId, InstanceId, PaginationCursor, PersonId, PostId},
+    source::{comment::CommentActions, post::PostActions},
+    utils::{
+        limit_fetch,
+        queries::{
+            joins::{creator_home_instance_actions_join, creator_local_instance_actions_join},
+            selects::creator_local_home_banned,
+        },
     },
-  },
 };
+use lemmy_db_schema_file::aliases::creator_community_actions;
 use lemmy_db_schema_file::schema::{
-  comment,
-  comment_actions,
-  community_actions,
-  person,
-  post,
-  post_actions,
+    comment,
+    comment_actions,
+    community_actions,
+    person,
+    post,
+    post_actions,
 };
 use lemmy_diesel_utils::{
-  connection::{DbPool, get_conn},
-  utils::paginate,
+    connection::{get_conn, DbPool},
+    utils::paginate,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -190,15 +190,15 @@ impl VoteView {
 mod tests {
   use crate::VoteView;
   use lemmy_db_schema::{
-    newtypes::InstanceId,
-    source::{
-      comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm},
-      community::{Community, CommunityActions, CommunityInsertForm, CommunityPersonBanForm},
-      instance::Instance,
-      person::{Person, PersonInsertForm},
-      post::{Post, PostActions, PostInsertForm, PostLikeForm},
-    },
-    traits::{Bannable, Likeable},
+      newtypes::InstanceId,
+      source::{
+          comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm},
+          community::{Community, CommunityActions, CommunityInsertForm, CommunityPersonBanForm},
+          instance::Instance,
+          person::{Person, PersonInsertForm},
+          post::{Post, PostActions, PostInsertForm, PostLikeForm},
+      },
+      traits::{Bannable, Likeable},
   };
   use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use lemmy_utils::error::LemmyResult;
