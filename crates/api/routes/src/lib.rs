@@ -229,12 +229,12 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
         scope("/community")
           .route("", get().to(get_community))
           .route("", put().to(update_community))
+          .route("", delete().to(delete_community))
           .route("/random", get().to(get_random_community))
           .route("/list", get().to(list_communities))
           .route("/follow", post().to(follow_community))
           .route("/report", post().to(create_community_report))
           .route("/report/resolve", put().to(resolve_community_report))
-          .route("/delete", post().to(delete_community))
           // Mod Actions
           .route("/remove", post().to(remove_community))
           .route("/transfer", post().to(transfer_community))
@@ -283,7 +283,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
         scope("/post")
           .route("", get().to(get_post))
           .route("", put().to(update_post))
-          .route("/delete", post().to(delete_post))
+          .route("", delete().to(delete_post))
           .route("/remove", post().to(remove_post))
           .route("/mark_as_read", post().to(mark_post_as_read))
           .route("/mark_as_read/many", post().to(mark_posts_as_read))
@@ -311,7 +311,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
         scope("/comment")
           .route("", get().to(get_comment))
           .route("", put().to(update_comment))
-          .route("/delete", post().to(delete_comment))
+          .route("", delete().to(delete_comment))
           .route("/remove", post().to(remove_comment))
           .route("/distinguish", post().to(distinguish_comment))
           .route("/like", post().to(like_comment))
@@ -328,7 +328,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
         scope("/private_message")
           .route("", post().to(create_private_message))
           .route("", put().to(update_private_message))
-          .route("/delete", post().to(delete_private_message))
+          .route("", delete().to(delete_private_message))
           .route("/report", post().to(create_pm_report))
           .route("/report/resolve", put().to(resolve_pm_report)),
       )
@@ -336,6 +336,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
       .service(
         scope("/report")
           .wrap(rate_limit.message())
+          .route("/count", get().to(report_count))
           .route("/list", get().to(list_reports)),
       )
       // User
@@ -366,13 +367,15 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
               .route("", delete().to(delete_image))
               .route("/list", get().to(list_media)),
           )
-          .route("/notifications", get().to(list_notifications))
-          .route("/delete", post().to(delete_account))
-          .route("/mark_as_read/all", post().to(mark_all_notifications_read))
-          .route("/mark_as_read", post().to(mark_notification_as_read))
-          .route("/report_count", get().to(report_count))
-          .route("/unread_count", get().to(unread_count))
-          .route("/list_logins", get().to(list_logins))
+          .service(
+            scope("/notification")
+              .route("/list", get().to(list_notifications))
+              .route("/mark_as_read/all", post().to(mark_all_notifications_read))
+              .route("/mark_as_read", post().to(mark_notification_as_read))
+              .route("/count", get().to(unread_count)),
+          )
+          .route("", delete().to(delete_account))
+          .route("/login/list", get().to(list_logins))
           .route("/validate_auth", get().to(validate_auth))
           .route("/donation_dialog_shown", post().to(donation_dialog_shown))
           .route("/avatar", post().to(upload_user_avatar))
@@ -418,21 +421,15 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
       .service(
         scope("/admin")
           .route("/add", post().to(add_admin))
-          .route(
-            "/registration_application/count",
-            get().to(get_unread_registration_application_count),
-          )
-          .route(
-            "/registration_application/list",
-            get().to(list_registration_applications),
-          )
-          .route(
-            "/registration_application/approve",
-            put().to(approve_registration_application),
-          )
-          .route(
-            "/registration_application",
-            get().to(get_registration_application),
+          .service(
+            scope("/registration_application")
+              .route("", get().to(get_registration_application))
+              .route(
+                "/count",
+                get().to(get_unread_registration_application_count),
+              )
+              .route("/list", get().to(list_registration_applications))
+              .route("/approve", put().to(approve_registration_application)),
           )
           .service(
             scope("/purge")
@@ -445,7 +442,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
             scope("/tagline")
               .route("", post().to(create_tagline))
               .route("", put().to(update_tagline))
-              .route("/delete", post().to(delete_tagline))
+              .route("", delete().to(delete_tagline))
               .route("/list", get().to(list_taglines)),
           )
           .route("/ban", post().to(ban_from_site))
@@ -460,14 +457,14 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
         scope("/custom_emoji")
           .route("", post().to(create_custom_emoji))
           .route("", put().to(update_custom_emoji))
-          .route("/delete", post().to(delete_custom_emoji))
+          .route("", delete().to(delete_custom_emoji))
           .route("/list", get().to(list_custom_emojis)),
       )
       .service(
         scope("/oauth_provider")
           .route("", post().to(create_oauth_provider))
           .route("", put().to(update_oauth_provider))
-          .route("/delete", post().to(delete_oauth_provider)),
+          .route("", delete().to(delete_oauth_provider)),
       )
       .service(
         scope("/oauth")
