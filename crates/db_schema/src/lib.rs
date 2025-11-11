@@ -102,6 +102,7 @@ pub enum NotificationDataType {
   Mention,
   PrivateMessage,
   Subscribed,
+  ModAction,
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]

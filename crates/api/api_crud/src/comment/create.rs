@@ -49,6 +49,7 @@ pub async fn create_comment(
 
   // Check for a community ban
   let post_id = data.post_id;
+  let my_person_id = local_user_view.person.id;
 
   let local_instance_id = local_user_view.person.instance_id;
 
@@ -106,7 +107,7 @@ pub async fn create_comment(
   let mut comment_form = CommentInsertForm {
     language_id: Some(language_id),
     federation_pending: Some(community_use_pending(&post_view.community, &context).await),
-    ..CommentInsertForm::new(local_user_view.person.id, data.post_id, content.clone())
+    ..CommentInsertForm::new(my_person_id, data.post_id, content.clone())
   };
   comment_form = plugin_hook_before("local_comment_before_create", comment_form).await?;
 
@@ -126,7 +127,7 @@ pub async fn create_comment(
   .send(&context);
 
   // You like your own comment by default
-  let like_form = CommentLikeForm::new(local_user_view.person.id, inserted_comment.id, true);
+  let like_form = CommentLikeForm::new(my_person_id, inserted_comment.id, true);
 
   CommentActions::like(&mut context.pool(), &like_form).await?;
 
@@ -137,7 +138,7 @@ pub async fn create_comment(
 
   // Update the read comments, so your own new comment doesn't appear as a +1 unread
   update_read_comments(
-    local_user_view.person.id,
+    my_person_id,
     post_id,
     post.comments + 1,
     &mut context.pool(),
@@ -149,12 +150,14 @@ pub async fn create_comment(
   // then mark the parent as read.
   // Then we don't have to do it manually after we respond to a comment.
   if let Some(parent) = parent_opt {
-    let notif = Notification::read_by_comment_id(&mut context.pool(), parent.id).await;
-    if let Ok(notif) = notif {
-      let person_id = local_user_view.person.id;
-      Notification::mark_read_by_id_and_person(&mut context.pool(), notif.id, true, person_id)
-        .await?;
-    }
+    Notification::mark_read_by_comment_and_recipient(
+      &mut context.pool(),
+      parent.id,
+      my_person_id,
+      true,
+    )
+    .await
+    .ok();
   }
 
   Ok(Json(

@@ -42,7 +42,7 @@ pub async fn delete_multi_community_entry(
       MultiCommunityEntry::community_used_in_multiple(&mut context.pool(), &form).await?;
     // unfollow the community only if its not used in another multi-community
     if !used_in_multiple {
-      let multicomm_follower = SiteView::read_multicomm_follower(&mut context.pool()).await?;
+      let multicomm_follower = SiteView::read_system_account(&mut context.pool()).await?;
       CommunityActions::unfollow(&mut context.pool(), multicomm_follower.id, community.id).await?;
       ActivityChannel::submit_activity(
         SendActivityData::FollowCommunity(community, local_user_view.person.clone(), false),
