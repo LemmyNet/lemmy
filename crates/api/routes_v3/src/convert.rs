@@ -4,6 +4,7 @@ use lemmy_api_019::{
   comment::CommentResponse as CommentResponseV3,
   lemmy_db_schema::{
     ListingType as ListingTypeV3,
+    RegistrationMode as RegistrationModeV3,
     SearchType as SearchTypeV3,
     SortType as SortTypeV3,
     SubscribedType as SubscribedTypeV3,
@@ -45,6 +46,7 @@ use lemmy_api_019::{
     SiteView as SiteViewV3,
   },
   lemmy_db_views_actor::structs::{CommunityView as CommunityViewV3, PersonView as PersonViewV3},
+  person::LoginResponse as LoginResponseV3,
   post::PostResponse as PostResponseV3,
   site::{MyUserInfo as MyUserInfoV3, SearchResponse as SearchResponseV3},
 };
@@ -61,14 +63,22 @@ use lemmy_db_schema::{
     site::Site,
   },
 };
-use lemmy_db_schema_file::enums::{CommunityFollowerState, ListingType, PostSortType};
+use lemmy_db_schema_file::enums::{
+  CommunityFollowerState,
+  ListingType,
+  PostSortType,
+  RegistrationMode,
+};
 use lemmy_db_views_comment::{CommentView, api::CommentResponse};
 use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
 use lemmy_db_views_post::{PostView, api::PostResponse};
 use lemmy_db_views_search_combined::SearchCombinedView;
-use lemmy_db_views_site::{SiteView, api::MyUserInfo};
+use lemmy_db_views_site::{
+  SiteView,
+  api::{LoginResponse, MyUserInfo},
+};
 use lemmy_diesel_utils::{dburl::DbUrl, sensitive::SensitiveString};
 use lemmy_utils::error::LemmyResult;
 use std::sync::LazyLock;
@@ -615,8 +625,14 @@ pub(crate) fn convert_local_site(local_site: LocalSite) -> LocalSiteV3 {
     updated_at,
     reports_email_admins,
     federation_signed_fetch,
+    registration_mode,
     ..
   } = local_site;
+  let registration_mode = match registration_mode {
+    RegistrationMode::Closed => RegistrationModeV3::Closed,
+    RegistrationMode::RequireApplication => RegistrationModeV3::RequireApplication,
+    RegistrationMode::Open => RegistrationModeV3::Open,
+  };
   LocalSiteV3 {
     id: Default::default(),
     site_id: SiteIdV3(site_id.0),
@@ -633,13 +649,13 @@ pub(crate) fn convert_local_site(local_site: LocalSite) -> LocalSiteV3 {
     hide_modlog_mod_names: true,
     application_email_admins,
     slur_filter_regex,
-    actor_name_max_length: Default::default(),
+    actor_name_max_length: 20,
     federation_enabled,
     captcha_enabled,
     captcha_difficulty,
     published: published_at,
     updated: updated_at,
-    registration_mode: Default::default(),
+    registration_mode,
     reports_email_admins,
     federation_signed_fetch,
     default_post_listing_mode: Default::default(),
@@ -813,4 +829,17 @@ pub(crate) fn convert_comment_response(
 
 pub(crate) fn convert_language_ids(data: Vec<LanguageId>) -> Vec<LanguageIdV3> {
   data.into_iter().map(|l| LanguageIdV3(l.0)).collect()
+}
+
+pub(crate) fn convert_login_response(res: LoginResponse) -> LemmyResult<Json<LoginResponseV3>> {
+  let LoginResponse {
+    jwt,
+    registration_created,
+    verify_email_sent,
+  } = res;
+  Ok(Json(LoginResponseV3 {
+    jwt: jwt.map(convert_sensitive),
+    registration_created,
+    verify_email_sent,
+  }))
 }

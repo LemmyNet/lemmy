@@ -7,6 +7,7 @@ use crate::convert::{
   convert_community_view,
   convert_language_ids,
   convert_listing_type,
+  convert_login_response,
   convert_my_user,
   convert_person,
   convert_person_view,
@@ -16,7 +17,6 @@ use crate::convert::{
   convert_post_view,
   convert_score,
   convert_search_response,
-  convert_sensitive,
   convert_site,
   convert_site_view,
 };
@@ -100,7 +100,7 @@ use lemmy_api_crud::{
   community::list::list_communities,
   post::{create::create_post, delete::delete_post, read::get_post, update::update_post},
   site::read::get_site,
-  user::my_user::get_my_user,
+  user::{create::register, my_user::get_my_user},
 };
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::newtypes::{CommentId, CommunityId, LanguageId, PersonId, PostId};
@@ -127,9 +127,10 @@ use lemmy_db_views_post::api::{
   GetPosts,
   SavePost,
 };
+use lemmy_db_views_registration_applications::api::Register;
 use lemmy_db_views_report_combined::api::{CreateCommentReport, CreatePostReport};
 use lemmy_db_views_search_combined::{Search, api::GetPost};
-use lemmy_db_views_site::api::{GetSiteResponse, Login, LoginResponse, ResolveObject};
+use lemmy_db_views_site::api::{GetSiteResponse, Login, ResolveObject};
 use lemmy_utils::error::LemmyResult;
 
 pub(crate) async fn get_post_v3(
@@ -294,16 +295,8 @@ pub(crate) async fn login_v3(
   req: HttpRequest,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<LoginResponseV3>> {
-  let LoginResponse {
-    jwt,
-    registration_created,
-    verify_email_sent,
-  } = login(data, req, context).await?.0;
-  Ok(Json(LoginResponseV3 {
-    jwt: jwt.map(convert_sensitive),
-    registration_created,
-    verify_email_sent,
-  }))
+  let res = login(data, req, context).await?.0;
+  convert_login_response(res)
 }
 
 pub(crate) async fn like_comment_v3(
@@ -652,4 +645,13 @@ pub async fn list_communities_v3(
   Ok(Json(ListCommunitiesResponseV3 {
     communities: res.into_iter().map(convert_community_view).collect(),
   }))
+}
+
+pub async fn register_v3(
+  data: Json<Register>,
+  req: HttpRequest,
+  context: ApubData<LemmyContext>,
+) -> LemmyResult<Json<LoginResponseV3>> {
+  let res = register(data, req, context).await?.0;
+  convert_login_response(res)
 }

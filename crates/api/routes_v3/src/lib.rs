@@ -18,6 +18,7 @@ use crate::handlers::{
   login_v3,
   logout_v3,
   mark_all_notifications_read_v3,
+  register_v3,
   resolve_object_v3,
   save_comment_v3,
   save_post_v3,
@@ -94,6 +95,12 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .guard(guard::Post())
           .wrap(rate_limit.register())
           .route(post().to(login_v3)),
+      )
+      .service(
+        resource("/user/register")
+          .guard(guard::Post())
+          .wrap(rate_limit.register())
+          .route(post().to(register_v3)),
       )
       .service(
         scope("/user")
