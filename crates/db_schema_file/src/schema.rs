@@ -548,6 +548,9 @@ diesel::table! {
         following_url -> Text,
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
+        subscribers -> Int4,
+        subscribers_local -> Int4,
+        communities -> Int4,
     }
 }
 

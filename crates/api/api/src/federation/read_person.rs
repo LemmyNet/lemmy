@@ -5,7 +5,8 @@ use lemmy_api_utils::{
   context::LemmyContext,
   utils::{check_private_instance, is_admin, read_site_for_actor},
 };
-use lemmy_db_views_community::MultiCommunityView;
+use lemmy_db_schema::MultiCommunitySortType;
+use lemmy_db_views_community::impls::MultiCommunityQuery;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::{
@@ -53,12 +54,14 @@ pub async fn read_person(
   )
   .await?;
 
-  let multi_communities_created = MultiCommunityView::list(
-    &mut context.pool(),
-    Some(person_details_id),
+  let multi_communities_created = MultiCommunityQuery {
+    creator_id: Some(person_details_id),
     my_person_id,
-    false,
-  )
+    sort: Some(MultiCommunitySortType::NameAsc),
+    no_limit: Some(true),
+    ..Default::default()
+  }
+  .list(&mut context.pool())
   .await?;
 
   let site = read_site_for_actor(person_view.person.ap_id.clone(), &context).await?;
