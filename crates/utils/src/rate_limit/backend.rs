@@ -1,11 +1,7 @@
 //! The content in this file is mostly copy-pasted from library code:
 //! https://github.com/jacob-pro/actix-extensible-rate-limit/blob/master/src/backend/memory.rs
 
-use crate::rate_limit::{
-  ActionType,
-  BucketConfig,
-  input::{LemmyInput, RateLimitIpAddr},
-};
+use crate::rate_limit::{ActionType, BucketConfig, input::LemmyInput};
 use actix_extensible_rate_limit::backend::{
   Backend,
   Decision,
@@ -25,7 +21,7 @@ use std::{
 /// in memory.
 #[derive(Clone)]
 pub struct LemmyBackend {
-  map: Arc<DashMap<(RateLimitIpAddr, ActionType), Value>>,
+  map: Arc<DashMap<LemmyInput, Value>>,
   gc_handle: Option<Arc<JoinHandle<()>>>,
   pub(super) configs: Arc<RwLock<EnumMap<ActionType, BucketConfig>>>,
 }
@@ -37,7 +33,7 @@ struct Value {
 
 impl LemmyBackend {
   pub(crate) fn new(configs: EnumMap<ActionType, BucketConfig>, enable_gc: bool) -> Self {
-    let map = Arc::new(DashMap::<(RateLimitIpAddr, ActionType), Value>::new());
+    let map = Arc::new(DashMap::<LemmyInput, Value>::new());
     let gc_handle = enable_gc.then(|| {
       Arc::new(LemmyBackend::garbage_collector(
         map.clone(),
@@ -51,10 +47,7 @@ impl LemmyBackend {
     }
   }
 
-  fn garbage_collector(
-    map: Arc<DashMap<(RateLimitIpAddr, ActionType), Value>>,
-    interval: Duration,
-  ) -> JoinHandle<()> {
+  fn garbage_collector(map: Arc<DashMap<LemmyInput, Value>>, interval: Duration) -> JoinHandle<()> {
     assert!(
       interval.as_secs_f64() > 0f64,
       "GC interval must be non-zero"
@@ -71,7 +64,7 @@ impl LemmyBackend {
 
 impl Backend<LemmyInput> for LemmyBackend {
   type Output = SimpleOutput;
-  type RollbackToken = (RateLimitIpAddr, ActionType);
+  type RollbackToken = LemmyInput;
   type Error = Infallible;
 
   #[expect(clippy::expect_used)]
@@ -80,7 +73,7 @@ impl Backend<LemmyInput> for LemmyBackend {
     input: LemmyInput,
   ) -> Result<(Decision, Self::Output, Self::RollbackToken), Self::Error> {
     #[allow(clippy::expect_used)]
-    let config = self.configs.read().expect("read rwlock")[input.key.1];
+    let config = self.configs.read().expect("read rwlock")[input.1];
 
     let max_requests: u64 = config.max_requests.into();
     let interval = Duration::from_secs(config.interval.into());
@@ -92,7 +85,7 @@ impl Backend<LemmyInput> for LemmyBackend {
       .expect("Interval unexpectedly large");
     self
       .map
-      .entry(input.key)
+      .entry(input)
       .and_modify(|v| {
         // If this bucket hasn't yet expired, increment and extract the count/expiry
         if v.ttl > now {
@@ -116,7 +109,7 @@ impl Backend<LemmyInput> for LemmyBackend {
       remaining: max_requests.saturating_sub(count),
       reset: expiry,
     };
-    Ok((Decision::from_allowed(allow), output, input.key))
+    Ok((Decision::from_allowed(allow), output, input))
   }
 
   async fn rollback(&self, token: Self::RollbackToken) -> Result<(), Self::Error> {
@@ -185,9 +178,7 @@ mod tests {
     tokio::time::pause();
     let backend = LemmyBackend::new(test_config(MINUTE_SECS, 5), true);
     let key = raw_ip_key(Some("127.0.0.2"));
-    let input = LemmyInput {
-      key: (key, ActionType::Message),
-    };
+    let input = LemmyInput(key, ActionType::Message);
     for _ in 0..5 {
       // First 5 should be allowed
       let (allow, _, _) = backend.request(input.clone()).await?;
@@ -203,18 +194,17 @@ mod tests {
   async fn test_reset() -> LemmyResult<()> {
     tokio::time::pause();
     let backend = LemmyBackend::new(test_config(MINUTE_SECS, 1), false);
-    let key = (raw_ip_key(Some("127.0.0.3")), ActionType::Message);
-    let input = LemmyInput { key };
+    let input = LemmyInput(raw_ip_key(Some("127.0.0.3")), ActionType::Message);
     // Make first request, should be allowed
-    let (decision, _, _) = backend.request(input.clone()).await?;
+    let (decision, _, _) = backend.request(input).await?;
     assert!(decision.is_allowed());
     // Request again, should be denied
-    let (decision, _, _) = backend.request(input.clone()).await?;
+    let (decision, _, _) = backend.request(input).await?;
     assert!(decision.is_denied());
     // Advance time and try again, should now be allowed
     tokio::time::advance(MINUTE).await;
     // We want to be sure the key hasn't been garbage collected, and we are testing the expiry logic
-    assert!(backend.map.contains_key(&key));
+    assert!(backend.map.contains_key(&input));
     let (decision, _, _) = backend.request(input).await?;
     assert!(decision.is_allowed());
     Ok(())
@@ -224,10 +214,10 @@ mod tests {
   async fn test_garbage_collection() -> LemmyResult<()> {
     tokio::time::pause();
     let backend = LemmyBackend::new(test_config(MINUTE_SECS, 1), true);
-    let key1 = (raw_ip_key(Some("127.0.0.4")), ActionType::Message);
-    let key2 = (raw_ip_key(Some("127.0.0.5")), ActionType::Post);
-    backend.request(LemmyInput { key: key1 }).await?;
-    backend.request(LemmyInput { key: key2 }).await?;
+    let key1 = LemmyInput(raw_ip_key(Some("127.0.0.4")), ActionType::Message);
+    let key2 = LemmyInput(raw_ip_key(Some("127.0.0.5")), ActionType::Post);
+    backend.request(key1).await?;
+    backend.request(key2).await?;
     assert!(backend.map.contains_key(&key1));
     assert!(backend.map.contains_key(&key2));
     // Advance time such that the garbage collector runs,
@@ -243,17 +233,15 @@ mod tests {
     tokio::time::pause();
     let backend = LemmyBackend::new(test_config(MINUTE_SECS, 2), true);
     let key = raw_ip_key(Some("127.0.0.6"));
-    let input = LemmyInput {
-      key: (key, ActionType::Message),
-    };
+    let input = LemmyInput(key, ActionType::Message);
     // First of 2 should be allowed.
-    let (decision, output, _) = backend.request(input.clone()).await?;
+    let (decision, output, _) = backend.request(input).await?;
     assert!(decision.is_allowed());
     assert_eq!(output.remaining, 1);
     assert_eq!(output.limit, 2);
     assert_eq!(output.reset, Instant::now() + MINUTE);
     // Second of 2 should be allowed.
-    let (decision, output, _) = backend.request(input.clone()).await?;
+    let (decision, output, _) = backend.request(input).await?;
     assert!(decision.is_allowed());
     assert_eq!(output.remaining, 0);
     assert_eq!(output.limit, 2);
@@ -272,10 +260,8 @@ mod tests {
     tokio::time::pause();
     let backend = LemmyBackend::new(test_config(MINUTE_SECS, 5), true);
     let key = raw_ip_key(Some("127.0.0.7"));
-    let input = LemmyInput {
-      key: (key, ActionType::Message),
-    };
-    let (_, output, rollback) = backend.request(input.clone()).await?;
+    let input = LemmyInput(key, ActionType::Message);
+    let (_, output, rollback) = backend.request(input).await?;
     assert_eq!(output.remaining, 4);
     backend.rollback(rollback).await?;
     // Remaining requests should still be the same, since the previous call was excluded

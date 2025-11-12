@@ -5,15 +5,13 @@ use std::{
   str::FromStr,
 };
 
-#[derive(Debug, Clone)]
-pub struct LemmyInput {
-  pub key: (RateLimitIpAddr, ActionType),
-}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub struct LemmyInput(pub(crate) RateLimitIpAddr, pub(crate) ActionType);
 
-pub type LemmyInputFuture = Ready<Result<LemmyInput, actix_web::Error>>;
+pub(crate) type LemmyInputFuture = Ready<Result<LemmyInput, actix_web::Error>>;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-pub enum RateLimitIpAddr {
+pub(crate) enum RateLimitIpAddr {
   V4(Ipv4Addr),
   V6([u16; 4]),
 }

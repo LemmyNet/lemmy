@@ -143,9 +143,7 @@ fn new_input(action_type: ActionType) -> impl Fn(&ServiceRequest) -> LemmyInputF
       let info = req.connection_info();
       let key = raw_ip_key(info.realip_remote_addr());
 
-      Ok(LemmyInput {
-        key: (key, action_type),
-      })
+      Ok(LemmyInput(key, action_type))
     })
   }
 }
