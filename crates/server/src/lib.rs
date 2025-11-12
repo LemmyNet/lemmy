@@ -342,6 +342,7 @@ fn create_http_server(
 
     let cors_config = cors_config(&settings);
     let app = App::new()
+      .wrap(ErrorHandlers::new().default_handler(jsonify_plain_text_errors))
       .wrap(middleware::Logger::new(
         // This is the default log format save for the usage of %{r}a over %a to guarantee to
         // record the client's (forwarded) IP and not the last peer address, since the latter is
@@ -351,7 +352,6 @@ fn create_http_server(
       .wrap(middleware::Compress::default())
       .wrap(cors_config)
       .wrap(TracingLogger::<DefaultRootSpanBuilder>::new())
-      .wrap(ErrorHandlers::new().default_handler(jsonify_plain_text_errors))
       .app_data(Data::new(context.clone()))
       .wrap(FederationMiddleware::new(federation_config.clone()))
       .wrap(IdempotencyMiddleware::new(idempotency_set.clone()))
