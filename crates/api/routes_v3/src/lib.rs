@@ -1,5 +1,6 @@
 use crate::handlers::{
   block_community_v3,
+  block_person_v3,
   create_comment_report_v3,
   create_comment_v3,
   create_post_report_v3,
@@ -28,6 +29,7 @@ use crate::handlers::{
   update_post_v3,
 };
 use actix_web::{guard, web::*};
+use lemmy_api::local_user::donation_dialog_shown::donation_dialog_shown;
 use lemmy_utils::rate_limit::RateLimit;
 
 mod convert;
@@ -107,10 +109,12 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .wrap(rate_limit.message())
           .route("/logout", post().to(logout_v3))
           .route("/unread_count", get().to(unread_count_v3))
+          .route("/block", post().to(block_person_v3))
           .route(
             "/mark_all_as_read",
             post().to(mark_all_notifications_read_v3),
-          ),
+          )
+          .route("/donation_dialog_shown", post().to(donation_dialog_shown)),
       ),
   );
 }

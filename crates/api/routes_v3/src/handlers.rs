@@ -33,9 +33,10 @@ use lemmy_api::{
     search::search,
   },
   local_user::{
+    block::user_block_person,
     login::login,
     logout::logout,
-    notifications::{mark_all_read::mark_all_notifications_read, unread_count::unread_count},
+    notifications::mark_all_read::mark_all_notifications_read,
   },
   post::{like::like_post, save::save_post},
   reports::{
@@ -75,6 +76,7 @@ use lemmy_api_019::{
   },
   lemmy_db_views_actor::structs::CommunityModeratorView as CommunityModeratorViewV3,
   person::{
+    BlockPersonResponse as BlockPersonResponseV3,
     GetRepliesResponse as GetRepliesResponseV3,
     GetUnreadCountResponse as GetUnreadCountResponseV3,
     LoginResponse as LoginResponseV3,
@@ -119,6 +121,7 @@ use lemmy_db_views_community::api::{
   ListCommunities,
 };
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_person::api::BlockPerson;
 use lemmy_db_views_post::api::{
   CreatePost,
   CreatePostLike,
@@ -429,12 +432,12 @@ pub(crate) async fn save_comment_v3(
 }
 
 pub async fn unread_count_v3(
-  context: Data<LemmyContext>,
-  local_user_view: LocalUserView,
+  _context: Data<LemmyContext>,
+  _local_user_view: LocalUserView,
 ) -> LemmyResult<Json<GetUnreadCountResponseV3>> {
-  let res = unread_count(context, local_user_view).await?;
+  // Hardcoded to 0 because new notifications cant be returned via old api.
   Ok(Json(GetUnreadCountResponseV3 {
-    replies: res.count,
+    replies: 0,
     mentions: 0,
     private_messages: 0,
   }))
@@ -616,7 +619,7 @@ pub(crate) async fn update_comment_v3(
   let res = Box::pin(update_comment(data, context, local_user_view)).await?;
   convert_comment_response(res)
 }
-pub async fn list_communities_v3(
+pub(crate) async fn list_communities_v3(
   data: Query<ListCommunitiesV3>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
@@ -647,11 +650,24 @@ pub async fn list_communities_v3(
   }))
 }
 
-pub async fn register_v3(
+pub(crate) async fn register_v3(
   data: Json<Register>,
   req: HttpRequest,
   context: ApubData<LemmyContext>,
 ) -> LemmyResult<Json<LoginResponseV3>> {
   let res = register(data, req, context).await?.0;
   convert_login_response(res)
+}
+
+pub(crate) async fn block_person_v3(
+  data: Json<BlockPerson>,
+  context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
+) -> LemmyResult<Json<BlockPersonResponseV3>> {
+  let blocked = data.block;
+  let res = user_block_person(data, context, local_user_view).await?.0;
+  Ok(Json(BlockPersonResponseV3 {
+    person_view: convert_person_view(res.person_view),
+    blocked,
+  }))
 }
