@@ -137,7 +137,7 @@ mod tests {
         "<p><a href=\"https://example.com/u/example\" rel=\"nofollow\" class=\"u-url mention\">@example@example.com</a></p>\n",
       ),
       (
-        "backslashes in urls",
+        "dont add backslash escapes in urls",
         "[markdown link](https://en.wikipedia.org/wiki/Dragnet_(franchise))",
         "<p><a href=\"https://en.wikipedia.org/wiki/Dragnet_(franchise)\" rel=\"nofollow\">markdown link</a></p>\n",
       ),
