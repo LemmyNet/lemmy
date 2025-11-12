@@ -617,9 +617,10 @@ CALL r.create_search_combined_trigger ('person');
 CALL r.create_search_combined_trigger ('multi_community');
 -- You also need to triggers to update the `score` column.
 -- post | post::score
--- comment | comment_aggregates::score
--- community | community_aggregates::users_active_monthly
+-- comment | comment::score
+-- community | community::users_active_monthly
 -- person | person_aggregates::post_score
+-- multi-community | multi_community::subscribers
 --
 -- Post score
 CREATE FUNCTION r.search_combined_post_score_update ()
@@ -697,3 +698,124 @@ CREATE TRIGGER search_combined_community_score
     AFTER UPDATE OF users_active_month ON community
     FOR EACH ROW
     EXECUTE FUNCTION r.search_combined_community_score_update ();
+-- Multi_community score
+CREATE FUNCTION r.search_combined_multi_community_score_update ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        search_combined
+    SET
+        score = NEW.subscribers
+    WHERE
+        multi_community_id = NEW.id;
+    RETURN NULL;
+END
+$$;
+CREATE TRIGGER search_combined_multi_community_score
+    AFTER UPDATE OF subscribers ON multi_community
+    FOR EACH ROW
+    EXECUTE FUNCTION r.search_combined_multi_community_score_update ();
+-- Increment / decrement multi_community counts
+CREATE FUNCTION r.multicommunity_community_increment ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        multi_community
+    SET
+        communities = communities + 1
+    WHERE
+        id = NEW.multi_community_id;
+    RETURN NULL;
+END
+$$;
+CREATE FUNCTION r.multicommunity_community_decrement ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        multi_community
+    SET
+        communities = communities - 1
+    WHERE
+        id = OLD.multi_community_id;
+    RETURN NULL;
+END
+$$;
+CREATE TRIGGER multi_community_add_community
+    AFTER INSERT ON multi_community_entry
+    FOR EACH ROW
+    EXECUTE FUNCTION r.multicommunity_community_increment ();
+CREATE TRIGGER multi_community_remove_community
+    AFTER DELETE ON multi_community_entry
+    FOR EACH ROW
+    EXECUTE FUNCTION r.multicommunity_community_decrement ();
+-- Increment / decrement multi_community subscriber counts
+CREATE FUNCTION r.multicommunity_subscribers_increment ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        multi_community AS m
+    SET
+        subscribers = subscribers + 1,
+        subscribers_local = CASE WHEN p.local THEN
+            subscribers_local + 1
+        ELSE
+            subscribers_local
+        END
+    FROM
+        person AS p
+    WHERE
+        m.id = NEW.multi_community_id
+        AND p.id = NEW.person_id;
+    RETURN NULL;
+END
+$$;
+CREATE FUNCTION r.multicommunity_subscribers_decrement ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        multi_community AS m
+    SET
+        subscribers = subscribers - 1,
+        subscribers_local = CASE WHEN p.local THEN
+            subscribers_local - 1
+        ELSE
+            subscribers_local
+        END
+    FROM
+        person AS p
+    WHERE
+        m.id = OLD.multi_community_id
+        AND p.id = OLD.person_id;
+    RETURN NULL;
+END
+$$;
+CREATE TRIGGER multi_community_update_add_subscribers
+    AFTER UPDATE OF follow_state ON multi_community_follow
+    FOR EACH ROW
+    WHEN (OLD.follow_state != 'Accepted' AND NEW.follow_state = 'Accepted')
+    EXECUTE FUNCTION r.multicommunity_subscribers_increment ();
+CREATE TRIGGER multi_community_update_remove_subscribers
+    AFTER UPDATE OF follow_state ON multi_community_follow
+    FOR EACH ROW
+    WHEN (OLD.follow_state = 'Accepted' AND NEW.follow_state != 'Accepted')
+    EXECUTE FUNCTION r.multicommunity_subscribers_decrement ();
+CREATE TRIGGER multi_community_add_subscribers
+    AFTER INSERT ON multi_community_follow
+    FOR EACH ROW
+    WHEN (NEW.follow_state = 'Accepted')
+    EXECUTE FUNCTION r.multicommunity_subscribers_increment ();
+CREATE TRIGGER multi_community_remove_subscribers
+    AFTER DELETE ON multi_community_follow
+    FOR EACH ROW
+    WHEN (OLD.follow_state = 'Accepted')
+    EXECUTE FUNCTION r.multicommunity_subscribers_decrement ();

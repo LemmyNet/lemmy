@@ -394,6 +394,7 @@ impl PostQuery<'_> {
 
     let conn = &mut get_conn(pool).await?;
     match o.listing_type.unwrap_or_default() {
+      // TODO we might have much better performance by using post::community_id.eq_any()
       ListingType::Subscribed => query = query.filter(filter_is_subscribed()),
       ListingType::Local => {
         query = query
