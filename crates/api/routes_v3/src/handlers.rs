@@ -72,6 +72,7 @@ use lemmy_api_019::{
   },
   lemmy_db_views::structs::{
     CommentReportView as CommentReportViewV3,
+    PaginationCursor as PaginationCursorV3,
     PostReportView as PostReportViewV3,
   },
   lemmy_db_views_actor::structs::CommunityModeratorView as CommunityModeratorViewV3,
@@ -105,7 +106,14 @@ use lemmy_api_crud::{
   user::{create::register, my_user::get_my_user},
 };
 use lemmy_api_utils::context::LemmyContext;
-use lemmy_db_schema::newtypes::{CommentId, CommunityId, LanguageId, PersonId, PostId};
+use lemmy_db_schema::newtypes::{
+  CommentId,
+  CommunityId,
+  LanguageId,
+  PaginationCursor,
+  PersonId,
+  PostId,
+};
 use lemmy_db_views_comment::api::{
   CreateComment,
   CreateCommentLike,
@@ -168,6 +176,8 @@ pub(crate) async fn list_posts_v3(
     show_nsfw,
     type_,
     sort,
+    page,
+    page_cursor,
     ..
   } = datav3.0;
   let (sort, time_range_seconds) = convert_post_listing_sort(sort);
@@ -180,16 +190,15 @@ pub(crate) async fn list_posts_v3(
     show_hidden,
     show_read,
     show_nsfw,
+    page_cursor: page_cursor.map(|c| PaginationCursor(c.0)),
+    page,
     limit,
     ..Default::default()
   };
-  let posts = list_posts(Query(data), context, local_user_view)
-    .await?
-    .0
-    .posts;
+  let res = list_posts(Query(data), context, local_user_view).await?.0;
   Ok(Json(GetPostsResponseV3 {
-    posts: posts.into_iter().map(convert_post_view).collect(),
-    next_page: None,
+    posts: res.posts.into_iter().map(convert_post_view).collect(),
+    next_page: res.next_page.map(|c| PaginationCursorV3(c.0)),
   }))
 }
 
@@ -655,7 +664,7 @@ pub(crate) async fn register_v3(
   req: HttpRequest,
   context: ApubData<LemmyContext>,
 ) -> LemmyResult<Json<LoginResponseV3>> {
-  let res = register(data, req, context).await?.0;
+  let res = Box::pin(register(data, req, context)).await?.0;
   convert_login_response(res)
 }
 

@@ -277,6 +277,7 @@ pub struct PostQuery<'a> {
   pub keyword_blocks: Option<Vec<String>>,
   pub cursor_data: Option<Post>,
   pub page_back: Option<bool>,
+  pub page: Option<i64>,
   pub limit: Option<i64>,
 }
 
@@ -352,6 +353,10 @@ impl PostQuery<'_> {
       .select(PostView::as_select())
       .limit(limit)
       .into_boxed();
+
+    if let Some(page) = o.page {
+      query = query.offset(limit * (page - 1));
+    }
 
     // hide posts from deleted communities
     query = query.filter(community::deleted.eq(false));

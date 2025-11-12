@@ -132,6 +132,8 @@ pub struct GetPosts {
   pub no_comments_only: Option<bool>,
   pub page_cursor: Option<PaginationCursor>,
   pub page_back: Option<bool>,
+  #[serde(skip)]
+  pub page: Option<i64>,
   pub limit: Option<i64>,
 }
 
