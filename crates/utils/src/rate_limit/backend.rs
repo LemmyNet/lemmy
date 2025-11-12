@@ -181,11 +181,11 @@ mod tests {
     let input = LemmyInput(key, ActionType::Message);
     for _ in 0..5 {
       // First 5 should be allowed
-      let (allow, _, _) = backend.request(input.clone()).await?;
+      let (allow, _, _) = backend.request(input).await?;
       assert!(allow.is_allowed());
     }
     // Sixth should be denied
-    let (allow, _, _) = backend.request(input.clone()).await?;
+    let (allow, _, _) = backend.request(input).await?;
     assert!(!allow.is_allowed());
     Ok(())
   }
