@@ -4,11 +4,14 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::asc_if;
 use lemmy_db_schema::{
   CommunitySortType,
+  MultiCommunityListingType,
+  MultiCommunitySortType,
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommunityId, MultiCommunityId, PaginationCursor, PersonId},
   source::{
     community::{Community, community_keys as key},
     local_user::LocalUser,
+    multi_community::{MultiCommunity, multi_community_keys as mkey},
     site::Site,
   },
   traits::PaginationCursorBuilder,
@@ -231,31 +234,96 @@ impl MultiCommunityView {
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
+}
 
-  pub async fn list(
+impl PaginationCursorBuilder for MultiCommunityView {
+  type CursorData = MultiCommunity;
+  fn to_cursor(&self) -> PaginationCursor {
+    PaginationCursor::new_single('M', self.multi.id.0)
+  }
+
+  async fn from_cursor(
+    cursor: &PaginationCursor,
     pool: &mut DbPool<'_>,
-    creator_id: Option<PersonId>,
-    my_person_id: Option<PersonId>,
-    followed_only: bool,
-  ) -> LemmyResult<Vec<Self>> {
-    let conn = &mut get_conn(pool).await?;
+  ) -> LemmyResult<Self::CursorData> {
+    let [(_, id)] = cursor.prefixes_and_ids()?;
+    MultiCommunity::read(pool, MultiCommunityId(id)).await
+  }
+}
 
-    let mut query = Self::joins(my_person_id)
-      .select(Self::as_select())
-      // TODO this needs proper limit / paging at some point
-      .limit(limit_fetch(None)?)
+#[derive(Default)]
+pub struct MultiCommunityQuery {
+  pub listing_type: Option<MultiCommunityListingType>,
+  pub sort: Option<MultiCommunitySortType>,
+  pub time_range_seconds: Option<i32>,
+  pub my_person_id: Option<PersonId>,
+  pub creator_id: Option<PersonId>,
+  pub cursor_data: Option<MultiCommunity>,
+  pub page_back: Option<bool>,
+  pub limit: Option<i64>,
+  pub no_limit: Option<bool>,
+}
+
+impl MultiCommunityQuery {
+  pub async fn list(self, pool: &mut DbPool<'_>) -> LemmyResult<Vec<MultiCommunityView>> {
+    use lemmy_db_schema::{MultiCommunityListingType::*, MultiCommunitySortType::*};
+    let conn = &mut get_conn(pool).await?;
+    let o = self;
+
+    let mut query = MultiCommunityView::joins(o.my_person_id)
+      .select(MultiCommunityView::as_select())
       .into_boxed();
 
-    if let Some(creator_id) = creator_id {
+    if !o.no_limit.unwrap_or_default() {
+      let limit = limit_fetch(o.limit)?;
+      query = query.limit(limit);
+    }
+
+    if let Some(listing_type) = o.listing_type {
+      query = match listing_type {
+        All => query,
+        Subscribed => {
+          if let Some(my_person_id) = o.my_person_id {
+            query.filter(multi_community_follow::person_id.eq(my_person_id))
+          } else {
+            query
+          }
+        }
+        Local => query.filter(multi_community::local),
+      };
+    }
+
+    if let Some(creator_id) = o.creator_id {
       query = query.filter(multi_community::creator_id.eq(creator_id));
     }
 
-    if followed_only && let Some(my_person_id) = my_person_id {
-      query = query.filter(multi_community_follow::person_id.eq(my_person_id));
+    // Filter by the time range
+    if let Some(time_range_seconds) = o.time_range_seconds {
+      query = query.filter(
+        multi_community::published_at.gt(now() - seconds_to_pg_interval(time_range_seconds)),
+      );
     }
 
-    query
-      .load(conn)
+    // Only sort by ascending for Old or NameAsc sorts.
+    let sort = o.sort.unwrap_or_default();
+    let sort_direction = asc_if(sort == Old || sort == NameAsc);
+
+    let mut pq = paginate(query, sort_direction, o.cursor_data, None, o.page_back);
+
+    pq = match sort {
+      New => pq.then_order_by(mkey::published_at),
+      Old => pq.then_order_by(mkey::published_at),
+      Communities => pq.then_order_by(mkey::communities),
+      Subscribers => pq.then_order_by(mkey::subscribers),
+      SubscribersLocal => pq.then_order_by(mkey::subscribers_local),
+      NameAsc => pq.then_order_by(LowerKey(mkey::name)),
+      NameDesc => pq.then_order_by(LowerKey(mkey::name)),
+    };
+
+    // finally use unique id as tie breaker
+    pq = pq.then_order_by(mkey::id);
+
+    pq.load::<MultiCommunityView>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
@@ -265,7 +333,10 @@ impl MultiCommunityView {
 #[allow(clippy::indexing_slicing)]
 mod tests {
 
-  use crate::{CommunityView, MultiCommunityView, impls::CommunityQuery};
+  use crate::{
+    CommunityView,
+    impls::{CommunityQuery, MultiCommunityListingType, MultiCommunityQuery},
+  };
   use lemmy_db_schema::{
     CommunitySortType,
     source::{
@@ -601,20 +672,22 @@ mod tests {
     let multi2 = MultiCommunity::create(pool, &multi_2_form).await?;
 
     // list all multis
-    let list_all = MultiCommunityView::list(pool, None, None, false)
+    let list_all = MultiCommunityQuery::default()
+      .list(pool)
       .await?
       .iter()
       .map(|m| m.multi.id)
       .collect::<HashSet<_>>();
+
     assert_eq!(list_all, HashSet::from([multi.id, multi2.id]));
 
     // list multis by owner
-    let list_owner = MultiCommunityView::list(
-      pool,
-      Some(data.local_user.person_id),
-      Some(data.local_user.person_id),
-      false,
-    )
+    let list_owner = MultiCommunityQuery {
+      creator_id: Some(data.local_user.person_id),
+      my_person_id: Some(data.local_user.person_id),
+      ..Default::default()
+    }
+    .list(pool)
     .await?;
     assert_eq!(list_owner.len(), 1);
     assert_eq!(list_owner[0].multi.id, multi.id);
@@ -629,8 +702,13 @@ mod tests {
     MultiCommunity::follow(pool, &follow_form).await?;
 
     // list multis followed by user, followed_only
-    let list_followed =
-      MultiCommunityView::list(pool, None, Some(data.local_user.person_id), true).await?;
+    let list_followed = MultiCommunityQuery {
+      my_person_id: Some(data.local_user.person_id),
+      listing_type: Some(MultiCommunityListingType::Subscribed),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?;
     assert_eq!(list_followed.len(), 1);
     assert_eq!(list_followed[0].multi.id, multi2.id);
     assert_eq!(list_followed[0].owner.id, tom.id);
@@ -641,8 +719,13 @@ mod tests {
 
     // Unfollow, and make sure its removed
     MultiCommunity::unfollow(pool, data.local_user.person_id, multi2.id).await?;
-    let list_followed =
-      MultiCommunityView::list(pool, None, Some(data.local_user.person_id), true).await?;
+    let list_followed = MultiCommunityQuery {
+      my_person_id: Some(data.local_user.person_id),
+      listing_type: Some(MultiCommunityListingType::Subscribed),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?;
     assert_eq!(list_followed.len(), 0);
 
     cleanup(data, pool).await?;

@@ -62,7 +62,7 @@ tokio-postgres = { workspace = true, optional = true }
 tokio-postgres-rustls = { workspace = true, optional = true }
 rustls = { workspace = true, optional = true }
 i-love-jesus = { workspace = true, optional = true }
-lemmy_utils = { workspace = true, optional = true }
+lemmy_utils = { workspace = true, features = ["full"], optional = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

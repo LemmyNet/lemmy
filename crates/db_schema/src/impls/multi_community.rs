@@ -352,6 +352,7 @@ mod tests {
     multi_community::{MultiCommunity, MultiCommunityInsertForm},
     person::{Person, PersonInsertForm},
   };
+  use lemmy_db_schema_file::enums::CommunityFollowerState;
   use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
@@ -361,6 +362,7 @@ mod tests {
     multi: MultiCommunity,
     instance: Instance,
     community: Community,
+    person: Person,
   }
 
   async fn setup(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
@@ -387,7 +389,66 @@ mod tests {
       multi,
       instance,
       community,
+      person,
     })
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_counts() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = setup(pool).await?;
+
+    // Make sure there are no counts in the current multi.
+    assert_eq!(0, data.multi.subscribers);
+    assert_eq!(0, data.multi.subscribers_local);
+    assert_eq!(0, data.multi.communities);
+
+    // Insert a community entry
+    let entry_form = MultiCommunityEntryForm {
+      multi_community_id: data.multi.id,
+      community_id: data.community.id,
+    };
+    MultiCommunityEntry::create(pool, &entry_form).await?;
+
+    let after_entry_insert = MultiCommunity::read(pool, data.multi.id).await?;
+    assert_eq!(1, after_entry_insert.communities);
+
+    MultiCommunityEntry::delete(pool, &entry_form).await?;
+    let after_entry_delete = MultiCommunity::read(pool, data.multi.id).await?;
+    assert_eq!(0, after_entry_delete.communities);
+
+    let pending_follow_form = MultiCommunityFollowForm {
+      multi_community_id: data.multi.id,
+      person_id: data.person.id,
+      follow_state: CommunityFollowerState::Pending,
+    };
+    MultiCommunity::follow(pool, &pending_follow_form).await?;
+    let after_pending_follow = MultiCommunity::read(pool, data.multi.id).await?;
+    // Should be 0, since its a pending follow, not approved
+    assert_eq!(0, after_pending_follow.subscribers);
+    assert_eq!(0, after_pending_follow.subscribers_local);
+
+    // Unfollow (deletes the row), the count should not decrement
+    MultiCommunity::unfollow(pool, data.person.id, data.multi.id).await?;
+    let after_unfollow = MultiCommunity::read(pool, data.multi.id).await?;
+    assert_eq!(0, after_unfollow.subscribers);
+    assert_eq!(0, after_unfollow.subscribers_local);
+
+    let accepted_follow_form = MultiCommunityFollowForm {
+      multi_community_id: data.multi.id,
+      person_id: data.person.id,
+      follow_state: CommunityFollowerState::Accepted,
+    };
+    MultiCommunity::follow(pool, &accepted_follow_form).await?;
+    let after_accepted_follow = MultiCommunity::read(pool, data.multi.id).await?;
+    assert_eq!(1, after_accepted_follow.subscribers);
+    assert_eq!(1, after_accepted_follow.subscribers_local);
+
+    Instance::delete(pool, data.instance.id).await?;
+
+    Ok(())
   }
 
   #[tokio::test]
