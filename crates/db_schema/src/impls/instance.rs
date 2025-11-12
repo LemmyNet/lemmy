@@ -1,6 +1,5 @@
 use crate::{
   diesel::dsl::IntervalDsl,
-  newtypes::{InstanceId, PersonId},
   source::instance::{
     Instance,
     InstanceActions,
@@ -22,12 +21,16 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use diesel_uplete::{UpleteCount, uplete};
-use lemmy_db_schema_file::schema::{
-  federation_allowlist,
-  federation_blocklist,
-  federation_queue_state,
-  instance,
-  instance_actions,
+use lemmy_db_schema_file::{
+  InstanceId,
+  PersonId,
+  schema::{
+    federation_allowlist,
+    federation_blocklist,
+    federation_queue_state,
+    instance,
+    instance_actions,
+  },
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},

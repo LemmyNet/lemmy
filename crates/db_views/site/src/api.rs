@@ -1,13 +1,6 @@
 use crate::{FederatedInstanceView, ReadableFederationState, SiteView};
 use lemmy_db_schema::{
-  newtypes::{
-    InstanceId,
-    LanguageId,
-    MultiCommunityId,
-    OAuthProviderId,
-    PaginationCursor,
-    TaglineId,
-  },
+  newtypes::{LanguageId, MultiCommunityId, OAuthProviderId, PaginationCursor, TaglineId},
   source::{
     comment::Comment,
     community::Community,
@@ -23,14 +16,17 @@ use lemmy_db_schema::{
     tagline::Tagline,
   },
 };
-use lemmy_db_schema_file::enums::{
-  CommentSortType,
-  FederationMode,
-  ListingType,
-  PostListingMode,
-  PostSortType,
-  RegistrationMode,
-  VoteShow,
+use lemmy_db_schema_file::{
+  InstanceId,
+  enums::{
+    CommentSortType,
+    FederationMode,
+    ListingType,
+    PostListingMode,
+    PostSortType,
+    RegistrationMode,
+    VoteShow,
+  },
 };
 use lemmy_db_views_community::MultiCommunityView;
 use lemmy_db_views_community_follower::CommunityFollowerView;

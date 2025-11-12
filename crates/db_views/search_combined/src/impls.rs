@@ -23,7 +23,7 @@ use lemmy_db_schema::{
   SearchSortType::{self, *},
   SearchType,
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommunityId, InstanceId, PaginationCursor, PersonId},
+  newtypes::{CommunityId, PaginationCursor},
   source::{
     combined::search::{SearchCombined, search_combined_keys as key},
     site::Site,
@@ -31,29 +31,29 @@ use lemmy_db_schema::{
   traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{
     limit_fetch,
-    queries::{
-      filters::{
-        filter_is_subscribed,
-        filter_not_unlisted_or_is_subscribed,
-        filter_suggested_communities,
-      },
-      joins::{
-        creator_community_actions_join,
-        creator_home_instance_actions_join,
-        creator_local_instance_actions_join,
-        creator_local_user_admin_join,
-        image_details_join,
-        my_comment_actions_join,
-        my_community_actions_join,
-        my_local_user_admin_join,
-        my_person_actions_join,
-        my_post_actions_join,
-      },
+    queries::filters::{
+      filter_is_subscribed,
+      filter_not_unlisted_or_is_subscribed,
+      filter_suggested_communities,
     },
   },
 };
 use lemmy_db_schema_file::{
+  InstanceId,
+  PersonId,
   enums::ListingType,
+  joins::{
+    creator_community_actions_join,
+    creator_home_instance_actions_join,
+    creator_local_instance_actions_join,
+    creator_local_user_admin_join,
+    image_details_join,
+    my_comment_actions_join,
+    my_community_actions_join,
+    my_local_user_admin_join,
+    my_person_actions_join,
+    my_post_actions_join,
+  },
   schema::{
     comment,
     comment_actions,

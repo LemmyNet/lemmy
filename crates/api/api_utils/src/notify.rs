@@ -1,6 +1,5 @@
 use crate::{context::LemmyContext, plugins::plugin_hook_notification};
 use lemmy_db_schema::{
-  newtypes::PersonId,
   source::{
     comment::Comment,
     community::{Community, CommunityActions},
@@ -12,10 +11,9 @@ use lemmy_db_schema::{
   },
   traits::{ApubActor, Blockable},
 };
-use lemmy_db_schema_file::enums::{
-  CommunityNotificationsMode,
-  NotificationType,
-  PostNotificationsMode,
+use lemmy_db_schema_file::{
+  PersonId,
+  enums::{CommunityNotificationsMode, NotificationType, PostNotificationsMode},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_private_message::PrivateMessageView;

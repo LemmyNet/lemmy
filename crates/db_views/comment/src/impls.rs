@@ -13,7 +13,7 @@ use diesel_ltree::{Ltree, LtreeExtensions, nlevel};
 use i_love_jesus::asc_if;
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommentId, CommunityId, InstanceId, PaginationCursor, PersonId, PostId},
+  newtypes::{CommentId, CommunityId, PaginationCursor, PostId},
   source::{
     comment::{Comment, comment_keys as key},
     local_user::LocalUser,
@@ -22,29 +22,29 @@ use lemmy_db_schema::{
   traits::PaginationCursorBuilder,
   utils::{
     limit_fetch,
-    queries::{
-      filters::{filter_blocked, filter_suggested_communities},
-      joins::{
-        creator_community_actions_join,
-        creator_community_instance_actions_join,
-        creator_home_instance_actions_join,
-        creator_local_instance_actions_join,
-        my_comment_actions_join,
-        my_community_actions_join,
-        my_instance_communities_actions_join,
-        my_instance_persons_actions_join_1,
-        my_local_user_admin_join,
-        my_person_actions_join,
-      },
-    },
+    queries::filters::{filter_blocked, filter_suggested_communities},
   },
 };
 use lemmy_db_schema_file::{
+  InstanceId,
+  PersonId,
   enums::{
     CommentSortType::{self, *},
     CommunityFollowerState,
     CommunityVisibility,
     ListingType,
+  },
+  joins::{
+    creator_community_actions_join,
+    creator_community_instance_actions_join,
+    creator_home_instance_actions_join,
+    creator_local_instance_actions_join,
+    my_comment_actions_join,
+    my_community_actions_join,
+    my_instance_communities_actions_join,
+    my_instance_persons_actions_join_1,
+    my_local_user_admin_join,
+    my_person_actions_join,
   },
   schema::{comment, community, community_actions, local_user_language, person, post},
 };

@@ -1,4 +1,6 @@
 use crate::{
+  InstanceId,
+  PersonId,
   aliases::{
     creator_community_actions,
     creator_community_instance_actions,
@@ -7,24 +9,23 @@ use crate::{
     creator_local_user,
     my_instance_persons_actions,
   },
-  newtypes::{InstanceId, PersonId},
+  schema::{
+    comment,
+    comment_actions,
+    community,
+    community_actions,
+    image_details,
+    instance_actions,
+    local_user,
+    multi_community,
+    multi_community_follow,
+    person,
+    person_actions,
+    post,
+    post_actions,
+  },
 };
 use diesel::{BoolExpressionMethods, ExpressionMethods, JoinOnDsl, NullableExpressionMethods};
-use lemmy_db_schema_file::schema::{
-  comment,
-  comment_actions,
-  community,
-  community_actions,
-  image_details,
-  instance_actions,
-  local_user,
-  multi_community,
-  multi_community_follow,
-  person,
-  person_actions,
-  post,
-  post_actions,
-};
 
 #[diesel::dsl::auto_type]
 pub fn creator_local_user_admin_join() -> _ {

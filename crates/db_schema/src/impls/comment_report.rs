@@ -1,5 +1,5 @@
 use crate::{
-  newtypes::{CommentId, CommentReportId, PersonId},
+  newtypes::{CommentId, CommentReportId},
   source::comment_report::{CommentReport, CommentReportForm},
   traits::Reportable,
 };
@@ -11,7 +11,7 @@ use diesel::{
   dsl::{insert_into, update},
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::comment_report;
+use lemmy_db_schema_file::{PersonId, schema::comment_report};
 use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 

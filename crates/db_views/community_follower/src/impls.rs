@@ -10,11 +10,13 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
-  newtypes::{CommunityId, InstanceId, PaginationCursor, PersonId},
+  newtypes::{CommunityId, PaginationCursor},
   source::community::CommunityActions,
   traits::PaginationCursorBuilder,
 };
 use lemmy_db_schema_file::{
+  InstanceId,
+  PersonId,
   enums::CommunityFollowerState,
   schema::{community, community_actions, person},
 };
