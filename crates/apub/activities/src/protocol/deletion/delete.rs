@@ -29,6 +29,7 @@ pub struct Delete {
   #[serde(rename = "type")]
   pub(crate) kind: DeleteType,
   pub(crate) id: Url,
+  pub(crate) audience: Option<ObjectId<ApubCommunity>>,
 
   #[serde(deserialize_with = "deserialize_one_or_many")]
   #[serde(default)]
@@ -44,6 +45,9 @@ pub struct Delete {
 
 impl InCommunity for Delete {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
+    if let Some(audience) = &self.audience {
+      return audience.dereference(context).await;
+    }
     let community_id = match DeletableObjects::read_from_db(self.object.id(), context).await? {
       DeletableObjects::Community(c) => c.id,
       DeletableObjects::Comment(c) => {
