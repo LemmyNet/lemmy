@@ -1,5 +1,6 @@
-use crate::newtypes::{PersonId, PrivateMessageId};
+use crate::newtypes::PrivateMessageId;
 use chrono::{DateTime, Utc};
+use lemmy_db_schema_file::PersonId;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::private_message;
 use lemmy_diesel_utils::dburl::DbUrl;

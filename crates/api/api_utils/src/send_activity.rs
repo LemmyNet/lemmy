@@ -2,7 +2,7 @@ use crate::context::LemmyContext;
 use activitypub_federation::config::Data;
 use either::Either;
 use lemmy_db_schema::{
-  newtypes::{CommunityId, PersonId},
+  newtypes::CommunityId,
   source::{
     comment::Comment,
     community::Community,
@@ -13,6 +13,7 @@ use lemmy_db_schema::{
     site::Site,
   },
 };
+use lemmy_db_schema_file::PersonId;
 use lemmy_db_views_community::api::BanFromCommunity;
 use lemmy_db_views_post::api::DeletePost;
 use lemmy_db_views_private_message::PrivateMessageView;

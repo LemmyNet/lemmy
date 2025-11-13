@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
   SearchSortType,
   SearchType,
-  newtypes::{CommunityId, PaginationCursor, PersonId},
+  newtypes::{CommunityId, PaginationCursor},
   source::{
     combined::search::SearchCombined,
     comment::{Comment, CommentActions},
@@ -14,7 +14,7 @@ use lemmy_db_schema::{
     tag::TagsView,
   },
 };
-use lemmy_db_schema_file::enums::ListingType;
+use lemmy_db_schema_file::{PersonId, enums::ListingType};
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_community::{CommunityView, MultiCommunityView};
 use lemmy_db_views_person::PersonView;

@@ -1,5 +1,5 @@
 use crate::{
-  newtypes::{InstanceId, SiteId},
+  newtypes::SiteId,
   source::{
     actor_language::SiteLanguage,
     site::{Site, SiteInsertForm, SiteUpdateForm},
@@ -7,7 +7,10 @@ use crate::{
 };
 use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, dsl::insert_into};
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::{local_site, site};
+use lemmy_db_schema_file::{
+  InstanceId,
+  schema::{local_site, site},
+};
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   dburl::DbUrl,

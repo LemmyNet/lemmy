@@ -1,4 +1,3 @@
-use crate::aliases::my_instance_persons_actions;
 use diesel::{
   BoolExpressionMethods,
   ExpressionMethods,
@@ -7,6 +6,7 @@ use diesel::{
   helper_types::{Eq, NotEq},
 };
 use lemmy_db_schema_file::{
+  aliases::my_instance_persons_actions,
   enums::{CommunityFollowerState, CommunityVisibility},
   schema::{
     community,

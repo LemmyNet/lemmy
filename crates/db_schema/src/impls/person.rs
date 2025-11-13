@@ -1,6 +1,6 @@
 use crate::{
   diesel::{BoolExpressionMethods, NullableExpressionMethods, OptionalExtension},
-  newtypes::{CommunityId, InstanceId, LocalUserId, PersonId},
+  newtypes::{CommunityId, LocalUserId},
   source::person::{
     Person,
     PersonActions,
@@ -23,12 +23,10 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use diesel_uplete::{UpleteCount, uplete};
-use lemmy_db_schema_file::schema::{
-  instance,
-  instance_actions,
-  local_user,
-  person,
-  person_actions,
+use lemmy_db_schema_file::{
+  InstanceId,
+  PersonId,
+  schema::{instance, instance_actions, local_user, person, person_actions},
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},

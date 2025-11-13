@@ -1,5 +1,6 @@
-use crate::newtypes::{PersonId, PrivateMessageId, PrivateMessageReportId};
+use crate::newtypes::{PrivateMessageId, PrivateMessageReportId};
 use chrono::{DateTime, Utc};
+use lemmy_db_schema_file::PersonId;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::private_message_report;
 use serde::{Deserialize, Serialize};

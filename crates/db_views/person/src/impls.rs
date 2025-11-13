@@ -3,19 +3,21 @@ use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  newtypes::{InstanceId, PaginationCursor, PersonId},
+  newtypes::PaginationCursor,
   source::person::{Person, person_keys as key},
   traits::PaginationCursorBuilder,
-  utils::{
-    limit_fetch,
-    queries::joins::{
-      creator_home_instance_actions_join,
-      creator_local_instance_actions_join,
-      my_person_actions_join,
-    },
-  },
+  utils::limit_fetch,
 };
-use lemmy_db_schema_file::schema::{local_user, person};
+use lemmy_db_schema_file::{
+  InstanceId,
+  PersonId,
+  joins::{
+    creator_home_instance_actions_join,
+    creator_local_instance_actions_join,
+    my_person_actions_join,
+  },
+  schema::{local_user, person},
+};
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   traits::Crud,

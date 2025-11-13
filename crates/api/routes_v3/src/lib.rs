@@ -90,7 +90,7 @@ use lemmy_api_crud::{
 };
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
-  newtypes::{CommentId, CommunityId, LanguageId, PersonId, PostId},
+  newtypes::{CommentId, CommunityId, LanguageId, PostId},
   source::{
     comment::Comment,
     community::Community,
@@ -101,7 +101,10 @@ use lemmy_db_schema::{
     site::Site,
   },
 };
-use lemmy_db_schema_file::enums::{ListingType, PostSortType};
+use lemmy_db_schema_file::{
+  PersonId,
+  enums::{ListingType, PostSortType},
+};
 use lemmy_db_views_comment::{
   CommentView,
   api::{CreateComment, CreateCommentLike, GetComments},

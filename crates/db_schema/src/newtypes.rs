@@ -19,13 +19,6 @@ impl fmt::Display for PostId {
   }
 }
 
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Default, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(DieselNewType))]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// The person id.
-pub struct PersonId(pub i32);
-
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(DieselNewType))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
@@ -120,15 +113,6 @@ pub struct SiteId(pub i32);
 pub struct LanguageId(pub i32);
 
 #[derive(
-  Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default, Ord, PartialOrd,
-)]
-#[cfg_attr(feature = "full", derive(DieselNewType))]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// The instance id.
-pub struct InstanceId(pub i32);
-
-#[derive(
   Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default, PartialOrd, Ord,
 )]
 #[cfg_attr(feature = "full", derive(DieselNewType))]
@@ -213,12 +197,6 @@ pub struct ModlogId(pub i32);
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct MultiCommunityId(pub i32);
-
-impl InstanceId {
-  pub fn inner(self) -> i32 {
-    self.0
-  }
-}
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Default, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(DieselNewType))]
