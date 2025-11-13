@@ -18,7 +18,7 @@ use diesel_async::{
   },
   scoped_futures::ScopedBoxFuture,
 };
-use diesel_migrations::{HarnessWithOutput, MigrationHarness};
+use diesel_migrations::MigrationHarness;
 use futures_util::{FutureExt, future::BoxFuture};
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
@@ -38,7 +38,6 @@ use rustls::{
   pki_types::{CertificateDer, ServerName, UnixTime},
 };
 use std::{
-  collections::VecDeque,
   ops::{Deref, DerefMut},
   sync::Arc,
   time::Duration,
