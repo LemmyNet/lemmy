@@ -25,7 +25,10 @@ use lemmy_apub_objects::objects::{community::FETCH_COMMUNITY_COLLECTIONS, instan
 use lemmy_apub_send::{Opts, SendManager};
 use lemmy_db_schema::source::secret::Secret;
 use lemmy_db_views_site::SiteView;
-use lemmy_diesel_utils::connection::build_db_pool;
+use lemmy_diesel_utils::{
+  connection::build_db_pool,
+  schema_setup::{convert_err, migrations},
+};
 use lemmy_routes::{
   feeds,
   middleware::{
@@ -144,17 +147,21 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
     number,
   }) = args.subcommand
   {
-    let mut options = match subcommand {
-      MigrationSubcommand::Run => lemmy_diesel_utils::schema_setup::Options::default().run(),
-      MigrationSubcommand::Revert => lemmy_diesel_utils::schema_setup::Options::default().revert(),
-    }
-    .print_output();
+    let mut harness =
+      lemmy_diesel_utils::schema_setup::Options::new(&SETTINGS.get_database_url_with_options()?)?;
 
-    if !all {
-      options = options.limit(number);
-    }
+    let range = if all {
+      diesel_migrations::Range::All
+    } else {
+      diesel_migrations::Range::NumberOfMigrations(number)
+    };
 
-    lemmy_diesel_utils::schema_setup::run(options, &SETTINGS.get_database_url_with_options()?)?;
+    match subcommand {
+      MigrationSubcommand::Run => harness.run_pending_migrations_in_range(migrations(), range),
+      MigrationSubcommand::Revert => harness.revert_last_migrations_in_range(migrations(), range),
+    }
+    .map_err(convert_err)?;
+    // todo: .print_output();
 
     #[cfg(debug_assertions)]
     if all && subcommand == MigrationSubcommand::Run {
