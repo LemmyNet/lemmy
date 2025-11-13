@@ -1,6 +1,5 @@
 mod diff_check;
 use anyhow::{Context, anyhow};
-use chrono::TimeDelta;
 use diesel::{
   BoolExpressionMethods,
   Connection,
@@ -10,14 +9,12 @@ use diesel::{
   RunQueryDsl,
   connection::SimpleConnection,
   dsl::exists,
-  migration::{Migration, MigrationMetadata, MigrationVersion},
+  migration::{Migration, MigrationVersion},
   pg::Pg,
   select,
   update,
 };
 use diesel_migrations::MigrationHarness;
-use std::time::Instant;
-use tracing::debug;
 
 diesel::table! {
   pg_namespace (nspname) {
@@ -32,38 +29,8 @@ diesel::table! {
   }
 }
 
-/*struct MigrationWrapper(Box<dyn Migration<Pg>>);
-
-impl Migration<Pg> for MigrationWrapper {
-  fn metadata(&self) -> &dyn diesel::migration::MigrationMetadata {
-    struct TodoRename;
-
-    impl MigrationMetadata for TodoRename {
-      fn run_in_transaction(&self) -> bool {
-        false
-      }
-    }
-
-    &TodoRename
-  }
-
-  fn name(&self) -> &dyn diesel::migration::MigrationName {
-      self.0.name()
-  }
-
-  fn revert(&self, conn: &mut dyn diesel::connection::BoxableConnection<Pg>) -> diesel::migration::Result<()> {
-      revert_replaceable_schema(conn)?;
-
-  }
-}
-
-struct LemmyMigrations;*/
-
-pub fn migrations() -> diesel_migrations::EmbeddedMigrations {
-  // Using `const` here is required by the borrow checker
-  const MIGRATIONS: diesel_migrations::EmbeddedMigrations = diesel_migrations::embed_migrations!();
-  MIGRATIONS
-}
+pub const MIGRATIONS: diesel_migrations::EmbeddedMigrations =
+  diesel_migrations::embed_migrations!();
 
 /// This SQL code sets up the `r` schema, which contains things that can be safely dropped and
 /// replaced instead of being changed using migrations. It may not create or modify things outside
@@ -79,53 +46,29 @@ fn replaceable_schema() -> String {
 
 const REPLACEABLE_SCHEMA_PATH: &str = "crates/diesel_utils/replaceable_schema";
 
-impl Options {
-  fn run_migration_inner(
-    &mut self,
-    migration: &dyn Migration<Pg>,
-  ) -> diesel::migration::Result<MigrationVersion<'static>> {
-    let start_time = Instant::now();
+/* TODO: move to diesel
+let duration = TimeDelta::from_std(start_time.elapsed())
+  .map(|d| d.to_string())
+  .unwrap_or_default();
+let name = migration.name();
+self.print(&format!("{duration} run {name}"));*/
 
-    let result = self.conn.run_migration(migration);
-
-    let duration = TimeDelta::from_std(start_time.elapsed())
-      .map(|d| d.to_string())
-      .unwrap_or_default();
-    let name = migration.name();
-    self.print(&format!("{duration} run {name}"));
-
-    result
-  }
+// todo: add output back, with same behavior as tracing::debug by default
+pub struct MigrationHarnessWrapper {
+  // Migrations don't support async connection, and non-async migration execution is okay
+  pub conn: PgConnection,
 }
 
-impl MigrationHarness<Pg> for Options {
+impl MigrationHarness<Pg> for MigrationHarnessWrapper {
   fn run_migration(
     &mut self,
     migration: &dyn Migration<Pg>,
   ) -> diesel::migration::Result<MigrationVersion<'static>> {
     // Drop `r` schema, so migrations don't need to be made to work both with and without things in
     // it existing
-    revert_replaceable_schema(&mut self.conn)?;
+    self.revert_replaceable_schema()?;
 
-    #[cfg(test)]
-    if self.enable_diff_check {
-      let before = diff_check::get_dump();
-
-      self.run_migration_inner(migration)?;
-      self.revert_migration(migration)?;
-
-      let after = diff_check::get_dump();
-
-      diff_check::check_dump_diff(
-        [&after, &before],
-        &format!(
-          "These changes need to be applied in migrations/{}/down.sql:",
-          migration.name()
-        ),
-      );
-    }
-
-    self.run_migration_inner(migration)
+    self.conn.run_migration(migration)
   }
 
   fn revert_migration(
@@ -134,19 +77,9 @@ impl MigrationHarness<Pg> for Options {
   ) -> diesel::migration::Result<MigrationVersion<'static>> {
     // Drop `r` schema, so migrations don't need to be made to work both with and without things in
     // it existing
-    revert_replaceable_schema(&mut self.conn)?;
+    self.revert_replaceable_schema()?;
 
-    let start_time = Instant::now();
-
-    let result = self.conn.revert_migration(migration);
-
-    let duration = TimeDelta::from_std(start_time.elapsed())
-      .map(|d| d.to_string())
-      .unwrap_or_default();
-    let name = migration.name();
-    self.print(&format!("{duration} revert {name}"));
-
-    result
+    self.conn.revert_migration(migration)
   }
 
   fn applied_migrations(&mut self) -> diesel::migration::Result<Vec<MigrationVersion<'static>>> {
@@ -154,195 +87,60 @@ impl MigrationHarness<Pg> for Options {
   }
 }
 
-pub struct Options {
-  #[cfg(test)]
-  enable_diff_check: bool,
-  revert: bool,
-  run: bool,
-  print_output: bool,
-  limit: Option<u64>,
-  // Migrations don't support async connection, and non-async migration execution is okay
-  pub conn: PgConnection,
-}
-
-impl Options {
-  #[cfg(test)]
-  fn enable_diff_check(mut self) -> Self {
-    self.enable_diff_check = true;
-    self
-  }
-
-  pub fn run(mut self) -> Self {
-    self.run = true;
-    self
-  }
-
-  pub fn revert(mut self) -> Self {
-    self.revert = true;
-    self
-  }
-
-  pub fn limit(mut self, limit: u64) -> Self {
-    self.limit = Some(limit);
-    self
-  }
-
-  /// If print_output is true, use println!.
-  /// Otherwise, use debug!
-  pub fn print_output(mut self) -> Self {
-    self.print_output = true;
-    self
-  }
-
-  pub fn print(&self, text: &str) {
-    if self.print_output {
-      println!("{text}");
-    } else {
-      debug!("{text}");
-    }
-  }
-}
-
-/// Checked by tests
-#[derive(PartialEq, Eq, Debug)]
-pub enum Branch {
-  EarlyReturn,
-  ReplaceableSchemaRebuilt,
-  ReplaceableSchemaNotRebuilt,
-}
-
-impl Options {
+impl MigrationHarnessWrapper {
   pub fn new(db_url: &str) -> anyhow::Result<Self> {
-    Ok(Options {
-      #[cfg(test)]
-      enable_diff_check: false,
-      revert: false,
-      run: false,
-      print_output: false,
-      limit: None,
+    Ok(MigrationHarnessWrapper {
       conn: PgConnection::establish(db_url)?,
     })
   }
 
   pub fn need_schema_setup(&mut self) -> anyhow::Result<bool> {
-    if !self.revert
-      && self.run
-      && self.limit.is_none()
-      && !self
-        .conn
-        .has_pending_migration(migrations())
-        .map_err(convert_err)?
-    {
-      // The condition above implies that the migration that creates the previously_run_sql table
-      // was already run
-      let sql_unchanged = exists(
-        previously_run_sql::table.filter(previously_run_sql::content.eq(replaceable_schema())),
-      );
-
-      let schema_exists = exists(pg_namespace::table.find("r"));
-
-      if select(sql_unchanged.and(schema_exists)).get_result(&mut self.conn)? {
-        return Ok(false);
-      }
-    }
-    Ok(true)
+    Ok(self.conn.has_pending_migration(MIGRATIONS)? || !self.replaceable_schema_is_up_to_date()?)
   }
-}
 
-pub fn after_run(mut options: Options) -> anyhow::Result<Branch> {
-  // Migrations don't support async connection, and this function doesn't need to be async
-  //let conn = &mut PgConnection::establish(db_url)?;
+  fn replaceable_schema_is_up_to_date(&mut self) -> anyhow::Result<bool> {
+    // Assumes that the migration that creates the previously_run_sql table was already run. This
+    // assumption is true if has_pending_migration already returned false.
+    let sql_unchanged = exists(
+      previously_run_sql::table.filter(previously_run_sql::content.eq(replaceable_schema())),
+    );
 
-  //run_selected_migrations(&mut options).map_err(convert_err)?;
+    let schema_exists = exists(pg_namespace::table.find("r"));
 
-  // Only run replaceable_schema if newest migration was applied
-  let output = if (options.run && options.limit.is_none())
-    || !options
+    Ok(select(sql_unchanged.and(schema_exists)).get_result(&mut self.conn)?)
+  }
+
+  /// this shouldn't be run in the same transaction as the next stuff, since [todo finish
+  /// explanation]
+  fn revert_replaceable_schema(&mut self) -> anyhow::Result<()> {
+    self
       .conn
-      .has_pending_migration(migrations())
-      .map_err(convert_err)?
-  {
-    #[cfg(test)]
-    if options.enable_diff_check {
-      let before = diff_check::get_dump();
+      .batch_execute("DROP SCHEMA IF EXISTS r CASCADE;")
+      .with_context(|| format!("Failed to revert SQL files in {REPLACEABLE_SCHEMA_PATH}"))?;
 
-      run_replaceable_schema(&mut options.conn)?;
-      revert_replaceable_schema(&mut options.conn)?;
-
-      let after = diff_check::get_dump();
-
-      diff_check::check_dump_diff(
-        [&before, &after],
-        "The code in crates/diesel_utils/replaceable_schema incorrectly created or modified things outside of the `r` schema, causing these changes to be left behind after dropping the schema:",
-      );
-
-      diff_check::deferr_constraint_check(&after);
-    }
-
-    run_replaceable_schema(&mut options.conn)?;
-
-    Branch::ReplaceableSchemaRebuilt
-  } else {
-    Branch::ReplaceableSchemaNotRebuilt
-  };
-
-  options.print("Database migrations complete.");
-
-  Ok(output)
-}
-
-pub fn run_replaceable_schema(conn: &mut PgConnection) -> anyhow::Result<()> {
-  revert_replaceable_schema(conn)?;
-
-  conn.transaction(|conn| {
-    conn
-      .batch_execute(&replaceable_schema())
-      .with_context(|| format!("Failed to run SQL files in {REPLACEABLE_SCHEMA_PATH}"))?;
-
-    let num_rows_updated = update(previously_run_sql::table)
-      .set(previously_run_sql::content.eq(replaceable_schema()))
-      .execute(conn)?;
-
-    debug_assert_eq!(num_rows_updated, 1);
+    // Value in `previously_run_sql` table is not set here because the table might not exist,
+    // and that's fine because the existence of the `r` schema is also checked
 
     Ok(())
-  })
-}
-
-/// this shouldn't be run in the same transaction as the next stuff, since [todo finish explanation]
-fn revert_replaceable_schema(conn: &mut (impl SimpleConnection + ?Sized)) -> anyhow::Result<()> {
-  conn
-    .batch_execute("DROP SCHEMA IF EXISTS r CASCADE;")
-    .with_context(|| format!("Failed to revert SQL files in {REPLACEABLE_SCHEMA_PATH}"))?;
-
-  // Value in `previously_run_sql` table is not set here because the table might not exist,
-  // and that's fine because the existence of the `r` schema is also checked
-
-  Ok(())
-}
-
-fn run_selected_migrations(options: &mut Options) -> diesel::migration::Result<()> {
-  if options.revert {
-    if let Some(limit) = options.limit {
-      for _ in 0..limit {
-        options.revert_last_migration(migrations())?;
-      }
-    } else {
-      options.revert_all_migrations(migrations())?;
-    }
   }
 
-  if options.run {
-    if let Some(limit) = options.limit {
-      for _ in 0..limit {
-        options.run_next_migration(migrations())?;
-      }
-    } else {
-      options.run_pending_migrations(migrations())?;
-    }
-  }
+  pub fn run_replaceable_schema(&mut self) -> anyhow::Result<()> {
+    self.revert_replaceable_schema()?;
 
-  Ok(())
+    self.conn.transaction(|conn| {
+      conn
+        .batch_execute(&replaceable_schema())
+        .with_context(|| format!("Failed to run SQL files in {REPLACEABLE_SCHEMA_PATH}"))?;
+
+      let num_rows_updated = update(previously_run_sql::table)
+        .set(previously_run_sql::content.eq(replaceable_schema()))
+        .execute(conn)?;
+
+      debug_assert_eq!(num_rows_updated, 1);
+
+      Ok(())
+    })
+  }
 }
 
 // todo: try to make diesel's migration error type implement the right traits so we don't need
@@ -356,10 +154,7 @@ pub fn convert_err(e: Box<dyn std::error::Error + Send + Sync>) -> anyhow::Error
 #[cfg(test)]
 #[allow(clippy::indexing_slicing, clippy::unwrap_used)]
 mod tests {
-  use super::{
-    Branch::{EarlyReturn, ReplaceableSchemaNotRebuilt, ReplaceableSchemaRebuilt},
-    *,
-  };
+  use super::*;
   use diesel::{
     dsl::{not, sql},
     sql_types,
@@ -418,7 +213,7 @@ mod tests {
   // todo: maybe add commends for need_schema_setup asserts
   fn test_schema_setup() -> LemmyResult<()> {
     let db_url = SETTINGS.get_database_url_with_options()?;
-    let mut harness = crate::schema_setup::Options::new(&db_url)?;
+    let mut harness = crate::schema_setup::MigrationHarnessWrapper::new(&db_url)?;
 
     // Start with consistent state by dropping everything
     harness.conn.batch_execute("DROP OWNED BY CURRENT_USER;")?;
@@ -427,7 +222,7 @@ mod tests {
 
     // Run initial migrations to prepare basic tables
     harness.run_pending_migrations_in_range(
-      migrations(),
+      MIGRATIONS,
       diesel_migrations::Range::NumberOfMigrations(INITIAL_MIGRATIONS_COUNT),
     )?;
 
@@ -437,7 +232,7 @@ mod tests {
     insert_test_data(&mut harness.conn)?;
 
     // Run all migrations, and make sure that changes can be correctly reverted
-    for migration in harness.pending_migrations(migrations())? {
+    for migration in harness.pending_migrations(MIGRATIONS)? {
       let before = diff_check::get_dump();
 
       harness.run_migration(&migration)?;
@@ -461,8 +256,8 @@ mod tests {
     // Make sure that replaceable schema can be correctly reverted
     let before = diff_check::get_dump();
 
-    run_replaceable_schema(&mut harness.conn)?;
-    revert_replaceable_schema(&mut harness.conn)?;
+    harness.run_replaceable_schema()?;
+    harness.revert_replaceable_schema()?;
 
     let after = diff_check::get_dump();
 
@@ -472,7 +267,7 @@ mod tests {
     );
 
     assert!(harness.need_schema_setup()?);
-    run_replaceable_schema(&mut harness.conn)?;
+    harness.run_replaceable_schema()?;
     assert!(!harness.need_schema_setup()?);
 
     // Check the test data we inserted before after running migrations
@@ -487,10 +282,10 @@ mod tests {
     diff_check::deferr_constraint_check(&after);
 
     // Todo: maybe clean up (this used to be for testing the limit option)
-    harness.revert_last_migration(migrations())?;
+    harness.revert_last_migration(MIGRATIONS)?;
     assert!(harness.need_schema_setup()?);
-    harness.run_next_migration(migrations())?;
-    run_replaceable_schema(&mut harness.conn)?;
+    harness.run_next_migration(MIGRATIONS)?;
+    harness.run_replaceable_schema()?;
     assert!(!harness.need_schema_setup()?);
 
     // Get a new connection, workaround for error `cache lookup failed for function 26633`
@@ -503,14 +298,14 @@ mod tests {
       .conn
       .batch_execute("DROP OWNED BY CURRENT_USER; SET application_name=reddit;")?;
     assert!(matches!(
-      harness.run_pending_migrations(migrations()),
+      harness.run_pending_migrations(MIGRATIONS),
       Err(e) if e.to_string().contains("lemmy_server")
     ));
 
     // Diesel CLI's way of running migrations shouldn't break the custom migration runner
     harness.conn.batch_execute("SET application_name=lemmy;")?;
-    harness.run_pending_migrations(migrations())?;
-    run_replaceable_schema(&mut harness.conn)?;
+    harness.run_pending_migrations(MIGRATIONS)?;
+    harness.run_replaceable_schema()?;
     assert!(!harness.need_schema_setup()?);
 
     Ok(())

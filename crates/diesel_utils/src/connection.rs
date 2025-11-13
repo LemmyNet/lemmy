@@ -1,3 +1,4 @@
+use crate::schema_setup::MIGRATIONS;
 use deadpool::Runtime;
 use diesel::{
   connection::SimpleConnection,
@@ -41,7 +42,7 @@ use std::{
   sync::Arc,
   time::Duration,
 };
-use tracing::error;
+use tracing::{debug, error};
 
 pub type ActualDbPool = Pool<AsyncPgConnection>;
 
@@ -183,7 +184,7 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
     }))
     .build()?;
 
-  let mut harness = crate::schema_setup::Options::new(&db_url)?;
+  let mut harness = crate::schema_setup::MigrationHarnessWrapper::new(&db_url)?;
 
   // If possible, skip getting a lock and recreating the "r" schema, so lemmy_server processes in a
   // horizontally scaled setup can start without causing locks
@@ -191,16 +192,16 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
     // Block concurrent attempts to run migrations until `conn` is closed (otherwise, in a
     // horizontally scaled setup, it's possible for multiple processes to try running the same
     // migration, which would throw a unique violation error)
-    harness.print("Waiting for lock...");
+    debug!("Waiting for lock...");
     harness.conn.batch_execute("SELECT pg_advisory_lock(0);")?;
 
-    harness.print("Running Database migrations (This may take a long time)...");
+    debug!("Running Database migrations (This may take a long time)...");
     harness
-      .run_pending_migrations(crate::schema_setup::migrations())
+      .run_pending_migrations(MIGRATIONS)
       .map_err(crate::schema_setup::convert_err)?;
-    crate::schema_setup::run_replaceable_schema(&mut harness.conn)?;
+    harness.run_replaceable_schema()?;
 
-    harness.print("Database migrations complete.");
+    debug!("Database migrations complete.");
   }
 
   Ok(pool)

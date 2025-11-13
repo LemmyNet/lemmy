@@ -8,10 +8,11 @@ fn main() -> anyhow::Result<()> {
   }
 
   // todo: set the application_name
-  let mut harness =
-    lemmy_diesel_utils::schema_setup::Options::new(&std::env::var("LEMMY_DATABASE_URL")?)?;
+  let mut harness = lemmy_diesel_utils::schema_setup::MigrationHarnessWrapper::new(
+    &std::env::var("LEMMY_DATABASE_URL")?,
+  )?;
   harness
-    .run_pending_migrations(lemmy_diesel_utils::schema_setup::migrations())
+    .run_pending_migrations(MIGRATIONS)
     .map_err(lemmy_diesel_utils::schema_setup::convert_err)?;
   lemmy_diesel_utils::schema_setup::run_replaceable_schema(&mut harness.conn)?;
 
