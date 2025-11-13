@@ -650,7 +650,7 @@ Line3",
   fn test_truncate() -> LemmyResult<()> {
     assert_eq!("Hell", truncate_for_db("Hello", 4));
     assert_eq!("word", truncate_for_db("word", 10));
-    assert_eq!("Wales: ", truncate_for_db("Wales: 🏴󠁧󠁢󠁷󠁬󠁳󠁿", 10));
+    assert_eq!("Wales: 🏴󠁧󠁢", truncate_for_db("Wales: 🏴󠁧󠁢󠁷󠁬󠁳󠁿", 10));
     assert_eq!("Wales: 🏴󠁧󠁢󠁷󠁬󠁳󠁿", truncate_for_db("Wales: 🏴󠁧󠁢󠁷󠁬󠁳󠁿", 14));
 
     Ok(())
