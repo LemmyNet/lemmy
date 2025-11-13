@@ -185,7 +185,6 @@ impl Object for ApubCommunity {
     let icon = proxy_image_link_opt_apub(group.icon.clone().map(|i| i.url), context).await?;
     let banner = proxy_image_link_opt_apub(group.image.clone().map(|i| i.url), context).await?;
     let visibility = Some(community_visibility(&group));
-    let description = group.content.as_deref().map(truncate_description);
 
     // If NSFW is not allowed, then remove NSFW communities
     let removed = check_nsfw_allowed(group.sensitive, local_site.as_ref())
@@ -205,7 +204,7 @@ impl Object for ApubCommunity {
       banner,
       sidebar,
       removed,
-      description,
+      description: group.summary.clone().as_deref().map(truncate_description),
       followers_url: group.followers.clone().clone().map(Into::into),
       inbox_url: Some(
         group
