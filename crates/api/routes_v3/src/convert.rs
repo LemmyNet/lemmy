@@ -3,6 +3,7 @@ use chrono::Utc;
 use lemmy_api_019::{
   comment::CommentResponse as CommentResponseV3,
   lemmy_db_schema::{
+    CommentSortType as CommentSortTypeV3,
     ListingType as ListingTypeV3,
     RegistrationMode as RegistrationModeV3,
     SearchType as SearchTypeV3,
@@ -64,6 +65,7 @@ use lemmy_db_schema::{
   },
 };
 use lemmy_db_schema_file::enums::{
+  CommentSortType,
   CommunityFollowerState,
   ListingType,
   PostSortType,
@@ -741,7 +743,7 @@ pub(crate) fn convert_post_listing_sort(
   const YEAR: i32 = 365 * DAY;
 
   let Some(sort_type) = sort_type else {
-    return (Some(PostSortType::default()), Some(i32::MAX));
+    return (None, None);
   };
   let max = |s| (Some(s), Some(i32::MAX));
   let top = |t| (Some(PostSortType::Top), Some(t));
@@ -765,6 +767,16 @@ pub(crate) fn convert_post_listing_sort(
     SortTypeV3::TopSixMonths => top(6 * MONTH),
     SortTypeV3::TopNineMonths => top(9 * MONTH),
     SortTypeV3::TopYear => top(YEAR),
+  }
+}
+
+pub(crate) fn convert_comment_listing_sort(sort_type: CommentSortTypeV3) -> CommentSortType {
+  match sort_type {
+    CommentSortTypeV3::Hot => CommentSortType::Hot,
+    CommentSortTypeV3::Top => CommentSortType::Top,
+    CommentSortTypeV3::New => CommentSortType::New,
+    CommentSortTypeV3::Old => CommentSortType::Old,
+    CommentSortTypeV3::Controversial => CommentSortType::Controversial,
   }
 }
 

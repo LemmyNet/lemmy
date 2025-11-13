@@ -1,5 +1,6 @@
 use crate::convert::{
   convert_comment,
+  convert_comment_listing_sort,
   convert_comment_response,
   convert_comment_view,
   convert_community,
@@ -208,12 +209,14 @@ pub(crate) async fn list_comments_v3(
     community_name,
     post_id,
     parent_id,
+    type_,
+    sort,
     ..
   } = data.0;
+  let sort = sort.map(convert_comment_listing_sort);
   let data = GetComments {
-    type_: None,
-    sort: None,
-    time_range_seconds: None,
+    type_: type_.map(convert_listing_type),
+    sort,
     max_depth,
     page_cursor: None,
     page_back: None,
@@ -222,6 +225,7 @@ pub(crate) async fn list_comments_v3(
     community_name,
     post_id: post_id.map(|p| PostId(p.0)),
     parent_id: parent_id.map(|p| CommentId(p.0)),
+    time_range_seconds: None,
   };
   let comments = list_comments(Query(data), context, local_user_view)
     .await?
