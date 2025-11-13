@@ -21,6 +21,7 @@ use lemmy_db_views_post::{
 };
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
+use std::cmp::min;
 
 pub async fn list_posts(
   data: Query<GetPosts>,
@@ -83,6 +84,9 @@ pub async fn list_posts(
   };
   let page_back = data.page_back;
 
+  // dont allow more than page 10 for performance reasons
+  let page = data.page.map(|p| min(p, 10));
+
   let posts = PostQuery {
     local_user,
     listing_type,
@@ -90,6 +94,7 @@ pub async fn list_posts(
     time_range_seconds,
     community_id,
     multi_community_id,
+    page,
     limit,
     show_hidden,
     show_read,

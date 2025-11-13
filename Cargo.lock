@@ -3501,6 +3501,8 @@ dependencies = [
  "lemmy_db_views_local_user",
  "lemmy_db_views_person",
  "lemmy_db_views_post",
+ "lemmy_db_views_registration_applications",
+ "lemmy_db_views_report_combined",
  "lemmy_db_views_search_combined",
  "lemmy_db_views_site",
  "lemmy_diesel_utils",
