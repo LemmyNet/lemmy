@@ -4,7 +4,6 @@ use invisible_characters::INVISIBLE_CHARS;
 use itertools::Itertools;
 use regex::{Regex, RegexBuilder, RegexSet};
 use std::sync::LazyLock;
-use unicode_segmentation::UnicodeSegmentation;
 use url::{ParseError, Url};
 
 // From here: https://github.com/vector-im/element-android/blob/develop/matrix-sdk-android/src/main/java/org/matrix/android/sdk/api/MatrixPatterns.kt#L35
@@ -306,32 +305,7 @@ fn truncate_for_db(text: &str, len: usize) -> String {
   if text.chars().count() <= len {
     text.to_string()
   } else {
-    let offset = text
-      .char_indices()
-      .nth(len)
-      .unwrap_or(text.char_indices().last().unwrap_or_default());
-    let graphemes: Vec<(usize, _)> = text.grapheme_indices(true).collect();
-    let mut index = 0;
-    // Walk the string backwards and find the first char within our length
-    for idx in (0..graphemes.len()).rev() {
-      if let Some(grapheme) = graphemes.get(idx)
-        && grapheme.0 < offset.0
-      {
-        index = idx;
-        break;
-      }
-    }
-    let grapheme = graphemes.get(index).unwrap_or(&(0, ""));
-    let grapheme_count = grapheme.1.chars().count();
-    // `take` isn't inclusive, so if the last grapheme can fit we add its char
-    // length
-    let char_count = if grapheme_count + grapheme.0 <= len {
-      grapheme.0 + grapheme_count
-    } else {
-      grapheme.0
-    };
-
-    text.chars().take(char_count).collect::<String>()
+    text.chars().take(len).collect::<String>()
   }
 }
 
