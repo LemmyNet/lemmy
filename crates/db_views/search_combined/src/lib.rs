@@ -180,6 +180,7 @@ pub struct SearchResponse {
   /// It should always be shown above other search results.
   pub resolve: Option<SearchCombinedView>,
   /// Items which contain the search string in post body, comment text, community sidebar etc.
+  /// This is always empty when calling `/api/v4/resolve_object`
   pub search: Vec<SearchCombinedView>,
   /// the pagination cursor to use to fetch the next page
   pub next_page: Option<PaginationCursor>,
