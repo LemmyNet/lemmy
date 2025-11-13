@@ -18,7 +18,7 @@ use diesel_async::{
   },
   scoped_futures::ScopedBoxFuture,
 };
-use diesel_migrations::MigrationHarness;
+use diesel_migrations::{HarnessWithOutput, MigrationHarness};
 use futures_util::{FutureExt, future::BoxFuture};
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
@@ -38,6 +38,7 @@ use rustls::{
   pki_types::{CertificateDer, ServerName, UnixTime},
 };
 use std::{
+  collections::VecDeque,
   ops::{Deref, DerefMut},
   sync::Arc,
   time::Duration,
@@ -184,7 +185,9 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
     }))
     .build()?;
 
-  let mut harness = crate::schema_setup::MigrationHarnessWrapper::new(&db_url)?;
+  let mut inner_harness = crate::schema_setup::MigrationHarnessWrapper::new(&db_url)?;
+  let mut harness =
+    TimedHarnessWithOutput::write_to_tracing(&mut inner_harness, tracing::Level::DEBUG);
 
   // If possible, skip getting a lock and recreating the "r" schema, so lemmy_server processes in a
   // horizontally scaled setup can start without causing locks

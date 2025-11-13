@@ -144,9 +144,10 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
     number,
   }) = args.subcommand
   {
-    let mut harness = lemmy_diesel_utils::schema_setup::MigrationHarnessWrapper::new(
+    let mut inner_harness = lemmy_diesel_utils::schema_setup::MigrationHarnessWrapper::new(
       &SETTINGS.get_database_url_with_options()?,
     )?;
+    let mut harness = TimedHarnessWithOutput::write_to_stdout(&mut inner_harness);
 
     let range = if all {
       diesel_migrations::Range::All
@@ -159,7 +160,6 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
       MigrationSubcommand::Revert => harness.revert_last_migrations_in_range(MIGRATIONS, range),
     }
     .map_err(convert_err)?;
-    // todo: .print_output();
 
     #[cfg(debug_assertions)]
     if all && subcommand == MigrationSubcommand::Run {

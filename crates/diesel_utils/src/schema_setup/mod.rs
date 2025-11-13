@@ -46,14 +46,6 @@ fn replaceable_schema() -> String {
 
 const REPLACEABLE_SCHEMA_PATH: &str = "crates/diesel_utils/replaceable_schema";
 
-/* TODO: move to diesel
-let duration = TimeDelta::from_std(start_time.elapsed())
-  .map(|d| d.to_string())
-  .unwrap_or_default();
-let name = migration.name();
-self.print(&format!("{duration} run {name}"));*/
-
-// todo: add output back, with same behavior as tracing::debug by default
 pub struct MigrationHarnessWrapper {
   // Migrations don't support async connection, and non-async migration execution is okay
   pub conn: PgConnection,
