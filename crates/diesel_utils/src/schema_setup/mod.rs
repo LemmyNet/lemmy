@@ -345,6 +345,9 @@ fn run_selected_migrations(options: &mut Options) -> diesel::migration::Result<(
   Ok(())
 }
 
+// todo: try to make diesel's migration error type implement the right traits so we don't need
+// convert_err
+
 /// Makes `diesel::migration::Result` work with `anyhow` and `LemmyError`
 pub fn convert_err(e: Box<dyn std::error::Error + Send + Sync>) -> anyhow::Error {
   anyhow!(e)
@@ -412,69 +415,88 @@ mod tests {
 
   #[test]
   #[serial]
+  // todo: maybe add commends for need_schema_setup asserts
   fn test_schema_setup() -> LemmyResult<()> {
-    let o = Options::default();
-    let db_url = SETTINGS.get_database_url();
-    let conn = &mut PgConnection::establish(&db_url)?;
+    let db_url = SETTINGS.get_database_url_with_options()?;
+    let mut harness = crate::schema_setup::Options::new(&db_url)?;
 
     // Start with consistent state by dropping everything
-    conn.batch_execute("DROP OWNED BY CURRENT_USER;")?;
+    harness.conn.batch_execute("DROP OWNED BY CURRENT_USER;")?;
+
+    assert!(harness.need_schema_setup()?);
 
     // Run initial migrations to prepare basic tables
-    assert_eq!(
-      run(o.run().limit(INITIAL_MIGRATIONS_COUNT), &db_url)?,
-      ReplaceableSchemaNotRebuilt
-    );
+    harness.run_pending_migrations_in_range(
+      migrations(),
+      diesel_migrations::Range::NumberOfMigrations(INITIAL_MIGRATIONS_COUNT),
+    )?;
+
+    assert!(harness.need_schema_setup()?);
 
     // Insert the test data
-    insert_test_data(conn)?;
+    insert_test_data(&mut harness.conn)?;
 
     // Run all migrations, and make sure that changes can be correctly reverted
-    assert_eq!(
-      run(o.run().enable_diff_check(), &db_url)?,
-      ReplaceableSchemaRebuilt
-    );
+    for migration in harness.pending_migrations(migrations())? {
+      let before = diff_check::get_dump();
+
+      harness.run_migration(&migration)?;
+      harness.revert_migration(&migration)?;
+
+      let after = diff_check::get_dump();
+
+      diff_check::check_dump_diff(
+        [&after, &before],
+        &format!(
+          "These changes need to be applied in migrations/{}/down.sql:",
+          migration.name()
+        ),
+      );
+
+      harness.run_migration(&migration)?;
+    }
+
+    assert!(harness.need_schema_setup()?);
 
     // Check the test data we inserted before after running migrations
-    check_test_data(conn)?;
+    check_test_data(&mut harness.conn)?;
 
     // Check the current schema
     assert_eq!(
-      get_foreign_keys_with_missing_indexes(conn)?,
+      get_foreign_keys_with_missing_indexes(&mut harness.conn)?,
       Vec::<String>::new(),
       "each foreign key needs an index so that deleting the referenced row does not scan the whole referencing table"
     );
 
-    // Check for early return
-    assert_eq!(run(o.run(), &db_url)?, EarlyReturn);
-
-    // Test `limit`
-    assert_eq!(
-      run(o.revert().limit(1), &db_url)?,
-      ReplaceableSchemaNotRebuilt
-    );
-    assert_eq!(
-      conn
-        .pending_migrations(migrations())
-        .map_err(convert_err)?
-        .len(),
-      1
-    );
-    assert_eq!(run(o.run().limit(1), &db_url)?, ReplaceableSchemaRebuilt);
+    assert!(harness.need_schema_setup()?);
+    run_replaceable_schema(&mut harness.conn)?;
+    // Todo: clean up (this used to be for testing the limit option)
+    assert!(!harness.need_schema_setup()?);
+    harness.revert_last_migration(migrations())?;
+    assert!(harness.need_schema_setup()?);
+    harness.run_next_migration(migrations())?;
+    run_replaceable_schema(&mut harness.conn)?;
+    assert!(!harness.need_schema_setup()?);
 
     // Get a new connection, workaround for error `cache lookup failed for function 26633`
     // on `migrations/2025-10-15-114811-0000_merge-modlog-tables/down.sql`.
-    let conn = &mut PgConnection::establish(&db_url)?;
+    harness.conn = PgConnection::establish(&db_url)?;
 
-    // This should throw an error saying to use lemmy_server instead of diesel CLI
-    conn.batch_execute("DROP OWNED BY CURRENT_USER;")?;
+    // This should throw an error saying to use lemmy_server instead of diesel CLI, since
+    // application_name isn't set to lemmy
+    harness
+      .conn
+      .batch_execute("DROP OWNED BY CURRENT_USER; SET application_name=reddit;")?;
     assert!(matches!(
-      conn.run_pending_migrations(migrations()),
+      harness.run_pending_migrations(migrations()),
       Err(e) if e.to_string().contains("lemmy_server")
     ));
 
     // Diesel CLI's way of running migrations shouldn't break the custom migration runner
-    assert_eq!(run(o.run(), &db_url)?, ReplaceableSchemaRebuilt);
+    harness.conn.batch_execute("SET application_name=lemmy;")?;
+    harness.run_pending_migrations(migrations())?;
+    run_replaceable_schema(&mut harness.conn)?;
+    assert!(!harness.need_schema_setup()?);
 
     Ok(())
   }
