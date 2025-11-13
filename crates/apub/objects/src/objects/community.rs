@@ -123,10 +123,10 @@ impl Object for ApubCommunity {
       id: self.id().clone().into(),
       preferred_username: self.name.clone(),
       name: Some(self.title.clone()),
-      content: self.sidebar.as_ref().map(|d| markdown_to_html(d)),
-      source: self.sidebar.clone().map(Source::new),
-      summary: self.description.clone(),
-      media_type: self.sidebar.as_ref().map(|_| MediaTypeHtml::Html),
+      content: self.description.as_ref().map(|d| markdown_to_html(d)),
+      source: self.description.clone().map(Source::new),
+      summary: self.sidebar.clone(),
+      media_type: self.description.as_ref().map(|_| MediaTypeHtml::Html),
       icon: self.icon.clone().map(ImageObject::new),
       image: self.banner.clone().map(ImageObject::new),
       sensitive: Some(self.nsfw),
@@ -179,13 +179,13 @@ impl Object for ApubCommunity {
 
     let slur_regex = slur_regex(context).await?;
     let url_blocklist = get_url_blocklist(context).await?;
-    let sidebar = read_from_string_or_source_opt(&group.content, &None, &group.source);
+    let sidebar = read_from_string_or_source_opt(&group.summary, &None, &group.source);
     let sidebar = process_markdown_opt(&sidebar, &slur_regex, &url_blocklist, context).await?;
     let sidebar = markdown_rewrite_remote_links_opt(sidebar, context).await;
     let icon = proxy_image_link_opt_apub(group.icon.clone().map(|i| i.url), context).await?;
     let banner = proxy_image_link_opt_apub(group.image.clone().map(|i| i.url), context).await?;
     let visibility = Some(community_visibility(&group));
-    let description = group.summary.as_deref().map(truncate_description);
+    let description = group.content.as_deref().map(truncate_description);
 
     // If NSFW is not allowed, then remove NSFW communities
     let removed = check_nsfw_allowed(group.sensitive, local_site.as_ref())
