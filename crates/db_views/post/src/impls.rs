@@ -277,6 +277,7 @@ pub struct PostQuery<'a> {
   pub keyword_blocks: Option<Vec<String>>,
   pub cursor_data: Option<Post>,
   pub page_back: Option<bool>,
+  /// For backwards compat with API v3 (not available on API v4).
   pub page: Option<i64>,
   pub limit: Option<i64>,
 }
