@@ -200,7 +200,7 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
     debug!("Running Database migrations (This may take a long time)...");
     harness
       .run_pending_migrations(MIGRATIONS)
-      .map_err(crate::schema_setup::convert_err)?;
+      .map_err(anyhow::Error::from_boxed)?;
     harness.run_replaceable_schema()?;
 
     debug!("Database migrations complete.");

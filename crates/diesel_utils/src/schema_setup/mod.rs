@@ -1,5 +1,5 @@
 mod diff_check;
-use anyhow::{Context, anyhow};
+use anyhow::Context;
 use diesel::{
   BoolExpressionMethods,
   Connection,
@@ -15,6 +15,8 @@ use diesel::{
   update,
 };
 use diesel_migrations::MigrationHarness;
+
+// `?` can't convert `diesel::migration::Result` to some other types because of https://github.com/dtolnay/anyhow/issues/66
 
 diesel::table! {
   pg_namespace (nspname) {
@@ -87,7 +89,13 @@ impl MigrationHarnessWrapper {
   }
 
   pub fn need_schema_setup(&mut self) -> anyhow::Result<bool> {
-    Ok(self.conn.has_pending_migration(MIGRATIONS)? || !self.replaceable_schema_is_up_to_date()?)
+    Ok(
+      self
+        .conn
+        .has_pending_migration(MIGRATIONS)
+        .map_err(anyhow::Error::from_boxed)?
+        || !self.replaceable_schema_is_up_to_date()?,
+    )
   }
 
   fn replaceable_schema_is_up_to_date(&mut self) -> anyhow::Result<bool> {
@@ -135,24 +143,17 @@ impl MigrationHarnessWrapper {
   }
 }
 
-// todo: try to make diesel's migration error type implement the right traits so we don't need
-// convert_err
-
-/// Makes `diesel::migration::Result` work with `anyhow` and `LemmyError`
-pub fn convert_err(e: Box<dyn std::error::Error + Send + Sync>) -> anyhow::Error {
-  anyhow!(e)
-}
-
 #[cfg(test)]
 #[allow(clippy::indexing_slicing, clippy::unwrap_used)]
 mod tests {
   use super::*;
+  use anyhow::anyhow;
   use diesel::{
     dsl::{not, sql},
     sql_types,
   };
   use diesel_ltree::Ltree;
-  use lemmy_utils::{error::LemmyResult, settings::SETTINGS};
+  use lemmy_utils::{error::LemmyErrorExt2, settings::SETTINGS};
   use serial_test::serial;
   // The number of migrations that should be run to set up some test data.
   // Currently, this includes migrations until
@@ -203,8 +204,8 @@ mod tests {
   #[test]
   #[serial]
   // todo: maybe add commends for need_schema_setup asserts
-  fn test_schema_setup() -> LemmyResult<()> {
-    let db_url = SETTINGS.get_database_url_with_options()?;
+  fn test_schema_setup() -> diesel::migration::Result<()> {
+    let db_url = SETTINGS.get_database_url_with_options().into_anyhow()?;
     let mut harness = crate::schema_setup::MigrationHarnessWrapper::new(&db_url)?;
 
     // Start with consistent state by dropping everything
@@ -303,7 +304,7 @@ mod tests {
     Ok(())
   }
 
-  fn insert_test_data(conn: &mut PgConnection) -> LemmyResult<()> {
+  fn insert_test_data(conn: &mut PgConnection) -> anyhow::Result<()> {
     // Users
     conn.batch_execute(&format!(
       "INSERT INTO user_ (id, name, actor_id, preferred_username, password_encrypted, email, public_key) \
@@ -389,7 +390,7 @@ mod tests {
     Ok(())
   }
 
-  fn check_test_data(conn: &mut PgConnection) -> LemmyResult<()> {
+  fn check_test_data(conn: &mut PgConnection) -> anyhow::Result<()> {
     use lemmy_db_schema_file::schema::{comment, community, notification, person, post};
 
     // Check users
@@ -510,7 +511,7 @@ mod tests {
 
   const FOREIGN_KEY: &str = "f";
 
-  fn get_foreign_keys_with_missing_indexes(conn: &mut PgConnection) -> LemmyResult<Vec<String>> {
+  fn get_foreign_keys_with_missing_indexes(conn: &mut PgConnection) -> anyhow::Result<Vec<String>> {
     diesel::table! {
       pg_constraint (table_oid, name, kind, column_numbers) {
         #[sql_name = "conrelid"]
