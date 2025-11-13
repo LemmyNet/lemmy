@@ -308,7 +308,8 @@ fn truncate_for_db(text: &str, len: usize) -> String {
   } else {
     let offset = text
       .char_indices()
-      .nth(len)
+      .rev()
+      .find(|o| o.0 <= len)
       .unwrap_or(text.char_indices().last().unwrap_or_default());
     let graphemes: Vec<(usize, _)> = text.grapheme_indices(true).collect();
     let mut index = 0;
@@ -317,11 +318,11 @@ fn truncate_for_db(text: &str, len: usize) -> String {
       if let Some(grapheme) = graphemes.get(idx)
         && grapheme.0 < offset.0
       {
-        index = idx;
+        index = grapheme.0;
         break;
       }
     }
-    let grapheme = graphemes.get(index).unwrap_or(&(0, ""));
+    let grapheme = graphemes.iter().find(|g| g.0 == index).unwrap_or(&(0, ""));
     let grapheme_count = grapheme.1.chars().count();
     // `take` isn't inclusive, so if the last grapheme can fit we add its char
     // length
@@ -678,6 +679,7 @@ Line3",
     assert_eq!("word", truncate_for_db("word", 10));
     assert_eq!("Wales: ", truncate_for_db("Wales: 🏴󠁧󠁢󠁷󠁬󠁳󠁿", 10));
     assert_eq!("Wales: 🏴󠁧󠁢󠁷󠁬󠁳󠁿", truncate_for_db("Wales: 🏴󠁧󠁢󠁷󠁬󠁳󠁿", 14));
+    assert_eq!("it’s", truncate_for_db("it’s like this", 4));
 
     Ok(())
   }
