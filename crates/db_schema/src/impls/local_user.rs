@@ -1,5 +1,5 @@
 use crate::{
-  newtypes::{CommunityId, LanguageId, LocalUserId, PersonId},
+  newtypes::{CommunityId, LanguageId, LocalUserId},
   source::{
     actor_language::LocalUserLanguage,
     local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
@@ -17,6 +17,7 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::{
+  PersonId,
   enums::CommunityVisibility,
   schema::{community, community_actions, local_user, person, registration_application},
 };

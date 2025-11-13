@@ -7,7 +7,7 @@ use lemmy_db_schema::{
   MultiCommunityListingType,
   MultiCommunitySortType,
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommunityId, MultiCommunityId, PaginationCursor, PersonId},
+  newtypes::{CommunityId, MultiCommunityId, PaginationCursor},
   source::{
     community::{Community, community_keys as key},
     local_user::LocalUser,
@@ -17,23 +17,22 @@ use lemmy_db_schema::{
   traits::PaginationCursorBuilder,
   utils::{
     limit_fetch,
-    queries::{
-      filters::{
-        filter_is_subscribed,
-        filter_not_unlisted_or_is_subscribed,
-        filter_suggested_communities,
-      },
-      joins::{
-        my_community_actions_join,
-        my_instance_communities_actions_join,
-        my_local_user_admin_join,
-        my_multi_community_follower_join,
-      },
+    queries::filters::{
+      filter_is_subscribed,
+      filter_not_unlisted_or_is_subscribed,
+      filter_suggested_communities,
     },
   },
 };
 use lemmy_db_schema_file::{
+  PersonId,
   enums::ListingType,
+  joins::{
+    my_community_actions_join,
+    my_instance_communities_actions_join,
+    my_local_user_admin_join,
+    my_multi_community_follower_join,
+  },
   schema::{
     community,
     community_actions,

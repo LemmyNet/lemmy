@@ -92,14 +92,14 @@ dependencies = [
 [[package]]
 name = "actix-extensible-rate-limit"
 version = "0.4.0"
-source = "git+https://github.com/Nutomic/actix-extensible-rate-limit.git?branch=make-extensible#704529406eff4a0a76bc6da4a4d132e9e4df46f6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "65f69685bde52e3c1d9ec47aa42ae4eca7f27c04661774423b68b26a06757181"
 dependencies = [
  "actix-web",
  "dashmap",
  "futures",
  "log",
  "thiserror 1.0.69",
- "tokio",
 ]
 
 [[package]]
@@ -3755,6 +3755,7 @@ version = "1.0.0-alpha.12"
 dependencies = [
  "diesel",
  "diesel-derive-enum",
+ "diesel-derive-newtype",
  "diesel-uplete",
  "diesel_ltree",
  "serde",
@@ -3972,6 +3973,7 @@ dependencies = [
  "lemmy_db_schema_file",
  "lemmy_db_views_comment",
  "lemmy_db_views_modlog",
+ "lemmy_db_views_notification_sql",
  "lemmy_db_views_post",
  "lemmy_db_views_private_message",
  "lemmy_diesel_utils",
@@ -3982,6 +3984,14 @@ dependencies = [
  "serial_test",
  "tokio",
  "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_notification_sql"
+version = "1.0.0-alpha.12"
+dependencies = [
+ "diesel",
+ "lemmy_db_schema_file",
 ]
 
 [[package]]
@@ -4145,6 +4155,7 @@ dependencies = [
  "lemmy_db_schema 1.0.0-alpha.12",
  "lemmy_db_schema_file",
  "lemmy_db_views_local_user",
+ "lemmy_db_views_report_combined_sql",
  "lemmy_diesel_utils",
  "lemmy_utils 1.0.0-alpha.12",
  "pretty_assertions",
@@ -4153,6 +4164,14 @@ dependencies = [
  "serial_test",
  "tokio",
  "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_report_combined_sql"
+version = "1.0.0-alpha.12"
+dependencies = [
+ "diesel",
+ "lemmy_db_schema_file",
 ]
 
 [[package]]
@@ -4374,6 +4393,7 @@ dependencies = [
  "anyhow",
  "cfg-if",
  "clearurls",
+ "dashmap",
  "deser-hjson",
  "diesel",
  "doku",

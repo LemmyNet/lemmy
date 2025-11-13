@@ -1,6 +1,6 @@
 use crate::{
   diesel::{BoolExpressionMethods, OptionalExtension, PgExpressionMethods, SelectableHelper},
-  newtypes::{CommunityId, MultiCommunityId, PersonId},
+  newtypes::{CommunityId, MultiCommunityId},
   source::{
     community::Community,
     multi_community::{
@@ -24,13 +24,16 @@ use diesel::{
   update,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::{
-  community,
-  instance,
-  multi_community,
-  multi_community_entry,
-  multi_community_follow,
-  person,
+use lemmy_db_schema_file::{
+  PersonId,
+  schema::{
+    community,
+    instance,
+    multi_community,
+    multi_community_entry,
+    multi_community_follow,
+    person,
+  },
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},

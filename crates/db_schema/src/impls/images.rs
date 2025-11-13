@@ -1,6 +1,9 @@
-use crate::{
-  newtypes::PersonId,
-  source::images::{ImageDetails, ImageDetailsInsertForm, LocalImage, LocalImageForm, RemoteImage},
+use crate::source::images::{
+  ImageDetails,
+  ImageDetailsInsertForm,
+  LocalImage,
+  LocalImageForm,
+  RemoteImage,
 };
 use diesel::{
   BoolExpressionMethods,
@@ -11,7 +14,10 @@ use diesel::{
   select,
 };
 use diesel_async::{RunQueryDsl, scoped_futures::ScopedFutureExt};
-use lemmy_db_schema_file::schema::{image_details, local_image, remote_image};
+use lemmy_db_schema_file::{
+  PersonId,
+  schema::{image_details, local_image, remote_image},
+};
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   dburl::DbUrl,

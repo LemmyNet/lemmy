@@ -17,7 +17,7 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::{SortDirection, asc_if};
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommunityId, InstanceId, MultiCommunityId, PaginationCursor, PersonId, PostId},
+  newtypes::{CommunityId, MultiCommunityId, PaginationCursor, PostId},
   source::{
     community::CommunityActions,
     local_user::LocalUser,
@@ -28,35 +28,35 @@ use lemmy_db_schema::{
   traits::PaginationCursorBuilder,
   utils::{
     limit_fetch,
-    queries::{
-      filters::{
-        filter_blocked,
-        filter_is_subscribed,
-        filter_not_unlisted_or_is_subscribed,
-        filter_suggested_communities,
-      },
-      joins::{
-        creator_community_actions_join,
-        creator_community_instance_actions_join,
-        creator_home_instance_actions_join,
-        creator_local_instance_actions_join,
-        image_details_join,
-        my_community_actions_join,
-        my_instance_communities_actions_join,
-        my_instance_persons_actions_join_1,
-        my_local_user_admin_join,
-        my_person_actions_join,
-        my_post_actions_join,
-      },
+    queries::filters::{
+      filter_blocked,
+      filter_is_subscribed,
+      filter_not_unlisted_or_is_subscribed,
+      filter_suggested_communities,
     },
   },
 };
 use lemmy_db_schema_file::{
+  InstanceId,
+  PersonId,
   enums::{
     CommunityFollowerState,
     CommunityVisibility,
     ListingType,
     PostSortType::{self, *},
+  },
+  joins::{
+    creator_community_actions_join,
+    creator_community_instance_actions_join,
+    creator_home_instance_actions_join,
+    creator_local_instance_actions_join,
+    image_details_join,
+    my_community_actions_join,
+    my_instance_communities_actions_join,
+    my_instance_persons_actions_join_1,
+    my_local_user_admin_join,
+    my_person_actions_join,
+    my_post_actions_join,
   },
   schema::{
     community,

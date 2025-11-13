@@ -1,5 +1,6 @@
-use crate::newtypes::{InstanceId, SiteId};
+use crate::newtypes::SiteId;
 use chrono::{DateTime, Utc};
+use lemmy_db_schema_file::InstanceId;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::site;
 use lemmy_diesel_utils::{dburl::DbUrl, sensitive::SensitiveString};

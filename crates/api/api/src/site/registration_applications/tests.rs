@@ -8,7 +8,6 @@ use actix_web::web::{Json, Query};
 use lemmy_api_crud::site::update::update_site;
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
-  newtypes::InstanceId,
   source::{
     local_site::{LocalSite, LocalSiteUpdateForm},
     local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
@@ -17,7 +16,7 @@ use lemmy_db_schema::{
   },
   test_data::TestData,
 };
-use lemmy_db_schema_file::enums::RegistrationMode;
+use lemmy_db_schema_file::{InstanceId, enums::RegistrationMode};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_notification::api::GetUnreadRegistrationApplicationCountResponse;
 use lemmy_db_views_registration_applications::api::{

@@ -3,10 +3,13 @@ use lemmy_db_schema::{
   CommunitySortType,
   MultiCommunityListingType,
   MultiCommunitySortType,
-  newtypes::{CommunityId, LanguageId, MultiCommunityId, PaginationCursor, PersonId, TagId},
+  newtypes::{CommunityId, LanguageId, MultiCommunityId, PaginationCursor, TagId},
   source::site::Site,
 };
-use lemmy_db_schema_file::enums::{CommunityNotificationsMode, CommunityVisibility, ListingType};
+use lemmy_db_schema_file::{
+  PersonId,
+  enums::{CommunityNotificationsMode, CommunityVisibility, ListingType},
+};
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;

@@ -1,14 +1,11 @@
-use crate::newtypes::{LocalUserId, PersonId};
+use crate::newtypes::LocalUserId;
 use chrono::{DateTime, Utc};
-use lemmy_db_schema_file::enums::{
-  CommentSortType,
-  ListingType,
-  PostListingMode,
-  PostSortType,
-  VoteShow,
-};
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::local_user;
+use lemmy_db_schema_file::{
+  PersonId,
+  enums::{CommentSortType, ListingType, PostListingMode, PostSortType, VoteShow},
+};
 use lemmy_diesel_utils::sensitive::SensitiveString;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;

@@ -106,14 +106,8 @@ use lemmy_api_crud::{
   user::{create::register, my_user::get_my_user},
 };
 use lemmy_api_utils::context::LemmyContext;
-use lemmy_db_schema::newtypes::{
-  CommentId,
-  CommunityId,
-  LanguageId,
-  PaginationCursor,
-  PersonId,
-  PostId,
-};
+use lemmy_db_schema::newtypes::{CommentId, CommunityId, LanguageId, PaginationCursor, PostId};
+use lemmy_db_schema_file::PersonId;
 use lemmy_db_views_comment::api::{
   CreateComment,
   CreateCommentLike,

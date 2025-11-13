@@ -1,5 +1,6 @@
-use crate::newtypes::{CommunityId, CommunityReportId, PersonId};
+use crate::newtypes::{CommunityId, CommunityReportId};
 use chrono::{DateTime, Utc};
+use lemmy_db_schema_file::PersonId;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::community_report;
 use lemmy_diesel_utils::dburl::DbUrl;
