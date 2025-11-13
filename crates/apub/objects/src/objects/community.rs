@@ -204,7 +204,7 @@ impl Object for ApubCommunity {
       banner,
       sidebar,
       removed,
-      description: group.summary.clone().as_deref().map(truncate_description),
+      description: group.content.clone().as_deref().map(truncate_description),
       followers_url: group.followers.clone().clone().map(Into::into),
       inbox_url: Some(
         group
@@ -311,8 +311,8 @@ pub(crate) mod tests {
       Some(63)
     );
     assert_eq!(
-      community.description,
-      Some("A description of ten forward.".into())
+      community.description.as_ref().map(std::string::String::len),
+      Some(80)
     );
 
     Instance::delete_all(&mut context.pool()).await?;
