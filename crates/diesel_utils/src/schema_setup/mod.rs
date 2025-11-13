@@ -458,6 +458,23 @@ mod tests {
 
     assert!(harness.need_schema_setup()?);
 
+    // Make sure that replaceable schema can be correctly reverted
+    let before = diff_check::get_dump();
+
+    run_replaceable_schema(&mut harness.conn)?;
+    revert_replaceable_schema(&mut harness.conn)?;
+
+    let after = diff_check::get_dump();
+
+    diff_check::check_dump_diff(
+      [&before, &after],
+      "The code in crates/diesel_utils/replaceable_schema incorrectly created or modified things outside of the `r` schema, causing these changes to be left behind after dropping the schema:",
+    );
+
+    assert!(harness.need_schema_setup()?);
+    run_replaceable_schema(&mut harness.conn)?;
+    assert!(!harness.need_schema_setup()?);
+
     // Check the test data we inserted before after running migrations
     check_test_data(&mut harness.conn)?;
 
@@ -467,11 +484,9 @@ mod tests {
       Vec::<String>::new(),
       "each foreign key needs an index so that deleting the referenced row does not scan the whole referencing table"
     );
+    diff_check::deferr_constraint_check(&after);
 
-    assert!(harness.need_schema_setup()?);
-    run_replaceable_schema(&mut harness.conn)?;
-    // Todo: clean up (this used to be for testing the limit option)
-    assert!(!harness.need_schema_setup()?);
+    // Todo: maybe clean up (this used to be for testing the limit option)
     harness.revert_last_migration(migrations())?;
     assert!(harness.need_schema_setup()?);
     harness.run_next_migration(migrations())?;
