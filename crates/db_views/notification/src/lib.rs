@@ -6,6 +6,7 @@ use lemmy_db_schema::{
     comment::{Comment, CommentActions},
     community::{Community, CommunityActions},
     images::ImageDetails,
+    instance::Instance,
     modlog::Modlog,
     notification::Notification,
     person::{Person, PersonActions},
@@ -63,6 +64,8 @@ struct NotificationViewInternal {
   post: Option<Post>,
   #[cfg_attr(feature = "full", diesel(embed))]
   community: Option<Community>,
+  #[cfg_attr(feature = "full", diesel(embed))]
+  instance: Option<Instance>,
   #[cfg_attr(feature = "full", diesel(embed))]
   creator: Option<Person>,
   #[cfg_attr(feature = "full",

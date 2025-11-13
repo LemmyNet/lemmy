@@ -8,28 +8,16 @@ extern crate diesel_derive_newtype;
 #[cfg(feature = "full")]
 pub mod impls;
 pub mod newtypes;
+pub mod source;
 #[cfg(feature = "full")]
 pub mod test_data;
-#[cfg(feature = "full")]
-pub mod aliases {
-  use lemmy_db_schema_file::schema::{community_actions, instance_actions, local_user, person};
-  diesel::alias!(
-    community_actions as creator_community_actions: CreatorCommunityActions,
-    instance_actions as creator_home_instance_actions: CreatorHomeInstanceActions,
-    instance_actions as creator_community_instance_actions: CreatorCommunityInstanceActions,
-    instance_actions as creator_local_instance_actions: CreatorLocalInstanceActions,
-    instance_actions as my_instance_persons_actions: MyInstancePersonsActions,
-    local_user as creator_local_user: CreatorLocalUser,
-    person as person1: Person1,
-    person as person2: Person2,
-  );
-}
-pub mod source;
 #[cfg(feature = "full")]
 pub mod traits;
 #[cfg(feature = "full")]
 pub mod utils;
 
+#[cfg(feature = "full")]
+use lemmy_db_schema_file::aliases;
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
 #[cfg(feature = "full")]
@@ -74,6 +62,36 @@ pub enum CommunitySortType {
   SubscribersLocal,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
+pub enum MultiCommunitySortType {
+  New,
+  Old,
+  NameAsc,
+  NameDesc,
+  Communities,
+  #[default]
+  Subscribers,
+  SubscribersLocal,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
+/// A listing type for multi-community fetches.
+pub enum MultiCommunityListingType {
+  /// Content from your own site, as well as all connected / federated sites.
+  All,
+  /// Content from your site only.
+  #[default]
+  Local,
+  /// Content only from communities you've subscribed to.
+  Subscribed,
+}
+
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash,
 )]
@@ -102,6 +120,7 @@ pub enum NotificationDataType {
   Mention,
   PrivateMessage,
   Subscribed,
+  ModAction,
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]

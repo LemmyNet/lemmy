@@ -27,6 +27,7 @@ full = [
   "lemmy_db_views_post/full",
   "lemmy_db_views_comment/full",
   "lemmy_db_views_modlog/full",
+  "lemmy_db_views_notification_sql",
 ]
 ts-rs = ["dep:ts-rs", "lemmy_db_schema/ts-rs"]
 
@@ -38,6 +39,7 @@ lemmy_db_views_private_message = { workspace = true }
 lemmy_db_views_post = { workspace = true }
 lemmy_db_views_comment = { workspace = true }
 lemmy_db_views_modlog = { workspace = true }
+lemmy_db_views_notification_sql = { workspace = true, optional = true }
 lemmy_diesel_utils = { workspace = true }
 diesel = { workspace = true, optional = true }
 diesel-async = { workspace = true, optional = true }

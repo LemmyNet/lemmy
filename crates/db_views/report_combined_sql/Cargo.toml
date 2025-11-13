@@ -1,0 +1,20 @@
+[package]
+name = "lemmy_db_views_report_combined_sql"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[lib]
+doctest = false
+
+[lints]
+workspace = true
+
+[dependencies]
+lemmy_db_schema_file = { workspace = true, features = ["full"] }
+diesel = { workspace = true }

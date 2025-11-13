@@ -1,19 +1,4 @@
-use crate::{
-  Person1AliasAllColumnsTuple,
-  Person2AliasAllColumnsTuple,
-  aliases::{
-    CreatorCommunityInstanceActions,
-    CreatorHomeInstanceActions,
-    CreatorLocalInstanceActions,
-    creator_community_actions,
-    creator_community_instance_actions,
-    creator_home_instance_actions,
-    creator_local_instance_actions,
-    creator_local_user,
-    person1,
-    person2,
-  },
-};
+use crate::{Person1AliasAllColumnsTuple, Person2AliasAllColumnsTuple};
 use diesel::{
   BoolExpressionMethods,
   ExpressionMethods,
@@ -26,16 +11,30 @@ use diesel::{
   query_source::AliasedField,
   sql_types::{Json, Timestamptz},
 };
-use lemmy_db_schema_file::schema::{
-  comment,
-  community,
-  community_actions,
-  instance_actions,
-  local_user,
-  person,
-  post,
-  post_tag,
-  tag,
+use lemmy_db_schema_file::{
+  aliases::{
+    CreatorCommunityInstanceActions,
+    CreatorHomeInstanceActions,
+    CreatorLocalInstanceActions,
+    creator_community_actions,
+    creator_community_instance_actions,
+    creator_home_instance_actions,
+    creator_local_instance_actions,
+    creator_local_user,
+    person1,
+    person2,
+  },
+  schema::{
+    comment,
+    community,
+    community_actions,
+    instance_actions,
+    local_user,
+    person,
+    post,
+    post_tag,
+    tag,
+  },
 };
 use lemmy_diesel_utils::utils::functions::{coalesce_2_nullable, coalesce_3_nullable};
 

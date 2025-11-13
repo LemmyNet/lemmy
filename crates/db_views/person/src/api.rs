@@ -1,5 +1,6 @@
 use crate::PersonView;
-use lemmy_db_schema::{newtypes::PersonId, source::site::Site};
+use lemmy_db_schema::source::site::Site;
+use lemmy_db_schema_file::PersonId;
 use lemmy_db_views_community::MultiCommunityView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use serde::{Deserialize, Serialize};

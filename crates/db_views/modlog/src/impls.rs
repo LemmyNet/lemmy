@@ -10,9 +10,8 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  aliases,
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommentId, CommunityId, PaginationCursor, PersonId, PostId},
+  newtypes::{CommentId, CommunityId, PaginationCursor, PostId},
   source::{
     local_user::LocalUser,
     modlog::{Modlog, modlog_keys as key},
@@ -28,6 +27,8 @@ use lemmy_db_schema::{
   },
 };
 use lemmy_db_schema_file::{
+  PersonId,
+  aliases,
   enums::{ListingType, ModlogKind},
   schema::{comment, community, community_actions, instance, modlog, person, post},
 };

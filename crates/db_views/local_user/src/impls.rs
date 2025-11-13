@@ -10,17 +10,20 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  aliases::creator_home_instance_actions,
-  newtypes::{LocalUserId, OAuthProviderId, PaginationCursor, PersonId},
+  newtypes::{LocalUserId, OAuthProviderId, PaginationCursor},
   source::{
     instance::Instance,
     local_user::{LocalUser, LocalUserInsertForm},
     person::{Person, PersonInsertForm, person_keys},
   },
   traits::PaginationCursorBuilder,
-  utils::queries::joins::creator_home_instance_actions_join,
 };
-use lemmy_db_schema_file::schema::{instance_actions, local_user, oauth_account, person};
+use lemmy_db_schema_file::{
+  PersonId,
+  aliases::creator_home_instance_actions,
+  joins::creator_home_instance_actions_join,
+  schema::{instance_actions, local_user, oauth_account, person},
+};
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   traits::Crud,

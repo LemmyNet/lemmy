@@ -16,6 +16,7 @@ use lemmy_db_schema::{
   newtypes::PostOrCommentId,
   source::{
     comment::{CommentActions, CommentLikeForm},
+    notification::Notification,
     person::PersonActions,
   },
   traits::Likeable,
@@ -94,6 +95,16 @@ pub async fn like_comment(
 
     plugin_hook_after("comment_after_vote", &like);
   }
+
+  // Mark any notification as read
+  Notification::mark_read_by_comment_and_recipient(
+    &mut context.pool(),
+    comment_id,
+    my_person_id,
+    true,
+  )
+  .await
+  .ok();
 
   ActivityChannel::submit_activity(
     SendActivityData::LikePostOrComment {

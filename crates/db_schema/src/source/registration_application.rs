@@ -1,5 +1,6 @@
-use crate::newtypes::{LocalUserId, PersonId, RegistrationApplicationId};
+use crate::newtypes::{LocalUserId, RegistrationApplicationId};
 use chrono::{DateTime, Utc};
+use lemmy_db_schema_file::PersonId;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::registration_application;
 use serde::{Deserialize, Serialize};

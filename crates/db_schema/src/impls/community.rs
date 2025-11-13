@@ -1,6 +1,6 @@
 use crate::{
   diesel::{DecoratableTarget, JoinOnDsl, OptionalExtension},
-  newtypes::{CommunityId, PersonId},
+  newtypes::CommunityId,
   source::{
     actor_language::CommunityLanguage,
     community::{
@@ -32,6 +32,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use diesel_uplete::{UpleteCount, uplete};
 use lemmy_db_schema_file::{
+  PersonId,
   enums::{CommunityFollowerState, CommunityNotificationsMode, CommunityVisibility, ListingType},
   schema::{comment, community, community_actions, instance, local_user, post},
 };

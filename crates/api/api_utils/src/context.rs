@@ -74,7 +74,7 @@ impl LemmyContext {
       jwt_secret: String::new().into(),
     };
 
-    let rate_limit_cell = RateLimit::with_test_config();
+    let rate_limit_cell = RateLimit::with_debug_config();
 
     let context = LemmyContext::create(
       pool,

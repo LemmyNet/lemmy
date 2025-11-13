@@ -1,5 +1,5 @@
-use crate::newtypes::{InstanceId, PersonId};
 use chrono::{DateTime, Utc};
+use lemmy_db_schema_file::{InstanceId, PersonId};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use std::fmt::Debug;

@@ -16,14 +16,11 @@ use either::Either;
 use lemmy_api_utils::{context::LemmyContext, plugins::plugin_hook_after};
 use lemmy_apub_activities::activity_lists::SharedInboxActivities;
 use lemmy_apub_objects::objects::{SiteOrMultiOrCommunityOrUser, UserOrCommunity};
-use lemmy_db_schema::{
-  newtypes::InstanceId,
-  source::{
-    activity::{ReceivedActivity, SentActivity},
-    community::Community,
-  },
+use lemmy_db_schema::source::{
+  activity::{ReceivedActivity, SentActivity},
+  community::Community,
 };
-use lemmy_db_schema_file::enums::CommunityVisibility;
+use lemmy_db_schema_file::{InstanceId, enums::CommunityVisibility};
 use lemmy_db_views_community_follower_approval::PendingFollowerView;
 use lemmy_utils::{
   FEDERATION_CONTEXT,

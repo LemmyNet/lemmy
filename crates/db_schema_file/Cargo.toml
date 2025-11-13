@@ -18,7 +18,13 @@ doctest = false
 workspace = true
 
 [features]
-full = ["diesel", "diesel_ltree", "diesel-derive-enum", "diesel-uplete"]
+full = [
+  "diesel",
+  "diesel_ltree",
+  "diesel-derive-enum",
+  "diesel-uplete",
+  "diesel-derive-newtype",
+]
 ts-rs = ["dep:ts-rs"]
 
 [dependencies]
@@ -29,3 +35,4 @@ diesel_ltree = { workspace = true, optional = true }
 ts-rs = { workspace = true, optional = true }
 diesel-derive-enum = { workspace = true, optional = true }
 diesel-uplete = { workspace = true, optional = true }
+diesel-derive-newtype = { workspace = true, optional = true }

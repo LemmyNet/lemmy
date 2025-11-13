@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
   PersonContentType,
-  newtypes::{PaginationCursor, PersonId},
+  newtypes::PaginationCursor,
   source::{
     combined::person_content::PersonContentCombined,
     comment::{Comment, CommentActions},
@@ -12,6 +12,7 @@ use lemmy_db_schema::{
     tag::TagsView,
   },
 };
+use lemmy_db_schema_file::PersonId;
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_post::PostView;
 use serde::{Deserialize, Serialize};
@@ -30,7 +31,6 @@ use {
     local_user_can_mod,
     post_tags_fragment,
   },
-
   lemmy_db_views_local_user::LocalUserView,
 };
 
