@@ -308,8 +308,7 @@ fn truncate_for_db(text: &str, len: usize) -> String {
   } else {
     let offset = text
       .char_indices()
-      .rev()
-      .find(|o| o.0 <= len)
+      .nth(len)
       .unwrap_or(text.char_indices().last().unwrap_or_default());
     let graphemes: Vec<(usize, _)> = text.grapheme_indices(true).collect();
     let mut index = 0;
@@ -318,18 +317,22 @@ fn truncate_for_db(text: &str, len: usize) -> String {
       if let Some(grapheme) = graphemes.get(idx)
         && grapheme.0 < offset.0
       {
-        index = grapheme.0;
+        index = idx;
         break;
       }
     }
-    let grapheme = graphemes.iter().find(|g| g.0 == index).unwrap_or(&(0, ""));
+    let grapheme = graphemes.get(index).unwrap_or(&(0, ""));
+    let char_index = graphemes[0..index]
+      .iter()
+      .map(|(_, g)| g.chars().count())
+      .sum();
     let grapheme_count = grapheme.1.chars().count();
     // `take` isn't inclusive, so if the last grapheme can fit we add its char
     // length
-    let char_count = if grapheme_count + grapheme.0 <= len {
-      grapheme.0 + grapheme_count
+    let char_count = if grapheme_count + char_index <= len {
+      char_index + grapheme_count
     } else {
-      grapheme.0
+      char_index
     };
 
     text.chars().take(char_count).collect::<String>()
@@ -680,6 +683,7 @@ Line3",
     assert_eq!("Wales: ", truncate_for_db("Wales: 🏴󠁧󠁢󠁷󠁬󠁳󠁿", 10));
     assert_eq!("Wales: 🏴󠁧󠁢󠁷󠁬󠁳󠁿", truncate_for_db("Wales: 🏴󠁧󠁢󠁷󠁬󠁳󠁿", 14));
     assert_eq!("it’s", truncate_for_db("it’s like this", 4));
+    assert_eq!("🤦🏼‍♂️150", truncate_for_db("🤦🏼‍♂️150🤦🏼‍♂️", 11));
 
     Ok(())
   }
