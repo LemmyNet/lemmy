@@ -1,7 +1,7 @@
 use crate::RegistrationApplicationView;
-use lemmy_db_schema::newtypes::{PaginationCursor, RegistrationApplicationId};
+use lemmy_db_schema::newtypes::RegistrationApplicationId;
 use lemmy_db_schema_file::PersonId;
-use lemmy_diesel_utils::sensitive::SensitiveString;
+use lemmy_diesel_utils::{pagination::PaginationCursor, sensitive::SensitiveString};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 

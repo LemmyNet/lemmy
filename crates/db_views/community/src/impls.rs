@@ -7,14 +7,13 @@ use lemmy_db_schema::{
   MultiCommunityListingType,
   MultiCommunitySortType,
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommunityId, MultiCommunityId, PaginationCursor},
+  newtypes::{CommunityId, MultiCommunityId},
   source::{
     community::{Community, community_keys as key},
     local_user::LocalUser,
     multi_community::{MultiCommunity, multi_community_keys as mkey},
     site::Site,
   },
-  traits::PaginationCursorBuilder,
   utils::{
     limit_fetch,
     queries::filters::{
@@ -45,8 +44,9 @@ use lemmy_db_schema_file::{
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
+  pagination::{PaginationCursor, PaginationCursorBuilder, paginate},
   traits::Crud,
-  utils::{LowerKey, now, paginate, seconds_to_pg_interval},
+  utils::{LowerKey, now, seconds_to_pg_interval},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 

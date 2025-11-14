@@ -3,7 +3,7 @@ use lemmy_db_schema::{
   CommunitySortType,
   MultiCommunityListingType,
   MultiCommunitySortType,
-  newtypes::{CommunityId, LanguageId, MultiCommunityId, PaginationCursor, TagId},
+  newtypes::{CommunityId, LanguageId, MultiCommunityId, TagId},
   source::site::Site,
 };
 use lemmy_db_schema_file::{
@@ -11,6 +11,7 @@ use lemmy_db_schema_file::{
   enums::{CommunityNotificationsMode, CommunityVisibility, ListingType},
 };
 use lemmy_db_views_community_moderator::CommunityModeratorView;
+use lemmy_diesel_utils::pagination::PaginationCursor;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 

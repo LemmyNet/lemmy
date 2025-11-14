@@ -1,13 +1,13 @@
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use lemmy_api_utils::context::LemmyContext;
-use lemmy_db_schema::traits::PaginationCursorBuilder;
 use lemmy_db_views_community::{
   MultiCommunityView,
   api::{ListMultiCommunities, ListMultiCommunitiesResponse},
   impls::MultiCommunityQuery,
 };
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_diesel_utils::pagination::PaginationCursorBuilder;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn list_multi_communities(

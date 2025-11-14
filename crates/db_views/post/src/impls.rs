@@ -17,7 +17,7 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::{SortDirection, asc_if};
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommunityId, MultiCommunityId, PaginationCursor, PostId},
+  newtypes::{CommunityId, MultiCommunityId, PostId},
   source::{
     community::CommunityActions,
     local_user::LocalUser,
@@ -25,7 +25,6 @@ use lemmy_db_schema::{
     post::{Post, PostActions, post_actions_keys as pa_key, post_keys as key},
     site::Site,
   },
-  traits::PaginationCursorBuilder,
   utils::{
     limit_fetch,
     queries::filters::{
@@ -70,7 +69,8 @@ use lemmy_db_schema_file::{
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
-  utils::{CoalesceKey, Commented, now, paginate, seconds_to_pg_interval},
+  pagination::{PaginationCursor, PaginationCursorBuilder, paginate},
+  utils::{CoalesceKey, Commented, now, seconds_to_pg_interval},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use tracing::debug;

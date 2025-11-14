@@ -10,13 +10,12 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  newtypes::{LocalUserId, OAuthProviderId, PaginationCursor},
+  newtypes::{LocalUserId, OAuthProviderId},
   source::{
     instance::Instance,
     local_user::{LocalUser, LocalUserInsertForm},
     person::{Person, PersonInsertForm, person_keys},
   },
-  traits::PaginationCursorBuilder,
 };
 use lemmy_db_schema_file::{
   PersonId,
@@ -26,11 +25,11 @@ use lemmy_db_schema_file::{
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
+  pagination::{PaginationCursor, PaginationCursorBuilder, paginate},
   traits::Crud,
   utils::{
     functions::{coalesce, lower},
     now,
-    paginate,
   },
 };
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};

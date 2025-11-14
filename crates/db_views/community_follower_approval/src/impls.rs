@@ -13,12 +13,11 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  newtypes::{CommunityId, PaginationCursor},
+  newtypes::CommunityId,
   source::{
     community::{Community, CommunityActions, community_actions_keys as key},
     person::Person,
   },
-  traits::PaginationCursorBuilder,
   utils::{limit_fetch, queries::selects::person1_select},
 };
 use lemmy_db_schema_file::{
@@ -30,7 +29,7 @@ use lemmy_db_schema_file::{
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
-  utils::paginate,
+  pagination::{PaginationCursor, PaginationCursorBuilder, paginate},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use std::collections::HashMap;

@@ -10,12 +10,11 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   NotificationDataType,
-  newtypes::{NotificationId, PaginationCursor},
+  newtypes::NotificationId,
   source::{
     notification::{Notification, notification_keys},
     person::Person,
   },
-  traits::PaginationCursorBuilder,
   utils::{limit_fetch, queries::filters::filter_blocked},
 };
 use lemmy_db_schema_file::{
@@ -28,7 +27,7 @@ use lemmy_db_views_post::PostView;
 use lemmy_db_views_private_message::PrivateMessageView;
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
-  utils::paginate,
+  pagination::{PaginationCursor, PaginationCursorBuilder, paginate},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 

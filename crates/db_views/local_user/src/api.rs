@@ -1,5 +1,5 @@
 use crate::LocalUserView;
-use lemmy_db_schema::newtypes::PaginationCursor;
+use lemmy_diesel_utils::pagination::PaginationCursor;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 

@@ -15,7 +15,6 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  newtypes::PaginationCursor,
   source::{
     actor_language::LocalUserLanguage,
     federation_queue_state::FederationQueueState,
@@ -25,7 +24,6 @@ use lemmy_db_schema::{
     local_user::LocalUser,
     person::Person,
   },
-  traits::PaginationCursorBuilder,
   utils::limit_fetch,
 };
 use lemmy_db_schema_file::{
@@ -43,8 +41,9 @@ use lemmy_db_schema_file::{
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
+  pagination::{PaginationCursor, PaginationCursorBuilder, paginate},
   traits::Crud,
-  utils::{fuzzy_search, paginate},
+  utils::fuzzy_search,
 };
 use lemmy_utils::{
   CacheLock,

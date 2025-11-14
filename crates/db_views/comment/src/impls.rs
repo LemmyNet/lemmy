@@ -13,13 +13,12 @@ use diesel_ltree::{Ltree, LtreeExtensions, nlevel};
 use i_love_jesus::asc_if;
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommentId, CommunityId, PaginationCursor, PostId},
+  newtypes::{CommentId, CommunityId, PostId},
   source::{
     comment::{Comment, comment_keys as key},
     local_user::LocalUser,
     site::Site,
   },
-  traits::PaginationCursorBuilder,
   utils::{
     limit_fetch,
     queries::filters::{filter_blocked, filter_suggested_communities},
@@ -50,8 +49,9 @@ use lemmy_db_schema_file::{
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
+  pagination::{PaginationCursor, PaginationCursorBuilder, paginate},
   traits::Crud,
-  utils::{Subpath, now, paginate, seconds_to_pg_interval},
+  utils::{Subpath, now, seconds_to_pg_interval},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 

@@ -9,7 +9,6 @@ use lemmy_api_utils::{
   context::LemmyContext,
   utils::{check_conflicting_like_filters, check_private_instance},
 };
-use lemmy_db_schema::traits::PaginationCursorBuilder;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_search_combined::{
   Search,
@@ -18,6 +17,7 @@ use lemmy_db_views_search_combined::{
   impls::SearchCombinedQuery,
 };
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::pagination::PaginationCursorBuilder;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn search(

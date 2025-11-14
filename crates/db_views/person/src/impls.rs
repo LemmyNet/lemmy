@@ -3,9 +3,7 @@ use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  newtypes::PaginationCursor,
   source::person::{Person, person_keys as key},
-  traits::PaginationCursorBuilder,
   utils::limit_fetch,
 };
 use lemmy_db_schema_file::{
@@ -20,8 +18,8 @@ use lemmy_db_schema_file::{
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
+  pagination::{PaginationCursor, PaginationCursorBuilder, paginate},
   traits::Crud,
-  utils::paginate,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 

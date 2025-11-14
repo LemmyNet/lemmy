@@ -1,5 +1,5 @@
 use crate::{
-  newtypes::{PaginationCursor, TaglineId},
+  newtypes::TaglineId,
   source::tagline::{Tagline, TaglineInsertForm, TaglineUpdateForm, tagline_keys as key},
   utils::limit_fetch,
 };
@@ -9,8 +9,9 @@ use i_love_jesus::SortDirection;
 use lemmy_db_schema_file::schema::tagline;
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
+  pagination::{PaginationCursor, paginate},
   traits::Crud,
-  utils::{functions::random, paginate},
+  utils::functions::random,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 

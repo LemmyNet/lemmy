@@ -1,7 +1,6 @@
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use lemmy_api_utils::{context::LemmyContext, utils::is_admin};
-use lemmy_db_schema::traits::PaginationCursorBuilder;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_registration_applications::{
   RegistrationApplicationView,
@@ -9,6 +8,7 @@ use lemmy_db_views_registration_applications::{
   impls::RegistrationApplicationQuery,
 };
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::pagination::PaginationCursorBuilder;
 use lemmy_utils::error::LemmyResult;
 
 /// Lists registration applications, filterable by undenied only.

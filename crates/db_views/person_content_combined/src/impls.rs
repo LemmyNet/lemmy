@@ -18,9 +18,8 @@ use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   self,
   PersonContentType,
-  newtypes::PaginationCursor,
   source::combined::person_content::{PersonContentCombined, person_content_combined_keys as key},
-  traits::{InternalToCombinedView, PaginationCursorBuilder},
+  traits::InternalToCombinedView,
   utils::limit_fetch,
 };
 use lemmy_db_schema_file::{
@@ -43,7 +42,7 @@ use lemmy_db_schema_file::{
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
-  utils::paginate,
+  pagination::{PaginationCursor, PaginationCursorBuilder, paginate},
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 

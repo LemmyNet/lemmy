@@ -1,10 +1,10 @@
 use crate::PostView;
 use lemmy_db_schema::{
   PostFeatureType,
-  newtypes::{CommunityId, LanguageId, MultiCommunityId, PaginationCursor, PostId, TagId},
+  newtypes::{CommunityId, LanguageId, MultiCommunityId, PostId, TagId},
 };
 use lemmy_db_schema_file::enums::{ListingType, PostNotificationsMode, PostSortType};
-use lemmy_diesel_utils::dburl::DbUrl;
+use lemmy_diesel_utils::{dburl::DbUrl, pagination::PaginationCursor};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 

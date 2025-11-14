@@ -23,12 +23,12 @@ use lemmy_db_schema::{
   SearchSortType::{self, *},
   SearchType,
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommunityId, PaginationCursor},
+  newtypes::CommunityId,
   source::{
     combined::search::{SearchCombined, search_combined_keys as key},
     site::Site,
   },
-  traits::{InternalToCombinedView, PaginationCursorBuilder},
+  traits::InternalToCombinedView,
   utils::{
     limit_fetch,
     queries::filters::{
@@ -69,7 +69,8 @@ use lemmy_db_schema_file::{
 use lemmy_db_views_community::MultiCommunityView;
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
-  utils::{fuzzy_search, now, paginate, seconds_to_pg_interval},
+  pagination::{PaginationCursor, PaginationCursorBuilder, paginate},
+  utils::{fuzzy_search, now, seconds_to_pg_interval},
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 

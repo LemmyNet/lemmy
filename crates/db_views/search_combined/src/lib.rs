@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
   SearchSortType,
   SearchType,
-  newtypes::{CommunityId, PaginationCursor},
+  newtypes::CommunityId,
   source::{
     combined::search::SearchCombined,
     comment::{Comment, CommentActions},
@@ -19,6 +19,7 @@ use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_community::{CommunityView, MultiCommunityView};
 use lemmy_db_views_person::PersonView;
 use lemmy_db_views_post::PostView;
+use lemmy_diesel_utils::pagination::PaginationCursor;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]

@@ -1,9 +1,10 @@
 use crate::ModlogView;
-use lemmy_db_schema::newtypes::{CommentId, CommunityId, PaginationCursor, PostId};
+use lemmy_db_schema::newtypes::{CommentId, CommunityId, PostId};
 use lemmy_db_schema_file::{
   PersonId,
   enums::{ListingType, ModlogKind},
 };
+use lemmy_diesel_utils::pagination::PaginationCursor;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 

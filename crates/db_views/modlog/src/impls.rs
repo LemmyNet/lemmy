@@ -11,12 +11,11 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommentId, CommunityId, PaginationCursor, PostId},
+  newtypes::{CommentId, CommunityId, PostId},
   source::{
     local_user::LocalUser,
     modlog::{Modlog, modlog_keys as key},
   },
-  traits::PaginationCursorBuilder,
   utils::{
     limit_fetch,
     queries::filters::{
@@ -34,7 +33,7 @@ use lemmy_db_schema_file::{
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
-  utils::paginate,
+  pagination::{PaginationCursor, PaginationCursorBuilder, paginate},
 };
 use lemmy_utils::error::LemmyResult;
 

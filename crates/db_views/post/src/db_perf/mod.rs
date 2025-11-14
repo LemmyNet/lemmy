@@ -8,18 +8,16 @@ use diesel::{
   sql_types,
 };
 use diesel_async::{RunQueryDsl, SimpleAsyncConnection};
-use lemmy_db_schema::{
-  source::{
-    community::{Community, CommunityInsertForm},
-    instance::Instance,
-    person::{Person, PersonInsertForm},
-    site::Site,
-  },
-  traits::PaginationCursorBuilder,
+use lemmy_db_schema::source::{
+  community::{Community, CommunityInsertForm},
+  instance::Instance,
+  person::{Person, PersonInsertForm},
+  site::Site,
 };
 use lemmy_db_schema_file::{enums::PostSortType, schema::post};
 use lemmy_diesel_utils::{
   connection::{build_db_pool, get_conn},
+  pagination::PaginationCursorBuilder,
   traits::Crud,
   utils::now,
 };

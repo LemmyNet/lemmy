@@ -1,6 +1,5 @@
 use actix_web::web::{Data, Json, Query};
 use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
-use lemmy_db_schema::traits::PaginationCursorBuilder;
 use lemmy_db_views_community::{
   CommunityView,
   api::{ListCommunities, ListCommunitiesResponse},
@@ -8,6 +7,7 @@ use lemmy_db_views_community::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::pagination::PaginationCursorBuilder;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn list_communities(

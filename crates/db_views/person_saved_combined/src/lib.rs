@@ -1,7 +1,6 @@
 use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
   PersonContentType,
-  newtypes::PaginationCursor,
   source::{
     combined::person_saved::PersonSavedCombined,
     comment::{Comment, CommentActions},
@@ -14,6 +13,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_post::PostView;
+use lemmy_diesel_utils::pagination::PaginationCursor;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]

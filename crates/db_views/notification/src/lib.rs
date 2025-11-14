@@ -1,7 +1,6 @@
 use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
   NotificationDataType,
-  newtypes::PaginationCursor,
   source::{
     comment::{Comment, CommentActions},
     community::{Community, CommunityActions},
@@ -19,6 +18,7 @@ use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_modlog::ModlogView;
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_private_message::PrivateMessageView;
+use lemmy_diesel_utils::pagination::PaginationCursor;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]

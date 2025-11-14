@@ -23,7 +23,6 @@ use lemmy_db_schema::{
     CommentReportId,
     CommunityId,
     CommunityReportId,
-    PaginationCursor,
     PostId,
     PostReportId,
     PrivateMessageReportId,
@@ -32,7 +31,7 @@ use lemmy_db_schema::{
     combined::report::{ReportCombined, report_combined_keys as key},
     person::Person,
   },
-  traits::{InternalToCombinedView, PaginationCursorBuilder},
+  traits::InternalToCombinedView,
   utils::limit_fetch,
 };
 use lemmy_db_schema_file::{
@@ -52,7 +51,7 @@ use lemmy_db_schema_file::{
 use lemmy_db_views_report_combined_sql::report_combined_joins;
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
-  utils::paginate,
+  pagination::{PaginationCursor, PaginationCursorBuilder, paginate},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 

@@ -9,11 +9,7 @@ use diesel::{
   select,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema::{
-  newtypes::{CommunityId, PaginationCursor},
-  source::community::CommunityActions,
-  traits::PaginationCursorBuilder,
-};
+use lemmy_db_schema::{newtypes::CommunityId, source::community::CommunityActions};
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
@@ -23,6 +19,7 @@ use lemmy_db_schema_file::{
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   dburl::DbUrl,
+  pagination::{PaginationCursor, PaginationCursorBuilder},
   utils::functions::lower,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};

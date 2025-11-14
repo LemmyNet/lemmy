@@ -8,11 +8,7 @@ use crate::federation::{
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
-use lemmy_db_schema::{
-  newtypes::PaginationCursor,
-  source::comment::Comment,
-  traits::PaginationCursorBuilder,
-};
+use lemmy_db_schema::source::comment::Comment;
 use lemmy_db_views_comment::{
   CommentView,
   api::{GetComments, GetCommentsResponse, GetCommentsSlimResponse},
@@ -20,7 +16,10 @@ use lemmy_db_views_comment::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
-use lemmy_diesel_utils::traits::Crud;
+use lemmy_diesel_utils::{
+  pagination::{PaginationCursor, PaginationCursorBuilder},
+  traits::Crud,
+};
 use lemmy_utils::error::LemmyResult;
 
 struct CommentsCommonOutput {

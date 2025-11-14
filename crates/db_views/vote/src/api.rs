@@ -1,5 +1,5 @@
 use crate::VoteView;
-use lemmy_db_schema::newtypes::PaginationCursor;
+use lemmy_diesel_utils::pagination::PaginationCursor;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

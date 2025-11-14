@@ -9,7 +9,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  newtypes::{CommentId, PaginationCursor, PostId},
+  newtypes::{CommentId, PostId},
   source::{comment::CommentActions, post::PostActions},
   utils::{limit_fetch, queries::selects::creator_local_home_banned},
 };
@@ -22,7 +22,7 @@ use lemmy_db_schema_file::{
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
-  utils::paginate,
+  pagination::{PaginationCursor, paginate},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 

@@ -2,6 +2,8 @@
 pub mod connection;
 pub mod dburl;
 #[cfg(feature = "full")]
+pub mod pagination;
+#[cfg(feature = "full")]
 pub mod schema_setup;
 pub mod sensitive;
 #[cfg(feature = "full")]

@@ -1,5 +1,5 @@
 use crate::{
-  newtypes::{CommunityId, PaginationCursor, PostId},
+  newtypes::{CommunityId, PostId},
   source::post::{
     Post,
     PostActions,
@@ -37,6 +37,7 @@ use lemmy_db_schema_file::{
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   dburl::DbUrl,
+  pagination::PaginationCursor,
   traits::Crud,
   utils::{
     functions::{coalesce, hot_rank, scaled_rank},
