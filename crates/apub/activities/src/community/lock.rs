@@ -177,6 +177,7 @@ pub(crate) async fn send_lock(
       id,
       object: lock,
       summary: Some(reason),
+      audience: Some(community.ap_id.clone().into()),
     };
     AnnouncableActivities::UndoLock(undo)
   };

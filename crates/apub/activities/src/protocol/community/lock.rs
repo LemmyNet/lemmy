@@ -51,6 +51,7 @@ pub struct UndoLockPageOrNote {
   pub(crate) id: Url,
   /// Summary is the reason for the lock.
   pub(crate) summary: Option<String>,
+  pub(crate) audience: Option<ObjectId<ApubCommunity>>,
 }
 
 impl InCommunity for LockPageOrNote {
