@@ -322,7 +322,8 @@ fn truncate_for_db(text: &str, len: usize) -> String {
       }
     }
     let grapheme = graphemes.get(index).unwrap_or(&(0, ""));
-    let char_index = graphemes.get(0..index)
+    let char_index = graphemes
+      .get(0..index)
       .unwrap_or_default()
       .iter()
       .map(|(_, g)| g.chars().count())
