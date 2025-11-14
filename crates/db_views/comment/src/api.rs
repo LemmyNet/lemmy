@@ -1,7 +1,7 @@
 use crate::{CommentSlimView, CommentView};
 use lemmy_db_schema::newtypes::{CommentId, CommunityId, LanguageId, PostId};
 use lemmy_db_schema_file::enums::{CommentSortType, ListingType};
-use lemmy_diesel_utils::pagination::PaginationCursor;
+use lemmy_diesel_utils::pagination::{PaginationCursor, PaginationCursorNew};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -77,8 +77,7 @@ pub struct GetComments {
   /// IE 60 would give results for the past minute.
   pub time_range_seconds: Option<i32>,
   pub max_depth: Option<i32>,
-  pub page_cursor: Option<PaginationCursor>,
-  pub page_back: Option<bool>,
+  pub page_cursor: Option<PaginationCursorNew>,
   pub limit: Option<i64>,
   pub community_id: Option<CommunityId>,
   pub community_name: Option<String>,
@@ -92,8 +91,8 @@ pub struct GetComments {
 /// The comment list response.
 pub struct GetCommentsResponse {
   pub comments: Vec<CommentView>,
-  pub next_page: Option<PaginationCursor>,
-  pub prev_page: Option<PaginationCursor>,
+  pub next_page: Option<PaginationCursorNew>,
+  pub prev_page: Option<PaginationCursorNew>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -102,8 +101,8 @@ pub struct GetCommentsResponse {
 /// A slimmer comment list response, without the post or community.
 pub struct GetCommentsSlimResponse {
   pub comments: Vec<CommentSlimView>,
-  pub next_page: Option<PaginationCursor>,
-  pub prev_page: Option<PaginationCursor>,
+  pub next_page: Option<PaginationCursorNew>,
+  pub prev_page: Option<PaginationCursorNew>,
 }
 
 #[skip_serializing_none]

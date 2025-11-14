@@ -36,7 +36,7 @@ full = [
   "i-love-jesus",
   "lemmy_utils/full",
   "diesel",
-  "activitypub_federation",
+  "activitypub_federation","serde_urlencoded"
 ]
 
 [dependencies]
@@ -63,6 +63,7 @@ tokio-postgres-rustls = { workspace = true, optional = true }
 rustls = { workspace = true, optional = true }
 i-love-jesus = { workspace = true, optional = true }
 lemmy_utils = { workspace = true, features = ["full"], optional = true }
+serde_urlencoded = { version = "0.7.1", optional = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

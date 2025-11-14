@@ -542,7 +542,6 @@ async fn list_comments_v3(
     time_range_seconds: None,
     max_depth,
     page_cursor: None,
-    page_back: None,
     limit,
     community_id: community_id.map(|c| CommunityId(c.0)),
     community_name,

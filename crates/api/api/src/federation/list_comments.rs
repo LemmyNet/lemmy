@@ -16,24 +16,15 @@ use lemmy_db_views_comment::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
-use lemmy_diesel_utils::{
-  pagination::{PaginationCursor, PaginationCursorBuilder},
-  traits::Crud,
-};
+use lemmy_diesel_utils::{pagination::PaginatedVec, traits::Crud};
 use lemmy_utils::error::LemmyResult;
-
-struct CommentsCommonOutput {
-  comments: Vec<CommentView>,
-  next_page: Option<PaginationCursor>,
-  prev_page: Option<PaginationCursor>,
-}
 
 /// A common fetcher for both the CommentView, and CommentSlimView.
 async fn list_comments_common(
   data: Query<GetComments>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
-) -> LemmyResult<CommentsCommonOutput> {
+) -> LemmyResult<PaginatedVec<CommentView>> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let local_site = &site_view.local_site;
 
@@ -74,14 +65,7 @@ async fn list_comments_common(
   let post_id = data.post_id;
   let local_user = local_user_view.as_ref().map(|l| &l.local_user);
 
-  let cursor_data = if let Some(cursor) = &data.page_cursor {
-    Some(CommentView::from_cursor(cursor, &mut context.pool()).await?)
-  } else {
-    None
-  };
-  let page_back = data.page_back;
-
-  let comments = CommentQuery {
+  CommentQuery {
     listing_type,
     sort,
     time_range_seconds,
@@ -90,21 +74,11 @@ async fn list_comments_common(
     parent_path,
     post_id,
     local_user,
-    cursor_data,
-    page_back,
+    page_cursor: data.0.page_cursor,
     limit,
   }
   .list(&site_view.site, &mut context.pool())
-  .await?;
-
-  let next_page = comments.last().map(PaginationCursorBuilder::to_cursor);
-  let prev_page = comments.first().map(PaginationCursorBuilder::to_cursor);
-
-  Ok(CommentsCommonOutput {
-    comments,
-    next_page,
-    prev_page,
-  })
+  .await
 }
 
 pub async fn list_comments(
@@ -115,7 +89,7 @@ pub async fn list_comments(
   let common = list_comments_common(data, context, local_user_view).await?;
 
   Ok(Json(GetCommentsResponse {
-    comments: common.comments,
+    comments: common.data,
     next_page: common.next_page,
     prev_page: common.prev_page,
   }))
@@ -129,7 +103,7 @@ pub async fn list_comments_slim(
   let common = list_comments_common(data, context, local_user_view).await?;
 
   let comments = common
-    .comments
+    .data
     .into_iter()
     .map(CommentView::map_to_slim)
     .collect();

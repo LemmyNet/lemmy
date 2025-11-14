@@ -4,6 +4,123 @@ use i_love_jesus::{PaginatedQueryBuilder, SortDirection};
 use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
 
+// TODO: at the moment we only store the item id in the cursor, and later we read it again from
+//       the db. instead we could store the whole item in the cursor to avoid this db read (or
+//       store only the fields which are used for sorting).
+
+pub trait PaginationCursorBuilderNew {
+  type CursorData;
+
+  fn cursor_data(&self) -> i32;
+
+  fn from_data(
+    data: i32,
+    conn: &mut DbPool<'_>,
+  ) -> impl Future<Output = LemmyResult<Self::CursorData>> + Send;
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+pub struct PaginationCursorNew(String);
+
+impl PaginationCursorNew {
+  fn to_internal(self) -> PaginationCursorNewInternal {
+    serde_urlencoded::from_str(&xor(self.0)).unwrap()
+  }
+  fn from_internal(other: PaginationCursorNewInternal) -> Self {
+    Self(xor(serde_urlencoded::to_string(other).unwrap()))
+  }
+}
+
+pub async fn paginate_new<Q, T: PaginationCursorBuilderNew>(
+  query: Q,
+  cursor: Option<PaginationCursorNew>,
+  sort_direction: SortDirection,
+  pool: &mut DbPool<'_>,
+) -> PaginatedQueryBuilder<T::CursorData, Q> {
+  let (page_after, back) = if let Some(cursor) = cursor {
+    let internal = cursor.to_internal();
+    let object = T::from_data(internal.id, pool).await.unwrap();
+    (Some(object), Some(internal.back))
+  } else {
+    (None, None)
+  };
+  paginate(query, sort_direction, page_after, None, back)
+}
+
+#[derive(Serialize, Deserialize)]
+struct PaginationCursorNewInternal {
+  back: bool,
+  // TODO: add this later
+  //pub prefix: char,
+  id: i32,
+}
+
+pub struct PaginatedVec<T>
+where
+  T: PaginationCursorBuilderNew + Serialize + for<'a> Deserialize<'a>,
+{
+  pub data: Vec<T>,
+  pub next_page: Option<PaginationCursorNew>,
+  pub prev_page: Option<PaginationCursorNew>,
+}
+
+pub fn paginate_response<T>(data: Vec<T>, limit: i64) -> PaginatedVec<T>
+where
+  T: PaginationCursorBuilderNew + Serialize + for<'a> Deserialize<'a>,
+{
+  let prev_page = data
+    .first()
+    .map(|d| PaginationCursorNewInternal {
+      id: d.cursor_data(),
+      back: true,
+    })
+    .map(PaginationCursorNew::from_internal);
+
+  let mut next_page = data
+    .last()
+    .map(|d| PaginationCursorNewInternal {
+      id: d.cursor_data(),
+      back: false,
+    })
+    .map(PaginationCursorNew::from_internal);
+
+  // If there are less than limit items we are on the last page, dont show next button.
+  // Need to convert here because diesel takes i64 for limit while vec length is usize.
+  let limit: usize = limit.try_into().unwrap_or_default();
+  if data.len() < limit {
+    next_page = None;
+  }
+  PaginatedVec {
+    data,
+    next_page,
+    prev_page,
+  }
+}
+
+fn xor(input: String) -> String {
+  // TODO: use xor encoding to to prevent clients from parsing or altering internal cursor data
+  // use domain as hash key so it doesnt change after restart
+  // https://gist.github.com/SecSamDev/13b2c96e553f5c7e68d3777c39741bdd
+  input
+}
+
+// ------------------------------
+// TODO: below are all old
+
+pub trait PaginationCursorBuilder {
+  type CursorData;
+
+  /// Builds a pagination cursor for the given query result.
+  fn to_cursor(&self) -> PaginationCursor;
+
+  /// Reads a database row from a given pagination cursor.
+  fn from_cursor(
+    cursor: &PaginationCursor,
+    conn: &mut DbPool<'_>,
+  ) -> impl Future<Output = LemmyResult<Self::CursorData>> + Send;
+}
+
 /// A pagination cursor
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
@@ -78,17 +195,4 @@ pub fn paginate<Q, C>(
   }
 
   query
-}
-
-pub trait PaginationCursorBuilder {
-  type CursorData;
-
-  /// Builds a pagination cursor for the given query result.
-  fn to_cursor(&self) -> PaginationCursor;
-
-  /// Reads a database row from a given pagination cursor.
-  fn from_cursor(
-    cursor: &PaginationCursor,
-    conn: &mut DbPool<'_>,
-  ) -> impl Future<Output = LemmyResult<Self::CursorData>> + Send;
 }
