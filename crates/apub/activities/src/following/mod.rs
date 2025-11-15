@@ -8,12 +8,13 @@ use crate::protocol::following::{
 use activitypub_federation::{config::Data, kinds::activity::FollowType, traits::Activity};
 use either::Either::*;
 use lemmy_api_utils::context::LemmyContext;
-use lemmy_apub_objects::objects::{person::ApubPerson, CommunityOrMulti, UserOrCommunityOrMulti};
+use lemmy_apub_objects::objects::{CommunityOrMulti, UserOrCommunityOrMulti, person::ApubPerson};
 use lemmy_db_schema::{
-  newtypes::{CommunityId, PersonId},
+  newtypes::CommunityId,
   source::{activity::ActivitySendTargets, community::Community, person::Person},
-  traits::Crud,
 };
+use lemmy_db_schema_file::PersonId;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use serde::Serialize;
 

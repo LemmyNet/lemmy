@@ -72,6 +72,6 @@ fn write_out_file(file_name: &str, content: String) -> Result<(), Box<dyn std::e
   let dest_path = Path::new(&out_dir).join(file_name);
   let mut f = BufWriter::new(File::create(&dest_path)?);
 
-  write!(f, "{}", &content).unwrap();
+  write!(f, "{}", &content)?;
   Ok(())
 }

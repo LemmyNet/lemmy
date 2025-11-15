@@ -1,11 +1,11 @@
 use activitypub_federation::config::{FederationConfig, FederationMiddleware};
 use actix_web::{
-  dev::{ServerHandle, ServiceResponse},
-  middleware::{self, Condition, ErrorHandlerResponse, ErrorHandlers},
-  web::{get, scope, Data},
   App,
   HttpResponse,
   HttpServer,
+  dev::{ServerHandle, ServiceResponse},
+  middleware::{self, Condition, ErrorHandlerResponse, ErrorHandlers},
+  web::{Data, get, scope},
 };
 use clap::{Parser, Subcommand};
 use lemmy_api::sitemap::get_sitemap;
@@ -16,18 +16,16 @@ use lemmy_api_utils::{
   utils::local_site_rate_limit_to_rate_limit_config,
 };
 use lemmy_apub::{
-  collections::fetch_community_collections,
-  VerifyUrlData,
   FEDERATION_HTTP_FETCH_LIMIT,
+  VerifyUrlData,
+  collections::fetch_community_collections,
 };
 use lemmy_apub_activities::handle_outgoing_activities;
 use lemmy_apub_objects::objects::{community::FETCH_COMMUNITY_COLLECTIONS, instance::ApubSite};
 use lemmy_apub_send::{Opts, SendManager};
-use lemmy_db_schema::{
-  source::secret::Secret,
-  utils::{build_db_pool, GenericDbPool},
-};
+use lemmy_db_schema::source::secret::Secret;
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::connection::{build_db_pool, GenericDbPool};
 use lemmy_routes::{
   feeds,
   middleware::{
@@ -44,11 +42,11 @@ use lemmy_routes::{
   webfinger,
 };
 use lemmy_utils::{
+  VERSION,
   error::{LemmyErrorType, LemmyResult},
   rate_limit::RateLimit,
   response::jsonify_plain_text_errors,
-  settings::{structs::Settings, SETTINGS},
-  VERSION,
+  settings::{SETTINGS, structs::Settings},
 };
 use reqwest_middleware::ClientBuilder;
 use reqwest_tracing::TracingMiddleware;
@@ -147,8 +145,8 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
   }) = args.subcommand
   {
     let mut options = match subcommand {
-      MigrationSubcommand::Run => lemmy_db_schema_setup::Options::default().run(),
-      MigrationSubcommand::Revert => lemmy_db_schema_setup::Options::default().revert(),
+      MigrationSubcommand::Run => lemmy_diesel_utils::schema_setup::Options::default().run(),
+      MigrationSubcommand::Revert => lemmy_diesel_utils::schema_setup::Options::default().revert(),
     }
     .print_output();
 
@@ -156,11 +154,13 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
       options = options.limit(number);
     }
 
-    lemmy_db_schema_setup::run(options, &SETTINGS.get_database_url_with_options()?)?;
+    lemmy_diesel_utils::schema_setup::run(options, &SETTINGS.get_database_url_with_options()?)?;
 
     #[cfg(debug_assertions)]
     if all && subcommand == MigrationSubcommand::Run {
-      println!("Warning: you probably want this command instead, which requires less crates to be compiled: cargo run --package lemmy_db_schema_setup");
+      println!(
+        "Warning: you probably want this command instead, which requires less crates to be compiled: cargo run --package lemmy_diesel_utils"
+      );
     }
 
     return Ok(());
@@ -342,6 +342,7 @@ fn create_http_server(
 
     let cors_config = cors_config(&settings);
     let app = App::new()
+      .wrap(ErrorHandlers::new().default_handler(jsonify_plain_text_errors))
       .wrap(middleware::Logger::new(
         // This is the default log format save for the usage of %{r}a over %a to guarantee to
         // record the client's (forwarded) IP and not the last peer address, since the latter is
@@ -351,7 +352,6 @@ fn create_http_server(
       .wrap(middleware::Compress::default())
       .wrap(cors_config)
       .wrap(TracingLogger::<DefaultRootSpanBuilder>::new())
-      .wrap(ErrorHandlers::new().default_handler(jsonify_plain_text_errors))
       .app_data(Data::new(context.clone()))
       .wrap(FederationMiddleware::new(federation_config.clone()))
       .wrap(IdempotencyMiddleware::new(idempotency_set.clone()))
@@ -364,6 +364,7 @@ fn create_http_server(
     // The routes
     app
       .configure(|cfg| lemmy_api_routes::config(cfg, &rate_limit))
+      .configure(|cfg| lemmy_api_routes_v3::config(cfg, &rate_limit))
       .configure(|cfg| {
         if site_view.local_site.federation_enabled {
           lemmy_apub::http::routes::config(cfg);

@@ -10,8 +10,8 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
-  diesel::{dsl::Nullable, NullableExpressionMethods, Queryable, Selectable},
-  lemmy_db_schema::{utils::queries::selects::person1_select, Person1AliasAllColumnsTuple},
+  diesel::{NullableExpressionMethods, Queryable, Selectable, dsl::Nullable},
+  lemmy_db_schema::{Person1AliasAllColumnsTuple, utils::queries::selects::person1_select},
 };
 
 pub mod api;
@@ -23,7 +23,7 @@ pub mod impls;
 #[cfg_attr(feature = "full", derive(Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
+#[cfg_attr(feature = "ts-rs", ts(export, optional_fields))]
 #[skip_serializing_none]
 pub struct ModlogView {
   #[cfg_attr(feature = "full", diesel(embed))]

@@ -1,7 +1,7 @@
 use crate::check_totp_2fa_valid;
 use actix_web::{
-  web::{Data, Json},
   HttpRequest,
+  web::{Data, Json},
 };
 use bcrypt::verify;
 use lemmy_api_utils::{
@@ -11,8 +11,8 @@ use lemmy_api_utils::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::{
-  api::{Login, LoginResponse},
   SiteView,
+  api::{Login, LoginResponse},
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 

@@ -1,18 +1,18 @@
 use crate::{
-  newtypes::{CommunityId, CommunityReportId, PersonId},
+  newtypes::{CommunityId, CommunityReportId},
   source::community_report::{CommunityReport, CommunityReportForm},
   traits::Reportable,
-  utils::{get_conn, DbPool},
 };
 use chrono::Utc;
 use diesel::{
-  dsl::{insert_into, update},
   BoolExpressionMethods,
   ExpressionMethods,
   QueryDsl,
+  dsl::{insert_into, update},
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::community_report;
+use lemmy_db_schema_file::{PersonId, schema::community_report};
+use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Reportable for CommunityReport {

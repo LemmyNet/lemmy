@@ -9,7 +9,7 @@ cd "$CWD/../"
 
 source scripts/start_dev_db.sh
 
-cargo run --package lemmy_db_schema_setup
+cargo run --package lemmy_diesel_utils
 pg_dump --no-owner --no-privileges --no-table-access-method --schema-only --exclude-schema=r --no-sync -f schema.sqldump
 
 pg_ctl stop

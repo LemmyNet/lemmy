@@ -27,10 +27,11 @@ use lemmy_db_schema::{
     person::{Person, PersonActions},
     private_message::{PrivateMessage as DbPrivateMessage, PrivateMessageInsertForm},
   },
-  traits::{Blockable, Crud},
+  traits::Blockable,
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_private_message::PrivateMessageView;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType, LemmyResult},
   utils::markdown::markdown_to_html,

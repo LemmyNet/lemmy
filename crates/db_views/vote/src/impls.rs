@@ -9,27 +9,20 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  aliases::creator_community_actions,
-  newtypes::{CommentId, InstanceId, PaginationCursor, PersonId, PostId},
+  newtypes::{CommentId, PaginationCursor, PostId},
   source::{comment::CommentActions, post::PostActions},
-  utils::{
-    get_conn,
-    limit_fetch,
-    paginate,
-    queries::{
-      joins::{creator_home_instance_actions_join, creator_local_instance_actions_join},
-      selects::creator_local_home_banned,
-    },
-    DbPool,
-  },
+  utils::{limit_fetch, queries::selects::creator_local_home_banned},
 };
-use lemmy_db_schema_file::schema::{
-  comment,
-  comment_actions,
-  community_actions,
-  person,
-  post,
-  post_actions,
+use lemmy_db_schema_file::{
+  InstanceId,
+  PersonId,
+  aliases::creator_community_actions,
+  joins::{creator_home_instance_actions_join, creator_local_instance_actions_join},
+  schema::{comment, comment_actions, community_actions, person, post, post_actions},
+};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  utils::paginate,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -189,7 +182,6 @@ impl VoteView {
 mod tests {
   use crate::VoteView;
   use lemmy_db_schema::{
-    newtypes::InstanceId,
     source::{
       comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm},
       community::{Community, CommunityActions, CommunityInsertForm, CommunityPersonBanForm},
@@ -197,9 +189,10 @@ mod tests {
       person::{Person, PersonInsertForm},
       post::{Post, PostActions, PostInsertForm, PostLikeForm},
     },
-    traits::{Bannable, Crud, Likeable},
-    utils::build_db_pool_for_tests,
+    traits::{Bannable, Likeable},
   };
+  use lemmy_db_schema_file::InstanceId;
+  use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
 
@@ -309,16 +302,20 @@ mod tests {
       VoteView::list_for_comment(pool, inserted_comment.id, None, None, None, InstanceId(1))
         .await?;
 
-    assert!(read_comment_vote_views_after_ban
-      .first()
-      .is_some_and(|c| c.creator_banned_from_community));
+    assert!(
+      read_comment_vote_views_after_ban
+        .first()
+        .is_some_and(|c| c.creator_banned_from_community)
+    );
 
     let read_post_vote_views_after_ban =
       VoteView::list_for_post(pool, inserted_post.id, None, None, None, InstanceId(1)).await?;
 
-    assert!(read_post_vote_views_after_ban
-      .get(1)
-      .is_some_and(|p| p.creator_banned_from_community));
+    assert!(
+      read_post_vote_views_after_ban
+        .get(1)
+        .is_some_and(|p| p.creator_banned_from_community)
+    );
 
     // Cleanup
     Instance::delete(pool, inserted_instance.id).await?;

@@ -8,7 +8,6 @@ use actix_web::web::{Json, Query};
 use lemmy_api_crud::site::update::update_site;
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
-  newtypes::InstanceId,
   source::{
     local_site::{LocalSite, LocalSiteUpdateForm},
     local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
@@ -16,10 +15,8 @@ use lemmy_db_schema::{
     registration_application::{RegistrationApplication, RegistrationApplicationInsertForm},
   },
   test_data::TestData,
-  traits::Crud,
-  utils::DbPool,
 };
-use lemmy_db_schema_file::enums::RegistrationMode;
+use lemmy_db_schema_file::{InstanceId, enums::RegistrationMode};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_notification::api::GetUnreadRegistrationApplicationCountResponse;
 use lemmy_db_views_registration_applications::api::{
@@ -27,7 +24,8 @@ use lemmy_db_views_registration_applications::api::{
   ListRegistrationApplicationsResponse,
 };
 use lemmy_db_views_site::api::EditSite;
-use lemmy_utils::{error::LemmyResult, CACHE_DURATION_API};
+use lemmy_diesel_utils::{connection::DbPool, traits::Crud};
+use lemmy_utils::{CACHE_DURATION_API, error::LemmyResult};
 
 async fn create_test_site(context: &Data<LemmyContext>) -> LemmyResult<(TestData, LocalUserView)> {
   let pool = &mut context.pool();

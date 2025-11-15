@@ -50,13 +50,16 @@ http.workspace = true
 diesel.workspace = true
 diesel-async.workspace = true
 clokwerk = "0.4.0"
-prometheus = { version = "0.14.0", features = ["process"] }
+prometheus = { version = "0.14.0", features = [
+  "process",
+], default-features = false }
 rss = "2.0.12"
 actix-web-prom = "0.10.0"
 actix-cors = "0.7.1"
 rand = "0.9.2"
 percent-encoding = "2.3.2"
 diesel-uplete.workspace = true
+lemmy_diesel_utils = { workspace = true }
 
 [dev-dependencies]
 pretty_assertions.workspace = true

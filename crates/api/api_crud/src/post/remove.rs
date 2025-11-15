@@ -15,10 +15,11 @@ use lemmy_db_schema::{
     post::{Post, PostUpdateForm},
     post_report::PostReport,
   },
-  traits::{Crud, Reportable},
+  traits::Reportable,
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::api::{PostResponse, RemovePost};
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn remove_post(

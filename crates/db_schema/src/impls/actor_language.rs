@@ -1,6 +1,6 @@
 use crate::{
   diesel::JoinOnDsl,
-  newtypes::{CommunityId, InstanceId, LanguageId, LocalUserId, SiteId},
+  newtypes::{CommunityId, LanguageId, LocalUserId, SiteId},
   source::{
     actor_language::{
       CommunityLanguage,
@@ -13,24 +13,21 @@ use crate::{
     language::Language,
     site::Site,
   },
-  utils::{get_conn, DbPool},
 };
 use diesel::{
+  ExpressionMethods,
+  QueryDsl,
   delete,
   dsl::{count, exists},
   insert_into,
   select,
-  ExpressionMethods,
-  QueryDsl,
 };
-use diesel_async::{scoped_futures::ScopedFutureExt, AsyncPgConnection, RunQueryDsl};
-use lemmy_db_schema_file::schema::{
-  community_language,
-  local_site,
-  local_user_language,
-  site,
-  site_language,
+use diesel_async::{AsyncPgConnection, RunQueryDsl, scoped_futures::ScopedFutureExt};
+use lemmy_db_schema_file::{
+  InstanceId,
+  schema::{community_language, local_site, local_user_language, site, site_language},
 };
+use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use tokio::sync::OnceCell;
 
@@ -406,9 +403,8 @@ mod tests {
       person::{Person, PersonInsertForm},
     },
     test_data::TestData,
-    traits::Crud,
-    utils::build_db_pool_for_tests,
   };
+  use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use pretty_assertions::assert_eq;
 
   async fn test_langs1(pool: &mut DbPool<'_>) -> LemmyResult<Vec<LanguageId>> {

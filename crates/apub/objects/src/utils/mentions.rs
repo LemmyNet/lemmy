@@ -6,11 +6,8 @@ use activitypub_federation::{
   traits::Object,
 };
 use lemmy_api_utils::context::LemmyContext;
-use lemmy_db_schema::{
-  source::{comment::Comment, person::Person, post::Post},
-  traits::Crud,
-  utils::DbPool,
-};
+use lemmy_db_schema::source::{comment::Comment, person::Person, post::Post};
+use lemmy_diesel_utils::{connection::DbPool, traits::Crud};
 use lemmy_utils::{
   error::{LemmyResult, UntranslatedError},
   utils::mention::scrape_text_for_mentions,

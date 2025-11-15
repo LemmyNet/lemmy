@@ -74,9 +74,9 @@ mod tests {
       post::{Post, PostInsertForm},
     },
     test_data::TestData,
-    traits::Crud,
   };
   use lemmy_db_views_local_user::LocalUserView;
+  use lemmy_diesel_utils::traits::Crud;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
 
@@ -140,7 +140,7 @@ mod tests {
 
     let context = LemmyContext::init_test_context().await;
     for (msg, input, expected) in &tests {
-      let result = markdown_rewrite_remote_links(input.to_string(), &context).await;
+      let result = markdown_rewrite_remote_links(input.clone(), &context).await;
 
       assert_eq!(
         &result, expected,

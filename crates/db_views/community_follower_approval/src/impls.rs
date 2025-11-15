@@ -1,30 +1,36 @@
 use crate::PendingFollowerView;
 use diesel::{
-  dsl::{count, exists, sql},
-  pg::sql_types::Array,
-  select,
-  sql_types::Integer,
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
+  dsl::{count, exists, sql},
+  pg::sql_types::Array,
+  select,
+  sql_types::Integer,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  aliases,
-  newtypes::{CommunityId, InstanceId, PaginationCursor, PersonId},
+  newtypes::{CommunityId, PaginationCursor},
   source::{
-    community::{community_actions_keys as key, Community, CommunityActions},
+    community::{Community, CommunityActions, community_actions_keys as key},
     person::Person,
   },
   traits::PaginationCursorBuilder,
-  utils::{get_conn, limit_fetch, paginate, queries::selects::person1_select, DbPool},
+  utils::{limit_fetch, queries::selects::person1_select},
 };
 use lemmy_db_schema_file::{
+  InstanceId,
+  PersonId,
+  aliases,
   enums::{CommunityFollowerState, CommunityVisibility},
   schema::{community, community_actions, person},
+};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  utils::paginate,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use std::collections::HashMap;
@@ -132,10 +138,10 @@ impl PendingFollowerView {
     // should show a warning because a malicious admin could leak private community data.
     for r in &mut res {
       let instance_ids = approved_follower_instances.get(&r.community.id);
-      if let Some(instance_ids) = instance_ids {
-        if instance_ids.contains(&r.person.instance_id) {
-          r.is_new_instance = false;
-        }
+      if let Some(instance_ids) = instance_ids
+        && instance_ids.contains(&r.person.instance_id)
+      {
+        r.is_new_instance = false;
       }
     }
     Ok(res)
@@ -235,10 +241,10 @@ mod tests {
       instance::Instance,
       person::PersonInsertForm,
     },
-    traits::{Crud, Followable},
-    utils::build_db_pool_for_tests,
+    traits::Followable,
   };
   use lemmy_db_schema_file::enums::CommunityVisibility;
+  use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
 
   #[tokio::test]
   async fn test_has_followers_from_instance() -> LemmyResult<()> {

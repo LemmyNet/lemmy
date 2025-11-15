@@ -10,29 +10,31 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  aliases,
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommentId, CommunityId, PaginationCursor, PersonId, PostId},
+  newtypes::{CommentId, CommunityId, PaginationCursor, PostId},
   source::{
     local_user::LocalUser,
-    modlog::{modlog_keys as key, Modlog},
+    modlog::{Modlog, modlog_keys as key},
   },
   traits::PaginationCursorBuilder,
   utils::{
-    get_conn,
     limit_fetch,
-    paginate,
     queries::filters::{
       filter_is_subscribed,
       filter_not_unlisted_or_is_subscribed,
       filter_suggested_communities,
     },
-    DbPool,
   },
 };
 use lemmy_db_schema_file::{
+  PersonId,
+  aliases,
   enums::{ListingType, ModlogKind},
   schema::{comment, community, community_actions, instance, modlog, person, post},
+};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  utils::paginate,
 };
 use lemmy_utils::error::LemmyResult;
 
@@ -194,16 +196,16 @@ impl ModlogView {
 #[expect(clippy::indexing_slicing)]
 mod tests {
   use super::*;
-  use lemmy_db_schema::{
-    source::{
-      comment::{Comment, CommentInsertForm},
-      community::{Community, CommunityInsertForm},
-      instance::Instance,
-      person::{Person, PersonInsertForm},
-      post::{Post, PostInsertForm},
-    },
+  use lemmy_db_schema::source::{
+    comment::{Comment, CommentInsertForm},
+    community::{Community, CommunityInsertForm},
+    instance::Instance,
+    person::{Person, PersonInsertForm},
+    post::{Post, PostInsertForm},
+  };
+  use lemmy_diesel_utils::{
+    connection::{DbPool, build_db_pool_for_tests},
     traits::Crud,
-    utils::{build_db_pool_for_tests, DbPool},
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;

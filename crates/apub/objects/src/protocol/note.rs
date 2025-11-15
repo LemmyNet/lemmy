@@ -1,10 +1,10 @@
 use crate::{
   objects::{
+    PostOrComment,
     comment::ApubComment,
     community::ApubCommunity,
     person::ApubPerson,
     post::ApubPost,
-    PostOrComment,
   },
   protocol::page::Attachment,
   utils::{
@@ -23,13 +23,11 @@ use activitypub_federation::{
 };
 use chrono::{DateTime, Utc};
 use lemmy_api_utils::context::LemmyContext;
-use lemmy_db_schema::{
-  source::{community::Community, post::Post},
-  traits::Crud,
-};
+use lemmy_db_schema::source::{community::Community, post::Post};
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::{
-  error::{LemmyErrorType, LemmyResult},
   MAX_COMMENT_DEPTH_LIMIT,
+  error::{LemmyErrorType, LemmyResult},
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;

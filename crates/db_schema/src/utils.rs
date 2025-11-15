@@ -1,6 +1,5 @@
 pub mod queries;
 
-use crate::newtypes::DbUrl;
 use chrono::TimeDelta;
 use db_pool::{
   r#async::{
@@ -42,22 +41,8 @@ use diesel_async::{
 use futures_util::{future::BoxFuture, FutureExt};
 use i_love_jesus::{CursorKey, PaginatedQueryBuilder, SortDirection};
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
-  settings::{structs::Settings, SETTINGS},
-  utils::validation::clean_url,
-};
-use rustls::{
-  client::danger::{
-    DangerousClientConfigBuilder,
-    HandshakeSignatureValid,
-    ServerCertVerified,
-    ServerCertVerifier,
-  },
-  crypto::{self, verify_tls12_signature, verify_tls13_signature},
-  pki_types::{CertificateDer, ServerName, UnixTime},
-  ClientConfig,
-  DigitallySignedStruct,
-  SignatureScheme,
+  error::{LemmyErrorType, LemmyResult},
+  settings::structs::Settings,
 };
 use std::{
   ops::{Deref, DerefMut},
@@ -73,6 +58,7 @@ pub const FETCH_LIMIT_MAX: usize = 50;
 pub const SITEMAP_LIMIT: i64 = 50000;
 pub const SITEMAP_DAYS: TimeDelta = TimeDelta::days(31);
 pub const RANK_DEFAULT: f32 = 0.0001;
+pub const DELETED_REPLACEMENT_TEXT: &str = "*Permanently Deleted*";
 
 pub type ActualDbPool = Pool<AsyncPgConnection>;
 pub type ReusableDbPool =

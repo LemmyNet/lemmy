@@ -3,10 +3,10 @@ use crate::{
   protocol::{group::Group, tags::CommunityTag},
   utils::{
     functions::{
+      GetActorType,
       check_apub_id_valid_with_strictness,
       community_visibility,
       read_from_string_or_source_opt,
-      GetActorType,
     },
     markdown_links::markdown_rewrite_remote_links_opt,
     protocol::{AttributedTo, ImageObject, LanguageTag, Source},
@@ -33,16 +33,16 @@ use lemmy_api_utils::{
   },
 };
 use lemmy_db_schema::{
-  sensitive::SensitiveString,
   source::{
     actor_language::CommunityLanguage,
     community::{Community, CommunityInsertForm, CommunityUpdateForm},
     tag::Tag,
   },
-  traits::{ApubActor, Crud},
+  traits::ApubActor,
 };
 use lemmy_db_schema_file::enums::{ActorType, CommunityVisibility};
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::{sensitive::SensitiveString, traits::Crud};
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   utils::{
@@ -51,14 +51,13 @@ use lemmy_utils::{
     validation::truncate_description,
   },
 };
-use once_cell::sync::OnceCell;
-use std::ops::Deref;
+use std::{ops::Deref, sync::OnceLock};
 use url::Url;
 
 #[allow(clippy::type_complexity)]
-pub static FETCH_COMMUNITY_COLLECTIONS: OnceCell<
+pub static FETCH_COMMUNITY_COLLECTIONS: OnceLock<
   fn(ApubCommunity, Group, Data<LemmyContext>) -> (),
-> = OnceCell::new();
+> = OnceLock::new();
 
 #[derive(Clone, Debug)]
 pub struct ApubCommunity(Community);
@@ -124,10 +123,10 @@ impl Object for ApubCommunity {
       id: self.id().clone().into(),
       preferred_username: self.name.clone(),
       name: Some(self.title.clone()),
-      content: self.sidebar.as_ref().map(|d| markdown_to_html(d)),
-      source: self.sidebar.clone().map(Source::new),
-      summary: self.description.clone(),
-      media_type: self.sidebar.as_ref().map(|_| MediaTypeHtml::Html),
+      content: self.description.as_ref().map(|d| markdown_to_html(d)),
+      source: self.description.clone().map(Source::new),
+      summary: self.sidebar.clone(),
+      media_type: self.description.as_ref().map(|_| MediaTypeHtml::Html),
       icon: self.icon.clone().map(ImageObject::new),
       image: self.banner.clone().map(ImageObject::new),
       sensitive: Some(self.nsfw),
@@ -180,7 +179,7 @@ impl Object for ApubCommunity {
 
     let slur_regex = slur_regex(context).await?;
     let url_blocklist = get_url_blocklist(context).await?;
-    let sidebar = read_from_string_or_source_opt(&group.content, &None, &group.source);
+    let sidebar = read_from_string_or_source_opt(&group.summary, &None, &group.source);
     let sidebar = process_markdown_opt(&sidebar, &slur_regex, &url_blocklist, context).await?;
     let sidebar = markdown_rewrite_remote_links_opt(sidebar, context).await;
     let icon = proxy_image_link_opt_apub(group.icon.clone().map(|i| i.url), context).await?;
@@ -205,7 +204,7 @@ impl Object for ApubCommunity {
       banner,
       sidebar,
       removed,
-      description: group.summary.clone().as_deref().map(truncate_description),
+      description: group.content.clone().as_deref().map(truncate_description),
       followers_url: group.followers.clone().clone().map(Into::into),
       inbox_url: Some(
         group
@@ -310,8 +309,8 @@ pub(crate) mod tests {
       Some(63)
     );
     assert_eq!(
-      community.description,
-      Some("A description of ten forward.".into())
+      community.description.as_ref().map(std::string::String::len),
+      Some(80)
     );
 
     Instance::delete_all(&mut context.pool()).await?;

@@ -1,6 +1,6 @@
 use crate::{
   generate_activity_id,
-  protocol::{create_or_update::private_message::CreateOrUpdatePrivateMessage, CreateOrUpdateType},
+  protocol::{CreateOrUpdateType, create_or_update::private_message::CreateOrUpdatePrivateMessage},
   send_lemmy_activity,
   verify_person,
 };

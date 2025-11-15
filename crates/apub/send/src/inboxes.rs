@@ -1,11 +1,15 @@
 use crate::util::LEMMY_TEST_FAST_FEDERATION;
 use chrono::{DateTime, TimeZone, Utc};
 use lemmy_db_schema::{
-  newtypes::{CommunityId, DbUrl, InstanceId},
+  newtypes::CommunityId,
   source::{activity::SentActivity, site::Site},
-  utils::{DbPool, GenericDbPool},
 };
+use lemmy_db_schema_file::InstanceId;
 use lemmy_db_views_community_follower::CommunityFollowerView;
+use lemmy_diesel_utils::{
+  connection::{GenericDbPool, DbPool},
+  dburl::DbUrl,
+};
 use lemmy_utils::error::LemmyResult;
 use reqwest::Url;
 use std::{
@@ -137,10 +141,10 @@ impl<T: DataSource> CommunityInboxCollector<T> {
         inbox_urls.insert(site.inbox_url.inner().clone());
       }
     }
-    if let Some(t) = &activity.send_community_followers_of {
-      if let Some(urls) = self.followed_communities.get(t) {
-        inbox_urls.extend(urls.iter().cloned());
-      }
+    if let Some(t) = &activity.send_community_followers_of
+      && let Some(urls) = self.followed_communities.get(t)
+    {
+      inbox_urls.extend(urls.iter().cloned());
     }
     inbox_urls.extend(
       activity
@@ -220,13 +224,14 @@ impl<T: DataSource> CommunityInboxCollector<T> {
 mod tests {
   use super::*;
   use lemmy_db_schema::{
-    newtypes::{ActivityId, CommunityId, InstanceId, SiteId},
+    newtypes::{ActivityId, CommunityId, SiteId},
     source::activity::SentActivity,
   };
-  use lemmy_db_schema_file::enums::ActorType;
+  use lemmy_db_schema_file::{InstanceId, enums::ActorType};
   use lemmy_utils::error::LemmyResult;
-  use mockall::{mock, predicate::*};
+  use mockall::mock;
   use serde_json::json;
+
   mock! {
       DataSource {}
       impl DataSource for DataSource {

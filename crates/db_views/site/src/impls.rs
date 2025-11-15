@@ -1,8 +1,8 @@
 use crate::{
-  api::{GetFederatedInstances, GetFederatedInstancesKind, UserSettingsBackup},
   FederatedInstanceView,
   ReadableFederationState,
   SiteView,
+  api::{GetFederatedInstances, GetFederatedInstancesKind, UserSettingsBackup},
 };
 use diesel::{
   ExpressionMethods,
@@ -15,34 +15,42 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  newtypes::{InstanceId, PaginationCursor},
+  newtypes::PaginationCursor,
   source::{
     actor_language::LocalUserLanguage,
     federation_queue_state::FederationQueueState,
-    instance::{instance_keys as key, Instance},
+    instance::{Instance, instance_keys as key},
     keyword_block::LocalUserKeywordBlock,
     language::Language,
     local_user::LocalUser,
     person::Person,
   },
-  traits::{Crud, PaginationCursorBuilder},
-  utils::{fuzzy_search, get_conn, limit_fetch, paginate, DbPool},
+  traits::PaginationCursorBuilder,
+  utils::limit_fetch,
 };
-use lemmy_db_schema_file::schema::{
-  federation_allowlist,
-  federation_blocklist,
-  federation_queue_state,
-  instance,
-  local_site,
-  local_site_rate_limit,
-  site,
+use lemmy_db_schema_file::{
+  InstanceId,
+  schema::{
+    federation_allowlist,
+    federation_blocklist,
+    federation_queue_state,
+    instance,
+    local_site,
+    local_site_rate_limit,
+    site,
+  },
 };
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  traits::Crud,
+  utils::{fuzzy_search, paginate},
+};
 use lemmy_utils::{
+  CacheLock,
   build_cache,
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   federate_retry_sleep_duration,
-  CacheLock,
 };
 use std::{
   collections::HashMap,
@@ -75,9 +83,9 @@ impl SiteView {
 
   /// A special site bot user, solely made for following non-local communities for
   /// multi-communities.
-  pub async fn read_multicomm_follower(pool: &mut DbPool<'_>) -> LemmyResult<Person> {
+  pub async fn read_system_account(pool: &mut DbPool<'_>) -> LemmyResult<Person> {
     let site_view = SiteView::read_local(pool).await?;
-    Person::read(pool, site_view.local_site.multi_comm_follower).await
+    Person::read(pool, site_view.local_site.system_account).await
   }
 }
 
@@ -223,8 +231,8 @@ impl From<FederationQueueState> for ReadableFederationState {
 #[expect(clippy::indexing_slicing)]
 mod tests {
   use crate::{
-    api::{GetFederatedInstances, GetFederatedInstancesKind},
     FederatedInstanceView,
+    api::{GetFederatedInstances, GetFederatedInstancesKind},
   };
   use lemmy_db_schema::{
     assert_length,
@@ -234,9 +242,8 @@ mod tests {
       instance::Instance,
       site::{Site, SiteInsertForm},
     },
-    traits::Crud,
-    utils::build_db_pool_for_tests,
   };
+  use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use lemmy_utils::error::LemmyResult;
 
   #[tokio::test]

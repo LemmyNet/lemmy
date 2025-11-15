@@ -11,11 +11,12 @@ use lemmy_db_schema::{
     community::{Community, CommunityActions},
     multi_community::{MultiCommunity, MultiCommunityEntry, MultiCommunityEntryForm},
   },
-  traits::{Crud, Followable},
+  traits::Followable,
 };
 use lemmy_db_views_community::api::CreateOrDeleteMultiCommunityEntry;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_site::{api::SuccessResponse, SiteView};
+use lemmy_db_views_site::{SiteView, api::SuccessResponse};
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn delete_multi_community_entry(
@@ -41,7 +42,7 @@ pub async fn delete_multi_community_entry(
       MultiCommunityEntry::community_used_in_multiple(&mut context.pool(), &form).await?;
     // unfollow the community only if its not used in another multi-community
     if !used_in_multiple {
-      let multicomm_follower = SiteView::read_multicomm_follower(&mut context.pool()).await?;
+      let multicomm_follower = SiteView::read_system_account(&mut context.pool()).await?;
       CommunityActions::unfollow(&mut context.pool(), multicomm_follower.id, community.id).await?;
       ActivityChannel::submit_activity(
         SendActivityData::FollowCommunity(community, local_user_view.person.clone(), false),

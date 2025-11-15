@@ -4,9 +4,9 @@ use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
 use lemmy_db_schema::traits::PaginationCursorBuilder;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_modlog::{
+  ModlogView,
   api::{GetModlog, GetModlogResponse},
   impls::ModlogQuery,
-  ModlogView,
 };
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
@@ -76,11 +76,12 @@ mod tests {
       person::{Person, PersonInsertForm},
       post::{Post, PostActions, PostInsertForm, PostLikeForm},
     },
-    traits::{Crud, Likeable},
+    traits::Likeable,
   };
   use lemmy_db_schema_file::enums::ModlogKind;
   use lemmy_db_views_comment::CommentView;
   use lemmy_db_views_post::PostView;
+  use lemmy_diesel_utils::traits::Crud;
   use pretty_assertions::assert_eq;
 
   #[tokio::test]

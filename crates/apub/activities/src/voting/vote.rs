@@ -10,7 +10,7 @@ use activitypub_federation::{
 };
 use lemmy_api_utils::{context::LemmyContext, utils::check_bot_account};
 use lemmy_apub_objects::{
-  objects::{person::ApubPerson, PostOrComment},
+  objects::{PostOrComment, person::ApubPerson},
   utils::{functions::verify_person_in_community, protocol::InCommunity},
 };
 use lemmy_db_schema_file::enums::FederationMode;

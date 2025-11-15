@@ -36,15 +36,13 @@ use lemmy_api_utils::{
     slur_regex,
   },
 };
-use lemmy_db_schema::{
-  source::{
-    comment::{Comment, CommentInsertForm, CommentUpdateForm},
-    community::Community,
-    person::Person,
-    post::Post,
-  },
-  traits::Crud,
+use lemmy_db_schema::source::{
+  comment::{Comment, CommentInsertForm, CommentUpdateForm},
+  community::Community,
+  person::Person,
+  post::Post,
 };
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::{
   error::{LemmyError, LemmyResult, UntranslatedError},
   utils::markdown::markdown_to_html,

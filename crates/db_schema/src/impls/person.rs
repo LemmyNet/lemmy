@@ -1,6 +1,6 @@
 use crate::{
   diesel::{BoolExpressionMethods, NullableExpressionMethods, OptionalExtension},
-  newtypes::{CommunityId, DbUrl, InstanceId, LocalUserId, PersonId},
+  newtypes::{CommunityId, LocalUserId},
   source::person::{
     Person,
     PersonActions,
@@ -10,25 +10,29 @@ use crate::{
     PersonNoteForm,
     PersonUpdateForm,
   },
-  traits::{ApubActor, Blockable, Crud, Followable},
-  utils::{format_actor_url, functions::lower, get_conn, DbPool},
+  traits::{ApubActor, Blockable, Followable},
+  utils::format_actor_url,
 };
 use chrono::Utc;
 use diesel::{
-  dsl::{exists, insert_into, not, select},
-  expression::SelectableHelper,
   ExpressionMethods,
   JoinOnDsl,
   QueryDsl,
+  dsl::{exists, insert_into, not, select},
+  expression::SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
-use diesel_uplete::{uplete, UpleteCount};
-use lemmy_db_schema_file::schema::{
-  instance,
-  instance_actions,
-  local_user,
-  person,
-  person_actions,
+use diesel_uplete::{UpleteCount, uplete};
+use lemmy_db_schema_file::{
+  InstanceId,
+  PersonId,
+  schema::{instance, instance_actions, local_user, person, person_actions},
+};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  dburl::DbUrl,
+  traits::Crud,
+  utils::functions::lower,
 };
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
@@ -443,10 +447,10 @@ mod tests {
       person::{Person, PersonActions, PersonFollowerForm, PersonInsertForm, PersonUpdateForm},
       post::{Post, PostActions, PostInsertForm, PostLikeForm},
     },
-    traits::{Crud, Followable, Likeable},
-    utils::build_db_pool_for_tests,
+    traits::{Followable, Likeable},
   };
   use diesel_uplete::UpleteCount;
+  use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
 

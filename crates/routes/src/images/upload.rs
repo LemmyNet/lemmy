@@ -1,26 +1,24 @@
 use super::utils::{adapt_request, delete_old_image, make_send};
-use actix_web::{self, web::*, HttpRequest};
+use UploadType::*;
+use actix_web::{self, HttpRequest, web::*};
 use lemmy_api_utils::{
   context::LemmyContext,
   request::PictrsResponse,
   utils::{is_admin, is_mod_or_admin},
 };
-use lemmy_db_schema::{
-  source::{
-    community::{Community, CommunityUpdateForm},
-    images::{LocalImage, LocalImageForm},
-    person::{Person, PersonUpdateForm},
-    site::{Site, SiteUpdateForm},
-  },
-  traits::Crud,
+use lemmy_db_schema::source::{
+  community::{Community, CommunityUpdateForm},
+  images::{LocalImage, LocalImageForm},
+  person::{Person, PersonUpdateForm},
+  site::{Site, SiteUpdateForm},
 };
 use lemmy_db_views_community::api::CommunityIdQuery;
 use lemmy_db_views_local_image::api::UploadImageResponse;
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use reqwest::Body;
 use std::time::Duration;
-use UploadType::*;
 
 pub enum UploadType {
   Avatar,
@@ -226,7 +224,7 @@ async fn do_upload_image(
     // but still a user may upload multiple and so we need to store all links in db for
     // to allow deletion via web ui.
     let form = LocalImageForm {
-      pictrs_alias: image.file.to_string(),
+      pictrs_alias: image.file.clone(),
       person_id: local_user_view.person.id,
       thumbnail_for_post_id: None,
     };

@@ -11,10 +11,8 @@ use lemmy_apub_objects::{
   objects::{community::ApubCommunity, person::ApubPerson},
   utils::protocol::InCommunity,
 };
-use lemmy_db_schema::{
-  source::{community::Community, post::Post},
-  traits::Crud,
-};
+use lemmy_db_schema::source::{community::Community, post::Post};
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -55,7 +53,7 @@ impl InCommunity for Delete {
       DeletableObjects::Post(p) => p.community_id,
       DeletableObjects::Person(_) => return Err(anyhow!("Person is not part of community").into()),
       DeletableObjects::PrivateMessage(_) => {
-        return Err(anyhow!("Private message is not part of community").into())
+        return Err(anyhow!("Private message is not part of community").into());
       }
     };
     let community = Community::read(&mut context.pool(), community_id).await?;

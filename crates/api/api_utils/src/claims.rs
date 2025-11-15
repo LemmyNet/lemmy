@@ -1,12 +1,12 @@
 use crate::context::LemmyContext;
-use actix_web::{http::header::USER_AGENT, HttpRequest};
+use actix_web::{HttpRequest, http::header::USER_AGENT};
 use chrono::{DateTime, Duration, Utc};
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use lemmy_db_schema::{
   newtypes::LocalUserId,
-  sensitive::SensitiveString,
   source::login_token::{LoginToken, LoginTokenCreateForm},
 };
+use lemmy_diesel_utils::sensitive::SensitiveString;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use serde::{Deserialize, Serialize};
 
@@ -84,14 +84,12 @@ mod tests {
 
   use crate::{claims::Claims, context::LemmyContext};
   use actix_web::test::TestRequest;
-  use lemmy_db_schema::{
-    source::{
-      instance::Instance,
-      local_user::{LocalUser, LocalUserInsertForm},
-      person::{Person, PersonInsertForm},
-    },
-    traits::Crud,
+  use lemmy_db_schema::source::{
+    instance::Instance,
+    local_user::{LocalUser, LocalUserInsertForm},
+    person::{Person, PersonInsertForm},
   };
+  use lemmy_diesel_utils::traits::Crud;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
 

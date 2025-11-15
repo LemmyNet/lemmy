@@ -33,12 +33,12 @@ pub struct Group {
 
   /// title
   pub name: Option<String>,
-  // sidebar
+  // short instance description
   pub(crate) content: Option<String>,
   #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub source: Option<Source>,
   pub(crate) media_type: Option<MediaTypeHtml>,
-  // short instance description
+  // sidebar
   pub summary: Option<String>,
   #[serde(deserialize_with = "deserialize_last", default)]
   pub icon: Option<ImageObject>,

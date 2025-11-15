@@ -1,21 +1,19 @@
 use crate::{
-  deletion::{receive_delete_action, verify_delete_activity, DeletableObjects},
+  deletion::{DeletableObjects, receive_delete_action, verify_delete_activity},
   generate_activity_id,
   protocol::deletion::{delete::Delete, undo_delete::UndoDelete},
 };
 use activitypub_federation::{config::Data, kinds::activity::UndoType, traits::Activity};
 use lemmy_api_utils::{context::LemmyContext, notify::notify_mod_action};
 use lemmy_apub_objects::objects::person::ApubPerson;
-use lemmy_db_schema::{
-  source::{
-    comment::{Comment, CommentUpdateForm},
-    community::{Community, CommunityUpdateForm},
-    modlog::{Modlog, ModlogInsertForm},
-    post::{Post, PostUpdateForm},
-  },
-  traits::Crud,
+use lemmy_db_schema::source::{
+  comment::{Comment, CommentUpdateForm},
+  community::{Community, CommunityUpdateForm},
+  modlog::{Modlog, ModlogInsertForm},
+  post::{Post, PostUpdateForm},
 };
 use lemmy_db_views_community_moderator::CommunityModeratorView;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult, UntranslatedError};
 use url::Url;
 

@@ -23,14 +23,14 @@ use lemmy_api_utils::{
 use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
   source::post::{Post, PostActions, PostInsertForm, PostLikeForm},
-  traits::{Crud, Likeable},
-  utils::diesel_url_create,
+  traits::Likeable,
 };
 use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::api::{CreatePost, PostResponse};
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::{traits::Crud, utils::diesel_url_create};
 use lemmy_utils::{
   error::LemmyResult,
   utils::{

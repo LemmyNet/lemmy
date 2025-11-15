@@ -3,16 +3,16 @@ use activitypub_federation::config::Data;
 use chrono::{DateTime, TimeZone, Utc};
 use clokwerk::{AsyncScheduler, TimeUnits as CTimeUnits};
 use diesel::{
-  dsl::{count, exists, not, update, IntervalDsl},
-  query_builder::AsQuery,
-  sql_query,
-  sql_types::{BigInt, Integer, Timestamptz},
   BoolExpressionMethods,
   ExpressionMethods,
   NullableExpressionMethods,
   QueryDsl,
   QueryableByName,
   SelectableHelper,
+  dsl::{IntervalDsl, count, exists, not, update},
+  query_builder::AsQuery,
+  sql_query,
+  sql_types::{BigInt, Integer, Timestamptz},
 };
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use diesel_uplete::uplete;
@@ -28,8 +28,7 @@ use lemmy_db_schema::{
     local_user::LocalUser,
     post::{Post, PostUpdateForm},
   },
-  traits::Crud,
-  utils::{functions::coalesce, get_conn, now, DbPool, DELETED_REPLACEMENT_TEXT},
+  utils::DELETED_REPLACEMENT_TEXT,
 };
 use lemmy_db_schema_file::schema::{
   captcha_answer,
@@ -48,9 +47,14 @@ use lemmy_db_schema_file::schema::{
   site,
 };
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  traits::Crud,
+  utils::{functions::coalesce, now},
+};
 use lemmy_utils::{
-  error::{LemmyErrorType, LemmyResult},
   DB_BATCH_SIZE,
+  error::{LemmyErrorType, LemmyResult},
 };
 use reqwest_middleware::ClientWithMiddleware;
 use std::time::Duration;
@@ -715,8 +719,9 @@ mod tests {
       post::{Post, PostActions, PostInsertForm, PostLikeForm},
     },
     test_data::TestData,
-    traits::{Crud, Likeable},
+    traits::Likeable,
   };
+  use lemmy_diesel_utils::traits::Crud;
   use lemmy_utils::{
     error::{LemmyErrorType, LemmyResult},
     settings::structs::Settings,

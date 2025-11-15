@@ -1,30 +1,33 @@
 use crate::{
-  newtypes::{CommunityId, DbUrl, LanguageId, LocalUserId, PersonId},
+  newtypes::{CommunityId, LanguageId, LocalUserId},
   source::{
     actor_language::LocalUserLanguage,
     local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
     site::Site,
   },
-  utils::{
-    functions::{coalesce, lower},
-    get_conn,
-    now,
-    DbPool,
-  },
 };
-use bcrypt::{hash, DEFAULT_COST};
+use bcrypt::{DEFAULT_COST, hash};
 use diesel::{
-  dsl::{insert_into, not, IntervalDsl},
-  result::Error,
   CombineDsl,
   ExpressionMethods,
   JoinOnDsl,
   QueryDsl,
+  dsl::{IntervalDsl, insert_into, not},
+  result::Error,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::{
+  PersonId,
   enums::CommunityVisibility,
   schema::{community, community_actions, local_user, person, registration_application},
+};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  dburl::DbUrl,
+  utils::{
+    functions::{coalesce, lower},
+    now,
+  },
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -320,9 +323,9 @@ pub trait LocalUserOptionHelper {
   fn visible_communities_only<Q>(&self, query: Q) -> Q
   where
     Q: diesel::query_dsl::methods::FilterDsl<
-      diesel::dsl::Eq<community::visibility, CommunityVisibility>,
-      Output = Q,
-    >;
+        diesel::dsl::Eq<community::visibility, CommunityVisibility>,
+        Output = Q,
+      >;
 }
 
 impl LocalUserOptionHelper for Option<&LocalUser> {
@@ -360,9 +363,9 @@ impl LocalUserOptionHelper for Option<&LocalUser> {
   fn visible_communities_only<Q>(&self, query: Q) -> Q
   where
     Q: diesel::query_dsl::methods::FilterDsl<
-      diesel::dsl::Eq<community::visibility, CommunityVisibility>,
-      Output = Q,
-    >,
+        diesel::dsl::Eq<community::visibility, CommunityVisibility>,
+        Output = Q,
+      >,
   {
     if self.is_none() {
       query.filter(community::visibility.eq(CommunityVisibility::Public))
@@ -397,15 +400,12 @@ pub struct UserBackupLists {
 
 #[cfg(test)]
 mod tests {
-  use crate::{
-    source::{
-      instance::Instance,
-      local_user::{LocalUser, LocalUserInsertForm},
-      person::{Person, PersonInsertForm},
-    },
-    traits::Crud,
-    utils::build_db_pool_for_tests,
+  use crate::source::{
+    instance::Instance,
+    local_user::{LocalUser, LocalUserInsertForm},
+    person::{Person, PersonInsertForm},
   };
+  use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use lemmy_utils::error::LemmyResult;
 
   #[tokio::test]

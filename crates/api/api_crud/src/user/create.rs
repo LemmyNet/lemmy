@@ -3,8 +3,8 @@ use activitypub_federation::{
   fetch::object_id::ObjectId,
   http_signatures::generate_actor_keypair,
 };
-use actix_web::{web::Json, HttpRequest};
-use diesel_async::{scoped_futures::ScopedFutureExt, AsyncPgConnection};
+use actix_web::{HttpRequest, web::Json};
+use diesel_async::{AsyncPgConnection, scoped_futures::ScopedFutureExt};
 use lemmy_api_utils::{
   claims::Claims,
   context::LemmyContext,
@@ -37,17 +37,17 @@ use lemmy_db_schema::{
     post::{Post, PostActions, PostInsertForm, PostLikeForm},
     registration_application::{RegistrationApplication, RegistrationApplicationInsertForm},
   },
-  traits::{ApubActor, Crud, Likeable},
-  utils::get_conn,
+  traits::{ApubActor, Likeable},
 };
 use lemmy_db_schema_file::enums::RegistrationMode;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::impls::PersonQuery;
 use lemmy_db_views_registration_applications::api::Register;
 use lemmy_db_views_site::{
-  api::{AuthenticateWithOauth, LoginResponse},
   SiteView,
+  api::{AuthenticateWithOauth, LoginResponse},
 };
+use lemmy_diesel_utils::{connection::get_conn, traits::Crud};
 use lemmy_email::{
   account::send_verification_email_if_required,
   admin::send_new_applicant_email_to_admins,
@@ -170,16 +170,17 @@ pub async fn register(
         )
         .await?;
 
-        if site_view.local_site.site_setup && require_registration_application {
-          if let Some(answer) = tx_data.answer.clone() {
-            // Create the registration application
-            let form = RegistrationApplicationInsertForm {
-              local_user_id: local_user.id,
-              answer,
-            };
+        if site_view.local_site.site_setup
+          && require_registration_application
+          && let Some(answer) = tx_data.answer.clone()
+        {
+          // Create the registration application
+          let form = RegistrationApplicationInsertForm {
+            local_user_id: local_user.id,
+            answer,
+          };
 
-            RegistrationApplication::create(&mut conn.into(), &form).await?;
-          }
+          RegistrationApplication::create(&mut conn.into(), &form).await?;
         }
 
         Ok(LocalUserView {
@@ -416,20 +417,19 @@ pub async fn authenticate_with_oauth(
               && require_registration_application
               && !local_user.accepted_application
               && !local_user.admin
+              && let Some(answer) = tx_data.answer.clone()
             {
-              if let Some(answer) = tx_data.answer.clone() {
-                // Create the registration application
-                RegistrationApplication::create(
-                  &mut conn.into(),
-                  &RegistrationApplicationInsertForm {
-                    local_user_id: local_user.id,
-                    answer,
-                  },
-                )
-                .await?;
+              // Create the registration application
+              RegistrationApplication::create(
+                &mut conn.into(),
+                &RegistrationApplicationInsertForm {
+                  local_user_id: local_user.id,
+                  answer,
+                },
+              )
+              .await?;
 
-                login_response.registration_created = true;
-              }
+              login_response.registration_created = true;
             }
             Ok(LocalUserView {
               person,
@@ -684,38 +684,16 @@ fn create_welcome_post(local_user: LocalUser, context: &LemmyContext) {
 
   spawn_try_task(async move {
     let pool = &mut context.pool();
-    let local_site = SiteView::read_local(pool).await?;
+    let site = SiteView::read_local(pool).await?;
     let mut admins = PersonQuery {
       admins_only: Some(true),
       ..Default::default()
     }
-    .list(None, local_site.instance.id, &mut context.pool())
+    .list(None, site.instance.id, &mut context.pool())
     .await?;
     let initial_user = admins.pop();
 
-    // Create dummy user for posting the welcome post. Make sure the username is not taken yet.
-    // Also dont create LocalUser and no password to prevent login.
-    let mut username = "lemmy".to_string();
-    let mut name_taken = true;
-    while name_taken {
-      name_taken = Person::check_username_taken(pool, &username).await.is_err();
-      if name_taken {
-        username += "_";
-      }
-    }
-    let actor_keypair = generate_actor_keypair()?;
-    let ap_id = Person::generate_local_actor_url(&username, context.settings())?;
-    let person_form = PersonInsertForm {
-      ap_id: Some(ap_id.clone()),
-      inbox_url: Some(generate_inbox_url()?),
-      private_key: Some(actor_keypair.private_key),
-      ..PersonInsertForm::new(
-        username.clone(),
-        actor_keypair.public_key,
-        local_site.site.instance_id,
-      )
-    };
-    let person = Person::create(pool, &person_form).await?;
+    let person = SiteView::read_system_account(&mut context.pool()).await?;
 
     // Create main community
     let community_name = "main".to_string();
@@ -729,7 +707,7 @@ fn create_welcome_post(local_user: LocalUser, context: &LemmyContext) {
       moderators_url: Some(generate_moderators_url(&community_ap_id)?),
       featured_url: Some(generate_featured_url(&community_ap_id)?),
       ..CommunityInsertForm::new(
-        local_site.site.instance_id,
+        site.site.instance_id,
         community_name,
         "Main".to_string(),
         keypair.public_key,

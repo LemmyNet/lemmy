@@ -8,7 +8,6 @@ use crate::{
   SearchCombinedViewInternal,
 };
 use diesel::{
-  dsl::not,
   BoolExpressionMethods,
   ExpressionMethods,
   JoinOnDsl,
@@ -16,50 +15,45 @@ use diesel::{
   PgTextExpressionMethods,
   QueryDsl,
   SelectableHelper,
+  dsl::not,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::asc_if;
 use lemmy_db_schema::{
+  SearchSortType::{self, *},
+  SearchType,
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommunityId, InstanceId, PaginationCursor, PersonId},
+  newtypes::{CommunityId, PaginationCursor},
   source::{
-    combined::search::{search_combined_keys as key, SearchCombined},
+    combined::search::{SearchCombined, search_combined_keys as key},
     site::Site,
   },
   traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{
-    fuzzy_search,
-    get_conn,
     limit_fetch,
-    now,
-    paginate,
-    queries::{
-      filters::{
-        filter_is_subscribed,
-        filter_not_unlisted_or_is_subscribed,
-        filter_suggested_communities,
-      },
-      joins::{
-        creator_community_actions_join,
-        creator_home_instance_actions_join,
-        creator_local_instance_actions_join,
-        creator_local_user_admin_join,
-        image_details_join,
-        my_comment_actions_join,
-        my_community_actions_join,
-        my_local_user_admin_join,
-        my_person_actions_join,
-        my_post_actions_join,
-      },
+    queries::filters::{
+      filter_is_subscribed,
+      filter_not_unlisted_or_is_subscribed,
+      filter_suggested_communities,
     },
-    seconds_to_pg_interval,
-    DbPool,
   },
-  SearchSortType::{self, *},
-  SearchType,
 };
 use lemmy_db_schema_file::{
+  InstanceId,
+  PersonId,
   enums::ListingType,
+  joins::{
+    creator_community_actions_join,
+    creator_home_instance_actions_join,
+    creator_local_instance_actions_join,
+    creator_local_user_admin_join,
+    image_details_join,
+    my_comment_actions_join,
+    my_community_actions_join,
+    my_local_user_admin_join,
+    my_person_actions_join,
+    my_post_actions_join,
+  },
   schema::{
     comment,
     comment_actions,
@@ -73,7 +67,12 @@ use lemmy_db_schema_file::{
   },
 };
 use lemmy_db_views_community::MultiCommunityView;
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  utils::{fuzzy_search, now, paginate, seconds_to_pg_interval},
+};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use url::Url;
 
 impl SearchCombinedViewInternal {
   #[diesel::dsl::auto_type(no_type_alias)]
@@ -251,7 +250,10 @@ impl SearchCombinedQuery {
     // The search term
     if let Some(search_term) = &self.search_term {
       if self.post_url_only.unwrap_or_default() {
-        query = query.filter(post::url.eq(search_term));
+        // Needs to be parsed to a rusts common url format before searching, since those are whats
+        // inserted as the post url
+        let search_url: String = Url::parse(search_term)?.into();
+        query = query.filter(post::url.eq(search_url));
       } else {
         let searcher = fuzzy_search(search_term);
 
@@ -489,8 +491,10 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
 #[cfg(test)]
 #[expect(clippy::indexing_slicing)]
 mod tests {
-  use crate::{impls::SearchCombinedQuery, LocalUserView, SearchCombinedView};
+  use crate::{LocalUserView, SearchCombinedView, impls::SearchCombinedQuery};
   use lemmy_db_schema::{
+    SearchSortType,
+    SearchType,
     assert_length,
     source::{
       comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm, CommentUpdateForm},
@@ -502,10 +506,11 @@ mod tests {
       post::{Post, PostActions, PostInsertForm, PostLikeForm, PostUpdateForm},
       site::{Site, SiteInsertForm},
     },
-    traits::{Crud, Likeable},
-    utils::{build_db_pool_for_tests, DbPool},
-    SearchSortType,
-    SearchType,
+    traits::Likeable,
+  };
+  use lemmy_diesel_utils::{
+    connection::{DbPool, build_db_pool_for_tests},
+    traits::Crud,
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;

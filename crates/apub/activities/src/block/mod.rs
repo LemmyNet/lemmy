@@ -9,10 +9,9 @@ use lemmy_apub_objects::{
 use lemmy_db_schema::{
   newtypes::CommunityId,
   source::{comment::Comment, community::Community, person::Person, post::Post, site::Site},
-  traits::Crud,
-  utils::DbPool,
 };
 use lemmy_db_views_community::api::BanFromCommunity;
+use lemmy_diesel_utils::{connection::DbPool, traits::Crud};
 use lemmy_utils::error::LemmyResult;
 use url::Url;
 

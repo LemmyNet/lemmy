@@ -9,14 +9,14 @@ use lemmy_api_utils::{
   utils::{check_is_mod_or_admin, check_private_instance},
 };
 use lemmy_apub_objects::objects::{SearchableObjects, UserOrCommunity};
-use lemmy_db_schema::newtypes::PersonId;
+use lemmy_db_schema_file::PersonId;
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_community::{CommunityView, MultiCommunityView};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_search_combined::{SearchCombinedView, SearchResponse};
-use lemmy_db_views_site::{api::ResolveObject, SiteView};
+use lemmy_db_views_site::{SiteView, api::ResolveObject};
 use lemmy_utils::error::{LemmyErrorExt2, LemmyErrorType, LemmyResult};
 use url::Url;
 
@@ -127,8 +127,8 @@ mod tests {
       post::{Post, PostInsertForm, PostUpdateForm},
     },
     test_data::TestData,
-    traits::Crud,
   };
+  use lemmy_diesel_utils::traits::Crud;
 
   #[tokio::test]
   async fn test_object_visibility() -> LemmyResult<()> {

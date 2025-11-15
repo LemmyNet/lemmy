@@ -12,8 +12,8 @@ use lemmy_db_schema::source::{
   modlog::{Modlog, ModlogInsertForm},
 };
 use lemmy_db_views_comment::{
-  api::{CommentResponse, LockComment},
   CommentView,
+  api::{CommentResponse, LockComment},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};

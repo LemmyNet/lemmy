@@ -1,14 +1,9 @@
-use crate::federation::fetcher::resolve_ap_identifier;
-use activitypub_federation::config::Data;
-use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::objects::person::ApubPerson;
 use lemmy_db_schema::{
-  newtypes::{CommunityId, PersonId},
-  source::{local_site::LocalSite, local_user::LocalUser, person::Person},
+  newtypes::CommunityId,
+  source::{local_site::LocalSite, local_user::LocalUser},
 };
 use lemmy_db_schema_file::enums::{CommentSortType, ListingType, PostSortType};
-use lemmy_db_views_local_user::LocalUserView;
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 mod fetcher;
 pub mod list_comments;
@@ -101,29 +96,4 @@ fn fetch_limit_with_default(
       .map(|u| i64::from(u.default_items_per_page))
       .unwrap_or(i64::from(local_site.default_items_per_page)),
   )
-}
-
-async fn resolve_person_id_from_id_or_username(
-  person_id: &Option<PersonId>,
-  username: &Option<String>,
-  context: &Data<LemmyContext>,
-  local_user_view: &Option<LocalUserView>,
-) -> LemmyResult<PersonId> {
-  // Check to make sure a person name or an id is given
-  if username.is_none() && person_id.is_none() {
-    Err(LemmyErrorType::NoIdGiven)?
-  }
-
-  Ok(match person_id {
-    Some(id) => *id,
-    None => {
-      if let Some(username) = username {
-        resolve_ap_identifier::<ApubPerson, Person>(username, context, local_user_view, true)
-          .await?
-          .id
-      } else {
-        Err(LemmyErrorType::NotFound)?
-      }
-    }
-  })
 }

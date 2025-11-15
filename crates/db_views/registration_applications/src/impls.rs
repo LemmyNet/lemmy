@@ -1,22 +1,30 @@
 use crate::RegistrationApplicationView;
 use diesel::{
-  dsl::count,
   ExpressionMethods,
   JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
   SelectableHelper,
+  dsl::count,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  aliases,
-  newtypes::{PaginationCursor, PersonId, RegistrationApplicationId},
+  newtypes::{PaginationCursor, RegistrationApplicationId},
   source::registration_application::RegistrationApplication,
-  traits::{Crud, PaginationCursorBuilder},
-  utils::{get_conn, limit_fetch, paginate, DbPool},
+  traits::PaginationCursorBuilder,
+  utils::limit_fetch,
 };
-use lemmy_db_schema_file::schema::{local_user, person, registration_application};
+use lemmy_db_schema_file::{
+  PersonId,
+  aliases,
+  schema::{local_user, person, registration_application},
+};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  traits::Crud,
+  utils::paginate,
+};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl PaginationCursorBuilder for RegistrationApplicationView {
@@ -138,21 +146,18 @@ impl RegistrationApplicationQuery {
 #[cfg(test)]
 mod tests {
 
-  use crate::{impls::RegistrationApplicationQuery, RegistrationApplicationView};
-  use lemmy_db_schema::{
-    source::{
-      instance::Instance,
-      local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
-      person::{Person, PersonInsertForm},
-      registration_application::{
-        RegistrationApplication,
-        RegistrationApplicationInsertForm,
-        RegistrationApplicationUpdateForm,
-      },
+  use crate::{RegistrationApplicationView, impls::RegistrationApplicationQuery};
+  use lemmy_db_schema::source::{
+    instance::Instance,
+    local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
+    person::{Person, PersonInsertForm},
+    registration_application::{
+      RegistrationApplication,
+      RegistrationApplicationInsertForm,
+      RegistrationApplicationUpdateForm,
     },
-    traits::Crud,
-    utils::build_db_pool_for_tests,
   };
+  use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
 
@@ -298,6 +303,8 @@ mod tests {
     let approve_form = RegistrationApplicationUpdateForm {
       admin_id: Some(Some(timmy_person.id)),
       deny_reason: None,
+      // Normally this would be Utc::now()
+      updated_at: None,
     };
 
     RegistrationApplication::update(pool, sara_app.id, &approve_form).await?;

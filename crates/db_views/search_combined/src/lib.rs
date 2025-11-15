@@ -1,6 +1,8 @@
 use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
-  newtypes::{CommunityId, PaginationCursor, PersonId},
+  SearchSortType,
+  SearchType,
+  newtypes::{CommunityId, PaginationCursor},
   source::{
     combined::search::SearchCombined,
     comment::{Comment, CommentActions},
@@ -11,10 +13,8 @@ use lemmy_db_schema::{
     post::{Post, PostActions},
     tag::TagsView,
   },
-  SearchSortType,
-  SearchType,
 };
-use lemmy_db_schema_file::enums::ListingType;
+use lemmy_db_schema_file::{PersonId, enums::ListingType};
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_community::{CommunityView, MultiCommunityView};
 use lemmy_db_views_person::PersonView;
@@ -25,6 +25,7 @@ use serde_with::skip_serializing_none;
 use {
   diesel::{Queryable, Selectable},
   lemmy_db_schema::utils::queries::selects::{
+    CreatorLocalHomeBanExpiresType,
     community_post_tags_fragment,
     creator_ban_expires_from_community,
     creator_banned_from_community,
@@ -34,7 +35,6 @@ use {
     creator_local_home_banned,
     local_user_can_mod,
     post_tags_fragment,
-    CreatorLocalHomeBanExpiresType,
   },
   lemmy_db_views_local_user::LocalUserView,
 };

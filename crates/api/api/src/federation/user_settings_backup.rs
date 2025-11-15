@@ -1,6 +1,6 @@
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId, traits::Object};
 use actix_web::web::Json;
-use futures::{future::try_join_all, StreamExt};
+use futures::{StreamExt, future::try_join_all};
 use itertools::Itertools;
 use lemmy_api_utils::{context::LemmyContext, utils::check_local_user_valid};
 use lemmy_apub_objects::objects::{
@@ -21,7 +21,7 @@ use lemmy_db_schema::{
     person::{Person, PersonActions, PersonBlockForm, PersonUpdateForm},
     post::{PostActions, PostSavedForm},
   },
-  traits::{Blockable, Crud, Followable, Saveable},
+  traits::{Blockable, Followable, Saveable},
 };
 use lemmy_db_schema_file::enums::CommunityFollowerState;
 use lemmy_db_views_local_user::LocalUserView;
@@ -29,6 +29,7 @@ use lemmy_db_views_site::{
   api::{SuccessResponse, UserSettingsBackup},
   impls::user_backup_list_to_user_settings_backup,
 };
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::{
   error::LemmyResult,
   spawn_try_task,
@@ -247,8 +248,10 @@ pub async fn import_settings(
     }))
     .await?;
 
-    info!("Settings import completed for {}, the following items failed: {failed_followed_communities}, {failed_saved_posts}, {failed_saved_comments}, {failed_community_blocks}, {failed_user_blocks}",
-    local_user_view.person.name);
+    info!(
+      "Settings import completed for {}, the following items failed: {failed_followed_communities}, {failed_saved_posts}, {failed_saved_comments}, {failed_community_blocks}, {failed_user_blocks}",
+      local_user_view.person.name
+    );
 
     Ok(())
   });
@@ -281,10 +284,10 @@ where
   .into_iter()
   .enumerate()
   .for_each(|(i, r): (usize, LemmyResult<()>)| {
-    if r.is_err() {
-      if let Some(object) = objects.get(i) {
-        failed_items.push(object.inner().clone());
-      }
+    if r.is_err()
+      && let Some(object) = objects.get(i)
+    {
+      failed_items.push(object.inner().clone());
     }
   });
   Ok(failed_items.into_iter().join(","))
@@ -304,10 +307,11 @@ pub(crate) mod tests {
       person::Person,
     },
     test_data::TestData,
-    traits::{Crud, Followable},
+    traits::Followable,
   };
   use lemmy_db_views_community_follower::CommunityFollowerView;
   use lemmy_db_views_local_user::LocalUserView;
+  use lemmy_diesel_utils::traits::Crud;
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use std::time::Duration;
   use tokio::time::sleep;

@@ -43,18 +43,16 @@ use lemmy_api_utils::{
     update_post_tags,
   },
 };
-use lemmy_db_schema::{
-  source::{
-    community::Community,
-    local_site::LocalSite,
-    person::Person,
-    post::{Post, PostInsertForm, PostUpdateForm},
-    tag::Tag,
-  },
-  traits::Crud,
+use lemmy_db_schema::source::{
+  community::Community,
+  local_site::LocalSite,
+  person::Person,
+  post::{Post, PostInsertForm, PostUpdateForm},
+  tag::Tag,
 };
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   spawn_try_task,

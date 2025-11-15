@@ -4,10 +4,10 @@ use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::traits::PaginationCursorBuilder;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person_liked_combined::{
-  impls::PersonLikedCombinedQuery,
   ListPersonLiked,
   ListPersonLikedResponse,
   PersonLikedCombinedView,
+  impls::PersonLikedCombinedQuery,
 };
 use lemmy_utils::error::LemmyResult;
 

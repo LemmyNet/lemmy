@@ -1,9 +1,9 @@
 use actix_web::{
-  body::MessageBody,
-  dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
-  http::header::{HeaderValue, CACHE_CONTROL},
   Error,
   HttpMessage,
+  body::MessageBody,
+  dev::{Service, ServiceRequest, ServiceResponse, Transform, forward_ready},
+  http::header::{CACHE_CONTROL, HeaderValue},
 };
 use core::future::Ready;
 use futures_util::future::LocalBoxFuture;
@@ -102,14 +102,12 @@ mod tests {
 
   use actix_web::test::TestRequest;
   use lemmy_api_utils::{claims::Claims, context::LemmyContext};
-  use lemmy_db_schema::{
-    source::{
-      instance::Instance,
-      local_user::{LocalUser, LocalUserInsertForm},
-      person::{Person, PersonInsertForm},
-    },
-    traits::Crud,
+  use lemmy_db_schema::source::{
+    instance::Instance,
+    local_user::{LocalUser, LocalUserInsertForm},
+    person::{Person, PersonInsertForm},
   };
+  use lemmy_diesel_utils::traits::Crud;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
 

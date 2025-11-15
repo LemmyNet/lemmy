@@ -1,12 +1,10 @@
 use crate::request::client_builder;
 use activitypub_federation::config::{Data, FederationConfig};
-use lemmy_db_schema::{
-  source::secret::Secret,
-  utils::{build_db_pool_for_tests, DbPool, GenericDbPool},
-};
+use lemmy_db_schema::source::secret::Secret;
+use lemmy_diesel_utils::connection::{GenericDbPool, DbPool, build_db_pool_for_tests};
 use lemmy_utils::{
   rate_limit::RateLimit,
-  settings::{structs::Settings, SETTINGS},
+  settings::{SETTINGS, structs::Settings},
 };
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use std::sync::Arc;
@@ -79,7 +77,7 @@ impl LemmyContext {
       jwt_secret: String::new().into(),
     };
 
-    let rate_limit_cell = RateLimit::with_test_config();
+    let rate_limit_cell = RateLimit::with_debug_config();
 
     let context = LemmyContext::create(
       GenericDbPool::Reusable(Arc::new(pool)),

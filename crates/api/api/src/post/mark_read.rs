@@ -3,8 +3,8 @@ use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::source::post::PostActions;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::{
-  api::{MarkPostAsRead, PostResponse},
   PostView,
+  api::{MarkPostAsRead, PostResponse},
 };
 use lemmy_utils::error::LemmyResult;
 

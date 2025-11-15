@@ -6,15 +6,16 @@ use lemmy_api_utils::{
 };
 use lemmy_db_schema::{
   source::multi_community::{MultiCommunity, MultiCommunityFollowForm, MultiCommunityInsertForm},
-  traits::{ApubActor, Crud},
+  traits::ApubActor,
 };
 use lemmy_db_schema_file::enums::CommunityFollowerState;
 use lemmy_db_views_community::{
-  api::{CreateMultiCommunity, MultiCommunityResponse},
   MultiCommunityView,
+  api::{CreateMultiCommunity, MultiCommunityResponse},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::{
   error::LemmyResult,
   utils::{slurs::check_slurs, validation::is_valid_display_name},

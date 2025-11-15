@@ -1,8 +1,8 @@
 use crate::{
-  deletion::{receive_delete_action, verify_delete_activity, DeletableObjects},
-  generate_activity_id,
-  protocol::{deletion::delete::Delete, IdOrNestedObject},
   MOD_ACTION_DEFAULT_REASON,
+  deletion::{DeletableObjects, receive_delete_action, verify_delete_activity},
+  generate_activity_id,
+  protocol::{IdOrNestedObject, deletion::delete::Delete},
 };
 use activitypub_federation::{config::Data, kinds::activity::DeleteType, traits::Activity};
 use lemmy_api_utils::{context::LemmyContext, notify::notify_mod_action};
@@ -17,9 +17,10 @@ use lemmy_db_schema::{
     post::{Post, PostUpdateForm},
     post_report::PostReport,
   },
-  traits::{Crud, Reportable},
+  traits::Reportable,
 };
 use lemmy_db_views_community_moderator::CommunityModeratorView;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult, UntranslatedError};
 use url::Url;
 

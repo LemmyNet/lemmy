@@ -10,7 +10,7 @@ use lemmy_db_schema::source::{
   modlog::{Modlog, ModlogInsertForm},
 };
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_site::{api::AdminBlockInstanceParams, FederatedInstanceView};
+use lemmy_db_views_site::{FederatedInstanceView, api::AdminBlockInstanceParams};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn admin_block_instance(

@@ -1,21 +1,24 @@
 use crate::{CommunityModeratorView, CommunityPersonBanView};
 use diesel::{
-  dsl::{exists, not},
-  select,
   ExpressionMethods,
   JoinOnDsl,
   OptionalExtension,
   QueryDsl,
   SelectableHelper,
+  dsl::{exists, not},
+  select,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommunityId, PersonId},
+  newtypes::CommunityId,
   source::local_user::LocalUser,
-  utils::{get_conn, DbPool},
 };
-use lemmy_db_schema_file::schema::{community, community_actions, person};
+use lemmy_db_schema_file::{
+  PersonId,
+  schema::{community, community_actions, person},
+};
+use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl CommunityModeratorView {

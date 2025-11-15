@@ -1,15 +1,22 @@
 use crate::{
-  newtypes::{DbUrl, InstanceId, SiteId},
+  newtypes::SiteId,
   source::{
     actor_language::SiteLanguage,
     site::{Site, SiteInsertForm, SiteUpdateForm},
   },
-  traits::Crud,
-  utils::{functions::lower, get_conn, DbPool},
 };
-use diesel::{dsl::insert_into, ExpressionMethods, OptionalExtension, QueryDsl};
+use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, dsl::insert_into};
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::{local_site, site};
+use lemmy_db_schema_file::{
+  InstanceId,
+  schema::{local_site, site},
+};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  dburl::DbUrl,
+  traits::Crud,
+  utils::functions::lower,
+};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use url::Url;
 

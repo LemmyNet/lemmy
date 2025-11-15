@@ -1,4 +1,4 @@
-use crate::newtypes::DbUrl;
+use lemmy_diesel_utils::dburl::DbUrl;
 use url::Url;
 
 #[cfg(feature = "full")]

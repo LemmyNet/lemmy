@@ -1,17 +1,17 @@
 use actix_web::{
-  body::EitherBody,
-  dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
-  http::Method,
   Error,
   HttpMessage,
   HttpResponse,
+  body::EitherBody,
+  dev::{Service, ServiceRequest, ServiceResponse, Transform, forward_ready},
+  http::Method,
 };
 use futures_util::future::LocalBoxFuture;
 use lemmy_db_schema::newtypes::LocalUserId;
 use lemmy_db_views_local_user::LocalUserView;
 use std::{
   collections::HashSet,
-  future::{ready, Ready},
+  future::{Ready, ready},
   hash::{Hash, Hasher},
   sync::{Arc, LazyLock, RwLock},
   time::{Duration, Instant},

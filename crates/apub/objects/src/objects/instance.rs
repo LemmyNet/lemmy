@@ -2,9 +2,9 @@ use crate::{
   protocol::instance::Instance,
   utils::{
     functions::{
+      GetActorType,
       check_apub_id_valid_with_strictness,
       read_from_string_or_source_opt,
-      GetActorType,
     },
     markdown_links::markdown_rewrite_remote_links_opt,
     protocol::{ImageObject, LanguageTag, Source},
@@ -25,17 +25,13 @@ use lemmy_api_utils::{
   context::LemmyContext,
   utils::{get_url_blocklist, process_markdown_opt, proxy_image_link_opt_apub, slur_regex},
 };
-use lemmy_db_schema::{
-  newtypes::InstanceId,
-  sensitive::SensitiveString,
-  source::{
-    actor_language::SiteLanguage,
-    instance::Instance as DbInstance,
-    site::{Site, SiteInsertForm},
-  },
-  traits::Crud,
+use lemmy_db_schema::source::{
+  actor_language::SiteLanguage,
+  instance::Instance as DbInstance,
+  site::{Site, SiteInsertForm},
 };
-use lemmy_db_schema_file::enums::ActorType;
+use lemmy_db_schema_file::{InstanceId, enums::ActorType};
+use lemmy_diesel_utils::{sensitive::SensitiveString, traits::Crud};
 use lemmy_utils::{
   error::{LemmyError, LemmyResult, UntranslatedError},
   utils::{

@@ -1,7 +1,7 @@
 use actix_web::web::{Data, Json};
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_notification::{api::GetUnreadCountResponse, NotificationView};
+use lemmy_db_views_notification::{NotificationView, api::GetUnreadCountResponse};
 use lemmy_utils::error::LemmyResult;
 
 pub async fn unread_count(

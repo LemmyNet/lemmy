@@ -6,13 +6,11 @@ use lemmy_api_utils::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_community_mod_action, check_local_user_valid, is_top_mod},
 };
-use lemmy_db_schema::{
-  source::community::{Community, CommunityUpdateForm},
-  traits::Crud,
-};
+use lemmy_db_schema::source::community::{Community, CommunityUpdateForm};
 use lemmy_db_views_community::api::{CommunityResponse, DeleteCommunity};
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn delete_community(

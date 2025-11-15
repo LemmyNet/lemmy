@@ -1,7 +1,9 @@
-use crate::newtypes::{DbUrl, PersonId, PrivateMessageId};
+use crate::newtypes::PrivateMessageId;
 use chrono::{DateTime, Utc};
+use lemmy_db_schema_file::PersonId;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::private_message;
+use lemmy_diesel_utils::dburl::DbUrl;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 

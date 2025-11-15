@@ -7,16 +7,16 @@ use crate::{
   },
   create_or_update::private_message::send_create_or_update_pm,
   deletion::{
+    DeletableObjects,
     send_apub_delete_in_community,
     send_apub_delete_private_message,
     send_apub_delete_user,
-    DeletableObjects,
   },
   following::send_follow,
   protocol::{
+    CreateOrUpdateType,
     community::{report::Report, resolve_report::ResolveReport},
     create_or_update::{note::CreateOrUpdateNote, page::CreateOrUpdatePage},
-    CreateOrUpdateType,
   },
   voting::send_like_activity,
 };
@@ -33,19 +33,17 @@ use lemmy_api_utils::{
   send_activity::{ActivityChannel, SendActivityData},
 };
 use lemmy_apub_objects::{
-  objects::{person::ApubPerson, PostOrComment},
+  objects::{PostOrComment, person::ApubPerson},
   utils::functions::GetActorType,
 };
-use lemmy_db_schema::{
-  source::{
-    activity::{ActivitySendTargets, SentActivity, SentActivityForm},
-    community::Community,
-    instance::InstanceActions,
-  },
-  traits::Crud,
+use lemmy_db_schema::source::{
+  activity::{ActivitySendTargets, SentActivity, SentActivityForm},
+  community::Community,
+  instance::InstanceActions,
 };
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::{LemmyError, LemmyResult, UntranslatedError};
 use serde::Serialize;
 use tracing::info;

@@ -1,12 +1,13 @@
 use crate::{util::CancellableTask, worker::InstanceWorker};
 use activitypub_federation::config::FederationConfig;
 use lemmy_api_utils::context::LemmyContext;
-use lemmy_db_schema::{newtypes::InstanceId, source::instance::Instance};
+use lemmy_db_schema::source::instance::Instance;
+use lemmy_db_schema_file::InstanceId;
 use lemmy_utils::{error::LemmyResult, settings::structs::FederationWorkerConfig};
 use stats::receive_print_stats;
 use std::{collections::HashMap, time::Duration};
 use tokio::{
-  sync::mpsc::{unbounded_channel, UnboundedSender},
+  sync::mpsc::{UnboundedSender, unbounded_channel},
   task::JoinHandle,
   time::sleep,
 };
@@ -150,16 +151,17 @@ impl SendManager {
               )
             }),
           );
-        } else if !should_federate {
-          if let Some(worker) = self.workers.remove(&instance.id) {
-            if let Err(e) = worker.cancel().await {
-              tracing::error!("error stopping worker: {e}");
-            }
-          }
+        } else if !should_federate
+          && let Some(worker) = self.workers.remove(&instance.id)
+          && let Err(e) = worker.cancel().await
+        {
+          tracing::error!("error stopping worker: {e}");
         }
       }
       let worker_count = self.workers.len();
-      tracing::info!("Federating to {worker_count}/{total_count} instances ({dead_count} dead, {disallowed_count} disallowed)");
+      tracing::info!(
+        "Federating to {worker_count}/{total_count} instances ({dead_count} dead, {disallowed_count} disallowed)"
+      );
       tokio::select! {
         () = sleep(INSTANCES_RECHECK_DELAY) => {},
         _ = cancel.cancelled() => { return Ok(()) }
@@ -196,15 +198,13 @@ mod test {
   use super::*;
   use activitypub_federation::config::Data;
   use chrono::DateTime;
-  use lemmy_db_schema::{
-    source::{
-      federation_allowlist::{FederationAllowList, FederationAllowListForm},
-      federation_blocklist::{FederationBlockList, FederationBlockListForm},
-      instance::InstanceForm,
-      person::{Person, PersonInsertForm},
-    },
-    traits::Crud,
+  use lemmy_db_schema::source::{
+    federation_allowlist::{FederationAllowList, FederationAllowListForm},
+    federation_blocklist::{FederationBlockList, FederationBlockListForm},
+    instance::InstanceForm,
+    person::{Person, PersonInsertForm},
   };
+  use lemmy_diesel_utils::traits::Crud;
   use lemmy_utils::error::LemmyError;
   use std::{
     collections::HashSet,

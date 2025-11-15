@@ -12,13 +12,13 @@ use lemmy_db_schema::{
     community::{CommunityActions, CommunityBlockForm},
   },
   traits::{Blockable, Followable},
-  utils::get_conn,
 };
 use lemmy_db_views_community::{
-  api::{BlockCommunity, CommunityResponse},
   CommunityView,
+  api::{BlockCommunity, CommunityResponse},
 };
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_diesel_utils::connection::get_conn;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn user_block_community(

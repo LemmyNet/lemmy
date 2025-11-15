@@ -1,12 +1,12 @@
 use super::{to, update_removed_for_instance};
 use crate::{
+  MOD_ACTION_DEFAULT_REASON,
   activity_lists::AnnouncableActivities,
-  block::{generate_cc, SiteOrCommunity},
+  block::{SiteOrCommunity, generate_cc},
   community::send_activity_in_community,
   generate_activity_id,
   protocol::block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
   send_lemmy_activity,
-  MOD_ACTION_DEFAULT_REASON,
 };
 use activitypub_federation::{
   config::Data,

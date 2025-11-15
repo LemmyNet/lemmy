@@ -48,7 +48,7 @@ ALTER TABLE local_site
     ALTER COLUMN default_post_listing_type TYPE listing_type_enum_tmp
     USING (default_post_listing_type::text::listing_type_enum_tmp),
     ALTER COLUMN default_post_listing_type SET DEFAULT 'Local',
-    DROP COLUMN multi_comm_follower;
+    DROP COLUMN system_account;
 
 DROP TYPE listing_type_enum;
 

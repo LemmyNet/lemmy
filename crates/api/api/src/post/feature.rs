@@ -7,16 +7,16 @@ use lemmy_api_utils::{
   utils::{check_community_mod_action, is_admin},
 };
 use lemmy_db_schema::{
+  PostFeatureType,
   source::{
     community::Community,
     modlog::{Modlog, ModlogInsertForm},
     post::{Post, PostUpdateForm},
   },
-  traits::Crud,
-  PostFeatureType,
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::api::{FeaturePost, PostResponse};
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn feature_post(

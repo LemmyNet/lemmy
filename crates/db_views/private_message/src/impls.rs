@@ -1,12 +1,12 @@
 use crate::PrivateMessageView;
 use diesel::{BoolExpressionMethods, ExpressionMethods, JoinOnDsl, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema::{
+use lemmy_db_schema::newtypes::PrivateMessageId;
+use lemmy_db_schema_file::{
   aliases,
-  newtypes::PrivateMessageId,
-  utils::{get_conn, DbPool},
+  schema::{instance_actions, person, person_actions, private_message},
 };
-use lemmy_db_schema_file::schema::{instance_actions, person, person_actions, private_message};
+use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl PrivateMessageView {

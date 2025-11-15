@@ -1,19 +1,19 @@
 mod diff_check;
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use chrono::TimeDelta;
 use diesel::{
-  connection::LoadConnection,
-  dsl::exists,
-  migration::{Migration, MigrationVersion},
-  pg::Pg,
-  select,
-  update,
   BoolExpressionMethods,
   Connection,
   ExpressionMethods,
   PgConnection,
   QueryDsl,
   RunQueryDsl,
+  connection::LoadConnection,
+  dsl::exists,
+  migration::{Migration, MigrationVersion},
+  pg::Pg,
+  select,
+  update,
 };
 use diesel_migrations::MigrationHarness;
 use std::time::Instant;
@@ -44,13 +44,13 @@ fn migrations() -> diesel_migrations::EmbeddedMigrations {
 fn replaceable_schema() -> String {
   [
     "CREATE SCHEMA r;",
-    include_str!("../replaceable_schema/utils.sql"),
-    include_str!("../replaceable_schema/triggers.sql"),
+    include_str!("../../replaceable_schema/utils.sql"),
+    include_str!("../../replaceable_schema/triggers.sql"),
   ]
   .join("\n")
 }
 
-const REPLACEABLE_SCHEMA_PATH: &str = "crates/db_schema_setup/replaceable_schema";
+const REPLACEABLE_SCHEMA_PATH: &str = "crates/diesel_utils/replaceable_schema";
 
 struct MigrationHarnessWrapper<'a, Conn>
 where
@@ -248,7 +248,10 @@ where
 
       let after = diff_check::get_dump();
 
-      diff_check::check_dump_diff([&before, &after], "The code in crates/db_schema_setup/replaceable_schema incorrectly created or modified things outside of the `r` schema, causing these changes to be left behind after dropping the schema:");
+      diff_check::check_dump_diff(
+        [&before, &after],
+        "The code in crates/diesel_utils/replaceable_schema incorrectly created or modified things outside of the `r` schema, causing these changes to be left behind after dropping the schema:",
+      );
 
       diff_check::deferr_constraint_check(&after);
     }

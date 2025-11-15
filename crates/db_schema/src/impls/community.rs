@@ -1,6 +1,6 @@
 use crate::{
   diesel::{DecoratableTarget, JoinOnDsl, OptionalExtension},
-  newtypes::{CommunityId, DbUrl, PersonId},
+  newtypes::CommunityId,
   source::{
     actor_language::CommunityLanguage,
     community::{
@@ -15,35 +15,37 @@ use crate::{
     },
     post::Post,
   },
-  traits::{ApubActor, Bannable, Blockable, Crud, Followable},
-  utils::{
-    format_actor_url,
-    functions::{coalesce, coalesce_2_nullable, lower, random_smallint},
-    get_conn,
-    DbPool,
-  },
+  traits::{ApubActor, Bannable, Blockable, Followable},
+  utils::format_actor_url,
 };
 use chrono::{DateTime, Utc};
 use diesel::{
-  dsl::{exists, insert_into, not},
-  expression::SelectableHelper,
-  select,
-  update,
   BoolExpressionMethods,
   ExpressionMethods,
   NullableExpressionMethods,
   QueryDsl,
+  dsl::{exists, insert_into, not},
+  expression::SelectableHelper,
+  select,
+  update,
 };
 use diesel_async::RunQueryDsl;
-use diesel_uplete::{uplete, UpleteCount};
+use diesel_uplete::{UpleteCount, uplete};
 use lemmy_db_schema_file::{
+  PersonId,
   enums::{CommunityFollowerState, CommunityNotificationsMode, CommunityVisibility, ListingType},
   schema::{comment, community, community_actions, instance, local_user, post},
 };
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  dburl::DbUrl,
+  traits::Crud,
+  utils::functions::{coalesce, coalesce_2_nullable, lower, random_smallint},
+};
 use lemmy_utils::{
+  CACHE_DURATION_LARGEST_COMMUNITY,
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult, UntranslatedError},
   settings::structs::Settings,
-  CACHE_DURATION_LARGEST_COMMUNITY,
 };
 use moka::future::Cache;
 use std::sync::{Arc, LazyLock};
@@ -696,9 +698,10 @@ mod tests {
       person::{Person, PersonInsertForm},
       post::{Post, PostInsertForm},
     },
-    traits::{Bannable, Crud, Followable},
-    utils::{build_db_pool_for_tests, RANK_DEFAULT},
+    traits::{Bannable, Followable},
+    utils::RANK_DEFAULT,
   };
+  use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
 

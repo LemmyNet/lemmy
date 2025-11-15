@@ -1,6 +1,5 @@
 use crate::{
   diesel::dsl::IntervalDsl,
-  newtypes::{InstanceId, PersonId},
   source::instance::{
     Instance,
     InstanceActions,
@@ -10,30 +9,35 @@ use crate::{
     InstancePersonsBlockForm,
   },
   traits::Bannable,
-  utils::{
-    functions::{coalesce, lower},
-    get_conn,
-    now,
-    DbPool,
-  },
 };
 use chrono::Utc;
 use diesel::{
-  dsl::{count_star, exists, insert_into, not, select},
   ExpressionMethods,
   NullableExpressionMethods,
   OptionalExtension,
   QueryDsl,
   SelectableHelper,
+  dsl::{count_star, exists, insert_into, not, select},
 };
 use diesel_async::RunQueryDsl;
-use diesel_uplete::{uplete, UpleteCount};
-use lemmy_db_schema_file::schema::{
-  federation_allowlist,
-  federation_blocklist,
-  federation_queue_state,
-  instance,
-  instance_actions,
+use diesel_uplete::{UpleteCount, uplete};
+use lemmy_db_schema_file::{
+  InstanceId,
+  PersonId,
+  schema::{
+    federation_allowlist,
+    federation_blocklist,
+    federation_queue_state,
+    instance,
+    instance_actions,
+  },
+};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  utils::{
+    functions::{coalesce, lower},
+    now,
+  },
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 

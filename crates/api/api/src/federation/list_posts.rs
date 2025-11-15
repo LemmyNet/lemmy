@@ -1,6 +1,6 @@
 use crate::federation::{
   fetch_limit_with_default,
-  fetcher::resolve_ap_identifier,
+  fetcher::{resolve_community_identifier, resolve_multi_community_identifier},
   listing_type_with_default,
   post_sort_type_with_default,
   post_time_range_seconds_with_default,
@@ -8,20 +8,20 @@ use crate::federation::{
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
-use lemmy_apub_objects::objects::community::ApubCommunity;
 use lemmy_db_schema::{
   newtypes::PostId,
-  source::{community::Community, keyword_block::LocalUserKeywordBlock, post::PostActions},
+  source::{keyword_block::LocalUserKeywordBlock, post::PostActions},
   traits::PaginationCursorBuilder,
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::{
+  PostView,
   api::{GetPosts, GetPostsResponse},
   impls::PostQuery,
-  PostView,
 };
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
+use std::cmp::min;
 
 pub async fn list_posts(
   data: Query<GetPosts>,
@@ -33,16 +33,22 @@ pub async fn list_posts(
 
   check_private_instance(&local_user_view, &site_view.local_site)?;
 
-  let community_id = if let Some(name) = &data.community_name {
-    Some(
-      resolve_ap_identifier::<ApubCommunity, Community>(name, &context, &local_user_view, true)
-        .await?,
-    )
-    .map(|c| c.id)
-  } else {
-    data.community_id
-  };
-  let multi_community_id = data.multi_community_id;
+  let community_id = resolve_community_identifier(
+    &data.community_name,
+    data.community_id,
+    &context,
+    &local_user_view,
+  )
+  .await?;
+
+  let multi_community_id = resolve_multi_community_identifier(
+    &data.multi_community_name,
+    data.multi_community_id,
+    &context,
+    &local_user_view,
+  )
+  .await?;
+
   let show_hidden = data.show_hidden;
   let show_read = data.show_read;
   // Show nsfw content if param is true, or if content_warning exists
@@ -78,6 +84,9 @@ pub async fn list_posts(
   };
   let page_back = data.page_back;
 
+  // dont allow more than page 10 for performance reasons
+  let page = data.page.map(|p| min(p, 10));
+
   let posts = PostQuery {
     local_user,
     listing_type,
@@ -85,6 +94,7 @@ pub async fn list_posts(
     time_range_seconds,
     community_id,
     multi_community_id,
+    page,
     limit,
     show_hidden,
     show_read,
@@ -99,14 +109,13 @@ pub async fn list_posts(
   .await?;
 
   // If in their user settings (or as part of the API request), auto-mark fetched posts as read
-  if let Some(local_user) = local_user {
-    if data
+  if let Some(local_user) = local_user
+    && data
       .mark_as_read
       .unwrap_or(local_user.auto_mark_fetched_posts_as_read)
-    {
-      let post_ids = posts.iter().map(|p| p.post.id).collect::<Vec<PostId>>();
-      PostActions::mark_as_read(&mut context.pool(), local_user.person_id, &post_ids).await?;
-    }
+  {
+    let post_ids = posts.iter().map(|p| p.post.id).collect::<Vec<PostId>>();
+    PostActions::mark_as_read(&mut context.pool(), local_user.person_id, &post_ids).await?;
   }
 
   // if this page wasn't empty, then there is a next page after the last post on this page

@@ -5,17 +5,15 @@ use lemmy_api_utils::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::{is_admin, purge_post_images},
 };
-use lemmy_db_schema::{
-  source::{
-    local_user::LocalUser,
-    modlog::{Modlog, ModlogInsertForm},
-    post::Post,
-  },
-  traits::Crud,
+use lemmy_db_schema::source::{
+  local_user::LocalUser,
+  modlog::{Modlog, ModlogInsertForm},
+  post::Post,
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::api::PurgePost;
 use lemmy_db_views_site::api::SuccessResponse;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn purge_post(

@@ -23,6 +23,7 @@ full = [
   "lemmy_db_schema/full",
   "lemmy_db_schema_file/full",
   "lemmy_db_views_person/full",
+  "lemmy_db_views_community/full",
   "extism",
   "extism-convert",
   "anyhow",
@@ -36,6 +37,7 @@ ts-rs = [
   "lemmy_db_views_community_moderator/ts-rs",
   "lemmy_db_views_local_user/ts-rs",
   "lemmy_db_views_person/ts-rs",
+  "lemmy_db_views_community/ts-rs",
 ]
 
 [dependencies]
@@ -46,6 +48,8 @@ lemmy_db_views_community_follower = { workspace = true }
 lemmy_db_views_community_moderator = { workspace = true }
 lemmy_db_views_local_user = { workspace = true }
 lemmy_db_views_person = { workspace = true }
+lemmy_diesel_utils = { workspace = true }
+lemmy_db_views_community = { workspace = true }
 diesel = { workspace = true, optional = true }
 diesel-async = { workspace = true, optional = true }
 serde = { workspace = true }

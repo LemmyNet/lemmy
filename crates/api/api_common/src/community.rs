@@ -8,6 +8,8 @@ pub use lemmy_db_schema::{
 };
 pub use lemmy_db_schema_file::enums::CommunityVisibility;
 pub use lemmy_db_views_community::{
+  CommunityView,
+  MultiCommunityView,
   api::{
     CommunityResponse,
     CreateMultiCommunity,
@@ -25,8 +27,6 @@ pub use lemmy_db_views_community::{
     UpdateCommunityNotifications,
     UpdateMultiCommunity,
   },
-  CommunityView,
-  MultiCommunityView,
 };
 pub use lemmy_db_views_community_follower_approval::PendingFollowerView;
 pub use lemmy_db_views_community_moderator::CommunityModeratorView;
@@ -58,12 +58,12 @@ pub mod actions {
     };
     pub use lemmy_db_views_community_follower::CommunityFollowerView;
     pub use lemmy_db_views_community_follower_approval::{
+      PendingFollowerView,
       api::{
         GetCommunityPendingFollowsCountResponse,
         ListCommunityPendingFollows,
         ListCommunityPendingFollowsResponse,
       },
-      PendingFollowerView,
     };
   }
 }

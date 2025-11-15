@@ -1,15 +1,16 @@
 pub use lemmy_db_schema::{
-  newtypes::{LocalUserId, PersonId},
+  PersonContentType,
+  newtypes::LocalUserId,
   source::{
     local_user::LocalUser,
     person::{Person, PersonActions},
   },
-  PersonContentType,
 };
+pub use lemmy_db_schema_file::PersonId;
 pub use lemmy_db_views_local_user::LocalUserView;
 pub use lemmy_db_views_person::{
-  api::{GetPersonDetails, GetPersonDetailsResponse, PersonResponse},
   PersonView,
+  api::{GetPersonDetails, GetPersonDetailsResponse, PersonResponse},
 };
 
 pub mod actions {
@@ -28,8 +29,8 @@ pub mod actions {
     };
     pub use lemmy_db_views_person::api::{BanPerson, PurgePerson};
     pub use lemmy_db_views_registration_applications::{
-      api::{GetRegistrationApplication, RegistrationApplicationResponse},
       RegistrationApplicationView,
+      api::{GetRegistrationApplication, RegistrationApplicationResponse},
     };
   }
 }
