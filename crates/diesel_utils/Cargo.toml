@@ -52,6 +52,10 @@ diesel-async = { workspace = true, features = [
   "deadpool",
   "postgres",
 ], optional = true }
+db-pool = { git = "https://github.com/momentary-lapse/db-pool.git", branch = "edition2021", features = [
+  "diesel-async-postgres",
+  "diesel-async-deadpool",
+] }
 diesel_ltree = { workspace = true, optional = true }
 tracing = { workspace = true, optional = true }
 deadpool = { version = "0.12.3", features = ["rt_tokio_1"], optional = true }
@@ -65,7 +69,6 @@ i-love-jesus = { workspace = true, optional = true }
 lemmy_utils = { workspace = true, features = ["full"], optional = true }
 
 [dev-dependencies]
-serial_test = { workspace = true }
 diff = "0.1.13"
 itertools = { workspace = true }
 pathfinding = "4.14.0"
