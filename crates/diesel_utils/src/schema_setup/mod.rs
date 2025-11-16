@@ -223,10 +223,6 @@ where
   conn.batch_execute("SELECT pg_advisory_lock(0);")?;
   options.print("Running Database migrations (This may take a long time)...");
 
-  // Allowing usage of all functions in replaceable schema to all users for tests
-  #[cfg(test)]
-  conn.batch_execute("GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA r TO PUBLIC")?;
-
   // Drop `r` schema, so migrations don't need to be made to work both with and without things in
   // it existing
   revert_replaceable_schema(conn)?;
