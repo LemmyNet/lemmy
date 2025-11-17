@@ -28,12 +28,13 @@ use lemmy_db_schema::{
       CommunityModeratorForm,
     },
   },
-  traits::{ApubActor, Crud, Followable},
+  traits::{ApubActor, Followable},
 };
 use lemmy_db_schema_file::enums::CommunityFollowerState;
 use lemmy_db_views_community::api::{CommunityResponse, CreateCommunity};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::{

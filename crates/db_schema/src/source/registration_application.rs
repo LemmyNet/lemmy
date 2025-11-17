@@ -1,5 +1,6 @@
-use crate::newtypes::{LocalUserId, PersonId, RegistrationApplicationId};
+use crate::newtypes::{LocalUserId, RegistrationApplicationId};
 use chrono::{DateTime, Utc};
+use lemmy_db_schema_file::PersonId;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::registration_application;
 use serde::{Deserialize, Serialize};
@@ -20,6 +21,7 @@ pub struct RegistrationApplication {
   pub admin_id: Option<PersonId>,
   pub deny_reason: Option<String>,
   pub published_at: DateTime<Utc>,
+  pub updated_at: Option<DateTime<Utc>>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable))]
@@ -34,4 +36,5 @@ pub struct RegistrationApplicationInsertForm {
 pub struct RegistrationApplicationUpdateForm {
   pub admin_id: Option<Option<PersonId>>,
   pub deny_reason: Option<Option<String>>,
+  pub updated_at: Option<Option<DateTime<Utc>>>,
 }

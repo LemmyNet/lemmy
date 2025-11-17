@@ -7,8 +7,8 @@ use lemmy_apub_objects::{objects::post::ApubPost, utils::functions::context_url}
 use lemmy_db_schema::{
   newtypes::PostId,
   source::{community::Community, post::Post},
-  traits::Crud,
 };
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::{
   FEDERATION_CONTEXT,
   error::{LemmyErrorType, LemmyResult},

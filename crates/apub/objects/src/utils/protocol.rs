@@ -8,10 +8,10 @@ use activitypub_federation::{
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
   impls::actor_language::UNDETERMINED_ID,
-  newtypes::{DbUrl, LanguageId},
+  newtypes::LanguageId,
   source::language::Language,
-  utils::DbPool,
 };
+use lemmy_diesel_utils::{connection::DbPool, dburl::DbUrl};
 use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
 use std::{future::Future, ops::Deref};

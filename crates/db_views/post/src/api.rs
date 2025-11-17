@@ -1,9 +1,10 @@
 use crate::PostView;
 use lemmy_db_schema::{
   PostFeatureType,
-  newtypes::{CommunityId, DbUrl, LanguageId, MultiCommunityId, PaginationCursor, PostId, TagId},
+  newtypes::{CommunityId, LanguageId, MultiCommunityId, PaginationCursor, PostId, TagId},
 };
 use lemmy_db_schema_file::enums::{ListingType, PostNotificationsMode, PostSortType};
+use lemmy_diesel_utils::dburl::DbUrl;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -117,6 +118,7 @@ pub struct GetPosts {
   pub community_id: Option<CommunityId>,
   pub community_name: Option<String>,
   pub multi_community_id: Option<MultiCommunityId>,
+  pub multi_community_name: Option<String>,
   pub show_hidden: Option<bool>,
   /// If true, then show the read posts (even if your user setting is to hide them)
   pub show_read: Option<bool>,
@@ -130,6 +132,9 @@ pub struct GetPosts {
   pub no_comments_only: Option<bool>,
   pub page_cursor: Option<PaginationCursor>,
   pub page_back: Option<bool>,
+  /// For backwards compat with API v3 (not available on API v4)
+  #[serde(skip)]
+  pub page: Option<i64>,
   pub limit: Option<i64>,
 }
 

@@ -25,7 +25,6 @@ use lemmy_apub_objects::{
   },
 };
 use lemmy_db_schema::{
-  newtypes::PersonId,
   source::{
     activity::ActivitySendTargets,
     comment::{Comment, CommentActions, CommentLikeForm},
@@ -33,9 +32,11 @@ use lemmy_db_schema::{
     person::Person,
     post::Post,
   },
-  traits::{Crud, Likeable},
+  traits::Likeable,
 };
+use lemmy_db_schema_file::PersonId;
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use serde_json::{from_value, to_value};
 use url::Url;

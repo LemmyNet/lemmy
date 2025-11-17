@@ -5,15 +5,13 @@ use lemmy_api_utils::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_local_user_valid,
 };
-use lemmy_db_schema::{
-  source::private_message::{PrivateMessage, PrivateMessageUpdateForm},
-  traits::Crud,
-};
+use lemmy_db_schema::source::private_message::{PrivateMessage, PrivateMessageUpdateForm};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_private_message::{
   PrivateMessageView,
   api::{DeletePrivateMessage, PrivateMessageResponse},
 };
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn delete_private_message(

@@ -1,9 +1,7 @@
 use crate::request::client_builder;
 use activitypub_federation::config::{Data, FederationConfig};
-use lemmy_db_schema::{
-  source::secret::Secret,
-  utils::{ActualDbPool, DbPool, build_db_pool_for_tests},
-};
+use lemmy_db_schema::source::secret::Secret;
+use lemmy_diesel_utils::connection::{ActualDbPool, DbPool, build_db_pool_for_tests};
 use lemmy_utils::{
   rate_limit::RateLimit,
   settings::{SETTINGS, structs::Settings},
@@ -76,7 +74,7 @@ impl LemmyContext {
       jwt_secret: String::new().into(),
     };
 
-    let rate_limit_cell = RateLimit::with_test_config();
+    let rate_limit_cell = RateLimit::with_debug_config();
 
     let context = LemmyContext::create(
       pool,

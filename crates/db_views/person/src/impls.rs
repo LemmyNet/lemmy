@@ -3,22 +3,26 @@ use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  newtypes::{InstanceId, PaginationCursor, PersonId},
+  newtypes::PaginationCursor,
   source::person::{Person, person_keys as key},
-  traits::{Crud, PaginationCursorBuilder},
-  utils::{
-    DbPool,
-    get_conn,
-    limit_fetch,
-    paginate,
-    queries::joins::{
-      creator_home_instance_actions_join,
-      creator_local_instance_actions_join,
-      my_person_actions_join,
-    },
-  },
+  traits::PaginationCursorBuilder,
+  utils::limit_fetch,
 };
-use lemmy_db_schema_file::schema::{local_user, person};
+use lemmy_db_schema_file::{
+  InstanceId,
+  PersonId,
+  joins::{
+    creator_home_instance_actions_join,
+    creator_local_instance_actions_join,
+    my_person_actions_join,
+  },
+  schema::{local_user, person},
+};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  traits::Crud,
+  utils::paginate,
+};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl PaginationCursorBuilder for PersonView {
@@ -134,8 +138,10 @@ mod tests {
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
       person::{Person, PersonActions, PersonInsertForm, PersonNoteForm, PersonUpdateForm},
     },
+  };
+  use lemmy_diesel_utils::{
+    connection::{DbPool, build_db_pool_for_tests},
     traits::Crud,
-    utils::build_db_pool_for_tests,
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;

@@ -10,7 +10,8 @@ use lemmy_apub_objects::{
   protocol::note::Note,
   utils::{mentions::MentionOrValue, protocol::InCommunity},
 };
-use lemmy_db_schema::{source::community::Community, traits::Crud};
+use lemmy_db_schema::source::community::Community;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
 use url::Url;

@@ -12,13 +12,13 @@ use lemmy_api_utils::{
 use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
   source::comment::{Comment, CommentUpdateForm},
-  traits::Crud,
 };
 use lemmy_db_views_comment::{
   CommentView,
   api::{CommentResponse, EditComment},
 };
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::validation::is_valid_body_field,

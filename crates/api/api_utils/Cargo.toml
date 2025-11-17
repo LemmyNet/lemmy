@@ -75,6 +75,7 @@ regex = { workspace = true }
 jsonwebtoken = { version = "10.1.0", features = ["rust_crypto"] }
 either.workspace = true
 derive-new.workspace = true
+lemmy_diesel_utils = { workspace = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

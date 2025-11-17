@@ -13,16 +13,14 @@ use lemmy_api_utils::{
     update_post_tags,
   },
 };
-use lemmy_db_schema::{
-  source::post::{Post, PostUpdateForm},
-  traits::Crud,
-};
+use lemmy_db_schema::source::post::{Post, PostUpdateForm};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::{
   PostView,
   api::{ModEditPost, PostResponse},
 };
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 use std::ops::Deref;
 

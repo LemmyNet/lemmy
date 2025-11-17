@@ -12,12 +12,13 @@ use lemmy_db_schema::{
     community::{Community, CommunityActions, CommunityFollowerForm},
     multi_community::{MultiCommunity, MultiCommunityEntry, MultiCommunityEntryForm},
   },
-  traits::{Crud, Followable},
+  traits::Followable,
 };
 use lemmy_db_schema_file::enums::CommunityFollowerState;
 use lemmy_db_views_community::api::{CommunityResponse, CreateOrDeleteMultiCommunityEntry};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn create_multi_community_entry(
@@ -44,7 +45,7 @@ pub async fn create_multi_community_entry(
   let inserted_entry = MultiCommunityEntry::create(&mut context.pool(), &form).await?;
 
   if !community.local {
-    let multicomm_follower = SiteView::read_multicomm_follower(&mut context.pool()).await?;
+    let multicomm_follower = SiteView::read_system_account(&mut context.pool()).await?;
     let actions = CommunityActions::read(&mut context.pool(), community.id, multicomm_follower.id)
       .await
       .unwrap_or_default();

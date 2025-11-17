@@ -2,11 +2,11 @@ use crate::{
   diesel::{ExpressionMethods, QueryDsl},
   newtypes::CommunityId,
   source::community_community_follow::CommunityCommunityFollow,
-  utils::{DbPool, get_conn},
 };
 use diesel::{delete, dsl::insert_into};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::community_community_follow;
+use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::error::LemmyResult;
 
 impl CommunityCommunityFollow {

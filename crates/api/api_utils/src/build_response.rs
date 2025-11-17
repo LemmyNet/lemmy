@@ -1,9 +1,10 @@
 use crate::{context::LemmyContext, utils::is_mod_or_admin};
 use actix_web::web::Json;
 use lemmy_db_schema::{
-  newtypes::{CommentId, CommunityId, InstanceId, PostId},
+  newtypes::{CommentId, CommunityId, PostId},
   source::actor_language::CommunityLanguage,
 };
+use lemmy_db_schema_file::InstanceId;
 use lemmy_db_views_comment::{CommentView, api::CommentResponse};
 use lemmy_db_views_community::{CommunityView, api::CommunityResponse};
 use lemmy_db_views_local_user::LocalUserView;

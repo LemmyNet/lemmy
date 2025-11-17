@@ -24,16 +24,17 @@ use lemmy_apub_objects::{
   },
 };
 use lemmy_db_schema::{
-  newtypes::PersonId,
   source::{
     activity::ActivitySendTargets,
     community::Community,
     person::Person,
     post::{Post, PostActions, PostLikeForm, PostUpdateForm},
   },
-  traits::{Crud, Likeable},
+  traits::Likeable,
 };
+use lemmy_db_schema_file::PersonId;
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 

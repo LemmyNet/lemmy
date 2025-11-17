@@ -3,7 +3,8 @@ use async_trait::async_trait;
 use chrono::{Days, Utc};
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::utils::functions::{check_apub_id_valid, local_site_data_cached};
-use lemmy_db_schema::{source::site::Site, utils::ActualDbPool};
+use lemmy_db_schema::source::site::Site;
+use lemmy_diesel_utils::connection::ActualDbPool;
 use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult, UntranslatedError};
 use url::Url;
 

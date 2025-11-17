@@ -1,14 +1,6 @@
 use crate::{FederatedInstanceView, ReadableFederationState, SiteView};
 use lemmy_db_schema::{
-  newtypes::{
-    InstanceId,
-    LanguageId,
-    MultiCommunityId,
-    OAuthProviderId,
-    PaginationCursor,
-    TaglineId,
-  },
-  sensitive::SensitiveString,
+  newtypes::{LanguageId, MultiCommunityId, OAuthProviderId, PaginationCursor, TaglineId},
   source::{
     comment::Comment,
     community::Community,
@@ -24,19 +16,24 @@ use lemmy_db_schema::{
     tagline::Tagline,
   },
 };
-use lemmy_db_schema_file::enums::{
-  CommentSortType,
-  FederationMode,
-  ListingType,
-  PostListingMode,
-  PostSortType,
-  RegistrationMode,
-  VoteShow,
+use lemmy_db_schema_file::{
+  InstanceId,
+  enums::{
+    CommentSortType,
+    FederationMode,
+    ListingType,
+    PostListingMode,
+    PostSortType,
+    RegistrationMode,
+    VoteShow,
+  },
 };
+use lemmy_db_views_community::MultiCommunityView;
 use lemmy_db_views_community_follower::CommunityFollowerView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
+use lemmy_diesel_utils::sensitive::SensitiveString;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
@@ -338,6 +335,10 @@ pub struct GetSiteResponse {
   // banners can be set.
   pub image_upload_disabled: bool,
   pub active_plugins: Vec<PluginMetadata>,
+  /// The number of seconds between the last application published, and approved / denied time.
+  ///
+  /// Useful for estimating when your application will be approved.
+  pub last_application_duration_seconds: Option<i64>,
 }
 
 #[skip_serializing_none]
@@ -458,6 +459,7 @@ pub struct MyUserInfo {
   pub local_user_view: LocalUserView,
   pub follows: Vec<CommunityFollowerView>,
   pub moderates: Vec<CommunityModeratorView>,
+  pub multi_community_follows: Vec<MultiCommunityView>,
   pub community_blocks: Vec<Community>,
   pub instance_communities_blocks: Vec<Instance>,
   pub instance_persons_blocks: Vec<Instance>,

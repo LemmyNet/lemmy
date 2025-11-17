@@ -1,15 +1,12 @@
 use crate::{send::send_email, user_email, user_language};
-use lemmy_db_schema::{
-  sensitive::SensitiveString,
-  source::{
-    email_verification::{EmailVerification, EmailVerificationForm},
-    local_site::LocalSite,
-    password_reset_request::PasswordResetRequest,
-  },
-  utils::DbPool,
+use lemmy_db_schema::source::{
+  email_verification::{EmailVerification, EmailVerificationForm},
+  local_site::LocalSite,
+  password_reset_request::PasswordResetRequest,
 };
 use lemmy_db_schema_file::enums::RegistrationMode;
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_diesel_utils::{connection::DbPool, sensitive::SensitiveString};
 use lemmy_utils::{
   error::LemmyResult,
   settings::structs::Settings,

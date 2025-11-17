@@ -1,15 +1,9 @@
 use crate::{
-  newtypes::{CommunityId, DbUrl, LanguageId, LocalUserId, PersonId},
+  newtypes::{CommunityId, LanguageId, LocalUserId},
   source::{
     actor_language::LocalUserLanguage,
     local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
     site::Site,
-  },
-  utils::{
-    DbPool,
-    functions::{coalesce, lower},
-    get_conn,
-    now,
   },
 };
 use bcrypt::{DEFAULT_COST, hash};
@@ -23,8 +17,17 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::{
+  PersonId,
   enums::CommunityVisibility,
   schema::{community, community_actions, local_user, person, registration_application},
+};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  dburl::DbUrl,
+  utils::{
+    functions::{coalesce, lower},
+    now,
+  },
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -397,15 +400,12 @@ pub struct UserBackupLists {
 
 #[cfg(test)]
 mod tests {
-  use crate::{
-    source::{
-      instance::Instance,
-      local_user::{LocalUser, LocalUserInsertForm},
-      person::{Person, PersonInsertForm},
-    },
-    traits::Crud,
-    utils::build_db_pool_for_tests,
+  use crate::source::{
+    instance::Instance,
+    local_user::{LocalUser, LocalUserInsertForm},
+    person::{Person, PersonInsertForm},
   };
+  use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use lemmy_utils::error::LemmyResult;
   use serial_test::serial;
 

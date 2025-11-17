@@ -18,8 +18,8 @@ use lemmy_db_schema::{
     federation_queue_state::FederationQueueState,
     instance::{Instance, InstanceForm},
   },
-  utils::{ActualDbPool, DbPool},
 };
+use lemmy_diesel_utils::connection::{ActualDbPool, DbPool};
 use lemmy_utils::{
   error::LemmyResult,
   federate_retry_sleep_duration,
@@ -463,15 +463,12 @@ mod test {
   use actix_web::{App, HttpResponse, HttpServer, dev::ServerHandle, web};
   use futures::future::try_join_all;
   use lemmy_api_utils::utils::generate_inbox_url;
-  use lemmy_db_schema::{
-    newtypes::DbUrl,
-    source::{
-      activity::{SentActivity, SentActivityForm},
-      person::{Person, PersonInsertForm},
-    },
-    traits::Crud,
+  use lemmy_db_schema::source::{
+    activity::{SentActivity, SentActivityForm},
+    person::{Person, PersonInsertForm},
   };
   use lemmy_db_schema_file::enums::ActorType;
+  use lemmy_diesel_utils::{dburl::DbUrl, traits::Crud};
   use lemmy_utils::error::LemmyResult;
   use serde_json::{Value, json};
   use serial_test::serial;
@@ -635,7 +632,7 @@ mod test {
         .await?;
     sleep(2 * *WORK_FINISHED_RECHECK_DELAY).await;
     tracing::debug!("sent activity");
-    compare_sent_with_receive(&mut data, sent).await?;
+    compare_sent_with_receive(data, sent).await?;
 
     Ok(())
   }
@@ -664,7 +661,7 @@ mod test {
       .await?;
       sleep(2 * *WORK_FINISHED_RECHECK_DELAY).await;
       tracing::debug!("sent activity");
-      compare_sent_with_receive(&mut data, sent).await?;
+      compare_sent_with_receive(data, sent).await?;
     }
 
     Ok(())

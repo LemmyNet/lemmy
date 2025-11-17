@@ -114,8 +114,8 @@ mod tests {
       site::Site,
     },
     test_data::TestData,
-    traits::Crud,
   };
+  use lemmy_diesel_utils::traits::Crud;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 

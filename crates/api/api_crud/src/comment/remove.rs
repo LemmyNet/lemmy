@@ -14,13 +14,14 @@ use lemmy_db_schema::{
     local_user::LocalUser,
     modlog::{Modlog, ModlogInsertForm},
   },
-  traits::{Crud, Reportable},
+  traits::Reportable,
 };
 use lemmy_db_views_comment::{
   CommentView,
   api::{CommentResponse, RemoveComment},
 };
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn remove_comment(

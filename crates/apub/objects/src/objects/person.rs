@@ -28,11 +28,11 @@ use lemmy_api_utils::{
   },
 };
 use lemmy_db_schema::{
-  sensitive::SensitiveString,
   source::person::{Person as DbPerson, PersonInsertForm, PersonUpdateForm},
-  traits::{ApubActor, Crud},
+  traits::ApubActor,
 };
 use lemmy_db_schema_file::enums::ActorType;
+use lemmy_diesel_utils::{sensitive::SensitiveString, traits::Crud};
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
   utils::{
@@ -153,13 +153,9 @@ impl Object for ApubPerson {
     let avatar = proxy_image_link_opt_apub(person.icon.map(|i| i.url), context).await?;
     let banner = proxy_image_link_opt_apub(person.image.map(|i| i.url), context).await?;
 
-    // Some Mastodon users have `name: ""` (empty string), need to convert that to `None`
-    // https://github.com/mastodon/mastodon/issues/25233
-    let display_name = person.name.filter(|n| !n.is_empty());
-
     let person_form = PersonInsertForm {
       name: person.preferred_username,
-      display_name,
+      display_name: person.name,
       deleted: Some(false),
       avatar,
       banner,

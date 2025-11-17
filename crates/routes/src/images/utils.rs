@@ -10,7 +10,7 @@ use diesel::NotFound;
 use futures::stream::{Stream, StreamExt};
 use http::HeaderValue;
 use lemmy_api_utils::{context::LemmyContext, request::delete_image_alias};
-use lemmy_db_schema::newtypes::DbUrl;
+use lemmy_diesel_utils::dburl::DbUrl;
 use lemmy_utils::{REQWEST_TIMEOUT, error::LemmyResult};
 use reqwest_middleware::RequestBuilder;
 

@@ -21,16 +21,14 @@ use lemmy_apub_objects::{
     protocol::InCommunity,
   },
 };
-use lemmy_db_schema::{
-  source::{
-    activity::ActivitySendTargets,
-    comment::Comment,
-    modlog::{Modlog, ModlogInsertForm},
-    person::Person,
-    post::{Post, PostUpdateForm},
-  },
-  traits::Crud,
+use lemmy_db_schema::source::{
+  activity::ActivitySendTargets,
+  comment::Comment,
+  modlog::{Modlog, ModlogInsertForm},
+  person::Person,
+  post::{Post, PostUpdateForm},
 };
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 

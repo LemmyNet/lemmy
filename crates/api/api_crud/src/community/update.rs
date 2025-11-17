@@ -15,18 +15,15 @@ use lemmy_api_utils::{
     slur_regex,
   },
 };
-use lemmy_db_schema::{
-  source::{
-    actor_language::{CommunityLanguage, SiteLanguage},
-    community::{Community, CommunityUpdateForm},
-    modlog::{Modlog, ModlogInsertForm},
-  },
-  traits::Crud,
-  utils::diesel_string_update,
+use lemmy_db_schema::source::{
+  actor_language::{CommunityLanguage, SiteLanguage},
+  community::{Community, CommunityUpdateForm},
+  modlog::{Modlog, ModlogInsertForm},
 };
 use lemmy_db_views_community::api::{CommunityResponse, EditCommunity};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::{traits::Crud, utils::diesel_string_update};
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::{

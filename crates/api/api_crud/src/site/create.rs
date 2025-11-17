@@ -14,21 +14,17 @@ use lemmy_api_utils::{
     slur_regex,
   },
 };
-use lemmy_db_schema::{
-  newtypes::DbUrl,
-  source::{
-    local_site::{LocalSite, LocalSiteUpdateForm},
-    local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitUpdateForm},
-    site::{Site, SiteUpdateForm},
-  },
-  traits::Crud,
-  utils::diesel_string_update,
+use lemmy_db_schema::source::{
+  local_site::{LocalSite, LocalSiteUpdateForm},
+  local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitUpdateForm},
+  site::{Site, SiteUpdateForm},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::{
   SiteView,
   api::{CreateSite, SiteResponse},
 };
+use lemmy_diesel_utils::{dburl::DbUrl, traits::Crud, utils::diesel_string_update};
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::{

@@ -1,7 +1,6 @@
 use crate::{
   newtypes::LocalUserId,
   source::password_reset_request::{PasswordResetRequest, PasswordResetRequestForm},
-  utils::{DbPool, get_conn},
 };
 use diesel::{
   ExpressionMethods,
@@ -12,6 +11,7 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::password_reset_request;
+use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl PasswordResetRequest {
@@ -46,16 +46,13 @@ impl PasswordResetRequest {
 #[cfg(test)]
 mod tests {
 
-  use crate::{
-    source::{
-      instance::Instance,
-      local_user::{LocalUser, LocalUserInsertForm},
-      password_reset_request::PasswordResetRequest,
-      person::{Person, PersonInsertForm},
-    },
-    traits::Crud,
-    utils::build_db_pool_for_tests,
+  use crate::source::{
+    instance::Instance,
+    local_user::{LocalUser, LocalUserInsertForm},
+    password_reset_request::PasswordResetRequest,
+    person::{Person, PersonInsertForm},
   };
+  use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;

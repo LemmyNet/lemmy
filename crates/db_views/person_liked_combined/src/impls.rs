@@ -19,31 +19,34 @@ use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   LikeType,
   PersonContentType,
-  newtypes::{InstanceId, PaginationCursor, PersonId},
+  newtypes::PaginationCursor,
   source::combined::person_liked::{PersonLikedCombined, person_liked_combined_keys as key},
   traits::{InternalToCombinedView, PaginationCursorBuilder},
-  utils::{
-    DbPool,
-    get_conn,
-    limit_fetch,
-    paginate,
-    queries::joins::{
-      community_join,
-      creator_community_actions_join,
-      creator_community_instance_actions_join,
-      creator_home_instance_actions_join,
-      creator_local_instance_actions_join,
-      creator_local_user_admin_join,
-      image_details_join,
-      my_comment_actions_join,
-      my_community_actions_join,
-      my_local_user_admin_join,
-      my_person_actions_join,
-      my_post_actions_join,
-    },
-  },
+  utils::limit_fetch,
 };
-use lemmy_db_schema_file::schema::{comment, person, person_liked_combined, post};
+use lemmy_db_schema_file::{
+  InstanceId,
+  PersonId,
+  joins::{
+    community_join,
+    creator_community_actions_join,
+    creator_community_instance_actions_join,
+    creator_home_instance_actions_join,
+    creator_local_instance_actions_join,
+    creator_local_user_admin_join,
+    image_details_join,
+    my_comment_actions_join,
+    my_community_actions_join,
+    my_local_user_admin_join,
+    my_person_actions_join,
+    my_post_actions_join,
+  },
+  schema::{comment, person, person_liked_combined, post},
+};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  utils::paginate,
+};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 #[derive(Default)]
@@ -273,8 +276,11 @@ mod tests {
       person::{Person, PersonInsertForm},
       post::{Post, PostActions, PostInsertForm, PostLikeForm},
     },
-    traits::{Crud, Likeable},
-    utils::{DbPool, build_db_pool_for_tests},
+    traits::Likeable,
+  };
+  use lemmy_diesel_utils::{
+    connection::{DbPool, build_db_pool_for_tests},
+    traits::Crud,
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;

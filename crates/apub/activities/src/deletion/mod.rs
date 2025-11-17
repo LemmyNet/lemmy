@@ -32,18 +32,16 @@ use lemmy_apub_objects::{
     protocol::InCommunity,
   },
 };
-use lemmy_db_schema::{
-  source::{
-    activity::ActivitySendTargets,
-    comment::{Comment, CommentUpdateForm},
-    community::{Community, CommunityUpdateForm},
-    person::Person,
-    post::{Post, PostUpdateForm},
-    private_message::{PrivateMessage as DbPrivateMessage, PrivateMessageUpdateForm},
-  },
-  traits::Crud,
+use lemmy_db_schema::source::{
+  activity::ActivitySendTargets,
+  comment::{Comment, CommentUpdateForm},
+  community::{Community, CommunityUpdateForm},
+  person::Person,
+  post::{Post, PostUpdateForm},
+  private_message::{PrivateMessage as DbPrivateMessage, PrivateMessageUpdateForm},
 };
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 use std::ops::Deref;
 use url::Url;

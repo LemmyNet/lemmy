@@ -15,6 +15,7 @@ use lemmy_api_utils::{
 use lemmy_db_schema::{
   newtypes::PostOrCommentId,
   source::{
+    notification::Notification,
     person::PersonActions,
     post::{PostActions, PostLikeForm},
   },
@@ -94,6 +95,11 @@ pub async fn like_post(
 
   // Mark Post Read
   PostActions::mark_as_read(&mut context.pool(), my_person_id, &[post_id]).await?;
+
+  // Mark any notifications as read
+  Notification::mark_read_by_post_and_recipient(&mut context.pool(), post_id, my_person_id, true)
+    .await
+    .ok();
 
   ActivityChannel::submit_activity(
     SendActivityData::LikePostOrComment {

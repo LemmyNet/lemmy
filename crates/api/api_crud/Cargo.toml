@@ -52,6 +52,7 @@ serde_json = { workspace = true }
 serde = { workspace = true }
 serde_with = { workspace = true }
 diesel-async = { workspace = true }
+lemmy_diesel_utils = { workspace = true }
 
 [package.metadata.cargo-shear]
 ignored = ["futures", "futures-util"]

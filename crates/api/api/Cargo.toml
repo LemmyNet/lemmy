@@ -73,6 +73,7 @@ serde = { workspace = true }
 itertools = { workspace = true }
 serde_json = { workspace = true }
 diesel = { workspace = true }
+lemmy_diesel_utils = { workspace = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

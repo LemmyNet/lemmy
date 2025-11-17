@@ -7,15 +7,13 @@ use activitypub_federation::config::Data;
 use chrono::{DateTime, Utc};
 use encoding_rs::{Encoding, UTF_8};
 use futures::StreamExt;
-use lemmy_db_schema::{
-  source::{
-    images::{ImageDetailsInsertForm, LocalImage, LocalImageForm},
-    post::{Post, PostUpdateForm},
-    site::Site,
-  },
-  traits::Crud,
+use lemmy_db_schema::source::{
+  images::{ImageDetailsInsertForm, LocalImage, LocalImageForm},
+  post::{Post, PostUpdateForm},
+  site::Site,
 };
 use lemmy_db_views_post::api::{LinkMetadata, OpenGraphData};
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::{
   REQWEST_TIMEOUT,
   VERSION,
