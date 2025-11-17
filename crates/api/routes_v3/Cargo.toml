@@ -29,6 +29,7 @@ lemmy_utils = { workspace = true }
 lemmy_api_utils = { workspace = true }
 lemmy_db_views_local_user = { workspace = true }
 lemmy_diesel_utils = { workspace = true }
+lemmy_db_views_registration_applications = { workspace = true }
 actix-web = { workspace = true }
 chrono = { workspace = true }
 url = { workspace = true }
@@ -38,4 +39,5 @@ lemmy_db_views_community = { workspace = true, features = ["full"] }
 lemmy_db_views_search_combined = { workspace = true, features = ["full"] }
 lemmy_db_views_person = { workspace = true, features = ["full"] }
 lemmy_db_schema_file = { workspace = true }
+lemmy_db_views_report_combined = { workspace = true, features = ["full"] }
 activitypub_federation = { workspace = true }
