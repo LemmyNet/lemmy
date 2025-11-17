@@ -11,7 +11,7 @@ use lemmy_db_schema_file::{
   enums::{CommunityNotificationsMode, CommunityVisibility, ListingType},
 };
 use lemmy_db_views_community_moderator::CommunityModeratorView;
-use lemmy_diesel_utils::pagination::PaginationCursor;
+use lemmy_diesel_utils::pagination::{PaginatedVec, PaginationCursorNew};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -211,8 +211,7 @@ pub struct ListCommunities {
   /// IE 60 would give results for the past minute.
   pub time_range_seconds: Option<i32>,
   pub show_nsfw: Option<bool>,
-  pub page_cursor: Option<PaginationCursor>,
-  pub page_back: Option<bool>,
+  pub page_cursor: Option<PaginationCursorNew>,
   pub limit: Option<i64>,
 }
 
@@ -223,8 +222,8 @@ pub struct ListCommunities {
 pub struct ListCommunitiesResponse {
   pub communities: Vec<CommunityView>,
   /// the pagination cursor to use to fetch the next page
-  pub next_page: Option<PaginationCursor>,
-  pub prev_page: Option<PaginationCursor>,
+  pub next_page: Option<PaginationCursorNew>,
+  pub prev_page: Option<PaginationCursorNew>,
 }
 
 #[skip_serializing_none]
@@ -294,8 +293,7 @@ pub struct ListMultiCommunities {
   /// Filter to within a given time range, in seconds.
   /// IE 60 would give results for the past minute.
   pub time_range_seconds: Option<i32>,
-  pub page_cursor: Option<PaginationCursor>,
-  pub page_back: Option<bool>,
+  pub page_cursor: Option<PaginationCursorNew>,
   pub limit: Option<i64>,
 }
 
@@ -305,8 +303,8 @@ pub struct ListMultiCommunities {
 pub struct ListMultiCommunitiesResponse {
   pub multi_communities: Vec<MultiCommunityView>,
   /// the pagination cursor to use to fetch the next page
-  pub next_page: Option<PaginationCursor>,
-  pub prev_page: Option<PaginationCursor>,
+  pub next_page: Option<PaginationCursorNew>,
+  pub prev_page: Option<PaginationCursorNew>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -322,7 +320,7 @@ pub struct GetMultiCommunity {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct GetMultiCommunityResponse {
   pub multi_community_view: MultiCommunityView,
-  pub communities: Vec<CommunityView>,
+  pub communities: PaginatedVec<CommunityView>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

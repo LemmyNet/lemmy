@@ -63,13 +63,16 @@ use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl PaginationCursorBuilderNew for CommentView {
   type CursorData = Comment;
-  fn cursor_data(&self) -> i32 {
-    self.comment.id.0
+  fn to_cursor(&self) -> (Option<char>, i32) {
+    (None, self.comment.id.0)
   }
 
-  async fn from_data(data: i32, pool: &mut DbPool<'_>) -> LemmyResult<Self::CursorData> {
-    // TODO: should encode all necessary pagination data in cursor, avoid db read here
-    Ok(Comment::read(pool, CommentId(data)).await?)
+  async fn from_cursor(
+    _prefix: Option<char>,
+    id: i32,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Self::CursorData> {
+    Ok(Comment::read(pool, CommentId(id)).await?)
   }
 }
 

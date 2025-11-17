@@ -2,12 +2,10 @@ use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_views_community::{
-  MultiCommunityView,
   api::{ListMultiCommunities, ListMultiCommunitiesResponse},
   impls::MultiCommunityQuery,
 };
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_diesel_utils::pagination::PaginationCursorBuilder;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn list_multi_communities(
@@ -17,36 +15,22 @@ pub async fn list_multi_communities(
 ) -> LemmyResult<Json<ListMultiCommunitiesResponse>> {
   let my_person_id = local_user_view.map(|l| l.person.id);
 
-  let cursor_data = if let Some(cursor) = &data.page_cursor {
-    Some(MultiCommunityView::from_cursor(cursor, &mut context.pool()).await?)
-  } else {
-    None
-  };
-
-  let multi_communities = MultiCommunityQuery {
+  let res = MultiCommunityQuery {
     listing_type: data.type_,
     sort: data.sort,
     creator_id: data.creator_id,
     my_person_id,
     time_range_seconds: data.time_range_seconds,
-    cursor_data,
-    page_back: data.page_back,
-    limit: data.limit,
+    page_cursor: data.0.page_cursor,
+    limit: data.0.limit,
     ..Default::default()
   }
   .list(&mut context.pool())
   .await?;
 
-  let next_page = multi_communities
-    .last()
-    .map(PaginationCursorBuilder::to_cursor);
-  let prev_page = multi_communities
-    .first()
-    .map(PaginationCursorBuilder::to_cursor);
-
   Ok(Json(ListMultiCommunitiesResponse {
-    multi_communities,
-    next_page,
-    prev_page,
+    multi_communities: res.data,
+    next_page: res.next_page,
+    prev_page: res.prev_page,
   }))
 }

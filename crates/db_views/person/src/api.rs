@@ -3,6 +3,7 @@ use lemmy_db_schema::source::site::Site;
 use lemmy_db_schema_file::PersonId;
 use lemmy_db_views_community::MultiCommunityView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
+use lemmy_diesel_utils::pagination::PaginatedVec;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -80,7 +81,7 @@ pub struct GetPersonDetailsResponse {
   pub person_view: PersonView,
   pub site: Option<Site>,
   pub moderates: Vec<CommunityModeratorView>,
-  pub multi_communities_created: Vec<MultiCommunityView>,
+  pub multi_communities_created: PaginatedVec<MultiCommunityView>,
 }
 
 #[skip_serializing_none]

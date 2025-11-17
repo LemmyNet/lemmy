@@ -4,6 +4,7 @@ use i_love_jesus::{PaginatedQueryBuilder, SortDirection};
 #[cfg(feature = "full")]
 use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 
 // TODO: at the moment we only store the item id in the cursor, and later we read it again from
 //       the db. instead we could store the whole item in the cursor to avoid this db read (or
@@ -12,10 +13,11 @@ use serde::{Deserialize, Serialize};
 pub trait PaginationCursorBuilderNew {
   type CursorData;
 
-  fn cursor_data(&self) -> i32;
+  fn to_cursor(&self) -> (Option<char>, i32);
 
-  fn from_data(
-    data: i32,
+  fn from_cursor(
+    prefix: Option<char>,
+    id: i32,
     conn: &mut DbPool<'_>,
   ) -> impl Future<Output = LemmyResult<Self::CursorData>> + Send;
 }
@@ -42,7 +44,9 @@ pub async fn paginate_new<Q, T: PaginationCursorBuilderNew>(
 ) -> PaginatedQueryBuilder<T::CursorData, Q> {
   let (page_after, back) = if let Some(cursor) = cursor {
     let internal = cursor.to_internal();
-    let object = T::from_data(internal.id, pool).await.unwrap();
+    let object = T::from_cursor(internal.prefix, internal.id, pool)
+      .await
+      .unwrap();
     (Some(object), Some(internal.back))
   } else {
     (None, None)
@@ -50,19 +54,23 @@ pub async fn paginate_new<Q, T: PaginationCursorBuilderNew>(
   paginate(query, sort_direction, page_after, None, back)
 }
 
+#[skip_serializing_none]
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 struct PaginationCursorNewInternal {
   #[serde(rename = "b")]
   back: bool,
-  // TODO: add this later
-  //pub prefix: char,
+  #[serde(rename = "p")]
+  pub prefix: Option<char>,
   #[serde(rename = "i")]
   id: i32,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct PaginatedVec<T>
 where
-  T: PaginationCursorBuilderNew + Serialize + for<'a> Deserialize<'a>,
+  T: PaginationCursorBuilderNew,
 {
   pub data: Vec<T>,
   pub next_page: Option<PaginationCursorNew>,
@@ -75,16 +83,20 @@ where
 {
   let prev_page = data
     .first()
-    .map(|d| PaginationCursorNewInternal {
-      id: d.cursor_data(),
+    .map(|d| d.to_cursor())
+    .map(|(prefix, id)| PaginationCursorNewInternal {
+      id,
+      prefix,
       back: true,
     })
     .map(PaginationCursorNew::from_internal);
 
   let mut next_page = data
     .last()
-    .map(|d| PaginationCursorNewInternal {
-      id: d.cursor_data(),
+    .map(|d| d.to_cursor())
+    .map(|(prefix, id)| PaginationCursorNewInternal {
+      id,
+      prefix,
       back: false,
     })
     .map(PaginationCursorNew::from_internal);
@@ -202,6 +214,7 @@ mod test {
   fn test_cursor() {
     let data = PaginationCursorNewInternal {
       back: false,
+      prefix: None,
       id: 123,
     };
     let encoded = PaginationCursorNew::from_internal(data.clone());
