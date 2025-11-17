@@ -4251,6 +4251,7 @@ version = "1.0.0-alpha.12"
 dependencies = [
  "activitypub_federation",
  "anyhow",
+ "base64 0.22.1",
  "chrono",
  "deadpool",
  "diesel",

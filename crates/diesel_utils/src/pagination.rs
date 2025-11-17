@@ -1,4 +1,5 @@
 use crate::connection::DbPool;
+use base64::{Engine, prelude::BASE64_URL_SAFE_NO_PAD};
 use i_love_jesus::{PaginatedQueryBuilder, SortDirection};
 #[cfg(feature = "full")]
 use lemmy_utils::error::LemmyResult;
@@ -25,10 +26,11 @@ pub struct PaginationCursorNew(String);
 
 impl PaginationCursorNew {
   fn to_internal(self) -> PaginationCursorNewInternal {
-    serde_urlencoded::from_str(&xor(self.0)).unwrap()
+    let encoded = BASE64_URL_SAFE_NO_PAD.decode(self.0).unwrap();
+    serde_urlencoded::from_str(&String::from_utf8(encoded).unwrap()).unwrap()
   }
   fn from_internal(other: PaginationCursorNewInternal) -> Self {
-    Self(xor(serde_urlencoded::to_string(other).unwrap()))
+    Self(BASE64_URL_SAFE_NO_PAD.encode(serde_urlencoded::to_string(other).unwrap()))
   }
 }
 
@@ -48,11 +50,13 @@ pub async fn paginate_new<Q, T: PaginationCursorBuilderNew>(
   paginate(query, sort_direction, page_after, None, back)
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 struct PaginationCursorNewInternal {
+  #[serde(rename = "b")]
   back: bool,
   // TODO: add this later
   //pub prefix: char,
+  #[serde(rename = "i")]
   id: i32,
 }
 
@@ -96,13 +100,6 @@ where
     next_page,
     prev_page,
   }
-}
-
-fn xor(input: String) -> String {
-  // TODO: use xor encoding to to prevent clients from parsing or altering internal cursor data
-  // use domain as hash key so it doesnt change after restart
-  // https://gist.github.com/SecSamDev/13b2c96e553f5c7e68d3777c39741bdd
-  input
 }
 
 // ------------------------------
@@ -195,4 +192,21 @@ pub fn paginate<Q, C>(
   }
 
   query
+}
+
+#[cfg(test)]
+mod test {
+  use super::*;
+
+  #[test]
+  fn test_cursor() {
+    let data = PaginationCursorNewInternal {
+      back: false,
+      id: 123,
+    };
+    let encoded = PaginationCursorNew::from_internal(data.clone());
+    assert_eq!("Yj1mYWxzZSZpPTEyMw", &encoded.0);
+    let data2 = encoded.to_internal();
+    assert_eq!(data, data2);
+  }
 }
