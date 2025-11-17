@@ -293,7 +293,7 @@ impl CommentQuery<'_> {
     let sort = o.sort.unwrap_or(Hot);
     let sort_direction = asc_if(sort == Old);
 
-    let mut pq = paginate_new::<_, CommentView>(query, o.page_cursor, sort_direction, pool).await;
+    let mut pq = paginate_new::<_, CommentView>(query, o.page_cursor, sort_direction, pool).await?;
 
     // Order by a subpath for max depth queries
     // Only order if filtering by a post id, or parent_path. DOS potential otherwise and max_depth
@@ -319,7 +319,7 @@ impl CommentQuery<'_> {
     let conn = &mut get_conn(pool).await?;
     let res = pq.load::<CommentView>(conn).await?;
 
-    Ok(paginate_response(res, limit))
+    paginate_response(res, limit)
   }
 }
 

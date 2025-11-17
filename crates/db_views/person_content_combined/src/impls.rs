@@ -207,7 +207,7 @@ impl PersonContentCombinedQuery {
       SortDirection::Desc,
       pool,
     )
-    .await
+    .await?
     .then_order_by(key::published_at)
     // Tie breaker
     .then_order_by(key::id);
@@ -223,7 +223,7 @@ impl PersonContentCombinedQuery {
       .filter_map(InternalToCombinedView::map_to_enum)
       .collect();
 
-    Ok(paginate_response(out, limit))
+    paginate_response(out, limit)
   }
 }
 

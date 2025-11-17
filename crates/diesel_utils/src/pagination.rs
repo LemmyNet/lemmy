@@ -27,12 +27,13 @@ pub trait PaginationCursorBuilderNew {
 pub struct PaginationCursorNew(String);
 
 impl PaginationCursorNew {
-  fn to_internal(self) -> PaginationCursorNewInternal {
-    let encoded = BASE64_URL_SAFE_NO_PAD.decode(self.0).unwrap();
-    serde_urlencoded::from_str(&String::from_utf8(encoded).unwrap()).unwrap()
+  fn to_internal(self) -> LemmyResult<PaginationCursorNewInternal> {
+    let decoded = BASE64_URL_SAFE_NO_PAD.decode(self.0)?;
+    Ok(serde_urlencoded::from_str(&String::from_utf8(decoded)?)?)
   }
-  fn from_internal(other: PaginationCursorNewInternal) -> Self {
-    Self(BASE64_URL_SAFE_NO_PAD.encode(serde_urlencoded::to_string(other).unwrap()))
+  fn from_internal(other: PaginationCursorNewInternal) -> LemmyResult<Self> {
+    let encoded = BASE64_URL_SAFE_NO_PAD.encode(serde_urlencoded::to_string(other)?);
+    Ok(Self(encoded))
   }
 }
 
@@ -41,17 +42,15 @@ pub async fn paginate_new<Q, T: PaginationCursorBuilderNew>(
   cursor: Option<PaginationCursorNew>,
   sort_direction: SortDirection,
   pool: &mut DbPool<'_>,
-) -> PaginatedQueryBuilder<T::CursorData, Q> {
+) -> LemmyResult<PaginatedQueryBuilder<T::CursorData, Q>> {
   let (page_after, back) = if let Some(cursor) = cursor {
-    let internal = cursor.to_internal();
-    let object = T::from_cursor(internal.prefix, internal.id, pool)
-      .await
-      .unwrap();
+    let internal = cursor.to_internal()?;
+    let object = T::from_cursor(internal.prefix, internal.id, pool).await?;
     (Some(object), Some(internal.back))
   } else {
     (None, None)
   };
-  paginate(query, sort_direction, page_after, None, back)
+  Ok(paginate(query, sort_direction, page_after, None, back))
 }
 
 #[skip_serializing_none]
@@ -77,29 +76,21 @@ where
   pub prev_page: Option<PaginationCursorNew>,
 }
 
-pub fn paginate_response<T>(data: Vec<T>, limit: i64) -> PaginatedVec<T>
+pub fn paginate_response<T>(data: Vec<T>, limit: i64) -> LemmyResult<PaginatedVec<T>>
 where
   T: PaginationCursorBuilderNew + Serialize + for<'a> Deserialize<'a>,
 {
-  let prev_page = data
-    .first()
-    .map(|d| d.to_cursor())
-    .map(|(prefix, id)| PaginationCursorNewInternal {
-      id,
-      prefix,
-      back: true,
-    })
-    .map(PaginationCursorNew::from_internal);
-
-  let mut next_page = data
-    .last()
-    .map(|d| d.to_cursor())
-    .map(|(prefix, id)| PaginationCursorNewInternal {
-      id,
-      prefix,
-      back: false,
-    })
-    .map(PaginationCursorNew::from_internal);
+  let make_cursor = |item: Option<&T>, back: bool| -> LemmyResult<Option<PaginationCursorNew>> {
+    if let Some(item) = item {
+      let (prefix, id) = item.to_cursor();
+      let cursor = PaginationCursorNewInternal { id, prefix, back };
+      Ok(Some(PaginationCursorNew::from_internal(cursor)?))
+    } else {
+      Ok(None)
+    }
+  };
+  let prev_page = make_cursor(data.first(), true)?;
+  let mut next_page = make_cursor(data.last(), false)?;
 
   // If there are less than limit items we are on the last page, dont show next button.
   // Need to convert here because diesel takes i64 for limit while vec length is usize.
@@ -107,11 +98,11 @@ where
   if data.len() < limit {
     next_page = None;
   }
-  PaginatedVec {
+  Ok(PaginatedVec {
     data,
     next_page,
     prev_page,
-  }
+  })
 }
 
 // ------------------------------
@@ -211,15 +202,16 @@ mod test {
   use super::*;
 
   #[test]
-  fn test_cursor() {
+  fn test_cursor() -> LemmyResult<()> {
     let data = PaginationCursorNewInternal {
       back: false,
       prefix: None,
       id: 123,
     };
-    let encoded = PaginationCursorNew::from_internal(data.clone());
+    let encoded = PaginationCursorNew::from_internal(data.clone())?;
     assert_eq!("Yj1mYWxzZSZpPTEyMw", &encoded.0);
-    let data2 = encoded.to_internal();
+    let data2 = encoded.to_internal()?;
     assert_eq!(data, data2);
+    Ok(())
   }
 }

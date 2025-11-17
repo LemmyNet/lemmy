@@ -189,7 +189,8 @@ impl CommunityQuery<'_> {
     let sort = o.sort.unwrap_or_default();
     let sort_direction = asc_if(sort == Old || sort == NameAsc);
 
-    let mut pq = paginate_new::<_, CommunityView>(query, o.page_cursor, sort_direction, pool).await;
+    let mut pq =
+      paginate_new::<_, CommunityView>(query, o.page_cursor, sort_direction, pool).await?;
 
     pq = match sort {
       Hot => pq.then_order_by(key::hot_rank),
@@ -215,7 +216,7 @@ impl CommunityQuery<'_> {
       .load::<CommunityView>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)?;
-    Ok(paginate_response(res, limit))
+    paginate_response(res, limit)
   }
 }
 
@@ -319,7 +320,7 @@ impl MultiCommunityQuery {
     let sort_direction = asc_if(sort == Old || sort == NameAsc);
 
     let mut pq =
-      paginate_new::<_, MultiCommunityView>(query, o.page_cursor, sort_direction, pool).await;
+      paginate_new::<_, MultiCommunityView>(query, o.page_cursor, sort_direction, pool).await?;
 
     pq = match sort {
       New => pq.then_order_by(mkey::published_at),
@@ -340,7 +341,7 @@ impl MultiCommunityQuery {
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)?;
 
-    Ok(paginate_response(res, limit))
+    paginate_response(res, limit)
   }
 }
 
