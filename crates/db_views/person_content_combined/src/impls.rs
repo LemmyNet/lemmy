@@ -42,7 +42,13 @@ use lemmy_db_schema_file::{
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
-  pagination::{PaginationCursor, PaginationCursorBuilder, paginate},
+  pagination::{
+    PaginatedVec,
+    PaginationCursorBuilderNew,
+    PaginationCursorNew,
+    paginate_new,
+    paginate_response,
+  },
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
@@ -99,31 +105,31 @@ impl PersonContentCombinedViewInternal {
   }
 }
 
-impl PaginationCursorBuilder for PersonContentCombinedView {
+impl PaginationCursorBuilderNew for PersonContentCombinedView {
   type CursorData = PersonContentCombined;
 
-  fn to_cursor(&self) -> PaginationCursor {
+  fn to_cursor(&self) -> (Option<char>, i32) {
     let (prefix, id) = match &self {
       PersonContentCombinedView::Comment(v) => ('C', v.comment.id.0),
       PersonContentCombinedView::Post(v) => ('P', v.post.id.0),
     };
-    PaginationCursor::new_single(prefix, id)
+    (Some(prefix), id)
   }
 
   async fn from_cursor(
-    cursor: &PaginationCursor,
+    prefix: Option<char>,
+    id: i32,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::CursorData> {
     let conn = &mut get_conn(pool).await?;
-    let [(prefix, id)] = cursor.prefixes_and_ids()?;
 
     let mut query = person_content_combined::table
       .select(Self::CursorData::as_select())
       .into_boxed();
 
     query = match prefix {
-      'C' => query.filter(person_content_combined::comment_id.eq(id)),
-      'P' => query.filter(person_content_combined::post_id.eq(id)),
+      Some('C') => query.filter(person_content_combined::comment_id.eq(id)),
+      Some('P') => query.filter(person_content_combined::post_id.eq(id)),
       _ => return Err(LemmyErrorType::CouldntParsePaginationToken.into()),
     };
     let token = query.first(conn).await?;
@@ -149,9 +155,7 @@ pub struct PersonContentCombinedQuery {
   #[new(default)]
   pub type_: Option<PersonContentType>,
   #[new(default)]
-  pub cursor_data: Option<PersonContentCombined>,
-  #[new(default)]
-  pub page_back: Option<bool>,
+  pub page_cursor: Option<PaginationCursorNew>,
   #[new(default)]
   pub limit: Option<i64>,
   #[new(default)]
@@ -164,11 +168,9 @@ impl PersonContentCombinedQuery {
     pool: &mut DbPool<'_>,
     user: Option<&LocalUserView>,
     local_instance_id: InstanceId,
-  ) -> LemmyResult<Vec<PersonContentCombinedView>> {
+  ) -> LemmyResult<PaginatedVec<PersonContentCombinedView>> {
     let my_person_id = user.as_ref().map(|u| u.local_user.person_id);
     let item_creator = person::id;
-
-    let conn = &mut get_conn(pool).await?;
 
     // Notes: since the post_id and comment_id are optional columns,
     // many joins must use an OR condition.
@@ -181,10 +183,12 @@ impl PersonContentCombinedQuery {
       .select(PersonContentCombinedViewInternal::as_select())
       .into_boxed();
 
-    if !self.no_limit.unwrap_or_default() {
-      let limit = limit_fetch(self.limit)?;
-      query = query.limit(limit);
-    }
+    let limit = if !self.no_limit.unwrap_or_default() {
+      limit_fetch(self.limit)?
+    } else {
+      i64::MAX
+    };
+    query = query.limit(limit);
 
     if let Some(type_) = self.type_ {
       query = match type_ {
@@ -197,17 +201,18 @@ impl PersonContentCombinedQuery {
     }
 
     // Sorting by published
-    let paginated_query = paginate(
+    let paginated_query = paginate_new::<_, PersonContentCombinedView>(
       query,
+      self.page_cursor,
       SortDirection::Desc,
-      self.cursor_data,
-      None,
-      self.page_back,
+      pool,
     )
+    .await
     .then_order_by(key::published_at)
     // Tie breaker
     .then_order_by(key::id);
 
+    let conn = &mut get_conn(pool).await?;
     let res = paginated_query
       .load::<PersonContentCombinedViewInternal>(conn)
       .await?;
@@ -218,7 +223,7 @@ impl PersonContentCombinedQuery {
       .filter_map(InternalToCombinedView::map_to_enum)
       .collect();
 
-    Ok(out)
+    Ok(paginate_response(out, limit))
   }
 }
 
@@ -368,7 +373,8 @@ mod tests {
     // Do a batch read of timmy
     let timmy_content = PersonContentCombinedQuery::new(data.timmy.id)
       .list(pool, None, data.instance.id)
-      .await?;
+      .await?
+      .data;
     assert_eq!(3, timmy_content.len());
 
     // Make sure the types are correct
@@ -394,7 +400,8 @@ mod tests {
     // Do a batch read of sara
     let sara_content = PersonContentCombinedQuery::new(data.sara.id)
       .list(pool, None, data.instance.id)
-      .await?;
+      .await?
+      .data;
     assert_eq!(3, sara_content.len());
 
     // Make sure the report types are correct

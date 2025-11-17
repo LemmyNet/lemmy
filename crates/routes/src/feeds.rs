@@ -163,13 +163,13 @@ async fn get_feed_user(
   let content = PersonContentCombinedQuery {
     creator_id: person.id,
     type_: Some(PersonContentType::Posts),
-    cursor_data: None,
-    page_back: None,
+    page_cursor: None,
     limit: Some(info.get_limit()),
     no_limit: None,
   }
   .list(&mut context.pool(), None, site_view.site.instance_id)
-  .await?;
+  .await?
+  .data;
 
   let posts = content
     .iter()

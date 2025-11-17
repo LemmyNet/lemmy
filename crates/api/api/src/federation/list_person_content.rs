@@ -6,11 +6,9 @@ use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person_content_combined::{
   ListPersonContent,
   ListPersonContentResponse,
-  PersonContentCombinedView,
   impls::PersonContentCombinedQuery,
 };
 use lemmy_db_views_site::SiteView;
-use lemmy_diesel_utils::pagination::PaginationCursorBuilder;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn list_person_content(
@@ -27,18 +25,11 @@ pub async fn list_person_content(
   let person_details_id =
     resolve_person_identifier(data.person_id, &data.username, &context, &local_user_view).await?;
 
-  let cursor_data = if let Some(cursor) = &data.page_cursor {
-    Some(PersonContentCombinedView::from_cursor(cursor, &mut context.pool()).await?)
-  } else {
-    None
-  };
-
-  let content = PersonContentCombinedQuery {
+  let res = PersonContentCombinedQuery {
     creator_id: person_details_id,
     type_: data.type_,
-    cursor_data,
-    page_back: data.page_back,
-    limit: data.limit,
+    page_cursor: data.0.page_cursor,
+    limit: data.0.limit,
     no_limit: None,
   }
   .list(
@@ -48,12 +39,9 @@ pub async fn list_person_content(
   )
   .await?;
 
-  let next_page = content.last().map(PaginationCursorBuilder::to_cursor);
-  let prev_page = content.first().map(PaginationCursorBuilder::to_cursor);
-
   Ok(Json(ListPersonContentResponse {
-    content,
-    next_page,
-    prev_page,
+    content: res.data,
+    next_page: res.next_page,
+    prev_page: res.prev_page,
   }))
 }

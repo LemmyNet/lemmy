@@ -38,6 +38,7 @@ pub async fn export_data(
   }
   .list(pool, Some(&local_user_view), local_instance_id)
   .await?
+  .data
   .into_iter()
   .map(|u| match u {
     PersonContentCombinedView::Post(pv) => Post(pv.post),
