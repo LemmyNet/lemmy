@@ -6,10 +6,6 @@ use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
-// TODO: at the moment we only store the item id in the cursor, and later we read it again from
-//       the db. instead we could store the whole item in the cursor to avoid this db read (or
-//       store only the fields which are used for sorting).
-
 pub trait PaginationCursorBuilderNew {
   type CursorData;
 
@@ -22,6 +18,11 @@ pub trait PaginationCursorBuilderNew {
   ) -> impl Future<Output = LemmyResult<Self::CursorData>> + Send;
 }
 
+/// To get the next or previous page, pass this string unchanged as `page_cursor` in a new request
+/// to the same endpoint.
+///
+/// Do not attempt to parse or modify the cursor string. The format is internal and may change in
+/// minor Lemmy versions.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 pub struct PaginationCursorNew(String);
@@ -37,6 +38,7 @@ impl PaginationCursorNew {
   }
 }
 
+/// Paginate a db query.
 pub async fn paginate_new<Q, T: PaginationCursorBuilderNew>(
   query: Q,
   cursor: Option<PaginationCursorNew>,
@@ -53,6 +55,8 @@ pub async fn paginate_new<Q, T: PaginationCursorBuilderNew>(
   Ok(paginate(query, sort_direction, page_after, None, back))
 }
 
+/// The actual data which is stored inside a cursor, not accessible outside this file.
+/// Uses serde rename to keep the cursor string short.
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 struct PaginationCursorNewInternal {
@@ -76,6 +80,7 @@ where
   pub prev_page: Option<PaginationCursorNew>,
 }
 
+/// Add prev/next cursors to query result.
 pub fn paginate_response<T>(data: Vec<T>, limit: i64) -> LemmyResult<PaginatedVec<T>>
 where
   T: PaginationCursorBuilderNew + Serialize + for<'a> Deserialize<'a>,
@@ -106,7 +111,7 @@ where
 }
 
 // ------------------------------
-// TODO: below are all old
+// TODO: below are all old and need to be removed
 
 pub trait PaginationCursorBuilder {
   type CursorData;
