@@ -668,8 +668,8 @@ pub struct UpdateTagline {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct PluginMetadata {
   pub name: String,
-  pub url: Url,
-  pub description: String,
+  pub url: Option<Url>,
+  pub description: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]

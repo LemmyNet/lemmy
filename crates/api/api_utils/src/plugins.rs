@@ -24,7 +24,6 @@ use std::{
 };
 use tokio::task::spawn_blocking;
 use tracing::warn;
-use url::Url;
 
 const GET_PLUGIN_TIMEOUT: Duration = Duration::from_secs(1);
 
@@ -122,8 +121,8 @@ pub fn plugin_metadata() -> Vec<PluginMetadata> {
             // Failed to load plugin metadata, use placeholder
             metadata.push(PluginMetadata {
               name: plugin.filename,
-              url: Url::parse("http://unknown").expect("valid url"),
-              description: String::new(),
+              url: None,
+              description: None,
             });
           }
         }
