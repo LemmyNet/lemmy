@@ -19,11 +19,12 @@ use std::{
   io::BufReader,
   ops::Deref,
   path::PathBuf,
-  sync::LazyLock,
+  sync::{LazyLock, OnceLock},
   time::Duration,
 };
 use tokio::task::spawn_blocking;
 use tracing::warn;
+use url::Url;
 
 const GET_PLUGIN_TIMEOUT: Duration = Duration::from_secs(1);
 
@@ -103,11 +104,35 @@ where
 }
 
 pub fn plugin_metadata() -> Vec<PluginMetadata> {
-  LemmyPlugins::get_or_init()
-    .0
-    .into_iter()
-    .map(|p| p.metadata)
-    .collect()
+  static METADATA: OnceLock<Vec<PluginMetadata>> = OnceLock::new();
+  if let Some(m) = METADATA.get() {
+    m.clone()
+  } else {
+    // Loading metadata can take multiple seconds. Do this in background task to avoid blocking
+    // /api/v4/site endpoint.
+    std::thread::spawn(|| {
+      METADATA.get_or_init(|| {
+        let mut metadata = vec![];
+        for plugin in LemmyPlugins::get_or_init().0 {
+          let run = plugin.pool.get(GET_PLUGIN_TIMEOUT).ok().flatten();
+          let m = run.and_then(|run| run.call("metadata", 0).ok());
+          if let Some(m) = m {
+            metadata.push(m);
+          } else {
+            // Failed to load plugin metadata, use placeholder
+            metadata.push(PluginMetadata {
+              name: plugin.filename,
+              url: Url::parse("http://unknown").expect("valid url"),
+              description: String::new(),
+            });
+          }
+        }
+        metadata
+      });
+    });
+    // Return empty metadata until loading is finished
+    vec![]
+  }
 }
 
 #[derive(Clone)]
@@ -115,8 +140,8 @@ struct LemmyPlugins(Vec<LemmyPlugin>);
 
 #[derive(Clone)]
 struct LemmyPlugin {
-  plugin_pool: Pool,
-  metadata: PluginMetadata,
+  pool: Pool,
+  filename: String,
 }
 
 impl LemmyPlugin {
@@ -132,17 +157,18 @@ impl LemmyPlugin {
       .config
       .insert("lemmy_version".to_string(), VERSION.to_string());
     let builder = move || PluginBuilder::new(manifest.clone()).with_wasi(true).build();
-    let metadata: PluginMetadata = builder()?.call("metadata", 0)?;
-    let plugin_pool: Pool = Pool::new(builder);
-    Ok(LemmyPlugin {
-      plugin_pool,
-      metadata,
-    })
+    let pool = Pool::new(builder);
+    let filename = path
+      .file_name()
+      .expect("has filename")
+      .to_string_lossy()
+      .to_string();
+    Ok(LemmyPlugin { pool, filename })
   }
 
   fn get(&self, name: &'static str) -> LemmyResult<Option<PoolPlugin>> {
     let p = self
-      .plugin_pool
+      .pool
       .get(GET_PLUGIN_TIMEOUT)?
       .ok_or(anyhow!("plugin timeout"))?;
 
@@ -185,7 +211,7 @@ impl LemmyPlugins {
   /// Return early if no plugin is loaded for the given hook name
   fn function_exists(&self, name: &'static str) -> bool {
     self.0.iter().any(|p| {
-      p.plugin_pool
+      p.pool
         .function_exists(name, GET_PLUGIN_TIMEOUT)
         .unwrap_or(false)
     })

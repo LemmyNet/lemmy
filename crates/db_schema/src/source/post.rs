@@ -91,11 +91,8 @@ pub struct Post {
 }
 
 // TODO: FromBytes, ToBytes are only needed to develop wasm plugin, could be behind feature flag
-#[derive(Debug, Clone, derive_new::new)]
-#[cfg_attr(
-  feature = "full",
-  derive(Insertable, AsChangeset, Serialize, Deserialize)
-)]
+#[derive(Debug, Clone, derive_new::new, Serialize, Deserialize)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset,))]
 #[cfg_attr(feature = "full", diesel(table_name = post))]
 pub struct PostInsertForm {
   pub name: String,
@@ -214,11 +211,8 @@ pub struct PostActions {
   pub notifications: Option<PostNotificationsMode>,
 }
 
-#[derive(Clone, derive_new::new)]
-#[cfg_attr(
-  feature = "full",
-  derive(Insertable, AsChangeset, Serialize, Deserialize)
-)]
+#[derive(Clone, derive_new::new, Serialize, Deserialize)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = post_actions))]
 pub struct PostLikeForm {
   pub post_id: PostId,

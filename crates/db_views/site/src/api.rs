@@ -667,9 +667,9 @@ pub struct UpdateTagline {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct PluginMetadata {
-  name: String,
-  url: Url,
-  description: String,
+  pub name: String,
+  pub url: Url,
+  pub description: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
