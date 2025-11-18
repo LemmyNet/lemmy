@@ -55,6 +55,7 @@ impl ResolveReport {
       object,
       kind,
       id: id.clone(),
+      audience: receiver.as_ref().right().map(|c| c.ap_id.clone().into()),
     };
     let inboxes = report_inboxes(object_id, receiver, report_creator, &context).await?;
 

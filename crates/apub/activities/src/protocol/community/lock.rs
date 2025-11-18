@@ -34,6 +34,7 @@ pub struct LockPageOrNote {
   pub(crate) id: Url,
   /// Summary is the reason for the lock.
   pub(crate) summary: Option<String>,
+  pub(crate) audience: Option<ObjectId<ApubCommunity>>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -50,10 +51,14 @@ pub struct UndoLockPageOrNote {
   pub(crate) id: Url,
   /// Summary is the reason for the lock.
   pub(crate) summary: Option<String>,
+  pub(crate) audience: Option<ObjectId<ApubCommunity>>,
 }
 
 impl InCommunity for LockPageOrNote {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
+    if let Some(audience) = &self.audience {
+      return audience.dereference(context).await;
+    }
     let post_or_comment = self.object.dereference(context).await?;
     let community = post_or_comment_community(&post_or_comment, context).await?;
     Ok(community.into())

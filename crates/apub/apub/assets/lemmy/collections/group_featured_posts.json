@@ -20,7 +20,8 @@
       "language": {
         "identifier": "de",
         "name": "Deutsch"
-      }
+      },
+      "audience": "https://ds9.lemmy.ml/c/main"
     },
     {
       "type": "Page",
@@ -39,7 +40,8 @@
       "language": {
         "identifier": "de",
         "name": "Deutsch"
-      }
+      },
+      "audience": "https://ds9.lemmy.ml/c/main"
     }
   ]
 }
