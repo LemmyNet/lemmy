@@ -26,7 +26,7 @@ use lemmy_utils::{
 //       gets fetched. i hope we can get rid of the community creator role soon.
 
 pub async fn transfer_community(
-  data: Json<TransferCommunity>,
+  Json(data): Json<TransferCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<GetCommunityResponse>> {

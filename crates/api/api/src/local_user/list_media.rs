@@ -9,7 +9,7 @@ use lemmy_diesel_utils::pagination::PaginationCursorBuilder;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn list_media(
-  data: Query<ListMedia>,
+  Query(data): Query<ListMedia>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<ListMediaResponse>> {

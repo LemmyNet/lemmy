@@ -11,7 +11,7 @@ use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyError;
 
 pub async fn create_tagline(
-  data: Json<CreateTagline>,
+  Json(data): Json<CreateTagline>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> Result<Json<TaglineResponse>, LemmyError> {

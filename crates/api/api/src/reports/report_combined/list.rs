@@ -12,7 +12,7 @@ use lemmy_utils::error::LemmyResult;
 /// Lists reports for a community if an id is supplied
 /// or returns all reports for communities a user moderates
 pub async fn list_reports(
-  data: Query<ListReports>,
+  Query(data): Query<ListReports>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<ListReportsResponse>> {

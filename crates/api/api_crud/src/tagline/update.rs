@@ -12,7 +12,7 @@ use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyError;
 
 pub async fn update_tagline(
-  data: Json<UpdateTagline>,
+  Json(data): Json<UpdateTagline>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> Result<Json<TaglineResponse>, LemmyError> {

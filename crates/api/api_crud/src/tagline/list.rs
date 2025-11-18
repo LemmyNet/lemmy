@@ -5,7 +5,7 @@ use lemmy_db_views_site::api::{ListTaglines, ListTaglinesResponse};
 use lemmy_utils::error::LemmyError;
 
 pub async fn list_taglines(
-  data: Query<ListTaglines>,
+  Query(data): Query<ListTaglines>,
   context: Data<LemmyContext>,
 ) -> Result<Json<ListTaglinesResponse>, LemmyError> {
   let cursor_data = if let Some(cursor) = &data.page_cursor {

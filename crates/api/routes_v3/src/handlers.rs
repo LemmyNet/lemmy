@@ -199,7 +199,7 @@ pub(crate) async fn list_posts_v3(
 }
 
 pub(crate) async fn list_comments_v3(
-  data: Query<GetCommentsV3>,
+  Query(data): Query<GetCommentsV3>,
   context: ApubData<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<GetCommentsResponseV3>> {
@@ -213,7 +213,7 @@ pub(crate) async fn list_comments_v3(
     type_,
     sort,
     ..
-  } = data.0;
+  } = data;
   let sort = sort.map(convert_comment_listing_sort);
   let data = GetComments {
     type_: type_.map(convert_listing_type),
@@ -310,11 +310,11 @@ pub(crate) async fn login_v3(
 }
 
 pub(crate) async fn like_comment_v3(
-  data: Json<CreateCommentLikeV3>,
+  Json(data): Json<CreateCommentLikeV3>,
   context: ApubData<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponseV3>> {
-  let CreateCommentLikeV3 { comment_id, score } = data.0;
+  let CreateCommentLikeV3 { comment_id, score } = data;
   let data = CreateCommentLike {
     comment_id: CommentId(comment_id.0),
     is_upvote: convert_score(score),
@@ -324,11 +324,11 @@ pub(crate) async fn like_comment_v3(
 }
 
 pub(crate) async fn like_post_v3(
-  data: Json<CreatePostLikeV3>,
+  Json(data): Json<CreatePostLikeV3>,
   context: ApubData<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponseV3>> {
-  let CreatePostLikeV3 { post_id, score } = data.0;
+  let CreatePostLikeV3 { post_id, score } = data;
   let data = CreatePostLike {
     post_id: PostId(post_id.0),
     is_upvote: convert_score(score),
@@ -347,7 +347,7 @@ pub(crate) async fn create_comment_v3(
 }
 
 pub(crate) async fn create_post_v3(
-  data: Json<CreatePostV3>,
+  Json(data): Json<CreatePostV3>,
   context: ApubData<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponseV3>> {
@@ -361,7 +361,7 @@ pub(crate) async fn create_post_v3(
     nsfw,
     language_id,
     custom_thumbnail,
-  } = data.0;
+  } = data;
   let data = CreatePost {
     name,
     community_id: CommunityId(community_id.0),
@@ -380,7 +380,7 @@ pub(crate) async fn create_post_v3(
 }
 
 pub(crate) async fn search_v3(
-  data: Query<SearchV3>,
+  Query(data): Query<SearchV3>,
   context: ApubData<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<SearchResponseV3>> {
@@ -392,7 +392,7 @@ pub(crate) async fn search_v3(
     limit,
     type_,
     ..
-  } = data.0;
+  } = data;
   let data = Search {
     q,
     community_id: community_id.map(|i| CommunityId(i.0)),
@@ -627,7 +627,7 @@ pub(crate) async fn update_comment_v3(
   convert_comment_response(res)
 }
 pub(crate) async fn list_communities_v3(
-  data: Query<ListCommunitiesV3>,
+  Query(data): Query<ListCommunitiesV3>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<ListCommunitiesResponseV3>> {
@@ -637,7 +637,7 @@ pub(crate) async fn list_communities_v3(
     show_nsfw,
     limit,
     ..
-  } = data.0;
+  } = data;
   let (sort, time_range_seconds) = convert_community_listing_sort(sort);
   let data = ListCommunities {
     type_: type_.map(convert_listing_type),

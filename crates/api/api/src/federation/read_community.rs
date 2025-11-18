@@ -16,7 +16,7 @@ use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn get_community(
-  data: Query<GetCommunity>,
+  Query(data): Query<GetCommunity>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<GetCommunityResponse>> {

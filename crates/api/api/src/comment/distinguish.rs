@@ -15,7 +15,7 @@ use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn distinguish_comment(
-  data: Json<DistinguishComment>,
+  Json(data): Json<DistinguishComment>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponse>> {

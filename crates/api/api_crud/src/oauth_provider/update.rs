@@ -12,7 +12,7 @@ use lemmy_diesel_utils::{
 use lemmy_utils::error::LemmyError;
 
 pub async fn update_oauth_provider(
-  data: Json<EditOAuthProvider>,
+  Json(data): Json<EditOAuthProvider>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> Result<Json<OAuthProvider>, LemmyError> {

@@ -24,7 +24,7 @@ use lemmy_utils::error::LemmyResult;
 use std::cmp::min;
 
 pub async fn list_posts(
-  data: Query<GetPosts>,
+  Query(data): Query<GetPosts>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<GetPostsResponse>> {

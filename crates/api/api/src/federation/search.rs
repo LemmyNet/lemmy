@@ -21,7 +21,7 @@ use lemmy_diesel_utils::pagination::PaginationCursorBuilder;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn search(
-  data: Query<Search>,
+  Query(data): Query<Search>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<SearchResponse>> {

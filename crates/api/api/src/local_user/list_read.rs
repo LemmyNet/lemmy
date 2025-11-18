@@ -8,7 +8,7 @@ use lemmy_db_views_post::PostView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn list_person_read(
-  data: Query<ListPersonRead>,
+  Query(data): Query<ListPersonRead>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<ListPersonReadResponse>> {

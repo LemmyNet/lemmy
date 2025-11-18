@@ -78,7 +78,7 @@ struct TokenResponse {
 }
 
 pub async fn register(
-  data: Json<Register>,
+  Json(data): Json<Register>,
   req: HttpRequest,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<LoginResponse>> {
@@ -230,7 +230,7 @@ pub async fn register(
 }
 
 pub async fn authenticate_with_oauth(
-  data: Json<AuthenticateWithOauth>,
+  Json(data): Json<AuthenticateWithOauth>,
   req: HttpRequest,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<LoginResponse>> {

@@ -21,7 +21,7 @@ use lemmy_utils::error::LemmyResult;
 
 /// A common fetcher for both the CommentView, and CommentSlimView.
 async fn list_comments_common(
-  data: Query<GetComments>,
+  data: GetComments,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<PaginatedVec<CommentView>> {
@@ -74,7 +74,7 @@ async fn list_comments_common(
     parent_path,
     post_id,
     local_user,
-    page_cursor: data.0.page_cursor,
+    page_cursor: data.page_cursor,
     limit,
   }
   .list(&site_view.site, &mut context.pool())
@@ -82,7 +82,7 @@ async fn list_comments_common(
 }
 
 pub async fn list_comments(
-  data: Query<GetComments>,
+  Query(data): Query<GetComments>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<GetCommentsResponse>> {
@@ -96,7 +96,7 @@ pub async fn list_comments(
 }
 
 pub async fn list_comments_slim(
-  data: Query<GetComments>,
+  Query(data): Query<GetComments>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<GetCommentsSlimResponse>> {

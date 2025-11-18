@@ -12,7 +12,7 @@ use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn list_person_content(
-  data: Query<ListPersonContent>,
+  Query(data): Query<ListPersonContent>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<ListPersonContentResponse>> {
@@ -28,8 +28,8 @@ pub async fn list_person_content(
   let res = PersonContentCombinedQuery {
     creator_id: person_details_id,
     type_: data.type_,
-    page_cursor: data.0.page_cursor,
-    limit: data.0.limit,
+    page_cursor: data.page_cursor,
+    limit: data.limit,
     no_limit: None,
   }
   .list(

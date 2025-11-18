@@ -12,7 +12,7 @@ use lemmy_diesel_utils::pagination::PaginationCursorBuilder;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn get_mod_log(
-  data: Query<GetModlog>,
+  Query(data): Query<GetModlog>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<GetModlogResponse>> {

@@ -12,7 +12,7 @@ use lemmy_diesel_utils::pagination::PaginationCursorBuilder;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn list_notifications(
-  data: Query<ListNotifications>,
+  Query(data): Query<ListNotifications>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<ListNotificationsResponse>> {

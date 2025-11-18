@@ -12,7 +12,7 @@ use lemmy_diesel_utils::pagination::PaginationCursorBuilder;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn list_person_liked(
-  data: Query<ListPersonLiked>,
+  Query(data): Query<ListPersonLiked>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<ListPersonLikedResponse>> {

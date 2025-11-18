@@ -9,7 +9,7 @@ use lemmy_db_views_post::{
 use lemmy_utils::error::LemmyResult;
 
 pub async fn mark_post_as_read(
-  data: Json<MarkPostAsRead>,
+  Json(data): Json<MarkPostAsRead>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {

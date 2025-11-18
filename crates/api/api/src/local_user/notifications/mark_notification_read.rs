@@ -7,7 +7,7 @@ use lemmy_db_views_site::api::SuccessResponse;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn mark_notification_as_read(
-  data: Json<MarkNotificationAsRead>,
+  Json(data): Json<MarkNotificationAsRead>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {

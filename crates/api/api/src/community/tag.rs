@@ -26,7 +26,7 @@ use lemmy_utils::{
 use url::Url;
 
 pub async fn create_community_tag(
-  data: Json<CreateCommunityTag>,
+  Json(data): Json<CreateCommunityTag>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<Tag>> {
@@ -68,7 +68,7 @@ pub async fn create_community_tag(
 }
 
 pub async fn update_community_tag(
-  data: Json<UpdateCommunityTag>,
+  Json(data): Json<UpdateCommunityTag>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<Tag>> {
@@ -96,7 +96,7 @@ pub async fn update_community_tag(
 }
 
 pub async fn delete_community_tag(
-  data: Json<DeleteCommunityTag>,
+  Json(data): Json<DeleteCommunityTag>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<Tag>> {

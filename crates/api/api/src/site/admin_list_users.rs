@@ -10,7 +10,7 @@ use lemmy_diesel_utils::pagination::PaginationCursorBuilder;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn admin_list_users(
-  data: Query<AdminListUsers>,
+  Query(data): Query<AdminListUsers>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<AdminListUsersResponse>> {

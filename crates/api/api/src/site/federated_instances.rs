@@ -8,11 +8,10 @@ use lemmy_diesel_utils::pagination::PaginationCursorBuilder;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn get_federated_instances(
-  data: Query<GetFederatedInstances>,
+  Query(data): Query<GetFederatedInstances>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<GetFederatedInstancesResponse>> {
-  let federated_instances =
-    FederatedInstanceView::list(&mut context.pool(), data.into_inner()).await?;
+  let federated_instances = FederatedInstanceView::list(&mut context.pool(), data).await?;
 
   let next_page = federated_instances
     .last()

@@ -7,7 +7,7 @@ use lemmy_utils::error::LemmyResult;
 
 /// Lists likes for a comment
 pub async fn list_comment_likes(
-  data: Query<ListCommentLikes>,
+  Query(data): Query<ListCommentLikes>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<ListCommentLikesResponse>> {

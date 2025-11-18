@@ -8,7 +8,7 @@ use lemmy_db_views_post::PostView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn list_person_hidden(
-  data: Query<ListPersonHidden>,
+  Query(data): Query<ListPersonHidden>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<ListPersonHiddenResponse>> {

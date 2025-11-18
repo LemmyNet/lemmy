@@ -9,7 +9,7 @@ use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn list_multi_communities(
-  data: Query<ListMultiCommunities>,
+  Query(data): Query<ListMultiCommunities>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<ListMultiCommunitiesResponse>> {
@@ -21,8 +21,8 @@ pub async fn list_multi_communities(
     creator_id: data.creator_id,
     my_person_id,
     time_range_seconds: data.time_range_seconds,
-    page_cursor: data.0.page_cursor,
-    limit: data.0.limit,
+    page_cursor: data.page_cursor,
+    limit: data.limit,
     ..Default::default()
   }
   .list(&mut context.pool())

@@ -12,7 +12,7 @@ use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn read_multi_community(
-  data: Query<GetMultiCommunity>,
+  Query(data): Query<GetMultiCommunity>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<GetMultiCommunityResponse>> {

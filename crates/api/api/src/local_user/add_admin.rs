@@ -12,7 +12,7 @@ use lemmy_db_views_person::{
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn add_admin(
-  data: Json<AddAdmin>,
+  Json(data): Json<AddAdmin>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<AddAdminResponse>> {
