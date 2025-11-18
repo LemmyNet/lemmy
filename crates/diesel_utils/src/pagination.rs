@@ -34,6 +34,9 @@ impl CursorData {
   pub fn new_with_prefix(prefix: char, id: i32) -> Self {
     Self(format!("{prefix},{id}"))
   }
+  pub fn new_plain(data: String) -> Self {
+    Self(data)
+  }
   pub fn id_and_prefix(self) -> (char, i32) {
     let (prefix, id) = self.0.split_once(',').unwrap();
     (prefix.chars().next().unwrap(), id.parse().unwrap())
@@ -57,6 +60,9 @@ impl CursorData {
       .try_into()
       .unwrap()
   }
+  pub fn plain(self) -> String {
+    self.0
+  }
 }
 pub trait PaginationCursorBuilderNew {
   type PaginatedType;
@@ -69,7 +75,7 @@ pub trait PaginationCursorBuilderNew {
   ) -> impl Future<Output = LemmyResult<Self::PaginatedType>> + Send;
 
   /// Paginate a db query.
-  fn paginate_new<Q: Send>(
+  fn paginate<Q: Send>(
     query: Q,
     cursor: Option<PaginationCursorNew>,
     sort_direction: SortDirection,

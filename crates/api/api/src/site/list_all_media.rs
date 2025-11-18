@@ -5,7 +5,6 @@ use lemmy_db_views_local_image::{
   api::{ListMedia, ListMediaResponse},
 };
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_diesel_utils::pagination::PaginationCursorBuilder;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn list_all_media(
@@ -16,22 +15,12 @@ pub async fn list_all_media(
   // Only let admins view all media
   is_admin(&local_user_view)?;
 
-  let cursor_data = if let Some(cursor) = &data.page_cursor {
-    Some(LocalImageView::from_cursor(cursor, &mut context.pool()).await?)
-  } else {
-    None
-  };
-
   let images =
-    LocalImageView::get_all_paged(&mut context.pool(), cursor_data, data.page_back, data.limit)
-      .await?;
-
-  let next_page = images.last().map(PaginationCursorBuilder::to_cursor);
-  let prev_page = images.first().map(PaginationCursorBuilder::to_cursor);
+    LocalImageView::get_all_paged(&mut context.pool(), data.page_cursor, data.limit).await?;
 
   Ok(Json(ListMediaResponse {
-    images,
-    next_page,
-    prev_page,
+    images: images.data,
+    next_page: images.next_page,
+    prev_page: images.prev_page,
   }))
 }
