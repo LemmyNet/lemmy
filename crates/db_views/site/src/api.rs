@@ -672,6 +672,16 @@ pub struct PluginMetadata {
   pub description: Option<String>,
 }
 
+impl PluginMetadata {
+  pub fn new(name: &'static str, url: &'static str, description: &'static str) -> Self {
+    Self {
+      name: name.to_string(),
+      url: Some(url.parse().unwrap()),
+      description: Some(description.to_string()),
+    }
+  }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
