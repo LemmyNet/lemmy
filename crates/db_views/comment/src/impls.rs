@@ -49,13 +49,7 @@ use lemmy_db_schema_file::{
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
-  pagination::{
-    PaginatedVec,
-    PaginationCursorBuilderNew,
-    PaginationCursorNew,
-    paginate_new,
-    paginate_response,
-  },
+  pagination::{PaginatedVec, PaginationCursorBuilderNew, PaginationCursorNew, paginate_response},
   traits::Crud,
   utils::{Subpath, now, seconds_to_pg_interval},
 };
@@ -293,7 +287,7 @@ impl CommentQuery<'_> {
     let sort = o.sort.unwrap_or(Hot);
     let sort_direction = asc_if(sort == Old);
 
-    let mut pq = paginate_new::<_, CommentView>(query, o.page_cursor, sort_direction, pool).await?;
+    let mut pq = CommentView::paginate_new(query, o.page_cursor, sort_direction, pool).await?;
 
     // Order by a subpath for max depth queries
     // Only order if filtering by a post id, or parent_path. DOS potential otherwise and max_depth

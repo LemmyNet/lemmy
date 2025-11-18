@@ -17,6 +17,26 @@ pub trait PaginationCursorBuilderNew {
     id: i32,
     conn: &mut DbPool<'_>,
   ) -> impl Future<Output = LemmyResult<Self::CursorData>> + Send;
+
+  /// Paginate a db query.
+  fn paginate_new<Q: Send>(
+    query: Q,
+    cursor: Option<PaginationCursorNew>,
+    sort_direction: SortDirection,
+    pool: &mut DbPool<'_>,
+  ) -> impl std::future::Future<Output = LemmyResult<PaginatedQueryBuilder<Self::CursorData, Q>>> + Send
+  {
+    async move {
+      let (page_after, back) = if let Some(cursor) = cursor {
+        let internal = cursor.to_internal()?;
+        let object = Self::from_cursor(internal.prefix, internal.id, pool).await?;
+        (Some(object), Some(internal.back))
+      } else {
+        (None, None)
+      };
+      Ok(paginate(query, sort_direction, page_after, None, back))
+    }
+  }
 }
 
 /// To get the next or previous page, pass this string unchanged as `page_cursor` in a new request
@@ -37,23 +57,6 @@ impl PaginationCursorNew {
     let encoded = BASE64_URL_SAFE_NO_PAD.encode(serde_urlencoded::to_string(other)?);
     Ok(Self(encoded))
   }
-}
-
-/// Paginate a db query.
-pub async fn paginate_new<Q, T: PaginationCursorBuilderNew>(
-  query: Q,
-  cursor: Option<PaginationCursorNew>,
-  sort_direction: SortDirection,
-  pool: &mut DbPool<'_>,
-) -> LemmyResult<PaginatedQueryBuilder<T::CursorData, Q>> {
-  let (page_after, back) = if let Some(cursor) = cursor {
-    let internal = cursor.to_internal()?;
-    let object = T::from_cursor(internal.prefix, internal.id, pool).await?;
-    (Some(object), Some(internal.back))
-  } else {
-    (None, None)
-  };
-  Ok(paginate(query, sort_direction, page_after, None, back))
 }
 
 /// The actual data which is stored inside a cursor, not accessible outside this file.

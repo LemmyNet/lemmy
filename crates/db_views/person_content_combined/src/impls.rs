@@ -42,13 +42,7 @@ use lemmy_db_schema_file::{
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
-  pagination::{
-    PaginatedVec,
-    PaginationCursorBuilderNew,
-    PaginationCursorNew,
-    paginate_new,
-    paginate_response,
-  },
+  pagination::{PaginatedVec, PaginationCursorBuilderNew, PaginationCursorNew, paginate_response},
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
@@ -201,16 +195,12 @@ impl PersonContentCombinedQuery {
     }
 
     // Sorting by published
-    let paginated_query = paginate_new::<_, PersonContentCombinedView>(
-      query,
-      self.page_cursor,
-      SortDirection::Desc,
-      pool,
-    )
-    .await?
-    .then_order_by(key::published_at)
-    // Tie breaker
-    .then_order_by(key::id);
+    let paginated_query =
+      PersonContentCombinedView::paginate_new(query, self.page_cursor, SortDirection::Desc, pool)
+        .await?
+        .then_order_by(key::published_at)
+        // Tie breaker
+        .then_order_by(key::id);
 
     let conn = &mut get_conn(pool).await?;
     let res = paginated_query
