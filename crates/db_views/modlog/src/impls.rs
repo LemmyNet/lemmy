@@ -33,7 +33,13 @@ use lemmy_db_schema_file::{
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
-  pagination::{PaginationCursor, PaginationCursorBuilder, paginate},
+  pagination::{
+    CursorData,
+    PaginatedVec,
+    PaginationCursorBuilderNew,
+    PaginationCursorNew,
+    paginate_response,
+  },
 };
 use lemmy_utils::error::LemmyResult;
 
@@ -64,21 +70,20 @@ impl ModlogView {
   }
 }
 
-impl PaginationCursorBuilder for ModlogView {
-  type CursorData = Modlog;
-  fn to_cursor(&self) -> PaginationCursor {
-    PaginationCursor(self.modlog.id.0.to_string())
+impl PaginationCursorBuilderNew for ModlogView {
+  type PaginatedType = Modlog;
+  fn to_cursor(&self) -> CursorData {
+    CursorData::new(self.modlog.id.0)
   }
 
   async fn from_cursor(
-    cursor: &PaginationCursor,
+    cursor: CursorData,
     pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Self::CursorData> {
+  ) -> LemmyResult<Self::PaginatedType> {
     let conn = &mut get_conn(pool).await?;
-    let id: i32 = cursor.0.parse()?;
     let query = modlog::table
-      .select(Self::CursorData::as_select())
-      .filter(modlog::id.eq(id));
+      .select(Self::PaginatedType::as_select())
+      .filter(modlog::id.eq(cursor.id()));
     let token = query.first(conn).await?;
 
     Ok(token)
@@ -97,14 +102,12 @@ pub struct ModlogQuery<'a> {
   pub local_user: Option<&'a LocalUser>,
   pub mod_person_id: Option<PersonId>,
   pub target_person_id: Option<PersonId>,
-  pub cursor_data: Option<Modlog>,
-  pub page_back: Option<bool>,
+  pub page_cursor: Option<PaginationCursorNew>,
   pub limit: Option<i64>,
 }
 
 impl ModlogQuery<'_> {
-  pub async fn list(self, pool: &mut DbPool<'_>) -> LemmyResult<Vec<ModlogView>> {
-    let conn = &mut get_conn(pool).await?;
+  pub async fn list(self, pool: &mut DbPool<'_>) -> LemmyResult<PaginatedVec<ModlogView>> {
     let limit = limit_fetch(self.limit)?;
 
     let target_person = aliases::person1.field(person::id);
@@ -152,17 +155,14 @@ impl ModlogQuery<'_> {
     };
 
     // Sorting by published
-    let paginated_query = paginate(
-      query,
-      SortDirection::Desc,
-      self.cursor_data,
-      None,
-      self.page_back,
-    )
-    .then_order_by(key::published_at)
-    // Tie breaker
-    .then_order_by(key::id);
+    let paginated_query =
+      ModlogView::paginate(query, self.page_cursor, SortDirection::Desc, pool, None)
+        .await?
+        .then_order_by(key::published_at)
+        // Tie breaker
+        .then_order_by(key::id);
 
+    let conn = &mut get_conn(pool).await?;
     let res = paginated_query.load::<ModlogView>(conn).await?;
 
     let hide_modlog_names = self.hide_modlog_names.unwrap_or_default();
@@ -173,7 +173,7 @@ impl ModlogQuery<'_> {
       .map(|u| u.hide_mod_name(hide_modlog_names))
       .collect();
 
-    Ok(out)
+    paginate_response(out, limit)
   }
 }
 
@@ -327,7 +327,7 @@ mod tests {
       ModlogInsertForm::mod_change_community_visibility(data.jessica.id, data.community_2.id);
     Modlog::create(pool, &[form]).await?;
 
-    let modlog = ModlogQuery::default().list(pool).await?;
+    let modlog = ModlogQuery::default().list(pool).await?.data;
     assert_eq!(8, modlog.len());
 
     let v = &modlog[0];
@@ -390,7 +390,8 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await?;
+    .await?
+    .data;
     // Only one is jessica
     assert_eq!(7, modlog_admin_filter.len());
 
@@ -400,7 +401,8 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await?;
+    .await?
+    .data;
 
     // Should be 2, and not jessicas
     assert_eq!(3, modlog_community_filter.len());
@@ -411,7 +413,8 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await?;
+    .await?
+    .data;
 
     // 2 of these, one is jessicas
     assert_eq!(2, modlog_type_filter.len());
@@ -512,7 +515,7 @@ mod tests {
     Modlog::create(pool, &[form]).await?;
 
     // The all view
-    let modlog = ModlogQuery::default().list(pool).await?;
+    let modlog = ModlogQuery::default().list(pool).await?.data;
     assert_eq!(15, modlog.len());
 
     let v = &modlog[0];
@@ -654,7 +657,8 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await?;
+    .await?
+    .data;
     assert_eq!(12, modlog_mod_timmy_filter.len());
 
     let modlog_mod_jessica_filter = ModlogQuery {
@@ -662,7 +666,8 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await?;
+    .await?
+    .data;
     assert_eq!(3, modlog_mod_jessica_filter.len());
 
     // Filter by target_person
@@ -674,7 +679,8 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await?;
+    .await?
+    .data;
     assert_eq!(4, modlog_modded_timmy_filter.len());
 
     let modlog_modded_jessica_filter = ModlogQuery {
@@ -682,7 +688,8 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await?;
+    .await?
+    .data;
     assert_eq!(6, modlog_modded_jessica_filter.len());
 
     let modlog_modded_sara_filter = ModlogQuery {
@@ -690,7 +697,8 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await?;
+    .await?
+    .data;
     assert_eq!(2, modlog_modded_sara_filter.len());
 
     // Filter by community
@@ -699,7 +707,8 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await?;
+    .await?
+    .data;
     assert_eq!(6, modlog_community_filter.len());
 
     let modlog_community_2_filter = ModlogQuery {
@@ -707,7 +716,8 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await?;
+    .await?
+    .data;
     assert_eq!(1, modlog_community_2_filter.len());
 
     // Filter by post
@@ -716,7 +726,8 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await?;
+    .await?
+    .data;
     assert_eq!(5, modlog_post_filter.len());
 
     let modlog_post_2_filter = ModlogQuery {
@@ -724,7 +735,8 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await?;
+    .await?
+    .data;
     assert_eq!(2, modlog_post_2_filter.len());
 
     // Filter by comment
@@ -733,7 +745,8 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await?;
+    .await?
+    .data;
     assert_eq!(2, modlog_comment_filter.len());
 
     let modlog_comment_2_filter = ModlogQuery {
@@ -741,7 +754,8 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await?;
+    .await?
+    .data;
     assert_eq!(1, modlog_comment_2_filter.len());
 
     // Filter by type
@@ -750,7 +764,8 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await?;
+    .await?
+    .data;
     assert_eq!(2, modlog_type_filter.len());
 
     // Assert that the types are correct
@@ -779,7 +794,7 @@ mod tests {
       ModlogInsertForm::admin_allow_instance(data.timmy.id, data.instance.id, true, "reason");
     Modlog::create(pool, &[form]).await?;
 
-    let modlog = ModlogQuery::default().list(pool).await?;
+    let modlog = ModlogQuery::default().list(pool).await?.data;
     assert_eq!(1, modlog.len());
 
     assert_eq!(ModlogKind::AdminAllowInstance, modlog[0].modlog.kind);
@@ -794,7 +809,8 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await?;
+    .await?
+    .data;
     assert_eq!(1, modlog_hide_names_filter.len());
 
     assert_eq!(

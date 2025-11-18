@@ -16,19 +16,12 @@ pub async fn list_notifications(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<ListNotificationsResponse>> {
-  let cursor_data = if let Some(cursor) = &data.page_cursor {
-    Some(NotificationView::from_cursor(cursor, &mut context.pool()).await?)
-  } else {
-    None
-  };
-
   let hide_modlog_names = hide_modlog_names(Some(&local_user_view), None, &context).await;
   let notifications = NotificationQuery {
     type_: data.type_,
     unread_only: data.unread_only,
     show_bot_accounts: Some(local_user_view.local_user.show_bot_accounts),
-    cursor_data,
-    page_back: data.page_back,
+    page_cursor: data.page_cursor,
     hide_modlog_names: Some(hide_modlog_names),
     limit: data.limit,
     no_limit: None,
@@ -36,14 +29,9 @@ pub async fn list_notifications(
   .list(&mut context.pool(), &local_user_view.person)
   .await?;
 
-  let next_page = notifications.last().map(PaginationCursorBuilder::to_cursor);
-  let prev_page = notifications
-    .first()
-    .map(PaginationCursorBuilder::to_cursor);
-
   Ok(Json(ListNotificationsResponse {
-    notifications,
-    next_page,
-    prev_page,
+    notifications: notifications.data,
+    next_page: notifications.next_page,
+    prev_page: notifications.prev_page,
   }))
 }

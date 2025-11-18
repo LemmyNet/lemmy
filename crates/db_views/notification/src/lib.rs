@@ -18,7 +18,7 @@ use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_modlog::ModlogView;
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_private_message::PrivateMessageView;
-use lemmy_diesel_utils::pagination::PaginationCursor;
+use lemmy_diesel_utils::pagination::{PaginationCursor, PaginationCursorNew};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -165,8 +165,7 @@ pub enum NotificationData {
 pub struct ListNotifications {
   pub type_: Option<NotificationDataType>,
   pub unread_only: Option<bool>,
-  pub page_cursor: Option<PaginationCursor>,
-  pub page_back: Option<bool>,
+  pub page_cursor: Option<PaginationCursorNew>,
   pub limit: Option<i64>,
 }
 
@@ -177,6 +176,6 @@ pub struct ListNotifications {
 pub struct ListNotificationsResponse {
   pub notifications: Vec<NotificationView>,
   /// the pagination cursor to use to fetch the next page
-  pub next_page: Option<PaginationCursor>,
-  pub prev_page: Option<PaginationCursor>,
+  pub next_page: Option<PaginationCursorNew>,
+  pub prev_page: Option<PaginationCursorNew>,
 }

@@ -341,7 +341,8 @@ async fn get_feed_notifs(
     ..Default::default()
   }
   .list(&mut context.pool(), &local_user.person)
-  .await?;
+  .await?
+  .data;
 
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();
 
@@ -369,7 +370,8 @@ async fn get_feed_modlog(
     ..Default::default()
   }
   .list(&mut context.pool())
-  .await?;
+  .await?
+  .data;
 
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();
   let title = format!("{} - Modlog", local_user.person.name);

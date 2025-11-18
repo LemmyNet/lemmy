@@ -53,6 +53,7 @@ pub async fn export_data(
   }
   .list(pool, &local_user_view.person)
   .await?
+  .data
   .into_iter()
   .flat_map(|u| match u.data {
     NotificationData::Post(p) => Some(Post(p.post)),

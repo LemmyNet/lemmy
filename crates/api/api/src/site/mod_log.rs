@@ -3,12 +3,10 @@ use actix_web::web::{Data, Json, Query};
 use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_modlog::{
-  ModlogView,
   api::{GetModlog, GetModlogResponse},
   impls::ModlogQuery,
 };
 use lemmy_db_views_site::SiteView;
-use lemmy_diesel_utils::pagination::PaginationCursorBuilder;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn get_mod_log(
@@ -29,12 +27,6 @@ pub async fn get_mod_log(
     data.mod_person_id
   };
 
-  let cursor_data = if let Some(cursor) = &data.page_cursor {
-    Some(ModlogView::from_cursor(cursor, &mut context.pool()).await?)
-  } else {
-    None
-  };
-
   let modlog = ModlogQuery {
     type_: data.type_,
     listing_type: data.listing_type,
@@ -45,20 +37,16 @@ pub async fn get_mod_log(
     post_id: data.post_id,
     comment_id: data.comment_id,
     hide_modlog_names: Some(hide_modlog_names),
-    cursor_data,
-    page_back: data.page_back,
+    page_cursor: data.page_cursor,
     limit: data.limit,
   }
   .list(&mut context.pool())
   .await?;
 
-  let next_page = modlog.last().map(PaginationCursorBuilder::to_cursor);
-  let prev_page = modlog.first().map(PaginationCursorBuilder::to_cursor);
-
   Ok(Json(GetModlogResponse {
-    modlog,
-    next_page,
-    prev_page,
+    modlog: modlog.data,
+    next_page: modlog.next_page,
+    prev_page: modlog.prev_page,
   }))
 }
 
@@ -161,7 +149,8 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await?;
+    .await?
+    .data;
     assert_eq!(2, post_modlog.len());
 
     assert!(matches!(
@@ -194,7 +183,8 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await?;
+    .await?
+    .data;
     assert_eq!(2, comment_modlog.len());
 
     assert!(matches!(
@@ -251,7 +241,8 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await?;
+    .await?
+    .data;
     assert_eq!(4, post_modlog.len());
 
     assert!(matches!(
@@ -302,7 +293,8 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await?;
+    .await?
+    .data;
     assert_eq!(4, comment_modlog.len());
 
     assert!(matches!(
