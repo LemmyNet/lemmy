@@ -44,7 +44,13 @@ use lemmy_db_schema_file::{
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
-  pagination::{PaginatedVec, PaginationCursorBuilderNew, PaginationCursorNew, paginate_response},
+  pagination::{
+    PaginatedVec,
+    PaginationCursorBuilderNew,
+    PaginationCursorNew,
+    X,
+    paginate_response,
+  },
   traits::Crud,
   utils::{LowerKey, now, seconds_to_pg_interval},
 };
@@ -94,16 +100,12 @@ impl CommunityView {
 
 impl PaginationCursorBuilderNew for CommunityView {
   type CursorData = Community;
-  fn to_cursor(&self) -> (Option<char>, i32) {
-    (None, self.community.id.0)
+  fn to_cursor(&self) -> X {
+    X::new(self.community.id.0)
   }
 
-  async fn from_cursor(
-    _prefix: Option<char>,
-    id: i32,
-    pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Self::CursorData> {
-    Community::read(pool, CommunityId(id)).await
+  async fn from_cursor(data: X, pool: &mut DbPool<'_>) -> LemmyResult<Self::CursorData> {
+    Community::read(pool, CommunityId(data.id())).await
   }
 }
 
@@ -242,16 +244,12 @@ impl MultiCommunityView {
 
 impl PaginationCursorBuilderNew for MultiCommunityView {
   type CursorData = MultiCommunity;
-  fn to_cursor(&self) -> (Option<char>, i32) {
-    (None, self.multi.id.0)
+  fn to_cursor(&self) -> X {
+    X::new(self.multi.id.0)
   }
 
-  async fn from_cursor(
-    _prefix: Option<char>,
-    id: i32,
-    pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Self::CursorData> {
-    MultiCommunity::read(pool, MultiCommunityId(id)).await
+  async fn from_cursor(data: X, pool: &mut DbPool<'_>) -> LemmyResult<Self::CursorData> {
+    MultiCommunity::read(pool, MultiCommunityId(data.id())).await
   }
 }
 

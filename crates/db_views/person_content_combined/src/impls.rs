@@ -42,7 +42,13 @@ use lemmy_db_schema_file::{
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
-  pagination::{PaginatedVec, PaginationCursorBuilderNew, PaginationCursorNew, paginate_response},
+  pagination::{
+    PaginatedVec,
+    PaginationCursorBuilderNew,
+    PaginationCursorNew,
+    X,
+    paginate_response,
+  },
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
@@ -102,28 +108,25 @@ impl PersonContentCombinedViewInternal {
 impl PaginationCursorBuilderNew for PersonContentCombinedView {
   type CursorData = PersonContentCombined;
 
-  fn to_cursor(&self) -> (Option<char>, i32) {
+  fn to_cursor(&self) -> X {
     let (prefix, id) = match &self {
       PersonContentCombinedView::Comment(v) => ('C', v.comment.id.0),
       PersonContentCombinedView::Post(v) => ('P', v.post.id.0),
     };
-    (Some(prefix), id)
+    X::new_with_prefix(prefix, id)
   }
 
-  async fn from_cursor(
-    prefix: Option<char>,
-    id: i32,
-    pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Self::CursorData> {
+  async fn from_cursor(data: X, pool: &mut DbPool<'_>) -> LemmyResult<Self::CursorData> {
     let conn = &mut get_conn(pool).await?;
 
     let mut query = person_content_combined::table
       .select(Self::CursorData::as_select())
       .into_boxed();
 
+    let (prefix, id) = data.id_and_prefix();
     query = match prefix {
-      Some('C') => query.filter(person_content_combined::comment_id.eq(id)),
-      Some('P') => query.filter(person_content_combined::post_id.eq(id)),
+      'C' => query.filter(person_content_combined::comment_id.eq(id)),
+      'P' => query.filter(person_content_combined::post_id.eq(id)),
       _ => return Err(LemmyErrorType::CouldntParsePaginationToken.into()),
     };
     let token = query.first(conn).await?;

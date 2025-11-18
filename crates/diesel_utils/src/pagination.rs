@@ -20,14 +20,31 @@ const BASE64_ENGINE: LazyLock<GeneralPurpose> = LazyLock::new(|| {
   GeneralPurpose::new(&alphabet, NO_PAD)
 });
 
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+pub struct X(String);
+
+impl X {
+  pub fn new(id: i32) -> Self {
+    Self(id.to_string())
+  }
+  pub fn id(self) -> i32 {
+    self.0.parse().unwrap()
+  }
+  pub fn new_with_prefix(prefix: char, id: i32) -> Self {
+    Self(format!("{prefix},{id}"))
+  }
+  pub fn id_and_prefix(self) -> (char, i32) {
+    let (prefix, id) = self.0.split_once(',').unwrap();
+    (prefix.chars().next().unwrap(), id.parse().unwrap())
+  }
+}
 pub trait PaginationCursorBuilderNew {
   type CursorData;
 
-  fn to_cursor(&self) -> (Option<char>, i32);
+  fn to_cursor(&self) -> X;
 
   fn from_cursor(
-    prefix: Option<char>,
-    id: i32,
+    data: X,
     conn: &mut DbPool<'_>,
   ) -> impl Future<Output = LemmyResult<Self::CursorData>> + Send;
 
@@ -42,7 +59,7 @@ pub trait PaginationCursorBuilderNew {
     async move {
       let (page_after, back) = if let Some(cursor) = cursor {
         let internal = cursor.to_internal()?;
-        let object = Self::from_cursor(internal.prefix, internal.id, pool).await?;
+        let object = Self::from_cursor(internal.data, pool).await?;
         (Some(object), Some(internal.back))
       } else {
         (None, None)
@@ -79,10 +96,8 @@ impl PaginationCursorNew {
 struct PaginationCursorNewInternal {
   #[serde(rename = "b")]
   back: bool,
-  #[serde(rename = "p")]
-  pub prefix: Option<char>,
-  #[serde(rename = "i")]
-  id: i32,
+  #[serde(rename = "d")]
+  data: X,
 }
 
 // There seems to be no way to set generic bounds like `T: ts_rs::TS` based on feature flags,
@@ -120,8 +135,8 @@ cfg_if! {
     {
       let make_cursor = |item: Option<&T>, back: bool| -> LemmyResult<Option<PaginationCursorNew>> {
         if let Some(item) = item {
-          let (prefix, id) = item.to_cursor();
-          let cursor = PaginationCursorNewInternal { id, prefix, back };
+          let data = item.to_cursor();
+          let cursor = PaginationCursorNewInternal { data, back };
           Ok(Some(PaginationCursorNew::from_internal(cursor)?))
         } else {
           Ok(None)
@@ -242,14 +257,13 @@ mod test {
   use super::*;
 
   #[test]
-  fn test_cursor() -> LemmyResult<()> {
+  fn test_simple_cursor() -> LemmyResult<()> {
     let data = PaginationCursorNewInternal {
       back: false,
-      prefix: None,
-      id: 123,
+      data: X::new(123),
     };
     let encoded = PaginationCursorNew::from_internal(data.clone())?;
-    assert_eq!("BU0KBxiIGgGYd-ualQ", &encoded.0);
+    assert_eq!("BU0KBxiIGgGjd-ualQ", &encoded.0);
     let data2 = encoded.to_internal()?;
     assert_eq!(data, data2);
     Ok(())
