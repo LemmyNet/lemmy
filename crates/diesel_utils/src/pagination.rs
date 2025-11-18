@@ -277,15 +277,25 @@ mod test {
   use super::*;
 
   #[test]
-  fn test_simple_cursor() -> LemmyResult<()> {
-    let data = PaginationCursorNewInternal {
-      back: false,
-      data: CursorData::new(123),
+  fn test_cursor() -> LemmyResult<()> {
+    let data = CursorData::new(1);
+    do_test_cursor(data)?;
+
+    let data = CursorData::new_multi([('A', 1), ('B', 2)]);
+    do_test_cursor(data)?;
+
+    Ok(())
+  }
+
+  fn do_test_cursor(data: CursorData) -> LemmyResult<()> {
+    let cursor = PaginationCursorNewInternal {
+      back: true,
+      data: data.clone(),
     };
-    let encoded = PaginationCursorNew::from_internal(data.clone())?;
-    assert_eq!("BU0KBxiIGgGjd-ualQ", &encoded.0);
-    let data2 = encoded.to_internal()?;
-    assert_eq!(data, data2);
+    let encoded = PaginationCursorNew::from_internal(cursor.clone())?;
+    let cursor2 = encoded.to_internal()?;
+    assert_eq!(cursor, cursor2);
+    assert_eq!(data, cursor2.data);
     Ok(())
   }
 }
