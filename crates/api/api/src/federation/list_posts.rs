@@ -14,12 +14,10 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::{
-  PostView,
   api::{GetPosts, GetPostsResponse},
   impls::PostQuery,
 };
 use lemmy_db_views_site::SiteView;
-use lemmy_diesel_utils::pagination::PaginationCursorBuilder;
 use lemmy_utils::error::LemmyResult;
 use std::cmp::min;
 
@@ -55,6 +53,7 @@ pub async fn list_posts(
   let show_nsfw = data.show_nsfw;
   let hide_media = data.hide_media;
   let no_comments_only = data.no_comments_only;
+  let page_cursor = data.page_cursor;
 
   let local_user = local_user_view.as_ref().map(|u| &u.local_user);
   let listing_type = Some(listing_type_with_default(
@@ -76,14 +75,6 @@ pub async fn list_posts(
   } else {
     None
   };
-
-  let cursor_data = if let Some(cursor) = &data.page_cursor {
-    Some(PostView::from_cursor(cursor, &mut context.pool()).await?)
-  } else {
-    None
-  };
-  let page_back = data.page_back;
-
   // dont allow more than page 10 for performance reasons
   let page = data.page.map(|p| min(p, 10));
 
@@ -102,8 +93,7 @@ pub async fn list_posts(
     hide_media,
     no_comments_only,
     keyword_blocks,
-    cursor_data,
-    page_back,
+    page_cursor,
   }
   .list(&site_view.site, &mut context.pool())
   .await?;
@@ -114,17 +104,17 @@ pub async fn list_posts(
       .mark_as_read
       .unwrap_or(local_user.auto_mark_fetched_posts_as_read)
   {
-    let post_ids = posts.iter().map(|p| p.post.id).collect::<Vec<PostId>>();
+    let post_ids = posts
+      .data
+      .iter()
+      .map(|p| p.post.id)
+      .collect::<Vec<PostId>>();
     PostActions::mark_as_read(&mut context.pool(), local_user.person_id, &post_ids).await?;
   }
 
-  // if this page wasn't empty, then there is a next page after the last post on this page
-  let next_page = posts.last().map(PaginationCursorBuilder::to_cursor);
-  let prev_page = posts.first().map(PaginationCursorBuilder::to_cursor);
-
   Ok(Json(GetPostsResponse {
-    posts,
-    next_page,
-    prev_page,
+    posts: posts.data,
+    next_page: posts.next_page,
+    prev_page: posts.prev_page,
   }))
 }

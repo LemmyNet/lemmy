@@ -4,7 +4,6 @@ use lemmy_db_views_site::{
   FederatedInstanceView,
   api::{GetFederatedInstances, GetFederatedInstancesResponse},
 };
-use lemmy_diesel_utils::pagination::PaginationCursorBuilder;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn get_federated_instances(
@@ -13,17 +12,10 @@ pub async fn get_federated_instances(
 ) -> LemmyResult<Json<GetFederatedInstancesResponse>> {
   let federated_instances = FederatedInstanceView::list(&mut context.pool(), data).await?;
 
-  let next_page = federated_instances
-    .last()
-    .map(PaginationCursorBuilder::to_cursor);
-  let prev_page = federated_instances
-    .first()
-    .map(PaginationCursorBuilder::to_cursor);
-
   // Return the jwt
   Ok(Json(GetFederatedInstancesResponse {
-    federated_instances,
-    next_page,
-    prev_page,
+    federated_instances: federated_instances.data,
+    next_page: federated_instances.next_page,
+    prev_page: federated_instances.prev_page,
   }))
 }

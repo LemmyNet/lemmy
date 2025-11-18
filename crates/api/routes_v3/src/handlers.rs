@@ -137,7 +137,6 @@ use lemmy_db_views_registration_applications::api::Register;
 use lemmy_db_views_report_combined::api::{CreateCommentReport, CreatePostReport};
 use lemmy_db_views_search_combined::{Search, api::GetPost};
 use lemmy_db_views_site::api::{GetSiteResponse, Login, ResolveObject};
-use lemmy_diesel_utils::pagination::PaginationCursor;
 use lemmy_utils::error::LemmyResult;
 
 pub(crate) async fn get_post_v3(
@@ -173,7 +172,6 @@ pub(crate) async fn list_posts_v3(
     type_,
     sort,
     page,
-    page_cursor,
     ..
   } = datav3.0;
   let (sort, time_range_seconds) = convert_post_listing_sort(sort);
@@ -186,7 +184,6 @@ pub(crate) async fn list_posts_v3(
     show_hidden,
     show_read,
     show_nsfw,
-    page_cursor: page_cursor.map(|c| PaginationCursor(c.0)),
     page,
     limit,
     ..Default::default()
@@ -194,7 +191,7 @@ pub(crate) async fn list_posts_v3(
   let res = list_posts(Query(data), context, local_user_view).await?.0;
   Ok(Json(GetPostsResponseV3 {
     posts: res.posts.into_iter().map(convert_post_view).collect(),
-    next_page: res.next_page.map(|c| PaginationCursorV3(c.0)),
+    next_page: res.next_page.map(|c| PaginationCursorV3(c.into_inner())),
   }))
 }
 

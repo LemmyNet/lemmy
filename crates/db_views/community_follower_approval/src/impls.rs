@@ -105,7 +105,7 @@ impl PendingFollowerView {
     }
 
     // Sorting by published
-    let paginated_query = Self::paginate(query, page_cursor, SortDirection::Asc, pool)
+    let paginated_query = Self::paginate(query, page_cursor, SortDirection::Asc, pool, None)
       .await?
       .then_order_by(key::followed_at);
 

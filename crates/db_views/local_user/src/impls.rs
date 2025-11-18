@@ -195,7 +195,7 @@ impl LocalUserQuery {
     }
 
     let paginated_query =
-      LocalUserView::paginate(query, self.page_cursor, SortDirection::Desc, pool)
+      LocalUserView::paginate(query, self.page_cursor, SortDirection::Desc, pool, None)
         .await?
         .then_order_by(person_keys::published_at)
         // Tie breaker
@@ -297,7 +297,8 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await?;
+    .await?
+    .data;
     assert_length!(1, list);
     assert_eq!(list[0].person.id, data.alice.id);
 

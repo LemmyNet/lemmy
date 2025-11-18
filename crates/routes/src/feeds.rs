@@ -138,7 +138,8 @@ async fn get_feed_data(
     ..Default::default()
   }
   .list(&site_view.site, &mut context.pool())
-  .await?;
+  .await?
+  .data;
 
   let title = format!("{} - {}", site_view.site.name, listing_type);
   let link = context.settings().get_protocol_and_hostname();
@@ -220,7 +221,8 @@ async fn get_feed_community(
     ..Default::default()
   }
   .list(&site_view.site, &mut context.pool())
-  .await?;
+  .await?
+  .data;
 
   let title = format!("{} - {}", site_view.site.name, community.name);
   let link = community.ap_id.to_string();
@@ -254,7 +256,8 @@ async fn get_feed_multi_community(
     ..Default::default()
   }
   .list(&site_view.site, &mut context.pool())
-  .await?;
+  .await?
+  .data;
 
   let title = format!("{} - {}", site_view.site.name, multi_community.name);
   let link = multi_community.ap_id.to_string();
@@ -287,7 +290,8 @@ async fn get_feed_front(
     ..Default::default()
   }
   .list(&site_view.site, &mut context.pool())
-  .await?;
+  .await?
+  .data;
 
   let title = format!("{} - Subscribed", site_view.site.name);
   let link = context.settings().get_protocol_and_hostname();

@@ -33,7 +33,10 @@ use lemmy_db_views_community_follower::CommunityFollowerView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
-use lemmy_diesel_utils::{pagination::PaginationCursor, sensitive::SensitiveString};
+use lemmy_diesel_utils::{
+  pagination::{PaginationCursor, PaginationCursorNew},
+  sensitive::SensitiveString,
+};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
@@ -298,7 +301,7 @@ pub enum GetFederatedInstancesKind {
 pub struct GetFederatedInstances {
   pub domain_filter: Option<String>,
   pub kind: GetFederatedInstancesKind,
-  pub page_cursor: Option<PaginationCursor>,
+  pub page_cursor: Option<PaginationCursorNew>,
   pub page_back: Option<bool>,
   pub limit: Option<i64>,
 }
@@ -310,8 +313,8 @@ pub struct GetFederatedInstances {
 /// A response of federated instances.
 pub struct GetFederatedInstancesResponse {
   pub federated_instances: Vec<FederatedInstanceView>,
-  pub next_page: Option<PaginationCursor>,
-  pub prev_page: Option<PaginationCursor>,
+  pub next_page: Option<PaginationCursorNew>,
+  pub prev_page: Option<PaginationCursorNew>,
 }
 
 #[skip_serializing_none]

@@ -123,6 +123,10 @@ impl PaginationCursorNew {
     Ok(Self(encoded))
   }
 
+  pub fn into_inner(self) -> String {
+    self.0
+  }
+
   // only used for PostView optimization
   pub fn is_back(self) -> bool {
     self.to_internal().unwrap().back

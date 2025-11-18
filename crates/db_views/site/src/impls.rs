@@ -41,7 +41,7 @@ use lemmy_db_schema_file::{
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
-  pagination::{PaginationCursor, PaginationCursorBuilder, paginate},
+  pagination::{CursorData, PaginatedVec, PaginationCursorBuilderNew, paginate_response},
   traits::Crud,
   utils::fuzzy_search,
 };
@@ -138,13 +138,10 @@ impl FederatedInstanceView {
       .left_join(federation_queue_state::table)
   }
 
-  pub async fn list(pool: &mut DbPool<'_>, data: GetFederatedInstances) -> LemmyResult<Vec<Self>> {
-    let cursor_data = if let Some(cursor) = &data.page_cursor {
-      Some(FederatedInstanceView::from_cursor(cursor, pool).await?)
-    } else {
-      None
-    };
-    let conn = &mut get_conn(pool).await?;
+  pub async fn list(
+    pool: &mut DbPool<'_>,
+    data: GetFederatedInstances,
+  ) -> LemmyResult<PaginatedVec<Self>> {
     let limit = limit_fetch(data.limit)?;
     let mut query = Self::joins()
       .select(Self::as_select())
@@ -168,13 +165,7 @@ impl FederatedInstanceView {
       }
     };
 
-    let mut pq = paginate(
-      query,
-      SortDirection::Desc,
-      cursor_data,
-      None,
-      data.page_back,
-    );
+    let mut pq = Self::paginate(query, data.page_cursor, SortDirection::Desc, pool, None).await?;
 
     // Show recently updated instances and those with valid metadata first
     pq = pq
@@ -182,9 +173,12 @@ impl FederatedInstanceView {
       .then_order_by(key::software)
       .then_order_by(key::id);
 
-    pq.get_results(conn)
+    let conn = &mut get_conn(pool).await?;
+    let res = pq
+      .get_results(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::NotFound)
+      .with_lemmy_type(LemmyErrorType::NotFound)?;
+    paginate_response(res, limit)
   }
 
   pub async fn read(pool: &mut DbPool<'_>, instance_id: InstanceId) -> LemmyResult<Self> {
@@ -198,18 +192,17 @@ impl FederatedInstanceView {
   }
 }
 
-impl PaginationCursorBuilder for FederatedInstanceView {
-  type CursorData = Instance;
-  fn to_cursor(&self) -> PaginationCursor {
-    PaginationCursor::new_single('I', self.instance.id.0)
+impl PaginationCursorBuilderNew for FederatedInstanceView {
+  type PaginatedType = Instance;
+  fn to_cursor(&self) -> CursorData {
+    CursorData::new(self.instance.id.0)
   }
 
   async fn from_cursor(
-    cursor: &PaginationCursor,
+    cursor: CursorData,
     pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Self::CursorData> {
-    let [(_, id)] = cursor.prefixes_and_ids()?;
-    Instance::read(pool, InstanceId(id)).await
+  ) -> LemmyResult<Self::PaginatedType> {
+    Instance::read(pool, InstanceId(cursor.id())).await
   }
 }
 

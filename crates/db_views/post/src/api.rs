@@ -4,7 +4,10 @@ use lemmy_db_schema::{
   newtypes::{CommunityId, LanguageId, MultiCommunityId, PostId, TagId},
 };
 use lemmy_db_schema_file::enums::{ListingType, PostNotificationsMode, PostSortType};
-use lemmy_diesel_utils::{dburl::DbUrl, pagination::PaginationCursor};
+use lemmy_diesel_utils::{
+  dburl::DbUrl,
+  pagination::{PaginationCursor, PaginationCursorNew},
+};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -130,8 +133,7 @@ pub struct GetPosts {
   pub mark_as_read: Option<bool>,
   /// If true, then only show posts with no comments
   pub no_comments_only: Option<bool>,
-  pub page_cursor: Option<PaginationCursor>,
-  pub page_back: Option<bool>,
+  pub page_cursor: Option<PaginationCursorNew>,
   /// For backwards compat with API v3 (not available on API v4)
   #[serde(skip)]
   pub page: Option<i64>,
@@ -146,8 +148,8 @@ pub struct GetPosts {
 pub struct GetPostsResponse {
   pub posts: Vec<PostView>,
   /// the pagination cursor to use to fetch the next page
-  pub next_page: Option<PaginationCursor>,
-  pub prev_page: Option<PaginationCursor>,
+  pub next_page: Option<PaginationCursorNew>,
+  pub prev_page: Option<PaginationCursorNew>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
