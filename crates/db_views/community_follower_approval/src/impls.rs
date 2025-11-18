@@ -30,10 +30,10 @@ use lemmy_db_schema_file::{
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   pagination::{
+    CursorData,
     PaginatedVec,
     PaginationCursorBuilderNew,
     PaginationCursorNew,
-    X,
     paginate_response,
   },
 };
@@ -212,13 +212,16 @@ impl PendingFollowerView {
 }
 
 impl PaginationCursorBuilderNew for PendingFollowerView {
-  type CursorData = CommunityActions;
+  type PaginatedType = CommunityActions;
 
-  fn to_cursor(&self) -> X {
+  fn to_cursor(&self) -> CursorData {
     // This needs a person and community
-    X::new_multi([('P', self.person.id.0), ('C', self.community.id.0)])
+    CursorData::new_multi([('P', self.person.id.0), ('C', self.community.id.0)])
   }
-  async fn from_cursor(data: X, pool: &mut DbPool<'_>) -> LemmyResult<Self::CursorData> {
+  async fn from_cursor(
+    data: CursorData,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Self::PaginatedType> {
     let [(_, person_id), (_, community_id)] = data.multi();
     CommunityActions::read(pool, CommunityId(community_id), PersonId(person_id)).await
   }

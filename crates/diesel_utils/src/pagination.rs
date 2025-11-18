@@ -22,9 +22,9 @@ const BASE64_ENGINE: LazyLock<GeneralPurpose> = LazyLock::new(|| {
 });
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
-pub struct X(String);
+pub struct CursorData(String);
 
-impl X {
+impl CursorData {
   pub fn new(id: i32) -> Self {
     Self(id.to_string())
   }
@@ -59,14 +59,14 @@ impl X {
   }
 }
 pub trait PaginationCursorBuilderNew {
-  type CursorData;
+  type PaginatedType;
 
-  fn to_cursor(&self) -> X;
+  fn to_cursor(&self) -> CursorData;
 
   fn from_cursor(
-    data: X,
+    data: CursorData,
     conn: &mut DbPool<'_>,
-  ) -> impl Future<Output = LemmyResult<Self::CursorData>> + Send;
+  ) -> impl Future<Output = LemmyResult<Self::PaginatedType>> + Send;
 
   /// Paginate a db query.
   fn paginate_new<Q: Send>(
@@ -74,7 +74,7 @@ pub trait PaginationCursorBuilderNew {
     cursor: Option<PaginationCursorNew>,
     sort_direction: SortDirection,
     pool: &mut DbPool<'_>,
-  ) -> impl std::future::Future<Output = LemmyResult<PaginatedQueryBuilder<Self::CursorData, Q>>> + Send
+  ) -> impl std::future::Future<Output = LemmyResult<PaginatedQueryBuilder<Self::PaginatedType, Q>>> + Send
   {
     async move {
       let (page_after, back) = if let Some(cursor) = cursor {
@@ -117,7 +117,7 @@ struct PaginationCursorNewInternal {
   #[serde(rename = "b")]
   back: bool,
   #[serde(rename = "d")]
-  data: X,
+  data: CursorData,
 }
 
 // There seems to be no way to set generic bounds like `T: ts_rs::TS` based on feature flags,
@@ -280,7 +280,7 @@ mod test {
   fn test_simple_cursor() -> LemmyResult<()> {
     let data = PaginationCursorNewInternal {
       back: false,
-      data: X::new(123),
+      data: CursorData::new(123),
     };
     let encoded = PaginationCursorNew::from_internal(data.clone())?;
     assert_eq!("BU0KBxiIGgGjd-ualQ", &encoded.0);

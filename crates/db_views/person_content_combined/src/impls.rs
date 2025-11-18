@@ -43,10 +43,10 @@ use lemmy_db_schema_file::{
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   pagination::{
+    CursorData,
     PaginatedVec,
     PaginationCursorBuilderNew,
     PaginationCursorNew,
-    X,
     paginate_response,
   },
 };
@@ -106,21 +106,24 @@ impl PersonContentCombinedViewInternal {
 }
 
 impl PaginationCursorBuilderNew for PersonContentCombinedView {
-  type CursorData = PersonContentCombined;
+  type PaginatedType = PersonContentCombined;
 
-  fn to_cursor(&self) -> X {
+  fn to_cursor(&self) -> CursorData {
     let (prefix, id) = match &self {
       PersonContentCombinedView::Comment(v) => ('C', v.comment.id.0),
       PersonContentCombinedView::Post(v) => ('P', v.post.id.0),
     };
-    X::new_with_prefix(prefix, id)
+    CursorData::new_with_prefix(prefix, id)
   }
 
-  async fn from_cursor(data: X, pool: &mut DbPool<'_>) -> LemmyResult<Self::CursorData> {
+  async fn from_cursor(
+    data: CursorData,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Self::PaginatedType> {
     let conn = &mut get_conn(pool).await?;
 
     let mut query = person_content_combined::table
-      .select(Self::CursorData::as_select())
+      .select(Self::PaginatedType::as_select())
       .into_boxed();
 
     let (prefix, id) = data.id_and_prefix();

@@ -50,10 +50,10 @@ use lemmy_db_schema_file::{
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   pagination::{
+    CursorData,
     PaginatedVec,
     PaginationCursorBuilderNew,
     PaginationCursorNew,
-    X,
     paginate_response,
   },
   traits::Crud,
@@ -62,12 +62,15 @@ use lemmy_diesel_utils::{
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl PaginationCursorBuilderNew for CommentView {
-  type CursorData = Comment;
-  fn to_cursor(&self) -> X {
-    X::new(self.comment.id.0)
+  type PaginatedType = Comment;
+  fn to_cursor(&self) -> CursorData {
+    CursorData::new(self.comment.id.0)
   }
 
-  async fn from_cursor(data: X, pool: &mut DbPool<'_>) -> LemmyResult<Self::CursorData> {
+  async fn from_cursor(
+    data: CursorData,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Self::PaginatedType> {
     Ok(Comment::read(pool, CommentId(data.id())).await?)
   }
 }
