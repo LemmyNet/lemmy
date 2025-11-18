@@ -4254,6 +4254,7 @@ dependencies = [
  "activitypub_federation",
  "anyhow",
  "base64 0.22.1",
+ "cfg-if",
  "chrono",
  "deadpool",
  "diesel",

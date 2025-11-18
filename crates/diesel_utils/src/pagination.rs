@@ -1,5 +1,6 @@
 use crate::connection::DbPool;
 use base64::{Engine, prelude::BASE64_URL_SAFE_NO_PAD};
+use cfg_if::cfg_if;
 use i_love_jesus::{PaginatedQueryBuilder, SortDirection};
 #[cfg(feature = "full")]
 use lemmy_utils::error::LemmyResult;
@@ -68,46 +69,58 @@ struct PaginationCursorNewInternal {
   id: i32,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-pub struct PaginatedVec<T>
-where
-  T: PaginationCursorBuilderNew,
-{
-  pub data: Vec<T>,
-  pub next_page: Option<PaginationCursorNew>,
-  pub prev_page: Option<PaginationCursorNew>,
-}
+// There seems to be no way to set generic bounds like `T: ts_rs::TS` based on feature flags,
+// so we need to define the struct once with and once without the bound.
+cfg_if! {
+  if #[cfg(feature = "ts-rs")] {
 
-/// Add prev/next cursors to query result.
-pub fn paginate_response<T>(data: Vec<T>, limit: i64) -> LemmyResult<PaginatedVec<T>>
-where
-  T: PaginationCursorBuilderNew + Serialize + for<'a> Deserialize<'a>,
-{
-  let make_cursor = |item: Option<&T>, back: bool| -> LemmyResult<Option<PaginationCursorNew>> {
-    if let Some(item) = item {
-      let (prefix, id) = item.to_cursor();
-      let cursor = PaginationCursorNewInternal { id, prefix, back };
-      Ok(Some(PaginationCursorNew::from_internal(cursor)?))
-    } else {
-      Ok(None)
+    #[derive(Debug, Serialize, Deserialize, Clone)]
+    #[derive(ts_rs::TS)]
+    #[ts(optional_fields, export)]
+    pub struct PaginatedVec<T: ts_rs::TS> {
+      pub data: Vec<T>,
+      pub next_page: Option<PaginationCursorNew>,
+      pub prev_page: Option<PaginationCursorNew>,
     }
-  };
-  let prev_page = make_cursor(data.first(), true)?;
-  let mut next_page = make_cursor(data.last(), false)?;
+  } else {
 
-  // If there are less than limit items we are on the last page, dont show next button.
-  // Need to convert here because diesel takes i64 for limit while vec length is usize.
-  let limit: usize = limit.try_into().unwrap_or_default();
-  if data.len() < limit {
-    next_page = None;
+    #[derive(Debug, Serialize, Deserialize, Clone)]
+    pub struct PaginatedVec<T> {
+      pub data: Vec<T>,
+      pub next_page: Option<PaginationCursorNew>,
+      pub prev_page: Option<PaginationCursorNew>,
+    }
+
+    /// Add prev/next cursors to query result.
+    pub fn paginate_response<T>(data: Vec<T>, limit: i64) -> LemmyResult<PaginatedVec<T>>
+    where
+      T: PaginationCursorBuilderNew + Serialize + for<'a> Deserialize<'a>,
+    {
+      let make_cursor = |item: Option<&T>, back: bool| -> LemmyResult<Option<PaginationCursorNew>> {
+        if let Some(item) = item {
+          let (prefix, id) = item.to_cursor();
+          let cursor = PaginationCursorNewInternal { id, prefix, back };
+          Ok(Some(PaginationCursorNew::from_internal(cursor)?))
+        } else {
+          Ok(None)
+        }
+      };
+      let prev_page = make_cursor(data.first(), true)?;
+      let mut next_page = make_cursor(data.last(), false)?;
+
+      // If there are less than limit items we are on the last page, dont show next button.
+      // Need to convert here because diesel takes i64 for limit while vec length is usize.
+      let limit: usize = limit.try_into().unwrap_or_default();
+      if data.len() < limit {
+        next_page = None;
+      }
+      Ok(PaginatedVec {
+        data,
+        next_page,
+        prev_page,
+      })
+    }
   }
-  Ok(PaginatedVec {
-    data,
-    next_page,
-    prev_page,
-  })
 }
 
 // ------------------------------
