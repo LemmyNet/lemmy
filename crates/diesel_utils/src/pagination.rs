@@ -82,6 +82,12 @@ cfg_if! {
       pub next_page: Option<PaginationCursorNew>,
       pub prev_page: Option<PaginationCursorNew>,
     }
+    pub fn paginate_response<T: ts_rs::TS>(data: Vec<T>, limit: i64) -> LemmyResult<PaginatedVec<T>>
+    where
+      T: PaginationCursorBuilderNew + Serialize + for<'a> Deserialize<'a>,
+    {
+      todo!()
+    }
   } else {
 
     #[derive(Debug, Serialize, Deserialize, Clone)]
