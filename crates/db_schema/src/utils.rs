@@ -29,6 +29,17 @@ pub fn limit_fetch_check(limit: i64) -> LemmyResult<i64> {
   }
 }
 
+pub fn limit_fetch_no(limit: Option<i64>, no_limit: Option<bool>) -> LemmyResult<i64> {
+  Ok(if no_limit.unwrap_or_default() {
+    i64::MAX
+  } else {
+    match limit {
+      Some(limit) => limit_fetch_check(limit)?,
+      None => FETCH_LIMIT_DEFAULT,
+    }
+  })
+}
+
 pub(crate) fn format_actor_url(
   name: &str,
   domain: &str,

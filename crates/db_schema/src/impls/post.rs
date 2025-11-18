@@ -37,7 +37,6 @@ use lemmy_db_schema_file::{
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   dburl::DbUrl,
-  pagination::PaginationCursor,
   traits::Crud,
   utils::{
     functions::{coalesce, hot_rank, scaled_rank},
@@ -538,14 +537,6 @@ impl PostActions {
       .first(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
-  }
-
-  pub async fn from_cursor(
-    cursor: &PaginationCursor,
-    pool: &mut DbPool<'_>,
-  ) -> LemmyResult<PostActions> {
-    let [(_, person_id), (_, post_id)] = cursor.prefixes_and_ids()?;
-    Self::read(pool, PostId(post_id), PersonId(person_id)).await
   }
 
   pub async fn update_notification_state(

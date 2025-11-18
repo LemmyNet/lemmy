@@ -42,6 +42,7 @@ impl CursorData {
     (prefix.chars().next().unwrap(), id.parse().unwrap())
   }
 
+  // TODO: could get rid of the chars and only store ordered ids here
   pub fn new_multi<const N: usize>(data: [(char, i32); N]) -> Self {
     Self(
       data
@@ -65,7 +66,7 @@ impl CursorData {
   }
 }
 pub trait PaginationCursorBuilderNew {
-  type PaginatedType;
+  type PaginatedType: Send;
 
   fn to_cursor(&self) -> CursorData;
 
@@ -80,6 +81,8 @@ pub trait PaginationCursorBuilderNew {
     cursor: Option<PaginationCursorNew>,
     sort_direction: SortDirection,
     pool: &mut DbPool<'_>,
+    // this is only used by PostView for optimization
+    cursor_before_data: Option<Self::PaginatedType>,
   ) -> impl std::future::Future<Output = LemmyResult<PaginatedQueryBuilder<Self::PaginatedType, Q>>> + Send
   {
     async move {
@@ -90,7 +93,13 @@ pub trait PaginationCursorBuilderNew {
       } else {
         (None, None)
       };
-      Ok(paginate(query, sort_direction, page_after, None, back))
+      Ok(paginate(
+        query,
+        sort_direction,
+        page_after,
+        cursor_before_data,
+        back,
+      ))
     }
   }
 }
@@ -112,6 +121,11 @@ impl PaginationCursorNew {
   fn from_internal(other: PaginationCursorNewInternal) -> LemmyResult<Self> {
     let encoded = BASE64_ENGINE.encode(serde_urlencoded::to_string(other)?);
     Ok(Self(encoded))
+  }
+
+  // only used for PostView optimization
+  pub fn is_back(self) -> bool {
+    self.to_internal().unwrap().back
   }
 }
 

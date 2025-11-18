@@ -27,6 +27,7 @@ use lemmy_db_schema::{
   },
   utils::{
     limit_fetch,
+    limit_fetch_no,
     queries::filters::{
       filter_blocked,
       filter_is_subscribed,
@@ -69,24 +70,47 @@ use lemmy_db_schema_file::{
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
-  pagination::{PaginationCursor, PaginationCursorBuilder, paginate},
+  pagination::{
+    CursorData,
+    PaginatedVec,
+    PaginationCursor,
+    PaginationCursorBuilderNew,
+    PaginationCursorNew,
+    paginate_response,
+  },
   utils::{CoalesceKey, Commented, now, seconds_to_pg_interval},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use tracing::debug;
 
-impl PaginationCursorBuilder for PostView {
-  type CursorData = Post;
-  fn to_cursor(&self) -> PaginationCursor {
-    PaginationCursor::new_single('P', self.post.id.0)
+impl PaginationCursorBuilderNew for PostView {
+  type PaginatedType = Post;
+  fn to_cursor(&self) -> CursorData {
+    CursorData::new(self.post.id.0)
   }
 
   async fn from_cursor(
-    cursor: &PaginationCursor,
+    cursor: CursorData,
     pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Self::CursorData> {
-    let [(_, id)] = cursor.prefixes_and_ids()?;
-    Post::read(pool, PostId(id)).await
+  ) -> LemmyResult<Self::PaginatedType> {
+    Post::read(pool, PostId(cursor.id())).await
+  }
+}
+
+/// This dummy struct is necessary to allow pagination using PostAction keys
+struct PostViewDummy(PostActions);
+impl PaginationCursorBuilderNew for PostViewDummy {
+  type PaginatedType = PostActions;
+  fn to_cursor(&self) -> CursorData {
+    CursorData::new_multi([('P', self.0.post_id.0), ('U', self.0.person_id.0)])
+  }
+
+  async fn from_cursor(
+    cursor: CursorData,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Self::PaginatedType> {
+    let [(_, post_id), (_, person_id)] = cursor.multi();
+    PostActions::read(pool, PostId(post_id), PersonId(person_id)).await
   }
 }
 
@@ -187,70 +211,66 @@ impl PostView {
   pub async fn list_read(
     pool: &mut DbPool<'_>,
     my_person: &Person,
-    cursor_data: Option<PostActions>,
-    page_back: Option<bool>,
+    page_cursor: Option<PaginationCursorNew>,
     limit: Option<i64>,
     no_limit: Option<bool>,
-  ) -> LemmyResult<Vec<PostView>> {
-    let conn = &mut get_conn(pool).await?;
-
-    let mut query = PostView::joins(Some(my_person.id), my_person.instance_id)
+  ) -> LemmyResult<PaginatedVec<PostView>> {
+    let limit = limit_fetch_no(limit, no_limit)?;
+    let query = PostView::joins(Some(my_person.id), my_person.instance_id)
       .filter(post_actions::person_id.eq(my_person.id))
       .filter(post_actions::read_at.is_not_null())
       .filter(filter_blocked())
+      .limit(limit)
       .select(PostView::as_select())
       .into_boxed();
 
-    if !no_limit.unwrap_or_default() {
-      let limit = limit_fetch(limit)?;
-      query = query.limit(limit);
-    }
-
     // Sorting by the read date
-    let paginated_query = paginate(query, SortDirection::Desc, cursor_data, None, page_back)
-      .then_order_by(pa_key::read_at)
-      // Tie breaker
-      .then_order_by(pa_key::post_id);
+    let paginated_query =
+      PostViewDummy::paginate(query, page_cursor, SortDirection::Desc, pool, None)
+        .await?
+        .then_order_by(pa_key::read_at)
+        // Tie breaker
+        .then_order_by(pa_key::post_id);
 
-    paginated_query
+    let conn = &mut get_conn(pool).await?;
+    let res = paginated_query
       .load::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::NotFound)
+      .with_lemmy_type(LemmyErrorType::NotFound)?;
+    paginate_response(res, limit)
   }
 
   /// List all the hidden posts for your person, ordered by the hide date.
   pub async fn list_hidden(
     pool: &mut DbPool<'_>,
     my_person: &Person,
-    cursor_data: Option<PostActions>,
-    page_back: Option<bool>,
+    page_cursor: Option<PaginationCursorNew>,
     limit: Option<i64>,
     no_limit: Option<bool>,
-  ) -> LemmyResult<Vec<PostView>> {
-    let conn = &mut get_conn(pool).await?;
-
-    let mut query = PostView::joins(Some(my_person.id), my_person.instance_id)
+  ) -> LemmyResult<PaginatedVec<PostView>> {
+    let limit = limit_fetch_no(limit, no_limit)?;
+    let query = PostView::joins(Some(my_person.id), my_person.instance_id)
       .filter(post_actions::person_id.eq(my_person.id))
       .filter(post_actions::hidden_at.is_not_null())
       .filter(filter_blocked())
+      .limit(limit)
       .select(PostView::as_select())
       .into_boxed();
 
-    if !no_limit.unwrap_or_default() {
-      let limit = limit_fetch(limit)?;
-      query = query.limit(limit);
-    }
-
     // Sorting by the hidden date
-    let paginated_query = paginate(query, SortDirection::Desc, cursor_data, None, page_back)
-      .then_order_by(pa_key::hidden_at)
-      // Tie breaker
-      .then_order_by(pa_key::post_id);
+    let paginated_query =
+      PostViewDummy::paginate(query, page_cursor, SortDirection::Desc, pool, None)
+        .await?
+        .then_order_by(pa_key::hidden_at)
+        // Tie breaker
+        .then_order_by(pa_key::post_id);
 
-    paginated_query
+    let conn = &mut get_conn(pool).await?;
+    let res = paginated_query
       .load::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::NotFound)
+      .with_lemmy_type(LemmyErrorType::NotFound)?;
+    paginate_response(res, limit)
   }
 
   pub fn to_post_actions_cursor(&self) -> PaginationCursor {
@@ -275,8 +295,7 @@ pub struct PostQuery<'a> {
   pub hide_media: Option<bool>,
   pub no_comments_only: Option<bool>,
   pub keyword_blocks: Option<Vec<String>>,
-  pub cursor_data: Option<Post>,
-  pub page_back: Option<bool>,
+  pub page_cursor: Option<PaginationCursorNew>,
   /// For backwards compat with API v3 (not available on API v4).
   pub page: Option<i64>,
   pub limit: Option<i64>,
@@ -310,7 +329,8 @@ impl PostQuery<'_> {
         let upper_bound_results = self
           .clone()
           .list_inner(site, None, largest_subscribed, pool)
-          .await?;
+          .await?
+          .data;
 
         let limit = limit_fetch(self.limit)?;
 
@@ -321,7 +341,12 @@ impl PostQuery<'_> {
         if len < limit {
           None
         } else {
-          if self.page_back.unwrap_or_default() {
+          if self
+            .page_cursor
+            .clone()
+            .map(|p| p.is_back())
+            .unwrap_or_default()
+          {
             // for backward pagination, get first element instead
             upper_bound_results.into_iter().next()
           } else {
@@ -343,7 +368,7 @@ impl PostQuery<'_> {
     cursor_before_data: Option<Post>,
     largest_subscribed_for_prefetch: Option<CommunityId>,
     pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Vec<PostView>> {
+  ) -> LemmyResult<PaginatedVec<PostView>> {
     let o = self;
     let limit = limit_fetch(o.limit)?;
 
@@ -398,7 +423,6 @@ impl PostQuery<'_> {
       }
     }
 
-    let conn = &mut get_conn(pool).await?;
     match o.listing_type.unwrap_or_default() {
       // TODO we might have much better performance by using post::community_id.eq_any()
       ListingType::Subscribed => query = query.filter(filter_is_subscribed()),
@@ -509,13 +533,14 @@ impl PostQuery<'_> {
     let sort = o.sort.unwrap_or(Hot);
     let sort_direction = asc_if(sort == Old);
 
-    let mut pq = paginate(
+    let mut pq = PostView::paginate(
       query,
+      o.page_cursor,
       sort_direction,
-      o.cursor_data,
+      pool,
       cursor_before_data,
-      o.page_back,
-    );
+    )
+    .await?;
 
     // featured posts first
     // Don't do for new / old sorts
@@ -554,14 +579,20 @@ impl PostQuery<'_> {
     let query = pq.as_query();
 
     debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
-    Commented::new(query)
+    let conn = &mut get_conn(pool).await?;
+    let res = Commented::new(query)
       .text("PostQuery::list")
       .load::<PostView>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::NotFound)
+      .with_lemmy_type(LemmyErrorType::NotFound)?;
+    paginate_response(res, limit)
   }
 
-  pub async fn list(&self, site: &Site, pool: &mut DbPool<'_>) -> LemmyResult<Vec<PostView>> {
+  pub async fn list(
+    &self,
+    site: &Site,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<PaginatedVec<PostView>> {
     let cursor_before_data = self.prefetch_cursor_before_data(site, pool).await?;
 
     self
@@ -870,7 +901,8 @@ mod tests {
       ..data.default_post_query()
     }
     .list(&data.site, pool)
-    .await?;
+    .await?
+    .data;
     // remove tags post
     read_post_listing.remove(0);
 
@@ -901,7 +933,8 @@ mod tests {
       ..data.default_post_query()
     }
     .list(&data.site, pool)
-    .await?;
+    .await?
+    .data;
     // should include bot post which has "undetermined" language
     assert_eq!(
       vec![POST_WITH_TAGS, POST_BY_BOT, POST],
@@ -923,7 +956,8 @@ mod tests {
       ..data.default_post_query()
     }
     .list(&data.site, pool)
-    .await?;
+    .await?
+    .data;
 
     let read_post_listing_single_no_person =
       PostView::read(pool, data.post.id, None, data.instance.id, false).await?;
@@ -958,7 +992,8 @@ mod tests {
       ..data.default_post_query()
     }
     .list(&data.site, pool)
-    .await?;
+    .await?
+    .data;
     // Should be 0 posts after the community block
     assert_eq!(read_post_listings_with_person_after_block, vec![]);
 
@@ -1021,7 +1056,8 @@ mod tests {
       ..data.default_post_query()
     }
     .list(&data.site, pool)
-    .await?;
+    .await?
+    .data;
     read_post_listing.remove(0);
     assert_eq!(
       post_listing_single_with_person.post.id,
@@ -1247,8 +1283,9 @@ mod tests {
 
     PostActions::mark_as_read(pool, data.tegan.person.id, &[data.post_with_tags.id]).await?;
 
-    let read_read_post_listing =
-      PostView::list_read(pool, &data.tegan.person, None, None, None, None).await?;
+    let read_read_post_listing = PostView::list_read(pool, &data.tegan.person, None, None, None)
+      .await?
+      .data;
 
     // This should be ordered from most recently read
     assert_eq!(
@@ -1273,6 +1310,7 @@ mod tests {
     }
     .list(&data.site, pool)
     .await?
+    .data
     .into_iter()
     .map(|p| (p.creator.name, p.creator_is_moderator, p.can_mod))
     .collect::<Vec<_>>();
@@ -1299,6 +1337,7 @@ mod tests {
     }
     .list(&data.site, pool)
     .await?
+    .data
     .into_iter()
     .map(|p| (p.creator.name, p.creator_is_moderator, p.can_mod))
     .collect::<Vec<_>>();
@@ -1320,6 +1359,7 @@ mod tests {
     }
     .list(&data.site, pool)
     .await?
+    .data
     .into_iter()
     .map(|p| (p.creator.name, p.creator_is_moderator, p.can_mod))
     .collect::<Vec<_>>();
@@ -1342,6 +1382,7 @@ mod tests {
     }
     .list(&data.site, pool)
     .await?
+    .data
     .into_iter()
     .map(|p| (p.creator.name, p.creator_is_moderator, p.can_mod))
     .collect::<Vec<_>>();
@@ -1365,6 +1406,7 @@ mod tests {
     }
     .list(&data.site, pool)
     .await?
+    .data
     .into_iter()
     .map(|p| (p.creator.name, p.creator_is_moderator, p.can_mod))
     .collect::<Vec<_>>();
@@ -1405,7 +1447,7 @@ mod tests {
     };
     Post::create(pool, &post_spanish).await?;
 
-    let post_listings_all = data.default_post_query().list(&data.site, pool).await?;
+    let post_listings_all = data.default_post_query().list(&data.site, pool).await?.data;
 
     // no language filters specified, all posts should be returned
     assert_eq!(
@@ -1415,7 +1457,7 @@ mod tests {
 
     LocalUserLanguage::update(pool, vec![french_id], data.tegan.local_user.id).await?;
 
-    let post_listing_french = data.default_post_query().list(&data.site, pool).await?;
+    let post_listing_french = data.default_post_query().list(&data.site, pool).await?.data;
 
     // only one post in french and one undetermined should be returned
     assert_eq!(vec![POST_WITH_TAGS, POST], names(&post_listing_french));
@@ -1434,6 +1476,7 @@ mod tests {
       .default_post_query()
       .list(&data.site, pool)
       .await?
+      .data
       .into_iter()
       .map(|p| (p.post.name, p.post.language_id))
       .collect::<Vec<_>>();
@@ -1469,12 +1512,12 @@ mod tests {
 
     // Make sure you don't see the removed post in the results
     data.tegan.local_user.admin = false;
-    let post_listings_no_admin = data.default_post_query().list(&data.site, pool).await?;
+    let post_listings_no_admin = data.default_post_query().list(&data.site, pool).await?.data;
     assert_eq!(vec![POST_WITH_TAGS, POST], names(&post_listings_no_admin));
 
     // Removed bot post is shown to admins
     data.tegan.local_user.admin = true;
-    let post_listings_is_admin = data.default_post_query().list(&data.site, pool).await?;
+    let post_listings_is_admin = data.default_post_query().list(&data.site, pool).await?.data;
     assert_eq!(
       vec![POST_WITH_TAGS, POST_BY_BOT, POST],
       names(&post_listings_is_admin)
@@ -1513,6 +1556,7 @@ mod tests {
       }
       .list(&data.site, pool)
       .await?
+      .data
       .iter()
       .any(|p| p.post.id == data.post.id);
 
@@ -1539,10 +1583,10 @@ mod tests {
     )
     .await?;
 
-    let posts = PostQuery::default().list(&data.site, pool).await?;
+    let posts = PostQuery::default().list(&data.site, pool).await?.data;
     assert!(posts.is_empty());
 
-    let posts = data.default_post_query().list(&data.site, pool).await?;
+    let posts = data.default_post_query().list(&data.site, pool).await?.data;
     assert!(posts.is_empty());
 
     // Follow the community
@@ -1553,7 +1597,7 @@ mod tests {
     );
     CommunityActions::follow(pool, &form).await?;
 
-    let posts = data.default_post_query().list(&data.site, pool).await?;
+    let posts = data.default_post_query().list(&data.site, pool).await?.data;
     assert!(!posts.is_empty());
 
     Ok(())
@@ -1608,7 +1652,7 @@ mod tests {
     let _post_from_blocked_instance_user = Post::create(pool, &howard_post_form).await?;
 
     // no instance block, should return all posts
-    let post_listings_all = data.default_post_query().list(&data.site, pool).await?;
+    let post_listings_all = data.default_post_query().list(&data.site, pool).await?.data;
     assert_eq!(POST_LISTING_WITH_BLOCKED, *names(&post_listings_all));
 
     // block the instance communities
@@ -1617,7 +1661,7 @@ mod tests {
     InstanceActions::block_communities(pool, &block_form).await?;
 
     // now posts from communities on that instance should be hidden
-    let post_listings_blocked = data.default_post_query().list(&data.site, pool).await?;
+    let post_listings_blocked = data.default_post_query().list(&data.site, pool).await?.data;
     assert_eq!(
       vec![HOWARD_POST, POST_WITH_TAGS, POST_BY_BOT, POST],
       names(&post_listings_blocked)
@@ -1635,13 +1679,13 @@ mod tests {
       CommunityFollowerState::Accepted,
     );
     CommunityActions::follow(pool, &follow_form).await?;
-    let post_listings_bypass = data.default_post_query().list(&data.site, pool).await?;
+    let post_listings_bypass = data.default_post_query().list(&data.site, pool).await?.data;
     assert_eq!(POST_LISTING_WITH_BLOCKED, *names(&post_listings_bypass));
     CommunityActions::unfollow(pool, data.tegan.person.id, inserted_community.id).await?;
 
     // after unblocking it should return all posts again
     InstanceActions::unblock_communities(pool, &block_form).await?;
-    let post_listings_blocked = data.default_post_query().list(&data.site, pool).await?;
+    let post_listings_blocked = data.default_post_query().list(&data.site, pool).await?.data;
     assert_eq!(POST_LISTING_WITH_BLOCKED, *names(&post_listings_blocked));
 
     Instance::delete(pool, blocked_instance_comms.id).await?;
@@ -1701,7 +1745,7 @@ mod tests {
     let _post_to_unblocked_comm = Post::create(pool, &unblocked_post_form).await?;
 
     // no instance block, should return all posts
-    let post_listings_all = data.default_post_query().list(&data.site, pool).await?;
+    let post_listings_all = data.default_post_query().list(&data.site, pool).await?.data;
     assert_eq!(POST_LISTING_WITH_BLOCKED, *names(&post_listings_all));
 
     // block the instance communities
@@ -1710,7 +1754,7 @@ mod tests {
     InstanceActions::block_persons(pool, &block_form).await?;
 
     // now posts from users on that instance should be hidden
-    let post_listings_blocked = data.default_post_query().list(&data.site, pool).await?;
+    let post_listings_blocked = data.default_post_query().list(&data.site, pool).await?.data;
     assert_eq!(
       vec![POST_TO_UNBLOCKED_COMM, POST_WITH_TAGS, POST_BY_BOT, POST],
       names(&post_listings_blocked)
@@ -1723,7 +1767,7 @@ mod tests {
 
     // after unblocking it should return all posts again
     InstanceActions::unblock_persons(pool, &block_form).await?;
-    let post_listings_blocked = data.default_post_query().list(&data.site, pool).await?;
+    let post_listings_blocked = data.default_post_query().list(&data.site, pool).await?.data;
     assert_eq!(POST_LISTING_WITH_BLOCKED, *names(&post_listings_blocked));
 
     Instance::delete(pool, blocked_instance_persons.id).await?;
@@ -1782,19 +1826,19 @@ mod tests {
     };
 
     let mut listed_post_ids = vec![];
-    let mut cursor_data = None;
+    let mut page_cursor = None;
     loop {
       let post_listings = PostQuery {
-        cursor_data,
+        page_cursor,
         ..options.clone()
       }
       .list(&data.site, pool)
       .await?;
 
-      listed_post_ids.extend(post_listings.iter().map(|p| p.post.id));
+      listed_post_ids.extend(post_listings.data.iter().map(|p| p.post.id));
 
-      if let Some(p) = post_listings.into_iter().next_back() {
-        cursor_data = Some(p.post);
+      if let Some(cursor) = post_listings.next_page {
+        page_cursor = Some(cursor);
       } else {
         break;
       }
@@ -1802,17 +1846,20 @@ mod tests {
 
     // Check that backward pagination matches forward pagination
     let mut listed_post_ids_forward = listed_post_ids.clone();
-    let mut cursor_data_before = None;
+    let mut page_cursor_before = None;
     loop {
       let post_listings = PostQuery {
-        cursor_data: cursor_data_before,
-        page_back: Some(true),
+        page_cursor: page_cursor_before,
         ..options.clone()
       }
       .list(&data.site, pool)
       .await?;
 
-      let listed_post_ids = post_listings.iter().map(|p| p.post.id).collect::<Vec<_>>();
+      let listed_post_ids = post_listings
+        .data
+        .iter()
+        .map(|p| p.post.id)
+        .collect::<Vec<_>>();
 
       let index = listed_post_ids_forward.len() - listed_post_ids.len();
       assert_eq!(
@@ -1821,8 +1868,8 @@ mod tests {
       );
       listed_post_ids_forward.truncate(index);
 
-      if let Some(p) = post_listings.into_iter().next() {
-        cursor_data_before = Some(p.post);
+      if let Some(cursor) = post_listings.next_page {
+        page_cursor_before = Some(cursor);
       } else {
         break;
       }
@@ -1856,7 +1903,7 @@ mod tests {
     PostActions::mark_as_read(pool, data.tegan.person.id, &[data.bot_post.id]).await?;
 
     // Make sure you don't see the read post in the results
-    let post_listings_hide_read = data.default_post_query().list(&data.site, pool).await?;
+    let post_listings_hide_read = data.default_post_query().list(&data.site, pool).await?.data;
     assert_eq!(vec![POST_WITH_TAGS, POST], names(&post_listings_hide_read));
 
     // Test with the show_read override as true
@@ -1865,7 +1912,8 @@ mod tests {
       ..data.default_post_query()
     }
     .list(&data.site, pool)
-    .await?;
+    .await?
+    .data;
     assert_eq!(
       vec![POST_WITH_TAGS, POST_BY_BOT, POST],
       names(&post_listings_show_read_true)
@@ -1877,7 +1925,8 @@ mod tests {
       ..data.default_post_query()
     }
     .list(&data.site, pool)
-    .await?;
+    .await?
+    .data;
     assert_eq!(
       vec![POST_WITH_TAGS, POST],
       names(&post_listings_show_read_false)
@@ -1897,7 +1946,7 @@ mod tests {
     PostActions::hide(pool, &hide_form).await?;
 
     // Make sure you don't see the hidden post in the results
-    let post_listings_hide_hidden = data.default_post_query().list(&data.site, pool).await?;
+    let post_listings_hide_hidden = data.default_post_query().list(&data.site, pool).await?.data;
     assert_eq!(
       vec![POST_WITH_TAGS, POST],
       names(&post_listings_hide_hidden)
@@ -1911,7 +1960,8 @@ mod tests {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await?;
+    .await?
+    .data;
     assert_eq!(
       vec![POST_WITH_TAGS, POST_BY_BOT, POST],
       names(&post_listings_show_hidden)
@@ -1925,8 +1975,9 @@ mod tests {
     }));
 
     // Make sure only that one comes back for list_hidden
-    let list_hidden =
-      PostView::list_hidden(pool, &data.tegan.person, None, None, None, None).await?;
+    let list_hidden = PostView::list_hidden(pool, &data.tegan.person, None, None, None)
+      .await?
+      .data;
     assert_eq!(vec![POST_BY_BOT], names(&list_hidden));
 
     Ok(())
@@ -1948,7 +1999,7 @@ mod tests {
     Post::update(pool, data.post_with_tags.id, &update_form).await?;
 
     // Make sure you don't see the nsfw post in the regular results
-    let post_listings_hide_nsfw = data.default_post_query().list(&data.site, pool).await?;
+    let post_listings_hide_nsfw = data.default_post_query().list(&data.site, pool).await?.data;
     assert_eq!(vec![POST_BY_BOT, POST], names(&post_listings_hide_nsfw));
 
     // Make sure it does come back with the show_nsfw option
@@ -1959,7 +2010,8 @@ mod tests {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await?;
+    .await?
+    .data;
     assert_eq!(
       vec![POST_WITH_TAGS, POST_BY_BOT, POST],
       names(&post_listings_show_nsfw)
@@ -1998,7 +2050,8 @@ mod tests {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await?;
+    .await?
+    .data;
     assert_eq!(0, unauthenticated_query.len());
 
     let authenticated_query = PostQuery {
@@ -2006,7 +2059,8 @@ mod tests {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await?;
+    .await?
+    .data;
     assert_eq!(3, authenticated_query.len());
 
     let unauthenticated_post =
@@ -2241,7 +2295,8 @@ mod tests {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await?;
+    .await?
+    .data;
 
     let elapsed = now.elapsed();
     println!("Elapsed: {:.0?}", elapsed);
@@ -2276,7 +2331,8 @@ mod tests {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await?;
+    .await?
+    .data;
 
     assert_eq!(
       vec![POST_WITH_TAGS, POST_BY_BOT],
@@ -2310,7 +2366,8 @@ mod tests {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await?;
+    .await?
+    .data;
     assert_eq!(0, read_post_listing.len());
     let post_view = PostView::read(pool, data.post.id, None, data.instance.id, false).await;
     assert!(post_view.is_err());
@@ -2323,7 +2380,8 @@ mod tests {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await?;
+    .await?
+    .data;
     assert_eq!(0, read_post_listing.len());
     let post_view = PostView::read(
       pool,
@@ -2343,7 +2401,8 @@ mod tests {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await?;
+    .await?
+    .data;
     assert_eq!(3, read_post_listing.len());
     let post_view = PostView::read(
       pool,
@@ -2370,7 +2429,8 @@ mod tests {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await?;
+    .await?
+    .data;
     assert_eq!(3, read_post_listing.len());
     let post_view = PostView::read(
       pool,
@@ -2410,7 +2470,8 @@ mod tests {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await?;
+    .await?
+    .data;
     assert_eq!(3, hide_media_listing.len());
 
     // Ensure the `hide_media` user setting is set
@@ -2428,7 +2489,8 @@ mod tests {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await?;
+    .await?
+    .data;
     assert_eq!(2, hide_media_listing.len());
 
     // Make sure the `hide_media` override works
@@ -2439,7 +2501,8 @@ mod tests {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await?;
+    .await?
+    .data;
     assert_eq!(3, hide_media_listing.len());
 
     Ok(())
@@ -2505,7 +2568,8 @@ mod tests {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await?;
+    .await?
+    .data;
 
     // Should not have any of the posts
     assert!(!names(&post_listings).contains(&name_blocked.as_str()));
@@ -2538,7 +2602,7 @@ mod tests {
     assert_eq!(data.tag_1.name, post_view.tags.0[0].name);
     assert_eq!(data.tag_2.name, post_view.tags.0[1].name);
 
-    let all_posts = data.default_post_query().list(&data.site, pool).await?;
+    let all_posts = data.default_post_query().list(&data.site, pool).await?.data;
     assert_eq!(2, all_posts[0].tags.0.len()); // post with tags
     assert_eq!(0, all_posts[1].tags.0.len()); // bot post
     assert_eq!(0, all_posts[2].tags.0.len()); // normal post
@@ -2590,7 +2654,8 @@ mod tests {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await?;
+    .await?
+    .data;
 
     let listing_communities = listing
       .iter()
@@ -2609,7 +2674,8 @@ mod tests {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await?;
+    .await?
+    .data;
     assert!(suggested.is_empty());
 
     let form = LocalSiteUpdateForm {
@@ -2623,7 +2689,8 @@ mod tests {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await?;
+    .await?
+    .data;
     assert_eq!(listing, suggested);
 
     Ok(())
