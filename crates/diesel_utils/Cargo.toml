@@ -39,7 +39,7 @@ full = [
   "activitypub_federation",
   "serde_urlencoded",
   "base64",
-  "serde_with",
+  "serde_with","itertools"
 ]
 
 [dependencies]
@@ -70,6 +70,7 @@ serde_urlencoded = { version = "0.7.1", optional = true }
 base64 = { workspace = true, optional = true }
 serde_with = { workspace = true, optional = true }
 cfg-if = { workspace = true }
+itertools = { workspace = true,optional = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

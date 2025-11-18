@@ -29,7 +29,13 @@ use lemmy_db_schema_file::{
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
-  pagination::{PaginationCursor, PaginationCursorBuilder, paginate},
+  pagination::{
+    PaginatedVec,
+    PaginationCursorBuilderNew,
+    PaginationCursorNew,
+    X,
+    paginate_response,
+  },
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use std::collections::HashMap;
@@ -67,11 +73,9 @@ impl PendingFollowerView {
     mod_id: PersonId,
     all_communities: bool,
     unread_only: bool,
-    cursor_data: Option<CommunityActions>,
-    page_back: Option<bool>,
+    page_cursor: Option<PaginationCursorNew>,
     limit: Option<i64>,
-  ) -> LemmyResult<Vec<PendingFollowerView>> {
-    let conn = &mut get_conn(pool).await?;
+  ) -> LemmyResult<PaginatedVec<PendingFollowerView>> {
     let limit = limit_fetch(limit)?;
 
     let mut query = Self::joins()
@@ -101,9 +105,11 @@ impl PendingFollowerView {
     }
 
     // Sorting by published
-    let paginated_query = paginate(query, SortDirection::Asc, cursor_data, None, page_back)
+    let paginated_query = Self::paginate_new(query, page_cursor, SortDirection::Asc, pool)
+      .await?
       .then_order_by(key::followed_at);
 
+    let conn = &mut get_conn(pool).await?;
     let mut res: Vec<_> = paginated_query
       .load::<(Person, Community, Option<CommunityFollowerState>)>(conn)
       .await?
@@ -143,7 +149,7 @@ impl PendingFollowerView {
         r.is_new_instance = false;
       }
     }
-    Ok(res)
+    paginate_response(res, limit)
   }
 
   pub async fn count_approval_required(
@@ -205,20 +211,15 @@ impl PendingFollowerView {
   }
 }
 
-impl PaginationCursorBuilder for PendingFollowerView {
+impl PaginationCursorBuilderNew for PendingFollowerView {
   type CursorData = CommunityActions;
 
-  fn to_cursor(&self) -> PaginationCursor {
+  fn to_cursor(&self) -> X {
     // This needs a person and community
-    let prefixes_and_ids = [('P', self.person.id.0), ('C', self.community.id.0)];
-
-    PaginationCursor::new(&prefixes_and_ids)
+    X::new_multi([('P', self.person.id.0), ('C', self.community.id.0)])
   }
-  async fn from_cursor(
-    cursor: &PaginationCursor,
-    pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Self::CursorData> {
-    let [(_, person_id), (_, community_id)] = cursor.prefixes_and_ids()?;
+  async fn from_cursor(data: X, pool: &mut DbPool<'_>) -> LemmyResult<Self::CursorData> {
+    let [(_, person_id), (_, community_id)] = data.multi();
     CommunityActions::read(pool, CommunityId(community_id), PersonId(person_id)).await
   }
 }
@@ -352,8 +353,7 @@ mod tests {
     let count = PendingFollowerView::count_approval_required(pool, mod_.id).await?;
     assert_eq!(0, count);
     let list =
-      PendingFollowerView::list_approval_required(pool, mod_.id, false, true, None, None, None)
-        .await?;
+      PendingFollowerView::list_approval_required(pool, mod_.id, false, true, None, None).await?;
     assert_length!(0, list);
 
     // user is not allowed to post
@@ -372,9 +372,9 @@ mod tests {
     // now there should be a pending follow
     let count = PendingFollowerView::count_approval_required(pool, mod_.id).await?;
     assert_eq!(1, count);
-    let list =
-      PendingFollowerView::list_approval_required(pool, mod_.id, false, true, None, None, None)
-        .await?;
+    let list = PendingFollowerView::list_approval_required(pool, mod_.id, false, true, None, None)
+      .await?
+      .data;
     assert_length!(1, list);
     assert_eq!(person.id, list[0].person.id);
     assert_eq!(community.id, list[0].community.id);
@@ -395,13 +395,14 @@ mod tests {
     // check counts again
     let count = PendingFollowerView::count_approval_required(pool, mod_.id).await?;
     assert_eq!(0, count);
-    let list =
-      PendingFollowerView::list_approval_required(pool, mod_.id, false, true, None, None, None)
-        .await?;
+    let list = PendingFollowerView::list_approval_required(pool, mod_.id, false, true, None, None)
+      .await?
+      .data;
     assert_length!(0, list);
     let list_all =
-      PendingFollowerView::list_approval_required(pool, mod_.id, false, false, None, None, None)
-        .await?;
+      PendingFollowerView::list_approval_required(pool, mod_.id, false, false, None, None)
+        .await?
+        .data;
     assert_length!(1, list_all);
     assert_eq!(person.id, list_all[0].person.id);
     assert_eq!(community.id, list_all[0].community.id);

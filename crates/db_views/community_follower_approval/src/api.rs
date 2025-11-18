@@ -1,5 +1,5 @@
 use crate::PendingFollowerView;
-use lemmy_diesel_utils::pagination::PaginationCursor;
+use lemmy_diesel_utils::pagination::PaginationCursorNew;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -19,8 +19,7 @@ pub struct ListCommunityPendingFollows {
   pub unread_only: Option<bool>,
   // Only for admins, show pending follows for communities which you dont moderate
   pub all_communities: Option<bool>,
-  pub page_cursor: Option<PaginationCursor>,
-  pub page_back: Option<bool>,
+  pub page_cursor: Option<PaginationCursorNew>,
   pub limit: Option<i64>,
 }
 
@@ -30,6 +29,6 @@ pub struct ListCommunityPendingFollows {
 pub struct ListCommunityPendingFollowsResponse {
   pub items: Vec<PendingFollowerView>,
   /// the pagination cursor to use to fetch the next page
-  pub next_page: Option<PaginationCursor>,
-  pub prev_page: Option<PaginationCursor>,
+  pub next_page: Option<PaginationCursorNew>,
+  pub prev_page: Option<PaginationCursorNew>,
 }

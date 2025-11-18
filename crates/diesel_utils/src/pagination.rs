@@ -6,6 +6,7 @@ use base64::{
 };
 use cfg_if::cfg_if;
 use i_love_jesus::{PaginatedQueryBuilder, SortDirection};
+use itertools::Itertools;
 #[cfg(feature = "full")]
 use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
@@ -36,6 +37,25 @@ impl X {
   pub fn id_and_prefix(self) -> (char, i32) {
     let (prefix, id) = self.0.split_once(',').unwrap();
     (prefix.chars().next().unwrap(), id.parse().unwrap())
+  }
+
+  pub fn new_multi<const N: usize>(data: [(char, i32); N]) -> Self {
+    Self(
+      data
+        .into_iter()
+        .map(|(prefix, id)| format!("{prefix}:{id}"))
+        .join(","),
+    )
+  }
+  pub fn multi<const N: usize>(self) -> [(char, i32); N] {
+    self
+      .0
+      .split(",")
+      .flat_map(|y| y.split_once(":"))
+      .map(|(prefix, id)| (prefix.chars().next().unwrap(), id.parse::<i32>().unwrap()))
+      .collect::<Vec<_>>()
+      .try_into()
+      .unwrap()
   }
 }
 pub trait PaginationCursorBuilderNew {
