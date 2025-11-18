@@ -4,7 +4,7 @@ use chrono::{Days, Utc};
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::utils::functions::{check_apub_id_valid, local_site_data_cached};
 use lemmy_db_schema::source::site::Site;
-use lemmy_diesel_utils::connection::ActualDbPool;
+use lemmy_diesel_utils::connection::GenericDbPool;
 use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult, UntranslatedError};
 use url::Url;
 
@@ -17,7 +17,7 @@ pub mod protocol;
 pub const FEDERATION_HTTP_FETCH_LIMIT: u32 = 100;
 
 #[derive(Clone)]
-pub struct VerifyUrlData(pub ActualDbPool);
+pub struct VerifyUrlData(pub GenericDbPool);
 
 #[async_trait]
 impl UrlVerifier for VerifyUrlData {

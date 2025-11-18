@@ -621,12 +621,11 @@ mod tests {
   use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility, ListingType};
   use lemmy_db_views_local_user::LocalUserView;
   use lemmy_diesel_utils::{
-    connection::{ActualDbPool, DbPool, build_db_pool, get_conn},
+    connection::{ReusableDbPool, DbPool, build_db_pool_for_tests, get_conn},
     traits::Crud,
   };
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use pretty_assertions::assert_eq;
-  use serial_test::serial;
   use std::{
     collections::HashSet,
     time::{Duration, Instant},
@@ -645,7 +644,7 @@ mod tests {
   }
 
   struct Data {
-    pool: ActualDbPool,
+    pool: ReusableDbPool,
     instance: Instance,
     tegan: LocalUserView,
     john: LocalUserView,
@@ -660,11 +659,8 @@ mod tests {
   }
 
   impl Data {
-    fn pool(&self) -> ActualDbPool {
-      self.pool.clone()
-    }
     pub fn pool2(&self) -> DbPool<'_> {
-      DbPool::Pool(&self.pool)
+      DbPool::ReusablePool(&self.pool)
     }
     fn default_post_query(&self) -> PostQuery<'_> {
       PostQuery {
@@ -674,9 +670,9 @@ mod tests {
       }
     }
 
-    async fn setup() -> LemmyResult<Data> {
-      let actual_pool = build_db_pool()?;
-      let pool = &mut (&actual_pool).into();
+    async fn test_setup() -> LemmyResult<Data> {
+      let test_pool = build_db_pool_for_tests().await;
+      let pool = &mut (&test_pool).into();
       let data = TestData::create(pool).await?;
 
       let tegan_person_form = PersonInsertForm::test_form(data.instance.id, "tegan");
@@ -814,7 +810,7 @@ mod tests {
       };
 
       Ok(Data {
-        pool: actual_pool,
+        pool: test_pool,
         instance: data.instance,
         tegan,
         john,
@@ -844,7 +840,7 @@ mod tests {
   }
   impl AsyncTestContext for Data {
     async fn setup() -> Self {
-      Data::setup().await.expect("setup failed")
+      Data::test_setup().await.expect("setup failed")
     }
     async fn teardown(self) {
       Data::teardown(self).await.expect("teardown failed")
@@ -852,10 +848,9 @@ mod tests {
   }
 
   #[test_context(Data)]
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn post_listing_with_person(data: &mut Data) -> LemmyResult<()> {
-    let pool = &data.pool();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     let local_user_form = LocalUserUpdateForm {
@@ -911,10 +906,9 @@ mod tests {
   }
 
   #[test_context(Data)]
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn post_listing_no_person(data: &mut Data) -> LemmyResult<()> {
-    let pool = &data.pool();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     let read_post_listing_multiple_no_person = PostQuery {
@@ -944,10 +938,9 @@ mod tests {
   }
 
   #[test_context(Data)]
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn post_listing_block_community(data: &mut Data) -> LemmyResult<()> {
-    let pool = &data.pool();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     let community_block = CommunityBlockForm::new(data.community.id, data.tegan.person.id);
@@ -967,10 +960,9 @@ mod tests {
   }
 
   #[test_context(Data)]
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn post_listing_like(data: &mut Data) -> LemmyResult<()> {
-    let pool = &data.pool();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     let post_like_form = PostLikeForm::new(data.post.id, data.tegan.person.id, true);
@@ -1034,10 +1026,9 @@ mod tests {
   }
 
   #[test_context(Data)]
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn person_note(data: &mut Data) -> LemmyResult<()> {
-    let pool = &data.pool();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     let note_str = "Tegan loves cats.";
@@ -1084,10 +1075,9 @@ mod tests {
   }
 
   #[test_context(Data)]
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn post_listing_person_vote_totals(data: &mut Data) -> LemmyResult<()> {
-    let pool = &data.pool();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     // Create a 2nd bot post, to do multiple votes
@@ -1236,10 +1226,9 @@ mod tests {
   }
 
   #[test_context(Data)]
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn post_listing_read_only(data: &mut Data) -> LemmyResult<()> {
-    let pool = &data.pool();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     // Mark the bot post, then the tags post as read
@@ -1260,10 +1249,9 @@ mod tests {
   }
 
   #[test_context(Data)]
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn creator_info(data: &mut Data) -> LemmyResult<()> {
-    let pool = &data.pool();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let community_id = data.community.id;
 
@@ -1383,12 +1371,11 @@ mod tests {
   }
 
   #[test_context(Data)]
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn post_listing_person_language(data: &mut Data) -> LemmyResult<()> {
     const EL_POSTO: &str = "el posto";
 
-    let pool = &data.pool();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     let spanish_id = Language::read_id_from_code(pool, "es").await?;
@@ -1450,10 +1437,9 @@ mod tests {
   }
 
   #[test_context(Data)]
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn post_listings_removed(data: &mut Data) -> LemmyResult<()> {
-    let pool = &data.pool();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     // Remove the post
@@ -1484,10 +1470,9 @@ mod tests {
   }
 
   #[test_context(Data)]
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn post_listings_deleted(data: &mut Data) -> LemmyResult<()> {
-    let pool = &data.pool();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     // Delete the post
@@ -1523,10 +1508,9 @@ mod tests {
   }
 
   #[test_context(Data)]
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn post_listings_hidden_community(data: &mut Data) -> LemmyResult<()> {
-    let pool = &data.pool();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     Community::update(
@@ -1560,8 +1544,7 @@ mod tests {
   }
 
   #[test_context(Data)]
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn post_listing_instance_block_communities(data: &mut Data) -> LemmyResult<()> {
     const POST_FROM_BLOCKED_INSTANCE_COMMS: &str = "post on blocked instance";
     const HOWARD_POST: &str = "howard post";
@@ -1573,7 +1556,7 @@ mod tests {
       POST,
     ];
 
-    let pool = &data.pool();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     let blocked_instance_comms = Instance::read_or_create(pool, "another_domain.tld").await?;
@@ -1649,8 +1632,7 @@ mod tests {
   }
 
   #[test_context(Data)]
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn post_listing_instance_block_persons(data: &mut Data) -> LemmyResult<()> {
     const POST_FROM_BLOCKED_INSTANCE_USERS: &str = "post from blocked instance user";
     const POST_TO_UNBLOCKED_COMM: &str = "post to unblocked comm";
@@ -1662,7 +1644,7 @@ mod tests {
       POST,
     ];
 
-    let pool = &data.pool();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     let blocked_instance_persons = Instance::read_or_create(pool, "another_domain.tld").await?;
@@ -1731,10 +1713,9 @@ mod tests {
   }
 
   #[test_context(Data)]
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn pagination_includes_each_post_once(data: &mut Data) -> LemmyResult<()> {
-    let pool = &data.pool();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     let community_form = CommunityInsertForm::new(
@@ -1838,10 +1819,9 @@ mod tests {
   }
 
   #[test_context(Data)]
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn post_listings_hide_read(data: &mut Data) -> LemmyResult<()> {
-    let pool = &data.pool();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     // Make sure local user hides read posts
@@ -1886,10 +1866,9 @@ mod tests {
   }
 
   #[test_context(Data)]
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn post_listings_hide_hidden(data: &mut Data) -> LemmyResult<()> {
-    let pool = &data.pool();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     // Mark a post as hidden
@@ -1933,10 +1912,9 @@ mod tests {
   }
 
   #[test_context(Data)]
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn post_listings_hide_nsfw(data: &mut Data) -> LemmyResult<()> {
-    let pool = &data.pool();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     // Mark a post as nsfw
@@ -1978,10 +1956,9 @@ mod tests {
   }
 
   #[test_context(Data)]
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn local_only_instance(data: &mut Data) -> LemmyResult<()> {
-    let pool = &data.pool();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     Community::update(
@@ -2027,10 +2004,9 @@ mod tests {
   }
 
   #[test_context(Data)]
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn post_listing_local_user_banned_from_community(data: &mut Data) -> LemmyResult<()> {
-    let pool = &data.pool();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     // Test that post view shows if local user is blocked from community
@@ -2071,10 +2047,9 @@ mod tests {
   }
 
   #[test_context(Data)]
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn post_listing_local_user_not_banned_from_community(data: &mut Data) -> LemmyResult<()> {
-    let pool = &data.pool();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     let post_view = PostView::read(
@@ -2099,10 +2074,9 @@ mod tests {
   }
 
   #[test_context(Data)]
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn post_listing_creator_banned(data: &mut Data) -> LemmyResult<()> {
-    let pool = &data.pool();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     let banned_person_form = PersonInsertForm::test_form(data.instance.id, "jill");
@@ -2150,10 +2124,9 @@ mod tests {
   }
 
   #[test_context(Data)]
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn post_listing_creator_community_banned(data: &mut Data) -> LemmyResult<()> {
-    let pool = &data.pool();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     let banned_person_form = PersonInsertForm::test_form(data.instance.id, "jarvis");
@@ -2205,10 +2178,9 @@ mod tests {
   }
 
   #[test_context(Data)]
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn speed_check(data: &mut Data) -> LemmyResult<()> {
-    let pool = &data.pool();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     // Make sure the post_view query is less than this time
@@ -2257,10 +2229,9 @@ mod tests {
   }
 
   #[test_context(Data)]
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn post_listings_no_comments_only(data: &mut Data) -> LemmyResult<()> {
-    let pool = &data.pool();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     // Create a comment for a post
@@ -2287,10 +2258,9 @@ mod tests {
   }
 
   #[test_context(Data)]
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn post_listing_private_community(data: &mut Data) -> LemmyResult<()> {
-    let pool = &data.pool();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     // Mark community as private
@@ -2386,10 +2356,9 @@ mod tests {
   }
 
   #[test_context(Data)]
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn post_listings_hide_media(data: &mut Data) -> LemmyResult<()> {
-    let pool = &data.pool();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     // Make one post an image post
@@ -2446,10 +2415,9 @@ mod tests {
   }
 
   #[test_context(Data)]
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn post_with_blocked_keywords(data: &mut Data) -> LemmyResult<()> {
-    let pool = &data.pool();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     let name_blocked = format!("post_{POST_KEYWORD_BLOCKED}");
@@ -2519,10 +2487,9 @@ mod tests {
     Ok(())
   }
   #[test_context(Data)]
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn post_tags_present(data: &mut Data) -> LemmyResult<()> {
-    let pool = &data.pool();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     let post_view = PostView::read(
@@ -2547,10 +2514,9 @@ mod tests {
   }
 
   #[test_context(Data)]
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn post_listing_multi_community(data: &mut Data) -> LemmyResult<()> {
-    let pool = &data.pool();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     // create two more communities with one post each

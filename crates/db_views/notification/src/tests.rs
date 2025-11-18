@@ -19,7 +19,6 @@ use lemmy_diesel_utils::{
 };
 use lemmy_utils::error::LemmyResult;
 use pretty_assertions::assert_eq;
-use serial_test::serial;
 
 struct Data {
   alice: Person,
@@ -44,9 +43,8 @@ async fn cleanup(data: Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
 }
 
 #[tokio::test]
-#[serial]
 async fn test_private_message() -> LemmyResult<()> {
-  let pool = &build_db_pool_for_tests();
+  let pool = &build_db_pool_for_tests().await;
   let pool = &mut pool.into();
   let data = init_data(pool).await?;
 
@@ -76,9 +74,8 @@ async fn test_private_message() -> LemmyResult<()> {
 }
 
 #[tokio::test]
-#[serial]
 async fn test_post() -> LemmyResult<()> {
-  let pool = &build_db_pool_for_tests();
+  let pool = &build_db_pool_for_tests().await;
   let pool = &mut pool.into();
   let data = init_data(pool).await?;
 
