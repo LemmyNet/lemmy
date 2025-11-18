@@ -1,11 +1,24 @@
 use crate::connection::DbPool;
-use base64::{Engine, prelude::BASE64_URL_SAFE_NO_PAD};
+use base64::{
+  Engine,
+  alphabet::Alphabet,
+  engine::{GeneralPurpose, general_purpose::NO_PAD},
+};
 use cfg_if::cfg_if;
 use i_love_jesus::{PaginatedQueryBuilder, SortDirection};
 #[cfg(feature = "full")]
 use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
+use std::sync::LazyLock;
+
+/// Use base 64 engine with custom alphabet based on base64::engine::general_purpose::URL_SAFE
+/// with randomized character order, to prevent clients from parsing or modifying cursor data.
+const BASE64_ENGINE: LazyLock<GeneralPurpose> = LazyLock::new(|| {
+  let alphabet =
+    Alphabet::new("AphruVFwvCetlckdZ2g-foxXBGNbyHnD96qUj3KL_YsE7P1OQiaIR0z4T58mMWJS").unwrap();
+  GeneralPurpose::new(&alphabet, NO_PAD)
+});
 
 pub trait PaginationCursorBuilderNew {
   type CursorData;
@@ -50,11 +63,11 @@ pub struct PaginationCursorNew(String);
 
 impl PaginationCursorNew {
   fn to_internal(self) -> LemmyResult<PaginationCursorNewInternal> {
-    let decoded = BASE64_URL_SAFE_NO_PAD.decode(self.0)?;
+    let decoded = BASE64_ENGINE.decode(self.0)?;
     Ok(serde_urlencoded::from_str(&String::from_utf8(decoded)?)?)
   }
   fn from_internal(other: PaginationCursorNewInternal) -> LemmyResult<Self> {
-    let encoded = BASE64_URL_SAFE_NO_PAD.encode(serde_urlencoded::to_string(other)?);
+    let encoded = BASE64_ENGINE.encode(serde_urlencoded::to_string(other)?);
     Ok(Self(encoded))
   }
 }
@@ -236,7 +249,7 @@ mod test {
       id: 123,
     };
     let encoded = PaginationCursorNew::from_internal(data.clone())?;
-    assert_eq!("Yj1mYWxzZSZpPTEyMw", &encoded.0);
+    assert_eq!("BU0KBxiIGgGYd-ualQ", &encoded.0);
     let data2 = encoded.to_internal()?;
     assert_eq!(data, data2);
     Ok(())
