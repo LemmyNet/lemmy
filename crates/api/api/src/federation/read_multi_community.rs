@@ -29,7 +29,8 @@ pub async fn read_multi_community(
     ..Default::default()
   }
   .list(&local_site.site, &mut context.pool())
-  .await?;
+  .await?
+  .data;
 
   Ok(Json(GetMultiCommunityResponse {
     multi_community_view,

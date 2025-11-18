@@ -11,7 +11,7 @@ use lemmy_db_schema_file::{
   enums::{CommunityNotificationsMode, CommunityVisibility, ListingType},
 };
 use lemmy_db_views_community_moderator::CommunityModeratorView;
-use lemmy_diesel_utils::pagination::{PaginatedVec, PaginationCursorNew};
+use lemmy_diesel_utils::pagination::PaginationCursorNew;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -320,7 +320,7 @@ pub struct GetMultiCommunity {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct GetMultiCommunityResponse {
   pub multi_community_view: MultiCommunityView,
-  pub communities: PaginatedVec<CommunityView>,
+  pub communities: Vec<CommunityView>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

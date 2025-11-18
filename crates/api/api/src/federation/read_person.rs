@@ -62,7 +62,8 @@ pub async fn read_person(
     ..Default::default()
   }
   .list(&mut context.pool())
-  .await?;
+  .await?
+  .data;
 
   let site = read_site_for_actor(person_view.person.ap_id.clone(), &context).await?;
 
