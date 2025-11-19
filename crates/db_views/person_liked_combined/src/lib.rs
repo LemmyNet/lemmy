@@ -14,7 +14,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_post::PostView;
-use lemmy_diesel_utils::pagination::PaginationCursor;
+use lemmy_diesel_utils::pagination::{PaginationCursor, PaginationCursorNew};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -130,19 +130,7 @@ pub enum PersonLikedCombinedView {
 pub struct ListPersonLiked {
   pub type_: Option<PersonContentType>,
   pub like_type: Option<LikeType>,
-  pub page_cursor: Option<PaginationCursor>,
+  pub page_cursor: Option<PaginationCursorNew>,
   pub page_back: Option<bool>,
   pub limit: Option<i64>,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// Your liked posts response.
-pub struct ListPersonLikedResponse {
-  pub liked: Vec<PersonLikedCombinedView>,
-  /// the pagination cursor to use to fetch the next page
-  pub next_page: Option<PaginationCursor>,
-  pub prev_page: Option<PaginationCursor>,
 }

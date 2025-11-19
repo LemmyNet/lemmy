@@ -20,7 +20,6 @@ pub mod administration {
   pub use lemmy_db_views_registration_applications::api::{
     ApproveRegistrationApplication,
     ListRegistrationApplications,
-    ListRegistrationApplicationsResponse,
   };
   pub use lemmy_db_views_site::api::{CreateSite, EditSite};
 }

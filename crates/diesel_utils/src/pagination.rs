@@ -11,7 +11,10 @@ use itertools::Itertools;
 use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-use std::{ops::Deref, sync::LazyLock};
+use std::{
+  ops::{Deref, DerefMut},
+  sync::LazyLock,
+};
 
 /// Use base 64 engine with custom alphabet based on base64::engine::general_purpose::URL_SAFE
 /// with randomized character order, to prevent clients from parsing or modifying cursor data.
@@ -175,6 +178,11 @@ cfg_if! {
       type Target = Vec<T>;
       fn deref(&self) -> &Vec<T> {
         &self.data
+      }
+    }
+    impl<T> DerefMut for PagedResponse<T> {
+      fn deref_mut(&mut self) -> &mut Self::Target {
+          &mut self.data
       }
     }
 

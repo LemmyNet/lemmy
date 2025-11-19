@@ -13,7 +13,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_post::PostView;
-use lemmy_diesel_utils::pagination::PaginationCursor;
+use lemmy_diesel_utils::pagination::{PaginationCursor, PaginationCursorNew};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -129,19 +129,6 @@ pub enum PersonSavedCombinedView {
 /// Gets your saved posts and comments
 pub struct ListPersonSaved {
   pub type_: Option<PersonContentType>,
-  pub page_cursor: Option<PaginationCursor>,
-  pub page_back: Option<bool>,
+  pub page_cursor: Option<PaginationCursorNew>,
   pub limit: Option<i64>,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// A person's saved content response.
-pub struct ListPersonSavedResponse {
-  pub saved: Vec<PersonSavedCombinedView>,
-  /// the pagination cursor to use to fetch the next page
-  pub next_page: Option<PaginationCursor>,
-  pub prev_page: Option<PaginationCursor>,
 }

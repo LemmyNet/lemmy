@@ -6,9 +6,11 @@ use lemmy_db_schema::source::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::{
+  PersonView,
   api::{AddAdmin, AddAdminResponse},
   impls::PersonQuery,
 };
+use lemmy_diesel_utils::pagination::PagedResponse;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn add_admin(
@@ -75,5 +77,7 @@ pub async fn add_admin(
   )
   .await?;
 
-  Ok(Json(AddAdminResponse { admins }))
+  Ok(Json(AddAdminResponse {
+    admins: admins.data,
+  }))
 }

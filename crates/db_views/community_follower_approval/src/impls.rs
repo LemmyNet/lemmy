@@ -76,7 +76,7 @@ impl PendingFollowerView {
     page_cursor: Option<PaginationCursorNew>,
     limit: Option<i64>,
   ) -> LemmyResult<PagedResponse<PendingFollowerView>> {
-    let limit = limit_fetch(limit)?;
+    let limit = limit_fetch(limit, None)?;
 
     let mut query = Self::joins()
       .filter(community_actions::became_moderator_at.is_not_null())

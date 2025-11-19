@@ -55,7 +55,7 @@ impl VoteView {
     use lemmy_db_schema::source::post::post_actions_keys as key;
 
     let conn = &mut get_conn(pool).await?;
-    let limit = limit_fetch(limit)?;
+    let limit = limit_fetch(limit, None)?;
 
     let creator_community_actions_join = creator_community_actions.on(
       creator_community_actions
@@ -129,7 +129,7 @@ impl VoteView {
   ) -> LemmyResult<Vec<Self>> {
     use lemmy_db_schema::source::comment::comment_actions_keys as key;
     let conn = &mut get_conn(pool).await?;
-    let limit = limit_fetch(limit)?;
+    let limit = limit_fetch(limit, None)?;
 
     let creator_community_actions_join = creator_community_actions.on(
       creator_community_actions

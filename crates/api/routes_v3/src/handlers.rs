@@ -398,7 +398,7 @@ pub(crate) async fn search_v3(
     ..Default::default()
   };
   let res = search(Query(data), context, local_user_view).await?;
-  Ok(Json(convert_search_response(res.0.results, type_)))
+  Ok(Json(convert_search_response(res.0.data, type_)))
 }
 
 pub(crate) async fn resolve_object_v3(
@@ -407,7 +407,7 @@ pub(crate) async fn resolve_object_v3(
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<ResolveObjectResponseV3>> {
   let res = resolve_object(data, context, local_user_view).await?;
-  let mut conv = convert_search_response(res.0.results, None);
+  let mut conv = convert_search_response(res.0.data, None);
   Ok(Json(ResolveObjectResponseV3 {
     comment: conv.comments.pop(),
     post: conv.posts.pop(),

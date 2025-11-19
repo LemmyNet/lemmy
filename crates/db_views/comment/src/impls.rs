@@ -284,7 +284,7 @@ impl CommentQuery<'_> {
       // (i64::MAX, 0)
       300
     } else {
-      limit_fetch(o.limit)?
+      limit_fetch(o.limit, None)?
     };
     query = query.limit(limit);
 

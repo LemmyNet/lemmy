@@ -8,5 +8,5 @@ pub use lemmy_db_schema::{
   source::combined::search::SearchCombined,
 };
 pub use lemmy_db_schema_file::enums::{CommentSortType, ListingType, PostSortType};
-pub use lemmy_db_views_search_combined::{Search, SearchCombinedView, SearchResponse};
+pub use lemmy_db_views_search_combined::{Search, SearchCombinedView};
 pub use lemmy_diesel_utils::pagination::PaginationCursor;

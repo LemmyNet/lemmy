@@ -108,7 +108,7 @@ pub struct ModlogQuery<'a> {
 
 impl ModlogQuery<'_> {
   pub async fn list(self, pool: &mut DbPool<'_>) -> LemmyResult<PagedResponse<ModlogView>> {
-    let limit = limit_fetch(self.limit)?;
+    let limit = limit_fetch(self.limit, None)?;
 
     let target_person = aliases::person1.field(person::id);
     let my_person_id = self.local_user.person_id();

@@ -142,7 +142,7 @@ impl FederatedInstanceView {
     pool: &mut DbPool<'_>,
     data: GetFederatedInstances,
   ) -> LemmyResult<PagedResponse<Self>> {
-    let limit = limit_fetch(data.limit)?;
+    let limit = limit_fetch(data.limit, None)?;
     let mut query = Self::joins()
       .select(Self::as_select())
       .limit(limit)

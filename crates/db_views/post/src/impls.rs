@@ -27,7 +27,6 @@ use lemmy_db_schema::{
   },
   utils::{
     limit_fetch,
-    limit_fetch_no,
     queries::filters::{
       filter_blocked,
       filter_is_subscribed,
@@ -215,7 +214,7 @@ impl PostView {
     limit: Option<i64>,
     no_limit: Option<bool>,
   ) -> LemmyResult<PagedResponse<PostView>> {
-    let limit = limit_fetch_no(limit, no_limit)?;
+    let limit = limit_fetch(limit, no_limit)?;
     let query = PostView::joins(Some(my_person.id), my_person.instance_id)
       .filter(post_actions::person_id.eq(my_person.id))
       .filter(post_actions::read_at.is_not_null())
@@ -248,7 +247,7 @@ impl PostView {
     limit: Option<i64>,
     no_limit: Option<bool>,
   ) -> LemmyResult<PagedResponse<PostView>> {
-    let limit = limit_fetch_no(limit, no_limit)?;
+    let limit = limit_fetch(limit, no_limit)?;
     let query = PostView::joins(Some(my_person.id), my_person.instance_id)
       .filter(post_actions::person_id.eq(my_person.id))
       .filter(post_actions::hidden_at.is_not_null())
@@ -332,7 +331,7 @@ impl PostQuery<'_> {
           .await?
           .data;
 
-        let limit = limit_fetch(self.limit)?;
+        let limit = limit_fetch(self.limit, None)?;
 
         // take last element of array. if this query returned less than LIMIT elements,
         // the heuristic is invalid since we can't guarantee the full query will return >= LIMIT
@@ -370,7 +369,7 @@ impl PostQuery<'_> {
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<PagedResponse<PostView>> {
     let o = self;
-    let limit = limit_fetch(o.limit)?;
+    let limit = limit_fetch(o.limit, None)?;
 
     let my_person_id = o.local_user.person_id();
     let my_local_user_id = o.local_user.local_user_id();

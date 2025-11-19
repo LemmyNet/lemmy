@@ -36,7 +36,7 @@ impl LocalImageView {
     cursor_data: Option<PaginationCursorNew>,
     limit: Option<i64>,
   ) -> LemmyResult<PagedResponse<Self>> {
-    let limit = limit_fetch(limit)?;
+    let limit = limit_fetch(limit, None)?;
 
     let query = Self::joins()
       .filter(local_image::person_id.eq(person_id))
@@ -75,7 +75,7 @@ impl LocalImageView {
     cursor_data: Option<PaginationCursorNew>,
     limit: Option<i64>,
   ) -> LemmyResult<PagedResponse<Self>> {
-    let limit = limit_fetch(limit)?;
+    let limit = limit_fetch(limit, None)?;
 
     let query = Self::joins()
       .select(Self::as_select())

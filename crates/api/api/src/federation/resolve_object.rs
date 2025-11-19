@@ -15,8 +15,9 @@ use lemmy_db_views_community::{CommunityView, MultiCommunityView};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
 use lemmy_db_views_post::PostView;
-use lemmy_db_views_search_combined::{SearchCombinedView, SearchResponse};
+use lemmy_db_views_search_combined::SearchCombinedView;
 use lemmy_db_views_site::{SiteView, api::ResolveObject};
+use lemmy_diesel_utils::pagination::PagedResponse;
 use lemmy_utils::error::{LemmyErrorExt2, LemmyErrorType, LemmyResult};
 use url::Url;
 
@@ -24,14 +25,15 @@ pub async fn resolve_object(
   Query(data): Query<ResolveObject>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
-) -> LemmyResult<Json<SearchResponse>> {
+) -> LemmyResult<Json<PagedResponse<SearchCombinedView>>> {
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   check_private_instance(&local_user_view, &local_site)?;
 
   let res = resolve_object_internal(&data.q, &local_user_view, &context).await?;
-  Ok(Json(SearchResponse {
-    results: vec![res],
-    ..Default::default()
+  Ok(Json(PagedResponse {
+    data: vec![res],
+    prev_page: None,
+    next_page: None,
   }))
 }
 

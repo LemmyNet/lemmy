@@ -51,7 +51,7 @@ impl Tagline {
     limit: Option<i64>,
   ) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
-    let limit = limit_fetch(limit)?;
+    let limit = limit_fetch(limit, None)?;
     let query = tagline::table.limit(limit).into_boxed();
     let paginated_query = paginate(query, SortDirection::Desc, cursor_data, None, page_back)
       .then_order_by(key::published_at)

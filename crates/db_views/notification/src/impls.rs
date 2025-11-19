@@ -15,7 +15,7 @@ use lemmy_db_schema::{
     notification::{Notification, notification_keys},
     person::Person,
   },
-  utils::{limit_fetch, limit_fetch_no, queries::filters::filter_blocked},
+  utils::{limit_fetch, queries::filters::filter_blocked},
 };
 use lemmy_db_schema_file::{
   enums::NotificationType,
@@ -127,7 +127,7 @@ impl NotificationQuery {
     pool: &mut DbPool<'_>,
     my_person: &Person,
   ) -> LemmyResult<PagedResponse<NotificationView>> {
-    let limit = limit_fetch_no(self.limit, self.no_limit)?;
+    let limit = limit_fetch(self.limit, self.no_limit)?;
     let mut query = notification_joins(my_person.id, my_person.instance_id)
       .select(NotificationViewInternal::as_select())
       .limit(limit)

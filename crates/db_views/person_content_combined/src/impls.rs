@@ -183,11 +183,7 @@ impl PersonContentCombinedQuery {
       .select(PersonContentCombinedViewInternal::as_select())
       .into_boxed();
 
-    let limit = if !self.no_limit.unwrap_or_default() {
-      limit_fetch(self.limit)?
-    } else {
-      i64::MAX
-    };
+    let limit = limit_fetch(self.limit, self.no_limit)?;
     query = query.limit(limit);
 
     if let Some(type_) = self.type_ {

@@ -132,7 +132,7 @@ impl CommunityQuery<'_> {
   ) -> LemmyResult<PagedResponse<CommunityView>> {
     use lemmy_db_schema::CommunitySortType::*;
     let o = self;
-    let limit = limit_fetch(o.limit)?;
+    let limit = limit_fetch(o.limit, None)?;
 
     let mut query = CommunityView::joins(o.local_user.person_id())
       .select(CommunityView::as_select())
@@ -280,11 +280,7 @@ impl MultiCommunityQuery {
       .select(MultiCommunityView::as_select())
       .into_boxed();
 
-    let limit = if !o.no_limit.unwrap_or_default() {
-      limit_fetch(o.limit)?
-    } else {
-      i64::MAX
-    };
+    let limit = limit_fetch(o.limit, o.no_limit)?;
     query = query.limit(limit);
 
     if let Some(listing_type) = o.listing_type {
