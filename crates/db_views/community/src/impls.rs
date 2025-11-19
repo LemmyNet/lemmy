@@ -47,8 +47,8 @@ use lemmy_diesel_utils::{
   pagination::{
     CursorData,
     PagedResponse,
-    PaginationCursorBuilderNew,
-    PaginationCursorNew,
+    PaginationCursor,
+    PaginationCursorConversion,
     paginate_response,
   },
   traits::Crud,
@@ -98,7 +98,7 @@ impl CommunityView {
   }
 }
 
-impl PaginationCursorBuilderNew for CommunityView {
+impl PaginationCursorConversion for CommunityView {
   type PaginatedType = Community;
   fn to_cursor(&self) -> CursorData {
     CursorData::new(self.community.id.0)
@@ -120,7 +120,7 @@ pub struct CommunityQuery<'a> {
   pub local_user: Option<&'a LocalUser>,
   pub show_nsfw: Option<bool>,
   pub multi_community_id: Option<MultiCommunityId>,
-  pub page_cursor: Option<PaginationCursorNew>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }
 
@@ -245,7 +245,7 @@ impl MultiCommunityView {
   }
 }
 
-impl PaginationCursorBuilderNew for MultiCommunityView {
+impl PaginationCursorConversion for MultiCommunityView {
   type PaginatedType = MultiCommunity;
   fn to_cursor(&self) -> CursorData {
     CursorData::new(self.multi.id.0)
@@ -266,7 +266,7 @@ pub struct MultiCommunityQuery {
   pub time_range_seconds: Option<i32>,
   pub my_person_id: Option<PersonId>,
   pub creator_id: Option<PersonId>,
-  pub page_cursor: Option<PaginationCursorNew>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
   pub no_limit: Option<bool>,
 }

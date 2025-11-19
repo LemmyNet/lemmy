@@ -22,7 +22,7 @@ use lemmy_db_schema_file::{
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
-  pagination::{PagedResponse, PaginationCursorNew},
+  pagination::{PagedResponse, PaginationCursor},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -30,7 +30,7 @@ impl VoteView {
   pub async fn list_for_post(
     pool: &mut DbPool<'_>,
     post_id: PostId,
-    _page_cursor: Option<PaginationCursorNew>,
+    _page_cursor: Option<PaginationCursor>,
     limit: Option<i64>,
     local_instance_id: InstanceId,
   ) -> LemmyResult<PagedResponse<Self>> {
@@ -96,7 +96,7 @@ impl VoteView {
   pub async fn list_for_comment(
     pool: &mut DbPool<'_>,
     comment_id: CommentId,
-    _page_cursor: Option<PaginationCursorNew>,
+    _page_cursor: Option<PaginationCursor>,
     limit: Option<i64>,
     local_instance_id: InstanceId,
   ) -> LemmyResult<PagedResponse<Self>> {
@@ -242,8 +242,8 @@ mod tests {
     expected_post_vote_views[1].creator.comment_count = 1;
 
     let read_post_vote_views =
-      VoteView::list_for_post(pool, inserted_post.id, None, None, None, InstanceId(1)).await?;
-    assert_eq!(read_post_vote_views, expected_post_vote_views);
+      VoteView::list_for_post(pool, inserted_post.id, None, None, InstanceId(1)).await?;
+    assert_eq!(read_post_vote_views.data, expected_post_vote_views);
 
     // Timothy votes down his own comment
     let timmy_comment_vote_form =
@@ -272,9 +272,8 @@ mod tests {
     expected_comment_vote_views[0].creator.comment_count = 1;
 
     let read_comment_vote_views =
-      VoteView::list_for_comment(pool, inserted_comment.id, None, None, None, InstanceId(1))
-        .await?;
-    assert_eq!(read_comment_vote_views, expected_comment_vote_views);
+      VoteView::list_for_comment(pool, inserted_comment.id, None, None, InstanceId(1)).await?;
+    assert_eq!(read_comment_vote_views.data, expected_comment_vote_views);
 
     // Ban timmy from that community
     let ban_timmy_form = CommunityPersonBanForm::new(inserted_community.id, inserted_timmy.id);
@@ -282,8 +281,7 @@ mod tests {
 
     // Make sure creator_banned_from_community is true
     let read_comment_vote_views_after_ban =
-      VoteView::list_for_comment(pool, inserted_comment.id, None, None, None, InstanceId(1))
-        .await?;
+      VoteView::list_for_comment(pool, inserted_comment.id, None, None, InstanceId(1)).await?;
 
     assert!(
       read_comment_vote_views_after_ban
@@ -292,7 +290,7 @@ mod tests {
     );
 
     let read_post_vote_views_after_ban =
-      VoteView::list_for_post(pool, inserted_post.id, None, None, None, InstanceId(1)).await?;
+      VoteView::list_for_post(pool, inserted_post.id, None, None, InstanceId(1)).await?;
 
     assert!(
       read_post_vote_views_after_ban

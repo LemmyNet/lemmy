@@ -68,7 +68,7 @@ impl CursorData {
     self.0
   }
 }
-pub trait PaginationCursorBuilderNew {
+pub trait PaginationCursorConversion {
   type PaginatedType: Send;
 
   fn to_cursor(&self) -> CursorData;
@@ -81,7 +81,7 @@ pub trait PaginationCursorBuilderNew {
   /// Paginate a db query.
   fn paginate<Q: Send>(
     query: Q,
-    cursor: Option<PaginationCursorNew>,
+    cursor: Option<PaginationCursor>,
     sort_direction: SortDirection,
     pool: &mut DbPool<'_>,
     // this is only used by PostView for optimization
@@ -121,14 +121,14 @@ pub trait PaginationCursorBuilderNew {
 /// minor Lemmy versions.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-pub struct PaginationCursorNew(String);
+pub struct PaginationCursor(String);
 
-impl PaginationCursorNew {
-  fn to_internal(self) -> LemmyResult<PaginationCursorNewInternal> {
+impl PaginationCursor {
+  fn to_internal(self) -> LemmyResult<PaginationCursorInternal> {
     let decoded = BASE64_ENGINE.decode(self.0)?;
     Ok(serde_urlencoded::from_str(&String::from_utf8(decoded)?)?)
   }
-  fn from_internal(other: PaginationCursorNewInternal) -> LemmyResult<Self> {
+  fn from_internal(other: PaginationCursorInternal) -> LemmyResult<Self> {
     let encoded = BASE64_ENGINE.encode(serde_urlencoded::to_string(other)?);
     Ok(Self(encoded))
   }
@@ -143,7 +143,7 @@ impl PaginationCursorNew {
 /// Uses serde rename to keep the cursor string short.
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
-struct PaginationCursorNewInternal {
+struct PaginationCursorInternal {
   #[serde(rename = "b")]
   back: bool,
   #[serde(rename = "d")]
@@ -160,12 +160,12 @@ cfg_if! {
     #[ts(optional_fields, export)]
     pub struct PaginatedVec<T: ts_rs::TS> {
       pub data: Vec<T>,
-      pub next_page: Option<PaginationCursorNew>,
-      pub prev_page: Option<PaginationCursorNew>,
+      pub next_page: Option<PaginationCursor>,
+      pub prev_page: Option<PaginationCursor>,
     }
     pub fn paginate_response<T: ts_rs::TS>(data: Vec<T>, limit: i64) -> LemmyResult<PaginatedVec<T>>
     where
-      T: PaginationCursorBuilderNew + Serialize + for<'a> Deserialize<'a>,
+      T: PaginationCursorConversion + Serialize + for<'a> Deserialize<'a>,
     {
       todo!()
     }
@@ -177,8 +177,8 @@ cfg_if! {
     #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct PagedResponse<T> {
       pub data: Vec<T>,
-      pub next_page: Option<PaginationCursorNew>,
-      pub prev_page: Option<PaginationCursorNew>,
+      pub next_page: Option<PaginationCursor>,
+      pub prev_page: Option<PaginationCursor>,
     }
 
     impl<T> Deref for PagedResponse<T> {
@@ -207,13 +207,13 @@ cfg_if! {
     /// Add prev/next cursors to query result.
     pub fn paginate_response<T>(data: Vec<T>, limit: i64) -> LemmyResult<PagedResponse<T>>
     where
-      T: PaginationCursorBuilderNew + Serialize + for<'a> Deserialize<'a>,
+      T: PaginationCursorConversion + Serialize + for<'a> Deserialize<'a>,
     {
-      let make_cursor = |item: Option<&T>, back: bool| -> LemmyResult<Option<PaginationCursorNew>> {
+      let make_cursor = |item: Option<&T>, back: bool| -> LemmyResult<Option<PaginationCursor>> {
         if let Some(item) = item {
           let data = item.to_cursor();
-          let cursor = PaginationCursorNewInternal { data, back };
-          Ok(Some(PaginationCursorNew::from_internal(cursor)?))
+          let cursor = PaginationCursorInternal { data, back };
+          Ok(Some(PaginationCursor::from_internal(cursor)?))
         } else {
           Ok(None)
         }
@@ -252,11 +252,11 @@ mod test {
   }
 
   fn do_test_cursor(data: CursorData) -> LemmyResult<()> {
-    let cursor = PaginationCursorNewInternal {
+    let cursor = PaginationCursorInternal {
       back: true,
       data: data.clone(),
     };
-    let encoded = PaginationCursorNew::from_internal(cursor.clone())?;
+    let encoded = PaginationCursor::from_internal(cursor.clone())?;
     let cursor2 = encoded.to_internal()?;
     assert_eq!(cursor, cursor2);
     assert_eq!(data, cursor2.data);

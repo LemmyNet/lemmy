@@ -15,8 +15,8 @@ use lemmy_diesel_utils::{
   pagination::{
     CursorData,
     PagedResponse,
-    PaginationCursorBuilderNew,
-    PaginationCursorNew,
+    PaginationCursor,
+    PaginationCursorConversion,
     paginate_response,
   },
 };
@@ -33,7 +33,7 @@ impl LocalImageView {
   pub async fn get_all_paged_by_person_id(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
-    cursor_data: Option<PaginationCursorNew>,
+    cursor_data: Option<PaginationCursor>,
     limit: Option<i64>,
   ) -> LemmyResult<PagedResponse<Self>> {
     let limit = limit_fetch(limit, None)?;
@@ -72,7 +72,7 @@ impl LocalImageView {
 
   pub async fn get_all_paged(
     pool: &mut DbPool<'_>,
-    cursor_data: Option<PaginationCursorNew>,
+    cursor_data: Option<PaginationCursor>,
     limit: Option<i64>,
   ) -> LemmyResult<PagedResponse<Self>> {
     let limit = limit_fetch(limit, None)?;
@@ -93,7 +93,7 @@ impl LocalImageView {
   }
 }
 
-impl PaginationCursorBuilderNew for LocalImageView {
+impl PaginationCursorConversion for LocalImageView {
   type PaginatedType = LocalImage;
   fn to_cursor(&self) -> CursorData {
     // Use pictrs alias

@@ -4,7 +4,7 @@ use lemmy_db_schema_file::{
   PersonId,
   enums::{ListingType, ModlogKind},
 };
-use lemmy_diesel_utils::pagination::PaginationCursorNew;
+use lemmy_diesel_utils::pagination::PaginationCursor;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -29,6 +29,6 @@ pub struct GetModlog {
   pub post_id: Option<PostId>,
   /// Filter by comment.
   pub comment_id: Option<CommentId>,
-  pub page_cursor: Option<PaginationCursorNew>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }

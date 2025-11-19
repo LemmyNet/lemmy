@@ -4,7 +4,7 @@ use lemmy_db_schema::{
   newtypes::{CommunityId, LanguageId, MultiCommunityId, PostId, TagId},
 };
 use lemmy_db_schema_file::enums::{ListingType, PostNotificationsMode, PostSortType};
-use lemmy_diesel_utils::{dburl::DbUrl, pagination::PaginationCursorNew};
+use lemmy_diesel_utils::{dburl::DbUrl, pagination::PaginationCursor};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -130,7 +130,7 @@ pub struct GetPosts {
   pub mark_as_read: Option<bool>,
   /// If true, then only show posts with no comments
   pub no_comments_only: Option<bool>,
-  pub page_cursor: Option<PaginationCursorNew>,
+  pub page_cursor: Option<PaginationCursor>,
   /// For backwards compat with API v3 (not available on API v4)
   #[serde(skip)]
   pub page: Option<i64>,
@@ -181,7 +181,7 @@ pub struct HidePost {
 /// List post likes. Admins-only.
 pub struct ListPostLikes {
   pub post_id: PostId,
-  pub page_cursor: Option<PaginationCursorNew>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }
 

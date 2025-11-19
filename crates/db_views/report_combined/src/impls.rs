@@ -54,8 +54,8 @@ use lemmy_diesel_utils::{
   pagination::{
     CursorData,
     PagedResponse,
-    PaginationCursorBuilderNew,
-    PaginationCursorNew,
+    PaginationCursor,
+    PaginationCursorConversion,
     paginate_response,
   },
 };
@@ -174,7 +174,7 @@ impl ReportCombinedViewInternal {
   }
 }
 
-impl PaginationCursorBuilderNew for ReportCombinedView {
+impl PaginationCursorConversion for ReportCombinedView {
   type PaginatedType = ReportCombined;
 
   fn to_cursor(&self) -> CursorData {
@@ -219,7 +219,7 @@ pub struct ReportCombinedQuery {
   pub unresolved_only: Option<bool>,
   /// For admins, also show reports with `violates_instance_rules=false`
   pub show_community_rule_violations: Option<bool>,
-  pub page_cursor: Option<PaginationCursorNew>,
+  pub page_cursor: Option<PaginationCursor>,
   pub my_reports_only: Option<bool>,
   pub limit: Option<i64>,
 }

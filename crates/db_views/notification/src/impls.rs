@@ -30,8 +30,8 @@ use lemmy_diesel_utils::{
   pagination::{
     CursorData,
     PagedResponse,
-    PaginationCursorBuilderNew,
-    PaginationCursorNew,
+    PaginationCursor,
+    PaginationCursorConversion,
     paginate_response,
   },
 };
@@ -89,7 +89,7 @@ impl NotificationView {
   }
 }
 
-impl PaginationCursorBuilderNew for NotificationView {
+impl PaginationCursorConversion for NotificationView {
   type PaginatedType = Notification;
 
   fn to_cursor(&self) -> CursorData {
@@ -116,7 +116,7 @@ pub struct NotificationQuery {
   pub unread_only: Option<bool>,
   pub show_bot_accounts: Option<bool>,
   pub hide_modlog_names: Option<bool>,
-  pub page_cursor: Option<PaginationCursorNew>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
   pub no_limit: Option<bool>,
 }

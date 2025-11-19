@@ -1,7 +1,7 @@
 use crate::RegistrationApplicationView;
 use lemmy_db_schema::newtypes::RegistrationApplicationId;
 use lemmy_db_schema_file::PersonId;
-use lemmy_diesel_utils::{pagination::PaginationCursorNew, sensitive::SensitiveString};
+use lemmy_diesel_utils::{pagination::PaginationCursor, sensitive::SensitiveString};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -33,7 +33,7 @@ pub struct GetRegistrationApplication {
 pub struct ListRegistrationApplications {
   /// Only shows the unread applications (IE those without an admin actor)
   pub unread_only: Option<bool>,
-  pub page_cursor: Option<PaginationCursorNew>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }
 

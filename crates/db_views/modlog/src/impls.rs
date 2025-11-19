@@ -36,8 +36,8 @@ use lemmy_diesel_utils::{
   pagination::{
     CursorData,
     PagedResponse,
-    PaginationCursorBuilderNew,
-    PaginationCursorNew,
+    PaginationCursor,
+    PaginationCursorConversion,
     paginate_response,
   },
 };
@@ -70,7 +70,7 @@ impl ModlogView {
   }
 }
 
-impl PaginationCursorBuilderNew for ModlogView {
+impl PaginationCursorConversion for ModlogView {
   type PaginatedType = Modlog;
   fn to_cursor(&self) -> CursorData {
     CursorData::new(self.modlog.id.0)
@@ -102,7 +102,7 @@ pub struct ModlogQuery<'a> {
   pub local_user: Option<&'a LocalUser>,
   pub mod_person_id: Option<PersonId>,
   pub target_person_id: Option<PersonId>,
-  pub page_cursor: Option<PaginationCursorNew>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }
 

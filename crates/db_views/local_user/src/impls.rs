@@ -28,8 +28,8 @@ use lemmy_diesel_utils::{
   pagination::{
     CursorData,
     PagedResponse,
-    PaginationCursorBuilderNew,
-    PaginationCursorNew,
+    PaginationCursor,
+    PaginationCursorConversion,
     paginate_response,
   },
   traits::Crud,
@@ -160,7 +160,7 @@ impl LocalUserView {
 #[derive(Default)]
 pub struct LocalUserQuery {
   pub banned_only: Option<bool>,
-  pub page_cursor: Option<PaginationCursorNew>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }
 
@@ -219,7 +219,7 @@ impl FromRequest for LocalUserView {
   }
 }
 
-impl PaginationCursorBuilderNew for LocalUserView {
+impl PaginationCursorConversion for LocalUserView {
   type PaginatedType = Person;
 
   fn to_cursor(&self) -> CursorData {

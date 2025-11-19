@@ -1,5 +1,5 @@
 use lemmy_db_views_post::PostView;
-use lemmy_diesel_utils::pagination::PaginationCursorNew;
+use lemmy_diesel_utils::pagination::PaginationCursor;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -9,7 +9,7 @@ use serde_with::skip_serializing_none;
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Gets your hidden posts.
 pub struct ListPersonHidden {
-  pub page_cursor: Option<PaginationCursorNew>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }
 
@@ -19,6 +19,6 @@ pub struct ListPersonHidden {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Gets your read posts.
 pub struct ListPersonRead {
-  pub page_cursor: Option<PaginationCursorNew>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }

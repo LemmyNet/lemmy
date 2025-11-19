@@ -14,7 +14,7 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::PersonId;
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_post::PostView;
-use lemmy_diesel_utils::pagination::PaginationCursorNew;
+use lemmy_diesel_utils::pagination::PaginationCursor;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -135,6 +135,6 @@ pub struct ListPersonContent {
   pub person_id: Option<PersonId>,
   /// Example: dessalines , or dessalines@xyz.tld
   pub username: Option<String>,
-  pub page_cursor: Option<PaginationCursorNew>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }

@@ -1,7 +1,7 @@
 use crate::{CommentSlimView, CommentView};
 use lemmy_db_schema::newtypes::{CommentId, CommunityId, LanguageId, PostId};
 use lemmy_db_schema_file::enums::{CommentSortType, ListingType};
-use lemmy_diesel_utils::pagination::PaginationCursorNew;
+use lemmy_diesel_utils::pagination::PaginationCursor;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -77,7 +77,7 @@ pub struct GetComments {
   /// IE 60 would give results for the past minute.
   pub time_range_seconds: Option<i32>,
   pub max_depth: Option<i32>,
-  pub page_cursor: Option<PaginationCursorNew>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
   pub community_id: Option<CommunityId>,
   pub community_name: Option<String>,
@@ -92,7 +92,7 @@ pub struct GetComments {
 /// List comment likes. Admins-only.
 pub struct ListCommentLikes {
   pub comment_id: CommentId,
-  pub page_cursor: Option<PaginationCursorNew>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }
 

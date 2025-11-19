@@ -47,8 +47,8 @@ use lemmy_diesel_utils::{
   pagination::{
     CursorData,
     PagedResponse,
-    PaginationCursorBuilderNew,
-    PaginationCursorNew,
+    PaginationCursor,
+    PaginationCursorConversion,
     paginate_response,
   },
 };
@@ -58,12 +58,12 @@ use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 pub struct PersonLikedCombinedQuery {
   pub type_: Option<PersonContentType>,
   pub like_type: Option<LikeType>,
-  pub page_cursor: Option<PaginationCursorNew>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
   pub no_limit: Option<bool>,
 }
 
-impl PaginationCursorBuilderNew for PersonLikedCombinedView {
+impl PaginationCursorConversion for PersonLikedCombinedView {
   type PaginatedType = PersonLikedCombined;
 
   fn to_cursor(&self) -> CursorData {

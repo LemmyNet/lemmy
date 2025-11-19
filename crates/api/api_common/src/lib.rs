@@ -23,6 +23,6 @@ pub use lemmy_db_views_site::api::SuccessResponse;
 pub use lemmy_db_views_vote::VoteView;
 pub use lemmy_diesel_utils::{
   dburl::DbUrl,
-  pagination::{PagedResponse, PaginationCursorNew},
+  pagination::{PagedResponse, PaginationCursor},
   sensitive::SensitiveString,
 };

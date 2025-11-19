@@ -72,8 +72,8 @@ use lemmy_diesel_utils::{
   pagination::{
     CursorData,
     PagedResponse,
-    PaginationCursorBuilderNew,
-    PaginationCursorNew,
+    PaginationCursor,
+    PaginationCursorConversion,
     paginate_response,
   },
   utils::{fuzzy_search, now, seconds_to_pg_interval},
@@ -176,7 +176,7 @@ impl SearchCombinedView {
   }
 }
 
-impl PaginationCursorBuilderNew for SearchCombinedView {
+impl PaginationCursorConversion for SearchCombinedView {
   type PaginatedType = SearchCombined;
 
   fn to_cursor(&self) -> CursorData {
@@ -229,7 +229,7 @@ pub struct SearchCombinedQuery {
   pub liked_only: Option<bool>,
   pub disliked_only: Option<bool>,
   pub show_nsfw: Option<bool>,
-  pub page_cursor: Option<PaginationCursorNew>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }
 

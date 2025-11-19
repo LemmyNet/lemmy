@@ -27,15 +27,15 @@ use lemmy_diesel_utils::{
   pagination::{
     CursorData,
     PagedResponse,
-    PaginationCursorBuilderNew,
-    PaginationCursorNew,
+    PaginationCursor,
+    PaginationCursorConversion,
     paginate_response,
   },
   traits::Crud,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
-impl PaginationCursorBuilderNew for RegistrationApplicationView {
+impl PaginationCursorConversion for RegistrationApplicationView {
   type PaginatedType = RegistrationApplication;
   fn to_cursor(&self) -> CursorData {
     CursorData::new(self.registration_application.id.0)
@@ -112,7 +112,7 @@ impl RegistrationApplicationView {
 pub struct RegistrationApplicationQuery {
   pub unread_only: Option<bool>,
   pub verified_email_only: Option<bool>,
-  pub page_cursor: Option<PaginationCursorNew>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }
 

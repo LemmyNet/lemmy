@@ -12,8 +12,8 @@ use lemmy_diesel_utils::{
   pagination::{
     CursorData,
     PagedResponse,
-    PaginationCursorBuilderNew,
-    PaginationCursorNew,
+    PaginationCursor,
+    PaginationCursorConversion,
     paginate_response,
   },
   traits::Crud,
@@ -49,7 +49,7 @@ impl Crud for Tagline {
   }
 }
 
-impl PaginationCursorBuilderNew for Tagline {
+impl PaginationCursorConversion for Tagline {
   type PaginatedType = Tagline;
 
   fn to_cursor(&self) -> CursorData {
@@ -67,7 +67,7 @@ impl PaginationCursorBuilderNew for Tagline {
 impl Tagline {
   pub async fn list(
     pool: &mut DbPool<'_>,
-    page_cursor: Option<PaginationCursorNew>,
+    page_cursor: Option<PaginationCursor>,
     limit: Option<i64>,
   ) -> LemmyResult<PagedResponse<Self>> {
     let limit = limit_fetch(limit, None)?;

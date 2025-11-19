@@ -46,8 +46,8 @@ use lemmy_diesel_utils::{
   pagination::{
     CursorData,
     PagedResponse,
-    PaginationCursorBuilderNew,
-    PaginationCursorNew,
+    PaginationCursor,
+    PaginationCursorConversion,
     paginate_response,
   },
   traits::Crud,
@@ -200,7 +200,7 @@ impl FederatedInstanceView {
   }
 }
 
-impl PaginationCursorBuilderNew for FederatedInstanceView {
+impl PaginationCursorConversion for FederatedInstanceView {
   type PaginatedType = Instance;
   fn to_cursor(&self) -> CursorData {
     CursorData::new(self.instance.id.0)

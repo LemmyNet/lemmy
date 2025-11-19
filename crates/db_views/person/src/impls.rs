@@ -21,15 +21,15 @@ use lemmy_diesel_utils::{
   pagination::{
     CursorData,
     PagedResponse,
-    PaginationCursorBuilderNew,
-    PaginationCursorNew,
+    PaginationCursor,
+    PaginationCursorConversion,
     paginate_response,
   },
   traits::Crud,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
-impl PaginationCursorBuilderNew for PersonView {
+impl PaginationCursorConversion for PersonView {
   type PaginatedType = Person;
 
   fn to_cursor(&self) -> CursorData {
@@ -85,7 +85,7 @@ impl PersonView {
 #[derive(Default)]
 pub struct PersonQuery {
   pub admins_only: Option<bool>,
-  pub page_cursor: Option<PaginationCursorNew>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }
 

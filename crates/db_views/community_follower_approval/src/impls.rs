@@ -32,8 +32,8 @@ use lemmy_diesel_utils::{
   pagination::{
     CursorData,
     PagedResponse,
-    PaginationCursorBuilderNew,
-    PaginationCursorNew,
+    PaginationCursor,
+    PaginationCursorConversion,
     paginate_response,
   },
 };
@@ -73,7 +73,7 @@ impl PendingFollowerView {
     mod_id: PersonId,
     all_communities: bool,
     unread_only: bool,
-    page_cursor: Option<PaginationCursorNew>,
+    page_cursor: Option<PaginationCursor>,
     limit: Option<i64>,
   ) -> LemmyResult<PagedResponse<PendingFollowerView>> {
     let limit = limit_fetch(limit, None)?;
@@ -211,7 +211,7 @@ impl PendingFollowerView {
   }
 }
 
-impl PaginationCursorBuilderNew for PendingFollowerView {
+impl PaginationCursorConversion for PendingFollowerView {
   type PaginatedType = CommunityActions;
 
   fn to_cursor(&self) -> CursorData {

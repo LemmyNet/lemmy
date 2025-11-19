@@ -1,5 +1,5 @@
 use crate::LocalImageView;
-use lemmy_diesel_utils::pagination::PaginationCursorNew;
+use lemmy_diesel_utils::pagination::PaginationCursor;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
@@ -36,7 +36,7 @@ pub struct ImageProxyParams {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Get your user's image / media uploads.
 pub struct ListMedia {
-  pub page_cursor: Option<PaginationCursorNew>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }
 

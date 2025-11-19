@@ -72,8 +72,8 @@ use lemmy_diesel_utils::{
   pagination::{
     CursorData,
     PagedResponse,
-    PaginationCursorBuilderNew,
-    PaginationCursorNew,
+    PaginationCursor,
+    PaginationCursorConversion,
     paginate_response,
   },
   utils::{CoalesceKey, Commented, now, seconds_to_pg_interval},
@@ -81,7 +81,7 @@ use lemmy_diesel_utils::{
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use tracing::debug;
 
-impl PaginationCursorBuilderNew for PostView {
+impl PaginationCursorConversion for PostView {
   type PaginatedType = Post;
   fn to_cursor(&self) -> CursorData {
     CursorData::new(self.post.id.0)
@@ -97,7 +97,7 @@ impl PaginationCursorBuilderNew for PostView {
 
 /// This dummy struct is necessary to allow pagination using PostAction keys
 struct PostViewDummy(PostActions);
-impl PaginationCursorBuilderNew for PostViewDummy {
+impl PaginationCursorConversion for PostViewDummy {
   type PaginatedType = PostActions;
   fn to_cursor(&self) -> CursorData {
     CursorData::new_multi([('P', self.0.post_id.0), ('U', self.0.person_id.0)])
@@ -209,7 +209,7 @@ impl PostView {
   pub async fn list_read(
     pool: &mut DbPool<'_>,
     my_person: &Person,
-    page_cursor: Option<PaginationCursorNew>,
+    page_cursor: Option<PaginationCursor>,
     limit: Option<i64>,
     no_limit: Option<bool>,
   ) -> LemmyResult<PagedResponse<PostView>> {
@@ -242,7 +242,7 @@ impl PostView {
   pub async fn list_hidden(
     pool: &mut DbPool<'_>,
     my_person: &Person,
-    page_cursor: Option<PaginationCursorNew>,
+    page_cursor: Option<PaginationCursor>,
     limit: Option<i64>,
     no_limit: Option<bool>,
   ) -> LemmyResult<PagedResponse<PostView>> {
@@ -286,7 +286,7 @@ pub struct PostQuery<'a> {
   pub hide_media: Option<bool>,
   pub no_comments_only: Option<bool>,
   pub keyword_blocks: Option<Vec<String>>,
-  pub page_cursor: Option<PaginationCursorNew>,
+  pub page_cursor: Option<PaginationCursor>,
   /// For backwards compat with API v3 (not available on API v4).
   pub page: Option<i64>,
   pub limit: Option<i64>,

@@ -52,8 +52,8 @@ use lemmy_diesel_utils::{
   pagination::{
     CursorData,
     PagedResponse,
-    PaginationCursorBuilderNew,
-    PaginationCursorNew,
+    PaginationCursor,
+    PaginationCursorConversion,
     paginate_response,
   },
   traits::Crud,
@@ -61,7 +61,7 @@ use lemmy_diesel_utils::{
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
-impl PaginationCursorBuilderNew for CommentView {
+impl PaginationCursorConversion for CommentView {
   type PaginatedType = Comment;
   fn to_cursor(&self) -> CursorData {
     CursorData::new(self.comment.id.0)
@@ -166,7 +166,7 @@ pub struct CommentQuery<'a> {
   pub parent_path: Option<Ltree>,
   pub local_user: Option<&'a LocalUser>,
   pub max_depth: Option<i32>,
-  pub page_cursor: Option<PaginationCursorNew>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }
 

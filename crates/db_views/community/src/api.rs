@@ -11,7 +11,7 @@ use lemmy_db_schema_file::{
   enums::{CommunityNotificationsMode, CommunityVisibility, ListingType},
 };
 use lemmy_db_views_community_moderator::CommunityModeratorView;
-use lemmy_diesel_utils::pagination::PaginationCursorNew;
+use lemmy_diesel_utils::pagination::PaginationCursor;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -211,7 +211,7 @@ pub struct ListCommunities {
   /// IE 60 would give results for the past minute.
   pub time_range_seconds: Option<i32>,
   pub show_nsfw: Option<bool>,
-  pub page_cursor: Option<PaginationCursorNew>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }
 
@@ -282,7 +282,7 @@ pub struct ListMultiCommunities {
   /// Filter to within a given time range, in seconds.
   /// IE 60 would give results for the past minute.
   pub time_range_seconds: Option<i32>,
-  pub page_cursor: Option<PaginationCursorNew>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }
 
