@@ -8,7 +8,6 @@ pub use lemmy_db_views_post::{
   PostView,
   api::{
     GetPosts,
-    GetPostsResponse,
     GetSiteMetadata,
     GetSiteMetadataResponse,
     LinkMetadata,

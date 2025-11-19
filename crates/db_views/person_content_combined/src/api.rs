@@ -14,18 +14,6 @@ pub struct ListPersonHidden {
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// You hidden posts response.
-pub struct ListPersonHiddenResponse {
-  pub hidden: Vec<PostView>,
-  /// the pagination cursor to use to fetch the next page
-  pub next_page: Option<PaginationCursorNew>,
-  pub prev_page: Option<PaginationCursorNew>,
-}
-
-#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
@@ -33,16 +21,4 @@ pub struct ListPersonHiddenResponse {
 pub struct ListPersonRead {
   pub page_cursor: Option<PaginationCursorNew>,
   pub limit: Option<i64>,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// You read posts response.
-pub struct ListPersonReadResponse {
-  pub read: Vec<PostView>,
-  /// the pagination cursor to use to fetch the next page
-  pub next_page: Option<PaginationCursorNew>,
-  pub prev_page: Option<PaginationCursorNew>,
 }

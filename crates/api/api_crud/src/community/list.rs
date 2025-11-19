@@ -1,18 +1,16 @@
 use actix_web::web::{Data, Json, Query};
 use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
-use lemmy_db_views_community::{
-  api::{ListCommunities, ListCommunitiesResponse},
-  impls::CommunityQuery,
-};
+use lemmy_db_views_community::{CommunityView, api::ListCommunities, impls::CommunityQuery};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::pagination::PagedResponse;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn list_communities(
   Query(data): Query<ListCommunities>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
-) -> LemmyResult<Json<ListCommunitiesResponse>> {
+) -> LemmyResult<Json<PagedResponse<CommunityView>>> {
   let local_site = SiteView::read_local(&mut context.pool()).await?;
 
   check_private_instance(&local_user_view, &local_site.local_site)?;
@@ -38,9 +36,5 @@ pub async fn list_communities(
   .await?;
 
   // Return the jwt
-  Ok(Json(ListCommunitiesResponse {
-    communities: res.data,
-    next_page: res.next_page,
-    prev_page: res.prev_page,
-  }))
+  Ok(Json(res))
 }

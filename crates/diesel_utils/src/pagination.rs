@@ -11,7 +11,7 @@ use itertools::Itertools;
 use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-use std::sync::LazyLock;
+use std::{ops::Deref, sync::LazyLock};
 
 /// Use base 64 engine with custom alphabet based on base64::engine::general_purpose::URL_SAFE
 /// with randomized character order, to prevent clients from parsing or modifying cursor data.
@@ -123,10 +123,6 @@ impl PaginationCursorNew {
     Ok(Self(encoded))
   }
 
-  pub fn into_inner(self) -> String {
-    self.0
-  }
-
   // only used for PostView optimization
   pub fn is_back(self) -> bool {
     self.to_internal().unwrap().back
@@ -165,15 +161,36 @@ cfg_if! {
     }
   } else {
 
+    /// This response contains only a single page of items. To get the next page, take the
+    /// cursor string from `next_page` and pass it to the same API endpoint via `page_cursor`
+    /// parameter. For going to the previous page, use `prev_page` instead.
     #[derive(Debug, Serialize, Deserialize, Clone)]
-    pub struct PaginatedVec<T> {
+    pub struct PagedResponse<T> {
       pub data: Vec<T>,
       pub next_page: Option<PaginationCursorNew>,
       pub prev_page: Option<PaginationCursorNew>,
     }
 
+    impl<T> Deref for PagedResponse<T> {
+      type Target = Vec<T>;
+      fn deref(&self) -> &Vec<T> {
+        &self.data
+      }
+    }
+
+    impl<T> IntoIterator for PagedResponse<T> {
+    type Item = T;
+    type IntoIter= std::vec::IntoIter<Self::Item>;
+
+
+    // Required method
+    fn into_iter(self) -> Self::IntoIter {
+      self.data.into_iter()
+    }
+  }
+
     /// Add prev/next cursors to query result.
-    pub fn paginate_response<T>(data: Vec<T>, limit: i64) -> LemmyResult<PaginatedVec<T>>
+    pub fn paginate_response<T>(data: Vec<T>, limit: i64) -> LemmyResult<PagedResponse<T>>
     where
       T: PaginationCursorBuilderNew + Serialize + for<'a> Deserialize<'a>,
     {
@@ -195,7 +212,7 @@ cfg_if! {
       if data.len() < limit {
         next_page = None;
       }
-      Ok(PaginatedVec {
+      Ok(PagedResponse {
         data,
         next_page,
         prev_page,

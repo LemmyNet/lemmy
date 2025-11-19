@@ -138,15 +138,3 @@ pub struct ListPersonContent {
   pub page_cursor: Option<PaginationCursorNew>,
   pub limit: Option<i64>,
 }
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// A person's content response.
-pub struct ListPersonContentResponse {
-  pub content: Vec<PersonContentCombinedView>,
-  /// the pagination cursor to use to fetch the next page
-  pub next_page: Option<PaginationCursorNew>,
-  pub prev_page: Option<PaginationCursorNew>,
-}

@@ -1,9 +1,4 @@
-pub use lemmy_db_views_person_content_combined::api::{
-  ListPersonHidden,
-  ListPersonHiddenResponse,
-  ListPersonRead,
-  ListPersonReadResponse,
-};
+pub use lemmy_db_views_person_content_combined::api::{ListPersonHidden, ListPersonRead};
 pub use lemmy_db_views_person_liked_combined::{
   ListPersonLiked,
   ListPersonLikedResponse,

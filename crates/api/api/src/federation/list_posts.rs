@@ -13,11 +13,9 @@ use lemmy_db_schema::{
   source::{keyword_block::LocalUserKeywordBlock, post::PostActions},
 };
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_post::{
-  api::{GetPosts, GetPostsResponse},
-  impls::PostQuery,
-};
+use lemmy_db_views_post::{PostView, api::GetPosts, impls::PostQuery};
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::pagination::PagedResponse;
 use lemmy_utils::error::LemmyResult;
 use std::cmp::min;
 
@@ -25,7 +23,7 @@ pub async fn list_posts(
   Query(data): Query<GetPosts>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
-) -> LemmyResult<Json<GetPostsResponse>> {
+) -> LemmyResult<Json<PagedResponse<PostView>>> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let local_site = &site_view.local_site;
 
@@ -104,17 +102,9 @@ pub async fn list_posts(
       .mark_as_read
       .unwrap_or(local_user.auto_mark_fetched_posts_as_read)
   {
-    let post_ids = posts
-      .data
-      .iter()
-      .map(|p| p.post.id)
-      .collect::<Vec<PostId>>();
+    let post_ids = posts.iter().map(|p| p.post.id).collect::<Vec<PostId>>();
     PostActions::mark_as_read(&mut context.pool(), local_user.person_id, &post_ids).await?;
   }
 
-  Ok(Json(GetPostsResponse {
-    posts: posts.data,
-    next_page: posts.next_page,
-    prev_page: posts.prev_page,
-  }))
+  Ok(Json(posts))
 }

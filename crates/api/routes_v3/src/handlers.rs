@@ -190,8 +190,8 @@ pub(crate) async fn list_posts_v3(
   };
   let res = list_posts(Query(data), context, local_user_view).await?.0;
   Ok(Json(GetPostsResponseV3 {
-    posts: res.posts.into_iter().map(convert_post_view).collect(),
-    next_page: res.next_page.map(|c| PaginationCursorV3(c.into_inner())),
+    posts: res.into_iter().map(convert_post_view).collect(),
+    next_page: None,
   }))
 }
 
@@ -226,8 +226,7 @@ pub(crate) async fn list_comments_v3(
   };
   let comments = list_comments(Query(data), context, local_user_view)
     .await?
-    .0
-    .comments;
+    .0;
   Ok(Json(GetCommentsResponseV3 {
     comments: comments.into_iter().map(convert_comment_view).collect(),
   }))
@@ -646,8 +645,7 @@ pub(crate) async fn list_communities_v3(
   };
   let res = list_communities(Query(data), context, local_user_view)
     .await?
-    .0
-    .communities;
+    .0;
   Ok(Json(ListCommunitiesResponseV3 {
     communities: res.into_iter().map(convert_community_view).collect(),
   }))

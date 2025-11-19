@@ -38,7 +38,6 @@ pub async fn export_data(
   }
   .list(pool, Some(&local_user_view), local_instance_id)
   .await?
-  .data
   .into_iter()
   .map(|u| match u {
     PersonContentCombinedView::Post(pv) => Post(pv.post),
@@ -53,7 +52,6 @@ pub async fn export_data(
   }
   .list(pool, &local_user_view.person)
   .await?
-  .data
   .into_iter()
   .flat_map(|u| match u.data {
     NotificationData::Post(p) => Some(Post(p.post)),
@@ -82,7 +80,6 @@ pub async fn export_data(
 
   let read_posts = PostView::list_read(pool, my_person, None, None, Some(true))
     .await?
-    .data
     .into_iter()
     .map(|pv| pv.post.ap_id.into())
     .collect();

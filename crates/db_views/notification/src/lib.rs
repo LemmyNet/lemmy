@@ -168,14 +168,3 @@ pub struct ListNotifications {
   pub page_cursor: Option<PaginationCursorNew>,
   pub limit: Option<i64>,
 }
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// Get your inbox (replies, comment mentions, post mentions, and messages)
-pub struct ListNotificationsResponse {
-  pub notifications: Vec<NotificationView>,
-  /// the pagination cursor to use to fetch the next page
-  pub next_page: Option<PaginationCursorNew>,
-  pub prev_page: Option<PaginationCursorNew>,
-}

@@ -14,7 +14,7 @@ use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   pagination::{
     CursorData,
-    PaginatedVec,
+    PagedResponse,
     PaginationCursorBuilderNew,
     PaginationCursorNew,
     paginate_response,
@@ -35,7 +35,7 @@ impl LocalImageView {
     person_id: PersonId,
     cursor_data: Option<PaginationCursorNew>,
     limit: Option<i64>,
-  ) -> LemmyResult<PaginatedVec<Self>> {
+  ) -> LemmyResult<PagedResponse<Self>> {
     let limit = limit_fetch(limit)?;
 
     let query = Self::joins()
@@ -74,7 +74,7 @@ impl LocalImageView {
     pool: &mut DbPool<'_>,
     cursor_data: Option<PaginationCursorNew>,
     limit: Option<i64>,
-  ) -> LemmyResult<PaginatedVec<Self>> {
+  ) -> LemmyResult<PagedResponse<Self>> {
     let limit = limit_fetch(limit)?;
 
     let query = Self::joins()

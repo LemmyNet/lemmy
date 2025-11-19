@@ -51,7 +51,7 @@ use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   pagination::{
     CursorData,
-    PaginatedVec,
+    PagedResponse,
     PaginationCursorBuilderNew,
     PaginationCursorNew,
     paginate_response,
@@ -175,7 +175,7 @@ impl CommentQuery<'_> {
     self,
     site: &Site,
     pool: &mut DbPool<'_>,
-  ) -> LemmyResult<PaginatedVec<CommentView>> {
+  ) -> LemmyResult<PagedResponse<CommentView>> {
     let o = self;
 
     // The left join below will return None in this case
@@ -503,8 +503,7 @@ mod tests {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await?
-    .data;
+    .await?;
 
     assert!(read_comment_views_no_person[0].comment_actions.is_none());
     assert!(!read_comment_views_no_person[0].can_mod);
@@ -516,8 +515,7 @@ mod tests {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await?
-    .data;
+    .await?;
 
     assert!(
       read_comment_views_with_person[0]
@@ -562,8 +560,7 @@ mod tests {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await?
-    .data;
+    .await?;
 
     let child_path = data.comment_1.path.clone();
     let read_comment_views_child_path = CommentQuery {
@@ -572,8 +569,7 @@ mod tests {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await?
-    .data;
+    .await?;
 
     // Make sure the comment parent-limited fetch is correct
     assert_length!(6, read_comment_views_top_path);
@@ -581,7 +577,7 @@ mod tests {
 
     // Make sure it contains the parent, but not the comment from the other tree
     let child_comments = read_comment_views_child_path
-      .into_iter()
+      .iter()
       .map(|c| c.comment.id)
       .collect::<Vec<CommentId>>();
     assert!(child_comments.contains(&data.comment_1.id));
@@ -593,8 +589,7 @@ mod tests {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await?
-    .data;
+    .await?;
 
     // Make sure a depth limited one only has the top comment
     assert_length!(1, read_comment_views_top_max_depth);
@@ -608,8 +603,7 @@ mod tests {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await?
-    .data;
+    .await?;
 
     // Make sure a depth limited one, and given child comment 1, has 3
     // 1, 3, 4
@@ -645,8 +639,7 @@ mod tests {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await?
-    .data;
+    .await?;
     assert_length!(5, all_languages);
 
     // change user lang to finnish, should only show one post in finnish and one undetermined
@@ -662,8 +655,7 @@ mod tests {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await?
-    .data;
+    .await?;
     assert_length!(1, finnish_comments);
     let finnish_comment = finnish_comments
       .iter()
@@ -686,8 +678,7 @@ mod tests {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await?
-    .data;
+    .await?;
     assert_length!(1, undetermined_comment);
 
     cleanup(data, pool).await
@@ -711,8 +702,7 @@ mod tests {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await?
-    .data;
+    .await?;
     assert_eq!(comments[0].comment.id, data.comment_2.id);
     assert!(comments[0].comment.distinguished);
 
@@ -738,8 +728,7 @@ mod tests {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await?
-    .data;
+    .await?;
 
     assert_eq!(comments[1].creator.name, "sara");
     assert!(comments[1].creator_is_moderator);
@@ -761,8 +750,7 @@ mod tests {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await?
-    .data;
+    .await?;
 
     // Timmy is an admin, and make sure that field is true
     assert_eq!(comments[0].creator.name, "timmy");
@@ -816,8 +804,7 @@ mod tests {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await?
-    .data;
+    .await?;
     assert_eq!(0, unauthenticated_query.len());
 
     let authenticated_query = CommentQuery {
@@ -825,8 +812,7 @@ mod tests {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await?
-    .data;
+    .await?;
     assert_eq!(5, authenticated_query.len());
 
     let unauthenticated_comment =
@@ -923,7 +909,7 @@ mod tests {
     Post::update(pool, data.post.id, &update_form).await?;
 
     // Make sure comments of this post are not returned
-    let comments = CommentQuery::default().list(&data.site, pool).await?.data;
+    let comments = CommentQuery::default().list(&data.site, pool).await?;
     assert_eq!(0, comments.len());
 
     // Mark site as nsfw
@@ -931,7 +917,7 @@ mod tests {
     site.content_warning = Some("nsfw".to_string());
 
     // Now comments of nsfw post are returned
-    let comments = CommentQuery::default().list(&site, pool).await?.data;
+    let comments = CommentQuery::default().list(&site, pool).await?;
     assert_eq!(6, comments.len());
 
     cleanup(data, pool).await
@@ -956,7 +942,7 @@ mod tests {
     .await?;
 
     // No comments returned without auth
-    let read_comment_listing = CommentQuery::default().list(&data.site, pool).await?.data;
+    let read_comment_listing = CommentQuery::default().list(&data.site, pool).await?;
     assert_eq!(0, read_comment_listing.len());
     let comment_view = CommentView::read(pool, data.comment_0.id, None, data.instance.id).await;
     assert!(comment_view.is_err());
@@ -969,8 +955,7 @@ mod tests {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await?
-    .data;
+    .await?;
     assert_eq!(0, read_comment_listing.len());
     let comment_view = CommentView::read(
       pool,
@@ -989,8 +974,7 @@ mod tests {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await?
-    .data;
+    .await?;
     assert_eq!(5, read_comment_listing.len());
     let comment_view = CommentView::read(
       pool,
@@ -1018,8 +1002,7 @@ mod tests {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await?
-    .data;
+    .await?;
     assert_eq!(5, read_comment_listing.len());
     let comment_view = CommentView::read(
       pool,
@@ -1074,8 +1057,7 @@ mod tests {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await?
-    .data;
+    .await?;
     assert_eq!("", comment_listing[0].comment.content);
 
     // Read as admin, content is returned
@@ -1104,8 +1086,7 @@ mod tests {
       ..Default::default()
     }
     .list(&data.site, pool)
-    .await?
-    .data;
+    .await?;
     assert_eq!(data.comment_0.content, comment_listing[0].comment.content);
 
     cleanup(data, pool).await

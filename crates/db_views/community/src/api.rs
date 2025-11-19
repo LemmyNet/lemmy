@@ -215,17 +215,6 @@ pub struct ListCommunities {
   pub limit: Option<i64>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// The response for listing communities.
-pub struct ListCommunitiesResponse {
-  pub communities: Vec<CommunityView>,
-  /// the pagination cursor to use to fetch the next page
-  pub next_page: Option<PaginationCursorNew>,
-  pub prev_page: Option<PaginationCursorNew>,
-}
-
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
@@ -295,16 +284,6 @@ pub struct ListMultiCommunities {
   pub time_range_seconds: Option<i32>,
   pub page_cursor: Option<PaginationCursorNew>,
   pub limit: Option<i64>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-pub struct ListMultiCommunitiesResponse {
-  pub multi_communities: Vec<MultiCommunityView>,
-  /// the pagination cursor to use to fetch the next page
-  pub next_page: Option<PaginationCursorNew>,
-  pub prev_page: Option<PaginationCursorNew>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

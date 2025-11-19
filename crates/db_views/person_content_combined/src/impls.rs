@@ -44,7 +44,7 @@ use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   pagination::{
     CursorData,
-    PaginatedVec,
+    PagedResponse,
     PaginationCursorBuilderNew,
     PaginationCursorNew,
     paginate_response,
@@ -168,7 +168,7 @@ impl PersonContentCombinedQuery {
     pool: &mut DbPool<'_>,
     user: Option<&LocalUserView>,
     local_instance_id: InstanceId,
-  ) -> LemmyResult<PaginatedVec<PersonContentCombinedView>> {
+  ) -> LemmyResult<PagedResponse<PersonContentCombinedView>> {
     let my_person_id = user.as_ref().map(|u| u.local_user.person_id);
     let item_creator = person::id;
 
@@ -369,8 +369,7 @@ mod tests {
     // Do a batch read of timmy
     let timmy_content = PersonContentCombinedQuery::new(data.timmy.id)
       .list(pool, None, data.instance.id)
-      .await?
-      .data;
+      .await?;
     assert_eq!(3, timmy_content.len());
 
     // Make sure the types are correct
@@ -396,8 +395,7 @@ mod tests {
     // Do a batch read of sara
     let sara_content = PersonContentCombinedQuery::new(data.sara.id)
       .list(pool, None, data.instance.id)
-      .await?
-      .data;
+      .await?;
     assert_eq!(3, sara_content.len());
 
     // Make sure the report types are correct

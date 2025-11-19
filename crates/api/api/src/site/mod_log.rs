@@ -2,18 +2,16 @@ use crate::hide_modlog_names;
 use actix_web::web::{Data, Json, Query};
 use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_modlog::{
-  api::{GetModlog, GetModlogResponse},
-  impls::ModlogQuery,
-};
+use lemmy_db_views_modlog::{ModlogView, api::GetModlog, impls::ModlogQuery};
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::pagination::PagedResponse;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn get_mod_log(
   Query(data): Query<GetModlog>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
-) -> LemmyResult<Json<GetModlogResponse>> {
+) -> LemmyResult<Json<PagedResponse<ModlogView>>> {
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
 
   check_private_instance(&local_user_view, &local_site)?;
@@ -43,11 +41,7 @@ pub async fn get_mod_log(
   .list(&mut context.pool())
   .await?;
 
-  Ok(Json(GetModlogResponse {
-    modlog: modlog.data,
-    next_page: modlog.next_page,
-    prev_page: modlog.prev_page,
-  }))
+  Ok(Json(modlog))
 }
 
 #[cfg(test)]
@@ -68,6 +62,7 @@ mod tests {
   };
   use lemmy_db_schema_file::enums::ModlogKind;
   use lemmy_db_views_comment::CommentView;
+  use lemmy_db_views_modlog::ModlogView;
   use lemmy_db_views_post::PostView;
   use lemmy_diesel_utils::traits::Crud;
   use pretty_assertions::assert_eq;

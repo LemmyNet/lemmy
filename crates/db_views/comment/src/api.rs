@@ -85,26 +85,6 @@ pub struct GetComments {
   pub parent_id: Option<CommentId>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// The comment list response.
-pub struct GetCommentsResponse {
-  pub comments: Vec<CommentView>,
-  pub next_page: Option<PaginationCursorNew>,
-  pub prev_page: Option<PaginationCursorNew>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// A slimmer comment list response, without the post or community.
-pub struct GetCommentsSlimResponse {
-  pub comments: Vec<CommentSlimView>,
-  pub next_page: Option<PaginationCursorNew>,
-  pub prev_page: Option<PaginationCursorNew>,
-}
-
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]

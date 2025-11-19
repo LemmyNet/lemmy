@@ -9,14 +9,11 @@ use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
 use lemmy_db_schema::source::comment::Comment;
-use lemmy_db_views_comment::{
-  CommentView,
-  api::{GetComments, GetCommentsResponse, GetCommentsSlimResponse},
-  impls::CommentQuery,
-};
+use lemmy_db_views_comment::{CommentSlimView, CommentView, api::GetComments, impls::CommentQuery};
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_post::PostView;
 use lemmy_db_views_site::SiteView;
-use lemmy_diesel_utils::{pagination::PaginatedVec, traits::Crud};
+use lemmy_diesel_utils::{pagination::PagedResponse, traits::Crud};
 use lemmy_utils::error::LemmyResult;
 
 /// A common fetcher for both the CommentView, and CommentSlimView.
@@ -24,7 +21,7 @@ async fn list_comments_common(
   data: GetComments,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
-) -> LemmyResult<PaginatedVec<CommentView>> {
+) -> LemmyResult<PagedResponse<CommentView>> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let local_site = &site_view.local_site;
 
@@ -85,32 +82,29 @@ pub async fn list_comments(
   Query(data): Query<GetComments>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
-) -> LemmyResult<Json<GetCommentsResponse>> {
+) -> LemmyResult<Json<PagedResponse<CommentView>>> {
   let common = list_comments_common(data, context, local_user_view).await?;
 
-  Ok(Json(GetCommentsResponse {
-    comments: common.data,
-    next_page: common.next_page,
-    prev_page: common.prev_page,
-  }))
+  Ok(Json(common))
 }
 
 pub async fn list_comments_slim(
   Query(data): Query<GetComments>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
-) -> LemmyResult<Json<GetCommentsSlimResponse>> {
+) -> LemmyResult<Json<PagedResponse<CommentSlimView>>> {
   let common = list_comments_common(data, context, local_user_view).await?;
 
-  let comments = common
+  let data = common
     .data
     .into_iter()
     .map(CommentView::map_to_slim)
     .collect();
-
-  Ok(Json(GetCommentsSlimResponse {
-    comments,
+  let res = PagedResponse {
+    data,
     next_page: common.next_page,
     prev_page: common.prev_page,
-  }))
+  };
+
+  Ok(Json(res))
 }

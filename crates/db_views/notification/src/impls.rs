@@ -29,7 +29,7 @@ use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   pagination::{
     CursorData,
-    PaginatedVec,
+    PagedResponse,
     PaginationCursorBuilderNew,
     PaginationCursorNew,
     paginate_response,
@@ -126,7 +126,7 @@ impl NotificationQuery {
     self,
     pool: &mut DbPool<'_>,
     my_person: &Person,
-  ) -> LemmyResult<PaginatedVec<NotificationView>> {
+  ) -> LemmyResult<PagedResponse<NotificationView>> {
     let limit = limit_fetch_no(self.limit, self.no_limit)?;
     let mut query = notification_joins(my_person.id, my_person.instance_id)
       .select(NotificationViewInternal::as_select())

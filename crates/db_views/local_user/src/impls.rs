@@ -27,7 +27,7 @@ use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   pagination::{
     CursorData,
-    PaginatedVec,
+    PagedResponse,
     PaginationCursorBuilderNew,
     PaginationCursorNew,
     paginate_response,
@@ -166,7 +166,7 @@ pub struct LocalUserQuery {
 
 impl LocalUserQuery {
   // TODO: add filters and sorts
-  pub async fn list(self, pool: &mut DbPool<'_>) -> LemmyResult<PaginatedVec<LocalUserView>> {
+  pub async fn list(self, pool: &mut DbPool<'_>) -> LemmyResult<PagedResponse<LocalUserView>> {
     let limit = self.limit.unwrap_or(i64::MAX);
     let mut query = LocalUserView::joins()
       .filter(person::deleted.eq(false))
@@ -297,8 +297,7 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await?
-    .data;
+    .await?;
     assert_length!(1, list);
     assert_eq!(list[0].person.id, data.alice.id);
 

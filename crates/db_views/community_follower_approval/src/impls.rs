@@ -31,7 +31,7 @@ use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   pagination::{
     CursorData,
-    PaginatedVec,
+    PagedResponse,
     PaginationCursorBuilderNew,
     PaginationCursorNew,
     paginate_response,
@@ -75,7 +75,7 @@ impl PendingFollowerView {
     unread_only: bool,
     page_cursor: Option<PaginationCursorNew>,
     limit: Option<i64>,
-  ) -> LemmyResult<PaginatedVec<PendingFollowerView>> {
+  ) -> LemmyResult<PagedResponse<PendingFollowerView>> {
     let limit = limit_fetch(limit)?;
 
     let mut query = Self::joins()
@@ -375,9 +375,8 @@ mod tests {
     // now there should be a pending follow
     let count = PendingFollowerView::count_approval_required(pool, mod_.id).await?;
     assert_eq!(1, count);
-    let list = PendingFollowerView::list_approval_required(pool, mod_.id, false, true, None, None)
-      .await?
-      .data;
+    let list =
+      PendingFollowerView::list_approval_required(pool, mod_.id, false, true, None, None).await?;
     assert_length!(1, list);
     assert_eq!(person.id, list[0].person.id);
     assert_eq!(community.id, list[0].community.id);
@@ -398,14 +397,11 @@ mod tests {
     // check counts again
     let count = PendingFollowerView::count_approval_required(pool, mod_.id).await?;
     assert_eq!(0, count);
-    let list = PendingFollowerView::list_approval_required(pool, mod_.id, false, true, None, None)
-      .await?
-      .data;
+    let list =
+      PendingFollowerView::list_approval_required(pool, mod_.id, false, true, None, None).await?;
     assert_length!(0, list);
     let list_all =
-      PendingFollowerView::list_approval_required(pool, mod_.id, false, false, None, None)
-        .await?
-        .data;
+      PendingFollowerView::list_approval_required(pool, mod_.id, false, false, None, None).await?;
     assert_length!(1, list_all);
     assert_eq!(person.id, list_all[0].person.id);
     assert_eq!(community.id, list_all[0].community.id);

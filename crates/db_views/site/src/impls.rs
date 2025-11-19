@@ -41,7 +41,7 @@ use lemmy_db_schema_file::{
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
-  pagination::{CursorData, PaginatedVec, PaginationCursorBuilderNew, paginate_response},
+  pagination::{CursorData, PagedResponse, PaginationCursorBuilderNew, paginate_response},
   traits::Crud,
   utils::fuzzy_search,
 };
@@ -141,7 +141,7 @@ impl FederatedInstanceView {
   pub async fn list(
     pool: &mut DbPool<'_>,
     data: GetFederatedInstances,
-  ) -> LemmyResult<PaginatedVec<Self>> {
+  ) -> LemmyResult<PagedResponse<Self>> {
     let limit = limit_fetch(data.limit)?;
     let mut query = Self::joins()
       .select(Self::as_select())
