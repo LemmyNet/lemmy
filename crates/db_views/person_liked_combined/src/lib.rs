@@ -14,7 +14,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_post::PostView;
-use lemmy_diesel_utils::pagination::{PaginationCursor, PaginationCursorNew};
+use lemmy_diesel_utils::pagination::PaginationCursorNew;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -131,6 +131,5 @@ pub struct ListPersonLiked {
   pub type_: Option<PersonContentType>,
   pub like_type: Option<LikeType>,
   pub page_cursor: Option<PaginationCursorNew>,
-  pub page_back: Option<bool>,
   pub limit: Option<i64>,
 }

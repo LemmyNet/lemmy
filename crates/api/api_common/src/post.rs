@@ -38,6 +38,5 @@ pub mod actions {
       PurgePost,
       RemovePost,
     };
-    pub use lemmy_db_views_vote::api::ListPostLikesResponse;
   }
 }

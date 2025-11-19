@@ -4,10 +4,7 @@ use lemmy_db_schema::{
   newtypes::{CommunityId, LanguageId, MultiCommunityId, PostId, TagId},
 };
 use lemmy_db_schema_file::enums::{ListingType, PostNotificationsMode, PostSortType};
-use lemmy_diesel_utils::{
-  dburl::DbUrl,
-  pagination::{PaginationCursor, PaginationCursorNew},
-};
+use lemmy_diesel_utils::{dburl::DbUrl, pagination::PaginationCursorNew};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -184,8 +181,7 @@ pub struct HidePost {
 /// List post likes. Admins-only.
 pub struct ListPostLikes {
   pub post_id: PostId,
-  pub page_cursor: Option<PaginationCursor>,
-  pub page_back: Option<bool>,
+  pub page_cursor: Option<PaginationCursorNew>,
   pub limit: Option<i64>,
 }
 

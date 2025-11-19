@@ -18,7 +18,7 @@ use lemmy_db_schema::{
     PrivateMessageReportId,
   },
 };
-use lemmy_diesel_utils::pagination::{PaginationCursor, PaginationCursorNew};
+use lemmy_diesel_utils::pagination::PaginationCursorNew;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -37,7 +37,6 @@ pub struct ListReports {
   /// if no community is given, it returns reports for all communities moderated by the auth user
   pub community_id: Option<CommunityId>,
   pub page_cursor: Option<PaginationCursorNew>,
-  pub page_back: Option<bool>,
   pub limit: Option<i64>,
   /// Only for admins: also show reports with `violates_instance_rules=false`
   pub show_community_rule_violations: Option<bool>,

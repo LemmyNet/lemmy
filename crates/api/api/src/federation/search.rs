@@ -12,7 +12,7 @@ use lemmy_api_utils::{
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_search_combined::{Search, SearchCombinedView, impls::SearchCombinedQuery};
 use lemmy_db_views_site::SiteView;
-use lemmy_diesel_utils::pagination::{PagedResponse, PaginationCursorBuilder};
+use lemmy_diesel_utils::pagination::PagedResponse;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn search(

@@ -24,6 +24,5 @@ pub mod actions {
       PurgeComment,
       RemoveComment,
     };
-    pub use lemmy_db_views_vote::api::ListCommentLikesResponse;
   }
 }

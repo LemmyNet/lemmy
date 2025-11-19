@@ -6,7 +6,7 @@ use lemmy_db_views_report_combined::{
   api::ListReports,
   impls::ReportCombinedQuery,
 };
-use lemmy_diesel_utils::pagination::{PagedResponse, PaginationCursorBuilder};
+use lemmy_diesel_utils::pagination::PagedResponse;
 use lemmy_utils::error::LemmyResult;
 
 /// Lists reports for a community if an id is supplied

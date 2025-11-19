@@ -23,6 +23,7 @@ use lemmy_db_schema::{
     language::Language,
     local_user::LocalUser,
     person::Person,
+    tagline::Tagline,
   },
   utils::limit_fetch,
 };
@@ -36,12 +37,19 @@ use lemmy_db_schema_file::{
     local_site,
     local_site_rate_limit,
     site,
+    tagline,
   },
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
-  pagination::{CursorData, PagedResponse, PaginationCursorBuilderNew, paginate_response},
+  pagination::{
+    CursorData,
+    PagedResponse,
+    PaginationCursorBuilderNew,
+    PaginationCursorNew,
+    paginate_response,
+  },
   traits::Crud,
   utils::fuzzy_search,
 };
@@ -266,7 +274,6 @@ mod tests {
       domain_filter: None,
       kind: GetFederatedInstancesKind::Linked,
       page_cursor: None,
-      page_back: None,
       limit: None,
     };
     let list = FederatedInstanceView::list(pool, data).await?;

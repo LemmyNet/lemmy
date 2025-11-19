@@ -8,7 +8,7 @@ use lemmy_db_views_registration_applications::{
   impls::RegistrationApplicationQuery,
 };
 use lemmy_db_views_site::SiteView;
-use lemmy_diesel_utils::pagination::{PagedResponse, PaginationCursorBuilder};
+use lemmy_diesel_utils::pagination::PagedResponse;
 use lemmy_utils::error::LemmyResult;
 
 /// Lists registration applications, filterable by undenied only.

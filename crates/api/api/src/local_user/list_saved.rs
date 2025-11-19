@@ -8,7 +8,7 @@ use lemmy_db_views_person_saved_combined::{
   impls::PersonSavedCombinedQuery,
 };
 use lemmy_db_views_site::SiteView;
-use lemmy_diesel_utils::pagination::{PagedResponse, PaginationCursorBuilder};
+use lemmy_diesel_utils::pagination::PagedResponse;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn list_person_saved(

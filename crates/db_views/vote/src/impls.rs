@@ -22,38 +22,18 @@ use lemmy_db_schema_file::{
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
-  pagination::{PaginationCursor, paginate},
+  pagination::{PagedResponse, PaginationCursorNew},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl VoteView {
-  pub fn to_post_actions_cursor(&self) -> PaginationCursor {
-    // This needs a person and post
-    let prefixes_and_ids = [('P', self.creator.id.0)];
-
-    PaginationCursor::new(&prefixes_and_ids)
-  }
-
-  // TODO move this to the postactions impl soon.
-  pub async fn from_post_actions_cursor(
-    cursor: &PaginationCursor,
-    pool: &mut DbPool<'_>,
-  ) -> LemmyResult<PostActions> {
-    let [(_, person_id), (_, post_id)] = cursor.prefixes_and_ids()?;
-
-    PostActions::read(pool, PostId(post_id), PersonId(person_id)).await
-  }
-
   pub async fn list_for_post(
     pool: &mut DbPool<'_>,
     post_id: PostId,
-    cursor_data: Option<PostActions>,
-    page_back: Option<bool>,
+    _page_cursor: Option<PaginationCursorNew>,
     limit: Option<i64>,
     local_instance_id: InstanceId,
-  ) -> LemmyResult<Vec<Self>> {
-    use lemmy_db_schema::source::post::post_actions_keys as key;
-
+  ) -> LemmyResult<PagedResponse<Self>> {
     let conn = &mut get_conn(pool).await?;
     let limit = limit_fetch(limit, None)?;
 
@@ -92,42 +72,34 @@ impl VoteView {
       .into_boxed();
 
     // Sorting by like score
-    let paginated_query = paginate(query, SortDirection::Asc, cursor_data, None, page_back)
+    /*
+    TODO: broken https://github.com/LemmyNet/lemmy/issues/6162
+    use lemmy_db_schema::source::post::post_actions_keys as key;
+    let paginated_query = paginate(query, page_cursor, SortDirection::Asc, pool, None)
+      .await?
       .then_order_by(key::vote_is_upvote)
       // Tie breaker
       .then_order_by(key::voted_at);
+    */
 
-    paginated_query
+    let res = query
       .load::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::NotFound)
-  }
-
-  pub fn to_comment_actions_cursor(&self) -> PaginationCursor {
-    // This needs a person and comment
-    let prefixes_and_ids = [('P', self.creator.id.0)];
-
-    PaginationCursor::new(&prefixes_and_ids)
-  }
-
-  pub async fn from_comment_actions_cursor(
-    cursor: &PaginationCursor,
-    pool: &mut DbPool<'_>,
-  ) -> LemmyResult<CommentActions> {
-    let [(_, person_id), (_, comment_id)] = cursor.prefixes_and_ids()?;
-
-    CommentActions::read(pool, CommentId(comment_id), PersonId(person_id)).await
+      .with_lemmy_type(LemmyErrorType::NotFound)?;
+    Ok(PagedResponse {
+      data: res,
+      prev_page: None,
+      next_page: None,
+    })
   }
 
   pub async fn list_for_comment(
     pool: &mut DbPool<'_>,
     comment_id: CommentId,
-    cursor_data: Option<CommentActions>,
-    page_back: Option<bool>,
+    _page_cursor: Option<PaginationCursorNew>,
     limit: Option<i64>,
     local_instance_id: InstanceId,
-  ) -> LemmyResult<Vec<Self>> {
-    use lemmy_db_schema::source::comment::comment_actions_keys as key;
+  ) -> LemmyResult<PagedResponse<Self>> {
     let conn = &mut get_conn(pool).await?;
     let limit = limit_fetch(limit, None)?;
 
@@ -166,15 +138,24 @@ impl VoteView {
       .into_boxed();
 
     // Sorting by like score
+    /*
+    TODO: broken https://github.com/LemmyNet/lemmy/issues/6162
+    use lemmy_db_schema::source::comment::comment_actions_keys as key;
     let paginated_query = paginate(query, SortDirection::Asc, cursor_data, None, page_back)
       .then_order_by(key::vote_is_upvote)
       // Tie breaker
       .then_order_by(key::voted_at);
+    */
 
-    paginated_query
+    let res = query
       .load::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::NotFound)
+      .with_lemmy_type(LemmyErrorType::NotFound)?;
+    Ok(PagedResponse {
+      data: res,
+      prev_page: None,
+      next_page: None,
+    })
   }
 }
 

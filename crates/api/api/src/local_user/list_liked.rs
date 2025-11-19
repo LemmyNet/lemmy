@@ -7,7 +7,7 @@ use lemmy_db_views_person_liked_combined::{
   PersonLikedCombinedView,
   impls::PersonLikedCombinedQuery,
 };
-use lemmy_diesel_utils::pagination::{PagedResponse, PaginationCursorBuilder};
+use lemmy_diesel_utils::pagination::PagedResponse;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn list_person_liked(

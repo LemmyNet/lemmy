@@ -72,7 +72,6 @@ use lemmy_diesel_utils::{
   pagination::{
     CursorData,
     PagedResponse,
-    PaginationCursor,
     PaginationCursorBuilderNew,
     PaginationCursorNew,
     paginate_response,
@@ -270,13 +269,6 @@ impl PostView {
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)?;
     paginate_response(res, limit)
-  }
-
-  pub fn to_post_actions_cursor(&self) -> PaginationCursor {
-    // This needs a person and post
-    let prefixes_and_ids = [('P', self.creator.id.0), ('O', self.post.id.0)];
-
-    PaginationCursor::new(&prefixes_and_ids)
   }
 }
 
