@@ -7,15 +7,12 @@ use diesel::{
   QueryDsl,
 };
 use diesel_async::RunQueryDsl;
-use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   newtypes::{CommentId, PostId},
-  source::{comment::CommentActions, post::PostActions},
   utils::{limit_fetch, queries::selects::creator_local_home_banned},
 };
 use lemmy_db_schema_file::{
   InstanceId,
-  PersonId,
   aliases::creator_community_actions,
   joins::{creator_home_instance_actions_join, creator_local_instance_actions_join},
   schema::{comment, comment_actions, community_actions, person, post, post_actions},

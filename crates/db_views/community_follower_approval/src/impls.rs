@@ -216,13 +216,13 @@ impl PaginationCursorConversion for PendingFollowerView {
 
   fn to_cursor(&self) -> CursorData {
     // This needs a person and community
-    CursorData::new_multi([('P', self.person.id.0), ('C', self.community.id.0)])
+    CursorData::new_multi([self.person.id.0, self.community.id.0])
   }
   async fn from_cursor(
     data: CursorData,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::PaginatedType> {
-    let [(_, person_id), (_, community_id)] = data.multi();
+    let [person_id, community_id] = data.multi()?;
     CommunityActions::read(pool, CommunityId(community_id), PersonId(person_id)).await
   }
 }

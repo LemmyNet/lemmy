@@ -1,4 +1,4 @@
-use crate::{FederatedInstanceView, ReadableFederationState, SiteView};
+use crate::{ReadableFederationState, SiteView};
 use lemmy_db_schema::{
   newtypes::{LanguageId, MultiCommunityId, OAuthProviderId, TaglineId},
   source::{

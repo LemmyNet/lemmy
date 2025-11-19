@@ -1,4 +1,3 @@
-use crate::ModlogView;
 use lemmy_db_schema::newtypes::{CommentId, CommunityId, PostId};
 use lemmy_db_schema_file::{
   PersonId,

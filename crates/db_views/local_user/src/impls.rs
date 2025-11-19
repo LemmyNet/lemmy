@@ -223,14 +223,14 @@ impl PaginationCursorConversion for LocalUserView {
   type PaginatedType = Person;
 
   fn to_cursor(&self) -> CursorData {
-    CursorData::new(self.person.id.0)
+    CursorData::new_id(self.person.id.0)
   }
 
   async fn from_cursor(
     cursor: CursorData,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::PaginatedType> {
-    Person::read(pool, PersonId(cursor.id())).await
+    Person::read(pool, PersonId(cursor.id()?)).await
   }
 }
 

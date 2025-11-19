@@ -76,7 +76,7 @@ impl PaginationCursorConversion for PersonSavedCombinedView {
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::PaginatedType> {
     let conn = &mut get_conn(pool).await?;
-    let (prefix, id) = cursor.id_and_prefix();
+    let (prefix, id) = cursor.id_and_prefix()?;
 
     let mut query = person_saved_combined::table
       .select(Self::PaginatedType::as_select())

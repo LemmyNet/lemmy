@@ -73,7 +73,7 @@ impl ModlogView {
 impl PaginationCursorConversion for ModlogView {
   type PaginatedType = Modlog;
   fn to_cursor(&self) -> CursorData {
-    CursorData::new(self.modlog.id.0)
+    CursorData::new_id(self.modlog.id.0)
   }
 
   async fn from_cursor(
@@ -83,7 +83,7 @@ impl PaginationCursorConversion for ModlogView {
     let conn = &mut get_conn(pool).await?;
     let query = modlog::table
       .select(Self::PaginatedType::as_select())
-      .filter(modlog::id.eq(cursor.id()));
+      .filter(modlog::id.eq(cursor.id()?));
     let token = query.first(conn).await?;
 
     Ok(token)
@@ -327,7 +327,7 @@ mod tests {
       ModlogInsertForm::mod_change_community_visibility(data.jessica.id, data.community_2.id);
     Modlog::create(pool, &[form]).await?;
 
-    let modlog = ModlogQuery::default().list(pool).await?;
+    let modlog = ModlogQuery::default().list(pool).await?.data;
     assert_eq!(8, modlog.len());
 
     let v = &modlog[0];

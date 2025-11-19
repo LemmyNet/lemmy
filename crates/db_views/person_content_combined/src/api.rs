@@ -1,4 +1,3 @@
-use lemmy_db_views_post::PostView;
 use lemmy_diesel_utils::pagination::PaginationCursor;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;

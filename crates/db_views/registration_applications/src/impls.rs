@@ -38,14 +38,14 @@ use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 impl PaginationCursorConversion for RegistrationApplicationView {
   type PaginatedType = RegistrationApplication;
   fn to_cursor(&self) -> CursorData {
-    CursorData::new(self.registration_application.id.0)
+    CursorData::new_id(self.registration_application.id.0)
   }
 
   async fn from_cursor(
     cursor: CursorData,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::PaginatedType> {
-    RegistrationApplication::read(pool, RegistrationApplicationId(cursor.id())).await
+    RegistrationApplication::read(pool, RegistrationApplicationId(cursor.id()?)).await
   }
 }
 

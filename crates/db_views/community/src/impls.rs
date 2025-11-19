@@ -101,14 +101,14 @@ impl CommunityView {
 impl PaginationCursorConversion for CommunityView {
   type PaginatedType = Community;
   fn to_cursor(&self) -> CursorData {
-    CursorData::new(self.community.id.0)
+    CursorData::new_id(self.community.id.0)
   }
 
   async fn from_cursor(
     data: CursorData,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::PaginatedType> {
-    Community::read(pool, CommunityId(data.id())).await
+    Community::read(pool, CommunityId(data.id()?)).await
   }
 }
 
@@ -248,14 +248,14 @@ impl MultiCommunityView {
 impl PaginationCursorConversion for MultiCommunityView {
   type PaginatedType = MultiCommunity;
   fn to_cursor(&self) -> CursorData {
-    CursorData::new(self.multi.id.0)
+    CursorData::new_id(self.multi.id.0)
   }
 
   async fn from_cursor(
     data: CursorData,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::PaginatedType> {
-    MultiCommunity::read(pool, MultiCommunityId(data.id())).await
+    MultiCommunity::read(pool, MultiCommunityId(data.id()?)).await
   }
 }
 

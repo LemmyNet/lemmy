@@ -24,7 +24,7 @@ use lemmy_db_views_registration_applications::{
   api::ApproveRegistrationApplication,
 };
 use lemmy_db_views_site::api::EditSite;
-use lemmy_diesel_utils::{connection::DbPool, pagination::PagedResponse, traits::Crud};
+use lemmy_diesel_utils::{connection::DbPool, traits::Crud};
 use lemmy_utils::{CACHE_DURATION_API, error::LemmyResult};
 use serial_test::serial;
 

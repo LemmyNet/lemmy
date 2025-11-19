@@ -192,7 +192,7 @@ impl PaginationCursorConversion for ReportCombinedView {
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::PaginatedType> {
     let conn = &mut get_conn(pool).await?;
-    let (prefix, id) = cursor.id_and_prefix();
+    let (prefix, id) = cursor.id_and_prefix()?;
 
     let mut query = report_combined::table
       .select(Self::PaginatedType::as_select())

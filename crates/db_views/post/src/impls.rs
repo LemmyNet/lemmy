@@ -84,14 +84,14 @@ use tracing::debug;
 impl PaginationCursorConversion for PostView {
   type PaginatedType = Post;
   fn to_cursor(&self) -> CursorData {
-    CursorData::new(self.post.id.0)
+    CursorData::new_id(self.post.id.0)
   }
 
   async fn from_cursor(
     cursor: CursorData,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::PaginatedType> {
-    Post::read(pool, PostId(cursor.id())).await
+    Post::read(pool, PostId(cursor.id()?)).await
   }
 }
 
@@ -100,14 +100,14 @@ struct PostViewDummy(PostActions);
 impl PaginationCursorConversion for PostViewDummy {
   type PaginatedType = PostActions;
   fn to_cursor(&self) -> CursorData {
-    CursorData::new_multi([('P', self.0.post_id.0), ('U', self.0.person_id.0)])
+    CursorData::new_multi([self.0.post_id.0, self.0.person_id.0])
   }
 
   async fn from_cursor(
     cursor: CursorData,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::PaginatedType> {
-    let [(_, post_id), (_, person_id)] = cursor.multi();
+    let [post_id, person_id] = cursor.multi()?;
     PostActions::read(pool, PostId(post_id), PersonId(person_id)).await
   }
 }
@@ -335,7 +335,7 @@ impl PostQuery<'_> {
           if self
             .page_cursor
             .clone()
-            .map(|p| p.is_back())
+            .and_then(|c| c.is_back().ok())
             .unwrap_or_default()
           {
             // for backward pagination, get first element instead

@@ -1,10 +1,4 @@
-use crate::{
-  CommentReportView,
-  CommunityReportView,
-  PostReportView,
-  PrivateMessageReportView,
-  ReportCombinedView,
-};
+use crate::{CommentReportView, CommunityReportView, PostReportView, PrivateMessageReportView};
 use lemmy_db_schema::{
   ReportType,
   newtypes::{

@@ -64,14 +64,14 @@ use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 impl PaginationCursorConversion for CommentView {
   type PaginatedType = Comment;
   fn to_cursor(&self) -> CursorData {
-    CursorData::new(self.comment.id.0)
+    CursorData::new_id(self.comment.id.0)
   }
 
   async fn from_cursor(
     data: CursorData,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::PaginatedType> {
-    Ok(Comment::read(pool, CommentId(data.id())).await?)
+    Comment::read(pool, CommentId(data.id()?)).await
   }
 }
 

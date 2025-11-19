@@ -23,7 +23,6 @@ use lemmy_db_schema::{
     language::Language,
     local_user::LocalUser,
     person::Person,
-    tagline::Tagline,
   },
   utils::limit_fetch,
 };
@@ -37,19 +36,12 @@ use lemmy_db_schema_file::{
     local_site,
     local_site_rate_limit,
     site,
-    tagline,
   },
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
-  pagination::{
-    CursorData,
-    PagedResponse,
-    PaginationCursor,
-    PaginationCursorConversion,
-    paginate_response,
-  },
+  pagination::{CursorData, PagedResponse, PaginationCursorConversion, paginate_response},
   traits::Crud,
   utils::fuzzy_search,
 };
@@ -203,14 +195,14 @@ impl FederatedInstanceView {
 impl PaginationCursorConversion for FederatedInstanceView {
   type PaginatedType = Instance;
   fn to_cursor(&self) -> CursorData {
-    CursorData::new(self.instance.id.0)
+    CursorData::new_id(self.instance.id.0)
   }
 
   async fn from_cursor(
     cursor: CursorData,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::PaginatedType> {
-    Instance::read(pool, InstanceId(cursor.id())).await
+    Instance::read(pool, InstanceId(cursor.id()?)).await
   }
 }
 

@@ -4,9 +4,9 @@ use base64::{
   alphabet::Alphabet,
   engine::{GeneralPurpose, general_purpose::NO_PAD},
 };
-use cfg_if::cfg_if;
 use i_love_jesus::{PaginatedQueryBuilder, SortDirection};
 use itertools::Itertools;
+use lemmy_utils::error::LemmyErrorType;
 #[cfg(feature = "full")]
 use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
@@ -18,9 +18,10 @@ use std::{
 
 /// Use base 64 engine with custom alphabet based on base64::engine::general_purpose::URL_SAFE
 /// with randomized character order, to prevent clients from parsing or modifying cursor data.
-const BASE64_ENGINE: LazyLock<GeneralPurpose> = LazyLock::new(|| {
-  let alphabet =
-    Alphabet::new("AphruVFwvCetlckdZ2g-foxXBGNbyHnD96qUj3KL_YsE7P1OQiaIR0z4T58mMWJS").unwrap();
+#[expect(clippy::expect_used)]
+static BASE64_ENGINE: LazyLock<GeneralPurpose> = LazyLock::new(|| {
+  let alphabet = Alphabet::new("AphruVFwvCetlckdZ2g-foxXBGNbyHnD96qUj3KL_YsE7P1OQiaIR0z4T58mMWJS")
+    .expect("create base64 alphabet");
   GeneralPurpose::new(&alphabet, NO_PAD)
 });
 
@@ -28,44 +29,48 @@ const BASE64_ENGINE: LazyLock<GeneralPurpose> = LazyLock::new(|| {
 pub struct CursorData(String);
 
 impl CursorData {
-  pub fn new(id: i32) -> Self {
+  pub fn new_id(id: i32) -> Self {
     Self(id.to_string())
   }
-  pub fn id(self) -> i32 {
-    self.0.parse().unwrap()
+  pub fn id(self) -> LemmyResult<i32> {
+    Ok(self.0.parse()?)
   }
+
   pub fn new_with_prefix(prefix: char, id: i32) -> Self {
     Self(format!("{prefix},{id}"))
   }
+  pub fn id_and_prefix(self) -> LemmyResult<(char, i32)> {
+    let (prefix, id) = self
+      .0
+      .split_once(',')
+      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
+    let prefix = prefix
+      .chars()
+      .next()
+      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?;
+    Ok((prefix, id.parse()?))
+  }
+
   pub fn new_plain(data: String) -> Self {
     Self(data)
   }
-  pub fn id_and_prefix(self) -> (char, i32) {
-    let (prefix, id) = self.0.split_once(',').unwrap();
-    (prefix.chars().next().unwrap(), id.parse().unwrap())
-  }
-
-  // TODO: could get rid of the chars and only store ordered ids here
-  pub fn new_multi<const N: usize>(data: [(char, i32); N]) -> Self {
-    Self(
-      data
-        .into_iter()
-        .map(|(prefix, id)| format!("{prefix}:{id}"))
-        .join(","),
-    )
-  }
-  pub fn multi<const N: usize>(self) -> [(char, i32); N] {
-    self
-      .0
-      .split(",")
-      .flat_map(|y| y.split_once(":"))
-      .map(|(prefix, id)| (prefix.chars().next().unwrap(), id.parse::<i32>().unwrap()))
-      .collect::<Vec<_>>()
-      .try_into()
-      .unwrap()
-  }
   pub fn plain(self) -> String {
     self.0
+  }
+
+  pub fn new_multi<const N: usize>(data: [i32; N]) -> Self {
+    Self(data.into_iter().join(","))
+  }
+  pub fn multi<const N: usize>(self) -> LemmyResult<[i32; N]> {
+    Ok(
+      self
+        .0
+        .split(",")
+        .flat_map(|id| id.parse::<i32>().ok())
+        .collect::<Vec<_>>()
+        .try_into()
+        .map_err(|_e| LemmyErrorType::CouldntParsePaginationToken)?,
+    )
   }
 }
 pub trait PaginationCursorConversion {
@@ -90,7 +95,7 @@ pub trait PaginationCursorConversion {
   {
     async move {
       let (page_after, page_back) = if let Some(cursor) = cursor {
-        let internal = cursor.to_internal()?;
+        let internal = cursor.into_internal()?;
         let object = Self::from_cursor(internal.data, pool).await?;
         (Some(object), Some(internal.back))
       } else {
@@ -124,7 +129,7 @@ pub trait PaginationCursorConversion {
 pub struct PaginationCursor(String);
 
 impl PaginationCursor {
-  fn to_internal(self) -> LemmyResult<PaginationCursorInternal> {
+  fn into_internal(self) -> LemmyResult<PaginationCursorInternal> {
     let decoded = BASE64_ENGINE.decode(self.0)?;
     Ok(serde_urlencoded::from_str(&String::from_utf8(decoded)?)?)
   }
@@ -134,8 +139,8 @@ impl PaginationCursor {
   }
 
   // only used for PostView optimization
-  pub fn is_back(self) -> bool {
-    self.to_internal().unwrap().back
+  pub fn is_back(self) -> LemmyResult<bool> {
+    Ok(self.into_internal()?.back)
   }
 }
 
@@ -150,90 +155,68 @@ struct PaginationCursorInternal {
   data: CursorData,
 }
 
-// There seems to be no way to set generic bounds like `T: ts_rs::TS` based on feature flags,
-// so we need to define the struct once with and once without the bound.
-cfg_if! {
-  if #[cfg(feature = "ts-rs")] {
+/// This response contains only a single page of items. To get the next page, take the
+/// cursor string from `next_page` and pass it to the same API endpoint via `page_cursor`
+/// parameter. For going to the previous page, use `prev_page` instead.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+//#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+//#[cfg_attr(feature = "ts-rs", ts(optional_fields, export, concrete(T = String)))]
+pub struct PagedResponse<T> {
+  pub data: Vec<T>,
+  pub next_page: Option<PaginationCursor>,
+  pub prev_page: Option<PaginationCursor>,
+}
 
-    #[derive(Debug, Serialize, Deserialize, Clone)]
-    #[derive(ts_rs::TS)]
-    #[ts(optional_fields, export)]
-    pub struct PaginatedVec<T: ts_rs::TS> {
-      pub data: Vec<T>,
-      pub next_page: Option<PaginationCursor>,
-      pub prev_page: Option<PaginationCursor>,
-    }
-    pub fn paginate_response<T: ts_rs::TS>(data: Vec<T>, limit: i64) -> LemmyResult<PaginatedVec<T>>
-    where
-      T: PaginationCursorConversion + Serialize + for<'a> Deserialize<'a>,
-    {
-      todo!()
-    }
-  } else {
-
-    /// This response contains only a single page of items. To get the next page, take the
-    /// cursor string from `next_page` and pass it to the same API endpoint via `page_cursor`
-    /// parameter. For going to the previous page, use `prev_page` instead.
-    #[derive(Debug, Serialize, Deserialize, Clone)]
-    pub struct PagedResponse<T> {
-      pub data: Vec<T>,
-      pub next_page: Option<PaginationCursor>,
-      pub prev_page: Option<PaginationCursor>,
-    }
-
-    impl<T> Deref for PagedResponse<T> {
-      type Target = Vec<T>;
-      fn deref(&self) -> &Vec<T> {
-        &self.data
-      }
-    }
-    impl<T> DerefMut for PagedResponse<T> {
-      fn deref_mut(&mut self) -> &mut Self::Target {
-          &mut self.data
-      }
-    }
-
-    impl<T> IntoIterator for PagedResponse<T> {
-    type Item = T;
-    type IntoIter= std::vec::IntoIter<Self::Item>;
-
-
-    // Required method
-    fn into_iter(self) -> Self::IntoIter {
-      self.data.into_iter()
-    }
+impl<T> Deref for PagedResponse<T> {
+  type Target = Vec<T>;
+  fn deref(&self) -> &Vec<T> {
+    &self.data
   }
-
-    /// Add prev/next cursors to query result.
-    pub fn paginate_response<T>(data: Vec<T>, limit: i64) -> LemmyResult<PagedResponse<T>>
-    where
-      T: PaginationCursorConversion + Serialize + for<'a> Deserialize<'a>,
-    {
-      let make_cursor = |item: Option<&T>, back: bool| -> LemmyResult<Option<PaginationCursor>> {
-        if let Some(item) = item {
-          let data = item.to_cursor();
-          let cursor = PaginationCursorInternal { data, back };
-          Ok(Some(PaginationCursor::from_internal(cursor)?))
-        } else {
-          Ok(None)
-        }
-      };
-      let prev_page = make_cursor(data.first(), true)?;
-      let mut next_page = make_cursor(data.last(), false)?;
-
-      // If there are less than limit items we are on the last page, dont show next button.
-      // Need to convert here because diesel takes i64 for limit while vec length is usize.
-      let limit: usize = limit.try_into().unwrap_or_default();
-      if data.len() < limit {
-        next_page = None;
-      }
-      Ok(PagedResponse {
-        data,
-        next_page,
-        prev_page,
-      })
-    }
+}
+impl<T> DerefMut for PagedResponse<T> {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    &mut self.data
   }
+}
+
+impl<T> IntoIterator for PagedResponse<T> {
+  type Item = T;
+  type IntoIter = std::vec::IntoIter<Self::Item>;
+
+  // Required method
+  fn into_iter(self) -> Self::IntoIter {
+    self.data.into_iter()
+  }
+}
+
+/// Add prev/next cursors to query result.
+pub fn paginate_response<T>(data: Vec<T>, limit: i64) -> LemmyResult<PagedResponse<T>>
+where
+  T: PaginationCursorConversion + Serialize + for<'a> Deserialize<'a>,
+{
+  let make_cursor = |item: Option<&T>, back: bool| -> LemmyResult<Option<PaginationCursor>> {
+    if let Some(item) = item {
+      let data = item.to_cursor();
+      let cursor = PaginationCursorInternal { data, back };
+      Ok(Some(PaginationCursor::from_internal(cursor)?))
+    } else {
+      Ok(None)
+    }
+  };
+  let prev_page = make_cursor(data.first(), true)?;
+  let mut next_page = make_cursor(data.last(), false)?;
+
+  // If there are less than limit items we are on the last page, dont show next button.
+  // Need to convert here because diesel takes i64 for limit while vec length is usize.
+  let limit: usize = limit.try_into().unwrap_or_default();
+  if data.len() < limit {
+    next_page = None;
+  }
+  Ok(PagedResponse {
+    data,
+    next_page,
+    prev_page,
+  })
 }
 
 #[cfg(test)]
@@ -242,10 +225,10 @@ mod test {
 
   #[test]
   fn test_cursor() -> LemmyResult<()> {
-    let data = CursorData::new(1);
+    let data = CursorData::new_id(1);
     do_test_cursor(data)?;
 
-    let data = CursorData::new_multi([('A', 1), ('B', 2)]);
+    let data = CursorData::new_multi([1, 2]);
     do_test_cursor(data)?;
 
     Ok(())
@@ -257,7 +240,7 @@ mod test {
       data: data.clone(),
     };
     let encoded = PaginationCursor::from_internal(cursor.clone())?;
-    let cursor2 = encoded.to_internal()?;
+    let cursor2 = encoded.into_internal()?;
     assert_eq!(cursor, cursor2);
     assert_eq!(data, cursor2.data);
     Ok(())

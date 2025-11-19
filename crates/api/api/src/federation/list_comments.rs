@@ -11,7 +11,6 @@ use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
 use lemmy_db_schema::source::comment::Comment;
 use lemmy_db_views_comment::{CommentSlimView, CommentView, api::GetComments, impls::CommentQuery};
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_post::PostView;
 use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::{pagination::PagedResponse, traits::Crud};
 use lemmy_utils::error::LemmyResult;

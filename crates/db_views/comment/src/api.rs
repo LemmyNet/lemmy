@@ -1,4 +1,4 @@
-use crate::{CommentSlimView, CommentView};
+use crate::CommentView;
 use lemmy_db_schema::newtypes::{CommentId, CommunityId, LanguageId, PostId};
 use lemmy_db_schema_file::enums::{CommentSortType, ListingType};
 use lemmy_diesel_utils::pagination::PaginationCursor;

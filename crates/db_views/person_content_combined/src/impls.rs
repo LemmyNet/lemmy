@@ -126,7 +126,7 @@ impl PaginationCursorConversion for PersonContentCombinedView {
       .select(Self::PaginatedType::as_select())
       .into_boxed();
 
-    let (prefix, id) = data.id_and_prefix();
+    let (prefix, id) = data.id_and_prefix()?;
     query = match prefix {
       'C' => query.filter(person_content_combined::comment_id.eq(id)),
       'P' => query.filter(person_content_combined::post_id.eq(id)),

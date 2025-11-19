@@ -93,7 +93,7 @@ impl PaginationCursorConversion for NotificationView {
   type PaginatedType = Notification;
 
   fn to_cursor(&self) -> CursorData {
-    CursorData::new(self.notification.id.0)
+    CursorData::new_id(self.notification.id.0)
   }
 
   async fn from_cursor(
@@ -103,7 +103,7 @@ impl PaginationCursorConversion for NotificationView {
     let conn = &mut get_conn(pool).await?;
     let query = notification::table
       .select(Self::PaginatedType::as_select())
-      .filter(notification::id.eq(cursor.id()));
+      .filter(notification::id.eq(cursor.id()?));
     let token = query.first(conn).await?;
 
     Ok(token)

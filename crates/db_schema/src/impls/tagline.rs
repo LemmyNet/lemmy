@@ -53,14 +53,14 @@ impl PaginationCursorConversion for Tagline {
   type PaginatedType = Tagline;
 
   fn to_cursor(&self) -> CursorData {
-    CursorData::new(self.id.0)
+    CursorData::new_id(self.id.0)
   }
 
   async fn from_cursor(
     cursor: CursorData,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::PaginatedType> {
-    Tagline::read(pool, TaglineId(cursor.id())).await
+    Tagline::read(pool, TaglineId(cursor.id()?)).await
   }
 }
 

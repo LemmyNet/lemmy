@@ -4234,7 +4234,6 @@ version = "1.0.0-alpha.12"
 dependencies = [
  "diesel",
  "diesel-async",
- "i-love-jesus",
  "lemmy_db_schema 1.0.0-alpha.12",
  "lemmy_db_schema_file",
  "lemmy_diesel_utils",
@@ -4254,7 +4253,6 @@ dependencies = [
  "activitypub_federation",
  "anyhow",
  "base64 0.22.1",
- "cfg-if",
  "chrono",
  "deadpool",
  "diesel",

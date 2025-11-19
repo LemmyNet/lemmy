@@ -73,7 +73,6 @@ use lemmy_api_019::{
   },
   lemmy_db_views::structs::{
     CommentReportView as CommentReportViewV3,
-    PaginationCursor as PaginationCursorV3,
     PostReportView as PostReportViewV3,
   },
   lemmy_db_views_actor::structs::CommunityModeratorView as CommunityModeratorViewV3,
