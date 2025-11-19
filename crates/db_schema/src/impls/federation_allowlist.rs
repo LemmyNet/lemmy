@@ -1,10 +1,7 @@
-use crate::{
-  newtypes::InstanceId,
-  source::federation_allowlist::{FederationAllowList, FederationAllowListForm},
-};
+use crate::source::federation_allowlist::{FederationAllowList, FederationAllowListForm};
 use diesel::{ExpressionMethods, QueryDsl, delete, dsl::insert_into};
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::federation_allowlist;
+use lemmy_db_schema_file::{InstanceId, schema::federation_allowlist};
 use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 

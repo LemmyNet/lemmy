@@ -1,5 +1,5 @@
 use crate::{
-  newtypes::{CommentId, NotificationId, PersonId, PostId},
+  newtypes::{CommentId, NotificationId, PostId},
   source::notification::{Notification, NotificationInsertForm},
 };
 use diesel::{
@@ -9,7 +9,7 @@ use diesel::{
   dsl::{insert_into, update},
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::notification;
+use lemmy_db_schema_file::{PersonId, schema::notification};
 use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 

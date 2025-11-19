@@ -18,27 +18,29 @@ use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   self,
   PersonContentType,
-  newtypes::{InstanceId, PaginationCursor, PersonId},
+  newtypes::PaginationCursor,
   source::combined::person_content::{PersonContentCombined, person_content_combined_keys as key},
   traits::{InternalToCombinedView, PaginationCursorBuilder},
-  utils::{
-    limit_fetch,
-    queries::joins::{
-      community_join,
-      creator_community_actions_join,
-      creator_home_instance_actions_join,
-      creator_local_instance_actions_join,
-      creator_local_user_admin_join,
-      image_details_join,
-      my_comment_actions_join,
-      my_community_actions_join,
-      my_local_user_admin_join,
-      my_person_actions_join,
-      my_post_actions_join,
-    },
-  },
+  utils::limit_fetch,
 };
-use lemmy_db_schema_file::schema::{comment, person, person_content_combined, post};
+use lemmy_db_schema_file::{
+  InstanceId,
+  PersonId,
+  joins::{
+    community_join,
+    creator_community_actions_join,
+    creator_home_instance_actions_join,
+    creator_local_instance_actions_join,
+    creator_local_user_admin_join,
+    image_details_join,
+    my_comment_actions_join,
+    my_community_actions_join,
+    my_local_user_admin_join,
+    my_person_actions_join,
+    my_post_actions_join,
+  },
+  schema::{comment, person, person_content_combined, post},
+};
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   utils::paginate,

@@ -602,11 +602,11 @@ export async function createCommunity(
   name_: string = randomString(10),
   visibility: CommunityVisibility = "public",
 ): Promise<CommunityResponse> {
-  let description = "a sample description";
+  let sidebar = "a sample sidebar";
   let form: CreateCommunity = {
     name: name_,
     title: name_,
-    description,
+    sidebar,
     visibility,
   };
   return api.createCommunity(form);

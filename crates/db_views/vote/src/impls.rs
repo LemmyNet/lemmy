@@ -9,24 +9,16 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  aliases::creator_community_actions,
-  newtypes::{CommentId, InstanceId, PaginationCursor, PersonId, PostId},
+  newtypes::{CommentId, PaginationCursor, PostId},
   source::{comment::CommentActions, post::PostActions},
-  utils::{
-    limit_fetch,
-    queries::{
-      joins::{creator_home_instance_actions_join, creator_local_instance_actions_join},
-      selects::creator_local_home_banned,
-    },
-  },
+  utils::{limit_fetch, queries::selects::creator_local_home_banned},
 };
-use lemmy_db_schema_file::schema::{
-  comment,
-  comment_actions,
-  community_actions,
-  person,
-  post,
-  post_actions,
+use lemmy_db_schema_file::{
+  InstanceId,
+  PersonId,
+  aliases::creator_community_actions,
+  joins::{creator_home_instance_actions_join, creator_local_instance_actions_join},
+  schema::{comment, comment_actions, community_actions, person, post, post_actions},
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
@@ -190,7 +182,6 @@ impl VoteView {
 mod tests {
   use crate::VoteView;
   use lemmy_db_schema::{
-    newtypes::InstanceId,
     source::{
       comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm},
       community::{Community, CommunityActions, CommunityInsertForm, CommunityPersonBanForm},
@@ -200,6 +191,7 @@ mod tests {
     },
     traits::{Bannable, Likeable},
   };
+  use lemmy_db_schema_file::InstanceId;
   use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;

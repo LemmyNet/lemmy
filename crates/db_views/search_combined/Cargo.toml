@@ -55,9 +55,9 @@ ts-rs = { workspace = true, optional = true }
 i-love-jesus = { workspace = true, optional = true }
 serde_with = { workspace = true }
 chrono = { workspace = true }
+url = { workspace = true }
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }
 serial_test = { workspace = true }
 tokio = { workspace = true }
-url = { workspace = true }

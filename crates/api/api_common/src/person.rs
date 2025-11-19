@@ -1,11 +1,12 @@
 pub use lemmy_db_schema::{
   PersonContentType,
-  newtypes::{LocalUserId, PersonId},
+  newtypes::LocalUserId,
   source::{
     local_user::LocalUser,
     person::{Person, PersonActions},
   },
 };
+pub use lemmy_db_schema_file::PersonId;
 pub use lemmy_db_views_local_user::LocalUserView;
 pub use lemmy_db_views_person::{
   PersonView,

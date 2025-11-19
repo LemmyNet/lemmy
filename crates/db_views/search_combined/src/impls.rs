@@ -23,7 +23,7 @@ use lemmy_db_schema::{
   SearchSortType::{self, *},
   SearchType,
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommunityId, InstanceId, PaginationCursor, PersonId},
+  newtypes::{CommunityId, PaginationCursor},
   source::{
     combined::search::{SearchCombined, search_combined_keys as key},
     site::Site,
@@ -31,29 +31,29 @@ use lemmy_db_schema::{
   traits::{InternalToCombinedView, PaginationCursorBuilder},
   utils::{
     limit_fetch,
-    queries::{
-      filters::{
-        filter_is_subscribed,
-        filter_not_unlisted_or_is_subscribed,
-        filter_suggested_communities,
-      },
-      joins::{
-        creator_community_actions_join,
-        creator_home_instance_actions_join,
-        creator_local_instance_actions_join,
-        creator_local_user_admin_join,
-        image_details_join,
-        my_comment_actions_join,
-        my_community_actions_join,
-        my_local_user_admin_join,
-        my_person_actions_join,
-        my_post_actions_join,
-      },
+    queries::filters::{
+      filter_is_subscribed,
+      filter_not_unlisted_or_is_subscribed,
+      filter_suggested_communities,
     },
   },
 };
 use lemmy_db_schema_file::{
+  InstanceId,
+  PersonId,
   enums::ListingType,
+  joins::{
+    creator_community_actions_join,
+    creator_home_instance_actions_join,
+    creator_local_instance_actions_join,
+    creator_local_user_admin_join,
+    image_details_join,
+    my_comment_actions_join,
+    my_community_actions_join,
+    my_local_user_admin_join,
+    my_person_actions_join,
+    my_post_actions_join,
+  },
   schema::{
     comment,
     comment_actions,
@@ -72,6 +72,7 @@ use lemmy_diesel_utils::{
   utils::{fuzzy_search, now, paginate, seconds_to_pg_interval},
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use url::Url;
 
 impl SearchCombinedViewInternal {
   #[diesel::dsl::auto_type(no_type_alias)]
@@ -249,7 +250,10 @@ impl SearchCombinedQuery {
     // The search term
     if let Some(search_term) = &self.search_term {
       if self.post_url_only.unwrap_or_default() {
-        query = query.filter(post::url.eq(search_term));
+        // Needs to be parsed to a rusts common url format before searching, since those are whats
+        // inserted as the post url
+        let search_url: String = Url::parse(search_term)?.into();
+        query = query.filter(post::url.eq(search_url));
       } else {
         let searcher = fuzzy_search(search_term);
 

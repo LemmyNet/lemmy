@@ -1,5 +1,5 @@
 use crate::{
-  newtypes::{CommunityId, InstanceId, PaginationCursor, PersonId, PostId},
+  newtypes::{CommunityId, PaginationCursor, PostId},
   source::post::{
     Post,
     PostActions,
@@ -29,6 +29,8 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use diesel_uplete::{UpleteCount, uplete};
 use lemmy_db_schema_file::{
+  InstanceId,
+  PersonId,
   enums::PostNotificationsMode,
   schema::{community, local_user, person, post, post_actions},
 };

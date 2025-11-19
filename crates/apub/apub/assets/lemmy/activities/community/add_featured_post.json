@@ -5,5 +5,6 @@
   "type": "Add",
   "actor": "https://ds9.lemmy.ml/u/lemmy_alpha",
   "object": "https://ds9.lemmy.ml/post/2",
-  "target": "https://ds9.lemmy.ml/c/main/featured"
+  "target": "https://ds9.lemmy.ml/c/main/featured",
+  "audience": "http://enterprise.lemmy.ml/u/main"
 }

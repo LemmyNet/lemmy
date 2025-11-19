@@ -70,6 +70,7 @@ pub struct Page {
   pub(crate) published: Option<DateTime<Utc>>,
   pub(crate) updated: Option<DateTime<Utc>>,
   pub(crate) language: Option<LanguageTag>,
+  pub(crate) audience: Option<ObjectId<ApubCommunity>>,
   /// Contains hashtags and post tags.
   /// https://www.w3.org/TR/activitystreams-vocabulary/#dfn-tag
   #[serde(deserialize_with = "deserialize_skip_error", default)]
@@ -242,6 +243,9 @@ impl Activity for Page {
 
 impl InCommunity for Page {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
+    if let Some(audience) = &self.audience {
+      return audience.dereference(context).await;
+    }
     let community = match &self.attributed_to {
       AttributedTo::Lemmy(_) => {
         let mut iter = self.to.iter().merge(self.cc.iter());

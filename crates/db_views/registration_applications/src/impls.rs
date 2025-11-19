@@ -10,13 +10,16 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  aliases,
-  newtypes::{PaginationCursor, PersonId, RegistrationApplicationId},
+  newtypes::{PaginationCursor, RegistrationApplicationId},
   source::registration_application::RegistrationApplication,
   traits::PaginationCursorBuilder,
   utils::limit_fetch,
 };
-use lemmy_db_schema_file::schema::{local_user, person, registration_application};
+use lemmy_db_schema_file::{
+  PersonId,
+  aliases,
+  schema::{local_user, person, registration_application},
+};
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   traits::Crud,

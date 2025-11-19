@@ -62,6 +62,7 @@ impl BlockUser {
       summary: Some(reason),
       id: generate_activity_id(BlockType::Block, context)?,
       end_time: expires,
+      audience: target.as_ref().right().map(|c| c.ap_id.clone().into()),
     })
   }
 

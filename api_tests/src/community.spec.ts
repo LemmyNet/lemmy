@@ -635,7 +635,7 @@ test("Remote mods can edit communities", async () => {
 
   let form2: EditCommunity = {
     community_id: betaCommunity.community.id as number,
-    description: "Example description",
+    sidebar: "Example sidebar",
   };
 
   await editCommunity(beta, form2);
@@ -647,8 +647,8 @@ test("Remote mods can edit communities", async () => {
     communityRes.community_view.community.id,
   );
 
-  expect(alphaCommunity.community_view.community.description).toBe(
-    "Example description",
+  expect(alphaCommunity.community_view.community.sidebar).toBe(
+    "Example sidebar",
   );
 });
 

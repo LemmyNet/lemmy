@@ -9,10 +9,11 @@ use itertools::Itertools;
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::objects::{community::ApubCommunity, multi_community::ApubMultiCommunity};
 use lemmy_db_schema::{
-  newtypes::{CommunityId, MultiCommunityId, PersonId},
+  newtypes::{CommunityId, MultiCommunityId},
   source::{community::Community, multi_community::MultiCommunity, person::Person},
   traits::ApubActor,
 };
+use lemmy_db_schema_file::PersonId;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
 

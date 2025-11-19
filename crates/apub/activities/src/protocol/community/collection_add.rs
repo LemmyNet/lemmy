@@ -27,10 +27,14 @@ pub struct CollectionAdd {
   #[serde(rename = "type")]
   pub(crate) kind: AddType,
   pub(crate) id: Url,
+  pub(crate) audience: Option<ObjectId<ApubCommunity>>,
 }
 
 impl InCommunity for CollectionAdd {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
+    if let Some(audience) = &self.audience {
+      return audience.dereference(context).await;
+    }
     let (community, _) =
       Community::get_by_collection_url(&mut context.pool(), &self.clone().target.into()).await?;
     Ok(community.into())

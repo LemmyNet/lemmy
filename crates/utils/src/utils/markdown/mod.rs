@@ -136,6 +136,11 @@ mod tests {
         "[@example@example.com](https://example.com/u/example)",
         "<p><a href=\"https://example.com/u/example\" rel=\"nofollow\" class=\"u-url mention\">@example@example.com</a></p>\n",
       ),
+      (
+        "dont add backslash escapes in urls",
+        "[markdown link](https://en.wikipedia.org/wiki/Dragnet_(franchise))",
+        "<p><a href=\"https://en.wikipedia.org/wiki/Dragnet_(franchise)\" rel=\"nofollow\">markdown link</a></p>\n",
+      ),
     ];
 
     tests.iter().for_each(|&(msg, input, expected)| {

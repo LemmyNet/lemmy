@@ -9,7 +9,7 @@ use lemmy_api_utils::{
   utils::{check_is_mod_or_admin, check_private_instance},
 };
 use lemmy_apub_objects::objects::{SearchableObjects, UserOrCommunity};
-use lemmy_db_schema::newtypes::PersonId;
+use lemmy_db_schema_file::PersonId;
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_community::{CommunityView, MultiCommunityView};
 use lemmy_db_views_local_user::LocalUserView;

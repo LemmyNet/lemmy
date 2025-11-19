@@ -30,10 +30,14 @@ pub struct Update {
   #[serde(rename = "type")]
   pub(crate) kind: UpdateType,
   pub(crate) id: Url,
+  pub(crate) audience: Option<ObjectId<ApubCommunity>>,
 }
 
 impl InCommunity for Update {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
+    if let Some(audience) = &self.audience {
+      return audience.dereference(context).await;
+    }
     match &self.object {
       Either::Left(c) => {
         let community: ApubCommunity = c.id.clone().dereference(context).await?;

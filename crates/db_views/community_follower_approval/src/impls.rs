@@ -13,8 +13,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  aliases,
-  newtypes::{CommunityId, InstanceId, PaginationCursor, PersonId},
+  newtypes::{CommunityId, PaginationCursor},
   source::{
     community::{Community, CommunityActions, community_actions_keys as key},
     person::Person,
@@ -23,6 +22,9 @@ use lemmy_db_schema::{
   utils::{limit_fetch, queries::selects::person1_select},
 };
 use lemmy_db_schema_file::{
+  InstanceId,
+  PersonId,
+  aliases,
   enums::{CommunityFollowerState, CommunityVisibility},
   schema::{community, community_actions, person},
 };
