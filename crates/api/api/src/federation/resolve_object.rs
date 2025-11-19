@@ -28,9 +28,9 @@ pub async fn resolve_object(
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   check_private_instance(&local_user_view, &local_site)?;
 
-  let res = resolve_object_internal(&data.q, &local_user_view, &context).await?;
+  let resolve = Some(resolve_object_internal(&data.q, &local_user_view, &context).await?);
   Ok(Json(SearchResponse {
-    results: vec![res],
+    resolve,
     ..Default::default()
   }))
 }

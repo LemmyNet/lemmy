@@ -563,7 +563,7 @@ test("Dont receive community activities after unsubscribe", async () => {
   };
 
   let res = await beta.search(form);
-  expect(res.results.length).toBe(0);
+  expect(res.search.length).toBe(0);
 });
 
 test("Fetch community, includes posts", async () => {
@@ -748,7 +748,7 @@ test("Multi-community", async () => {
   // resolve over federation
   let betaMulti = (
     await beta.resolveObject({ q: res.multi_community_view.multi.ap_id })
-  ).results[0] as MultiCommunityView;
+  ).resolve as MultiCommunityView;
   expect(betaMulti.multi.ap_id).toBe(res.multi_community_view.multi.ap_id);
 
   var betaRes = await waitUntil(
@@ -765,7 +765,7 @@ test("Multi-community", async () => {
   await beta.followMultiCommunity(form);
 
   let followed = await waitUntil(
-    () => beta.listMultiCommunities({ followed_only: true }),
+    () => beta.listMultiCommunities({}),
     m => m.multi_communities.length == 1,
   );
   expect(followed.multi_communities[0].multi.ap_id).toBe(betaMulti.multi.ap_id);
