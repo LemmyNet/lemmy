@@ -48,7 +48,7 @@ impl VoteView {
     let creator_local_instance_actions_join: creator_local_instance_actions_join =
       creator_local_instance_actions_join(local_instance_id);
 
-    let query = post_actions::table
+    let mut query = post_actions::table
       .inner_join(person::table)
       .inner_join(post::table)
       .left_join(creator_community_actions_join)
@@ -78,6 +78,10 @@ impl VoteView {
       // Tie breaker
       .then_order_by(key::voted_at);
     */
+    query = query.order((
+      post_actions::vote_is_upvote.asc(),
+      post_actions::voted_at.asc(),
+    ));
 
     let res = query
       .load::<Self>(conn)
@@ -114,7 +118,7 @@ impl VoteView {
     let creator_local_instance_actions_join: creator_local_instance_actions_join =
       creator_local_instance_actions_join(local_instance_id);
 
-    let query = comment_actions::table
+    let mut query = comment_actions::table
       .inner_join(person::table)
       .inner_join(comment::table.inner_join(post::table))
       .left_join(creator_community_actions_join)
@@ -143,6 +147,10 @@ impl VoteView {
       // Tie breaker
       .then_order_by(key::voted_at);
     */
+    query = query.order((
+      comment_actions::vote_is_upvote.asc(),
+      comment_actions::voted_at.asc(),
+    ));
 
     let res = query
       .load::<Self>(conn)
