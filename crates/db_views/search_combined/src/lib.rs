@@ -148,6 +148,8 @@ pub enum SearchCombinedView {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Searches the site, given a search term, and some optional filters.
 pub struct Search {
+  /// The search query. Can be a plain text, or an object ID which will be resolved
+  /// (eg `https://lemmy.world/comment/1` or `!fediverse@lemmy.ml`).
   pub q: String,
   pub community_id: Option<CommunityId>,
   pub community_name: Option<String>,
@@ -166,4 +168,21 @@ pub struct Search {
   pub show_nsfw: Option<bool>,
   pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+/// The search response, containing lists of the return type possibilities
+pub struct SearchResponse {
+  /// If `Search.q` contains an ActivityPub ID (eg `https://lemmy.world/comment/1`) or an
+  /// identifier (eg `!fediverse@lemmy.ml`) then this field contains the resolved object.
+  /// It should always be shown above other search results.
+  pub resolve: Option<SearchCombinedView>,
+  /// Items which contain the search string in post body, comment text, community sidebar etc.
+  /// This is always empty when calling `/api/v4/resolve_object`
+  pub search: Vec<SearchCombinedView>,
+  /// the pagination cursor to use to fetch the next page
+  pub next_page: Option<PaginationCursor>,
+  pub prev_page: Option<PaginationCursor>,
 }

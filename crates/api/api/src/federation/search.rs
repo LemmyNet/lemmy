@@ -10,16 +10,15 @@ use lemmy_api_utils::{
   utils::{check_conflicting_like_filters, check_private_instance},
 };
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_search_combined::{Search, SearchCombinedView, impls::SearchCombinedQuery};
+use lemmy_db_views_search_combined::{Search, SearchResponse, impls::SearchCombinedQuery};
 use lemmy_db_views_site::SiteView;
-use lemmy_diesel_utils::pagination::PagedResponse;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn search(
   Query(data): Query<Search>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
-) -> LemmyResult<Json<PagedResponse<SearchCombinedView>>> {
+) -> LemmyResult<Json<SearchResponse>> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let local_site = site_view.local_site;
 
@@ -55,10 +54,13 @@ pub async fn search(
 
   let resolve_fut = resolve_object_internal(&data.q, &local_user_view, &context);
   let (search, resolve) = join(search_fut, resolve_fut).await;
-  let mut search = search?;
-  // Ignore resolve errors as query may not be Activitypub object
-  if let Ok(resolve) = resolve {
-    search.push(resolve);
-  }
-  Ok(Json(search))
+  let search = search?;
+
+  Ok(Json(SearchResponse {
+    search: search.data,
+    // ignore errors as this may not be an apub url
+    resolve: resolve.ok(),
+    next_page: search.next_page,
+    prev_page: search.prev_page,
+  }))
 }
