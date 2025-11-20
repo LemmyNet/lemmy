@@ -155,13 +155,22 @@ struct PaginationCursorInternal {
   data: CursorData,
 }
 
+/// Internal struct without `T: ts_rs::TS` bound. When making any changes to this struct, be sure to
+/// change `PagedResponseTS` as well so they remain identical.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct PagedResponse<T> {
+  pub data: Vec<T>,
+  pub next_page: Option<PaginationCursor>,
+  pub prev_page: Option<PaginationCursor>,
+}
+
 /// This response contains only a single page of items. To get the next page, take the
 /// cursor string from `next_page` and pass it to the same API endpoint via `page_cursor`
 /// parameter. For going to the previous page, use `prev_page` instead.
-#[derive(Debug, Serialize, Deserialize, Clone)]
-//#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-//#[cfg_attr(feature = "ts-rs", ts(optional_fields, export, concrete(T = String)))]
-pub struct PagedResponse<T> {
+#[cfg(feature = "ts-rs")]
+#[derive(ts_rs::TS)]
+#[ts(optional_fields, export, rename = "PagedResponse")]
+pub struct PagedResponseTS<T: ts_rs::TS> {
   pub data: Vec<T>,
   pub next_page: Option<PaginationCursor>,
   pub prev_page: Option<PaginationCursor>,
