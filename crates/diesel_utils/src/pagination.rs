@@ -1,23 +1,26 @@
-use crate::connection::DbPool;
-use base64::{
-  Engine,
-  alphabet::Alphabet,
-  engine::{GeneralPurpose, general_purpose::NO_PAD},
-};
-use i_love_jesus::{PaginatedQueryBuilder, SortDirection};
-use itertools::Itertools;
-use lemmy_utils::error::LemmyErrorType;
-#[cfg(feature = "full")]
-use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use std::{
   ops::{Deref, DerefMut},
   sync::LazyLock,
 };
+#[cfg(feature = "full")]
+use {
+  crate::connection::DbPool,
+  base64::{
+    Engine,
+    alphabet::Alphabet,
+    engine::{GeneralPurpose, general_purpose::NO_PAD},
+  },
+  i_love_jesus::{PaginatedQueryBuilder, SortDirection},
+  itertools::Itertools,
+  lemmy_utils::error::LemmyErrorType,
+  lemmy_utils::error::LemmyResult,
+};
 
 /// Use base 64 engine with custom alphabet based on base64::engine::general_purpose::URL_SAFE
 /// with randomized character order, to prevent clients from parsing or modifying cursor data.
+#[cfg(feature = "full")]
 #[expect(clippy::expect_used)]
 static BASE64_ENGINE: LazyLock<GeneralPurpose> = LazyLock::new(|| {
   let alphabet = Alphabet::new("AphruVFwvCetlckdZ2g-foxXBGNbyHnD96qUj3KL_YsE7P1OQiaIR0z4T58mMWJS")
@@ -28,6 +31,7 @@ static BASE64_ENGINE: LazyLock<GeneralPurpose> = LazyLock::new(|| {
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct CursorData(String);
 
+#[cfg(feature = "full")]
 impl CursorData {
   pub fn new_id(id: i32) -> Self {
     Self(id.to_string())
@@ -73,6 +77,8 @@ impl CursorData {
     )
   }
 }
+
+#[cfg(feature = "full")]
 pub trait PaginationCursorConversion {
   type PaginatedType: Send;
 
@@ -128,6 +134,7 @@ pub trait PaginationCursorConversion {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 pub struct PaginationCursor(String);
 
+#[cfg(feature = "full")]
 impl PaginationCursor {
   fn into_internal(self) -> LemmyResult<PaginationCursorInternal> {
     let decoded = BASE64_ENGINE.decode(self.0)?;
@@ -176,18 +183,22 @@ pub struct PagedResponseTS<T: ts_rs::TS> {
   pub prev_page: Option<PaginationCursor>,
 }
 
+#[cfg(feature = "full")]
 impl<T> Deref for PagedResponse<T> {
   type Target = Vec<T>;
   fn deref(&self) -> &Vec<T> {
     &self.data
   }
 }
+
+#[cfg(feature = "full")]
 impl<T> DerefMut for PagedResponse<T> {
   fn deref_mut(&mut self) -> &mut Self::Target {
     &mut self.data
   }
 }
 
+#[cfg(feature = "full")]
 impl<T> IntoIterator for PagedResponse<T> {
   type Item = T;
   type IntoIter = std::vec::IntoIter<Self::Item>;
@@ -199,6 +210,7 @@ impl<T> IntoIterator for PagedResponse<T> {
 }
 
 /// Add prev/next cursors to query result.
+#[cfg(feature = "full")]
 pub fn paginate_response<T>(data: Vec<T>, limit: i64) -> LemmyResult<PagedResponse<T>>
 where
   T: PaginationCursorConversion + Serialize + for<'a> Deserialize<'a>,
