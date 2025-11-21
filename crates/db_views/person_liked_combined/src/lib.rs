@@ -37,79 +37,49 @@ use {
 #[cfg(feature = "full")]
 pub mod impls;
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable))]
-#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg(feature = "full")]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Queryable, Selectable)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 /// A combined person_saved view
 pub(crate) struct PersonLikedCombinedViewInternal {
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   pub person_liked_combined: PersonLikedCombined,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   pub comment: Option<Comment>,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   pub post: Post,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   pub item_creator: Person,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   pub community: Community,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   pub community_actions: Option<CommunityActions>,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   pub post_actions: Option<PostActions>,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   pub person_actions: Option<PersonActions>,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   pub comment_actions: Option<CommentActions>,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   pub image_details: Option<ImageDetails>,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression = creator_is_admin()
-    )
-  )]
+  #[diesel(select_expression = creator_is_admin())]
   pub item_creator_is_admin: bool,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression = post_tags_fragment()
-    )
-  )]
+  #[diesel(select_expression = post_tags_fragment())]
   pub post_tags: TagsView,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression = local_user_can_mod()
-    )
-  )]
+  #[diesel(select_expression = local_user_can_mod()  )]
   pub can_mod: bool,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression = creator_local_home_community_banned()
-    )
-  )]
+  #[diesel(select_expression = creator_local_home_community_banned())]
   pub creator_banned: bool,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression_type = CreatorLocalHomeCommunityBanExpiresType,
-      select_expression = creator_local_home_community_ban_expires()
-     )
+  #[diesel(
+    select_expression_type = CreatorLocalHomeCommunityBanExpiresType,
+    select_expression = creator_local_home_community_ban_expires()
   )]
   pub creator_ban_expires_at: Option<DateTime<Utc>>,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression = creator_is_moderator()
-    )
-  )]
+  #[diesel(select_expression = creator_is_moderator())]
   pub creator_is_moderator: bool,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression = creator_banned_from_community()
-    )
-  )]
+  #[diesel(select_expression = creator_banned_from_community())]
   pub creator_banned_from_community: bool,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression = creator_ban_expires_from_community()
-    )
-  )]
+  #[diesel(select_expression = creator_ban_expires_from_community())]
   pub creator_community_ban_expires_at: Option<DateTime<Utc>>,
 }
 
