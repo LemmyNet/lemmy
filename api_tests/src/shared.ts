@@ -961,11 +961,11 @@ export function getModlog(api: LemmyHttp): Promise<GetModlogResponse> {
   return api.getModlog(form);
 }
 
-export function delay(millis = 500) {
+function delay(millis = 500) {
   return new Promise(resolve => setTimeout(resolve, millis));
 }
 
-export function longDelay() {
+function longDelay() {
   return delay(10000);
 }
 
