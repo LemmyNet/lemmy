@@ -1,7 +1,7 @@
 pub use lemmy_db_schema::{
   PostFeatureType,
   newtypes::PostId,
-  source::post::{Post, PostActions},
+  source::post::{Post, PostActions, PostInsertForm, PostLikeForm},
 };
 pub use lemmy_db_schema_file::enums::{PostListingMode, PostNotificationsMode};
 pub use lemmy_db_views_post::{
