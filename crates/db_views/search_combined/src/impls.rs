@@ -72,6 +72,7 @@ use lemmy_diesel_utils::{
   utils::{fuzzy_search, now, paginate, seconds_to_pg_interval},
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use url::Url;
 
 impl SearchCombinedViewInternal {
   #[diesel::dsl::auto_type(no_type_alias)]
@@ -249,7 +250,10 @@ impl SearchCombinedQuery {
     // The search term
     if let Some(search_term) = &self.search_term {
       if self.post_url_only.unwrap_or_default() {
-        query = query.filter(post::url.eq(search_term));
+        // Needs to be parsed to a rusts common url format before searching, since those are whats
+        // inserted as the post url
+        let search_url: String = Url::parse(search_term)?.into();
+        query = query.filter(post::url.eq(search_url));
       } else {
         let searcher = fuzzy_search(search_term);
 

@@ -56,6 +56,7 @@ impl UndoBlockUser {
       kind: UndoType::Undo,
       id: id.clone(),
       restore_data: Some(restore_data),
+      audience: target.as_ref().right().map(|c| c.ap_id.clone().into()),
     };
 
     let mut inboxes = ActivitySendTargets::to_inbox(user.shared_inbox_or_inbox());

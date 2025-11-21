@@ -11,7 +11,7 @@ use activitypub_federation::{
 };
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
-  objects::{PostOrComment, person::ApubPerson},
+  objects::{PostOrComment, community::ApubCommunity, person::ApubPerson},
   utils::{functions::verify_person_in_community, protocol::InCommunity},
 };
 use lemmy_utils::error::{LemmyError, LemmyResult};
@@ -21,6 +21,7 @@ impl UndoVote {
   pub(in crate::voting) fn new(
     vote: Vote,
     actor: &ApubPerson,
+    community: &ApubCommunity,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<Self> {
     Ok(UndoVote {
@@ -28,6 +29,7 @@ impl UndoVote {
       object: vote,
       kind: UndoType::Undo,
       id: generate_activity_id(UndoType::Undo, context)?,
+      audience: Some(community.ap_id.clone().into()),
     })
   }
 }
