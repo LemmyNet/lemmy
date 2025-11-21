@@ -302,6 +302,8 @@ fn build_url_str_without_scheme(url_str: &str) -> LemmyResult<String> {
 
 // Shorten a string to n chars, being mindful of unicode grapheme
 // boundaries
+// To understand the difference between chars and graphemes see:
+// https://hsivonen.fi/string-length/
 fn truncate_for_db(text: &str, len: usize) -> String {
   if text.chars().count() <= len {
     text.to_string()
