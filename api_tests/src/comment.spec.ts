@@ -33,7 +33,6 @@ import {
   betaUrl,
   followCommunity,
   blockCommunity,
-  delay,
   saveUserSettings,
   listReports,
   listPersonContent,
@@ -834,7 +833,10 @@ test("Dont send a comment reply to a blocked community", async () => {
   // Beta blocks the new beta community
   let blockRes = await blockCommunity(beta, newCommunityId, true);
   expect(blockRes.community_view.community_actions?.blocked_at).toBeDefined();
-  delay();
+  await waitUntil(
+    () => getPost(alpha, alphaPost.post.id),
+    p => p.post_view.post.locked,
+  );
 
   // Alpha creates a comment
   let commentRes = await createComment(alpha, alphaPost.post.id);
@@ -959,7 +961,18 @@ test("Lock comment", async () => {
 
   // Lock comment2 and wait for it to federate
   await lockComment(alpha, true, comment2.comment_view.comment);
-  await delay();
+  console.log(comment2.comment_view.comment.ap_id);
+  await waitUntil(
+    () => getComments(newBetaApi, betaPost.post.id),
+    c => {
+      const find = c.comments.find(
+        c => c.comment.ap_id == comment3.comment_view.comment.ap_id,
+      );
+      console.log(find?.comment);
+      // TODO: why not federating?
+      return find?.comment.locked ?? false;
+    },
+  );
 
   // Make sure newBeta can't respond to comment3
   await expect(

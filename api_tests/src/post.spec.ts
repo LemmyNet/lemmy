@@ -18,7 +18,6 @@ import {
   resolveBetaCommunity,
   createComment,
   deletePost,
-  delay,
   removePost,
   getPost,
   unfollowRemotes,
@@ -42,6 +41,7 @@ import {
   getModlog,
   statusNotFound,
   statusBadRequest,
+  getSite,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
 import { AdminBlockInstanceParams } from "lemmy-js-client/dist/types/AdminBlockInstanceParams";
@@ -345,7 +345,6 @@ test("Delete a post", async () => {
     postRes.post_view.post,
     p => p?.post?.deleted || p == undefined,
   );
-  await delay();
 
   // Undelete
   let undeletedPost = await deletePost(alpha, false, postRes.post_view.post);
@@ -843,8 +842,6 @@ test("Block post that contains banned URL", async () => {
 
   await epsilon.editSite(editSiteForm);
 
-  await delay();
-
   if (!betaCommunity) {
     throw "Missing beta community";
   }
@@ -952,7 +949,10 @@ test("Don't allow NSFW posts on instances that disable it", async () => {
   await gamma.editSite(editSiteForm);
 
   // Wait for cache on Gamma's LocalSite
-  await delay(1_000);
+  let alphaPost = await waitUntil(
+    () => getSite(gamma),
+    s => s.site_view.local_site.disallow_nsfw_content,
+  );
 
   if (!betaCommunity) {
     throw "Missing beta community";
