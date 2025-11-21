@@ -78,7 +78,7 @@ pub async fn export_data(
   })
   .collect();
 
-  let read_posts = PostView::list_read(pool, my_person, None, None, None, Some(true))
+  let read_posts = PostView::list_read(pool, my_person, None, None, Some(true))
     .await?
     .into_iter()
     .map(|pv| pv.post.ap_id.into())

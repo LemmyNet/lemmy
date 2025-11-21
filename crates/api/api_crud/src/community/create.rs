@@ -49,7 +49,7 @@ use lemmy_utils::{
 };
 
 pub async fn create_community(
-  data: Json<CreateCommunity>,
+  Json(data): Json<CreateCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityResponse>> {

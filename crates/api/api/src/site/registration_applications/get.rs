@@ -9,7 +9,7 @@ use lemmy_utils::error::LemmyResult;
 
 /// Lists registration applications, filterable by undenied only.
 pub async fn get_registration_application(
-  data: Query<GetRegistrationApplication>,
+  Query(data): Query<GetRegistrationApplication>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<RegistrationApplicationResponse>> {

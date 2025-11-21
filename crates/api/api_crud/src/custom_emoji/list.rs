@@ -7,7 +7,7 @@ use lemmy_db_views_custom_emoji::{
 use lemmy_utils::error::LemmyError;
 
 pub async fn list_custom_emojis(
-  data: Query<ListCustomEmojis>,
+  Query(data): Query<ListCustomEmojis>,
   context: Data<LemmyContext>,
 ) -> Result<Json<ListCustomEmojisResponse>, LemmyError> {
   let custom_emojis = CustomEmojiView::list(&mut context.pool(), &data.category).await?;

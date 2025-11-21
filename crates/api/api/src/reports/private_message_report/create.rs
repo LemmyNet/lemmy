@@ -23,7 +23,7 @@ use lemmy_email::admin::send_new_report_email_to_admins;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn create_pm_report(
-  data: Json<CreatePrivateMessageReport>,
+  Json(data): Json<CreatePrivateMessageReport>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PrivateMessageReportResponse>> {

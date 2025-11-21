@@ -31,7 +31,7 @@ use lemmy_utils::error::LemmyResult;
 use std::ops::Deref;
 
 pub async fn like_post(
-  data: Json<CreatePostLike>,
+  Json(data): Json<CreatePostLike>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {

@@ -35,7 +35,7 @@ use lemmy_utils::{
 use std::ops::Deref;
 
 pub async fn save_user_settings(
-  data: Json<SaveUserSettings>,
+  Json(data): Json<SaveUserSettings>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {

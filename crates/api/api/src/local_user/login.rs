@@ -17,7 +17,7 @@ use lemmy_db_views_site::{
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn login(
-  data: Json<Login>,
+  Json(data): Json<Login>,
   req: HttpRequest,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<LoginResponse>> {

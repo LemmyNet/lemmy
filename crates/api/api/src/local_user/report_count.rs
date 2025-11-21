@@ -8,7 +8,7 @@ use lemmy_db_views_report_combined::{
 use lemmy_utils::error::LemmyResult;
 
 pub async fn report_count(
-  data: Query<GetReportCount>,
+  Query(data): Query<GetReportCount>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<GetReportCountResponse>> {

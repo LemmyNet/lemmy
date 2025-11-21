@@ -12,7 +12,7 @@ use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn read_multi_community(
-  data: Query<GetMultiCommunity>,
+  Query(data): Query<GetMultiCommunity>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<GetMultiCommunityResponse>> {
@@ -29,7 +29,8 @@ pub async fn read_multi_community(
     ..Default::default()
   }
   .list(&local_site.site, &mut context.pool())
-  .await?;
+  .await?
+  .data;
 
   Ok(Json(GetMultiCommunityResponse {
     multi_community_view,

@@ -665,8 +665,8 @@ test("Enforce community ban for federated user", async () => {
   await waitUntil(
     () => getModlog(alpha),
     m =>
-      m.modlog[0].modlog.kind == "mod_ban_from_community" &&
-      m.modlog[0].modlog.is_revert == true,
+      m.data[0].modlog.kind == "mod_ban_from_community" &&
+      m.data[0].modlog.is_revert == true,
   );
 
   let postRes3 = await createPost(alpha, betaCommunity.community.id);
@@ -732,7 +732,7 @@ test("Report a post", async () => {
     (await waitUntil(
       () =>
         listReports(beta).then(p =>
-          p.reports.find(r => {
+          p.data.find(r => {
             return checkPostReportName(r, gammaReport);
           }),
         ),
@@ -753,7 +753,7 @@ test("Report a post", async () => {
     (await waitUntil(
       () =>
         listReports(alpha, true).then(p =>
-          p.reports.find(r => {
+          p.data.find(r => {
             return checkPostReportName(r, gammaReport);
           }),
         ),
@@ -772,7 +772,7 @@ test("Report a post", async () => {
     (await waitUntil(
       () =>
         listReports(epsilon).then(p =>
-          p.reports.find(r => {
+          p.data.find(r => {
             return checkPostReportName(r, gammaReport);
           }),
         ),
@@ -796,7 +796,7 @@ test("Report a post", async () => {
     (await waitUntil(
       () =>
         listReports(beta).then(p =>
-          p.reports.find(r => {
+          p.data.find(r => {
             return checkPostReportName(r, gammaReport) && !!r.resolver;
           }),
         ),
@@ -828,7 +828,7 @@ test("Fetch post via redirect", async () => {
   };
   let gammaPost = await gamma
     .resolveObject(form)
-    .then(a => a.results.at(0))
+    .then(a => a.resolve)
     .then(a => (a?.type_ == "post" ? a : undefined));
 
   expect(gammaPost).toBeDefined();
@@ -876,7 +876,7 @@ test("Fetch post with redirect", async () => {
   };
   let gammaPost2 = await gamma
     .resolveObject(form)
-    .then(a => a.results.at(0))
+    .then(a => a.resolve)
     .then(a => (a?.type_ == "post" ? a : undefined));
 
   expect(gammaPost2?.post).toBeDefined();
@@ -909,10 +909,10 @@ test("Mention beta from alpha post body", async () => {
 
   let mentionsRes = await waitUntil(
     () => listNotifications(beta, "mention"),
-    m => !!m.notifications[0],
+    m => !!m.data[0],
   );
 
-  const firstMention = mentionsRes.notifications[0].data as PostView;
+  const firstMention = mentionsRes.data[0].data as PostView;
   expect(firstMention.post!.body).toBeDefined();
   expect(firstMention.community!.local).toBe(true);
   expect(firstMention.creator.local).toBe(false);

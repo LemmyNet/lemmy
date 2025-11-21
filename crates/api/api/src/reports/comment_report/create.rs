@@ -29,7 +29,7 @@ use lemmy_utils::error::LemmyResult;
 
 /// Creates a comment report and notifies the moderators of the community
 pub async fn create_comment_report(
-  data: Json<CreateCommentReport>,
+  Json(data): Json<CreateCommentReport>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentReportResponse>> {

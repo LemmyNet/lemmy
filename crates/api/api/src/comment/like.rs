@@ -31,7 +31,7 @@ use lemmy_utils::error::LemmyResult;
 use std::ops::Deref;
 
 pub async fn like_comment(
-  data: Json<CreateCommentLike>,
+  Json(data): Json<CreateCommentLike>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponse>> {

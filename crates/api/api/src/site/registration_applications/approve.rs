@@ -17,7 +17,7 @@ use lemmy_email::account::{send_application_approved_email, send_application_den
 use lemmy_utils::error::LemmyResult;
 
 pub async fn approve_registration_application(
-  data: Json<ApproveRegistrationApplication>,
+  Json(data): Json<ApproveRegistrationApplication>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<RegistrationApplicationResponse>> {

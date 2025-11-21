@@ -27,7 +27,7 @@ use lemmy_email::admin::send_new_report_email_to_admins;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn create_community_report(
-  data: Json<CreateCommunityReport>,
+  Json(data): Json<CreateCommunityReport>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityReportResponse>> {

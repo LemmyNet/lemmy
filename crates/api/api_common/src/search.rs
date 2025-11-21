@@ -4,7 +4,7 @@ pub use lemmy_db_schema::{
   PersonContentType,
   SearchSortType,
   SearchType,
-  newtypes::{PaginationCursor, SearchCombinedId},
+  newtypes::SearchCombinedId,
   source::combined::search::SearchCombined,
 };
 pub use lemmy_db_schema_file::enums::{CommentSortType, ListingType, PostSortType};

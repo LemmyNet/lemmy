@@ -46,7 +46,7 @@ use lemmy_utils::{
 };
 
 pub async fn update_site(
-  data: Json<EditSite>,
+  Json(data): Json<EditSite>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SiteResponse>> {

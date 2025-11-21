@@ -1,6 +1,6 @@
 mod series;
 
-use crate::{PostView, db_perf::series::ValuesFromSeries, impls::PostQuery};
+use crate::{db_perf::series::ValuesFromSeries, impls::PostQuery};
 use diesel::{
   ExpressionMethods,
   IntoSql,
@@ -8,14 +8,11 @@ use diesel::{
   sql_types,
 };
 use diesel_async::{RunQueryDsl, SimpleAsyncConnection};
-use lemmy_db_schema::{
-  source::{
-    community::{Community, CommunityInsertForm},
-    instance::Instance,
-    person::{Person, PersonInsertForm},
-    site::Site,
-  },
-  traits::PaginationCursorBuilder,
+use lemmy_db_schema::source::{
+  community::{Community, CommunityInsertForm},
+  instance::Instance,
+  person::{Person, PersonInsertForm},
+  site::Site,
 };
 use lemmy_db_schema_file::{enums::PostSortType, schema::post};
 use lemmy_diesel_utils::{
@@ -145,11 +142,11 @@ async fn db_perf() -> LemmyResult<()> {
     .await?;
 
   // TODO: show execution duration stats
-  let mut cursor_data = None;
+  let mut page_cursor = None;
   for page_num in 1..=args.read_post_pages {
     println!(
       "👀 getting page {page_num} of posts (pagination cursor used: {})",
-      cursor_data.is_some()
+      page_cursor.is_some()
     );
 
     // TODO: include local_user
@@ -157,16 +154,15 @@ async fn db_perf() -> LemmyResult<()> {
       community_id: community_ids.as_slice().first().cloned(),
       sort: Some(PostSortType::New),
       limit: Some(20),
-      cursor_data,
+      page_cursor,
       ..Default::default()
     }
     .list(&site()?, &mut conn.into())
     .await?;
 
-    if let Some(post_view) = post_views.into_iter().next_back() {
+    if let Some(cursor) = post_views.next_page {
       println!("👀 getting pagination cursor data for next page");
-      let cursor = post_view.to_cursor();
-      cursor_data = Some(PostView::from_cursor(&cursor, &mut conn.into()).await?);
+      page_cursor = Some(cursor);
     } else {
       println!("👀 reached empty page");
       break;

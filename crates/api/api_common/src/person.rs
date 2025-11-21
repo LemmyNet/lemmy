@@ -16,11 +16,7 @@ pub use lemmy_db_views_person::{
 pub mod actions {
   pub use lemmy_db_schema::newtypes::PersonContentCombinedId;
   pub use lemmy_db_views_person::api::{BlockPerson, NotePerson};
-  pub use lemmy_db_views_person_content_combined::{
-    ListPersonContent,
-    ListPersonContentResponse,
-    PersonContentCombinedView,
-  };
+  pub use lemmy_db_views_person_content_combined::{ListPersonContent, PersonContentCombinedView};
 
   pub mod moderation {
     pub use lemmy_db_schema::{

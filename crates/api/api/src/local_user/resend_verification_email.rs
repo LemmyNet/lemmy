@@ -9,7 +9,7 @@ use lemmy_email::account::send_verification_email_if_required;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn resend_verification_email(
-  data: Json<ResendVerificationEmail>,
+  Json(data): Json<ResendVerificationEmail>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<SuccessResponse>> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;

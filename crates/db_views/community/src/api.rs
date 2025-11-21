@@ -3,7 +3,7 @@ use lemmy_db_schema::{
   CommunitySortType,
   MultiCommunityListingType,
   MultiCommunitySortType,
-  newtypes::{CommunityId, LanguageId, MultiCommunityId, PaginationCursor, TagId},
+  newtypes::{CommunityId, LanguageId, MultiCommunityId, TagId},
   source::site::Site,
 };
 use lemmy_db_schema_file::{
@@ -11,6 +11,7 @@ use lemmy_db_schema_file::{
   enums::{CommunityNotificationsMode, CommunityVisibility, ListingType},
 };
 use lemmy_db_views_community_moderator::CommunityModeratorView;
+use lemmy_diesel_utils::pagination::PaginationCursor;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -211,19 +212,7 @@ pub struct ListCommunities {
   pub time_range_seconds: Option<i32>,
   pub show_nsfw: Option<bool>,
   pub page_cursor: Option<PaginationCursor>,
-  pub page_back: Option<bool>,
   pub limit: Option<i64>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// The response for listing communities.
-pub struct ListCommunitiesResponse {
-  pub communities: Vec<CommunityView>,
-  /// the pagination cursor to use to fetch the next page
-  pub next_page: Option<PaginationCursor>,
-  pub prev_page: Option<PaginationCursor>,
 }
 
 #[skip_serializing_none]
@@ -294,18 +283,7 @@ pub struct ListMultiCommunities {
   /// IE 60 would give results for the past minute.
   pub time_range_seconds: Option<i32>,
   pub page_cursor: Option<PaginationCursor>,
-  pub page_back: Option<bool>,
   pub limit: Option<i64>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-pub struct ListMultiCommunitiesResponse {
-  pub multi_communities: Vec<MultiCommunityView>,
-  /// the pagination cursor to use to fetch the next page
-  pub next_page: Option<PaginationCursor>,
-  pub prev_page: Option<PaginationCursor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

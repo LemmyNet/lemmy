@@ -18,7 +18,7 @@ use lemmy_db_views_report_combined::{
 use lemmy_utils::error::LemmyResult;
 
 pub async fn resolve_community_report(
-  data: Json<ResolveCommunityReport>,
+  Json(data): Json<ResolveCommunityReport>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityReportResponse>> {

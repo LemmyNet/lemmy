@@ -52,7 +52,7 @@ pub async fn export_settings(
 }
 
 pub async fn import_settings(
-  data: Json<UserSettingsBackup>,
+  Json(data): Json<UserSettingsBackup>,
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<SuccessResponse>> {

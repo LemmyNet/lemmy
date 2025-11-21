@@ -1,4 +1,4 @@
-use crate::newtypes::{CommunityId, PaginationCursor};
+use crate::newtypes::CommunityId;
 use diesel_uplete::UpleteCount;
 use lemmy_db_schema_file::PersonId;
 use lemmy_diesel_utils::{connection::DbPool, dburl::DbUrl};
@@ -150,17 +150,4 @@ pub trait InternalToCombinedView {
 
   /// Maps the combined DB row to an enum
   fn map_to_enum(self) -> Option<Self::CombinedView>;
-}
-
-pub trait PaginationCursorBuilder {
-  type CursorData;
-
-  /// Builds a pagination cursor for the given query result.
-  fn to_cursor(&self) -> PaginationCursor;
-
-  /// Reads a database row from a given pagination cursor.
-  fn from_cursor(
-    cursor: &PaginationCursor,
-    conn: &mut DbPool<'_>,
-  ) -> impl Future<Output = LemmyResult<Self::CursorData>> + Send;
 }

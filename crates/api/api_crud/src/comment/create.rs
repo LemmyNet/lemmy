@@ -37,7 +37,7 @@ use lemmy_utils::{
 };
 
 pub async fn create_comment(
-  data: Json<CreateComment>,
+  Json(data): Json<CreateComment>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponse>> {

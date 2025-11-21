@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
   SearchSortType,
   SearchType,
-  newtypes::{CommunityId, PaginationCursor},
+  newtypes::CommunityId,
   source::{
     combined::search::SearchCombined,
     comment::{Comment, CommentActions},
@@ -19,6 +19,7 @@ use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_community::{CommunityView, MultiCommunityView};
 use lemmy_db_views_person::PersonView;
 use lemmy_db_views_post::PostView;
+use lemmy_diesel_utils::pagination::PaginationCursor;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -147,6 +148,8 @@ pub enum SearchCombinedView {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Searches the site, given a search term, and some optional filters.
 pub struct Search {
+  /// The search query. Can be a plain text, or an object ID which will be resolved
+  /// (eg `https://lemmy.world/comment/1` or `!fediverse@lemmy.ml`).
   pub q: String,
   pub community_id: Option<CommunityId>,
   pub community_name: Option<String>,
@@ -164,7 +167,6 @@ pub struct Search {
   /// If true, then show the nsfw posts (even if your user setting is to hide them)
   pub show_nsfw: Option<bool>,
   pub page_cursor: Option<PaginationCursor>,
-  pub page_back: Option<bool>,
   pub limit: Option<i64>,
 }
 
@@ -173,7 +175,13 @@ pub struct Search {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// The search response, containing lists of the return type possibilities
 pub struct SearchResponse {
-  pub results: Vec<SearchCombinedView>,
+  /// If `Search.q` contains an ActivityPub ID (eg `https://lemmy.world/comment/1`) or an
+  /// identifier (eg `!fediverse@lemmy.ml`) then this field contains the resolved object.
+  /// It should always be shown above other search results.
+  pub resolve: Option<SearchCombinedView>,
+  /// Items which contain the search string in post body, comment text, community sidebar etc.
+  /// This is always empty when calling `/api/v4/resolve_object`
+  pub search: Vec<SearchCombinedView>,
   /// the pagination cursor to use to fetch the next page
   pub next_page: Option<PaginationCursor>,
   pub prev_page: Option<PaginationCursor>,

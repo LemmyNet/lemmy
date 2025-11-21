@@ -9,7 +9,7 @@ use lemmy_utils::error::LemmyError;
 use url::Url;
 
 pub async fn create_oauth_provider(
-  data: Json<CreateOAuthProvider>,
+  Json(data): Json<CreateOAuthProvider>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> Result<Json<OAuthProvider>, LemmyError> {

@@ -1,10 +1,10 @@
 use crate::PostView;
 use lemmy_db_schema::{
   PostFeatureType,
-  newtypes::{CommunityId, LanguageId, MultiCommunityId, PaginationCursor, PostId, TagId},
+  newtypes::{CommunityId, LanguageId, MultiCommunityId, PostId, TagId},
 };
 use lemmy_db_schema_file::enums::{ListingType, PostNotificationsMode, PostSortType};
-use lemmy_diesel_utils::dburl::DbUrl;
+use lemmy_diesel_utils::{dburl::DbUrl, pagination::PaginationCursor};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -131,23 +131,10 @@ pub struct GetPosts {
   /// If true, then only show posts with no comments
   pub no_comments_only: Option<bool>,
   pub page_cursor: Option<PaginationCursor>,
-  pub page_back: Option<bool>,
   /// For backwards compat with API v3 (not available on API v4)
   #[serde(skip)]
   pub page: Option<i64>,
   pub limit: Option<i64>,
-}
-
-#[skip_serializing_none]
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// The post list response.
-pub struct GetPostsResponse {
-  pub posts: Vec<PostView>,
-  /// the pagination cursor to use to fetch the next page
-  pub next_page: Option<PaginationCursor>,
-  pub prev_page: Option<PaginationCursor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
@@ -195,7 +182,6 @@ pub struct HidePost {
 pub struct ListPostLikes {
   pub post_id: PostId,
   pub page_cursor: Option<PaginationCursor>,
-  pub page_back: Option<bool>,
   pub limit: Option<i64>,
 }
 

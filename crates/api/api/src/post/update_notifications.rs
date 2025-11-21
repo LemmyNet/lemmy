@@ -14,7 +14,7 @@ use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn update_post_notifications(
-  data: Json<UpdatePostNotifications>,
+  Json(data): Json<UpdatePostNotifications>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {

@@ -63,7 +63,7 @@ pub async fn get_my_user(
     local_user_view: local_user_view.clone(),
     follows,
     moderates,
-    multi_community_follows,
+    multi_community_follows: multi_community_follows.data,
     community_blocks,
     instance_communities_blocks,
     instance_persons_blocks,

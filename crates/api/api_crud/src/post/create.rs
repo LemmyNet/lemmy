@@ -46,7 +46,7 @@ use lemmy_utils::{
 };
 
 pub async fn create_post(
-  data: Json<CreatePost>,
+  Json(data): Json<CreatePost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {

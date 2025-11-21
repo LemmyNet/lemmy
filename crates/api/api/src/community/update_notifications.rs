@@ -11,7 +11,7 @@ use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn update_community_notifications(
-  data: Json<UpdateCommunityNotifications>,
+  Json(data): Json<UpdateCommunityNotifications>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
