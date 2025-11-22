@@ -142,17 +142,22 @@ impl RegistrationApplicationQuery {
     }
 
     // Sorting by published
-    let paginated_query =
-      RegistrationApplicationView::paginate(query, o.page_cursor, SortDirection::Desc, pool, None)
-        .await?
-        .then_order_by(key::published_at);
+    let paginated_query = RegistrationApplicationView::paginate(
+      query,
+      o.page_cursor.clone(),
+      SortDirection::Desc,
+      pool,
+      None,
+    )
+    .await?
+    .then_order_by(key::published_at);
 
     let conn = &mut get_conn(pool).await?;
     let res = paginated_query
       .load::<RegistrationApplicationView>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)?;
-    paginate_response(res, limit)
+    paginate_response(res, limit, o.page_cursor)
   }
 }
 

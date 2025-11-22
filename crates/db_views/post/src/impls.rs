@@ -219,7 +219,7 @@ impl PostView {
 
     // Sorting by the read date
     let paginated_query =
-      PostViewDummy::paginate(query, page_cursor, SortDirection::Desc, pool, None)
+      PostViewDummy::paginate(query, page_cursor.clone(), SortDirection::Desc, pool, None)
         .await?
         .then_order_by(pa_key::read_at)
         // Tie breaker
@@ -230,7 +230,7 @@ impl PostView {
       .load::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)?;
-    paginate_response(res, limit)
+    paginate_response(res, limit, page_cursor)
   }
 
   /// List all the hidden posts for your person, ordered by the hide date.
@@ -252,7 +252,7 @@ impl PostView {
 
     // Sorting by the hidden date
     let paginated_query =
-      PostViewDummy::paginate(query, page_cursor, SortDirection::Desc, pool, None)
+      PostViewDummy::paginate(query, page_cursor.clone(), SortDirection::Desc, pool, None)
         .await?
         .then_order_by(pa_key::hidden_at)
         // Tie breaker
@@ -263,7 +263,7 @@ impl PostView {
       .load::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)?;
-    paginate_response(res, limit)
+    paginate_response(res, limit, page_cursor)
   }
 }
 
@@ -521,7 +521,7 @@ impl PostQuery<'_> {
 
     let mut pq = PostView::paginate(
       query,
-      o.page_cursor,
+      o.page_cursor.clone(),
       sort_direction,
       pool,
       cursor_before_data,
@@ -573,7 +573,7 @@ impl PostQuery<'_> {
       .load::<PostView>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)?;
-    paginate_response(res, limit)
+    paginate_response(res, limit, o.page_cursor)
   }
 
   pub async fn list(

@@ -388,7 +388,8 @@ impl SearchCombinedQuery {
     let sort_direction = asc_if(sort == Old);
 
     let mut paginated_query =
-      SearchCombinedView::paginate(query, self.page_cursor, sort_direction, pool, None).await?;
+      SearchCombinedView::paginate(query, self.page_cursor.clone(), sort_direction, pool, None)
+        .await?;
 
     paginated_query = match sort {
       New | Old => paginated_query.then_order_by(key::published_at),
@@ -408,7 +409,7 @@ impl SearchCombinedQuery {
       .filter_map(InternalToCombinedView::map_to_enum)
       .collect();
 
-    paginate_response(out, limit)
+    paginate_response(out, limit, self.page_cursor)
   }
 }
 

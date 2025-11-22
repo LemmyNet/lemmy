@@ -72,17 +72,18 @@ impl Tagline {
   ) -> LemmyResult<PagedResponse<Self>> {
     let limit = limit_fetch(limit, None)?;
     let query = tagline::table.limit(limit).into_boxed();
-    let paginated_query = Self::paginate(query, page_cursor, SortDirection::Desc, pool, None)
-      .await?
-      .then_order_by(key::published_at)
-      .then_order_by(key::id);
+    let paginated_query =
+      Self::paginate(query, page_cursor.clone(), SortDirection::Desc, pool, None)
+        .await?
+        .then_order_by(key::published_at)
+        .then_order_by(key::id);
 
     let conn = &mut get_conn(pool).await?;
     let res = paginated_query
       .load::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)?;
-    paginate_response(res, limit)
+    paginate_response(res, limit, page_cursor)
   }
 
   pub async fn get_random(pool: &mut DbPool<'_>) -> LemmyResult<Self> {

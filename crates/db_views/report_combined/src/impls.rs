@@ -287,7 +287,7 @@ impl ReportCombinedQuery {
 
     // Sorting by published
     let paginated_query =
-      ReportCombinedView::paginate(query, self.page_cursor, sort_direction, pool, None)
+      ReportCombinedView::paginate(query, self.page_cursor.clone(), sort_direction, pool, None)
         .await?
         .then_order_by(key::published_at)
         // Tie breaker
@@ -304,7 +304,7 @@ impl ReportCombinedQuery {
       .filter_map(InternalToCombinedView::map_to_enum)
       .collect();
 
-    paginate_response(out, limit)
+    paginate_response(out, limit, self.page_cursor)
   }
 }
 

@@ -211,7 +211,11 @@ impl<T> IntoIterator for PagedResponse<T> {
 
 /// Add prev/next cursors to query result.
 #[cfg(feature = "full")]
-pub fn paginate_response<T>(data: Vec<T>, limit: i64) -> LemmyResult<PagedResponse<T>>
+pub fn paginate_response<T>(
+  data: Vec<T>,
+  limit: i64,
+  request_cursor: Option<PaginationCursor>,
+) -> LemmyResult<PagedResponse<T>>
 where
   T: PaginationCursorConversion + Serialize + for<'a> Deserialize<'a>,
 {
@@ -224,14 +228,33 @@ where
       Ok(None)
     }
   };
-  let prev_page = make_cursor(data.first(), true)?;
+  let mut prev_page = make_cursor(data.first(), true)?;
   let mut next_page = make_cursor(data.last(), false)?;
 
-  // If there are less than limit items we are on the last page, dont show next button.
-  // Need to convert here because diesel takes i64 for limit while vec length is usize.
-  let limit: usize = limit.try_into().unwrap_or_default();
-  if data.len() < limit {
-    next_page = None;
+  if let Ok(ref request_cursor) = request_cursor
+    .map(PaginationCursor::into_internal)
+    .transpose()
+  {
+    // Need to convert here because diesel takes i64 for limit while vec length is usize.
+    let limit: usize = limit.try_into().unwrap_or_default();
+    // Hide next and back buttons when possible.
+    match (data.len() < limit, request_cursor) {
+      (false, None) => {
+        prev_page = None; // no page before first
+      }
+      (true, None) => {
+        prev_page = None; // no page before first
+        next_page = None;
+      }
+      (true, Some(PaginationCursorInternal { back, data: _ })) => {
+        if *back {
+          prev_page = None;
+        } else {
+          next_page = None;
+        }
+      }
+      (false, Some(_)) => {}
+    };
   }
   Ok(PagedResponse {
     data,

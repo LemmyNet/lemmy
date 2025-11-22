@@ -105,9 +105,10 @@ impl PendingFollowerView {
     }
 
     // Sorting by published
-    let paginated_query = Self::paginate(query, page_cursor, SortDirection::Asc, pool, None)
-      .await?
-      .then_order_by(key::followed_at);
+    let paginated_query =
+      Self::paginate(query, page_cursor.clone(), SortDirection::Asc, pool, None)
+        .await?
+        .then_order_by(key::followed_at);
 
     let conn = &mut get_conn(pool).await?;
     let mut res: Vec<_> = paginated_query
@@ -149,7 +150,7 @@ impl PendingFollowerView {
         r.is_new_instance = false;
       }
     }
-    paginate_response(res, limit)
+    paginate_response(res, limit, page_cursor)
   }
 
   pub async fn count_approval_required(

@@ -44,9 +44,10 @@ impl LocalImageView {
       .limit(limit)
       .into_boxed();
 
-    let paginated_query = Self::paginate(query, cursor_data, SortDirection::Asc, pool, None)
-      .await?
-      .then_order_by(key::pictrs_alias);
+    let paginated_query =
+      Self::paginate(query, cursor_data.clone(), SortDirection::Asc, pool, None)
+        .await?
+        .then_order_by(key::pictrs_alias);
 
     let conn = &mut get_conn(pool).await?;
     let res = paginated_query
@@ -54,7 +55,7 @@ impl LocalImageView {
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)?;
 
-    paginate_response(res, limit)
+    paginate_response(res, limit, cursor_data)
   }
 
   pub async fn get_all_by_person_id(
@@ -83,13 +84,13 @@ impl LocalImageView {
       .into_boxed();
 
     let paginated_query =
-      Self::paginate(query, cursor_data, SortDirection::Asc, pool, None).await?;
+      Self::paginate(query, cursor_data.clone(), SortDirection::Asc, pool, None).await?;
     let conn = &mut get_conn(pool).await?;
     let res = paginated_query
       .load::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)?;
-    paginate_response(res, limit)
+    paginate_response(res, limit, cursor_data)
   }
 }
 
