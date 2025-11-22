@@ -100,24 +100,33 @@ pub trait PaginationCursorConversion {
   ) -> impl std::future::Future<Output = LemmyResult<PaginatedQueryBuilder<Self::PaginatedType, Q>>> + Send
   {
     async move {
-      let (page_after, page_back) = if let Some(cursor) = cursor {
+      let (page_after, page_back, recovery) = if let Some(cursor) = cursor {
         let internal = cursor.into_internal()?;
         let object = Self::from_cursor(internal.data, pool).await?;
-        (Some(object), Some(internal.back))
+        (Some(object), Some(internal.back), internal.recovery)
       } else {
-        (None, None)
+        (None, None, false)
       };
       let mut query = PaginatedQueryBuilder::new(query, sort_direction);
 
       if page_back.unwrap_or_default() {
+        if recovery {
+          query = query.before_or_equal(page_after);
+        } else {
+          query = query.before(page_after);
+        }
+      } else if recovery {
+        query = query.after_or_equal(page_after);
+      } else {
+        query = query.after(page_after);
+      }
+
+      if page_back.unwrap_or_default() {
         query = query
-          .before(page_after)
           .after_or_equal(page_before_or_equal)
           .limit_and_offset_from_end();
       } else {
-        query = query
-          .after(page_after)
-          .before_or_equal(page_before_or_equal);
+        query = query.before_or_equal(page_before_or_equal);
       }
 
       Ok(query)
@@ -160,6 +169,10 @@ struct PaginationCursorInternal {
   back: bool,
   #[serde(rename = "d")]
   data: CursorData,
+  #[serde(rename = "r")]
+  /// Allows to recover from empty pages without skipping an item by including the pointed to item
+  /// in responses.
+  recovery: bool,
 }
 
 /// Internal struct without `T: ts_rs::TS` bound. When making any changes to this struct, be sure to
@@ -222,7 +235,11 @@ where
   let make_cursor = |item: Option<&T>, back: bool| -> LemmyResult<Option<PaginationCursor>> {
     if let Some(item) = item {
       let data = item.to_cursor();
-      let cursor = PaginationCursorInternal { data, back };
+      let cursor = PaginationCursorInternal {
+        data,
+        back,
+        recovery: false,
+      };
       Ok(Some(PaginationCursor::from_internal(cursor)?))
     } else {
       Ok(None)
@@ -246,7 +263,14 @@ where
         prev_page = None; // no page before first
         next_page = None;
       }
-      (true, Some(PaginationCursorInternal { back, data: _ })) => {
+      (
+        true,
+        Some(PaginationCursorInternal {
+          back,
+          data: _,
+          recovery: _,
+        }),
+      ) => {
         if *back {
           prev_page = None;
         } else {
@@ -255,6 +279,31 @@ where
       }
       (false, Some(_)) => {}
     };
+
+    // If there is a request_cursor but no data, assume the cursor marked the end/start of the
+    // previous page. The item referenced by the cursor could also no longer exist, or no longer
+    // match the query filters.
+    if data.is_empty()
+      && let Some(PaginationCursorInternal {
+        back,
+        data,
+        recovery: false,
+      }) = request_cursor
+    {
+      if *back {
+        next_page = Some(PaginationCursor::from_internal(PaginationCursorInternal {
+          back: false,
+          data: data.clone(),
+          recovery: true,
+        })?);
+      } else {
+        prev_page = Some(PaginationCursor::from_internal(PaginationCursorInternal {
+          back: true,
+          data: data.clone(),
+          recovery: true,
+        })?);
+      }
+    }
   }
   Ok(PagedResponse {
     data,
@@ -282,11 +331,25 @@ mod test {
     let cursor = PaginationCursorInternal {
       back: true,
       data: data.clone(),
+      recovery: false,
     };
     let encoded = PaginationCursor::from_internal(cursor.clone())?;
     let cursor2 = encoded.into_internal()?;
     assert_eq!(cursor, cursor2);
     assert_eq!(data, cursor2.data);
+    Ok(())
+  }
+
+  #[test]
+  fn test_internal_format() -> LemmyResult<()> {
+    assert_eq!(
+      serde_urlencoded::to_string(PaginationCursorInternal {
+        back: true,
+        data: CursorData::new_plain("test".into()),
+        recovery: false,
+      })?,
+      "b=true&d=test&r=false"
+    );
     Ok(())
   }
 }
