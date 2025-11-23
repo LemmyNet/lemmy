@@ -54,7 +54,6 @@ mod tests {
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
-  use serial_test::serial;
 
   async fn read_local_site(pool: &mut DbPool<'_>) -> LemmyResult<LocalSite> {
     let conn = &mut get_conn(pool).await?;
@@ -85,9 +84,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn test_aggregates() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     let (data, inserted_person, inserted_community) = prepare_site_with_community(pool).await?;
@@ -155,9 +153,8 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn test_soft_delete() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     let (data, inserted_person, inserted_community) = prepare_site_with_community(pool).await?;

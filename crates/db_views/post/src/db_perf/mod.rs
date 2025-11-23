@@ -24,7 +24,6 @@ use lemmy_diesel_utils::{
   utils::now,
 };
 use lemmy_utils::error::LemmyResult;
-use serial_test::serial;
 use std::{fmt::Display, num::NonZeroU32, str::FromStr};
 use url::Url;
 
@@ -48,7 +47,6 @@ fn get_option<T: FromStr + Display>(suffix: &str, default: T) -> Result<T, T::Er
 }
 
 #[tokio::test]
-#[serial]
 async fn db_perf() -> LemmyResult<()> {
   let args = CmdArgs {
     communities: get_option("COMMUNITIES", 3.try_into()?)?,

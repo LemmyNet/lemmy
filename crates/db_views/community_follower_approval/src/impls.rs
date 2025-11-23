@@ -245,10 +245,8 @@ mod tests {
   };
   use lemmy_db_schema_file::enums::CommunityVisibility;
   use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
-  use serial_test::serial;
 
   #[tokio::test]
-  #[serial]
   async fn test_has_followers_from_instance() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
@@ -317,7 +315,6 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn test_pending_followers() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();

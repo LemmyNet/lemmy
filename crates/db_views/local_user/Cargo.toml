@@ -42,6 +42,5 @@ i-love-jesus = { workspace = true, optional = true }
 chrono = { workspace = true }
 
 [dev-dependencies]
-serial_test = { workspace = true }
 tokio = { workspace = true }
 pretty_assertions = { workspace = true }
