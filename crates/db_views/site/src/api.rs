@@ -676,7 +676,7 @@ impl PluginMetadata {
   pub fn new(name: &'static str, url: &'static str, description: &'static str) -> Self {
     Self {
       name: name.to_string(),
-      url: Some(url.parse().unwrap()),
+      url: url.parse().ok(),
       description: Some(description.to_string()),
     }
   }
