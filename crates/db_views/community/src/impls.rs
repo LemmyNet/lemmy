@@ -188,8 +188,7 @@ impl CommunityQuery<'_> {
     let sort = o.sort.unwrap_or_default();
     let sort_direction = asc_if(sort == Old || sort == NameAsc);
 
-    let mut pq =
-      CommunityView::paginate(query, o.page_cursor.clone(), sort_direction, pool, None).await?;
+    let mut pq = CommunityView::paginate(query, &o.page_cursor, sort_direction, pool, None).await?;
 
     pq = match sort {
       Hot => pq.then_order_by(key::hot_rank),
@@ -314,8 +313,7 @@ impl MultiCommunityQuery {
     let sort_direction = asc_if(sort == Old || sort == NameAsc);
 
     let mut pq =
-      MultiCommunityView::paginate(query, o.page_cursor.clone(), sort_direction, pool, None)
-        .await?;
+      MultiCommunityView::paginate(query, &o.page_cursor, sort_direction, pool, None).await?;
 
     pq = match sort {
       New => pq.then_order_by(mkey::published_at),

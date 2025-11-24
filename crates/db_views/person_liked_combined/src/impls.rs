@@ -188,17 +188,12 @@ impl PersonLikedCombinedQuery {
     }
 
     // Sorting by liked desc
-    let paginated_query = PersonLikedCombinedView::paginate(
-      query,
-      self.page_cursor.clone(),
-      SortDirection::Desc,
-      pool,
-      None,
-    )
-    .await?
-    .then_order_by(key::voted_at)
-    // Tie breaker
-    .then_order_by(key::id);
+    let paginated_query =
+      PersonLikedCombinedView::paginate(query, &self.page_cursor, SortDirection::Desc, pool, None)
+        .await?
+        .then_order_by(key::voted_at)
+        // Tie breaker
+        .then_order_by(key::id);
 
     let conn = &mut get_conn(pool).await?;
     let res = paginated_query

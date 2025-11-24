@@ -92,7 +92,7 @@ pub trait PaginationCursorConversion {
   /// Paginate a db query.
   fn paginate<Q: Send>(
     query: Q,
-    cursor: Option<PaginationCursor>,
+    cursor: &Option<PaginationCursor>,
     sort_direction: SortDirection,
     pool: &mut DbPool<'_>,
     // this is only used by PostView for optimization
@@ -101,7 +101,7 @@ pub trait PaginationCursorConversion {
   {
     async move {
       let (page_after, page_back, recovery) = if let Some(cursor) = cursor {
-        let internal = cursor.into_internal()?;
+        let internal = cursor.clone().into_internal()?;
         let object = Self::from_cursor(internal.data, pool).await?;
         (Some(object), Some(internal.back), internal.recovery)
       } else {

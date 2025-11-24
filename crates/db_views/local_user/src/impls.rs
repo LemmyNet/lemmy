@@ -194,17 +194,12 @@ impl LocalUserQuery {
       );
     }
 
-    let paginated_query = LocalUserView::paginate(
-      query,
-      self.page_cursor.clone(),
-      SortDirection::Desc,
-      pool,
-      None,
-    )
-    .await?
-    .then_order_by(person_keys::published_at)
-    // Tie breaker
-    .then_order_by(person_keys::id);
+    let paginated_query =
+      LocalUserView::paginate(query, &self.page_cursor, SortDirection::Desc, pool, None)
+        .await?
+        .then_order_by(person_keys::published_at)
+        // Tie breaker
+        .then_order_by(person_keys::id);
 
     let conn = &mut get_conn(pool).await?;
     let res = paginated_query.load::<LocalUserView>(conn).await?;

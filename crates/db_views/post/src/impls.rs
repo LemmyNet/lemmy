@@ -219,7 +219,7 @@ impl PostView {
 
     // Sorting by the read date
     let paginated_query =
-      PostViewDummy::paginate(query, page_cursor.clone(), SortDirection::Desc, pool, None)
+      PostViewDummy::paginate(query, &page_cursor, SortDirection::Desc, pool, None)
         .await?
         .then_order_by(pa_key::read_at)
         // Tie breaker
@@ -252,7 +252,7 @@ impl PostView {
 
     // Sorting by the hidden date
     let paginated_query =
-      PostViewDummy::paginate(query, page_cursor.clone(), SortDirection::Desc, pool, None)
+      PostViewDummy::paginate(query, &page_cursor, SortDirection::Desc, pool, None)
         .await?
         .then_order_by(pa_key::hidden_at)
         // Tie breaker
@@ -521,7 +521,7 @@ impl PostQuery<'_> {
 
     let mut pq = PostView::paginate(
       query,
-      o.page_cursor.clone(),
+      &o.page_cursor,
       sort_direction,
       pool,
       cursor_before_data,

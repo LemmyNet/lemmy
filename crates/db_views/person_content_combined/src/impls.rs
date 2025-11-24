@@ -199,7 +199,7 @@ impl PersonContentCombinedQuery {
     // Sorting by published
     let paginated_query = PersonContentCombinedView::paginate(
       query,
-      self.page_cursor.clone(),
+      &self.page_cursor,
       SortDirection::Desc,
       pool,
       None,
