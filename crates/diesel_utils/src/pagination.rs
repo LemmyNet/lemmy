@@ -255,7 +255,8 @@ where
     // Need to convert here because diesel takes i64 for limit while vec length is usize.
     let limit: usize = limit.try_into().unwrap_or_default();
     // Hide next and back buttons when possible.
-    match (data.len() < limit, request_cursor) {
+    let back = request_cursor.as_ref().map(|r| r.back);
+    match (data.len() < limit, back) {
       (false, None) => {
         prev_page = None; // no page before first
       }
@@ -263,26 +264,21 @@ where
         prev_page = None; // no page before first
         next_page = None;
       }
-      (
-        true,
-        Some(PaginationCursorInternal {
-          back,
-          data: _,
-          recovery: _,
-        }),
-      ) => {
-        if *back {
-          prev_page = None;
-        } else {
-          next_page = None;
-        }
+      (true, Some(true)) => {
+        prev_page = None;
+      }
+      (true, Some(false)) => {
+        next_page = None;
       }
       (false, Some(_)) => {}
     };
 
-    // If there is a request_cursor but no data, assume the cursor marked the end/start of the
-    // previous page. The item referenced by the cursor could also no longer exist, or no longer
-    // match the query filters.
+    // When a page_cursor points to the very last or first item, the response for that cursor
+    // contains no items and therefore ordinarily no cursors. Simply changing the direction of the
+    // request_cursor would allow users to escape these empty pages, but would skip the item that
+    // the cursor points to. Marking the cursor as recovery cursor allows to include this item, and
+    // effectively recover at the start or end of the list. The easiest way to reproduce this is to
+    // press next on the first page, then back twice.
     if data.is_empty()
       && let Some(PaginationCursorInternal {
         back,
