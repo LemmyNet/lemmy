@@ -1,7 +1,8 @@
 use crate::context::LemmyContext;
 use anyhow::anyhow;
-use extism::{Manifest, PluginBuilder, Pool, PoolPlugin};
+use extism::{Manifest, PluginBuilder, Pool, PoolPlugin, Wasm, WasmMetadata};
 use extism_convert::Json;
+use extism_manifest::HttpRequest;
 use lemmy_db_schema::source::{notification::Notification, person::Person};
 use lemmy_db_views_notification::NotificationView;
 use lemmy_db_views_site::api::PluginMetadata;
@@ -9,14 +10,10 @@ use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::{
   VERSION,
   error::{LemmyError, LemmyErrorType, LemmyResult},
-  settings::SETTINGS,
+  settings::{SETTINGS, structs::PluginSettings},
 };
 use serde::{Deserialize, Serialize};
 use std::{
-  env,
-  ffi::OsStr,
-  fs::{File, read_dir},
-  io::BufReader,
   ops::Deref,
   path::PathBuf,
   sync::{LazyLock, OnceLock},
@@ -24,6 +21,7 @@ use std::{
 };
 use tokio::task::spawn_blocking;
 use tracing::warn;
+use url::Url;
 
 const GET_PLUGIN_TIMEOUT: Duration = Duration::from_secs(1);
 
@@ -144,10 +142,35 @@ struct LemmyPlugin {
 }
 
 impl LemmyPlugin {
-  fn init(path: &PathBuf) -> LemmyResult<Self> {
-    let file = File::open(path)?;
-    let reader = BufReader::new(file);
-    let mut manifest: Manifest = serde_json::from_reader(reader)?;
+  fn init(settings: PluginSettings) -> LemmyResult<Self> {
+    let meta = WasmMetadata {
+      hash: settings.hash,
+      name: None,
+    };
+    let (wasm, filename) = if settings.file.starts_with("http") {
+      let name: Option<String> = Url::parse(&settings.file)?
+        .path_segments()
+        .and_then(|p| p.last())
+        .map(|l| l.to_string());
+      let req = HttpRequest {
+        url: settings.file.clone(),
+        headers: Default::default(),
+        method: None,
+      };
+      (Wasm::Url { req, meta }, name)
+    } else {
+      let path = PathBuf::from(settings.file.clone());
+      let name: Option<String> = path.file_name().map(|n| n.to_string_lossy().to_string());
+      (Wasm::File { path, meta }, name)
+    };
+    let mut manifest = Manifest {
+      wasm: vec![wasm],
+      config: settings.config,
+      allowed_hosts: settings.allowed_hosts,
+      memory: Default::default(),
+      allowed_paths: None,
+      timeout_ms: None,
+    };
     manifest.config.insert(
       "lemmy_url".to_string(),
       format!("http://{}:{}/", SETTINGS.bind, SETTINGS.port),
@@ -157,12 +180,10 @@ impl LemmyPlugin {
       .insert("lemmy_version".to_string(), VERSION.to_string());
     let builder = move || PluginBuilder::new(manifest.clone()).with_wasi(true).build();
     let pool = Pool::new(builder);
-    let filename = path
-      .file_name()
-      .expect("has filename")
-      .to_string_lossy()
-      .to_string();
-    Ok(LemmyPlugin { pool, filename })
+    Ok(LemmyPlugin {
+      pool,
+      filename: filename.unwrap_or(settings.file),
+    })
   }
 
   fn get(&self, name: &'static str) -> LemmyResult<Option<PoolPlugin>> {
@@ -183,22 +204,12 @@ impl LemmyPlugins {
   /// Load and initialize all plugins
   fn get_or_init() -> Self {
     static PLUGINS: LazyLock<LemmyPlugins> = LazyLock::new(|| {
-      let dir = env::var("LEMMY_PLUGIN_PATH").unwrap_or("plugins".to_string());
-      let plugin_paths = match read_dir(dir) {
-        Ok(r) => r,
-        Err(e) => {
-          warn!("Failed to read plugin folder: {e}");
-          return LemmyPlugins(vec![]);
-        }
-      };
-
-      let plugins = plugin_paths
-        .flat_map(Result::ok)
-        .map(|p| p.path())
-        .filter(|p| p.extension() == Some(OsStr::new("json")))
+      let plugins: Vec<_> = SETTINGS
+        .plugins
+        .iter()
         .flat_map(|p| {
-          LemmyPlugin::init(&p)
-            .inspect_err(|e| warn!("Failed to load plugin {}: {e}", p.to_string_lossy()))
+          LemmyPlugin::init(p.clone())
+            .inspect_err(|e| warn!("Failed to load plugin {}: {e}", p.file))
             .ok()
         })
         .collect();
