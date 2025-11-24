@@ -150,8 +150,8 @@ impl LemmyPlugin {
     let (wasm, filename) = if settings.file.starts_with("http") {
       let name: Option<String> = Url::parse(&settings.file)?
         .path_segments()
-        .and_then(|p| p.last())
-        .map(|l| l.to_string());
+        .and_then(|mut p| p.next_back())
+        .map(std::string::ToString::to_string);
       let req = HttpRequest {
         url: settings.file.clone(),
         headers: Default::default(),
