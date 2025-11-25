@@ -529,7 +529,6 @@ test("Dont receive community activities after unsubscribe", async () => {
     reason: "allow",
   };
   await beta.adminAllowInstance(allow_instance_params);
-  await longDelay();
 
   // unfollow
   await followCommunity(beta, false, betaCommunity!.community.id);
@@ -544,7 +543,6 @@ test("Dont receive community activities after unsubscribe", async () => {
   // unblock alpha
   allow_instance_params.allow = true;
   await beta.adminAllowInstance(allow_instance_params);
-  await longDelay();
 
   // create a post, it shouldnt reach beta
   let postRes = await createPost(
@@ -584,10 +582,10 @@ test("Fetch community, includes posts", async () => {
     communityRes.community_view.community.ap_id,
   );
 
-  await longDelay();
-
-  let post_listing = await getPosts(beta, "all", betaCommunity?.community.id);
-  expect(post_listing.posts.length).toBe(1);
+  let post_listing = await waitUntil(
+    () => getPosts(beta, "all", betaCommunity?.community.id),
+    p => p.posts.length == 1,
+  );
   expect(post_listing.posts[0].post.ap_id).toBe(postRes.post_view.post.ap_id);
 });
 
@@ -637,16 +635,11 @@ test("Remote mods can edit communities", async () => {
   };
 
   await editCommunity(beta, form2);
-  // give alpha time to get and process the edit
-  await delay(1000);
 
-  let alphaCommunity = await getCommunity(
-    alpha,
-    communityRes.community_view.community.id,
-  );
-
-  expect(alphaCommunity.community_view.community.sidebar).toBe(
-    "Example sidebar",
+  const communityId = communityRes.community_view.community.id;
+  await waitUntil(
+    () => getCommunity(alpha, communityId),
+    c => c.community_view.community.sidebar == "Example sidebar",
   );
 });
 
@@ -673,7 +666,10 @@ test("Remote mods can add mods", async () => {
   };
   await alpha.addModToCommunity(form);
 
-  await delay(500);
+  await waitUntil(
+    () => getCommunity(beta, betaCommunity.community.id),
+    c => c.moderators.length == 2,
+  );
 
   let form2: AddModToCommunity = {
     community_id: betaCommunity.community.id,
@@ -682,18 +678,15 @@ test("Remote mods can add mods", async () => {
   };
   await beta.addModToCommunity(form2);
 
-  await delay(500);
-
-  let betaCommunity2 = await getCommunity(beta, betaCommunity.community.id);
-
-  expect(betaCommunity2.moderators.length).toBe(3);
-
-  let alphaCommunity2 = await getCommunity(
-    alpha,
-    alphaCommunity.community_view.community.id,
+  await waitUntil(
+    () => getCommunity(beta, betaCommunity.community.id),
+    c => c.moderators.length == 3,
   );
 
-  expect(alphaCommunity2.moderators.length).toBe(3);
+  await waitUntil(
+    () => getCommunity(alpha, alphaCommunity.community_view.community.id),
+    c => c.moderators.length == 3,
+  );
 });
 
 test("Community name with non-ascii chars", async () => {
@@ -767,7 +760,6 @@ test("Multi-community", async () => {
     m => m.multi_communities.length == 1,
   );
   expect(followed.multi_communities[0].multi.ap_id).toBe(betaMulti.multi.ap_id);
-  await delay();
 
   // add community to multi
   let community2 = await resolveBetaCommunity(alpha);

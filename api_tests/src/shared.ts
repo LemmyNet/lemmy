@@ -961,14 +961,6 @@ export function getModlog(api: LemmyHttp): Promise<GetModlogResponse> {
   return api.getModlog(form);
 }
 
-function delay(millis = 500) {
-  return new Promise(resolve => setTimeout(resolve, millis));
-}
-
-function longDelay() {
-  return delay(10000);
-}
-
 export function wrapper(form: any): string {
   return JSON.stringify(form);
 }
@@ -1064,6 +1056,11 @@ export async function waitUntil<T>(
   throw Error(
     `Failed "${fetcher}": "${checker}" did not return true after ${retries} retries (delayed ${delaySeconds}s each)`,
   );
+}
+
+// Do not use this function directly, only use `waitUntil()`
+function delay(millis = 500) {
+  return new Promise(resolve => setTimeout(resolve, millis));
 }
 
 export function assertCommunityFederation(

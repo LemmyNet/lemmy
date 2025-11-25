@@ -943,6 +943,7 @@ test("Lock comment", async () => {
   if (!betaComment1) {
     throw "unable to locate comment on beta";
   }
+  await followCommunity(newBetaApi, true, betaComment1!.community.id);
 
   let comment2 = await createComment(
     alpha,
@@ -961,15 +962,12 @@ test("Lock comment", async () => {
 
   // Lock comment2 and wait for it to federate
   await lockComment(alpha, true, comment2.comment_view.comment);
-  console.log(comment2.comment_view.comment.ap_id);
+
+  const comment_ap_id = comment3.comment_view.comment.ap_id;
   await waitUntil(
     () => getComments(newBetaApi, betaPost.post.id),
     c => {
-      const find = c.comments.find(
-        c => c.comment.ap_id == comment3.comment_view.comment.ap_id,
-      );
-      console.log(find?.comment);
-      // TODO: why not federating?
+      const find = c.comments.find(c => c.comment.ap_id == comment_ap_id);
       return find?.comment.locked ?? false;
     },
   );
