@@ -842,6 +842,11 @@ test("Block post that contains banned URL", async () => {
 
   await epsilon.editSite(editSiteForm);
 
+  await waitUntil(
+    () => epsilon.getSite(),
+    s => s.blocked_urls.length == 1,
+  );
+
   if (!betaCommunity) {
     throw "Missing beta community";
   }
