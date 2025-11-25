@@ -334,17 +334,15 @@ test("Delete a post", async () => {
   let postRes = await createPost(alpha, betaCommunity.community.id);
   expect(postRes.post_view.post).toBeDefined();
 
+  await waitForPost(beta, postRes.post_view.post, p => p?.post.id != undefined);
+
   let deletedPost = await deletePost(alpha, true, postRes.post_view.post);
   expect(deletedPost.post_view.post.deleted).toBe(true);
   expect(deletedPost.post_view.post.name).toBe(postRes.post_view.post.name);
 
   // Make sure lemmy beta sees post is deleted
   // This will be undefined because of the tombstone
-  await waitForPost(
-    beta,
-    postRes.post_view.post,
-    p => p?.post?.deleted || p == undefined,
-  );
+  await waitForPost(beta, postRes.post_view.post, p => p == undefined);
 
   // Undelete
   let undeletedPost = await deletePost(alpha, false, postRes.post_view.post);
@@ -431,7 +429,7 @@ test("Remove a post from admin and community on same instance", async () => {
   // Make sure lemmy alpha sees post is removed
   let alphaPost = await waitUntil(
     () => getPost(alpha, alphaPost0.post.id),
-    p => p?.post_view.post.removed ?? false,
+    p => p?.post_view.post.removed,
   );
   expect(alphaPost?.post_view.post.removed).toBe(true);
   await assertPostFederation(
