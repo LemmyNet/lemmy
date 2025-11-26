@@ -1266,29 +1266,16 @@ async fn pagination_hidden_cursors(data: &mut Data) -> LemmyResult<()> {
 
   let community_form = CommunityInsertForm::new(
     data.instance.id,
-    "first".to_string(),
-    "first".to_owned(),
+    "yes".to_string(),
+    "yes".to_owned(),
     "pubkey".to_string(),
   );
-  let first_community = Community::create(pool, &community_form).await?;
-
-  let community_form = CommunityInsertForm::new(
-    data.instance.id,
-    "second".to_string(),
-    "second".to_owned(),
-    "pubkey".to_string(),
-  );
-  let second_community = Community::create(pool, &community_form).await?;
+  let inserted_community = Community::create(pool, &community_form).await?;
 
   let page_size: usize = 5;
 
   // Create 2 pages with 5 and 4 posts respectively
   for i in 0..9 {
-    let community_id = if i % 3 != 0 {
-      first_community.id
-    } else {
-      second_community.id
-    };
     let post_form = PostInsertForm {
       featured_local: Some((i % 2) == 0),
       featured_community: Some((i % 2) == 0),
@@ -1296,38 +1283,15 @@ async fn pagination_hidden_cursors(data: &mut Data) -> LemmyResult<()> {
       ..PostInsertForm::new(
         "keep Christ in Christmas".to_owned(),
         data.tegan.person.id,
-        community_id,
+        inserted_community.id,
       )
     };
     Post::create(pool, &post_form).await?;
   }
 
-  // Create a reader person that follows only the two communities
-  let reader_person_form = PersonInsertForm::test_form(data.instance.id, "reader");
-  let inserted_reader_person = Person::create(pool, &reader_person_form).await?;
-  let inserted_reader_local_user = LocalUser::create(
-    pool,
-    &LocalUserInsertForm::test_form(inserted_reader_person.id),
-    vec![],
-  )
-  .await?;
-  let follow_form = CommunityFollowerForm::new(
-    first_community.id,
-    inserted_reader_person.id,
-    CommunityFollowerState::Accepted,
-  );
-  CommunityActions::follow(pool, &follow_form).await?;
-  let follow_form = CommunityFollowerForm::new(
-    second_community.id,
-    inserted_reader_person.id,
-    CommunityFollowerState::Accepted,
-  );
-  CommunityActions::follow(pool, &follow_form).await?;
-
   let options = PostQuery {
+    community_id: Some(inserted_community.id),
     sort: Some(PostSortType::Hot),
-    local_user: Some(&inserted_reader_local_user),
-    listing_type: Some(ListingType::Subscribed),
     limit: Some(page_size.try_into()?),
     ..Default::default()
   };
@@ -1405,9 +1369,7 @@ async fn pagination_hidden_cursors(data: &mut Data) -> LemmyResult<()> {
     unreachable!();
   }
 
-  LocalUser::delete(pool, inserted_reader_local_user.id).await?;
-  Community::delete(pool, second_community.id).await?;
-  Community::delete(pool, first_community.id).await?;
+  Community::delete(pool, inserted_community.id).await?;
   Ok(())
 }
 
@@ -1421,29 +1383,16 @@ async fn pagination_recovery_cursors(data: &mut Data) -> LemmyResult<()> {
 
   let community_form = CommunityInsertForm::new(
     data.instance.id,
-    "first".to_string(),
-    "first".to_owned(),
+    "yes".to_string(),
+    "yes".to_owned(),
     "pubkey".to_string(),
   );
-  let first_community = Community::create(pool, &community_form).await?;
-
-  let community_form = CommunityInsertForm::new(
-    data.instance.id,
-    "second".to_string(),
-    "second".to_owned(),
-    "pubkey".to_string(),
-  );
-  let second_community = Community::create(pool, &community_form).await?;
+  let inserted_community = Community::create(pool, &community_form).await?;
 
   let page_size: usize = 5;
 
   // Create 2 pages with 5 posts each
   for i in 0..10 {
-    let community_id = if i % 3 != 0 {
-      first_community.id
-    } else {
-      second_community.id
-    };
     let post_form = PostInsertForm {
       featured_local: Some((i % 2) == 0),
       featured_community: Some((i % 2) == 0),
@@ -1451,38 +1400,15 @@ async fn pagination_recovery_cursors(data: &mut Data) -> LemmyResult<()> {
       ..PostInsertForm::new(
         "keep Christ in Christmas".to_owned(),
         data.tegan.person.id,
-        community_id,
+        inserted_community.id,
       )
     };
     Post::create(pool, &post_form).await?;
   }
 
-  // Create a reader person that follows only the two communities
-  let reader_person_form = PersonInsertForm::test_form(data.instance.id, "reader");
-  let inserted_reader_person = Person::create(pool, &reader_person_form).await?;
-  let inserted_reader_local_user = LocalUser::create(
-    pool,
-    &LocalUserInsertForm::test_form(inserted_reader_person.id),
-    vec![],
-  )
-  .await?;
-  let follow_form = CommunityFollowerForm::new(
-    first_community.id,
-    inserted_reader_person.id,
-    CommunityFollowerState::Accepted,
-  );
-  CommunityActions::follow(pool, &follow_form).await?;
-  let follow_form = CommunityFollowerForm::new(
-    second_community.id,
-    inserted_reader_person.id,
-    CommunityFollowerState::Accepted,
-  );
-  CommunityActions::follow(pool, &follow_form).await?;
-
   let options = PostQuery {
+    community_id: Some(inserted_community.id),
     sort: Some(PostSortType::Hot),
-    local_user: Some(&inserted_reader_local_user),
-    listing_type: Some(ListingType::Subscribed),
     limit: Some(page_size.try_into()?),
     ..Default::default()
   };
@@ -1574,9 +1500,7 @@ async fn pagination_recovery_cursors(data: &mut Data) -> LemmyResult<()> {
       .collect::<Vec<PostId>>()
   );
 
-  LocalUser::delete(pool, inserted_reader_local_user.id).await?;
-  Community::delete(pool, second_community.id).await?;
-  Community::delete(pool, first_community.id).await?;
+  Community::delete(pool, inserted_community.id).await?;
   Ok(())
 }
 
