@@ -277,8 +277,8 @@ where
     // contains no items and therefore ordinarily no cursors. Simply changing the direction of the
     // request_cursor would allow users to escape these empty pages, but would skip the item that
     // the cursor points to. Marking the cursor as recovery cursor allows to include this item, and
-    // effectively recover at the start or end of the list. The easiest way to reproduce this is to
-    // press next on the first page, then back twice.
+    // as long as the list remains unchanged, to recover at the start or end of the list. The
+    // easiest way to reproduce this is to press next on the first page, then back twice.
     if data.is_empty()
       && let Some(PaginationCursorInternal {
         back,
