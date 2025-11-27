@@ -156,7 +156,7 @@ impl ModlogQuery<'_> {
 
     // Sorting by published
     let paginated_query =
-      ModlogView::paginate(query, self.page_cursor, SortDirection::Desc, pool, None)
+      ModlogView::paginate(query, &self.page_cursor, SortDirection::Desc, pool, None)
         .await?
         .then_order_by(key::published_at)
         // Tie breaker
@@ -173,7 +173,7 @@ impl ModlogQuery<'_> {
       .map(|u| u.hide_mod_name(hide_modlog_names))
       .collect();
 
-    paginate_response(out, limit)
+    paginate_response(out, limit, self.page_cursor)
   }
 }
 

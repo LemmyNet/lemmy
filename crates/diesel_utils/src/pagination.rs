@@ -92,7 +92,7 @@ pub trait PaginationCursorConversion {
   /// Paginate a db query.
   fn paginate<Q: Send>(
     query: Q,
-    cursor: Option<PaginationCursor>,
+    cursor: &Option<PaginationCursor>,
     sort_direction: SortDirection,
     pool: &mut DbPool<'_>,
     // this is only used by PostView for optimization
@@ -100,24 +100,33 @@ pub trait PaginationCursorConversion {
   ) -> impl std::future::Future<Output = LemmyResult<PaginatedQueryBuilder<Self::PaginatedType, Q>>> + Send
   {
     async move {
-      let (page_after, page_back) = if let Some(cursor) = cursor {
-        let internal = cursor.into_internal()?;
+      let (page_after, page_back, recovery) = if let Some(cursor) = cursor {
+        let internal = cursor.clone().into_internal()?;
         let object = Self::from_cursor(internal.data, pool).await?;
-        (Some(object), Some(internal.back))
+        (Some(object), Some(internal.back), internal.recovery)
       } else {
-        (None, None)
+        (None, None, false)
       };
       let mut query = PaginatedQueryBuilder::new(query, sort_direction);
 
       if page_back.unwrap_or_default() {
+        if recovery {
+          query = query.before_or_equal(page_after);
+        } else {
+          query = query.before(page_after);
+        }
+      } else if recovery {
+        query = query.after_or_equal(page_after);
+      } else {
+        query = query.after(page_after);
+      }
+
+      if page_back.unwrap_or_default() {
         query = query
-          .before(page_after)
           .after_or_equal(page_before_or_equal)
           .limit_and_offset_from_end();
       } else {
-        query = query
-          .after(page_after)
-          .before_or_equal(page_before_or_equal);
+        query = query.before_or_equal(page_before_or_equal);
       }
 
       Ok(query)
@@ -160,6 +169,10 @@ struct PaginationCursorInternal {
   back: bool,
   #[serde(rename = "d")]
   data: CursorData,
+  #[serde(rename = "r")]
+  /// Allows to recover from empty pages without skipping an item by including the pointed to item
+  /// in responses.
+  recovery: bool,
 }
 
 /// Internal struct without `T: ts_rs::TS` bound. When making any changes to this struct, be sure to
@@ -211,27 +224,82 @@ impl<T> IntoIterator for PagedResponse<T> {
 
 /// Add prev/next cursors to query result.
 #[cfg(feature = "full")]
-pub fn paginate_response<T>(data: Vec<T>, limit: i64) -> LemmyResult<PagedResponse<T>>
+pub fn paginate_response<T>(
+  data: Vec<T>,
+  limit: i64,
+  request_cursor: Option<PaginationCursor>,
+) -> LemmyResult<PagedResponse<T>>
 where
   T: PaginationCursorConversion + Serialize + for<'a> Deserialize<'a>,
 {
   let make_cursor = |item: Option<&T>, back: bool| -> LemmyResult<Option<PaginationCursor>> {
     if let Some(item) = item {
       let data = item.to_cursor();
-      let cursor = PaginationCursorInternal { data, back };
+      let cursor = PaginationCursorInternal {
+        data,
+        back,
+        recovery: false,
+      };
       Ok(Some(PaginationCursor::from_internal(cursor)?))
     } else {
       Ok(None)
     }
   };
-  let prev_page = make_cursor(data.first(), true)?;
+  let mut prev_page = make_cursor(data.first(), true)?;
   let mut next_page = make_cursor(data.last(), false)?;
 
-  // If there are less than limit items we are on the last page, dont show next button.
-  // Need to convert here because diesel takes i64 for limit while vec length is usize.
-  let limit: usize = limit.try_into().unwrap_or_default();
-  if data.len() < limit {
-    next_page = None;
+  if let Ok(ref request_cursor) = request_cursor
+    .map(PaginationCursor::into_internal)
+    .transpose()
+  {
+    // Need to convert here because diesel takes i64 for limit while vec length is usize.
+    let limit: usize = limit.try_into().unwrap_or_default();
+    // Hide next and back buttons when possible.
+    let back = request_cursor.as_ref().map(|r| r.back);
+    match (data.len() < limit, back) {
+      (false, None) => {
+        prev_page = None; // no page before first
+      }
+      (true, None) => {
+        prev_page = None; // no page before first
+        next_page = None;
+      }
+      (true, Some(true)) => {
+        prev_page = None;
+      }
+      (true, Some(false)) => {
+        next_page = None;
+      }
+      (false, Some(_)) => {}
+    };
+
+    // When a page_cursor points to the very last or first item, the response for that cursor
+    // contains no items and therefore ordinarily no cursors. Simply changing the direction of the
+    // request_cursor would allow users to escape these empty pages, but would skip the item that
+    // the cursor points to. Marking the cursor as recovery cursor allows to include this item, and
+    // as long as the list remains unchanged, to recover at the start or end of the list. The
+    // easiest way to reproduce this is to press next on the first page, then back twice.
+    if data.is_empty()
+      && let Some(PaginationCursorInternal {
+        back,
+        data,
+        recovery: false,
+      }) = request_cursor
+    {
+      if *back {
+        next_page = Some(PaginationCursor::from_internal(PaginationCursorInternal {
+          back: false,
+          data: data.clone(),
+          recovery: true,
+        })?);
+      } else {
+        prev_page = Some(PaginationCursor::from_internal(PaginationCursorInternal {
+          back: true,
+          data: data.clone(),
+          recovery: true,
+        })?);
+      }
+    }
   }
   Ok(PagedResponse {
     data,
@@ -259,11 +327,25 @@ mod test {
     let cursor = PaginationCursorInternal {
       back: true,
       data: data.clone(),
+      recovery: false,
     };
     let encoded = PaginationCursor::from_internal(cursor.clone())?;
     let cursor2 = encoded.into_internal()?;
     assert_eq!(cursor, cursor2);
     assert_eq!(data, cursor2.data);
+    Ok(())
+  }
+
+  #[test]
+  fn test_internal_format() -> LemmyResult<()> {
+    assert_eq!(
+      serde_urlencoded::to_string(PaginationCursorInternal {
+        back: true,
+        data: CursorData::new_plain("test".into()),
+        recovery: false,
+      })?,
+      "b=true&d=test&r=false"
+    );
     Ok(())
   }
 }

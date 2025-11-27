@@ -189,7 +189,7 @@ impl PersonLikedCombinedQuery {
 
     // Sorting by liked desc
     let paginated_query =
-      PersonLikedCombinedView::paginate(query, self.page_cursor, SortDirection::Desc, pool, None)
+      PersonLikedCombinedView::paginate(query, &self.page_cursor, SortDirection::Desc, pool, None)
         .await?
         .then_order_by(key::voted_at)
         // Tie breaker
@@ -206,7 +206,7 @@ impl PersonLikedCombinedQuery {
       .filter_map(InternalToCombinedView::map_to_enum)
       .collect();
 
-    paginate_response(out, limit)
+    paginate_response(out, limit, self.page_cursor)
   }
 }
 

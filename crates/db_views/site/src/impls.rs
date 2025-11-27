@@ -165,7 +165,7 @@ impl FederatedInstanceView {
       }
     };
 
-    let mut pq = Self::paginate(query, data.page_cursor, SortDirection::Desc, pool, None).await?;
+    let mut pq = Self::paginate(query, &data.page_cursor, SortDirection::Desc, pool, None).await?;
 
     // Show recently updated instances and those with valid metadata first
     pq = pq
@@ -178,7 +178,7 @@ impl FederatedInstanceView {
       .get_results(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)?;
-    paginate_response(res, limit)
+    paginate_response(res, limit, data.page_cursor)
   }
 
   pub async fn read(pool: &mut DbPool<'_>, instance_id: InstanceId) -> LemmyResult<Self> {

@@ -6,7 +6,7 @@ use diesel_async::SimpleAsyncConnection;
 use diesel_uplete::UpleteCount;
 use lemmy_db_schema::{
   impls::actor_language::UNDETERMINED_ID,
-  newtypes::LanguageId,
+  newtypes::{LanguageId, PostId},
   source::{
     actor_language::LocalUserLanguage,
     comment::{Comment, CommentInsertForm},
@@ -49,9 +49,10 @@ use lemmy_db_schema_file::enums::{
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_diesel_utils::{
   connection::{ActualDbPool, DbPool, build_db_pool, get_conn},
+  pagination::PaginationCursor,
   traits::Crud,
 };
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
 use pretty_assertions::assert_eq;
 use serial_test::serial;
 use std::{
@@ -1250,6 +1251,254 @@ async fn pagination_includes_each_post_once(data: &mut Data) -> LemmyResult<()> 
       break;
     }
   }
+
+  Community::delete(pool, inserted_community.id).await?;
+  Ok(())
+}
+
+#[test_context(Data)]
+#[tokio::test]
+#[serial]
+/// Test that last and first partial pages only have one cursor.
+async fn pagination_hidden_cursors(data: &mut Data) -> LemmyResult<()> {
+  let pool = &data.pool();
+  let pool = &mut pool.into();
+
+  let community_form = CommunityInsertForm::new(
+    data.instance.id,
+    "yes".to_string(),
+    "yes".to_owned(),
+    "pubkey".to_string(),
+  );
+  let inserted_community = Community::create(pool, &community_form).await?;
+
+  let page_size: usize = 5;
+
+  // Create 2 pages with 5 and 4 posts respectively
+  for i in 0..9 {
+    let post_form = PostInsertForm {
+      featured_local: Some((i % 2) == 0),
+      featured_community: Some((i % 2) == 0),
+      published_at: Some(Utc::now() - Duration::from_secs(i)),
+      ..PostInsertForm::new(
+        "keep Christ in Christmas".to_owned(),
+        data.tegan.person.id,
+        inserted_community.id,
+      )
+    };
+    Post::create(pool, &post_form).await?;
+  }
+
+  let options = PostQuery {
+    community_id: Some(inserted_community.id),
+    sort: Some(PostSortType::Hot),
+    limit: Some(page_size.try_into()?),
+    ..Default::default()
+  };
+
+  let mut get_page = async |cursor: &Option<PaginationCursor>| {
+    PostQuery {
+      page_cursor: cursor.clone(),
+      ..options.clone()
+    }
+    .list(&data.site, pool)
+    .await
+  };
+
+  let first_page = get_page(&None).await?;
+  assert_eq!(first_page.data.len(), page_size);
+  assert!(first_page.prev_page.is_none()); // without request cursor, no back cursor
+  assert!(first_page.next_page.is_some());
+
+  let last_page = get_page(&first_page.next_page).await?;
+  assert_eq!(last_page.data.len(), page_size - 1);
+  assert!(last_page.prev_page.is_some());
+  assert!(last_page.next_page.is_none());
+
+  // Get first page with both cursors
+  let first_page2 = get_page(&last_page.prev_page).await?;
+  assert_eq!(first_page2.data.len(), page_size);
+  assert!(first_page2.prev_page.is_some());
+  assert_eq!(first_page2.next_page, first_page.next_page);
+
+  let pool = &data.pool;
+  let pool = &mut pool.into();
+
+  // Mark first post as deleted
+  let first_post_view = first_page.data.first().expect("first post");
+  let post_update_form = PostUpdateForm {
+    deleted: Some(true),
+    ..Default::default()
+  };
+  Post::update(pool, first_post_view.post.id, &post_update_form).await?;
+
+  let partial_first_page = get_page(&last_page.prev_page).await?;
+  assert_eq!(partial_first_page.data.len(), page_size - 1);
+  assert!(partial_first_page.prev_page.is_none());
+  assert!(partial_first_page.next_page.is_some());
+
+  // Cursor works for item marked as deleted
+  let removed_item_page = get_page(&first_page2.prev_page).await?;
+  assert_eq!(removed_item_page.data.len(), 0);
+  assert!(removed_item_page.prev_page.is_none());
+  assert!(removed_item_page.next_page.is_some()); // recovery cursor
+
+  let recovered_page = get_page(&removed_item_page.next_page).await?;
+  assert_eq!(recovered_page.data.len(), page_size);
+  assert!(recovered_page.prev_page.is_some());
+  assert!(recovered_page.next_page.is_some());
+
+  // Delete first post from the database
+  Post::delete(pool, first_post_view.post.id).await?;
+
+  let partial_first_page = get_page(&last_page.prev_page).await?;
+  assert_eq!(partial_first_page.data.len(), page_size - 1);
+  assert!(partial_first_page.prev_page.is_none());
+  assert!(partial_first_page.next_page.is_some());
+
+  // Cursor doesn't work for item that no longer exists
+  let removed_item_page = get_page(&first_page2.prev_page).await;
+  if let Err(LemmyError {
+    error_type,
+    inner: _,
+    caller: _,
+  }) = removed_item_page
+  {
+    assert_eq!(error_type, LemmyErrorType::NotFound);
+  } else {
+    unreachable!();
+  }
+
+  Community::delete(pool, inserted_community.id).await?;
+  Ok(())
+}
+
+#[test_context(Data)]
+#[tokio::test]
+#[serial]
+/// Test paging past the last and first page.
+async fn pagination_recovery_cursors(data: &mut Data) -> LemmyResult<()> {
+  let pool = &data.pool();
+  let pool = &mut pool.into();
+
+  let community_form = CommunityInsertForm::new(
+    data.instance.id,
+    "yes".to_string(),
+    "yes".to_owned(),
+    "pubkey".to_string(),
+  );
+  let inserted_community = Community::create(pool, &community_form).await?;
+
+  let page_size: usize = 5;
+
+  // Create 2 pages with 5 posts each
+  for i in 0..10 {
+    let post_form = PostInsertForm {
+      featured_local: Some((i % 2) == 0),
+      featured_community: Some((i % 2) == 0),
+      published_at: Some(Utc::now() - Duration::from_secs(i)),
+      ..PostInsertForm::new(
+        "keep Christ in Christmas".to_owned(),
+        data.tegan.person.id,
+        inserted_community.id,
+      )
+    };
+    Post::create(pool, &post_form).await?;
+  }
+
+  let options = PostQuery {
+    community_id: Some(inserted_community.id),
+    sort: Some(PostSortType::Hot),
+    limit: Some(page_size.try_into()?),
+    ..Default::default()
+  };
+
+  let mut get_page = async |cursor: &Option<PaginationCursor>| {
+    PostQuery {
+      page_cursor: cursor.clone(),
+      ..options.clone()
+    }
+    .list(&data.site, pool)
+    .await
+  };
+
+  let first_page = get_page(&None).await?;
+  assert_eq!(first_page.data.len(), page_size);
+  assert!(first_page.prev_page.is_none()); // without request cursor, no back cursor
+  assert!(first_page.next_page.is_some());
+
+  let last_page = get_page(&first_page.next_page).await?;
+  assert_eq!(last_page.data.len(), page_size);
+  assert!(last_page.prev_page.is_some());
+  assert!(last_page.next_page.is_some()); // full page, has cursor
+
+  // Get the first page with both cursors
+  let first_page2 = get_page(&last_page.prev_page).await?;
+  assert_eq!(first_page.data.len(), page_size);
+  assert!(first_page2.prev_page.is_some()); // full page, has cursor
+  assert!(first_page2.next_page.is_some());
+  assert_eq!(first_page2.next_page, first_page.next_page);
+  assert_eq!(
+    first_page2
+      .data
+      .into_iter()
+      .map(|pv| pv.post.id)
+      .collect::<Vec<PostId>>(),
+    first_page
+      .data
+      .clone()
+      .into_iter()
+      .map(|pv| pv.post.id)
+      .collect::<Vec<PostId>>()
+  );
+
+  let beyond_first_page = get_page(&first_page2.prev_page).await?;
+  assert_eq!(beyond_first_page.data.len(), 0);
+  assert!(beyond_first_page.prev_page.is_none());
+  assert!(beyond_first_page.next_page.is_some());
+
+  let recovered_first_page = get_page(&beyond_first_page.next_page).await?;
+  assert_eq!(recovered_first_page.data.len(), page_size);
+  assert!(recovered_first_page.prev_page.is_some()); // full page, has cursor
+  assert!(recovered_first_page.next_page.is_some());
+  assert_eq!(recovered_first_page.next_page, first_page2.next_page);
+  assert_eq!(recovered_first_page.prev_page, first_page2.prev_page);
+  assert_eq!(
+    recovered_first_page
+      .data
+      .into_iter()
+      .map(|pv| pv.post.id)
+      .collect::<Vec<PostId>>(),
+    first_page
+      .data
+      .into_iter()
+      .map(|pv| pv.post.id)
+      .collect::<Vec<PostId>>()
+  );
+
+  let beyond_last_page = get_page(&last_page.next_page).await?;
+  assert_eq!(beyond_last_page.data.len(), 0);
+  assert!(beyond_last_page.prev_page.is_some());
+  assert!(beyond_last_page.next_page.is_none());
+
+  let recovered_last_page = get_page(&beyond_last_page.prev_page).await?;
+  assert_eq!(recovered_last_page.data.len(), page_size);
+  assert!(recovered_last_page.prev_page.is_some());
+  assert!(recovered_last_page.next_page.is_some()); // full page, has cursor
+  assert_eq!(recovered_last_page.next_page, last_page.next_page);
+  assert_eq!(recovered_last_page.prev_page, last_page.prev_page);
+  assert_eq!(
+    recovered_last_page
+      .data
+      .into_iter()
+      .map(|pv| pv.post.id)
+      .collect::<Vec<PostId>>(),
+    last_page
+      .data
+      .into_iter()
+      .map(|pv| pv.post.id)
+      .collect::<Vec<PostId>>()
+  );
 
   Community::delete(pool, inserted_community.id).await?;
   Ok(())

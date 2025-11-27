@@ -105,7 +105,7 @@ impl PendingFollowerView {
     }
 
     // Sorting by published
-    let paginated_query = Self::paginate(query, page_cursor, SortDirection::Asc, pool, None)
+    let paginated_query = Self::paginate(query, &page_cursor, SortDirection::Asc, pool, None)
       .await?
       .then_order_by(key::followed_at);
 
@@ -149,7 +149,7 @@ impl PendingFollowerView {
         r.is_new_instance = false;
       }
     }
-    paginate_response(res, limit)
+    paginate_response(res, limit, page_cursor)
   }
 
   pub async fn count_approval_required(

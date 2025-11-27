@@ -113,7 +113,7 @@ impl PersonQuery {
     query = query.limit(limit);
 
     let paginated_query =
-      PersonView::paginate(query, self.page_cursor, SortDirection::Desc, pool, None)
+      PersonView::paginate(query, &self.page_cursor, SortDirection::Desc, pool, None)
         .await?
         .then_order_by(key::published_at)
         // Tie breaker
@@ -121,7 +121,7 @@ impl PersonQuery {
 
     let conn = &mut get_conn(pool).await?;
     let res = paginated_query.load::<PersonView>(conn).await?;
-    paginate_response(res, limit)
+    paginate_response(res, limit, self.page_cursor)
   }
 }
 

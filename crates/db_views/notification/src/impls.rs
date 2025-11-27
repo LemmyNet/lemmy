@@ -181,7 +181,7 @@ impl NotificationQuery {
 
     // Sorting by published
     let paginated_query =
-      NotificationView::paginate(query, self.page_cursor, SortDirection::Desc, pool, None)
+      NotificationView::paginate(query, &self.page_cursor, SortDirection::Desc, pool, None)
         .await?
         .then_order_by(notification_keys::published_at)
         // Tie breaker
@@ -197,7 +197,7 @@ impl NotificationQuery {
       .into_iter()
       .filter_map(|r| map_to_enum(r, hide_modlog_names))
       .collect();
-    paginate_response(res, limit)
+    paginate_response(res, limit, self.page_cursor)
   }
 }
 

@@ -178,7 +178,7 @@ impl PersonSavedCombinedQuery {
 
     // Sorting by saved desc
     let paginated_query =
-      PersonSavedCombinedView::paginate(query, self.page_cursor, SortDirection::Desc, pool, None)
+      PersonSavedCombinedView::paginate(query, &self.page_cursor, SortDirection::Desc, pool, None)
         .await?
         .then_order_by(key::saved_at)
         // Tie breaker
@@ -195,7 +195,7 @@ impl PersonSavedCombinedQuery {
       .filter_map(InternalToCombinedView::map_to_enum)
       .collect();
 
-    paginate_response(out, limit)
+    paginate_response(out, limit, self.page_cursor)
   }
 }
 
