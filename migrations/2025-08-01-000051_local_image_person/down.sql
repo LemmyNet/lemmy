@@ -21,8 +21,10 @@ ALTER TABLE local_image_old RENAME CONSTRAINT image_upload_pkey TO image_upload_
 -- Create the old one again
 CREATE TABLE local_image (
     local_user_id integer,
-    pictrs_alias text NOT NULL,
-    published timestamp with time zone DEFAULT now() NOT NULL
+    pictrs_alias text,
+    published timestamp with time zone DEFAULT now(),
+    CONSTRAINT image_upload_pictrs_alias_not_null NOT NULL pictrs_alias,
+    CONSTRAINT image_upload_published_not_null NOT NULL published
 );
 
 ALTER TABLE ONLY local_image

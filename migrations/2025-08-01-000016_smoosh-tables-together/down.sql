@@ -1,8 +1,9 @@
 -- For each new actions table, create tables that are dropped in up.sql, and insert into them
 CREATE TABLE comment_saved (
-    person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
     comment_id int REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     published timestamptz DEFAULT now() NOT NULL,
+    CONSTRAINT comment_saved_user_id_not_null NOT NULL person_id,
     PRIMARY KEY (person_id, comment_id)
 );
 
@@ -34,10 +35,13 @@ WHERE
     blocked IS NOT NULL;
 
 CREATE TABLE community_person_ban (
-    community_id int REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
-    person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
-    published timestamptz DEFAULT now() NOT NULL,
+    community_id int REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE,
+    person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
+    published timestamptz DEFAULT now(),
     expires timestamptz,
+    CONSTRAINT community_user_ban_published_not_null NOT NULL published,
+    CONSTRAINT community_user_ban_community_id_not_null NOT NULL community_id,
+    CONSTRAINT community_user_ban_user_id_not_null NOT NULL person_id,
     PRIMARY KEY (person_id, community_id)
 );
 
@@ -54,8 +58,9 @@ WHERE
 
 CREATE TABLE community_moderator (
     community_id int REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
-    person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
     published timestamptz DEFAULT now() NOT NULL,
+    CONSTRAINT community_moderator_user_id_not_null NOT NULL person_id,
     PRIMARY KEY (person_id, community_id)
 );
 
@@ -124,9 +129,10 @@ WHERE
 
 CREATE TABLE IF NOT EXISTS post_like (
     post_id int REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
-    person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
     score smallint NOT NULL,
     published timestamptz DEFAULT now() NOT NULL,
+    CONSTRAINT post_like_user_id_not_null NOT NULL person_id,
     PRIMARY KEY (person_id, post_id)
 );
 
@@ -147,8 +153,9 @@ WHERE
 
 CREATE TABLE post_saved (
     post_id int REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
-    person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
     published timestamptz DEFAULT now() NOT NULL,
+    CONSTRAINT post_saved_user_id_not_null NOT NULL person_id,
     PRIMARY KEY (person_id, post_id)
 );
 
@@ -180,9 +187,10 @@ WHERE read IS NULL;
 
 CREATE TABLE IF NOT EXISTS comment_like (
     comment_id int REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
-    person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
     score smallint NOT NULL,
     published timestamptz DEFAULT now() NOT NULL,
+    CONSTRAINT comment_like_user_id_not_null NOT NULL person_id,
     PRIMARY KEY (person_id, comment_id)
 );
 
@@ -209,8 +217,9 @@ ALTER TABLE person_actions RENAME TO person_follower;
 
 CREATE TABLE IF NOT EXISTS post_read (
     post_id int REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
-    person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
     published timestamptz DEFAULT now() NOT NULL,
+    CONSTRAINT post_read_user_id_not_null NOT NULL person_id,
     PRIMARY KEY (person_id, post_id)
 );
 
@@ -241,22 +250,40 @@ ALTER TABLE person_follower RENAME COLUMN followed TO published;
 ALTER TABLE person_follower RENAME COLUMN follow_pending TO pending;
 
 ALTER TABLE community_follower
+    DROP CONSTRAINT community_actions_pkey,
     DROP CONSTRAINT community_actions_check_followed,
     DROP CONSTRAINT community_actions_check_received_ban,
+    DROP CONSTRAINT community_actions_community_id_not_null,
+    ADD CONSTRAINT community_actions_pkey PRIMARY KEY (person_id, community_id),
+    ALTER COLUMN community_id SET NOT NULL,
     ALTER COLUMN published SET NOT NULL,
     ALTER COLUMN published SET DEFAULT now(),
-    ALTER COLUMN state SET NOT NULL,
+    ADD CONSTRAINT community_follower_pending_not_null NOT NULL state,
     DROP COLUMN blocked,
     DROP COLUMN became_moderator,
     DROP COLUMN received_ban,
     DROP COLUMN ban_expires;
 
+ALTER TABLE community_follower RENAME CONSTRAINT community_actions_person_id_not_null TO community_follower_user_id_not_null;
+
 ALTER TABLE instance_block
+    DROP CONSTRAINT instance_actions_pkey,
+    DROP CONSTRAINT instance_actions_instance_id_not_null,
+    DROP CONSTRAINT instance_actions_person_id_not_null,
+    ADD CONSTRAINT instance_actions_pkey PRIMARY KEY (person_id, instance_id),
     ALTER COLUMN published SET NOT NULL,
+    ALTER COLUMN instance_id SET NOT NULL,
+    ALTER COLUMN person_id SET NOT NULL,
     ALTER COLUMN published SET DEFAULT now();
 
 ALTER TABLE person_follower
+    DROP CONSTRAINT person_actions_pkey,
     DROP CONSTRAINT person_actions_check_followed,
+    DROP CONSTRAINT person_actions_person_id_not_null,
+    DROP CONSTRAINT person_actions_target_id_not_null,
+    ADD CONSTRAINT person_actions_pkey PRIMARY KEY (follower_id, person_id),
+    ALTER COLUMN follower_id SET NOT NULL,
+    ALTER COLUMN person_id SET NOT NULL,
     ALTER COLUMN published SET NOT NULL,
     ALTER COLUMN published SET DEFAULT now(),
     ALTER COLUMN pending SET NOT NULL,
