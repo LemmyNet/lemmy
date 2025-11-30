@@ -232,6 +232,7 @@ impl ApubActor for MultiCommunity {
   async fn read_from_apub_id(
     pool: &mut DbPool<'_>,
     object_id: &DbUrl,
+    _include_deleted: bool,
   ) -> LemmyResult<Option<Self>> {
     let conn = &mut get_conn(pool).await?;
     multi_community::table

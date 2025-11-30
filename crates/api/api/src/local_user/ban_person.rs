@@ -79,7 +79,7 @@ pub async fn ban_from_site(
     data.person_id,
     Some(my_person_id),
     local_instance_id,
-    false,
+    true,
   )
   .await?;
 

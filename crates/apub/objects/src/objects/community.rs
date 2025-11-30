@@ -94,7 +94,7 @@ impl Object for ApubCommunity {
     context: &Data<Self::DataType>,
   ) -> LemmyResult<Option<Self>> {
     Ok(
-      Community::read_from_apub_id(&mut context.pool(), &object_id.into())
+      Community::read_from_apub_id(&mut context.pool(), &object_id.into(), false)
         .await?
         .map(Into::into),
     )
