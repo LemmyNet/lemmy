@@ -1,6 +1,6 @@
 use super::vote::Vote;
 use activitypub_federation::{fetch::object_id::ObjectId, kinds::activity::UndoType};
-use lemmy_apub_objects::objects::person::ApubPerson;
+use lemmy_apub_objects::objects::{community::ApubCommunity, person::ApubPerson};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -12,4 +12,5 @@ pub struct UndoVote {
   #[serde(rename = "type")]
   pub(crate) kind: UndoType,
   pub(crate) id: Url,
+  pub(crate) audience: Option<ObjectId<ApubCommunity>>,
 }

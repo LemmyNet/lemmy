@@ -28,6 +28,7 @@ pub struct Report {
   #[serde(rename = "type")]
   pub(crate) kind: FlagType,
   pub(crate) id: Url,
+  pub(crate) audience: Option<ObjectId<ApubCommunity>>,
 }
 
 impl Report {
@@ -93,6 +94,9 @@ impl ReportObject {
 
 impl InCommunity for Report {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
+    if let Some(audience) = &self.audience {
+      return audience.dereference(context).await;
+    }
     match self.to[0].dereference(context).await? {
       Either::Left(_) => Err(LemmyErrorType::NotFound.into()),
       Either::Right(c) => Ok(c),

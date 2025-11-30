@@ -4,7 +4,7 @@ use activitypub_federation::{
   kinds::activity::UndoType,
   protocol::helpers::deserialize_one_or_many,
 };
-use lemmy_apub_objects::objects::person::ApubPerson;
+use lemmy_apub_objects::objects::{community::ApubCommunity, person::ApubPerson};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
@@ -20,6 +20,7 @@ pub struct UndoDelete {
   #[serde(rename = "type")]
   pub(crate) kind: UndoType,
   pub(crate) id: Url,
+  pub(crate) audience: Option<ObjectId<ApubCommunity>>,
 
   #[serde(deserialize_with = "deserialize_one_or_many", default)]
   #[serde(skip_serializing_if = "Vec::is_empty")]

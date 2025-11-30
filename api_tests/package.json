@@ -32,7 +32,7 @@
     "eslint-plugin-prettier": "^5.5.0",
     "jest": "^30.0.0",
     "joi": "^17.13.3",
-    "lemmy-js-client": "1.0.0-change-api-routes.1",
+    "lemmy-js-client": "1.0.0-search-resolve-field.0",
     "lemmy-js-client-019": "npm:lemmy-js-client@0.19.5-alpha.1",
     "prettier": "^3.5.3",
     "ts-jest": "^29.4.0",

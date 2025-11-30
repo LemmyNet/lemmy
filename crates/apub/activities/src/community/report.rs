@@ -62,6 +62,7 @@ impl Report {
       content: None,
       kind,
       id: id.clone(),
+      audience: receiver.as_ref().right().map(|c| c.ap_id.clone().into()),
     })
   }
 
