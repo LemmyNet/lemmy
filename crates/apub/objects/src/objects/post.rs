@@ -173,6 +173,7 @@ impl Object for ApubPost {
       language,
       published: Some(self.published_at),
       updated: self.updated_at,
+      audience: Some(community.ap_id.into()),
       in_reply_to: None,
       tag: tags,
       context: Some(context_url(&self.ap_id)),

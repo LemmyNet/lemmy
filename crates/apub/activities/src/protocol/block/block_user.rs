@@ -38,10 +38,14 @@ pub struct BlockUser {
   /// block reason, written to mod log
   pub(crate) summary: Option<String>,
   pub(crate) end_time: Option<DateTime<Utc>>,
+  pub(crate) audience: Option<ObjectId<ApubCommunity>>,
 }
 
 impl InCommunity for BlockUser {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
+    if let Some(audience) = &self.audience {
+      return audience.dereference(context).await;
+    }
     let target = self.target.dereference(context).await?;
     let community = match target {
       SiteOrCommunity::Right(c) => c,

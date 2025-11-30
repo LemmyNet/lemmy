@@ -67,17 +67,15 @@ pub async fn search(
 
   let resolve_fut = resolve_object_internal(&data.q, &local_user_view, &context);
   let (search, resolve) = join(search_fut, resolve_fut).await;
-  let mut search = search?;
-  // Ignore resolve errors as query may not be Activitypub object
-  if let Ok(resolve) = resolve {
-    search.push(resolve);
-  }
+  let search = search?;
 
   let next_page = search.last().map(PaginationCursorBuilder::to_cursor);
   let prev_page = search.first().map(PaginationCursorBuilder::to_cursor);
 
   Ok(Json(SearchResponse {
-    results: search,
+    search,
+    // ignore errors as this may not be an apub url
+    resolve: resolve.ok(),
     next_page,
     prev_page,
   }))

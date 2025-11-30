@@ -17,7 +17,8 @@
       "commentsEnabled": true,
       "sensitive": false,
       "stickied": false,
-      "published": "2021-11-01T12:11:22.871846Z"
+      "published": "2021-11-01T12:11:22.871846Z",
+      "audience": "http://enterprise.lemmy.ml/u/main"
     },
     "cc": ["http://enterprise.lemmy.ml/c/main"],
     "type": "Create",

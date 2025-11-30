@@ -828,7 +828,7 @@ test("Fetch post via redirect", async () => {
   };
   let gammaPost = await gamma
     .resolveObject(form)
-    .then(a => a.results.at(0))
+    .then(a => a.resolve)
     .then(a => (a?.type_ == "post" ? a : undefined));
 
   expect(gammaPost).toBeDefined();
@@ -876,7 +876,7 @@ test("Fetch post with redirect", async () => {
   };
   let gammaPost2 = await gamma
     .resolveObject(form)
-    .then(a => a.results.at(0))
+    .then(a => a.resolve)
     .then(a => (a?.type_ == "post" ? a : undefined));
 
   expect(gammaPost2?.post).toBeDefined();

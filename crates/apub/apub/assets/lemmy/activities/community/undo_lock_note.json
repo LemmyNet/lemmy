@@ -13,10 +13,12 @@
     ],
     "object": "https://lemmy-alpha/comment/1",
     "cc": ["https://lemmy-alpha/c/test"],
+    "audience": "http://lemmy-alpha/c/main",
     "type": "Lock",
     "id": "https://lemmy-alpha/activities/lock/574b9805-19f5-4349-8c6e-c38c82898df9"
   },
   "cc": ["https://lemmy-alpha/c/test"],
+  "audience": "http://lemmy-alpha/c/main",
   "type": "Undo",
   "summary": "A reason for an unlock."
 }
