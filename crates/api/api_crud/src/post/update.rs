@@ -108,6 +108,12 @@ pub async fn update_post(
   )
   .await?;
 
+  let nsfw = if orig_post.community.nsfw {
+    Some(true)
+  } else {
+    data.nsfw
+  };
+
   check_community_user_action(&local_user_view, &orig_post.community, &mut context.pool()).await?;
 
   // Verify that only the creator can edit
@@ -143,7 +149,7 @@ pub async fn update_post(
     url,
     body,
     alt_text,
-    nsfw: data.nsfw,
+    nsfw,
     language_id: Some(language_id),
     updated_at: Some(Some(Utc::now())),
     scheduled_publish_time_at,
