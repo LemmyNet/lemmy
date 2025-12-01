@@ -17,7 +17,7 @@ use lemmy_db_views_site::api::{DeleteAccount, SuccessResponse};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn delete_account(
-  data: Json<DeleteAccount>,
+  Json(data): Json<DeleteAccount>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {

@@ -1,7 +1,6 @@
 use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
   PersonContentType,
-  newtypes::PaginationCursor,
   source::{
     combined::person_content::PersonContentCombined,
     comment::{Comment, CommentActions},
@@ -15,6 +14,7 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::PersonId;
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_post::PostView;
+use lemmy_diesel_utils::pagination::PaginationCursor;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -111,18 +111,5 @@ pub struct ListPersonContent {
   /// Example: dessalines , or dessalines@xyz.tld
   pub username: Option<String>,
   pub page_cursor: Option<PaginationCursor>,
-  pub page_back: Option<bool>,
   pub limit: Option<i64>,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// A person's content response.
-pub struct ListPersonContentResponse {
-  pub content: Vec<PersonContentCombinedView>,
-  /// the pagination cursor to use to fetch the next page
-  pub next_page: Option<PaginationCursor>,
-  pub prev_page: Option<PaginationCursor>,
 }

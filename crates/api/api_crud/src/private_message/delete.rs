@@ -15,7 +15,7 @@ use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn delete_private_message(
-  data: Json<DeletePrivateMessage>,
+  Json(data): Json<DeletePrivateMessage>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PrivateMessageResponse>> {

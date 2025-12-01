@@ -15,7 +15,7 @@ use lemmy_db_views_site::api::{
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn user_block_instance_communities(
-  data: Json<UserBlockInstanceCommunitiesParams>,
+  Json(data): Json<UserBlockInstanceCommunitiesParams>,
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<SuccessResponse>> {
@@ -38,7 +38,7 @@ pub async fn user_block_instance_communities(
 }
 
 pub async fn user_block_instance_persons(
-  data: Json<UserBlockInstancePersonsParams>,
+  Json(data): Json<UserBlockInstancePersonsParams>,
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<SuccessResponse>> {

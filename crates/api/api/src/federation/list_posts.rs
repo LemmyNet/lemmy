@@ -11,23 +11,19 @@ use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
 use lemmy_db_schema::{
   newtypes::PostId,
   source::{keyword_block::LocalUserKeywordBlock, post::PostActions},
-  traits::PaginationCursorBuilder,
 };
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_post::{
-  PostView,
-  api::{GetPosts, GetPostsResponse},
-  impls::PostQuery,
-};
+use lemmy_db_views_post::{PostView, api::GetPosts, impls::PostQuery};
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::pagination::PagedResponse;
 use lemmy_utils::error::LemmyResult;
 use std::cmp::min;
 
 pub async fn list_posts(
-  data: Query<GetPosts>,
+  Query(data): Query<GetPosts>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
-) -> LemmyResult<Json<GetPostsResponse>> {
+) -> LemmyResult<Json<PagedResponse<PostView>>> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let local_site = &site_view.local_site;
 
@@ -55,6 +51,7 @@ pub async fn list_posts(
   let show_nsfw = data.show_nsfw;
   let hide_media = data.hide_media;
   let no_comments_only = data.no_comments_only;
+  let page_cursor = data.page_cursor;
 
   let local_user = local_user_view.as_ref().map(|u| &u.local_user);
   let listing_type = Some(listing_type_with_default(
@@ -76,14 +73,6 @@ pub async fn list_posts(
   } else {
     None
   };
-
-  let cursor_data = if let Some(cursor) = &data.page_cursor {
-    Some(PostView::from_cursor(cursor, &mut context.pool()).await?)
-  } else {
-    None
-  };
-  let page_back = data.page_back;
-
   // dont allow more than page 10 for performance reasons
   let page = data.page.map(|p| min(p, 10));
 
@@ -102,8 +91,7 @@ pub async fn list_posts(
     hide_media,
     no_comments_only,
     keyword_blocks,
-    cursor_data,
-    page_back,
+    page_cursor,
   }
   .list(&site_view.site, &mut context.pool())
   .await?;
@@ -118,13 +106,5 @@ pub async fn list_posts(
     PostActions::mark_as_read(&mut context.pool(), local_user.person_id, &post_ids).await?;
   }
 
-  // if this page wasn't empty, then there is a next page after the last post on this page
-  let next_page = posts.last().map(PaginationCursorBuilder::to_cursor);
-  let prev_page = posts.first().map(PaginationCursorBuilder::to_cursor);
-
-  Ok(Json(GetPostsResponse {
-    posts,
-    next_page,
-    prev_page,
-  }))
+  Ok(Json(posts))
 }

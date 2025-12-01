@@ -9,7 +9,7 @@ use lemmy_db_views_post::{
 use lemmy_utils::error::LemmyResult;
 
 pub async fn hide_post(
-  data: Json<HidePost>,
+  Json(data): Json<HidePost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {

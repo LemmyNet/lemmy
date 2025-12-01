@@ -33,7 +33,7 @@ use lemmy_utils::{
 };
 
 pub async fn update_community(
-  data: Json<EditCommunity>,
+  Json(data): Json<EditCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityResponse>> {

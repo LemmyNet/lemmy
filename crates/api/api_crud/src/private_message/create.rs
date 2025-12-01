@@ -29,7 +29,7 @@ use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::{error::LemmyResult, utils::validation::is_valid_body_field};
 
 pub async fn create_private_message(
-  data: Json<CreatePrivateMessage>,
+  Json(data): Json<CreatePrivateMessage>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PrivateMessageResponse>> {

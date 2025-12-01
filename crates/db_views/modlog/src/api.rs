@@ -1,9 +1,9 @@
-use crate::ModlogView;
-use lemmy_db_schema::newtypes::{CommentId, CommunityId, PaginationCursor, PostId};
+use lemmy_db_schema::newtypes::{CommentId, CommunityId, PostId};
 use lemmy_db_schema_file::{
   PersonId,
   enums::{ListingType, ModlogKind},
 };
+use lemmy_diesel_utils::pagination::PaginationCursor;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -29,17 +29,5 @@ pub struct GetModlog {
   /// Filter by comment.
   pub comment_id: Option<CommentId>,
   pub page_cursor: Option<PaginationCursor>,
-  pub page_back: Option<bool>,
   pub limit: Option<i64>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// The modlog fetch response.
-pub struct GetModlogResponse {
-  pub modlog: Vec<ModlogView>,
-  /// the pagination cursor to use to fetch the next page
-  pub next_page: Option<PaginationCursor>,
-  pub prev_page: Option<PaginationCursor>,
 }

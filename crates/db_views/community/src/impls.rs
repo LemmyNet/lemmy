@@ -7,14 +7,13 @@ use lemmy_db_schema::{
   MultiCommunityListingType,
   MultiCommunitySortType,
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommunityId, MultiCommunityId, PaginationCursor},
+  newtypes::{CommunityId, MultiCommunityId},
   source::{
     community::{Community, community_keys as key},
     local_user::LocalUser,
     multi_community::{MultiCommunity, multi_community_keys as mkey},
     site::Site,
   },
-  traits::PaginationCursorBuilder,
   utils::{
     limit_fetch,
     queries::filters::{
@@ -45,8 +44,15 @@ use lemmy_db_schema_file::{
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
+  pagination::{
+    CursorData,
+    PagedResponse,
+    PaginationCursor,
+    PaginationCursorConversion,
+    paginate_response,
+  },
   traits::Crud,
-  utils::{LowerKey, now, paginate, seconds_to_pg_interval},
+  utils::{LowerKey, now, seconds_to_pg_interval},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -92,18 +98,17 @@ impl CommunityView {
   }
 }
 
-impl PaginationCursorBuilder for CommunityView {
-  type CursorData = Community;
-  fn to_cursor(&self) -> PaginationCursor {
-    PaginationCursor::new_single('C', self.community.id.0)
+impl PaginationCursorConversion for CommunityView {
+  type PaginatedType = Community;
+  fn to_cursor(&self) -> CursorData {
+    CursorData::new_id(self.community.id.0)
   }
 
   async fn from_cursor(
-    cursor: &PaginationCursor,
+    data: CursorData,
     pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Self::CursorData> {
-    let [(_, id)] = cursor.prefixes_and_ids()?;
-    Community::read(pool, CommunityId(id)).await
+  ) -> LemmyResult<Self::PaginatedType> {
+    Community::read(pool, CommunityId(data.id()?)).await
   }
 }
 
@@ -115,17 +120,19 @@ pub struct CommunityQuery<'a> {
   pub local_user: Option<&'a LocalUser>,
   pub show_nsfw: Option<bool>,
   pub multi_community_id: Option<MultiCommunityId>,
-  pub cursor_data: Option<Community>,
-  pub page_back: Option<bool>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }
 
 impl CommunityQuery<'_> {
-  pub async fn list(self, site: &Site, pool: &mut DbPool<'_>) -> LemmyResult<Vec<CommunityView>> {
+  pub async fn list(
+    self,
+    site: &Site,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<PagedResponse<CommunityView>> {
     use lemmy_db_schema::CommunitySortType::*;
-    let conn = &mut get_conn(pool).await?;
     let o = self;
-    let limit = limit_fetch(o.limit)?;
+    let limit = limit_fetch(o.limit, None)?;
 
     let mut query = CommunityView::joins(o.local_user.person_id())
       .select(CommunityView::as_select())
@@ -181,7 +188,7 @@ impl CommunityQuery<'_> {
     let sort = o.sort.unwrap_or_default();
     let sort_direction = asc_if(sort == Old || sort == NameAsc);
 
-    let mut pq = paginate(query, sort_direction, o.cursor_data, None, o.page_back);
+    let mut pq = CommunityView::paginate(query, &o.page_cursor, sort_direction, pool, None).await?;
 
     pq = match sort {
       Hot => pq.then_order_by(key::hot_rank),
@@ -202,9 +209,12 @@ impl CommunityQuery<'_> {
     // finally use unique id as tie breaker
     pq = pq.then_order_by(key::id);
 
-    pq.load::<CommunityView>(conn)
+    let conn = &mut get_conn(pool).await?;
+    let res = pq
+      .load::<CommunityView>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::NotFound)
+      .with_lemmy_type(LemmyErrorType::NotFound)?;
+    paginate_response(res, limit, o.page_cursor)
   }
 }
 
@@ -235,18 +245,17 @@ impl MultiCommunityView {
   }
 }
 
-impl PaginationCursorBuilder for MultiCommunityView {
-  type CursorData = MultiCommunity;
-  fn to_cursor(&self) -> PaginationCursor {
-    PaginationCursor::new_single('M', self.multi.id.0)
+impl PaginationCursorConversion for MultiCommunityView {
+  type PaginatedType = MultiCommunity;
+  fn to_cursor(&self) -> CursorData {
+    CursorData::new_id(self.multi.id.0)
   }
 
   async fn from_cursor(
-    cursor: &PaginationCursor,
+    data: CursorData,
     pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Self::CursorData> {
-    let [(_, id)] = cursor.prefixes_and_ids()?;
-    MultiCommunity::read(pool, MultiCommunityId(id)).await
+  ) -> LemmyResult<Self::PaginatedType> {
+    MultiCommunity::read(pool, MultiCommunityId(data.id()?)).await
   }
 }
 
@@ -257,26 +266,22 @@ pub struct MultiCommunityQuery {
   pub time_range_seconds: Option<i32>,
   pub my_person_id: Option<PersonId>,
   pub creator_id: Option<PersonId>,
-  pub cursor_data: Option<MultiCommunity>,
-  pub page_back: Option<bool>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
   pub no_limit: Option<bool>,
 }
 
 impl MultiCommunityQuery {
-  pub async fn list(self, pool: &mut DbPool<'_>) -> LemmyResult<Vec<MultiCommunityView>> {
+  pub async fn list(self, pool: &mut DbPool<'_>) -> LemmyResult<PagedResponse<MultiCommunityView>> {
     use lemmy_db_schema::{MultiCommunityListingType::*, MultiCommunitySortType::*};
-    let conn = &mut get_conn(pool).await?;
     let o = self;
 
     let mut query = MultiCommunityView::joins(o.my_person_id)
       .select(MultiCommunityView::as_select())
       .into_boxed();
 
-    if !o.no_limit.unwrap_or_default() {
-      let limit = limit_fetch(o.limit)?;
-      query = query.limit(limit);
-    }
+    let limit = limit_fetch(o.limit, o.no_limit)?;
+    query = query.limit(limit);
 
     if let Some(listing_type) = o.listing_type {
       query = match listing_type {
@@ -307,7 +312,8 @@ impl MultiCommunityQuery {
     let sort = o.sort.unwrap_or_default();
     let sort_direction = asc_if(sort == Old || sort == NameAsc);
 
-    let mut pq = paginate(query, sort_direction, o.cursor_data, None, o.page_back);
+    let mut pq =
+      MultiCommunityView::paginate(query, &o.page_cursor, sort_direction, pool, None).await?;
 
     pq = match sort {
       New => pq.then_order_by(mkey::published_at),
@@ -322,9 +328,13 @@ impl MultiCommunityQuery {
     // finally use unique id as tie breaker
     pq = pq.then_order_by(mkey::id);
 
-    pq.load::<MultiCommunityView>(conn)
+    let conn = &mut get_conn(pool).await?;
+    let res = pq
+      .load::<MultiCommunityView>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::NotFound)
+      .with_lemmy_type(LemmyErrorType::NotFound)?;
+
+    paginate_response(res, limit, o.page_cursor)
   }
 }
 
@@ -616,7 +626,7 @@ mod tests {
     }
     .list(&data.site, pool)
     .await?
-    .into_iter()
+    .iter()
     .for_each(|c| assert!(!c.can_mod));
 
     let person_id = data.local_user.person_id;
@@ -634,8 +644,8 @@ mod tests {
     }
     .list(&data.site, pool)
     .await?
-    .into_iter()
-    .map(|c| (c.community.name, c.can_mod))
+    .iter()
+    .map(|c| (c.community.name.clone(), c.can_mod))
     .collect::<HashSet<_>>();
 
     let expected_communities = HashSet::from([

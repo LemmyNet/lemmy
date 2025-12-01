@@ -24,7 +24,6 @@ pub use lemmy_db_views_report_combined::{
     GetReportCount,
     GetReportCountResponse,
     ListReports,
-    ListReportsResponse,
     PostReportResponse,
     PrivateMessageReportResponse,
     ResolveCommentReport,

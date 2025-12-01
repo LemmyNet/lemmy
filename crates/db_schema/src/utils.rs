@@ -14,10 +14,14 @@ pub const SITEMAP_DAYS: TimeDelta = TimeDelta::days(31);
 pub const RANK_DEFAULT: f32 = 0.0001;
 pub const DELETED_REPLACEMENT_TEXT: &str = "*Permanently Deleted*";
 
-pub fn limit_fetch(limit: Option<i64>) -> LemmyResult<i64> {
-  Ok(match limit {
-    Some(limit) => limit_fetch_check(limit)?,
-    None => FETCH_LIMIT_DEFAULT,
+pub fn limit_fetch(limit: Option<i64>, no_limit: Option<bool>) -> LemmyResult<i64> {
+  Ok(if no_limit.unwrap_or_default() {
+    i64::MAX
+  } else {
+    match limit {
+      Some(limit) => limit_fetch_check(limit)?,
+      None => FETCH_LIMIT_DEFAULT,
+    }
   })
 }
 

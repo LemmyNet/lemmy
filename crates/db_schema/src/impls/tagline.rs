@@ -1,5 +1,5 @@
 use crate::{
-  newtypes::{PaginationCursor, TaglineId},
+  newtypes::TaglineId,
   source::tagline::{Tagline, TaglineInsertForm, TaglineUpdateForm, tagline_keys as key},
   utils::limit_fetch,
 };
@@ -9,8 +9,15 @@ use i_love_jesus::SortDirection;
 use lemmy_db_schema_file::schema::tagline;
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
+  pagination::{
+    CursorData,
+    PagedResponse,
+    PaginationCursor,
+    PaginationCursorConversion,
+    paginate_response,
+  },
   traits::Crud,
-  utils::{functions::random, paginate},
+  utils::functions::random,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -42,24 +49,40 @@ impl Crud for Tagline {
   }
 }
 
+impl PaginationCursorConversion for Tagline {
+  type PaginatedType = Tagline;
+
+  fn to_cursor(&self) -> CursorData {
+    CursorData::new_id(self.id.0)
+  }
+
+  async fn from_cursor(
+    cursor: CursorData,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Self::PaginatedType> {
+    Tagline::read(pool, TaglineId(cursor.id()?)).await
+  }
+}
+
 impl Tagline {
   pub async fn list(
     pool: &mut DbPool<'_>,
-    cursor_data: Option<Tagline>,
-    page_back: Option<bool>,
+    page_cursor: Option<PaginationCursor>,
     limit: Option<i64>,
-  ) -> LemmyResult<Vec<Self>> {
-    let conn = &mut get_conn(pool).await?;
-    let limit = limit_fetch(limit)?;
+  ) -> LemmyResult<PagedResponse<Self>> {
+    let limit = limit_fetch(limit, None)?;
     let query = tagline::table.limit(limit).into_boxed();
-    let paginated_query = paginate(query, SortDirection::Desc, cursor_data, None, page_back)
+    let paginated_query = Self::paginate(query, &page_cursor, SortDirection::Desc, pool, None)
+      .await?
       .then_order_by(key::published_at)
       .then_order_by(key::id);
 
-    paginated_query
+    let conn = &mut get_conn(pool).await?;
+    let res = paginated_query
       .load::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::NotFound)
+      .with_lemmy_type(LemmyErrorType::NotFound)?;
+    paginate_response(res, limit, page_cursor)
   }
 
   pub async fn get_random(pool: &mut DbPool<'_>) -> LemmyResult<Self> {
@@ -70,14 +93,5 @@ impl Tagline {
       .first::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
-  }
-
-  pub fn to_cursor(&self) -> PaginationCursor {
-    PaginationCursor::new_single('T', self.id.0)
-  }
-
-  pub async fn from_cursor(cursor: &PaginationCursor, pool: &mut DbPool<'_>) -> LemmyResult<Self> {
-    let [(_, id)] = cursor.prefixes_and_ids()?;
-    Self::read(pool, TaglineId(id)).await
   }
 }

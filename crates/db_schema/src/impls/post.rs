@@ -1,5 +1,5 @@
 use crate::{
-  newtypes::{CommunityId, PaginationCursor, PostId},
+  newtypes::{CommunityId, PostId},
   source::post::{
     Post,
     PostActions,
@@ -537,14 +537,6 @@ impl PostActions {
       .first(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
-  }
-
-  pub async fn from_cursor(
-    cursor: &PaginationCursor,
-    pool: &mut DbPool<'_>,
-  ) -> LemmyResult<PostActions> {
-    let [(_, person_id), (_, post_id)] = cursor.prefixes_and_ids()?;
-    Self::read(pool, PostId(post_id), PersonId(person_id)).await
   }
 
   pub async fn update_notification_state(

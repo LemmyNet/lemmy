@@ -14,7 +14,7 @@ use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn get_random_community(
-  data: Query<GetRandomCommunity>,
+  Query(data): Query<GetRandomCommunity>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<CommunityResponse>> {

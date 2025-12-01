@@ -10,9 +10,11 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  newtypes::{PaginationCursor, RegistrationApplicationId},
-  source::registration_application::RegistrationApplication,
-  traits::PaginationCursorBuilder,
+  newtypes::RegistrationApplicationId,
+  source::registration_application::{
+    RegistrationApplication,
+    registration_application_keys as key,
+  },
   utils::limit_fetch,
 };
 use lemmy_db_schema_file::{
@@ -22,23 +24,28 @@ use lemmy_db_schema_file::{
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
+  pagination::{
+    CursorData,
+    PagedResponse,
+    PaginationCursor,
+    PaginationCursorConversion,
+    paginate_response,
+  },
   traits::Crud,
-  utils::paginate,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
-impl PaginationCursorBuilder for RegistrationApplicationView {
-  type CursorData = RegistrationApplication;
-  fn to_cursor(&self) -> PaginationCursor {
-    PaginationCursor::new_single('R', self.registration_application.id.0)
+impl PaginationCursorConversion for RegistrationApplicationView {
+  type PaginatedType = RegistrationApplication;
+  fn to_cursor(&self) -> CursorData {
+    CursorData::new_id(self.registration_application.id.0)
   }
 
   async fn from_cursor(
-    cursor: &PaginationCursor,
+    cursor: CursorData,
     pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Self::CursorData> {
-    let [(_, id)] = cursor.prefixes_and_ids()?;
-    RegistrationApplication::read(pool, RegistrationApplicationId(id)).await
+  ) -> LemmyResult<Self::PaginatedType> {
+    RegistrationApplication::read(pool, RegistrationApplicationId(cursor.id()?)).await
   }
 }
 
@@ -105,15 +112,16 @@ impl RegistrationApplicationView {
 pub struct RegistrationApplicationQuery {
   pub unread_only: Option<bool>,
   pub verified_email_only: Option<bool>,
-  pub cursor_data: Option<RegistrationApplication>,
-  pub page_back: Option<bool>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }
 
 impl RegistrationApplicationQuery {
-  pub async fn list(self, pool: &mut DbPool<'_>) -> LemmyResult<Vec<RegistrationApplicationView>> {
-    let conn = &mut get_conn(pool).await?;
-    let limit = limit_fetch(self.limit)?;
+  pub async fn list(
+    self,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<PagedResponse<RegistrationApplicationView>> {
+    let limit = limit_fetch(self.limit, None)?;
     let o = self;
 
     let mut query = RegistrationApplicationView::joins()
@@ -134,12 +142,17 @@ impl RegistrationApplicationQuery {
     }
 
     // Sorting by published
-    let paginated_query = paginate(query, SortDirection::Desc, o.cursor_data, None, o.page_back);
+    let paginated_query =
+      RegistrationApplicationView::paginate(query, &o.page_cursor, SortDirection::Desc, pool, None)
+        .await?
+        .then_order_by(key::published_at);
 
-    paginated_query
+    let conn = &mut get_conn(pool).await?;
+    let res = paginated_query
       .load::<RegistrationApplicationView>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::NotFound)
+      .with_lemmy_type(LemmyErrorType::NotFound)?;
+    paginate_response(res, limit, o.page_cursor)
   }
 }
 
@@ -290,7 +303,8 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await?;
+    .await?
+    .data;
 
     assert_eq!(
       apps,
@@ -361,7 +375,8 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await?;
+    .await?
+    .data;
     assert_eq!(apps_after_resolve, vec![read_jess_app_view]);
 
     // Make sure the counts are correct

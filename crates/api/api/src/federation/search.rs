@@ -9,19 +9,13 @@ use lemmy_api_utils::{
   context::LemmyContext,
   utils::{check_conflicting_like_filters, check_private_instance},
 };
-use lemmy_db_schema::traits::PaginationCursorBuilder;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_search_combined::{
-  Search,
-  SearchCombinedView,
-  SearchResponse,
-  impls::SearchCombinedQuery,
-};
+use lemmy_db_views_search_combined::{Search, SearchResponse, impls::SearchCombinedQuery};
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn search(
-  data: Query<Search>,
+  Query(data): Query<Search>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<SearchResponse>> {
@@ -39,12 +33,6 @@ pub async fn search(
   )
   .await?;
 
-  let cursor_data = if let Some(cursor) = &data.page_cursor {
-    Some(SearchCombinedView::from_cursor(cursor, &mut context.pool()).await?)
-  } else {
-    None
-  };
-
   let pool = &mut context.pool();
   let search_fut = SearchCombinedQuery {
     search_term: Some(data.q.clone()),
@@ -59,8 +47,7 @@ pub async fn search(
     liked_only: data.liked_only,
     disliked_only: data.disliked_only,
     show_nsfw: data.show_nsfw,
-    cursor_data,
-    page_back: data.page_back,
+    page_cursor: data.page_cursor,
     limit: data.limit,
   }
   .list(pool, &local_user_view, &site_view.site);
@@ -69,14 +56,11 @@ pub async fn search(
   let (search, resolve) = join(search_fut, resolve_fut).await;
   let search = search?;
 
-  let next_page = search.last().map(PaginationCursorBuilder::to_cursor);
-  let prev_page = search.first().map(PaginationCursorBuilder::to_cursor);
-
   Ok(Json(SearchResponse {
-    search,
+    search: search.data,
     // ignore errors as this may not be an apub url
     resolve: resolve.ok(),
-    next_page,
-    prev_page,
+    next_page: search.next_page,
+    prev_page: search.prev_page,
   }))
 }

@@ -12,7 +12,7 @@ use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn follow_community(
-  data: Json<FollowCommunity>,
+  Json(data): Json<FollowCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityResponse>> {

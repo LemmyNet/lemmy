@@ -38,7 +38,7 @@ test("Follow a private community", async () => {
 
   // No pending follows yet
   const pendingFollows0 = await listCommunityPendingFollows(alpha);
-  expect(pendingFollows0.items.length).toBe(0);
+  expect(pendingFollows0.data.length).toBe(0);
   const pendingFollowsCount0 = await getCommunityPendingFollowsCount(alpha);
   expect(pendingFollowsCount0.count).toBe(0);
 
@@ -66,9 +66,9 @@ test("Follow a private community", async () => {
   // Wait for follow to federate, shown as pending
   let pendingFollows1 = await waitUntil(
     () => listCommunityPendingFollows(alpha),
-    f => f.items.length == 1,
+    f => f.data.length == 1,
   );
-  expect(pendingFollows1.items[0].is_new_instance).toBe(true);
+  expect(pendingFollows1.data[0].is_new_instance).toBe(true);
   const pendingFollowsCount1 = await getCommunityPendingFollowsCount(alpha);
   expect(pendingFollowsCount1.count).toBe(1);
 
@@ -82,7 +82,7 @@ test("Follow a private community", async () => {
   const approve = await approveCommunityPendingFollow(
     alpha,
     alphaCommunityId,
-    pendingFollows1.items[0].person.id,
+    pendingFollows1.data[0].person.id,
   );
   expect(approve.success).toBe(true);
 
@@ -92,7 +92,7 @@ test("Follow a private community", async () => {
     c => c.community_view.community_actions?.follow_state == "accepted",
   );
   const pendingFollows2 = await listCommunityPendingFollows(alpha);
-  expect(pendingFollows2.items.length).toBe(0);
+  expect(pendingFollows2.data.length).toBe(0);
   const pendingFollowsCount2 = await getCommunityPendingFollowsCount(alpha);
   expect(pendingFollowsCount2.count).toBe(0);
 
@@ -101,15 +101,15 @@ test("Follow a private community", async () => {
   await user2.followCommunity(follow_form);
   let pendingFollows3 = await waitUntil(
     () => listCommunityPendingFollows(alpha),
-    f => f.items.length == 1,
+    f => f.data.length == 1,
   );
-  expect(pendingFollows3.items[0].is_new_instance).toBe(false);
+  expect(pendingFollows3.data[0].is_new_instance).toBe(false);
 
   // cleanup pending follow
   const approve2 = await approveCommunityPendingFollow(
     alpha,
     alphaCommunityId,
-    pendingFollows3.items[0].person.id,
+    pendingFollows3.data[0].person.id,
   );
   expect(approve2.success).toBe(true);
 });
@@ -192,12 +192,12 @@ test("Reject follower", async () => {
 
   const pendingFollows1 = await waitUntil(
     () => listCommunityPendingFollows(alpha),
-    f => f.items.length == 1,
+    f => f.data.length == 1,
   );
   const approve = await approveCommunityPendingFollow(
     alpha,
     alphaCommunityId,
-    pendingFollows1.items[0].person.id,
+    pendingFollows1.data[0].person.id,
     false,
   );
   expect(approve.success).toBe(true);
@@ -260,18 +260,18 @@ test("Follow a private community and receive activities", async () => {
   // post and comment were federated to beta
   let posts = await waitUntil(
     () => getPosts(beta, "all", betaCommunityId),
-    c => c.posts.length == 1,
+    c => c.data.length == 1,
   );
-  expect(posts.posts[0].post.ap_id).toBe(post.post_view.post.ap_id);
-  expect(posts.posts[0].post.name).toBe(post.post_view.post.name);
+  expect(posts.data[0].post.ap_id).toBe(post.post_view.post.ap_id);
+  expect(posts.data[0].post.name).toBe(post.post_view.post.name);
   let comments = await waitUntil(
-    () => getComments(beta, posts.posts[0].post.id),
-    c => c.comments.length == 1,
+    () => getComments(beta, posts.data[0].post.id),
+    c => c.data.length == 1,
   );
-  expect(comments.comments[0].comment.ap_id).toBe(
+  expect(comments.data[0].comment.ap_id).toBe(
     comment.comment_view.comment.ap_id,
   );
-  expect(comments.comments[0].comment.content).toBe(
+  expect(comments.data[0].comment.content).toBe(
     comment.comment_view.comment.content,
   );
 });
@@ -350,12 +350,12 @@ test("Fetch remote content in private community", async () => {
 async function approveFollower(user: LemmyHttp, community_id: number) {
   let pendingFollows1 = await waitUntil(
     () => listCommunityPendingFollows(user),
-    f => f.items.length == 1,
+    f => f.data.length == 1,
   );
   const approve = await approveCommunityPendingFollow(
     alpha,
     community_id,
-    pendingFollows1.items[0].person.id,
+    pendingFollows1.data[0].person.id,
   );
   expect(approve.success).toBe(true);
 }

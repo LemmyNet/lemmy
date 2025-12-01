@@ -3,9 +3,7 @@ use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  newtypes::PaginationCursor,
   source::images::{LocalImage, local_image_keys as key},
-  traits::PaginationCursorBuilder,
   utils::limit_fetch,
 };
 use lemmy_db_schema_file::{
@@ -14,7 +12,13 @@ use lemmy_db_schema_file::{
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
-  utils::paginate,
+  pagination::{
+    CursorData,
+    PagedResponse,
+    PaginationCursor,
+    PaginationCursorConversion,
+    paginate_response,
+  },
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -29,12 +33,10 @@ impl LocalImageView {
   pub async fn get_all_paged_by_person_id(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
-    cursor_data: Option<LocalImage>,
-    page_back: Option<bool>,
+    cursor_data: Option<PaginationCursor>,
     limit: Option<i64>,
-  ) -> LemmyResult<Vec<Self>> {
-    let conn = &mut get_conn(pool).await?;
-    let limit = limit_fetch(limit)?;
+  ) -> LemmyResult<PagedResponse<Self>> {
+    let limit = limit_fetch(limit, None)?;
 
     let query = Self::joins()
       .filter(local_image::person_id.eq(person_id))
@@ -42,13 +44,17 @@ impl LocalImageView {
       .limit(limit)
       .into_boxed();
 
-    let paginated_query = paginate(query, SortDirection::Asc, cursor_data, None, page_back)
+    let paginated_query = Self::paginate(query, &cursor_data, SortDirection::Asc, pool, None)
+      .await?
       .then_order_by(key::pictrs_alias);
 
-    paginated_query
+    let conn = &mut get_conn(pool).await?;
+    let res = paginated_query
       .load::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::NotFound)
+      .with_lemmy_type(LemmyErrorType::NotFound)?;
+
+    paginate_response(res, limit, cursor_data)
   }
 
   pub async fn get_all_by_person_id(
@@ -66,48 +72,45 @@ impl LocalImageView {
 
   pub async fn get_all_paged(
     pool: &mut DbPool<'_>,
-    cursor_data: Option<LocalImage>,
-    page_back: Option<bool>,
+    cursor_data: Option<PaginationCursor>,
     limit: Option<i64>,
-  ) -> LemmyResult<Vec<Self>> {
-    let conn = &mut get_conn(pool).await?;
-    let limit = limit_fetch(limit)?;
+  ) -> LemmyResult<PagedResponse<Self>> {
+    let limit = limit_fetch(limit, None)?;
 
     let query = Self::joins()
       .select(Self::as_select())
       .limit(limit)
       .into_boxed();
 
-    let paginated_query = paginate(query, SortDirection::Asc, cursor_data, None, page_back);
-    paginated_query
+    let paginated_query =
+      Self::paginate(query, &cursor_data, SortDirection::Asc, pool, None).await?;
+    let conn = &mut get_conn(pool).await?;
+    let res = paginated_query
       .load::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::NotFound)
+      .with_lemmy_type(LemmyErrorType::NotFound)?;
+    paginate_response(res, limit, cursor_data)
   }
 }
 
-impl PaginationCursorBuilder for LocalImageView {
-  type CursorData = LocalImage;
-  fn to_cursor(&self) -> PaginationCursor {
+impl PaginationCursorConversion for LocalImageView {
+  type PaginatedType = LocalImage;
+  fn to_cursor(&self) -> CursorData {
     // Use pictrs alias
-    PaginationCursor(format!("A{}", self.local_image.pictrs_alias))
+    CursorData::new_plain(self.local_image.pictrs_alias.clone())
   }
 
   async fn from_cursor(
-    cursor: &PaginationCursor,
+    cursor: CursorData,
     pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Self::CursorData> {
+  ) -> LemmyResult<Self::PaginatedType> {
     let conn = &mut get_conn(pool).await?;
 
     // This isn't an id, but a string
-    let alias = cursor
-      .0
-      .split_at_checked(1)
-      .ok_or(LemmyErrorType::CouldntParsePaginationToken)?
-      .1;
+    let alias = cursor.plain();
 
     let token = local_image::table
-      .select(Self::CursorData::as_select())
+      .select(Self::PaginatedType::as_select())
       .filter(local_image::pictrs_alias.eq(alias))
       .first(conn)
       .await?;

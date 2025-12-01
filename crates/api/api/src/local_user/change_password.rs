@@ -14,7 +14,7 @@ use lemmy_db_views_site::api::{ChangePassword, LoginResponse};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn change_password(
-  data: Json<ChangePassword>,
+  Json(data): Json<ChangePassword>,
   req: HttpRequest,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,

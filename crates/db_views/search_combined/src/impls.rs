@@ -23,12 +23,12 @@ use lemmy_db_schema::{
   SearchSortType::{self, *},
   SearchType,
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommunityId, PaginationCursor},
+  newtypes::CommunityId,
   source::{
     combined::search::{SearchCombined, search_combined_keys as key},
     site::Site,
   },
-  traits::{InternalToCombinedView, PaginationCursorBuilder},
+  traits::InternalToCombinedView,
   utils::{
     limit_fetch,
     queries::filters::{
@@ -69,7 +69,14 @@ use lemmy_db_schema_file::{
 use lemmy_db_views_community::MultiCommunityView;
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
-  utils::{fuzzy_search, now, paginate, seconds_to_pg_interval},
+  pagination::{
+    CursorData,
+    PagedResponse,
+    PaginationCursor,
+    PaginationCursorConversion,
+    paginate_response,
+  },
+  utils::{fuzzy_search, now, seconds_to_pg_interval},
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use url::Url;
@@ -169,10 +176,10 @@ impl SearchCombinedView {
   }
 }
 
-impl PaginationCursorBuilder for SearchCombinedView {
-  type CursorData = SearchCombined;
+impl PaginationCursorConversion for SearchCombinedView {
+  type PaginatedType = SearchCombined;
 
-  fn to_cursor(&self) -> PaginationCursor {
+  fn to_cursor(&self) -> CursorData {
     let (prefix, id) = match &self {
       SearchCombinedView::Post(v) => ('P', v.post.id.0),
       SearchCombinedView::Comment(v) => ('C', v.comment.id.0),
@@ -180,18 +187,18 @@ impl PaginationCursorBuilder for SearchCombinedView {
       SearchCombinedView::Person(v) => ('E', v.person.id.0),
       SearchCombinedView::MultiCommunity(v) => ('M', v.multi.id.0),
     };
-    PaginationCursor::new_single(prefix, id)
+    CursorData::new_with_prefix(prefix, id)
   }
 
   async fn from_cursor(
-    cursor: &PaginationCursor,
+    cursor: CursorData,
     pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Self::CursorData> {
+  ) -> LemmyResult<Self::PaginatedType> {
     let conn = &mut get_conn(pool).await?;
-    let [(prefix, id)] = cursor.prefixes_and_ids()?;
+    let (prefix, id) = cursor.id_and_prefix()?;
 
     let mut query = search_combined::table
-      .select(Self::CursorData::as_select())
+      .select(Self::PaginatedType::as_select())
       .into_boxed();
 
     query = match prefix {
@@ -222,8 +229,7 @@ pub struct SearchCombinedQuery {
   pub liked_only: Option<bool>,
   pub disliked_only: Option<bool>,
   pub show_nsfw: Option<bool>,
-  pub cursor_data: Option<SearchCombined>,
-  pub page_back: Option<bool>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }
 
@@ -233,12 +239,11 @@ impl SearchCombinedQuery {
     pool: &mut DbPool<'_>,
     user: &Option<LocalUserView>,
     site_local: &Site,
-  ) -> LemmyResult<Vec<SearchCombinedView>> {
+  ) -> LemmyResult<PagedResponse<SearchCombinedView>> {
     let my_person_id = user.as_ref().map(|u| u.local_user.person_id);
     let item_creator = person::id;
 
-    let conn = &mut get_conn(pool).await?;
-    let limit = limit_fetch(self.limit)?;
+    let limit = limit_fetch(self.limit, None)?;
 
     let mut query = SearchCombinedViewInternal::joins(my_person_id, site_local.instance_id)
       .select(SearchCombinedViewInternal::as_select())
@@ -382,13 +387,8 @@ impl SearchCombinedQuery {
     let sort = self.sort.unwrap_or_default();
     let sort_direction = asc_if(sort == Old);
 
-    let mut paginated_query = paginate(
-      query,
-      sort_direction,
-      self.cursor_data,
-      None,
-      self.page_back,
-    );
+    let mut paginated_query =
+      SearchCombinedView::paginate(query, &self.page_cursor, sort_direction, pool, None).await?;
 
     paginated_query = match sort {
       New | Old => paginated_query.then_order_by(key::published_at),
@@ -397,6 +397,7 @@ impl SearchCombinedQuery {
     // finally use unique id as tie breaker
     .then_order_by(key::id);
 
+    let conn = &mut get_conn(pool).await?;
     let res = paginated_query
       .load::<SearchCombinedViewInternal>(conn)
       .await?;
@@ -407,7 +408,7 @@ impl SearchCombinedQuery {
       .filter_map(InternalToCombinedView::map_to_enum)
       .collect();
 
-    Ok(out)
+    paginate_response(out, limit, self.page_cursor)
   }
 }
 

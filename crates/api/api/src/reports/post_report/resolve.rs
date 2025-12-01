@@ -16,7 +16,7 @@ use lemmy_utils::error::LemmyResult;
 
 /// Resolves or unresolves a post report and notifies the moderators of the community
 pub async fn resolve_post_report(
-  data: Json<ResolvePostReport>,
+  Json(data): Json<ResolvePostReport>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostReportResponse>> {

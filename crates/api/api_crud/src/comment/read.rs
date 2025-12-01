@@ -10,7 +10,7 @@ use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn get_comment(
-  data: Query<GetComment>,
+  Query(data): Query<GetComment>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<CommentResponse>> {

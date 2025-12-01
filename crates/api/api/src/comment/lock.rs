@@ -19,7 +19,7 @@ use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn lock_comment(
-  data: Json<LockComment>,
+  Json(data): Json<LockComment>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponse>> {

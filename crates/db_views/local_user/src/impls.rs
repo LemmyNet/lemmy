@@ -10,13 +10,12 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  newtypes::{LocalUserId, OAuthProviderId, PaginationCursor},
+  newtypes::{LocalUserId, OAuthProviderId},
   source::{
     instance::Instance,
     local_user::{LocalUser, LocalUserInsertForm},
     person::{Person, PersonInsertForm, person_keys},
   },
-  traits::PaginationCursorBuilder,
 };
 use lemmy_db_schema_file::{
   PersonId,
@@ -26,11 +25,17 @@ use lemmy_db_schema_file::{
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
+  pagination::{
+    CursorData,
+    PagedResponse,
+    PaginationCursor,
+    PaginationCursorConversion,
+    paginate_response,
+  },
   traits::Crud,
   utils::{
     functions::{coalesce, lower},
     now,
-    paginate,
   },
 };
 use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
@@ -155,17 +160,17 @@ impl LocalUserView {
 #[derive(Default)]
 pub struct LocalUserQuery {
   pub banned_only: Option<bool>,
-  pub cursor_data: Option<Person>,
-  pub page_back: Option<bool>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }
 
 impl LocalUserQuery {
   // TODO: add filters and sorts
-  pub async fn list(self, pool: &mut DbPool<'_>) -> LemmyResult<Vec<LocalUserView>> {
-    let conn = &mut get_conn(pool).await?;
+  pub async fn list(self, pool: &mut DbPool<'_>) -> LemmyResult<PagedResponse<LocalUserView>> {
+    let limit = self.limit.unwrap_or(i64::MAX);
     let mut query = LocalUserView::joins()
       .filter(person::deleted.eq(false))
+      .limit(limit)
       .select(LocalUserView::as_select())
       .into_boxed();
 
@@ -189,19 +194,16 @@ impl LocalUserQuery {
       );
     }
 
-    let paginated_query = paginate(
-      query,
-      SortDirection::Desc,
-      self.cursor_data,
-      None,
-      self.page_back,
-    )
-    .then_order_by(person_keys::published_at)
-    // Tie breaker
-    .then_order_by(person_keys::id);
+    let paginated_query =
+      LocalUserView::paginate(query, &self.page_cursor, SortDirection::Desc, pool, None)
+        .await?
+        .then_order_by(person_keys::published_at)
+        // Tie breaker
+        .then_order_by(person_keys::id);
 
+    let conn = &mut get_conn(pool).await?;
     let res = paginated_query.load::<LocalUserView>(conn).await?;
-    Ok(res)
+    paginate_response(res, limit, self.page_cursor)
   }
 }
 
@@ -217,19 +219,18 @@ impl FromRequest for LocalUserView {
   }
 }
 
-impl PaginationCursorBuilder for LocalUserView {
-  type CursorData = Person;
+impl PaginationCursorConversion for LocalUserView {
+  type PaginatedType = Person;
 
-  fn to_cursor(&self) -> PaginationCursor {
-    PaginationCursor::new_single('L', self.person.id.0)
+  fn to_cursor(&self) -> CursorData {
+    CursorData::new_id(self.person.id.0)
   }
 
   async fn from_cursor(
-    cursor: &PaginationCursor,
+    cursor: CursorData,
     pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Self::CursorData> {
-    let [(_, id)] = cursor.prefixes_and_ids()?;
-    Person::read(pool, PersonId(id)).await
+  ) -> LemmyResult<Self::PaginatedType> {
+    Person::read(pool, PersonId(cursor.id()?)).await
   }
 }
 

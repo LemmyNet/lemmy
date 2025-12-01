@@ -12,7 +12,7 @@ use lemmy_db_views_post::{
 use lemmy_utils::error::LemmyResult;
 
 pub async fn save_post(
-  data: Json<SavePost>,
+  Json(data): Json<SavePost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {

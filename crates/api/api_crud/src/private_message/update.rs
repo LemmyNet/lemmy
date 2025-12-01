@@ -21,7 +21,7 @@ use lemmy_utils::{
 };
 
 pub async fn update_private_message(
-  data: Json<EditPrivateMessage>,
+  Json(data): Json<EditPrivateMessage>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PrivateMessageResponse>> {

@@ -10,19 +10,15 @@ import {
   InstanceId,
   LemmyHttp,
   ListCommunityPendingFollows,
-  ListCommunityPendingFollowsResponse,
   ListReports,
-  ListReportsResponse,
   MyUserInfo,
   DeleteImageParams,
   PersonId,
   PostView,
   PrivateMessageReportResponse,
   SuccessResponse,
-  ListPersonContentResponse,
   ListPersonContent,
   PersonContentType,
-  GetModlogResponse,
   GetModlog,
   CommunityView,
   CommentView,
@@ -30,7 +26,6 @@ import {
   PersonView,
   UserBlockInstanceCommunitiesParams,
   ListNotifications,
-  ListNotificationsResponse,
   NotificationDataType,
   PersonResponse,
   AdminAllowInstanceParams,
@@ -61,7 +56,6 @@ import {
   FeaturePost,
   FollowCommunity,
   GetComments,
-  GetCommentsResponse,
   GetCommunity,
   GetCommunityResponse,
   GetPersonDetails,
@@ -69,7 +63,6 @@ import {
   GetPost,
   GetPostResponse,
   GetPosts,
-  GetPostsResponse,
   GetSiteResponse,
   ListingType,
   LockComment,
@@ -87,6 +80,12 @@ import {
   ResolveObject,
   SaveUserSettings,
   Search,
+  PagedResponse,
+  NotificationView,
+  PersonContentCombinedView,
+  ReportCombinedView,
+  PendingFollowerView,
+  ModlogView,
 } from "lemmy-js-client";
 
 export const fetchFunction = fetch;
@@ -386,7 +385,7 @@ export async function getComments(
   api: LemmyHttp,
   post_id?: number,
   listingType: ListingType = "all",
-): Promise<GetCommentsResponse> {
+): Promise<PagedResponse<CommentView>> {
   let form: GetComments = {
     post_id: post_id,
     type_: listingType,
@@ -406,7 +405,7 @@ export async function listNotifications(
   api: LemmyHttp,
   type_?: NotificationDataType,
   unread_only: boolean = false,
-): Promise<ListNotificationsResponse> {
+): Promise<PagedResponse<NotificationView>> {
   let form: ListNotifications = {
     unread_only,
     type_,
@@ -787,7 +786,7 @@ export async function listPersonContent(
   api: LemmyHttp,
   person_id: number,
   type_?: PersonContentType,
-): Promise<ListPersonContentResponse> {
+): Promise<PagedResponse<PersonContentCombinedView>> {
   let form: ListPersonContent = {
     person_id,
     type_,
@@ -860,7 +859,7 @@ export async function reportCommunity(
 export async function listReports(
   api: LemmyHttp,
   show_community_rule_violations: boolean = false,
-): Promise<ListReportsResponse> {
+): Promise<PagedResponse<ReportCombinedView>> {
   let form: ListReports = { show_community_rule_violations };
   return api.listReports(form);
 }
@@ -893,7 +892,7 @@ export function getPosts(
   api: LemmyHttp,
   listingType?: ListingType,
   community_id?: number,
-): Promise<GetPostsResponse> {
+): Promise<PagedResponse<PostView>> {
   let form: GetPosts = {
     type_: listingType,
     limit: 50,
@@ -928,7 +927,7 @@ export function blockCommunity(
 
 export function listCommunityPendingFollows(
   api: LemmyHttp,
-): Promise<ListCommunityPendingFollowsResponse> {
+): Promise<PagedResponse<PendingFollowerView>> {
   let form: ListCommunityPendingFollows = {
     unread_only: true,
     all_communities: false,
@@ -956,7 +955,7 @@ export function approveCommunityPendingFollow(
   };
   return api.approveCommunityPendingFollow(form);
 }
-export function getModlog(api: LemmyHttp): Promise<GetModlogResponse> {
+export function getModlog(api: LemmyHttp): Promise<PagedResponse<ModlogView>> {
   let form: GetModlog = {};
   return api.getModlog(form);
 }
@@ -989,7 +988,7 @@ export async function deleteAllMedia(api: LemmyHttp) {
     limit: imageFetchLimit,
   });
   Promise.allSettled(
-    imagesRes.images
+    imagesRes.data
       .map(image => {
         const form: DeleteImageParams = {
           filename: image.local_image.pictrs_alias,
@@ -1021,7 +1020,7 @@ export async function purgeAllPosts(api: LemmyHttp) {
   // The best way to get all federated items, is to find the posts
   let res = await api.getPosts({ type_: "all", limit: 50 });
   await Promise.allSettled(
-    Array.from(new Set(res.posts.map(p => p.post.id)))
+    Array.from(new Set(res.data.map(p => p.post.id)))
       .map(post_id => api.purgePost({ post_id, reason: "purge" }))
       // Ignore errors
       .map(p => p.catch(e => e)),

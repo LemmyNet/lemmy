@@ -13,7 +13,7 @@ use lemmy_diesel_utils::{traits::Crud, utils::diesel_string_update};
 use lemmy_utils::error::LemmyResult;
 
 pub async fn update_multi_community(
-  data: Json<UpdateMultiCommunity>,
+  Json(data): Json<UpdateMultiCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<MultiCommunityResponse>> {

@@ -138,7 +138,8 @@ async fn get_feed_data(
     ..Default::default()
   }
   .list(&site_view.site, &mut context.pool())
-  .await?;
+  .await?
+  .data;
 
   let title = format!("{} - {}", site_view.site.name, listing_type);
   let link = context.settings().get_protocol_and_hostname();
@@ -163,13 +164,13 @@ async fn get_feed_user(
   let content = PersonContentCombinedQuery {
     creator_id: person.id,
     type_: Some(PersonContentType::Posts),
-    cursor_data: None,
-    page_back: None,
+    page_cursor: None,
     limit: Some(info.get_limit()),
     no_limit: None,
   }
   .list(&mut context.pool(), None, site_view.site.instance_id)
-  .await?;
+  .await?
+  .data;
 
   let posts = content
     .iter()
@@ -220,7 +221,8 @@ async fn get_feed_community(
     ..Default::default()
   }
   .list(&site_view.site, &mut context.pool())
-  .await?;
+  .await?
+  .data;
 
   let title = format!("{} - {}", site_view.site.name, community.name);
   let link = community.ap_id.to_string();
@@ -254,7 +256,8 @@ async fn get_feed_multi_community(
     ..Default::default()
   }
   .list(&site_view.site, &mut context.pool())
-  .await?;
+  .await?
+  .data;
 
   let title = format!("{} - {}", site_view.site.name, multi_community.name);
   let link = multi_community.ap_id.to_string();
@@ -287,7 +290,8 @@ async fn get_feed_front(
     ..Default::default()
   }
   .list(&site_view.site, &mut context.pool())
-  .await?;
+  .await?
+  .data;
 
   let title = format!("{} - Subscribed", site_view.site.name);
   let link = context.settings().get_protocol_and_hostname();
@@ -337,7 +341,8 @@ async fn get_feed_notifs(
     ..Default::default()
   }
   .list(&mut context.pool(), &local_user.person)
-  .await?;
+  .await?
+  .data;
 
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();
 
@@ -365,7 +370,8 @@ async fn get_feed_modlog(
     ..Default::default()
   }
   .list(&mut context.pool())
-  .await?;
+  .await?
+  .data;
 
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();
   let title = format!("{} - Modlog", local_user.person.name);

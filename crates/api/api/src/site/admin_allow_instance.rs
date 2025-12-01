@@ -11,7 +11,7 @@ use lemmy_db_views_site::{FederatedInstanceView, api::AdminAllowInstanceParams};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn admin_allow_instance(
-  data: Json<AdminAllowInstanceParams>,
+  Json(data): Json<AdminAllowInstanceParams>,
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<FederatedInstanceView>> {

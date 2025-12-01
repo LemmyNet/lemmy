@@ -17,7 +17,7 @@ use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn purge_post(
-  data: Json<PurgePost>,
+  Json(data): Json<PurgePost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {

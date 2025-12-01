@@ -1,16 +1,20 @@
 use crate::newtypes::{LocalUserId, RegistrationApplicationId};
 use chrono::{DateTime, Utc};
 use lemmy_db_schema_file::PersonId;
-#[cfg(feature = "full")]
-use lemmy_db_schema_file::schema::registration_application;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
+#[cfg(feature = "full")]
+use {i_love_jesus::CursorKeysModule, lemmy_db_schema_file::schema::registration_application};
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
+#[cfg_attr(
+  feature = "full",
+  derive(Queryable, Selectable, Identifiable, CursorKeysModule)
+)]
 #[cfg_attr(feature = "full", diesel(table_name = registration_application))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "full", cursor_keys_module(name = registration_application_keys))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A registration application.

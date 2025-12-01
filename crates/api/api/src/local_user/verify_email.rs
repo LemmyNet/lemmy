@@ -13,7 +13,7 @@ use lemmy_email::{account::send_email_verified_email, admin::send_new_applicant_
 use lemmy_utils::error::LemmyResult;
 
 pub async fn verify_email(
-  data: Json<VerifyEmail>,
+  Json(data): Json<VerifyEmail>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<SuccessResponse>> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;

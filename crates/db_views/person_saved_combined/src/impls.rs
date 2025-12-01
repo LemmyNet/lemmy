@@ -17,9 +17,8 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   PersonContentType,
-  newtypes::PaginationCursor,
   source::combined::person_saved::{PersonSavedCombined, person_saved_combined_keys as key},
-  traits::{InternalToCombinedView, PaginationCursorBuilder},
+  traits::InternalToCombinedView,
   utils::limit_fetch,
 };
 use lemmy_db_schema_file::{
@@ -43,39 +42,44 @@ use lemmy_db_schema_file::{
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
-  utils::paginate,
+  pagination::{
+    CursorData,
+    PagedResponse,
+    PaginationCursor,
+    PaginationCursorConversion,
+    paginate_response,
+  },
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 #[derive(Default)]
 pub struct PersonSavedCombinedQuery {
   pub type_: Option<PersonContentType>,
-  pub cursor_data: Option<PersonSavedCombined>,
-  pub page_back: Option<bool>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
   pub no_limit: Option<bool>,
 }
 
-impl PaginationCursorBuilder for PersonSavedCombinedView {
-  type CursorData = PersonSavedCombined;
+impl PaginationCursorConversion for PersonSavedCombinedView {
+  type PaginatedType = PersonSavedCombined;
 
-  fn to_cursor(&self) -> PaginationCursor {
+  fn to_cursor(&self) -> CursorData {
     let (prefix, id) = match &self {
       PersonSavedCombinedView::Comment(v) => ('C', v.comment.id.0),
       PersonSavedCombinedView::Post(v) => ('P', v.post.id.0),
     };
-    PaginationCursor::new_single(prefix, id)
+    CursorData::new_with_prefix(prefix, id)
   }
 
   async fn from_cursor(
-    cursor: &PaginationCursor,
+    cursor: CursorData,
     pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Self::CursorData> {
+  ) -> LemmyResult<Self::PaginatedType> {
     let conn = &mut get_conn(pool).await?;
-    let [(prefix, id)] = cursor.prefixes_and_ids()?;
+    let (prefix, id) = cursor.id_and_prefix()?;
 
     let mut query = person_saved_combined::table
-      .select(Self::CursorData::as_select())
+      .select(Self::PaginatedType::as_select())
       .into_boxed();
 
     query = match prefix {
@@ -150,21 +154,17 @@ impl PersonSavedCombinedQuery {
     self,
     pool: &mut DbPool<'_>,
     user: &LocalUserView,
-  ) -> LemmyResult<Vec<PersonSavedCombinedView>> {
+  ) -> LemmyResult<PagedResponse<PersonSavedCombinedView>> {
     let my_person_id = user.local_user.person_id;
     let local_instance_id = user.person.instance_id;
-
-    let conn = &mut get_conn(pool).await?;
 
     let mut query = PersonSavedCombinedViewInternal::joins(my_person_id, local_instance_id)
       .filter(person_saved_combined::person_id.eq(my_person_id))
       .select(PersonSavedCombinedViewInternal::as_select())
       .into_boxed();
 
-    if !self.no_limit.unwrap_or_default() {
-      let limit = limit_fetch(self.limit)?;
-      query = query.limit(limit);
-    }
+    let limit = limit_fetch(self.limit, self.no_limit)?;
+    query = query.limit(limit);
 
     if let Some(type_) = self.type_ {
       query = match type_ {
@@ -177,17 +177,14 @@ impl PersonSavedCombinedQuery {
     }
 
     // Sorting by saved desc
-    let paginated_query = paginate(
-      query,
-      SortDirection::Desc,
-      self.cursor_data,
-      None,
-      self.page_back,
-    )
-    .then_order_by(key::saved_at)
-    // Tie breaker
-    .then_order_by(key::id);
+    let paginated_query =
+      PersonSavedCombinedView::paginate(query, &self.page_cursor, SortDirection::Desc, pool, None)
+        .await?
+        .then_order_by(key::saved_at)
+        // Tie breaker
+        .then_order_by(key::id);
 
+    let conn = &mut get_conn(pool).await?;
     let res = paginated_query
       .load::<PersonSavedCombinedViewInternal>(conn)
       .await?;
@@ -198,7 +195,7 @@ impl PersonSavedCombinedQuery {
       .filter_map(InternalToCombinedView::map_to_enum)
       .collect();
 
-    Ok(out)
+    paginate_response(out, limit, self.page_cursor)
   }
 }
 

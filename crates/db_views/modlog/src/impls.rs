@@ -11,12 +11,11 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommentId, CommunityId, PaginationCursor, PostId},
+  newtypes::{CommentId, CommunityId, PostId},
   source::{
     local_user::LocalUser,
     modlog::{Modlog, modlog_keys as key},
   },
-  traits::PaginationCursorBuilder,
   utils::{
     limit_fetch,
     queries::filters::{
@@ -34,7 +33,13 @@ use lemmy_db_schema_file::{
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
-  utils::paginate,
+  pagination::{
+    CursorData,
+    PagedResponse,
+    PaginationCursor,
+    PaginationCursorConversion,
+    paginate_response,
+  },
 };
 use lemmy_utils::error::LemmyResult;
 
@@ -65,21 +70,20 @@ impl ModlogView {
   }
 }
 
-impl PaginationCursorBuilder for ModlogView {
-  type CursorData = Modlog;
-  fn to_cursor(&self) -> PaginationCursor {
-    PaginationCursor(self.modlog.id.0.to_string())
+impl PaginationCursorConversion for ModlogView {
+  type PaginatedType = Modlog;
+  fn to_cursor(&self) -> CursorData {
+    CursorData::new_id(self.modlog.id.0)
   }
 
   async fn from_cursor(
-    cursor: &PaginationCursor,
+    cursor: CursorData,
     pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Self::CursorData> {
+  ) -> LemmyResult<Self::PaginatedType> {
     let conn = &mut get_conn(pool).await?;
-    let id: i32 = cursor.0.parse()?;
     let query = modlog::table
-      .select(Self::CursorData::as_select())
-      .filter(modlog::id.eq(id));
+      .select(Self::PaginatedType::as_select())
+      .filter(modlog::id.eq(cursor.id()?));
     let token = query.first(conn).await?;
 
     Ok(token)
@@ -98,15 +102,13 @@ pub struct ModlogQuery<'a> {
   pub local_user: Option<&'a LocalUser>,
   pub mod_person_id: Option<PersonId>,
   pub target_person_id: Option<PersonId>,
-  pub cursor_data: Option<Modlog>,
-  pub page_back: Option<bool>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }
 
 impl ModlogQuery<'_> {
-  pub async fn list(self, pool: &mut DbPool<'_>) -> LemmyResult<Vec<ModlogView>> {
-    let conn = &mut get_conn(pool).await?;
-    let limit = limit_fetch(self.limit)?;
+  pub async fn list(self, pool: &mut DbPool<'_>) -> LemmyResult<PagedResponse<ModlogView>> {
+    let limit = limit_fetch(self.limit, None)?;
 
     let target_person = aliases::person1.field(person::id);
     let my_person_id = self.local_user.person_id();
@@ -153,17 +155,14 @@ impl ModlogQuery<'_> {
     };
 
     // Sorting by published
-    let paginated_query = paginate(
-      query,
-      SortDirection::Desc,
-      self.cursor_data,
-      None,
-      self.page_back,
-    )
-    .then_order_by(key::published_at)
-    // Tie breaker
-    .then_order_by(key::id);
+    let paginated_query =
+      ModlogView::paginate(query, &self.page_cursor, SortDirection::Desc, pool, None)
+        .await?
+        .then_order_by(key::published_at)
+        // Tie breaker
+        .then_order_by(key::id);
 
+    let conn = &mut get_conn(pool).await?;
     let res = paginated_query.load::<ModlogView>(conn).await?;
 
     let hide_modlog_names = self.hide_modlog_names.unwrap_or_default();
@@ -174,7 +173,7 @@ impl ModlogQuery<'_> {
       .map(|u| u.hide_mod_name(hide_modlog_names))
       .collect();
 
-    Ok(out)
+    paginate_response(out, limit, self.page_cursor)
   }
 }
 
@@ -328,7 +327,7 @@ mod tests {
       ModlogInsertForm::mod_change_community_visibility(data.jessica.id, data.community_2.id);
     Modlog::create(pool, &[form]).await?;
 
-    let modlog = ModlogQuery::default().list(pool).await?;
+    let modlog = ModlogQuery::default().list(pool).await?.data;
     assert_eq!(8, modlog.len());
 
     let v = &modlog[0];
