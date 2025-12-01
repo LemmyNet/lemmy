@@ -17,7 +17,7 @@ use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn read_person(
-  data: Query<GetPersonDetails>,
+  Query(data): Query<GetPersonDetails>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<GetPersonDetailsResponse>> {
@@ -62,7 +62,8 @@ pub async fn read_person(
     ..Default::default()
   }
   .list(&mut context.pool())
-  .await?;
+  .await?
+  .data;
 
   let site = read_site_for_actor(person_view.person.ap_id.clone(), &context).await?;
 

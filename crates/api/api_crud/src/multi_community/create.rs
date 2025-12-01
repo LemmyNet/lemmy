@@ -23,7 +23,7 @@ use lemmy_utils::{
 use url::Url;
 
 pub async fn create_multi_community(
-  data: Json<CreateMultiCommunity>,
+  Json(data): Json<CreateMultiCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<MultiCommunityResponse>> {

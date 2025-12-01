@@ -22,7 +22,7 @@ use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn get_post(
-  data: Query<GetPost>,
+  Query(data): Query<GetPost>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<GetPostResponse>> {

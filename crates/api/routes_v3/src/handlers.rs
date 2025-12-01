@@ -73,7 +73,6 @@ use lemmy_api_019::{
   },
   lemmy_db_views::structs::{
     CommentReportView as CommentReportViewV3,
-    PaginationCursor as PaginationCursorV3,
     PostReportView as PostReportViewV3,
   },
   lemmy_db_views_actor::structs::CommunityModeratorView as CommunityModeratorViewV3,
@@ -107,7 +106,7 @@ use lemmy_api_crud::{
   user::{create::register, my_user::get_my_user},
 };
 use lemmy_api_utils::context::LemmyContext;
-use lemmy_db_schema::newtypes::{CommentId, CommunityId, LanguageId, PaginationCursor, PostId};
+use lemmy_db_schema::newtypes::{CommentId, CommunityId, LanguageId, PostId};
 use lemmy_db_schema_file::PersonId;
 use lemmy_db_views_comment::api::{
   CreateComment,
@@ -172,7 +171,6 @@ pub(crate) async fn list_posts_v3(
     type_,
     sort,
     page,
-    page_cursor,
     ..
   } = datav3.0;
   let (sort, time_range_seconds) = convert_post_listing_sort(sort);
@@ -185,20 +183,19 @@ pub(crate) async fn list_posts_v3(
     show_hidden,
     show_read,
     show_nsfw,
-    page_cursor: page_cursor.map(|c| PaginationCursor(c.0)),
     page,
     limit,
     ..Default::default()
   };
   let res = list_posts(Query(data), context, local_user_view).await?.0;
   Ok(Json(GetPostsResponseV3 {
-    posts: res.posts.into_iter().map(convert_post_view).collect(),
-    next_page: res.next_page.map(|c| PaginationCursorV3(c.0)),
+    posts: res.into_iter().map(convert_post_view).collect(),
+    next_page: None,
   }))
 }
 
 pub(crate) async fn list_comments_v3(
-  data: Query<GetCommentsV3>,
+  Query(data): Query<GetCommentsV3>,
   context: ApubData<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<GetCommentsResponseV3>> {
@@ -212,14 +209,13 @@ pub(crate) async fn list_comments_v3(
     type_,
     sort,
     ..
-  } = data.0;
+  } = data;
   let sort = sort.map(convert_comment_listing_sort);
   let data = GetComments {
     type_: type_.map(convert_listing_type),
     sort,
     max_depth,
     page_cursor: None,
-    page_back: None,
     limit,
     community_id: community_id.map(|c| CommunityId(c.0)),
     community_name,
@@ -229,8 +225,7 @@ pub(crate) async fn list_comments_v3(
   };
   let comments = list_comments(Query(data), context, local_user_view)
     .await?
-    .0
-    .comments;
+    .0;
   Ok(Json(GetCommentsResponseV3 {
     comments: comments.into_iter().map(convert_comment_view).collect(),
   }))
@@ -310,11 +305,11 @@ pub(crate) async fn login_v3(
 }
 
 pub(crate) async fn like_comment_v3(
-  data: Json<CreateCommentLikeV3>,
+  Json(data): Json<CreateCommentLikeV3>,
   context: ApubData<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponseV3>> {
-  let CreateCommentLikeV3 { comment_id, score } = data.0;
+  let CreateCommentLikeV3 { comment_id, score } = data;
   let data = CreateCommentLike {
     comment_id: CommentId(comment_id.0),
     is_upvote: convert_score(score),
@@ -324,11 +319,11 @@ pub(crate) async fn like_comment_v3(
 }
 
 pub(crate) async fn like_post_v3(
-  data: Json<CreatePostLikeV3>,
+  Json(data): Json<CreatePostLikeV3>,
   context: ApubData<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponseV3>> {
-  let CreatePostLikeV3 { post_id, score } = data.0;
+  let CreatePostLikeV3 { post_id, score } = data;
   let data = CreatePostLike {
     post_id: PostId(post_id.0),
     is_upvote: convert_score(score),
@@ -347,7 +342,7 @@ pub(crate) async fn create_comment_v3(
 }
 
 pub(crate) async fn create_post_v3(
-  data: Json<CreatePostV3>,
+  Json(data): Json<CreatePostV3>,
   context: ApubData<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponseV3>> {
@@ -361,7 +356,7 @@ pub(crate) async fn create_post_v3(
     nsfw,
     language_id,
     custom_thumbnail,
-  } = data.0;
+  } = data;
   let data = CreatePost {
     name,
     community_id: CommunityId(community_id.0),
@@ -380,7 +375,7 @@ pub(crate) async fn create_post_v3(
 }
 
 pub(crate) async fn search_v3(
-  data: Query<SearchV3>,
+  Query(data): Query<SearchV3>,
   context: ApubData<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<SearchResponseV3>> {
@@ -392,7 +387,7 @@ pub(crate) async fn search_v3(
     limit,
     type_,
     ..
-  } = data.0;
+  } = data;
   let data = Search {
     q,
     community_id: community_id.map(|i| CommunityId(i.0)),
@@ -627,7 +622,7 @@ pub(crate) async fn update_comment_v3(
   convert_comment_response(res)
 }
 pub(crate) async fn list_communities_v3(
-  data: Query<ListCommunitiesV3>,
+  Query(data): Query<ListCommunitiesV3>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<ListCommunitiesResponseV3>> {
@@ -637,7 +632,7 @@ pub(crate) async fn list_communities_v3(
     show_nsfw,
     limit,
     ..
-  } = data.0;
+  } = data;
   let (sort, time_range_seconds) = convert_community_listing_sort(sort);
   let data = ListCommunities {
     type_: type_.map(convert_listing_type),
@@ -645,13 +640,11 @@ pub(crate) async fn list_communities_v3(
     time_range_seconds,
     show_nsfw,
     page_cursor: None,
-    page_back: None,
     limit,
   };
   let res = list_communities(Query(data), context, local_user_view)
     .await?
-    .0
-    .communities;
+    .0;
   Ok(Json(ListCommunitiesResponseV3 {
     communities: res.into_iter().map(convert_community_view).collect(),
   }))

@@ -21,7 +21,7 @@ use lemmy_utils::error::{LemmyErrorExt2, LemmyErrorType, LemmyResult};
 use url::Url;
 
 pub async fn resolve_object(
-  data: Query<ResolveObject>,
+  Query(data): Query<ResolveObject>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<SearchResponse>> {

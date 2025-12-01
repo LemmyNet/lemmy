@@ -13,7 +13,7 @@ use lemmy_db_views_site::api::SuccessResponse;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn post_pending_follows_approve(
-  data: Json<ApproveCommunityPendingFollower>,
+  Json(data): Json<ApproveCommunityPendingFollower>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {

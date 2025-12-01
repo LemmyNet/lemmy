@@ -9,7 +9,7 @@ use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn delete_custom_emoji(
-  data: Json<DeleteCustomEmoji>,
+  Json(data): Json<DeleteCustomEmoji>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {

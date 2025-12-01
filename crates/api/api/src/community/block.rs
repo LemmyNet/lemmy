@@ -22,7 +22,7 @@ use lemmy_diesel_utils::connection::get_conn;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn user_block_community(
-  data: Json<BlockCommunity>,
+  Json(data): Json<BlockCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityResponse>> {

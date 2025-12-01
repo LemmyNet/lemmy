@@ -13,13 +13,12 @@ use diesel_ltree::{Ltree, LtreeExtensions, nlevel};
 use i_love_jesus::asc_if;
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommentId, CommunityId, PaginationCursor, PostId},
+  newtypes::{CommentId, CommunityId, PostId},
   source::{
     comment::{Comment, comment_keys as key},
     local_user::LocalUser,
     site::Site,
   },
-  traits::PaginationCursorBuilder,
   utils::{
     limit_fetch,
     queries::filters::{filter_blocked, filter_suggested_communities},
@@ -50,23 +49,29 @@ use lemmy_db_schema_file::{
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
+  pagination::{
+    CursorData,
+    PagedResponse,
+    PaginationCursor,
+    PaginationCursorConversion,
+    paginate_response,
+  },
   traits::Crud,
-  utils::{Subpath, now, paginate, seconds_to_pg_interval},
+  utils::{Subpath, now, seconds_to_pg_interval},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
-impl PaginationCursorBuilder for CommentView {
-  type CursorData = Comment;
-  fn to_cursor(&self) -> PaginationCursor {
-    PaginationCursor::new_single('C', self.comment.id.0)
+impl PaginationCursorConversion for CommentView {
+  type PaginatedType = Comment;
+  fn to_cursor(&self) -> CursorData {
+    CursorData::new_id(self.comment.id.0)
   }
 
   async fn from_cursor(
-    cursor: &PaginationCursor,
+    data: CursorData,
     pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Self::CursorData> {
-    let [(_, id)] = cursor.prefixes_and_ids()?;
-    Comment::read(pool, CommentId(id)).await
+  ) -> LemmyResult<Self::PaginatedType> {
+    Comment::read(pool, CommentId(data.id()?)).await
   }
 }
 
@@ -161,14 +166,16 @@ pub struct CommentQuery<'a> {
   pub parent_path: Option<Ltree>,
   pub local_user: Option<&'a LocalUser>,
   pub max_depth: Option<i32>,
-  pub cursor_data: Option<Comment>,
-  pub page_back: Option<bool>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }
 
 impl CommentQuery<'_> {
-  pub async fn list(self, site: &Site, pool: &mut DbPool<'_>) -> LemmyResult<Vec<CommentView>> {
-    let conn = &mut get_conn(pool).await?;
+  pub async fn list(
+    self,
+    site: &Site,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<PagedResponse<CommentView>> {
     let o = self;
 
     // The left join below will return None in this case
@@ -277,7 +284,7 @@ impl CommentQuery<'_> {
       // (i64::MAX, 0)
       300
     } else {
-      limit_fetch(o.limit)?
+      limit_fetch(o.limit, None)?
     };
     query = query.limit(limit);
 
@@ -285,7 +292,7 @@ impl CommentQuery<'_> {
     let sort = o.sort.unwrap_or(Hot);
     let sort_direction = asc_if(sort == Old);
 
-    let mut pq = paginate(query, sort_direction, o.cursor_data, None, o.page_back);
+    let mut pq = CommentView::paginate(query, &o.page_cursor, sort_direction, pool, None).await?;
 
     // Order by a subpath for max depth queries
     // Only order if filtering by a post id, or parent_path. DOS potential otherwise and max_depth
@@ -308,9 +315,10 @@ impl CommentQuery<'_> {
       Top => pq.then_order_by(key::score),
     };
 
+    let conn = &mut get_conn(pool).await?;
     let res = pq.load::<CommentView>(conn).await?;
 
-    Ok(res)
+    paginate_response(res, limit, o.page_cursor)
   }
 }
 
@@ -569,7 +577,7 @@ mod tests {
 
     // Make sure it contains the parent, but not the comment from the other tree
     let child_comments = read_comment_views_child_path
-      .into_iter()
+      .iter()
       .map(|c| c.comment.id)
       .collect::<Vec<CommentId>>();
     assert!(child_comments.contains(&data.comment_1.id));

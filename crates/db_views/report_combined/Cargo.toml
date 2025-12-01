@@ -25,6 +25,7 @@ full = [
   "lemmy_db_schema/full",
   "lemmy_db_schema_file/full",
   "lemmy_db_views_report_combined_sql",
+  "lemmy_diesel_utils/full",
 ]
 ts-rs = ["dep:ts-rs", "lemmy_db_schema/ts-rs"]
 

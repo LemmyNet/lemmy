@@ -1,7 +1,8 @@
 use crate::context::LemmyContext;
 use anyhow::anyhow;
-use extism::{Manifest, PluginBuilder, Pool, PoolPlugin};
+use extism::{Manifest, PluginBuilder, Pool, PoolPlugin, Wasm, WasmMetadata};
 use extism_convert::Json;
+use extism_manifest::HttpRequest;
 use lemmy_db_schema::source::{notification::Notification, person::Person};
 use lemmy_db_views_notification::NotificationView;
 use lemmy_db_views_site::api::PluginMetadata;
@@ -9,21 +10,18 @@ use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::{
   VERSION,
   error::{LemmyError, LemmyErrorType, LemmyResult},
-  settings::SETTINGS,
+  settings::{SETTINGS, structs::PluginSettings},
 };
 use serde::{Deserialize, Serialize};
 use std::{
-  env,
-  ffi::OsStr,
-  fs::{File, read_dir},
-  io::BufReader,
   ops::Deref,
   path::PathBuf,
-  sync::LazyLock,
+  sync::{LazyLock, OnceLock},
   time::Duration,
 };
 use tokio::task::spawn_blocking;
 use tracing::warn;
+use url::Url;
 
 const GET_PLUGIN_TIMEOUT: Duration = Duration::from_secs(1);
 
@@ -103,11 +101,35 @@ where
 }
 
 pub fn plugin_metadata() -> Vec<PluginMetadata> {
-  LemmyPlugins::get_or_init()
-    .0
-    .into_iter()
-    .map(|p| p.metadata)
-    .collect()
+  static METADATA: OnceLock<Vec<PluginMetadata>> = OnceLock::new();
+  if let Some(m) = METADATA.get() {
+    m.clone()
+  } else {
+    // Loading metadata can take multiple seconds. Do this in background task to avoid blocking
+    // /api/v4/site endpoint.
+    std::thread::spawn(|| {
+      METADATA.get_or_init(|| {
+        let mut metadata = vec![];
+        for plugin in LemmyPlugins::get_or_init().0 {
+          let run = plugin.pool.get(GET_PLUGIN_TIMEOUT).ok().flatten();
+          let m = run.and_then(|run| run.call("metadata", 0).ok());
+          if let Some(m) = m {
+            metadata.push(m);
+          } else {
+            // Failed to load plugin metadata, use placeholder
+            metadata.push(PluginMetadata {
+              name: plugin.filename,
+              url: None,
+              description: None,
+            });
+          }
+        }
+        metadata
+      });
+    });
+    // Return empty metadata until loading is finished
+    vec![]
+  }
 }
 
 #[derive(Clone)]
@@ -115,15 +137,40 @@ struct LemmyPlugins(Vec<LemmyPlugin>);
 
 #[derive(Clone)]
 struct LemmyPlugin {
-  plugin_pool: Pool,
-  metadata: PluginMetadata,
+  pool: Pool,
+  filename: String,
 }
 
 impl LemmyPlugin {
-  fn init(path: &PathBuf) -> LemmyResult<Self> {
-    let file = File::open(path)?;
-    let reader = BufReader::new(file);
-    let mut manifest: Manifest = serde_json::from_reader(reader)?;
+  fn init(settings: PluginSettings) -> LemmyResult<Self> {
+    let meta = WasmMetadata {
+      hash: settings.hash,
+      name: None,
+    };
+    let (wasm, filename) = if settings.file.starts_with("http") {
+      let name: Option<String> = Url::parse(&settings.file)?
+        .path_segments()
+        .and_then(|mut p| p.next_back())
+        .map(std::string::ToString::to_string);
+      let req = HttpRequest {
+        url: settings.file.clone(),
+        headers: Default::default(),
+        method: None,
+      };
+      (Wasm::Url { req, meta }, name)
+    } else {
+      let path = PathBuf::from(settings.file.clone());
+      let name: Option<String> = path.file_name().map(|n| n.to_string_lossy().to_string());
+      (Wasm::File { path, meta }, name)
+    };
+    let mut manifest = Manifest {
+      wasm: vec![wasm],
+      config: settings.config,
+      allowed_hosts: settings.allowed_hosts,
+      memory: Default::default(),
+      allowed_paths: None,
+      timeout_ms: None,
+    };
     manifest.config.insert(
       "lemmy_url".to_string(),
       format!("http://{}:{}/", SETTINGS.bind, SETTINGS.port),
@@ -132,17 +179,16 @@ impl LemmyPlugin {
       .config
       .insert("lemmy_version".to_string(), VERSION.to_string());
     let builder = move || PluginBuilder::new(manifest.clone()).with_wasi(true).build();
-    let metadata: PluginMetadata = builder()?.call("metadata", 0)?;
-    let plugin_pool: Pool = Pool::new(builder);
+    let pool = Pool::new(builder);
     Ok(LemmyPlugin {
-      plugin_pool,
-      metadata,
+      pool,
+      filename: filename.unwrap_or(settings.file),
     })
   }
 
   fn get(&self, name: &'static str) -> LemmyResult<Option<PoolPlugin>> {
     let p = self
-      .plugin_pool
+      .pool
       .get(GET_PLUGIN_TIMEOUT)?
       .ok_or(anyhow!("plugin timeout"))?;
 
@@ -158,22 +204,12 @@ impl LemmyPlugins {
   /// Load and initialize all plugins
   fn get_or_init() -> Self {
     static PLUGINS: LazyLock<LemmyPlugins> = LazyLock::new(|| {
-      let dir = env::var("LEMMY_PLUGIN_PATH").unwrap_or("plugins".to_string());
-      let plugin_paths = match read_dir(dir) {
-        Ok(r) => r,
-        Err(e) => {
-          warn!("Failed to read plugin folder: {e}");
-          return LemmyPlugins(vec![]);
-        }
-      };
-
-      let plugins = plugin_paths
-        .flat_map(Result::ok)
-        .map(|p| p.path())
-        .filter(|p| p.extension() == Some(OsStr::new("json")))
+      let plugins: Vec<_> = SETTINGS
+        .plugins
+        .iter()
         .flat_map(|p| {
-          LemmyPlugin::init(&p)
-            .inspect_err(|e| warn!("Failed to load plugin {}: {e}", p.to_string_lossy()))
+          LemmyPlugin::init(p.clone())
+            .inspect_err(|e| warn!("Failed to load plugin {}: {e}", p.file))
             .ok()
         })
         .collect();
@@ -185,7 +221,7 @@ impl LemmyPlugins {
   /// Return early if no plugin is loaded for the given hook name
   fn function_exists(&self, name: &'static str) -> bool {
     self.0.iter().any(|p| {
-      p.plugin_pool
+      p.pool
         .function_exists(name, GET_PLUGIN_TIMEOUT)
         .unwrap_or(false)
     })

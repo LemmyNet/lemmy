@@ -8,7 +8,9 @@ use lemmy_db_schema::source::{
 };
 use serde::{Deserialize, Serialize};
 #[cfg(test)]
-pub mod db_perf;
+mod db_perf;
+#[cfg(test)]
+mod test;
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {

@@ -13,7 +13,7 @@ use lemmy_utils::error::LemmyResult;
 use tracing::error;
 
 pub async fn reset_password(
-  data: Json<PasswordReset>,
+  Json(data): Json<PasswordReset>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<SuccessResponse>> {
   let email = data.email.to_lowercase();

@@ -3,9 +3,7 @@ use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  newtypes::PaginationCursor,
   source::person::{Person, person_keys as key},
-  traits::PaginationCursorBuilder,
   utils::limit_fetch,
 };
 use lemmy_db_schema_file::{
@@ -20,24 +18,29 @@ use lemmy_db_schema_file::{
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
+  pagination::{
+    CursorData,
+    PagedResponse,
+    PaginationCursor,
+    PaginationCursorConversion,
+    paginate_response,
+  },
   traits::Crud,
-  utils::paginate,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
-impl PaginationCursorBuilder for PersonView {
-  type CursorData = Person;
+impl PaginationCursorConversion for PersonView {
+  type PaginatedType = Person;
 
-  fn to_cursor(&self) -> PaginationCursor {
-    PaginationCursor::new_single('P', self.person.id.0)
+  fn to_cursor(&self) -> CursorData {
+    CursorData::new_id(self.person.id.0)
   }
 
   async fn from_cursor(
-    cursor: &PaginationCursor,
+    cursor: CursorData,
     pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Self::CursorData> {
-    let [(_, id)] = cursor.prefixes_and_ids()?;
-    Person::read(pool, PersonId(id)).await
+  ) -> LemmyResult<Self::PaginatedType> {
+    Person::read(pool, PersonId(cursor.id()?)).await
   }
 }
 
@@ -82,8 +85,7 @@ impl PersonView {
 #[derive(Default)]
 pub struct PersonQuery {
   pub admins_only: Option<bool>,
-  pub cursor_data: Option<Person>,
-  pub page_back: Option<bool>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }
 
@@ -93,8 +95,7 @@ impl PersonQuery {
     my_person_id: Option<PersonId>,
     local_instance_id: InstanceId,
     pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Vec<PersonView>> {
-    let conn = &mut get_conn(pool).await?;
+  ) -> LemmyResult<PagedResponse<PersonView>> {
     let mut query = PersonView::joins(my_person_id, local_instance_id)
       .filter(person::deleted.eq(false))
       .select(PersonView::as_select())
@@ -102,27 +103,25 @@ impl PersonQuery {
 
     // Filters
 
-    if self.admins_only.unwrap_or_default() {
+    let limit = if self.admins_only.unwrap_or_default() {
       query = query.filter(local_user::admin);
+      i64::MAX
     } else {
       // Only use page limits if its not an admin fetch
-      let limit = limit_fetch(self.limit)?;
-      query = query.limit(limit);
-    }
+      limit_fetch(self.limit, None)?
+    };
+    query = query.limit(limit);
 
-    let paginated_query = paginate(
-      query,
-      SortDirection::Desc,
-      self.cursor_data,
-      None,
-      self.page_back,
-    )
-    .then_order_by(key::published_at)
-    // Tie breaker
-    .then_order_by(key::id);
+    let paginated_query =
+      PersonView::paginate(query, &self.page_cursor, SortDirection::Desc, pool, None)
+        .await?
+        .then_order_by(key::published_at)
+        // Tie breaker
+        .then_order_by(key::id);
 
+    let conn = &mut get_conn(pool).await?;
     let res = paginated_query.load::<PersonView>(conn).await?;
-    Ok(res)
+    paginate_response(res, limit, self.page_cursor)
   }
 }
 

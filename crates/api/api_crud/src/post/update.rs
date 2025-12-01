@@ -52,7 +52,7 @@ use lemmy_utils::{
 use std::ops::Deref;
 
 pub async fn update_post(
-  data: Json<EditPost>,
+  Json(data): Json<EditPost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
@@ -121,14 +121,6 @@ pub async fn update_post(
     Err(LemmyErrorType::NoPostEditAllowed)?
   }
 
-  let language_id = validate_post_language(
-    &mut context.pool(),
-    data.language_id,
-    orig_post.post.community_id,
-    local_user_view.local_user.id,
-  )
-  .await?;
-
   // handle changes to scheduled_publish_time
   let scheduled_publish_time_at = match (
     orig_post.post.scheduled_publish_time_at,
@@ -150,12 +142,18 @@ pub async fn update_post(
     body,
     alt_text,
     nsfw,
-    language_id: Some(language_id),
+    language_id: data.language_id,
     updated_at: Some(Some(Utc::now())),
     scheduled_publish_time_at,
     ..Default::default()
   };
   post_form = plugin_hook_before("local_post_before_update", post_form).await?;
+  validate_post_language(
+    &mut context.pool(),
+    post_form.language_id,
+    orig_post.post.community_id,
+  )
+  .await?;
 
   let post_id = data.post_id;
   let updated_post = Post::update(&mut context.pool(), post_id, &post_form).await?;

@@ -9,7 +9,7 @@ use lemmy_db_views_site::api::{PasswordChangeAfterReset, SuccessResponse};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn change_password_after_reset(
-  data: Json<PasswordChangeAfterReset>,
+  Json(data): Json<PasswordChangeAfterReset>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<SuccessResponse>> {
   // Fetch the user_id from the token

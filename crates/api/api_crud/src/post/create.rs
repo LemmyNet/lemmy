@@ -46,7 +46,7 @@ use lemmy_utils::{
 };
 
 pub async fn create_post(
-  data: Json<CreatePost>,
+  Json(data): Json<CreatePost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
@@ -108,14 +108,6 @@ pub async fn create_post(
     .await?;
   }
 
-  let language_id = validate_post_language(
-    &mut context.pool(),
-    data.language_id,
-    data.community_id,
-    local_user_view.local_user.id,
-  )
-  .await?;
-
   let scheduled_publish_time_at =
     convert_published_time(data.scheduled_publish_time_at, &local_user_view, &context).await?;
   let mut post_form = PostInsertForm {
@@ -123,7 +115,7 @@ pub async fn create_post(
     body,
     alt_text: data.alt_text.clone(),
     nsfw,
-    language_id: Some(language_id),
+    language_id: data.language_id,
     federation_pending: Some(community_use_pending(community, &context).await),
     scheduled_publish_time_at,
     ..PostInsertForm::new(
@@ -134,6 +126,12 @@ pub async fn create_post(
   };
 
   post_form = plugin_hook_before("local_post_before_create", post_form).await?;
+  validate_post_language(
+    &mut context.pool(),
+    post_form.language_id,
+    data.community_id,
+  )
+  .await?;
 
   let inserted_post = Post::create(&mut context.pool(), &post_form).await?;
 
