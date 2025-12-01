@@ -1,10 +1,17 @@
 CREATE TABLE mod_add_to_community (
-    community_id int NOT NULL REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE,
-    id serial PRIMARY KEY,
-    mod_person_id integer NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
-    other_person_id integer NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
-    published_at timestamp with time zone DEFAULT now() NOT NULL,
-    removed boolean DEFAULT FALSE NOT NULL
+    community_id int REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE,
+    id serial,
+    mod_person_id integer REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
+    other_person_id integer REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
+    published_at timestamp with time zone DEFAULT now(),
+    removed boolean DEFAULT FALSE,
+    CONSTRAINT mod_add_community_community_id_not_null NOT NULL community_id,
+    CONSTRAINT mod_add_community_id_not_null NOT NULL id,
+    CONSTRAINT mod_add_community_mod_user_id_not_null NOT NULL mod_person_id,
+    CONSTRAINT mod_add_community_other_user_id_not_null NOT NULL other_person_id,
+    CONSTRAINT mod_add_community_when__not_null NOT NULL published_at,
+    CONSTRAINT mod_add_community_removed_not_null NOT NULL removed,
+    PRIMARY KEY (id)
 );
 
 ALTER SEQUENCE mod_add_to_community_id_seq
@@ -22,16 +29,23 @@ CREATE TABLE admin_purge_comment (
     admin_person_id integer NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
     id serial PRIMARY KEY,
     post_id integer NOT NULL REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE,
-    published_at timestamp with time zone DEFAULT now() NOT NULL,
-    reason text NOT NULL
+    published_at timestamp with time zone DEFAULT now(),
+    reason text NOT NULL,
+    CONSTRAINT admin_purge_comment_when__not_null NOT NULL published_at
 );
 
 CREATE TABLE admin_add (
-    id serial PRIMARY KEY,
-    mod_person_id integer NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
-    other_person_id integer NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
-    published_at timestamp with time zone DEFAULT now() NOT NULL,
-    removed boolean DEFAULT FALSE NOT NULL
+    id serial,
+    mod_person_id integer REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
+    other_person_id integer REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
+    published_at timestamp with time zone DEFAULT now(),
+    removed boolean DEFAULT FALSE,
+    CONSTRAINT mod_add_id_not_null NOT NULL id,
+    CONSTRAINT mod_add_mod_user_id_not_null NOT NULL mod_person_id,
+    CONSTRAINT mod_add_other_user_id_not_null NOT NULL other_person_id,
+    CONSTRAINT mod_add_when__not_null NOT NULL published_at,
+    CONSTRAINT mod_add_removed_not_null NOT NULL removed,
+    PRIMARY KEY (id)
 );
 
 ALTER SEQUENCE admin_add_id_seq
@@ -48,7 +62,8 @@ CREATE TABLE mod_transfer_community (
     id serial PRIMARY KEY,
     mod_person_id integer NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
     other_person_id integer NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
-    published_at timestamp with time zone DEFAULT now() NOT NULL
+    published_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT mod_transfer_community_when__not_null NOT NULL published_at
 );
 
 CREATE TABLE admin_allow_instance (
@@ -56,52 +71,66 @@ CREATE TABLE admin_allow_instance (
     allowed boolean NOT NULL,
     id serial PRIMARY KEY,
     instance_id integer NOT NULL REFERENCES instance ON UPDATE CASCADE ON DELETE CASCADE,
-    published_at timestamp with time zone DEFAULT now() NOT NULL,
-    reason text NOT NULL
+    published_at timestamp with time zone DEFAULT now(),
+    reason text NOT NULL,
+    CONSTRAINT admin_allow_instance_when__not_null NOT NULL published_at
 );
 
 CREATE TABLE mod_lock_post (
     id serial PRIMARY KEY,
     locked boolean DEFAULT TRUE NOT NULL,
-    mod_person_id integer NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
+    mod_person_id integer REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
     post_id integer NOT NULL REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE,
-    published_at timestamp with time zone DEFAULT now() NOT NULL,
-    reason text NOT NULL
+    published_at timestamp with time zone DEFAULT now(),
+    reason text NOT NULL,
+    CONSTRAINT mod_lock_post_mod_user_id_not_null NOT NULL mod_person_id,
+    CONSTRAINT mod_lock_post_when__not_null NOT NULL published_at
 );
 
 CREATE TABLE mod_remove_post (
     id serial PRIMARY KEY,
-    mod_person_id integer NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
+    mod_person_id integer REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
     post_id integer NOT NULL REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE,
-    published_at timestamp with time zone DEFAULT now() NOT NULL,
+    published_at timestamp with time zone DEFAULT now(),
     reason text NOT NULL,
-    removed boolean DEFAULT TRUE NOT NULL
+    removed boolean DEFAULT TRUE NOT NULL,
+    CONSTRAINT mod_remove_post_mod_user_id_not_null NOT NULL mod_person_id,
+    CONSTRAINT mod_remove_post_when__not_null NOT NULL published_at
 );
 
 CREATE TABLE mod_change_community_visibility (
     community_id integer NOT NULL REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE,
     id serial PRIMARY KEY,
     mod_person_id integer NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
-    published_at timestamp with time zone DEFAULT now() NOT NULL,
-    visibility community_visibility NOT NULL
+    published_at timestamp with time zone DEFAULT now(),
+    visibility community_visibility NOT NULL,
+    CONSTRAINT mod_change_community_visibility_published_not_null NOT NULL published_at
 );
 
 CREATE TABLE mod_remove_comment (
     comment_id integer NOT NULL REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE,
     id serial PRIMARY KEY,
-    mod_person_id integer NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
-    published_at timestamp with time zone DEFAULT now() NOT NULL,
+    mod_person_id integer REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
+    published_at timestamp with time zone DEFAULT now(),
     reason text NOT NULL,
-    removed boolean DEFAULT TRUE NOT NULL
+    removed boolean DEFAULT TRUE NOT NULL,
+    CONSTRAINT mod_remove_comment_mod_user_id_not_null NOT NULL mod_person_id,
+    CONSTRAINT mod_remove_comment_when__not_null NOT NULL published_at
 );
 
 CREATE TABLE admin_remove_community (
-    community_id int NOT NULL REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE,
-    id serial PRIMARY KEY,
-    mod_person_id integer NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
-    published_at timestamp with time zone DEFAULT now() NOT NULL,
+    community_id int REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE,
+    id serial,
+    mod_person_id integer REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
+    published_at timestamp with time zone DEFAULT now(),
     reason text NOT NULL,
-    removed boolean DEFAULT TRUE NOT NULL
+    removed boolean DEFAULT TRUE,
+    CONSTRAINT mod_remove_community_id_not_null NOT NULL id,
+    CONSTRAINT mod_remove_community_community_id_not_null NOT NULL community_id,
+    CONSTRAINT mod_remove_community_mod_user_id_not_null NOT NULL mod_person_id,
+    CONSTRAINT mod_remove_community_removed_not_null NOT NULL removed,
+    CONSTRAINT mod_remove_community_when__not_null NOT NULL published_at,
+    PRIMARY KEY (id)
 );
 
 ALTER SEQUENCE admin_remove_community_id_seq
@@ -123,12 +152,19 @@ CREATE TABLE mod_lock_comment (
 );
 
 CREATE TABLE mod_feature_post (
-    featured boolean DEFAULT TRUE NOT NULL,
-    id serial PRIMARY KEY,
-    is_featured_community boolean DEFAULT TRUE NOT NULL,
-    mod_person_id integer NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
-    post_id integer NOT NULL REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE,
-    published_at timestamp with time zone DEFAULT now() NOT NULL
+    featured boolean DEFAULT TRUE,
+    id serial,
+    is_featured_community boolean DEFAULT TRUE,
+    mod_person_id integer REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
+    post_id integer REFERENCES post ON UPDATE CASCADE ON DELETE CASCADE,
+    published_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT mod_sticky_post_featured_not_null NOT NULL featured,
+    CONSTRAINT mod_sticky_post_id_not_null NOT NULL id,
+    CONSTRAINT mod_sticky_post_is_featured_community_not_null NOT NULL is_featured_community,
+    CONSTRAINT mod_sticky_post_mod_user_id_not_null NOT NULL mod_person_id,
+    CONSTRAINT mod_sticky_post_post_id_not_null NOT NULL post_id,
+    CONSTRAINT mod_sticky_post_when__not_null NOT NULL published_at,
+    PRIMARY KEY (id)
 );
 
 ALTER SEQUENCE mod_feature_post_id_seq
@@ -146,19 +182,27 @@ CREATE TABLE admin_block_instance (
     expires_at timestamp with time zone,
     id serial PRIMARY KEY,
     instance_id integer NOT NULL REFERENCES instance ON UPDATE CASCADE ON DELETE CASCADE,
-    published_at timestamp with time zone DEFAULT now() NOT NULL,
-    reason text NOT NULL
+    published_at timestamp with time zone DEFAULT now(),
+    reason text NOT NULL,
+    CONSTRAINT admin_block_instance_when__not_null NOT NULL published_at
 );
 
 CREATE TABLE admin_ban (
-    banned boolean DEFAULT TRUE NOT NULL,
+    banned boolean DEFAULT TRUE,
     expires_at timestamp with time zone,
-    id serial PRIMARY KEY,
-    instance_id integer NOT NULL REFERENCES instance ON UPDATE CASCADE ON DELETE CASCADE,
-    mod_person_id integer NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
+    id serial,
+    instance_id integer REFERENCES instance ON UPDATE CASCADE ON DELETE CASCADE,
+    mod_person_id integer REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
     other_person_id integer NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
-    published_at timestamp with time zone DEFAULT now() NOT NULL,
-    reason text NOT NULL
+    published_at timestamp with time zone DEFAULT now(),
+    reason text NOT NULL,
+    CONSTRAINT mod_ban_banned_not_null NOT NULL banned,
+    CONSTRAINT mod_ban_id_not_null NOT NULL id,
+    CONSTRAINT mod_ban_instance_id_not_null NOT NULL instance_id,
+    CONSTRAINT mod_ban_mod_user_id_not_null NOT NULL mod_person_id,
+    CONSTRAINT mod_ban_other_user_id_not_null NOT NULL other_person_id,
+    CONSTRAINT mod_ban_when__not_null NOT NULL published_at,
+    PRIMARY KEY (id)
 );
 
 ALTER SEQUENCE admin_ban_id_seq
@@ -176,38 +220,44 @@ CREATE TABLE admin_purge_post (
     admin_person_id integer NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
     community_id int NOT NULL REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE,
     id serial PRIMARY KEY,
-    published_at timestamp with time zone DEFAULT now() NOT NULL,
-    reason text NOT NULL
+    published_at timestamp with time zone DEFAULT now(),
+    reason text NOT NULL,
+    CONSTRAINT admin_purge_post_when__not_null NOT NULL published_at
 );
 
 CREATE TABLE admin_purge_person (
     admin_person_id integer NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
     id serial PRIMARY KEY,
-    published_at timestamp with time zone DEFAULT now() NOT NULL,
-    reason text NOT NULL
+    published_at timestamp with time zone DEFAULT now(),
+    reason text NOT NULL,
+    CONSTRAINT admin_purge_person_when__not_null NOT NULL published_at
 );
 
 CREATE TABLE admin_purge_community (
     admin_person_id integer NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
     id serial PRIMARY KEY,
-    published_at timestamp with time zone DEFAULT now() NOT NULL,
-    reason text NOT NULL
+    published_at timestamp with time zone DEFAULT now(),
+    reason text NOT NULL,
+    CONSTRAINT admin_purge_community_when__not_null NOT NULL published_at
 );
 
 CREATE TABLE mod_ban_from_community (
     id serial PRIMARY KEY,
-    published_at timestamp with time zone DEFAULT now() NOT NULL,
+    published_at timestamp with time zone DEFAULT now(),
     reason text NOT NULL,
-    mod_person_id int NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
+    mod_person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
     community_id int NOT NULL REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE,
     expires_at timestamp with time zone,
-    other_person_id integer NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
-    banned bool NOT NULL DEFAULT TRUE
+    other_person_id integer REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
+    banned bool NOT NULL DEFAULT TRUE,
+    CONSTRAINT mod_ban_from_community_mod_user_id_not_null NOT NULL mod_person_id,
+    CONSTRAINT mod_ban_from_community_other_user_id_not_null NOT NULL other_person_id,
+    CONSTRAINT mod_ban_from_community_when__not_null NOT NULL published_at
 );
 
 CREATE TABLE modlog_combined (
     id serial PRIMARY KEY,
-    published_at timestamptz NOT NULL,
+    published_at timestamptz,
     admin_allow_instance_id int UNIQUE REFERENCES admin_allow_instance ON UPDATE CASCADE ON DELETE CASCADE,
     admin_block_instance_id int UNIQUE REFERENCES admin_block_instance ON UPDATE CASCADE ON DELETE CASCADE,
     admin_purge_comment_id int UNIQUE REFERENCES admin_purge_comment ON UPDATE CASCADE ON DELETE CASCADE,
@@ -225,7 +275,8 @@ CREATE TABLE modlog_combined (
     mod_remove_comment_id int UNIQUE REFERENCES mod_remove_comment ON UPDATE CASCADE ON DELETE CASCADE,
     admin_remove_community_id int UNIQUE REFERENCES admin_remove_community ON UPDATE CASCADE ON DELETE CASCADE,
     mod_remove_post_id int UNIQUE REFERENCES mod_remove_post ON UPDATE CASCADE ON DELETE CASCADE,
-    mod_transfer_community_id int UNIQUE REFERENCES mod_transfer_community ON UPDATE CASCADE ON DELETE CASCADE
+    mod_transfer_community_id int UNIQUE REFERENCES mod_transfer_community ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT modlog_combined_published_not_null NOT NULL published_at
 );
 
 ALTER TABLE modlog_combined
