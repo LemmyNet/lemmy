@@ -124,7 +124,7 @@ steps:
 
   # `DROP OWNED` doesn't work for default user
   create_database_user:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     environment:
       PGUSER: postgres
       PGPASSWORD: password
@@ -212,7 +212,7 @@ steps:
     when: *slow_check_paths
 
   run_federation_tests:
-    image: node:22-trixie-slim
+    image: node:24-trixie-slim
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
       DO_WRITE_HOSTS_FILE: "1"
