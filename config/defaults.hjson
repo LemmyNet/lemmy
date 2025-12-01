@@ -119,4 +119,24 @@
   ]
   # Print logs in JSON format. You can also disable ANSI colors in logs with env var `NO_COLOR`.
   json_logging: false
+  # Data for loading Lemmy plugins
+  plugins: [
+    {
+      # Where to load the .wasm file from, can be a local file path or URL
+      file: "https://github.com/LemmyNet/lemmy-plugins/releases/download/0.1.1/go_replace_words.wasm"
+      # SHA256 hash of the .wasm file
+      hash: "37cdc01a3ff26eef578b668c6cc57fc06649deddb3a92cb6bae8e79b4e60fe12"
+      # Which websites the plugin may connect to
+      allowed_hosts: [
+        "lemmy.ml"
+        /* ... */
+      ]
+      # Configuration options for the plugin
+      config: {
+        string: "string"
+        /* ... */
+      }
+    }
+    /* ... */
+  ]
 }

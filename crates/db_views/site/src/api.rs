@@ -643,9 +643,19 @@ pub struct UpdateTagline {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct PluginMetadata {
-  name: String,
-  url: Url,
-  description: String,
+  pub name: String,
+  pub url: Option<Url>,
+  pub description: Option<String>,
+}
+
+impl PluginMetadata {
+  pub fn new(name: &'static str, url: &'static str, description: &'static str) -> Self {
+    Self {
+      name: name.to_string(),
+      url: url.parse().ok(),
+      description: Some(description.to_string()),
+    }
+  }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]

@@ -312,37 +312,11 @@ pub async fn validate_post_language(
   pool: &mut DbPool<'_>,
   language_id: Option<LanguageId>,
   community_id: CommunityId,
-  local_user_id: LocalUserId,
-) -> LemmyResult<LanguageId> {
-  use lemmy_db_schema_file::schema::{
-    community_language::dsl as cl,
-    local_user_language::dsl as ul,
-  };
-  let conn = &mut get_conn(pool).await?;
-  let language_id = match language_id {
-    None | Some(LanguageId(0)) => {
-      let mut intersection = ul::local_user_language
-        .inner_join(cl::community_language.on(ul::language_id.eq(cl::language_id)))
-        .filter(ul::local_user_id.eq(local_user_id))
-        .filter(cl::community_id.eq(community_id))
-        .select(cl::language_id)
-        .get_results::<LanguageId>(conn)
-        .await?;
-
-      if intersection.len() == 1 {
-        intersection.pop().unwrap_or(UNDETERMINED_ID)
-      } else if intersection.len() == 2 && intersection.contains(&UNDETERMINED_ID) {
-        intersection.retain(|i| i != &UNDETERMINED_ID);
-        intersection.pop().unwrap_or(UNDETERMINED_ID)
-      } else {
-        UNDETERMINED_ID
-      }
-    }
-    Some(lid) => lid,
-  };
-
-  CommunityLanguage::is_allowed_community_language(pool, language_id, community_id).await?;
-  Ok(language_id)
+) -> LemmyResult<()> {
+  if let Some(language_id) = language_id {
+    CommunityLanguage::is_allowed_community_language(pool, language_id, community_id).await?;
+  }
+  Ok(())
 }
 
 /// If no language is given, set all languages
@@ -595,8 +569,7 @@ mod tests {
     let local_user = LocalUser::create(pool, &local_user_form, vec![]).await?;
     LocalUserLanguage::update(pool, test_langs2, local_user.id).await?;
 
-    // no overlap in user/community languages, so defaults to undetermined
-    let def1 = validate_post_language(pool, None, community.id, local_user.id).await;
+    let def1 = validate_post_language(pool, Some(LanguageId(2)), community.id).await;
     assert_eq!(
       Some(LemmyErrorType::LanguageNotAllowed),
       def1.err().map(|e| e.error_type)
@@ -611,9 +584,8 @@ mod tests {
     ];
     LocalUserLanguage::update(pool, test_langs3, local_user.id).await?;
 
-    // this time, both have ru as common lang
-    let def2 = validate_post_language(pool, None, community.id, local_user.id).await?;
-    assert_eq!(ru, def2);
+    let def2 = validate_post_language(pool, None, community.id).await;
+    assert!(def2.is_ok());
 
     Person::delete(pool, person.id).await?;
     Community::delete(pool, community.id).await?;
