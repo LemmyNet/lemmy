@@ -833,10 +833,6 @@ test("Dont send a comment reply to a blocked community", async () => {
   // Beta blocks the new beta community
   let blockRes = await blockCommunity(beta, newCommunityId, true);
   expect(blockRes.community_view.community_actions?.blocked_at).toBeDefined();
-  await waitUntil(
-    () => getPost(alpha, alphaPost.post.id),
-    p => p.post_view.post.locked,
-  );
 
   // Alpha creates a comment
   let commentRes = await createComment(alpha, alphaPost.post.id);
