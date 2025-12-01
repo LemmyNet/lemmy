@@ -43,6 +43,7 @@ steps:
   sql_fmt:
     image: dessalines/pgformatter:5.8
     commands:
+      - apk add bash
       - ./scripts/sql_format_check.sh
     when:
       - event: pull_request
