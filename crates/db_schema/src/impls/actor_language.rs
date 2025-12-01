@@ -569,7 +569,6 @@ mod tests {
     let local_user = LocalUser::create(pool, &local_user_form, vec![]).await?;
     LocalUserLanguage::update(pool, test_langs2, local_user.id).await?;
 
-    // no overlap in user/community languages, so defaults to undetermined
     let def1 = validate_post_language(pool, Some(LanguageId(2)), community.id).await;
     assert_eq!(
       Some(LemmyErrorType::LanguageNotAllowed),
@@ -585,7 +584,6 @@ mod tests {
     ];
     LocalUserLanguage::update(pool, test_langs3, local_user.id).await?;
 
-    // this time, both have ru as common lang
     let def2 = validate_post_language(pool, None, community.id).await;
     assert!(def2.is_ok());
 
