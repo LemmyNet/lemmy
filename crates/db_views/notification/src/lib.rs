@@ -50,91 +50,59 @@ pub mod impls;
 #[expect(clippy::indexing_slicing)]
 pub mod tests;
 
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable))]
-#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg(feature = "full")]
+#[derive(Clone, Debug, Queryable, Selectable)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 struct NotificationViewInternal {
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   notification: Notification,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   private_message: Option<PrivateMessage>,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   comment: Option<Comment>,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   post: Option<Post>,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   community: Option<Community>,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   instance: Option<Instance>,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   creator: Option<Person>,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression_type = Person1AliasAllColumnsTuple,
-      select_expression = person1_select()
-    )
+  #[diesel(
+    select_expression_type = Person1AliasAllColumnsTuple,
+    select_expression = person1_select()
   )]
   recipient: Person,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   image_details: Option<ImageDetails>,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   community_actions: Option<CommunityActions>,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   post_actions: Option<PostActions>,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   person_actions: Option<PersonActions>,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   comment_actions: Option<CommentActions>,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   modlog: Option<Modlog>,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression = post_tags_fragment()
-    )
-  )]
+  #[diesel(select_expression = post_tags_fragment())]
   post_tags: TagsView,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression = creator_is_admin()
-    )
-  )]
+  #[diesel(select_expression = creator_is_admin())]
   creator_is_admin: bool,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression = local_user_can_mod()
-    )
-  )]
+  #[diesel(select_expression = local_user_can_mod())]
   can_mod: bool,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression = creator_local_home_banned()
-    )
-  )]
+  #[diesel(select_expression = creator_local_home_banned())]
   creator_banned: bool,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression_type = CreatorLocalHomeBanExpiresType,
-      select_expression = creator_local_home_ban_expires()
-     )
+  #[diesel(
+    select_expression_type = CreatorLocalHomeBanExpiresType,
+    select_expression = creator_local_home_ban_expires()
   )]
   pub creator_ban_expires_at: Option<DateTime<Utc>>,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression = creator_is_moderator()
-    )
-  )]
+  #[diesel(select_expression = creator_is_moderator())]
   creator_is_moderator: bool,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression = creator_banned_from_community()
-    )
-  )]
+  #[diesel(select_expression = creator_banned_from_community())]
   creator_banned_from_community: bool,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression = creator_ban_expires_from_community()
-    )
-  )]
+  #[diesel(select_expression = creator_ban_expires_from_community())]
   pub creator_community_ban_expires_at: Option<DateTime<Utc>>,
 }
 
