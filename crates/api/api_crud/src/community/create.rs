@@ -1,4 +1,3 @@
-use super::check_community_visibility_allowed;
 use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
 use actix_web::web::Json;
 use lemmy_api_utils::{
@@ -86,8 +85,6 @@ pub async fn create_community(
   if let Some(desc) = &data.description {
     is_valid_body_field(desc, false)?;
   }
-
-  check_community_visibility_allowed(data.visibility, &local_user_view)?;
 
   // Double check for duplicate community actor_ids
   let community_ap_id = Community::generate_local_actor_url(&data.name, context.settings())?;
