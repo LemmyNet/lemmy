@@ -194,7 +194,7 @@ impl CommunityView {
       CommunityModeratorView::is_community_moderator(pool, community_id, person_id).await?;
     if is_mod {
       Ok(true)
-    } else if let Ok(Some(person_view)) = PersonView::read(pool, person_id).await {
+    } else if let Ok(Some(person_view)) = PersonView::read(pool, person_id, false).await {
       Ok(person_view.is_admin)
     } else {
       Ok(false)
@@ -210,7 +210,7 @@ impl CommunityView {
       CommunityModeratorView::is_community_moderator_of_any(pool, person_id).await?;
     if is_mod_of_any {
       Ok(true)
-    } else if let Ok(Some(person_view)) = PersonView::read(pool, person_id).await {
+    } else if let Ok(Some(person_view)) = PersonView::read(pool, person_id, false).await {
       Ok(person_view.is_admin)
     } else {
       Ok(false)

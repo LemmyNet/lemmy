@@ -72,7 +72,7 @@ async fn convert_response(
       UserOrCommunity::User(u) => {
         removed_or_deleted = u.deleted;
         res.person = Some(
-          PersonView::read(pool, u.id)
+          PersonView::read(pool, u.id, false)
             .await?
             .ok_or(LemmyErrorType::CouldntFindPerson)?,
         )

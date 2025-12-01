@@ -48,7 +48,11 @@ pub async fn read_person(
 
   // You don't need to return settings for the user, since this comes back with GetSite
   // `my_user`
-  let person_view = PersonView::read(&mut context.pool(), person_details_id)
+  let is_admin = local_user_view
+    .as_ref()
+    .map(|l| l.local_user.admin)
+    .unwrap_or_default();
+  let person_view = PersonView::read(&mut context.pool(), person_details_id, is_admin)
     .await?
     .ok_or(LemmyErrorType::CouldntFindPerson)?;
 
