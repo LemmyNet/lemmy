@@ -40,6 +40,13 @@ steps:
     when:
       - event: [pull_request, tag]
 
+  sql_fmt:
+    image: dessalines/pgformatter:5.8
+    commands:
+      - ./scripts/sql_format_check.sh
+    when:
+      - event: pull_request
+
   prettier_check:
     image: jauderho/prettier:3.7.3-alpine
     commands:
@@ -60,15 +67,6 @@ steps:
     image: tamasfe/taplo:0.9.3
     commands:
       - taplo format --check
-    when:
-      - event: pull_request
-
-  sql_fmt:
-    image: *rust_image
-    commands:
-      - apt-get install perl make bash
-      - ./scripts/alpine_install_pg_formatter.sh
-      - ./scripts/sql_format_check.sh
     when:
       - event: pull_request
 
