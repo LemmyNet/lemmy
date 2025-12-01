@@ -1,11 +1,11 @@
-# syntax=docker/dockerfile:1.18
+# syntax=docker/dockerfile:1.20
 ARG RUST_VERSION=1.91
 ARG CARGO_BUILD_FEATURES=default
 ARG RUST_RELEASE_MODE=debug
 
 ARG AMD_BUILDER_IMAGE=rust:${RUST_VERSION}
 # Repo: https://github.com/raskyld/lemmy-cross-toolchains
-ARG ARM_BUILDER_IMAGE="ghcr.io/raskyld/aarch64-lemmy-linux-gnu:v0.5.0"
+ARG ARM_BUILDER_IMAGE="ghcr.io/raskyld/aarch64-lemmy-linux-gnu:v0.6.0"
 
 ARG AMD_RUNNER_IMAGE=debian:sid-slim
 ARG ARM_RUNNER_IMAGE=debian:sid-slim
