@@ -59,6 +59,7 @@ steps:
   toml_fmt:
     image: tamasfe/taplo:0.10.0
     commands:
+      - apk add bash
       - taplo format --check
     when:
       - event: pull_request
