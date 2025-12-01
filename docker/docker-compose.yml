@@ -97,7 +97,7 @@ services:
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=lemmy
     volumes:
-      - ./volumes/postgres:/var/lib/postgresql/data:Z
+      - ./volumes/postgres:/var/lib/postgresql:Z
       - ./customPostgresql.conf:/etc/postgresql.conf:Z
     restart: unless-stopped
     logging: *default-logging
