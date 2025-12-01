@@ -57,12 +57,11 @@ fn post_to_person_sort_type(sort: SortType) -> PersonSortType {
 }
 
 fn queries<'a>(
-) -> Queries<impl ReadFn<'a, PersonView, PersonId>, impl ListFn<'a, PersonView, ListMode>> {
+) -> Queries<impl ReadFn<'a, PersonView, (PersonId, bool)>, impl ListFn<'a, PersonView, ListMode>> {
   let all_joins = move |query: person::BoxedQuery<'a, Pg>| {
     query
       .inner_join(person_aggregates::table)
       .left_join(local_user::table)
-      .filter(person::deleted.eq(false))
       .select((
         person::all_columns,
         person_aggregates::all_columns,
@@ -70,10 +69,12 @@ fn queries<'a>(
       ))
   };
 
-  let read = move |mut conn: DbConn<'a>, person_id: PersonId| async move {
-    all_joins(person::table.find(person_id).into_boxed())
-      .first(&mut conn)
-      .await
+  let read = move |mut conn: DbConn<'a>, (person_id, show_deleted): (PersonId, bool)| async move {
+    let mut query = all_joins(person::table.find(person_id).into_boxed());
+    if !show_deleted {
+      query = query.filter(person::deleted.eq(false))
+    };
+    query.first(&mut conn).await
   };
 
   let list = move |mut conn: DbConn<'a>, mode: ListMode| async move {
@@ -119,6 +120,8 @@ fn queries<'a>(
         let (limit, offset) = limit_and_offset(options.page, options.limit)?;
         query = query.limit(limit).offset(offset);
 
+        query = query.filter(person::deleted.eq(false));
+
         if let Some(listing_type) = options.listing_type {
           query = match listing_type {
             // return nothing as its not possible to follow users
@@ -136,8 +139,12 @@ fn queries<'a>(
 }
 
 impl PersonView {
-  pub async fn read(pool: &mut DbPool<'_>, person_id: PersonId) -> Result<Option<Self>, Error> {
-    queries().read(pool, person_id).await
+  pub async fn read(
+    pool: &mut DbPool<'_>,
+    person_id: PersonId,
+    is_admin: bool,
+  ) -> Result<Option<Self>, Error> {
+    queries().read(pool, (person_id, is_admin)).await
   }
 
   pub async fn admins(pool: &mut DbPool<'_>) -> Result<Vec<Self>, Error> {
@@ -244,7 +251,7 @@ mod tests {
     )
     .await?;
 
-    let read = PersonView::read(pool, data.alice.id).await?;
+    let read = PersonView::read(pool, data.alice.id, false).await?;
     assert!(read.is_none());
 
     let list = PersonQuery {
@@ -304,13 +311,13 @@ mod tests {
     assert_length!(1, list);
     assert_eq!(list[0].person.id, data.alice.id);
 
-    let is_admin = PersonView::read(pool, data.alice.id)
+    let is_admin = PersonView::read(pool, data.alice.id, false)
       .await?
       .ok_or(LemmyErrorType::CouldntFindPerson)?
       .is_admin;
     assert!(is_admin);
 
-    let is_admin = PersonView::read(pool, data.bob.id)
+    let is_admin = PersonView::read(pool, data.bob.id, false)
       .await?
       .ok_or(LemmyErrorType::CouldntFindPerson)?
       .is_admin;
