@@ -175,29 +175,20 @@ struct PaginationCursorInternal {
   recovery: bool,
 }
 
-/// Internal struct without `T: ts_rs::TS` bound. When making any changes to this struct, be sure to
-/// change `PagedResponseTS` as well so they remain identical.
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct PagedResponse<T> {
-  pub data: Vec<T>,
-  pub next_page: Option<PaginationCursor>,
-  pub prev_page: Option<PaginationCursor>,
-}
-
 /// This response contains only a single page of items. To get the next page, take the
 /// cursor string from `next_page` and pass it to the same API endpoint via `page_cursor`
 /// parameter. For going to the previous page, use `prev_page` instead.
-#[cfg(feature = "ts-rs")]
-#[derive(ts_rs::TS)]
-#[ts(optional_fields, export, rename = "PagedResponse")]
-pub struct PagedResponseTS<T: ts_rs::TS> {
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct PagedResponse<#[cfg(feature = "ts-rs")] T: ts_rs::TS, #[cfg(not(feature = "ts-rs"))] T> {
   pub data: Vec<T>,
   pub next_page: Option<PaginationCursor>,
   pub prev_page: Option<PaginationCursor>,
 }
 
 #[cfg(feature = "full")]
-impl<T> Deref for PagedResponse<T> {
+impl<#[cfg(feature = "ts-rs")] T: ts_rs::TS, #[cfg(not(feature = "ts-rs"))] T> Deref
+  for PagedResponse<T>
+{
   type Target = Vec<T>;
   fn deref(&self) -> &Vec<T> {
     &self.data
@@ -205,14 +196,18 @@ impl<T> Deref for PagedResponse<T> {
 }
 
 #[cfg(feature = "full")]
-impl<T> DerefMut for PagedResponse<T> {
+impl<#[cfg(feature = "ts-rs")] T: ts_rs::TS, #[cfg(not(feature = "ts-rs"))] T> DerefMut
+  for PagedResponse<T>
+{
   fn deref_mut(&mut self) -> &mut Self::Target {
     &mut self.data
   }
 }
 
 #[cfg(feature = "full")]
-impl<T> IntoIterator for PagedResponse<T> {
+impl<#[cfg(feature = "ts-rs")] T: ts_rs::TS, #[cfg(not(feature = "ts-rs"))] T> IntoIterator
+  for PagedResponse<T>
+{
   type Item = T;
   type IntoIter = std::vec::IntoIter<Self::Item>;
 
@@ -224,7 +219,7 @@ impl<T> IntoIterator for PagedResponse<T> {
 
 /// Add prev/next cursors to query result.
 #[cfg(feature = "full")]
-pub fn paginate_response<T>(
+pub fn paginate_response<#[cfg(feature = "ts-rs")] T: ts_rs::TS, #[cfg(not(feature = "ts-rs"))] T>(
   data: Vec<T>,
   limit: i64,
   request_cursor: Option<PaginationCursor>,
