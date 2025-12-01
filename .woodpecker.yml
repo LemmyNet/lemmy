@@ -57,9 +57,8 @@ steps:
       - event: pull_request
 
   toml_fmt:
-    image: tamasfe/taplo:0.10.0
+    image: ghcr.io/shaddydc/taplo
     commands:
-      - apk add bash
       - taplo format --check
     when:
       - event: pull_request
