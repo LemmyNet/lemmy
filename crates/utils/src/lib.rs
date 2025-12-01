@@ -33,7 +33,7 @@ pub const REQWEST_TIMEOUT: Duration = Duration::from_secs(10);
 const DAY: Duration = Duration::from_secs(24 * 60 * 60);
 
 #[cfg(debug_assertions)]
-pub const CACHE_DURATION_FEDERATION: Duration = Duration::from_millis(500);
+pub const CACHE_DURATION_FEDERATION: Duration = Duration::from_secs(0);
 #[cfg(not(debug_assertions))]
 pub const CACHE_DURATION_FEDERATION: Duration = Duration::from_secs(60);
 

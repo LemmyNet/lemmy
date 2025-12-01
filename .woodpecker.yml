@@ -222,8 +222,7 @@ steps:
       - bash api_tests/prepare-drone-federation-test.sh
       - cd api_tests/
       - pnpm i
-      # test and retry on failure
-      - pnpm api-test || pnpm api-test
+      - pnpm api-test
     when: *slow_check_paths
 
   federation_tests_server_output:
