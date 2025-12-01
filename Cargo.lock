@@ -113,7 +113,6 @@ dependencies = [
  "actix-service",
  "actix-tls",
  "actix-utils",
- "base64 0.22.1",
  "bitflags 2.10.0",
  "brotli",
  "bytes",
@@ -129,12 +128,9 @@ dependencies = [
  "httpdate",
  "itoa",
  "language-tags",
- "local-channel",
  "mime",
  "percent-encoding",
  "pin-project-lite",
- "rand 0.9.2",
- "sha1",
  "smallvec",
  "tokio",
  "tokio-util",
@@ -234,9 +230,9 @@ dependencies = [
 
 [[package]]
 name = "actix-web"
-version = "4.11.0"
+version = "4.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a597b77b5c6d6a1e1097fddde329a83665e25c5437c696a3a9a4aa514a614dea"
+checksum = "1654a77ba142e37f049637a3e5685f864514af11fcbc51cb51eb6596afe5b8d6"
 dependencies = [
  "actix-codec",
  "actix-http",
@@ -269,7 +265,7 @@ dependencies = [
  "serde_json",
  "serde_urlencoded",
  "smallvec",
- "socket2 0.5.10",
+ "socket2 0.6.1",
  "time",
  "tracing",
  "url",
@@ -2893,7 +2889,7 @@ dependencies = [
  "libc",
  "percent-encoding",
  "pin-project-lite",
- "socket2 0.5.10",
+ "socket2 0.6.1",
  "tokio",
  "tower-service",
  "tracing",
@@ -4530,17 +4526,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6373607a59f0be73a39b6fe456b8192fcc3585f602af20751600e974dd455e77"
 
 [[package]]
-name = "local-channel"
-version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6cbc85e69b8df4b8bb8b89ec634e7189099cea8927a276b7384ce5488e53ec8"
-dependencies = [
- "futures-core",
- "futures-sink",
- "local-waker",
-]
-
-[[package]]
 name = "local-waker"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5604,7 +5589,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9120690fafc389a67ba3803df527d0ec9cbbc9cc45e4cc20b332996dfb672425"
 dependencies = [
  "anyhow",
- "itertools 0.12.1",
+ "itertools 0.14.0",
  "proc-macro2",
  "quote",
  "syn 2.0.108",
@@ -5663,7 +5648,7 @@ dependencies = [
  "quinn-udp",
  "rustc-hash",
  "rustls 0.23.35",
- "socket2 0.5.10",
+ "socket2 0.6.1",
  "thiserror 2.0.17",
  "tokio",
  "tracing",
@@ -5700,7 +5685,7 @@ dependencies = [
  "cfg_aliases",
  "libc",
  "once_cell",
- "socket2 0.5.10",
+ "socket2 0.6.1",
  "tracing",
  "windows-sys 0.59.0",
 ]
