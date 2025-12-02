@@ -101,7 +101,8 @@ pub async fn ban_from_community(
 
   ModBanFromCommunity::create(&mut context.pool(), &form).await?;
 
-  let person_view = PersonView::read(&mut context.pool(), data.person_id, false)
+  let is_admin = local_user_view.local_user.admin;
+  let person_view = PersonView::read(&mut context.pool(), data.person_id, is_admin)
     .await?
     .ok_or(LemmyErrorType::CouldntFindPerson)?;
 
