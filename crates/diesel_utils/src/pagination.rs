@@ -179,6 +179,7 @@ struct PaginationCursorInternal {
 /// This response contains only a single page of items. To get the next page, take the
 /// cursor string from `next_page` and pass it to the same API endpoint via `page_cursor`
 /// parameter. For going to the previous page, use `prev_page` instead.
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
