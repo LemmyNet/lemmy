@@ -40,7 +40,7 @@ use lemmy_utils::{
 use url::Url;
 
 pub async fn create_site(
-  data: Json<CreateSite>,
+  Json(data): Json<CreateSite>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SiteResponse>> {

@@ -48,12 +48,12 @@ lemmy_db_views_notification = { workspace = true }
 lemmy_email = { workspace = true }
 anyhow = { workspace = true }
 serde = { workspace = true }
-serde_json = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 lemmy_utils = { workspace = true }
 extism = { workspace = true }
 extism-convert = { workspace = true }
+extism-manifest = "1.12.0"
 reqwest-middleware = { workspace = true }
 activitypub_federation = { workspace = true }
 mime = { version = "0.3.17" }

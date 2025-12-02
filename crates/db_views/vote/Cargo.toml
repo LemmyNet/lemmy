@@ -20,9 +20,9 @@ full = [
   "lemmy_utils",
   "diesel",
   "diesel-async",
-  "i-love-jesus",
   "lemmy_db_schema/full",
   "lemmy_db_schema_file/full",
+  "lemmy_diesel_utils/full",
 ]
 ts-rs = ["dep:ts-rs", "lemmy_db_schema/ts-rs"]
 
@@ -36,7 +36,6 @@ diesel-async = { workspace = true, optional = true }
 serde = { workspace = true }
 serde_with = { workspace = true }
 ts-rs = { workspace = true, optional = true }
-i-love-jesus = { workspace = true, optional = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

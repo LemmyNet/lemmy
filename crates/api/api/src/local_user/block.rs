@@ -12,7 +12,7 @@ use lemmy_db_views_person::{
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn user_block_person(
-  data: Json<BlockPerson>,
+  Json(data): Json<BlockPerson>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PersonResponse>> {

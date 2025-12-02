@@ -20,7 +20,7 @@ use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn feature_post(
-  data: Json<FeaturePost>,
+  Json(data): Json<FeaturePost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {

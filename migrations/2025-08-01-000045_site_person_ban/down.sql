@@ -2,12 +2,13 @@ ALTER TABLE mod_ban
     DROP COLUMN instance_id;
 
 ALTER TABLE person
-    ADD COLUMN banned boolean DEFAULT FALSE NOT NULL,
+    ADD COLUMN banned boolean DEFAULT FALSE,
+    ADD CONSTRAINT user__banned_not_null NOT NULL banned,
     ADD COLUMN published_new timestamp with time zone DEFAULT now() NOT NULL,
     ADD COLUMN updated_new timestamp with time zone,
     ADD COLUMN ap_id_new varchar(255) DEFAULT generate_unique_changeme () NOT NULL,
     ADD COLUMN bio_new text,
-    ADD COLUMN local_new boolean NOT NULL DEFAULT TRUE,
+    ADD COLUMN local_new boolean DEFAULT TRUE,
     ADD COLUMN private_key_new text,
     ADD COLUMN public_key_new text,
     ADD COLUMN last_refreshed_at_new timestamptz DEFAULT now() NOT NULL,
@@ -15,7 +16,7 @@ ALTER TABLE person
     ADD COLUMN deleted_new boolean NOT NULL DEFAULT FALSE,
     ADD COLUMN inbox_url_new varchar(255) DEFAULT generate_unique_changeme () NOT NULL,
     ADD COLUMN matrix_user_id_new text,
-    ADD COLUMN bot_account_new boolean DEFAULT FALSE NOT NULL,
+    ADD COLUMN bot_account_new boolean DEFAULT FALSE,
     ADD COLUMN ban_expires timestamptz,
     ADD COLUMN instance_id_new int;
 
@@ -76,6 +77,9 @@ ALTER TABLE person RENAME COLUMN bio_new TO bio;
 
 ALTER TABLE person RENAME COLUMN local_new TO local;
 
+ALTER TABLE person
+    ADD CONSTRAINT user__local_not_null NOT NULL local;
+
 ALTER TABLE person RENAME COLUMN private_key_new TO private_key;
 
 ALTER TABLE person RENAME COLUMN public_key_new TO public_key;
@@ -92,7 +96,20 @@ ALTER TABLE person RENAME COLUMN matrix_user_id_new TO matrix_user_id;
 
 ALTER TABLE person RENAME COLUMN bot_account_new TO bot_account;
 
+ALTER TABLE person
+    ALTER COLUMN bot_account SET NOT NULL;
+
 ALTER TABLE person RENAME COLUMN instance_id_new TO instance_id;
+
+ALTER TABLE person RENAME CONSTRAINT person_ap_id_new_not_null TO user__actor_id_not_null;
+
+ALTER TABLE person RENAME CONSTRAINT person_deleted_new_not_null TO user__deleted_not_null;
+
+ALTER TABLE person RENAME CONSTRAINT person_inbox_url_new_not_null TO person_shared_inbox_url_not_null;
+
+ALTER TABLE person RENAME CONSTRAINT person_last_refreshed_at_new_not_null TO user__last_refreshed_at_not_null;
+
+ALTER TABLE person RENAME CONSTRAINT person_published_new_not_null TO user__published_not_null;
 
 ALTER TABLE person
     ALTER public_key SET NOT NULL,

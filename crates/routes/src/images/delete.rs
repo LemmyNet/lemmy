@@ -54,7 +54,7 @@ pub async fn delete_site_banner(
 }
 
 pub async fn delete_community_icon(
-  data: Json<CommunityIdQuery>,
+  Json(data): Json<CommunityIdQuery>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
@@ -73,7 +73,7 @@ pub async fn delete_community_icon(
 }
 
 pub async fn delete_community_banner(
-  data: Json<CommunityIdQuery>,
+  Json(data): Json<CommunityIdQuery>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
@@ -123,7 +123,7 @@ pub async fn delete_user_banner(
 
 /// Deletes an image for a specific user.
 pub async fn delete_image(
-  data: Json<DeleteImageParams>,
+  Json(data): Json<DeleteImageParams>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
@@ -141,7 +141,7 @@ pub async fn delete_image(
 
 /// Deletes any image, only for admins.
 pub async fn delete_image_admin(
-  data: Json<DeleteImageParams>,
+  Json(data): Json<DeleteImageParams>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {

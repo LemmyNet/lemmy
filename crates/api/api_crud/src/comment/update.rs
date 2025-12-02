@@ -25,7 +25,7 @@ use lemmy_utils::{
 };
 
 pub async fn update_comment(
-  data: Json<EditComment>,
+  Json(data): Json<EditComment>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponse>> {
@@ -51,14 +51,6 @@ pub async fn update_comment(
     Err(LemmyErrorType::NoCommentEditAllowed)?
   }
 
-  let language_id = validate_post_language(
-    &mut context.pool(),
-    data.language_id,
-    orig_comment.community.id,
-    local_user_view.local_user.id,
-  )
-  .await?;
-
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
   let content = process_markdown_opt(&data.content, &slur_regex, &url_blocklist, &context).await?;
@@ -69,11 +61,18 @@ pub async fn update_comment(
   let comment_id = data.comment_id;
   let mut form = CommentUpdateForm {
     content,
-    language_id: Some(language_id),
+    language_id: data.language_id,
     updated_at: Some(Some(Utc::now())),
     ..Default::default()
   };
   form = plugin_hook_before("local_comment_before_update", form).await?;
+  validate_post_language(
+    &mut context.pool(),
+    form.language_id,
+    orig_comment.community.id,
+  )
+  .await?;
+
   let updated_comment = Comment::update(&mut context.pool(), comment_id, &form).await?;
 
   plugin_hook_after("local_comment_after_update", &updated_comment);
