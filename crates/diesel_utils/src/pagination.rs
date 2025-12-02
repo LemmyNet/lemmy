@@ -141,6 +141,7 @@ pub trait PaginationCursorConversion {
 /// minor Lemmy versions.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct PaginationCursor(String);
 
 #[cfg(feature = "full")]
@@ -179,6 +180,8 @@ struct PaginationCursorInternal {
 /// cursor string from `next_page` and pass it to the same API endpoint via `page_cursor`
 /// parameter. For going to the previous page, use `prev_page` instead.
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct PagedResponse<#[cfg(feature = "ts-rs")] T: ts_rs::TS, #[cfg(not(feature = "ts-rs"))] T> {
   pub data: Vec<T>,
   pub next_page: Option<PaginationCursor>,
