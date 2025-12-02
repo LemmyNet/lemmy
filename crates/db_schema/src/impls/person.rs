@@ -164,16 +164,10 @@ impl ApubActor for Person {
   async fn read_from_apub_id(
     pool: &mut DbPool<'_>,
     object_id: &DbUrl,
-    include_deleted: bool,
   ) -> LemmyResult<Option<Self>> {
     let conn = &mut get_conn(pool).await?;
-    let mut query = person::table
+    person::table
       .filter(lower(person::ap_id).eq(object_id.to_lowercase()))
-      .into_boxed();
-    if !include_deleted {
-      query = query.filter(person::deleted.eq(false));
-    }
-    query
       .first(conn)
       .await
       .optional()

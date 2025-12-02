@@ -128,9 +128,7 @@ impl Community {
     form: &CommunityInsertForm,
   ) -> LemmyResult<Self> {
     let is_new_community = match &form.ap_id {
-      Some(id) => Community::read_from_apub_id(pool, id, false)
-        .await?
-        .is_none(),
+      Some(id) => Community::read_from_apub_id(pool, id).await?.is_none(),
       None => true,
     };
     let conn = &mut get_conn(pool).await?;
@@ -628,7 +626,6 @@ impl ApubActor for Community {
   async fn read_from_apub_id(
     pool: &mut DbPool<'_>,
     object_id: &DbUrl,
-    _include_deleted: bool,
   ) -> LemmyResult<Option<Self>> {
     let conn = &mut get_conn(pool).await?;
     community::table

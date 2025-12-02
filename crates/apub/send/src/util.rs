@@ -150,19 +150,19 @@ pub(crate) async fn get_actor_cached(
             .into(),
         )),
         ActorType::Community => Right(Right(
-          Community::read_from_apub_id(pool, &url, false)
+          Community::read_from_apub_id(pool, &url)
             .await?
             .context("apub community not found")?
             .into(),
         )),
         ActorType::Person => Right(Left(
-          Person::read_from_apub_id(pool, &url, false)
+          Person::read_from_apub_id(pool, &url)
             .await?
             .context("apub person not found")?
             .into(),
         )),
         ActorType::MultiCommunity => Left(Right(
-          MultiCommunity::read_from_apub_id(pool, &url, false)
+          MultiCommunity::read_from_apub_id(pool, &url)
             .await?
             .context("apub multi-comm not found")?
             .into(),

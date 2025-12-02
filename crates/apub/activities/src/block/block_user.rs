@@ -22,7 +22,6 @@ use lemmy_api_utils::{
 use lemmy_apub_objects::{
   objects::person::ApubPerson,
   utils::functions::{
-    resolve_user_with_deleted,
     verify_is_public,
     verify_mod_action,
     verify_person_in_community,
@@ -131,7 +130,7 @@ impl Activity for BlockUser {
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     let expires_at = self.end_time;
     let mod_person = self.actor.dereference(context).await?;
-    let blocked_person = resolve_user_with_deleted(&self.object, context).await?;
+    let blocked_person = self.object.dereference(context).await?;
     let target = self.target.dereference(context).await?;
     let reason = self
       .summary

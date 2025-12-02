@@ -12,14 +12,10 @@ use activitypub_federation::{
 use either::Either;
 use html2md::parse_html;
 use lemmy_api_utils::{context::LemmyContext, utils::check_is_mod_or_admin};
-use lemmy_db_schema::{
-  source::{
-    community::Community,
-    instance::{Instance, InstanceActions},
-    local_site::LocalSite,
-    person::Person,
-  },
-  traits::ApubActor,
+use lemmy_db_schema::source::{
+  community::Community,
+  instance::{Instance, InstanceActions},
+  local_site::LocalSite,
 };
 use lemmy_db_schema_file::enums::{ActorType, CommunityVisibility};
 use lemmy_db_views_community_moderator::CommunityPersonBanView;
@@ -195,23 +191,6 @@ impl<L: GetActorType, R: GetActorType> GetActorType for either::Either<L, R> {
       Either::Right(r) => r.actor_type(),
       Either::Left(l) => l.actor_type(),
     }
-  }
-}
-
-/// Resolve a person from the db, included deleted users, or fetch if they're not found
-pub async fn resolve_user_with_deleted(
-  person: &ObjectId<ApubPerson>,
-  context: &Data<LemmyContext>,
-) -> LemmyResult<ApubPerson> {
-  let db_person =
-    Person::read_from_apub_id(&mut context.pool(), &person.inner().clone().into(), true)
-      .await?
-      .map(Into::<ApubPerson>::into);
-
-  if let Some(db_person) = db_person {
-    Ok(db_person)
-  } else {
-    person.dereference_forced(context).await
   }
 }
 

@@ -326,5 +326,5 @@ test("Admins can view and ban deleted accounts", async () => {
     getDeletedUserAlpha.person_view.person.id,
     "posts",
   );
-  expect(userContent.content[0].post.removed).toBe(true);
+  expect(userContent.data[0].post.removed).toBe(true);
 });

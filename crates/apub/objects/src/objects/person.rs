@@ -78,7 +78,7 @@ impl Object for ApubPerson {
     context: &Data<Self::DataType>,
   ) -> LemmyResult<Option<Self>> {
     Ok(
-      DbPerson::read_from_apub_id(&mut context.pool(), &object_id.into(), false)
+      DbPerson::read_from_apub_id(&mut context.pool(), &object_id.into())
         .await?
         .map(Into::into),
     )
