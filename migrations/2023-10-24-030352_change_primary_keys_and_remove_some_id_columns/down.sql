@@ -56,7 +56,7 @@ ALTER TABLE community_moderator
 ALTER TABLE community_person_ban
     ADD UNIQUE (community_id, person_id),
     DROP CONSTRAINT community_person_ban_pkey,
-    ADD COLUMN id serial PRIMARY KEY;
+    ADD COLUMN id serial PRIMARY KEY CONSTRAINT community_user_ban_id_not_null NOT NULL;
 
 ALTER TABLE custom_emoji_keyword
     ADD UNIQUE (custom_emoji_id, keyword),
@@ -106,12 +106,12 @@ ALTER TABLE login_token
 ALTER TABLE person_aggregates
     ADD UNIQUE (person_id),
     DROP CONSTRAINT person_aggregates_pkey,
-    ADD COLUMN id serial PRIMARY KEY;
+    ADD COLUMN id serial PRIMARY KEY CONSTRAINT user_aggregates_id_not_null NOT NULL;
 
 ALTER TABLE person_ban
     ADD UNIQUE (person_id),
     DROP CONSTRAINT person_ban_pkey,
-    ADD COLUMN id serial PRIMARY KEY;
+    ADD COLUMN id serial PRIMARY KEY CONSTRAINT user_ban_id_not_null NOT NULL;
 
 ALTER TABLE person_block
     ADD UNIQUE (person_id, target_id),

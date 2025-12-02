@@ -124,7 +124,7 @@ steps:
 
   # `DROP OWNED` doesn't work for default user
   create_database_user:
-    image: postgres:18-alpine
+    image: pgautoupgrade/pgautoupgrade:18-alpine
     environment:
       PGUSER: postgres
       PGPASSWORD: password
@@ -148,7 +148,7 @@ steps:
       - apt update && apt install -y lsb-release
       - sh -c 'echo "deb [signed-by=/usr/share/keyrings/postgres-keyring.gpg] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
       - wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /usr/share/keyrings/postgres-keyring.gpg
-      - apt update && apt install -y postgresql-client-16
+      - apt update && apt install -y postgresql-client-18
       # Run tests (if they fail, try again)
       - cargo test --workspace --no-fail-fast || cargo test --workspace --no-fail-fast
     when: *slow_check_paths
@@ -331,7 +331,7 @@ steps:
 
 services:
   database:
-    image: pgautoupgrade/pgautoupgrade:16-alpine
+    image: pgautoupgrade/pgautoupgrade:18-alpine
     environment:
       POSTGRES_DB: lemmy
       POSTGRES_USER: postgres

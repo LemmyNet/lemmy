@@ -3,36 +3,46 @@ CREATE TABLE person_post_mention (
     recipient_id int REFERENCES person (id) ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     post_id int REFERENCES post (id) ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     read bool NOT NULL DEFAULT FALSE,
-    published_at timestamptz DEFAULT now() NOT NULL
+    published_at timestamptz DEFAULT now(),
+    CONSTRAINT person_post_mention_published_not_null NOT NULL published_at
 );
 
 CREATE TABLE person_mention (
-    id serial PRIMARY KEY,
-    recipient_id int REFERENCES person (id) ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
-    comment_id int REFERENCES comment (id) ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
-    read bool NOT NULL DEFAULT FALSE,
-    published_at timestamptz DEFAULT now() NOT NULL,
+    id serial,
+    recipient_id int REFERENCES person (id) ON UPDATE CASCADE ON DELETE CASCADE,
+    comment_id int REFERENCES comment (id) ON UPDATE CASCADE ON DELETE CASCADE,
+    read bool DEFAULT FALSE,
+    published_at timestamptz DEFAULT now(),
+    CONSTRAINT user_mention_id_not_null NOT NULL id,
+    CONSTRAINT user_mention_comment_id_not_null NOT NULL comment_id,
+    CONSTRAINT user_mention_recipient_id_not_null NOT NULL recipient_id,
+    CONSTRAINT user_mention_published_not_null NOT NULL published_at,
+    CONSTRAINT user_mention_read_not_null NOT NULL read,
+    PRIMARY KEY (id),
     UNIQUE (recipient_id, comment_id)
 );
 
 ALTER TABLE person_mention RENAME TO person_comment_mention;
 
 CREATE TABLE comment_reply (
-    id serial PRIMARY KEY,
-    recipient_id int REFERENCES person (id) ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
+    id serial,
+    recipient_id int REFERENCES person (id) ON UPDATE CASCADE ON DELETE CASCADE,
     comment_id int REFERENCES comment (id) ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
-    read bool NOT NULL DEFAULT FALSE,
-    published_at timestamptz DEFAULT now() NOT NULL,
+    read bool DEFAULT FALSE,
+    published_at timestamptz DEFAULT now(),
+    CONSTRAINT comment_reply_published_not_null NOT NULL published_at,
     UNIQUE (recipient_id, comment_id)
 );
 
 CREATE TABLE inbox_combined (
     id int GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    comment_reply_id int REFERENCES comment_reply (id) ON UPDATE CASCADE ON DELETE CASCADE UNIQUE,
+    -- TODO add this foreign key constraint later
+    comment_reply_id int,
     person_comment_mention_id int REFERENCES person_comment_mention (id) ON UPDATE CASCADE ON DELETE CASCADE UNIQUE,
     person_post_mention_id int REFERENCES person_post_mention (id) ON UPDATE CASCADE ON DELETE CASCADE UNIQUE,
     private_message_id int REFERENCES private_message (id) ON UPDATE CASCADE ON DELETE CASCADE UNIQUE,
-    published_at timestamptz NOT NULL
+    published_at timestamptz,
+    CONSTRAINT inbox_combined_published_not_null NOT NULL published_at
 );
 
 ALTER TABLE private_message
@@ -111,9 +121,6 @@ FROM
 ALTER TABLE ONLY person_post_mention
     ADD CONSTRAINT person_post_mention_recipient_id_post_id_key UNIQUE (recipient_id, post_id);
 
-ALTER TABLE inbox_combined
-    ADD CONSTRAINT inbox_combined_check CHECK (num_nonnulls (comment_reply_id, person_comment_mention_id, person_post_mention_id, private_message_id) = 1);
-
 CREATE INDEX idx_comment_reply_comment ON comment_reply USING btree (comment_id);
 
 CREATE INDEX idx_comment_reply_recipient ON comment_reply USING btree (recipient_id);
@@ -137,4 +144,18 @@ ALTER TABLE post_actions
     DROP COLUMN notifications;
 
 DROP TYPE post_notifications_mode_enum;
+
+ALTER TABLE comment_reply
+    DROP CONSTRAINT comment_reply_id_not_null1,
+    ALTER COLUMN id SET NOT NULL,
+    ADD PRIMARY KEY (id);
+
+ALTER TABLE comment_reply
+    ALTER COLUMN recipient_id SET NOT NULL,
+    ALTER COLUMN read SET NOT NULL;
+
+ALTER TABLE inbox_combined
+    ADD CONSTRAINT inbox_combined_comment_reply_id_fkey FOREIGN KEY (comment_reply_id) REFERENCES comment_reply (id) ON UPDATE CASCADE ON DELETE CASCADE,
+    ADD CONSTRAINT inbox_combined_comment_reply_id_key UNIQUE (comment_reply_id),
+    ADD CONSTRAINT inbox_combined_check CHECK (num_nonnulls (comment_reply_id, person_comment_mention_id, person_post_mention_id, private_message_id) = 1);
 
