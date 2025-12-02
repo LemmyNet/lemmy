@@ -64,6 +64,7 @@ lemmy_db_views_person.workspace = true
 lemmy_db_views_person_content_combined.workspace = true
 lemmy_db_views_person_liked_combined.workspace = true
 lemmy_db_views_person_saved_combined.workspace = true
+lemmy_db_views_post_comment_combined.workspace = true
 lemmy_db_views_post.workspace = true
 lemmy_db_views_private_message.workspace = true
 lemmy_db_views_registration_applications.workspace = true

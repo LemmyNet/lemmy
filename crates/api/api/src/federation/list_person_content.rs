@@ -5,9 +5,9 @@ use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person_content_combined::{
   ListPersonContent,
-  PersonContentCombinedView,
   impls::PersonContentCombinedQuery,
 };
+use lemmy_db_views_post_comment_combined::PostCommentCombinedView;
 use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::pagination::PagedResponse;
 use lemmy_utils::error::LemmyResult;
@@ -16,7 +16,7 @@ pub async fn list_person_content(
   Query(data): Query<ListPersonContent>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
-) -> LemmyResult<Json<PagedResponse<PersonContentCombinedView>>> {
+) -> LemmyResult<Json<PagedResponse<PostCommentCombinedView>>> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let local_site = site_view.local_site;
   let local_instance_id = site_view.site.instance_id;
