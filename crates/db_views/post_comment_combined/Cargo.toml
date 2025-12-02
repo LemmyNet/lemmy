@@ -17,15 +17,10 @@ workspace = true
 
 [features]
 full = [
-  "lemmy_utils",
   "diesel",
-  "diesel-async",
-  "i-love-jesus",
   "lemmy_db_schema/full",
-  "lemmy_db_schema_file/full",
   "lemmy_db_views_post/full",
   "lemmy_db_views_comment/full",
-  "lemmy_diesel_utils/full",
 ]
 ts-rs = [
   "dep:ts-rs",
@@ -37,20 +32,10 @@ ts-rs = [
 [dependencies]
 lemmy_db_views_post = { workspace = true }
 lemmy_db_views_comment = { workspace = true }
-lemmy_db_views_local_user = { workspace = true }
 lemmy_db_schema = { workspace = true }
-lemmy_utils = { workspace = true, optional = true }
-lemmy_db_schema_file = { workspace = true }
-lemmy_diesel_utils = { workspace = true }
 diesel = { workspace = true, optional = true }
-diesel-async = { workspace = true, optional = true }
 serde = { workspace = true }
 ts-rs = { workspace = true, optional = true }
-i-love-jesus = { workspace = true, optional = true }
-serde_with = { workspace = true }
 chrono = { workspace = true }
 
 [dev-dependencies]
-pretty_assertions = { workspace = true }
-serial_test = { workspace = true }
-tokio = { workspace = true }
