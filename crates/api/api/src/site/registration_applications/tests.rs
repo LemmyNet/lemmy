@@ -19,9 +19,9 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::{InstanceId, enums::RegistrationMode};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_notification::api::GetUnreadRegistrationApplicationCountResponse;
-use lemmy_db_views_registration_applications::api::{
-  ApproveRegistrationApplication,
-  ListRegistrationApplicationsResponse,
+use lemmy_db_views_registration_applications::{
+  RegistrationApplicationView,
+  api::ApproveRegistrationApplication,
 };
 use lemmy_db_views_site::api::EditSite;
 use lemmy_diesel_utils::{connection::DbPool, traits::Crud};
@@ -92,28 +92,32 @@ async fn get_application_statuses(
   context: &Data<LemmyContext>,
   admin: LocalUserView,
 ) -> LemmyResult<(
-  Json<GetUnreadRegistrationApplicationCountResponse>,
-  Json<ListRegistrationApplicationsResponse>,
-  Json<ListRegistrationApplicationsResponse>,
+  GetUnreadRegistrationApplicationCountResponse,
+  Vec<RegistrationApplicationView>,
+  Vec<RegistrationApplicationView>,
 )> {
-  let application_count =
+  let Json(application_count) =
     get_unread_registration_application_count(context.clone(), admin.clone()).await?;
 
-  let unread_applications = list_registration_applications(
+  let Json(unread_applications) = list_registration_applications(
     Query::from_query("unread_only=true")?,
     context.clone(),
     admin.clone(),
   )
   .await?;
 
-  let all_applications = list_registration_applications(
+  let Json(all_applications) = list_registration_applications(
     Query::from_query("unread_only=false")?,
     context.clone(),
     admin,
   )
   .await?;
 
-  Ok((application_count, unread_applications, all_applications))
+  Ok((
+    application_count,
+    unread_applications.data,
+    all_applications.data,
+  ))
 }
 
 #[serial]
@@ -147,13 +151,10 @@ async fn test_application_approval() -> LemmyResult<()> {
     i64::from(expected_unread_applications),
   );
   assert_eq!(
-    unread_applications.registration_applications.len(),
+    unread_applications.len(),
     usize::from(expected_unread_applications),
   );
-  assert_eq!(
-    all_applications.registration_applications.len(),
-    expected_total_applications,
-  );
+  assert_eq!(all_applications.len(), expected_total_applications,);
 
   LocalUser::update(
     pool,
@@ -178,18 +179,15 @@ async fn test_application_approval() -> LemmyResult<()> {
     i64::from(expected_unread_applications),
   );
   assert_eq!(
-    unread_applications.registration_applications.len(),
+    unread_applications.len(),
     usize::from(expected_unread_applications),
   );
   assert!(
-    !unread_applications.registration_applications[0]
+    !unread_applications[0]
       .creator_local_user
       .accepted_application
   );
-  assert_eq!(
-    all_applications.registration_applications.len(),
-    expected_total_applications,
-  );
+  assert_eq!(all_applications.len(), expected_total_applications,);
 
   approve_registration_application(
     Json(ApproveRegistrationApplication {
@@ -213,18 +211,11 @@ async fn test_application_approval() -> LemmyResult<()> {
     i64::from(expected_unread_applications),
   );
   assert_eq!(
-    unread_applications.registration_applications.len(),
+    unread_applications.len(),
     usize::from(expected_unread_applications),
   );
-  assert_eq!(
-    all_applications.registration_applications.len(),
-    expected_total_applications,
-  );
-  assert!(
-    all_applications.registration_applications[0]
-      .creator_local_user
-      .accepted_application
-  );
+  assert_eq!(all_applications.len(), expected_total_applications,);
+  assert!(all_applications[0].creator_local_user.accepted_application);
 
   let (_local_user, app_with_email_2) = signup(
     pool,
@@ -242,13 +233,10 @@ async fn test_application_approval() -> LemmyResult<()> {
     i64::from(expected_unread_applications),
   );
   assert_eq!(
-    unread_applications.registration_applications.len(),
+    unread_applications.len(),
     usize::from(expected_unread_applications),
   );
-  assert_eq!(
-    all_applications.registration_applications.len(),
-    expected_total_applications,
-  );
+  assert_eq!(all_applications.len(), expected_total_applications,);
 
   Box::pin(update_site(
     Json(EditSite {
@@ -275,13 +263,10 @@ async fn test_application_approval() -> LemmyResult<()> {
     i64::from(expected_unread_applications),
   );
   assert_eq!(
-    unread_applications.registration_applications.len(),
+    unread_applications.len(),
     usize::from(expected_unread_applications),
   );
-  assert_eq!(
-    all_applications.registration_applications.len(),
-    expected_total_applications,
-  );
+  assert_eq!(all_applications.len(), expected_total_applications,);
 
   approve_registration_application(
     Json(ApproveRegistrationApplication {
@@ -305,13 +290,10 @@ async fn test_application_approval() -> LemmyResult<()> {
     i64::from(expected_unread_applications),
   );
   assert_eq!(
-    unread_applications.registration_applications.len(),
+    unread_applications.len(),
     usize::from(expected_unread_applications),
   );
-  assert_eq!(
-    all_applications.registration_applications.len(),
-    expected_total_applications,
-  );
+  assert_eq!(all_applications.len(), expected_total_applications,);
 
   signup(pool, data.instance.id, "user_wo_email", None).await?;
 
@@ -327,13 +309,10 @@ async fn test_application_approval() -> LemmyResult<()> {
     i64::from(expected_unread_applications),
   );
   assert_eq!(
-    unread_applications.registration_applications.len(),
+    unread_applications.len(),
     usize::from(expected_unread_applications),
   );
-  assert_eq!(
-    all_applications.registration_applications.len(),
-    expected_total_applications,
-  );
+  assert_eq!(all_applications.len(), expected_total_applications,);
 
   signup(pool, data.instance.id, "user_w_email_3", None).await?;
 
@@ -349,13 +328,10 @@ async fn test_application_approval() -> LemmyResult<()> {
     i64::from(expected_unread_applications),
   );
   assert_eq!(
-    unread_applications.registration_applications.len(),
+    unread_applications.len(),
     usize::from(expected_unread_applications),
   );
-  assert_eq!(
-    all_applications.registration_applications.len(),
-    expected_total_applications,
-  );
+  assert_eq!(all_applications.len(), expected_total_applications,);
 
   Box::pin(update_site(
     Json(EditSite {
@@ -385,13 +361,10 @@ async fn test_application_approval() -> LemmyResult<()> {
     i64::from(expected_unread_applications),
   );
   assert_eq!(
-    unread_applications.registration_applications.len(),
+    unread_applications.len(),
     usize::from(expected_unread_applications),
   );
-  assert_eq!(
-    all_applications.registration_applications.len(),
-    expected_total_applications,
-  );
+  assert_eq!(all_applications.len(), expected_total_applications,);
 
   LocalSite::delete(pool).await?;
   // Instance deletion cascades cleanup of all created persons

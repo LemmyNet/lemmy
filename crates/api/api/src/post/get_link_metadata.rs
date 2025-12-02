@@ -6,7 +6,7 @@ use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use url::Url;
 
 pub async fn get_link_metadata(
-  data: Query<GetSiteMetadata>,
+  Query(data): Query<GetSiteMetadata>,
   context: Data<LemmyContext>,
   // Require an account for this API
   _local_user_view: LocalUserView,

@@ -15,7 +15,7 @@ use lemmy_utils::{
 };
 
 pub async fn user_note_person(
-  data: Json<NotePerson>,
+  Json(data): Json<NotePerson>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PersonResponse>> {

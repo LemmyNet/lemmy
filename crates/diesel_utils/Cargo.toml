@@ -37,6 +37,9 @@ full = [
   "lemmy_utils/full",
   "diesel",
   "activitypub_federation",
+  "serde_urlencoded",
+  "base64",
+  "itertools",
 ]
 
 [dependencies]
@@ -63,6 +66,10 @@ tokio-postgres-rustls = { workspace = true, optional = true }
 rustls = { workspace = true, optional = true }
 i-love-jesus = { workspace = true, optional = true }
 lemmy_utils = { workspace = true, features = ["full"], optional = true }
+serde_urlencoded = { version = "0.7.1", optional = true }
+base64 = { workspace = true, optional = true }
+serde_with = { workspace = true }
+itertools = { workspace = true, optional = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

@@ -16,7 +16,7 @@ use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn delete_comment(
-  data: Json<DeleteComment>,
+  Json(data): Json<DeleteComment>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponse>> {

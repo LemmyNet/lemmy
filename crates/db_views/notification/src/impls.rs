@@ -10,12 +10,11 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   NotificationDataType,
-  newtypes::{NotificationId, PaginationCursor},
+  newtypes::NotificationId,
   source::{
     notification::{Notification, notification_keys},
     person::Person,
   },
-  traits::PaginationCursorBuilder,
   utils::{limit_fetch, queries::filters::filter_blocked},
 };
 use lemmy_db_schema_file::{
@@ -28,7 +27,13 @@ use lemmy_db_views_post::PostView;
 use lemmy_db_views_private_message::PrivateMessageView;
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
-  utils::paginate,
+  pagination::{
+    CursorData,
+    PagedResponse,
+    PaginationCursor,
+    PaginationCursorConversion,
+    paginate_response,
+  },
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -84,22 +89,21 @@ impl NotificationView {
   }
 }
 
-impl PaginationCursorBuilder for NotificationView {
-  type CursorData = Notification;
+impl PaginationCursorConversion for NotificationView {
+  type PaginatedType = Notification;
 
-  fn to_cursor(&self) -> PaginationCursor {
-    PaginationCursor(self.notification.id.0.to_string())
+  fn to_cursor(&self) -> CursorData {
+    CursorData::new_id(self.notification.id.0)
   }
 
   async fn from_cursor(
-    cursor: &PaginationCursor,
+    cursor: CursorData,
     pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Self::CursorData> {
+  ) -> LemmyResult<Self::PaginatedType> {
     let conn = &mut get_conn(pool).await?;
-    let id: i32 = cursor.0.parse()?;
     let query = notification::table
-      .select(Self::CursorData::as_select())
-      .filter(notification::id.eq(id));
+      .select(Self::PaginatedType::as_select())
+      .filter(notification::id.eq(cursor.id()?));
     let token = query.first(conn).await?;
 
     Ok(token)
@@ -112,8 +116,7 @@ pub struct NotificationQuery {
   pub unread_only: Option<bool>,
   pub show_bot_accounts: Option<bool>,
   pub hide_modlog_names: Option<bool>,
-  pub cursor_data: Option<Notification>,
-  pub page_back: Option<bool>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
   pub no_limit: Option<bool>,
 }
@@ -123,17 +126,12 @@ impl NotificationQuery {
     self,
     pool: &mut DbPool<'_>,
     my_person: &Person,
-  ) -> LemmyResult<Vec<NotificationView>> {
-    let conn = &mut get_conn(pool).await?;
-
+  ) -> LemmyResult<PagedResponse<NotificationView>> {
+    let limit = limit_fetch(self.limit, self.no_limit)?;
     let mut query = notification_joins(my_person.id, my_person.instance_id)
       .select(NotificationViewInternal::as_select())
+      .limit(limit)
       .into_boxed();
-
-    if !self.no_limit.unwrap_or_default() {
-      let limit = limit_fetch(self.limit)?;
-      query = query.limit(limit);
-    }
 
     // Filters
     if self.unread_only.unwrap_or_default() {
@@ -182,28 +180,24 @@ impl NotificationQuery {
     }
 
     // Sorting by published
-    let paginated_query = paginate(
-      query,
-      SortDirection::Desc,
-      self.cursor_data,
-      None,
-      self.page_back,
-    )
-    .then_order_by(notification_keys::published_at)
-    // Tie breaker
-    .then_order_by(notification_keys::id);
+    let paginated_query =
+      NotificationView::paginate(query, &self.page_cursor, SortDirection::Desc, pool, None)
+        .await?
+        .then_order_by(notification_keys::published_at)
+        // Tie breaker
+        .then_order_by(notification_keys::id);
 
+    let conn = &mut get_conn(pool).await?;
     let res = paginated_query
       .load::<NotificationViewInternal>(conn)
       .await?;
 
     let hide_modlog_names = self.hide_modlog_names.unwrap_or_default();
-    Ok(
-      res
-        .into_iter()
-        .filter_map(|r| map_to_enum(r, hide_modlog_names))
-        .collect(),
-    )
+    let res = res
+      .into_iter()
+      .filter_map(|r| map_to_enum(r, hide_modlog_names))
+      .collect();
+    paginate_response(res, limit, self.page_cursor)
   }
 }
 

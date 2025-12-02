@@ -78,7 +78,7 @@ struct TokenResponse {
 }
 
 pub async fn register(
-  data: Json<Register>,
+  Json(data): Json<Register>,
   req: HttpRequest,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<LoginResponse>> {
@@ -230,7 +230,7 @@ pub async fn register(
 }
 
 pub async fn authenticate_with_oauth(
-  data: Json<AuthenticateWithOauth>,
+  Json(data): Json<AuthenticateWithOauth>,
   req: HttpRequest,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<LoginResponse>> {
@@ -690,7 +690,8 @@ fn create_welcome_post(local_user: LocalUser, context: &LemmyContext) {
       ..Default::default()
     }
     .list(None, site.instance.id, &mut context.pool())
-    .await?;
+    .await?
+    .data;
     let initial_user = admins.pop();
 
     let person = SiteView::read_system_account(&mut context.pool()).await?;

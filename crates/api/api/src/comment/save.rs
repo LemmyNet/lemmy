@@ -12,7 +12,7 @@ use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn save_comment(
-  data: Json<SaveComment>,
+  Json(data): Json<SaveComment>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponse>> {

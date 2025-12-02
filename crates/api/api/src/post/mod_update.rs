@@ -25,7 +25,7 @@ use lemmy_utils::error::LemmyResult;
 use std::ops::Deref;
 
 pub async fn mod_update_post(
-  data: Json<ModEditPost>,
+  Json(data): Json<ModEditPost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {

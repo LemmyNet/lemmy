@@ -11,7 +11,7 @@ use diesel::{
   sql_types::{self, Timestamptz},
 };
 use futures_util::future::BoxFuture;
-use i_love_jesus::{CursorKey, PaginatedQueryBuilder, SortDirection};
+use i_love_jesus::CursorKey;
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   utils::validation::clean_url,
@@ -266,29 +266,6 @@ pub fn seconds_to_pg_interval(seconds: i32) -> PgInterval {
 pub type AsRecordOutput<T> = dsl::AsExprOf<T, sql_types::Record<<T as Expression>::SqlType>>;
 
 pub type ResultFuture<'a, T> = BoxFuture<'a, Result<T, DieselError>>;
-
-pub fn paginate<Q, C>(
-  query: Q,
-  sort_direction: SortDirection,
-  page_after: Option<C>,
-  page_before_or_equal: Option<C>,
-  page_back: Option<bool>,
-) -> PaginatedQueryBuilder<C, Q> {
-  let mut query = PaginatedQueryBuilder::new(query, sort_direction);
-
-  if page_back.unwrap_or_default() {
-    query = query
-      .before(page_after)
-      .after_or_equal(page_before_or_equal)
-      .limit_and_offset_from_end();
-  } else {
-    query = query
-      .after(page_after)
-      .before_or_equal(page_before_or_equal);
-  }
-
-  query
-}
 
 #[cfg(test)]
 mod tests {

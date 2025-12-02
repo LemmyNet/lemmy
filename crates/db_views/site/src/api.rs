@@ -1,6 +1,6 @@
-use crate::{FederatedInstanceView, ReadableFederationState, SiteView};
+use crate::{ReadableFederationState, SiteView};
 use lemmy_db_schema::{
-  newtypes::{LanguageId, MultiCommunityId, OAuthProviderId, PaginationCursor, TaglineId},
+  newtypes::{LanguageId, MultiCommunityId, OAuthProviderId, TaglineId},
   source::{
     comment::Comment,
     community::Community,
@@ -33,7 +33,7 @@ use lemmy_db_views_community_follower::CommunityFollowerView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
-use lemmy_diesel_utils::sensitive::SensitiveString;
+use lemmy_diesel_utils::{pagination::PaginationCursor, sensitive::SensitiveString};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
@@ -299,19 +299,7 @@ pub struct GetFederatedInstances {
   pub domain_filter: Option<String>,
   pub kind: GetFederatedInstancesKind,
   pub page_cursor: Option<PaginationCursor>,
-  pub page_back: Option<bool>,
   pub limit: Option<i64>,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// A response of federated instances.
-pub struct GetFederatedInstancesResponse {
-  pub federated_instances: Vec<FederatedInstanceView>,
-  pub next_page: Option<PaginationCursor>,
-  pub prev_page: Option<PaginationCursor>,
 }
 
 #[skip_serializing_none]
@@ -630,19 +618,7 @@ pub struct DeleteTagline {
 /// Fetches a list of taglines.
 pub struct ListTaglines {
   pub page_cursor: Option<PaginationCursor>,
-  pub page_back: Option<bool>,
   pub limit: Option<i64>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// A response for taglines.
-pub struct ListTaglinesResponse {
-  pub taglines: Vec<Tagline>,
-  /// the pagination cursor to use to fetch the next page
-  pub next_page: Option<PaginationCursor>,
-  pub prev_page: Option<PaginationCursor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -667,9 +643,19 @@ pub struct UpdateTagline {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct PluginMetadata {
-  name: String,
-  url: Url,
-  description: String,
+  pub name: String,
+  pub url: Option<Url>,
+  pub description: Option<String>,
+}
+
+impl PluginMetadata {
+  pub fn new(name: &'static str, url: &'static str, description: &'static str) -> Self {
+    Self {
+      name: name.to_string(),
+      url: url.parse().ok(),
+      description: Some(description.to_string()),
+    }
+  }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]

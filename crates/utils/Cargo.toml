@@ -72,7 +72,7 @@ smart-default = { version = "0.7.1", optional = true }
 markdown-it = { version = "0.6.1", optional = true }
 ts-rs = { workspace = true, optional = true }
 enum-map = { version = "2.7", optional = true }
-cfg-if = "1"
+cfg-if = { workspace = true }
 clearurls = { version = "0.0.4", features = ["linkify"] }
 markdown-it-block-spoiler = "1.0.2"
 markdown-it-sub = "1.0.2"

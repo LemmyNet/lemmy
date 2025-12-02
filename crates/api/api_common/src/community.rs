@@ -21,9 +21,7 @@ pub use lemmy_db_views_community::{
     GetMultiCommunityResponse,
     GetRandomCommunity,
     ListCommunities,
-    ListCommunitiesResponse,
     ListMultiCommunities,
-    ListMultiCommunitiesResponse,
     UpdateCommunityNotifications,
     UpdateMultiCommunity,
   },
@@ -59,11 +57,7 @@ pub mod actions {
     pub use lemmy_db_views_community_follower::CommunityFollowerView;
     pub use lemmy_db_views_community_follower_approval::{
       PendingFollowerView,
-      api::{
-        GetCommunityPendingFollowsCountResponse,
-        ListCommunityPendingFollows,
-        ListCommunityPendingFollowsResponse,
-      },
+      api::{GetCommunityPendingFollowsCountResponse, ListCommunityPendingFollows},
     };
   }
 }

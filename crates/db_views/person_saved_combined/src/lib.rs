@@ -1,7 +1,6 @@
 use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
   PersonContentType,
-  newtypes::PaginationCursor,
   source::{
     combined::person_saved::PersonSavedCombined,
     comment::{Comment, CommentActions},
@@ -14,6 +13,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_post::PostView;
+use lemmy_diesel_utils::pagination::PaginationCursor;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -37,79 +37,49 @@ use {
 #[cfg(feature = "full")]
 pub mod impls;
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable))]
-#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg(feature = "full")]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Queryable, Selectable)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 /// A combined person_saved view
 pub(crate) struct PersonSavedCombinedViewInternal {
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   pub person_saved_combined: PersonSavedCombined,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   pub comment: Option<Comment>,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   pub post: Post,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   pub item_creator: Person,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   pub community: Community,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   pub community_actions: Option<CommunityActions>,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   pub post_actions: Option<PostActions>,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   pub person_actions: Option<PersonActions>,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   pub comment_actions: Option<CommentActions>,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   pub image_details: Option<ImageDetails>,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression = creator_is_admin()
-    )
-  )]
+  #[diesel(select_expression = creator_is_admin())]
   pub item_creator_is_admin: bool,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression = post_tags_fragment()
-    )
-  )]
+  #[diesel(select_expression = post_tags_fragment())]
   pub post_tags: TagsView,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression = local_user_can_mod()
-    )
-  )]
+  #[diesel(select_expression = local_user_can_mod())]
   pub can_mod: bool,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression = creator_local_home_community_banned()
-    )
-  )]
+  #[diesel(select_expression = creator_local_home_community_banned())]
   pub creator_banned: bool,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression_type = CreatorLocalHomeCommunityBanExpiresType,
-      select_expression = creator_local_home_community_ban_expires()
-     )
+  #[diesel(
+    select_expression_type = CreatorLocalHomeCommunityBanExpiresType,
+    select_expression = creator_local_home_community_ban_expires()
   )]
   pub creator_ban_expires_at: Option<DateTime<Utc>>,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression = creator_is_moderator()
-    )
-  )]
+  #[diesel(select_expression = creator_is_moderator())]
   pub creator_is_moderator: bool,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression = creator_banned_from_community()
-    )
-  )]
+  #[diesel(select_expression = creator_banned_from_community())]
   pub creator_banned_from_community: bool,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression = creator_ban_expires_from_community()
-    )
-  )]
+  #[diesel(select_expression = creator_ban_expires_from_community())]
   pub creator_community_ban_expires_at: Option<DateTime<Utc>>,
 }
 
@@ -130,18 +100,5 @@ pub enum PersonSavedCombinedView {
 pub struct ListPersonSaved {
   pub type_: Option<PersonContentType>,
   pub page_cursor: Option<PaginationCursor>,
-  pub page_back: Option<bool>,
   pub limit: Option<i64>,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// A person's saved content response.
-pub struct ListPersonSavedResponse {
-  pub saved: Vec<PersonSavedCombinedView>,
-  /// the pagination cursor to use to fetch the next page
-  pub next_page: Option<PaginationCursor>,
-  pub prev_page: Option<PaginationCursor>,
 }
