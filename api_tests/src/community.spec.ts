@@ -718,11 +718,12 @@ test("Community name with non-ascii chars", async () => {
 
 test("Multi-community", async () => {
   // create multi
-  let res = await alpha.createMultiCommunity({ name: "multi-comm" });
+  const multiName = randomString(10);
+  let res = await alpha.createMultiCommunity({ name: multiName });
   let myUser = await getMyUser(alpha);
-  expect(res.multi_community_view.multi.name).toBe("multi-comm");
+  expect(res.multi_community_view.multi.name).toBe(multiName);
   expect(res.multi_community_view.multi.ap_id).toBe(
-    "http://lemmy-alpha:8541/m/multi-comm",
+    `http://lemmy-alpha:8541/m/${multiName}`,
   );
   expect(res.multi_community_view.owner.id).toBe(
     myUser.local_user_view.person.id,
@@ -742,18 +743,18 @@ test("Multi-community", async () => {
   ).resolve as MultiCommunityView;
   expect(betaMulti.multi.ap_id).toBe(res.multi_community_view.multi.ap_id);
 
-  var betaRes = await waitUntil(
-    () => beta.getMultiCommunity({ id: betaMulti.multi.id }),
-    m => m.communities.length == 1,
-  );
-  expect(betaRes.communities[0].community.ap_id).toBe(community1.ap_id);
-
   // follow multi over federation
   let form: FollowMultiCommunity = {
     multi_community_id: betaMulti.multi.id,
     follow: true,
   };
   await beta.followMultiCommunity(form);
+
+  let betaRes = await waitUntil(
+    () => beta.getMultiCommunity({ id: betaMulti.multi.id }),
+    m => m.communities.length == 1,
+  );
+  expect(betaRes.communities[0].community.ap_id).toBe(community1.ap_id);
 
   let followed = await waitUntil(
     () => beta.listMultiCommunities({}),
@@ -767,10 +768,9 @@ test("Multi-community", async () => {
     id: res.multi_community_view.multi.id,
     community_id: community2!.community.id,
   });
-  expect(entryRes2.community_view.community.id).toBe(community2?.community.id);
+  expect(entryRes2.community_view.community.id).toBe(community2!.community.id);
 
   // federated to beta
-  // TODO this is failing sometimes
   betaRes = await waitUntil(
     () => beta.getMultiCommunity({ id: betaMulti.multi.id }),
     m => m.communities.length == 2,
