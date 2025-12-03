@@ -60,7 +60,7 @@ test("Upload image and delete it", async () => {
 
   // Ensure that it comes back with the list_media endpoint
   const listMediaRes = await alphaImage.listMedia();
-  expect(listMediaRes.data.length).toBe(1);
+  expect(listMediaRes.items.length).toBe(1);
 
   // Ensure that it also comes back with the admin all images
   const listMediaAdminRes = await alpha.listMediaAdmin({
@@ -69,10 +69,10 @@ test("Upload image and delete it", async () => {
 
   // This number comes from all the previous thumbnails fetched in other tests.
   const previousThumbnails = 1;
-  expect(listMediaAdminRes.data.length).toBe(previousThumbnails);
+  expect(listMediaAdminRes.items.length).toBe(previousThumbnails);
 
   // Make sure the uploader is correct
-  expect(listMediaRes.data[0].person.ap_id).toBe(
+  expect(listMediaRes.items[0].person.ap_id).toBe(
     `http://lemmy-alpha:8541/u/lemmy_alpha`,
   );
 
@@ -90,13 +90,13 @@ test("Upload image and delete it", async () => {
 
   // Ensure that it shows the image is deleted
   const deletedListMediaRes = await alphaImage.listMedia();
-  expect(deletedListMediaRes.data.length).toBe(0);
+  expect(deletedListMediaRes.items.length).toBe(0);
 
   // Ensure that the admin shows its deleted
   const deletedListAllMediaRes = await alphaImage.listMediaAdmin({
     limit: imageFetchLimit,
   });
-  expect(deletedListAllMediaRes.data.length).toBe(previousThumbnails - 1);
+  expect(deletedListAllMediaRes.items.length).toBe(previousThumbnails - 1);
 });
 
 test("Purge user, uploaded image removed", async () => {

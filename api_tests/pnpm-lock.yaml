@@ -36,8 +36,8 @@ importers:
         specifier: ^18.0.0
         version: 18.0.2
       lemmy-js-client:
-        specifier: 1.0.0-db-cursor-changes.1
-        version: 1.0.0-db-cursor-changes.1
+        specifier: 1.0.0-rename-paged-response-data.0
+        version: 1.0.0-rename-paged-response-data.0
       lemmy-js-client-019:
         specifier: npm:lemmy-js-client@0.19.9
         version: lemmy-js-client@0.19.9
@@ -1651,8 +1651,8 @@ packages:
   lemmy-js-client@0.19.9:
     resolution: {integrity: sha512-MjeKtmtO8M9wHiKtm60LpZVd7ieI+4yctwwRhZTaxv6yUDI38bhltq8jFYaMDNQ3PKVHUhn33oDuGVnvV1sxKw==}
 
-  lemmy-js-client@1.0.0-db-cursor-changes.1:
-    resolution: {integrity: sha512-NRCLcVE0g30nRZ6yLOCkzJNf7y6UY8gZC1mh0erTWN7LuXRGqMBHKdO5nwBds7u/uaaMGwnH/4YUjKxsjDpReQ==}
+  lemmy-js-client@1.0.0-rename-paged-response-data.0:
+    resolution: {integrity: sha512-55U8XmuzWccD9NKd9cBtRzW+hCajtrjRVbi0WGTkFDKOtkOfIc0BJtq+dA7Coc6+O25BJBncOW0zfisMV7vNXw==}
 
   leven@3.1.0:
     resolution: {integrity: sha512-qsda+H8jTaUaN/x5vzW2rzc+8Rw4TAQ/4KjB46IwK5VH+IlVeeeje/EoZRpiXvIqjFgK84QffqPztGI3VBLG1A==}
@@ -4362,7 +4362,7 @@ snapshots:
 
   lemmy-js-client@0.19.9: {}
 
-  lemmy-js-client@1.0.0-db-cursor-changes.1:
+  lemmy-js-client@1.0.0-rename-paged-response-data.0:
     dependencies:
       '@tsoa/runtime': 6.6.0
     transitivePeerDependencies:

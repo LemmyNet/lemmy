@@ -115,8 +115,8 @@ async fn get_application_statuses(
 
   Ok((
     application_count,
-    unread_applications.data,
-    all_applications.data,
+    unread_applications.items,
+    all_applications.items,
   ))
 }
 

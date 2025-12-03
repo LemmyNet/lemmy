@@ -298,7 +298,7 @@ async fn post_listing_with_person(data: &mut Data) -> LemmyResult<()> {
   }
   .list(&data.site, pool)
   .await?
-  .data;
+  .items;
   // remove tags post
   read_post_listing.remove(0);
 
@@ -388,7 +388,7 @@ async fn post_listing_block_community(data: &mut Data) -> LemmyResult<()> {
   .list(&data.site, pool)
   .await?;
   // Should be 0 posts after the community block
-  assert_eq!(read_post_listings_with_person_after_block.data, vec![]);
+  assert_eq!(read_post_listings_with_person_after_block.items, vec![]);
 
   CommunityActions::unblock(pool, &community_block).await?;
   Ok(())
@@ -450,7 +450,7 @@ async fn post_listing_like(data: &mut Data) -> LemmyResult<()> {
   }
   .list(&data.site, pool)
   .await?
-  .data;
+  .items;
   read_post_listing.remove(0);
   assert_eq!(
     post_listing_single_with_person.post.id,
@@ -1306,18 +1306,18 @@ async fn pagination_hidden_cursors(data: &mut Data) -> LemmyResult<()> {
   };
 
   let first_page = get_page(&None).await?;
-  assert_eq!(first_page.data.len(), page_size);
+  assert_eq!(first_page.items.len(), page_size);
   assert!(first_page.prev_page.is_none()); // without request cursor, no back cursor
   assert!(first_page.next_page.is_some());
 
   let last_page = get_page(&first_page.next_page).await?;
-  assert_eq!(last_page.data.len(), page_size - 1);
+  assert_eq!(last_page.items.len(), page_size - 1);
   assert!(last_page.prev_page.is_some());
   assert!(last_page.next_page.is_none());
 
   // Get first page with both cursors
   let first_page2 = get_page(&last_page.prev_page).await?;
-  assert_eq!(first_page2.data.len(), page_size);
+  assert_eq!(first_page2.items.len(), page_size);
   assert!(first_page2.prev_page.is_some());
   assert_eq!(first_page2.next_page, first_page.next_page);
 
@@ -1325,7 +1325,7 @@ async fn pagination_hidden_cursors(data: &mut Data) -> LemmyResult<()> {
   let pool = &mut pool.into();
 
   // Mark first post as deleted
-  let first_post_view = first_page.data.first().expect("first post");
+  let first_post_view = first_page.items.first().expect("first post");
   let post_update_form = PostUpdateForm {
     deleted: Some(true),
     ..Default::default()
@@ -1333,18 +1333,18 @@ async fn pagination_hidden_cursors(data: &mut Data) -> LemmyResult<()> {
   Post::update(pool, first_post_view.post.id, &post_update_form).await?;
 
   let partial_first_page = get_page(&last_page.prev_page).await?;
-  assert_eq!(partial_first_page.data.len(), page_size - 1);
+  assert_eq!(partial_first_page.items.len(), page_size - 1);
   assert!(partial_first_page.prev_page.is_none());
   assert!(partial_first_page.next_page.is_some());
 
   // Cursor works for item marked as deleted
   let removed_item_page = get_page(&first_page2.prev_page).await?;
-  assert_eq!(removed_item_page.data.len(), 0);
+  assert_eq!(removed_item_page.items.len(), 0);
   assert!(removed_item_page.prev_page.is_none());
   assert!(removed_item_page.next_page.is_some()); // recovery cursor
 
   let recovered_page = get_page(&removed_item_page.next_page).await?;
-  assert_eq!(recovered_page.data.len(), page_size);
+  assert_eq!(recovered_page.items.len(), page_size);
   assert!(recovered_page.prev_page.is_some());
   assert!(recovered_page.next_page.is_some());
 
@@ -1352,7 +1352,7 @@ async fn pagination_hidden_cursors(data: &mut Data) -> LemmyResult<()> {
   Post::delete(pool, first_post_view.post.id).await?;
 
   let partial_first_page = get_page(&last_page.prev_page).await?;
-  assert_eq!(partial_first_page.data.len(), page_size - 1);
+  assert_eq!(partial_first_page.items.len(), page_size - 1);
   assert!(partial_first_page.prev_page.is_none());
   assert!(partial_first_page.next_page.is_some());
 
@@ -1423,29 +1423,29 @@ async fn pagination_recovery_cursors(data: &mut Data) -> LemmyResult<()> {
   };
 
   let first_page = get_page(&None).await?;
-  assert_eq!(first_page.data.len(), page_size);
+  assert_eq!(first_page.items.len(), page_size);
   assert!(first_page.prev_page.is_none()); // without request cursor, no back cursor
   assert!(first_page.next_page.is_some());
 
   let last_page = get_page(&first_page.next_page).await?;
-  assert_eq!(last_page.data.len(), page_size);
+  assert_eq!(last_page.items.len(), page_size);
   assert!(last_page.prev_page.is_some());
   assert!(last_page.next_page.is_some()); // full page, has cursor
 
   // Get the first page with both cursors
   let first_page2 = get_page(&last_page.prev_page).await?;
-  assert_eq!(first_page.data.len(), page_size);
+  assert_eq!(first_page.items.len(), page_size);
   assert!(first_page2.prev_page.is_some()); // full page, has cursor
   assert!(first_page2.next_page.is_some());
   assert_eq!(first_page2.next_page, first_page.next_page);
   assert_eq!(
     first_page2
-      .data
+      .items
       .into_iter()
       .map(|pv| pv.post.id)
       .collect::<Vec<PostId>>(),
     first_page
-      .data
+      .items
       .clone()
       .into_iter()
       .map(|pv| pv.post.id)
@@ -1453,48 +1453,48 @@ async fn pagination_recovery_cursors(data: &mut Data) -> LemmyResult<()> {
   );
 
   let beyond_first_page = get_page(&first_page2.prev_page).await?;
-  assert_eq!(beyond_first_page.data.len(), 0);
+  assert_eq!(beyond_first_page.items.len(), 0);
   assert!(beyond_first_page.prev_page.is_none());
   assert!(beyond_first_page.next_page.is_some());
 
   let recovered_first_page = get_page(&beyond_first_page.next_page).await?;
-  assert_eq!(recovered_first_page.data.len(), page_size);
+  assert_eq!(recovered_first_page.items.len(), page_size);
   assert!(recovered_first_page.prev_page.is_some()); // full page, has cursor
   assert!(recovered_first_page.next_page.is_some());
   assert_eq!(recovered_first_page.next_page, first_page2.next_page);
   assert_eq!(recovered_first_page.prev_page, first_page2.prev_page);
   assert_eq!(
     recovered_first_page
-      .data
+      .items
       .into_iter()
       .map(|pv| pv.post.id)
       .collect::<Vec<PostId>>(),
     first_page
-      .data
+      .items
       .into_iter()
       .map(|pv| pv.post.id)
       .collect::<Vec<PostId>>()
   );
 
   let beyond_last_page = get_page(&last_page.next_page).await?;
-  assert_eq!(beyond_last_page.data.len(), 0);
+  assert_eq!(beyond_last_page.items.len(), 0);
   assert!(beyond_last_page.prev_page.is_some());
   assert!(beyond_last_page.next_page.is_none());
 
   let recovered_last_page = get_page(&beyond_last_page.prev_page).await?;
-  assert_eq!(recovered_last_page.data.len(), page_size);
+  assert_eq!(recovered_last_page.items.len(), page_size);
   assert!(recovered_last_page.prev_page.is_some());
   assert!(recovered_last_page.next_page.is_some()); // full page, has cursor
   assert_eq!(recovered_last_page.next_page, last_page.next_page);
   assert_eq!(recovered_last_page.prev_page, last_page.prev_page);
   assert_eq!(
     recovered_last_page
-      .data
+      .items
       .into_iter()
       .map(|pv| pv.post.id)
       .collect::<Vec<PostId>>(),
     last_page
-      .data
+      .items
       .into_iter()
       .map(|pv| pv.post.id)
       .collect::<Vec<PostId>>()
@@ -2290,7 +2290,7 @@ async fn post_listing_multi_community(data: &mut Data) -> LemmyResult<()> {
   }
   .list(&data.site, pool)
   .await?;
-  assert_eq!(listing.data, suggested.data);
+  assert_eq!(listing.items, suggested.items);
 
   Ok(())
 }

@@ -304,7 +304,7 @@ mod tests {
     }
     .list(pool)
     .await?
-    .data;
+    .items;
 
     assert_eq!(
       apps,
@@ -376,7 +376,7 @@ mod tests {
     }
     .list(pool)
     .await?
-    .data;
+    .items;
     assert_eq!(apps_after_resolve, vec![read_jess_app_view]);
 
     // Make sure the counts are correct

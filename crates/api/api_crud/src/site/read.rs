@@ -43,7 +43,7 @@ async fn read_site(context: &LemmyContext) -> LemmyResult<GetSiteResponse> {
   }
   .list(None, site_view.instance.id, &mut context.pool())
   .await?
-  .data;
+  .items;
   let all_languages = Language::read_all(&mut context.pool()).await?;
   let discussion_languages = SiteLanguage::read_local_raw(&mut context.pool()).await?;
   let blocked_urls = LocalSiteUrlBlocklist::get_all(&mut context.pool()).await?;
