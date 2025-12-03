@@ -24,9 +24,9 @@ import {
   getMyUser,
   getPersonDetails,
   banPersonFromSite,
-  delay,
   statusNotFound,
   statusUnauthorized,
+  waitUntil,
 } from "./shared";
 import {
   EditSite,
@@ -108,7 +108,6 @@ test("Delete user", async () => {
   await deleteUser(user);
 
   // Wait, in order to make sure it federates
-  await delay(1_000);
   await expect(getMyUser(user)).rejects.toStrictEqual(
     new LemmyError("incorrect_login", statusUnauthorized),
   );
@@ -124,11 +123,14 @@ test("Delete user", async () => {
   expect((await getPost(alpha, remotePost.id)).post_view.post.deleted).toBe(
     true,
   );
-  expect(
-    (await getComments(alpha, localComment.post_id)).data[0].comment.deleted,
-  ).toBe(true);
-  let comment = await alpha.getComment({ id: remoteComment.id });
-  expect(comment.comment_view.comment.deleted).toBe(true);
+  await waitUntil(
+    () => getComments(alpha, localComment.post_id),
+    c => c.data[0].comment.deleted,
+  );
+  await waitUntil(
+    () => alpha.getComment({ id: remoteComment.id }),
+    c => c.comment_view.comment.deleted,
+  );
   await expect(
     getPersonDetails(user, remoteComment.creator_id),
   ).rejects.toStrictEqual(new LemmyError("not_found", statusNotFound));

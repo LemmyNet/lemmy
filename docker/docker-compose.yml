@@ -81,7 +81,7 @@ services:
     logging: *default-logging
 
   postgres:
-    image: pgautoupgrade/pgautoupgrade:16-alpine
+    image: pgautoupgrade/pgautoupgrade:18-alpine
     # this needs to match the database host in lemmy.hson
     # Tune your settings via
     # https://pgtune.leopard.in.ua/#/
@@ -97,7 +97,7 @@ services:
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=lemmy
     volumes:
-      - ./volumes/postgres:/var/lib/postgresql/data:Z
+      - ./volumes/postgres:/var/lib/postgresql:Z
       - ./customPostgresql.conf:/etc/postgresql.conf:Z
     restart: unless-stopped
     logging: *default-logging

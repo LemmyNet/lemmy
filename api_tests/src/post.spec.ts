@@ -18,7 +18,6 @@ import {
   resolveBetaCommunity,
   createComment,
   deletePost,
-  delay,
   removePost,
   getPost,
   unfollowRemotes,
@@ -42,6 +41,7 @@ import {
   getModlog,
   statusNotFound,
   statusBadRequest,
+  getSite,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
 import { AdminBlockInstanceParams } from "lemmy-js-client/dist/types/AdminBlockInstanceParams";
@@ -334,18 +334,15 @@ test("Delete a post", async () => {
   let postRes = await createPost(alpha, betaCommunity.community.id);
   expect(postRes.post_view.post).toBeDefined();
 
+  await waitForPost(beta, postRes.post_view.post, p => p?.post.id != undefined);
+
   let deletedPost = await deletePost(alpha, true, postRes.post_view.post);
   expect(deletedPost.post_view.post.deleted).toBe(true);
   expect(deletedPost.post_view.post.name).toBe(postRes.post_view.post.name);
 
   // Make sure lemmy beta sees post is deleted
   // This will be undefined because of the tombstone
-  await waitForPost(
-    beta,
-    postRes.post_view.post,
-    p => p?.post?.deleted || p == undefined,
-  );
-  await delay();
+  await waitForPost(beta, postRes.post_view.post, p => p == undefined);
 
   // Undelete
   let undeletedPost = await deletePost(alpha, false, postRes.post_view.post);
@@ -432,7 +429,7 @@ test("Remove a post from admin and community on same instance", async () => {
   // Make sure lemmy alpha sees post is removed
   let alphaPost = await waitUntil(
     () => getPost(alpha, alphaPost0.post.id),
-    p => p?.post_view.post.removed ?? false,
+    p => p?.post_view.post.removed,
   );
   expect(alphaPost?.post_view.post.removed).toBe(true);
   await assertPostFederation(
@@ -843,7 +840,10 @@ test("Block post that contains banned URL", async () => {
 
   await epsilon.editSite(editSiteForm);
 
-  await delay();
+  await waitUntil(
+    () => epsilon.getSite(),
+    s => s.blocked_urls.length == 1,
+  );
 
   if (!betaCommunity) {
     throw "Missing beta community";
@@ -952,7 +952,10 @@ test("Don't allow NSFW posts on instances that disable it", async () => {
   await gamma.editSite(editSiteForm);
 
   // Wait for cache on Gamma's LocalSite
-  await delay(1_000);
+  await waitUntil(
+    () => getSite(gamma),
+    s => s.site_view.local_site.disallow_nsfw_content,
+  );
 
   if (!betaCommunity) {
     throw "Missing beta community";
