@@ -159,7 +159,7 @@ impl ActivityHandler for BlockUser {
     insert_received_activity(&self.id, context).await?;
     let expires = self.expires.or(self.end_time).map(Into::into);
     let mod_person = self.actor.dereference(context).await?;
-    let blocked_person = self.object.dereference(context).await?;
+    let blocked_person = self.object.dereference_local(context).await?;
     let target = self.target.dereference(context).await?;
     match target {
       SiteOrCommunity::Site(_site) => {
