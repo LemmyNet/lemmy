@@ -52,6 +52,16 @@ steps:
       - psql -c "CREATE USER lemmy WITH PASSWORD 'password' SUPERUSER;"
     when: *slow_check_paths
 
+  cargo_build:
+    image: *rust_image
+    environment:
+      CARGO_HOME: .cargo_home
+      RUSTUP_HOME: .rustup_home
+    commands:
+      - cargo build
+      - mv target/debug/lemmy_server target/lemmy_server
+    when: *slow_check_paths
+
   run_federation_tests:
     image: node:24-trixie-slim
     environment:
@@ -147,16 +157,6 @@ steps:
       - if [[ "$EMPTY_FILES" ]]; then echo "Empty files present:\n$EMPTY_FILES\n"; exit 1; fi
     when:
       - event: pull_request
-
-  cargo_build:
-    image: *rust_image
-    environment:
-      CARGO_HOME: .cargo_home
-      RUSTUP_HOME: .rustup_home
-    commands:
-      - cargo build
-      - mv target/debug/lemmy_server target/lemmy_server
-    when: *slow_check_paths
 
   cargo_test:
     image: *rust_image
