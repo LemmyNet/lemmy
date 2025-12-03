@@ -4,15 +4,10 @@ use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_notification::{NotificationData, impls::NotificationQuery};
-use lemmy_db_views_person_content_combined::{
-  PersonContentCombinedView,
-  impls::PersonContentCombinedQuery,
-};
-use lemmy_db_views_person_liked_combined::{
-  PersonLikedCombinedView,
-  impls::PersonLikedCombinedQuery,
-};
+use lemmy_db_views_person_content_combined::impls::PersonContentCombinedQuery;
+use lemmy_db_views_person_liked_combined::impls::PersonLikedCombinedQuery;
 use lemmy_db_views_post::PostView;
+use lemmy_db_views_post_comment_combined::PostCommentCombinedView;
 use lemmy_db_views_site::{
   api::{ExportDataResponse, PostOrCommentOrPrivateMessage},
   impls::user_backup_list_to_user_settings_backup,
@@ -40,8 +35,8 @@ pub async fn export_data(
   .await?
   .into_iter()
   .map(|u| match u {
-    PersonContentCombinedView::Post(pv) => Post(pv.post),
-    PersonContentCombinedView::Comment(cv) => Comment(cv.comment),
+    PostCommentCombinedView::Post(pv) => Post(pv.post),
+    PostCommentCombinedView::Comment(cv) => Comment(cv.comment),
   })
   .collect();
 
@@ -71,8 +66,8 @@ pub async fn export_data(
   .into_iter()
   .map(|u| {
     match u {
-      PersonLikedCombinedView::Post(pv) => pv.post.ap_id,
-      PersonLikedCombinedView::Comment(cv) => cv.comment.ap_id,
+      PostCommentCombinedView::Post(pv) => pv.post.ap_id,
+      PostCommentCombinedView::Comment(cv) => cv.comment.ap_id,
     }
     .into()
   })

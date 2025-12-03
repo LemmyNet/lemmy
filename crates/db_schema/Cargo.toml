@@ -49,10 +49,7 @@ lemmy_diesel_utils = { workspace = true }
 bcrypt = { workspace = true, optional = true }
 diesel = { workspace = true, optional = true }
 diesel-derive-newtype = { workspace = true, optional = true }
-diesel-async = { workspace = true, features = [
-  "deadpool",
-  "postgres",
-], optional = true }
+diesel-async = { workspace = true, optional = true }
 diesel-uplete = { workspace = true, optional = true }
 diesel_ltree = { workspace = true, optional = true }
 ts-rs = { workspace = true, optional = true }
