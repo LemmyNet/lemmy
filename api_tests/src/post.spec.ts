@@ -342,7 +342,7 @@ test("Delete a post", async () => {
 
   // Make sure lemmy beta sees post is deleted
   // This will be undefined because of the tombstone
-  await waitForPost(beta, postRes.post_view.post, p => p == undefined);
+  await waitForPost(beta, postRes.post_view.post, p => p?.post == undefined);
 
   // Undelete
   let undeletedPost = await deletePost(alpha, false, postRes.post_view.post);

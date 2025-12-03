@@ -1030,7 +1030,7 @@ export function getCommentParentId(comment: Comment): number | undefined {
   if (split.length > 1) {
     return Number(split[split.length - 2]);
   } else {
-    console.error(`Failed to extract comment parent id from ${comment.path}`);
+    // console.error(`Failed to extract comment parent id from ${comment.path}`);
     return undefined;
   }
 }
@@ -1048,13 +1048,13 @@ export async function waitUntil<T>(
       result = await fetcher();
       if (checker(result)) return result;
     } catch (error) {
-      console.error(error);
+      // console.error(error);
     }
     await delay(
       delaySeconds[Math.min(retry - 1, delaySeconds.length - 1)] * 1000,
     );
   }
-  console.error("result", result);
+  // console.error("result", result);
   throw Error(
     `Failed "${fetcher}": "${checker}" did not return true after ${retries} retries (delayed ${delaySeconds}s each)`,
   );
