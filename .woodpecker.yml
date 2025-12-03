@@ -62,6 +62,13 @@ steps:
       - psql -c "CREATE USER lemmy WITH PASSWORD 'password' SUPERUSER;"
     when: *slow_check_paths
 
+  prettier_check:
+    image: jauderho/prettier:3.7.3-alpine
+    commands:
+      - prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations' '!api_tests/pnpm-lock.yaml'
+    when:
+      - event: pull_request
+
   run_federation_tests:
     image: node:slim
     environment:
@@ -86,13 +93,6 @@ steps:
     when:
       - event: pull_request
         status: failure
-
-  prettier_check:
-    image: jauderho/prettier:3.7.3-alpine
-    commands:
-      - prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations' '!api_tests/pnpm-lock.yaml'
-    when:
-      - event: pull_request
 
   bash_fmt:
     image: alpine:3
