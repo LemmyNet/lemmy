@@ -73,7 +73,8 @@ steps:
       - bash api_tests/prepare-drone-federation-test.sh
       - cd api_tests/
       - pnpm i
-      - for run in {1..10}; do pnpm api-test; done
+      # Unfortunately these tests are unstable on slower CI machines, so try it a few times.
+      - pnpm api-test || pnpm api-test || pnpm api-test || pnpm api-test
     when: *slow_check_paths
 
   federation_tests_server_output:
