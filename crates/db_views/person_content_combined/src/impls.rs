@@ -213,7 +213,7 @@ impl PersonContentCombinedQuery {
 
     let res = paginate_response(out, limit, self.page_cursor)?;
     Ok(PagedResponse {
-      data: res.data.into_iter().map(|i| i.0).collect(),
+      items: res.items.into_iter().map(|i| i.0).collect(),
       next_page: res.next_page,
       prev_page: res.prev_page,
     })
