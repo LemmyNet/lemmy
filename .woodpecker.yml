@@ -70,11 +70,11 @@ steps:
     commands:
       - *install_pnpm
       - apt-get update && apt-get install -y bash curl postgresql-client
-      - bash api_tests/prepare-drone-federation-test.sh
       - cd api_tests/
+      - bash prepare-drone-federation-test.sh
       - pnpm i
       # Unfortunately these tests are unstable on slower CI machines, so try it a few times.
-      - pnpm api-test-multiple
+      - bash run-multiple.sh
     when: *slow_check_paths
 
   federation_tests_server_output:
