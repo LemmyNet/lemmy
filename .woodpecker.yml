@@ -40,6 +40,16 @@ steps:
     when:
       - event: [pull_request, tag]
 
+  cargo_build:
+    image: *rust_image
+    environment:
+      CARGO_HOME: .cargo_home
+      RUSTUP_HOME: .rustup_home
+    commands:
+      - cargo build
+      - mv target/debug/lemmy_server target/lemmy_server
+    when: *slow_check_paths
+
   # `DROP OWNED` doesn't work for default user
   create_database_user:
     image: pgautoupgrade/pgautoupgrade:18-alpine
@@ -50,16 +60,6 @@ steps:
       PGDATABASE: lemmy
     commands:
       - psql -c "CREATE USER lemmy WITH PASSWORD 'password' SUPERUSER;"
-    when: *slow_check_paths
-
-  cargo_build:
-    image: *rust_image
-    environment:
-      CARGO_HOME: .cargo_home
-      RUSTUP_HOME: .rustup_home
-    commands:
-      - cargo build
-      - mv target/debug/lemmy_server target/lemmy_server
     when: *slow_check_paths
 
   run_federation_tests:
