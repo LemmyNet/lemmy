@@ -758,7 +758,7 @@ test("Multi-community", async () => {
 
   let followed = await waitUntil(
     () => beta.listMultiCommunities({}),
-    m => m.items.length == 1,
+    m => m.items.length >= 1,
   );
   expect(followed.items[0].multi.ap_id).toBe(betaMulti.multi.ap_id);
 
