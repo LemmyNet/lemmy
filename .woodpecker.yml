@@ -40,6 +40,20 @@ steps:
     when:
       - event: [pull_request, tag]
 
+  run_federation_tests:
+    image: node:24-trixie-slim
+    environment:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
+      DO_WRITE_HOSTS_FILE: "1"
+    commands:
+      - *install_pnpm
+      - apt-get update && apt-get install -y bash curl postgresql-client
+      - bash api_tests/prepare-drone-federation-test.sh
+      - cd api_tests/
+      - pnpm i
+      - for run in {1..10}; do pnpm api-test; done
+    when: *slow_check_paths
+
   prettier_check:
     image: jauderho/prettier:3.7.3-alpine
     commands:
@@ -209,20 +223,6 @@ steps:
       - export PATH="$CARGO_HOME/bin:$PATH"
       - diesel print-schema
       - diff tmp.schema crates/db_schema_file/src/schema.rs
-    when: *slow_check_paths
-
-  run_federation_tests:
-    image: node:24-trixie-slim
-    environment:
-      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
-      DO_WRITE_HOSTS_FILE: "1"
-    commands:
-      - *install_pnpm
-      - apt-get update && apt-get install -y bash curl postgresql-client
-      - bash api_tests/prepare-drone-federation-test.sh
-      - cd api_tests/
-      - pnpm i
-      - pnpm api-test
     when: *slow_check_paths
 
   federation_tests_server_output:
