@@ -40,6 +40,18 @@ steps:
     when:
       - event: [pull_request, tag]
 
+  # `DROP OWNED` doesn't work for default user
+  create_database_user:
+    image: pgautoupgrade/pgautoupgrade:18-alpine
+    environment:
+      PGUSER: postgres
+      PGPASSWORD: password
+      PGHOST: database
+      PGDATABASE: lemmy
+    commands:
+      - psql -c "CREATE USER lemmy WITH PASSWORD 'password' SUPERUSER;"
+    when: *slow_check_paths
+
   run_federation_tests:
     image: node:24-trixie-slim
     environment:
@@ -53,6 +65,16 @@ steps:
       - pnpm i
       - for run in {1..10}; do pnpm api-test; done
     when: *slow_check_paths
+
+  federation_tests_server_output:
+    image: alpine:3
+    commands:
+      # `|| true` prevents this step from appearing to fail if the server output files don't exist
+      - cat target/log/lemmy_*.out || true
+      - "# If you can't see all output, then use the download button"
+    when:
+      - event: pull_request
+        status: failure
 
   prettier_check:
     image: jauderho/prettier:3.7.3-alpine
@@ -136,18 +158,6 @@ steps:
       - mv target/debug/lemmy_server target/lemmy_server
     when: *slow_check_paths
 
-  # `DROP OWNED` doesn't work for default user
-  create_database_user:
-    image: pgautoupgrade/pgautoupgrade:18-alpine
-    environment:
-      PGUSER: postgres
-      PGPASSWORD: password
-      PGHOST: database
-      PGDATABASE: lemmy
-    commands:
-      - psql -c "CREATE USER lemmy WITH PASSWORD 'password' SUPERUSER;"
-    when: *slow_check_paths
-
   cargo_test:
     image: *rust_image
     environment:
@@ -224,16 +234,6 @@ steps:
       - diesel print-schema
       - diff tmp.schema crates/db_schema_file/src/schema.rs
     when: *slow_check_paths
-
-  federation_tests_server_output:
-    image: alpine:3
-    commands:
-      # `|| true` prevents this step from appearing to fail if the server output files don't exist
-      - cat target/log/lemmy_*.out || true
-      - "# If you can't see all output, then use the download button"
-    when:
-      - event: pull_request
-        status: failure
 
   publish_release_docker:
     image: woodpeckerci/plugin-docker-buildx
