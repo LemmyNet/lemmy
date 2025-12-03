@@ -81,7 +81,7 @@ pub async fn ban_from_site(
 
   ModBan::create(&mut context.pool(), &form).await?;
 
-  let person_view = PersonView::read(&mut context.pool(), person.id, false)
+  let person_view = PersonView::read(&mut context.pool(), person.id, true)
     .await?
     .ok_or(LemmyErrorType::CouldntFindPerson)?;
 

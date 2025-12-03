@@ -137,7 +137,6 @@ impl ApubActor for Person {
   ) -> Result<Option<Self>, Error> {
     let conn = &mut get_conn(pool).await?;
     person::table
-      .filter(person::deleted.eq(false))
       .filter(person::actor_id.eq(object_id))
       .first(conn)
       .await
