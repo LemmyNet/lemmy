@@ -108,7 +108,7 @@ async function assertPostFederation(
 
 test("Create a post", async () => {
   // Block alpha
-  var block_instance_params: AdminBlockInstanceParams = {
+  let block_instance_params: AdminBlockInstanceParams = {
     instance: "lemmy-alpha",
     block: true,
     reason: "block",

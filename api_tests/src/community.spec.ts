@@ -523,7 +523,7 @@ test("Dont receive community activities after unsubscribe", async () => {
   expect(communityRes1.community_view.community.subscribers).toBe(2);
 
   // temporarily block alpha, so that it doesn't know about unfollow
-  var allow_instance_params: AdminAllowInstanceParams = {
+  let allow_instance_params: AdminAllowInstanceParams = {
     instance: "lemmy-alpha",
     allow: false,
     reason: "allow",
