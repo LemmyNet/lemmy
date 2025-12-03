@@ -1,14 +1,11 @@
 use chrono::{DateTime, Utc};
-use lemmy_db_schema::{
-  source::{
-    comment::{Comment, CommentActions},
-    community::{Community, CommunityActions},
-    images::ImageDetails,
-    person::{Person, PersonActions},
-    post::{Post, PostActions},
-    tag::TagsView,
-  },
-  traits::InternalToCombinedView,
+use lemmy_db_schema::source::{
+  comment::{Comment, CommentActions},
+  community::{Community, CommunityActions},
+  images::ImageDetails,
+  person::{Person, PersonActions},
+  post::{Post, PostActions},
+  tag::TagsView,
 };
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_post::PostView;
@@ -16,6 +13,7 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use {
   diesel::{Queryable, Selectable},
+  lemmy_db_schema::traits::InternalToCombinedView,
   lemmy_db_schema::utils::queries::selects::{
     CreatorLocalHomeCommunityBanExpiresType,
     creator_ban_expires_from_community,
@@ -82,6 +80,7 @@ pub enum PostCommentCombinedView {
   Comment(CommentView),
 }
 
+#[cfg(feature = "full")]
 impl InternalToCombinedView for PostCommentCombinedViewInternal {
   type CombinedView = PostCommentCombinedView;
 
