@@ -3317,6 +3317,7 @@ dependencies = [
  "lemmy_db_views_person_liked_combined",
  "lemmy_db_views_person_saved_combined",
  "lemmy_db_views_post",
+ "lemmy_db_views_post_comment_combined",
  "lemmy_db_views_registration_applications",
  "lemmy_db_views_report_combined",
  "lemmy_db_views_search_combined",
@@ -3383,6 +3384,7 @@ dependencies = [
  "lemmy_db_views_person_liked_combined",
  "lemmy_db_views_person_saved_combined",
  "lemmy_db_views_post",
+ "lemmy_db_views_post_comment_combined",
  "lemmy_db_views_private_message",
  "lemmy_db_views_registration_applications",
  "lemmy_db_views_report_combined",
@@ -3982,16 +3984,14 @@ dependencies = [
 name = "lemmy_db_views_person_content_combined"
 version = "1.0.0-alpha.12"
 dependencies = [
- "chrono",
  "derive-new",
  "diesel",
  "diesel-async",
  "i-love-jesus",
  "lemmy_db_schema 1.0.0-alpha.12",
  "lemmy_db_schema_file",
- "lemmy_db_views_comment",
  "lemmy_db_views_local_user",
- "lemmy_db_views_post",
+ "lemmy_db_views_post_comment_combined",
  "lemmy_diesel_utils",
  "lemmy_utils 1.0.0-alpha.12",
  "pretty_assertions",
@@ -4006,15 +4006,13 @@ dependencies = [
 name = "lemmy_db_views_person_liked_combined"
 version = "1.0.0-alpha.12"
 dependencies = [
- "chrono",
  "diesel",
  "diesel-async",
  "i-love-jesus",
  "lemmy_db_schema 1.0.0-alpha.12",
  "lemmy_db_schema_file",
- "lemmy_db_views_comment",
  "lemmy_db_views_local_user",
- "lemmy_db_views_post",
+ "lemmy_db_views_post_comment_combined",
  "lemmy_diesel_utils",
  "lemmy_utils 1.0.0-alpha.12",
  "pretty_assertions",
@@ -4029,15 +4027,13 @@ dependencies = [
 name = "lemmy_db_views_person_saved_combined"
 version = "1.0.0-alpha.12"
 dependencies = [
- "chrono",
  "diesel",
  "diesel-async",
  "i-love-jesus",
  "lemmy_db_schema 1.0.0-alpha.12",
  "lemmy_db_schema_file",
- "lemmy_db_views_comment",
  "lemmy_db_views_local_user",
- "lemmy_db_views_post",
+ "lemmy_db_views_post_comment_combined",
  "lemmy_diesel_utils",
  "lemmy_utils 1.0.0-alpha.12",
  "pretty_assertions",
@@ -4071,6 +4067,19 @@ dependencies = [
  "tracing",
  "ts-rs",
  "url",
+]
+
+[[package]]
+name = "lemmy_db_views_post_comment_combined"
+version = "1.0.0-alpha.12"
+dependencies = [
+ "chrono",
+ "diesel",
+ "lemmy_db_schema 1.0.0-alpha.12",
+ "lemmy_db_views_comment",
+ "lemmy_db_views_post",
+ "serde",
+ "ts-rs",
 ]
 
 [[package]]
