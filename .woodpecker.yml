@@ -75,7 +75,7 @@ steps:
       - event: pull_request
 
   run_federation_tests:
-    image: node:24-slim
+    image: node:24-trixie-slim
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
       DO_WRITE_HOSTS_FILE: "1"
