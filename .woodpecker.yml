@@ -62,10 +62,15 @@ steps:
       - psql -c "CREATE USER lemmy WITH PASSWORD 'password' SUPERUSER;"
     when: *slow_check_paths
 
-  prettier_check:
-    image: jauderho/prettier:3.7.3-alpine
+  cargo_fmt:
+    image: *rust_nightly_image
+    environment:
+      # store cargo data in repo folder so that it gets cached between steps
+      CARGO_HOME: .cargo_home
+      RUSTUP_HOME: .rustup_home
     commands:
-      - prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations' '!api_tests/pnpm-lock.yaml'
+      - rustup component add rustfmt --toolchain nightly
+      - cargo +nightly fmt -- --check
     when:
       - event: pull_request
 
@@ -94,6 +99,13 @@ steps:
       - event: pull_request
         status: failure
 
+  prettier_check:
+    image: jauderho/prettier:3.7.3-alpine
+    commands:
+      - prettier -c . '!**/volumes' '!**/dist' '!target' '!**/translations' '!api_tests/pnpm-lock.yaml'
+    when:
+      - event: pull_request
+
   bash_fmt:
     image: alpine:3
     commands:
@@ -116,18 +128,6 @@ steps:
       - apt-get install perl make bash
       - ./scripts/alpine_install_pg_formatter.sh
       - ./scripts/sql_format_check.sh
-    when:
-      - event: pull_request
-
-  cargo_fmt:
-    image: *rust_nightly_image
-    environment:
-      # store cargo data in repo folder so that it gets cached between steps
-      CARGO_HOME: .cargo_home
-      RUSTUP_HOME: .rustup_home
-    commands:
-      - rustup component add rustfmt --toolchain nightly
-      - cargo +nightly fmt -- --check
     when:
       - event: pull_request
 
