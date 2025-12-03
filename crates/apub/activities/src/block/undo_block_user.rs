@@ -95,7 +95,7 @@ impl Activity for UndoBlockUser {
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     let expires_at = self.object.end_time;
     let mod_person = self.actor.dereference(context).await?;
-    let blocked_person = self.object.object.dereference(context).await?;
+    let blocked_person = self.object.object.dereference_local(context).await?;
     let reason = self
       .object
       .summary
