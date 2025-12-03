@@ -15,6 +15,7 @@ import {
   saveUserSettingsFederated,
   setupLogins,
   alphaUrl,
+  betaUrl,
   saveUserSettings,
   getPost,
   getComments,
@@ -26,6 +27,7 @@ import {
   banPersonFromSite,
   statusNotFound,
   statusUnauthorized,
+  listPersonContent,
   waitUntil,
 } from "./shared";
 import {
@@ -268,4 +270,62 @@ test("Make sure banned user can delete their account", async () => {
   let postAfterDelete = await getPost(alpha, postId);
   expect(postAfterDelete.post_view.post.deleted).toBe(true);
   expect(postAfterDelete.post_view.post.name).toBe("*Permanently Deleted*");
+});
+
+test("Admins can view and ban deleted accounts", async () => {
+  let user = await registerUser(beta, betaUrl);
+  let myUser = await getMyUser(user);
+  let apShortname = `${myUser.local_user_view.person.name}@lemmy-beta:8551`;
+  let userOnAlpha = await resolvePerson(alpha, apShortname);
+
+  let alphaCommunity = await resolveCommunity(user, "main@lemmy-alpha:8541");
+  if (!alphaCommunity) {
+    throw "Missing alpha community";
+  }
+
+  // Make a post and then delete the account
+  let postRes = await createPost(user, alphaCommunity.community.id);
+  let deletedUser = await deleteUser(user, false);
+  expect(deletedUser).toBeDefined();
+  // Make sure the post is still visible
+  let postAfterDelete = await getPost(beta, postRes.post_view.post.id);
+  expect(postAfterDelete.post_view.post.deleted).toBe(false);
+
+  // Ensure admins can still resolve the user
+  let getDeletedUser = await getPersonDetails(
+    beta,
+    myUser.local_user_view.person.id,
+  );
+  expect(getDeletedUser).toBeDefined();
+
+  // Make sure the delete federates
+  await waitUntil(
+    () => getPersonDetails(alpha, userOnAlpha!.person.id),
+    p => p.person_view.person.deleted,
+  );
+
+  // Ban the user
+  let banUser = await banPersonFromSite(
+    beta,
+    myUser.local_user_view.person.id,
+    true,
+    true,
+  );
+  expect(banUser.person_view.banned).toBe(true);
+  // Make sure the post is removed
+  let postAfterBan = await getPost(beta, postRes.post_view.post.id);
+  expect(postAfterBan.post_view.post.removed).toBe(true);
+
+  // Make sure the ban federates properly
+  let getDeletedUserAlpha = await waitUntil(
+    () => getPersonDetails(alpha, userOnAlpha!.person.id),
+    p => p.person_view.banned,
+  );
+  // Make sure content removal also went through
+  let userContent = await listPersonContent(
+    alpha,
+    getDeletedUserAlpha.person_view.person.id,
+    "posts",
+  );
+  expect(userContent.data[0].post.removed).toBe(true);
 });

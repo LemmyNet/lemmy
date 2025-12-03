@@ -794,9 +794,12 @@ export async function listPersonContent(
   return api.listPersonContent(form);
 }
 
-export async function deleteUser(api: LemmyHttp): Promise<SuccessResponse> {
+export async function deleteUser(
+  api: LemmyHttp,
+  delete_content: boolean = true,
+): Promise<SuccessResponse> {
   let form: DeleteAccount = {
-    delete_content: true,
+    delete_content,
     password,
   };
   return api.deleteAccount(form);

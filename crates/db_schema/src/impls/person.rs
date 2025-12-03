@@ -167,7 +167,6 @@ impl ApubActor for Person {
   ) -> LemmyResult<Option<Self>> {
     let conn = &mut get_conn(pool).await?;
     person::table
-      .filter(person::deleted.eq(false))
       .filter(lower(person::ap_id).eq(object_id.to_lowercase()))
       .first(conn)
       .await
