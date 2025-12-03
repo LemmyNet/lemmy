@@ -691,7 +691,7 @@ fn create_welcome_post(local_user: LocalUser, context: &LemmyContext) {
     }
     .list(None, site.instance.id, &mut context.pool())
     .await?
-    .data;
+    .items;
     let initial_user = admins.pop();
 
     let person = SiteView::read_system_account(&mut context.pool()).await?;

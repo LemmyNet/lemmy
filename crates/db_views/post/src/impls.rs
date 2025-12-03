@@ -316,7 +316,7 @@ impl PostQuery<'_> {
           .clone()
           .list_inner(site, None, largest_subscribed, pool)
           .await?
-          .data;
+          .items;
 
         let limit = limit_fetch(self.limit, None)?;
 

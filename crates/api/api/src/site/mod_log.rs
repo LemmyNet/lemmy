@@ -145,7 +145,7 @@ mod tests {
     }
     .list(pool)
     .await?
-    .data;
+    .items;
     assert_eq!(2, post_modlog.len());
 
     assert!(matches!(
@@ -179,7 +179,7 @@ mod tests {
     }
     .list(pool)
     .await?
-    .data;
+    .items;
     assert_eq!(2, comment_modlog.len());
 
     assert!(matches!(
@@ -237,7 +237,7 @@ mod tests {
     }
     .list(pool)
     .await?
-    .data;
+    .items;
     assert_eq!(4, post_modlog.len());
 
     assert!(matches!(
@@ -289,7 +289,7 @@ mod tests {
     }
     .list(pool)
     .await?
-    .data;
+    .items;
     assert_eq!(4, comment_modlog.len());
 
     assert!(matches!(

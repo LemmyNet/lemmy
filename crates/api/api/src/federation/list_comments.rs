@@ -95,12 +95,12 @@ pub async fn list_comments_slim(
   let common = list_comments_common(data, context, local_user_view).await?;
 
   let data = common
-    .data
+    .items
     .into_iter()
     .map(CommentView::map_to_slim)
     .collect();
   let res = PagedResponse {
-    data,
+    items: data,
     next_page: common.next_page,
     prev_page: common.prev_page,
   };

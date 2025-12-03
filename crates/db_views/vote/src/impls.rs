@@ -88,7 +88,7 @@ impl VoteView {
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)?;
     Ok(PagedResponse {
-      data: res,
+      items: res,
       prev_page: None,
       next_page: None,
     })
@@ -157,7 +157,7 @@ impl VoteView {
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)?;
     Ok(PagedResponse {
-      data: res,
+      items: res,
       prev_page: None,
       next_page: None,
     })
@@ -248,7 +248,7 @@ mod tests {
 
     let read_post_vote_views =
       VoteView::list_for_post(pool, inserted_post.id, None, None, InstanceId(1)).await?;
-    assert_eq!(read_post_vote_views.data, expected_post_vote_views);
+    assert_eq!(read_post_vote_views.items, expected_post_vote_views);
 
     // Timothy votes down his own comment
     let timmy_comment_vote_form =
@@ -278,7 +278,7 @@ mod tests {
 
     let read_comment_vote_views =
       VoteView::list_for_comment(pool, inserted_comment.id, None, None, InstanceId(1)).await?;
-    assert_eq!(read_comment_vote_views.data, expected_comment_vote_views);
+    assert_eq!(read_comment_vote_views.items, expected_comment_vote_views);
 
     // Ban timmy from that community
     let ban_timmy_form = CommunityPersonBanForm::new(inserted_community.id, inserted_timmy.id);

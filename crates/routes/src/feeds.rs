@@ -139,7 +139,7 @@ async fn get_feed_data(
   }
   .list(&site_view.site, &mut context.pool())
   .await?
-  .data;
+  .items;
 
   let title = format!("{} - {}", site_view.site.name, listing_type);
   let link = context.settings().get_protocol_and_hostname();
@@ -170,7 +170,7 @@ async fn get_feed_user(
   }
   .list(&mut context.pool(), None, site_view.site.instance_id)
   .await?
-  .data;
+  .items;
 
   let posts = content
     .iter()
@@ -222,7 +222,7 @@ async fn get_feed_community(
   }
   .list(&site_view.site, &mut context.pool())
   .await?
-  .data;
+  .items;
 
   let title = format!("{} - {}", site_view.site.name, community.name);
   let link = community.ap_id.to_string();
@@ -257,7 +257,7 @@ async fn get_feed_multi_community(
   }
   .list(&site_view.site, &mut context.pool())
   .await?
-  .data;
+  .items;
 
   let title = format!("{} - {}", site_view.site.name, multi_community.name);
   let link = multi_community.ap_id.to_string();
@@ -291,7 +291,7 @@ async fn get_feed_front(
   }
   .list(&site_view.site, &mut context.pool())
   .await?
-  .data;
+  .items;
 
   let title = format!("{} - Subscribed", site_view.site.name);
   let link = context.settings().get_protocol_and_hostname();
@@ -342,7 +342,7 @@ async fn get_feed_notifs(
   }
   .list(&mut context.pool(), &local_user.person)
   .await?
-  .data;
+  .items;
 
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();
 
@@ -371,7 +371,7 @@ async fn get_feed_modlog(
   }
   .list(&mut context.pool())
   .await?
-  .data;
+  .items;
 
   let protocol_and_hostname = context.settings().get_protocol_and_hostname();
   let title = format!("{} - Modlog", local_user.person.name);

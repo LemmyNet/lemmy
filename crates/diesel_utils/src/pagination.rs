@@ -184,7 +184,7 @@ struct PaginationCursorInternal {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct PagedResponse<#[cfg(feature = "ts-rs")] T: ts_rs::TS, #[cfg(not(feature = "ts-rs"))] T> {
-  pub data: Vec<T>,
+  pub items: Vec<T>,
   pub next_page: Option<PaginationCursor>,
   pub prev_page: Option<PaginationCursor>,
 }
@@ -195,7 +195,7 @@ impl<#[cfg(feature = "ts-rs")] T: ts_rs::TS, #[cfg(not(feature = "ts-rs"))] T> D
 {
   type Target = Vec<T>;
   fn deref(&self) -> &Vec<T> {
-    &self.data
+    &self.items
   }
 }
 
@@ -204,7 +204,7 @@ impl<#[cfg(feature = "ts-rs")] T: ts_rs::TS, #[cfg(not(feature = "ts-rs"))] T> D
   for PagedResponse<T>
 {
   fn deref_mut(&mut self) -> &mut Self::Target {
-    &mut self.data
+    &mut self.items
   }
 }
 
@@ -217,7 +217,7 @@ impl<#[cfg(feature = "ts-rs")] T: ts_rs::TS, #[cfg(not(feature = "ts-rs"))] T> I
 
   // Required method
   fn into_iter(self) -> Self::IntoIter {
-    self.data.into_iter()
+    self.items.into_iter()
   }
 }
 
@@ -301,7 +301,7 @@ where
     }
   }
   Ok(PagedResponse {
-    data,
+    items: data,
     next_page,
     prev_page,
   })

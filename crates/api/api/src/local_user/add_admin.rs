@@ -76,6 +76,6 @@ pub async fn add_admin(
   .await?;
 
   Ok(Json(AddAdminResponse {
-    admins: admins.data,
+    admins: admins.items,
   }))
 }

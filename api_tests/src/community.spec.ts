@@ -194,7 +194,7 @@ test("Report a community", async () => {
     (await waitUntil(
       () =>
         listReports(alpha).then(p =>
-          p.data.find(r => {
+          p.items.find(r => {
             return checkCommunityReportName(r, betaReport);
           }),
         ),
@@ -236,7 +236,7 @@ test("Report a community", async () => {
     (await waitUntil(
       () =>
         listReports(beta).then(p =>
-          p.data.find(r => {
+          p.items.find(r => {
             return (
               checkCommunityReportName(r, alphaReport) && r.resolver != null
             );
@@ -357,11 +357,11 @@ test("moderator view", async () => {
   expect(otherAlphaComment.comment.id).toBeDefined();
 
   // alpha lists posts and comments on home page, should contain all posts that were made
-  let posts = (await getPosts(alpha, "all")).data;
+  let posts = (await getPosts(alpha, "all")).items;
   expect(posts).toBeDefined();
   let postIds = posts.map(post => post.post.id);
 
-  let comments = (await getComments(alpha, undefined, "all")).data;
+  let comments = (await getComments(alpha, undefined, "all")).items;
   expect(comments).toBeDefined();
   let commentIds = comments.map(comment => comment.comment.id);
 
@@ -375,11 +375,11 @@ test("moderator view", async () => {
   expect(commentIds).toContain(otherAlphaComment.comment.id);
 
   // in moderator view, alpha should not see otherPost, wich was posted on a community alpha doesn't moderate
-  posts = (await getPosts(alpha, "moderator_view")).data;
+  posts = (await getPosts(alpha, "moderator_view")).items;
   expect(posts).toBeDefined();
   postIds = posts.map(post => post.post.id);
 
-  comments = (await getComments(alpha, undefined, "moderator_view")).data;
+  comments = (await getComments(alpha, undefined, "moderator_view")).items;
   expect(comments).toBeDefined();
   commentIds = comments.map(comment => comment.comment.id);
 
@@ -426,7 +426,7 @@ test("User blocks instance, communities are hidden", async () => {
 
   // post should be included in listing
   let listing = await getPosts(alpha, "all");
-  let listing_ids = listing.data.map(p => p.post.ap_id);
+  let listing_ids = listing.items.map(p => p.post.ap_id);
   expect(listing_ids).toContain(postRes.post_view.post.ap_id);
 
   // block the beta instance
@@ -438,7 +438,7 @@ test("User blocks instance, communities are hidden", async () => {
 
   // after blocking, post should not be in listing
   let listing2 = await getPosts(alpha, "all");
-  let listing_ids2 = listing2.data.map(p => p.post.ap_id);
+  let listing_ids2 = listing2.items.map(p => p.post.ap_id);
   expect(listing_ids2.indexOf(postRes.post_view.post.ap_id)).toBe(-1);
 
   // unblock instance again
@@ -450,7 +450,7 @@ test("User blocks instance, communities are hidden", async () => {
 
   // post should be included in listing
   let listing3 = await getPosts(alpha, "all");
-  let listing_ids3 = listing3.data.map(p => p.post.ap_id);
+  let listing_ids3 = listing3.items.map(p => p.post.ap_id);
   expect(listing_ids3).toContain(postRes.post_view.post.ap_id);
 });
 
@@ -584,9 +584,9 @@ test("Fetch community, includes posts", async () => {
 
   let post_listing = await waitUntil(
     () => getPosts(beta, "all", betaCommunity?.community.id),
-    p => p.data.length == 1,
+    p => p.items.length == 1,
   );
-  expect(post_listing.data[0].post.ap_id).toBe(postRes.post_view.post.ap_id);
+  expect(post_listing.items[0].post.ap_id).toBe(postRes.post_view.post.ap_id);
 });
 
 test("Content in local-only community doesn't federate", async () => {
@@ -712,8 +712,8 @@ test("Community name with non-ascii chars", async () => {
     community_name: fediName,
   };
   let posts = await beta.getPosts(form);
-  expect(posts.data.length).toBe(1);
-  expect(posts.data[0].post.name).toBe(postRes.post_view.post.name);
+  expect(posts.items.length).toBe(1);
+  expect(posts.items[0].post.name).toBe(postRes.post_view.post.name);
 });
 
 test("Multi-community", async () => {
@@ -757,9 +757,9 @@ test("Multi-community", async () => {
 
   let followed = await waitUntil(
     () => beta.listMultiCommunities({}),
-    m => m.data.length == 1,
+    m => m.items.length == 1,
   );
-  expect(followed.data[0].multi.ap_id).toBe(betaMulti.multi.ap_id);
+  expect(followed.items[0].multi.ap_id).toBe(betaMulti.multi.ap_id);
 
   // add community to multi
   let community2 = await resolveBetaCommunity(alpha);
@@ -784,9 +784,11 @@ test("Multi-community", async () => {
       beta.getPosts({
         multi_community_id: betaRes.multi_community_view.multi.id,
       }),
-    p => p.data.length == 1,
+    p => p.items.length == 1,
   );
-  expect(multi_post_listing.data[0].post.ap_id).toBe(post.post_view.post.ap_id);
+  expect(multi_post_listing.items[0].post.ap_id).toBe(
+    post.post_view.post.ap_id,
+  );
 });
 
 function checkCommunityReportName(

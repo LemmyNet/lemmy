@@ -57,7 +57,7 @@ pub async fn search(
   let search = search?;
 
   Ok(Json(SearchResponse {
-    search: search.data,
+    search: search.items,
     // ignore errors as this may not be an apub url
     resolve: resolve.ok(),
     next_page: search.next_page,

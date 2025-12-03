@@ -30,7 +30,7 @@ pub async fn read_multi_community(
   }
   .list(&local_site.site, &mut context.pool())
   .await?
-  .data;
+  .items;
 
   Ok(Json(GetMultiCommunityResponse {
     multi_community_view,

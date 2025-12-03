@@ -327,7 +327,7 @@ mod tests {
       ModlogInsertForm::mod_change_community_visibility(data.jessica.id, data.community_2.id);
     Modlog::create(pool, &[form]).await?;
 
-    let modlog = ModlogQuery::default().list(pool).await?.data;
+    let modlog = ModlogQuery::default().list(pool).await?.items;
     assert_eq!(8, modlog.len());
 
     let v = &modlog[0];

@@ -45,7 +45,7 @@ impl Collection for ApubCommunityOutbox {
       .list(&site, &mut data.pool()),
     )
     .await?
-    .data;
+    .items;
 
     let mut ordered_items = vec![];
     for post_view in post_views {
