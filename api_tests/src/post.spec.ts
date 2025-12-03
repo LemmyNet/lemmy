@@ -337,6 +337,7 @@ test("Delete a post", async () => {
   await waitForPost(beta, postRes.post_view.post, p => p?.post.id != undefined);
 
   let deletedPost = await deletePost(alpha, true, postRes.post_view.post);
+  // This is often failing, no idea why.
   expect(deletedPost.post_view.post.deleted).toBe(true);
   expect(deletedPost.post_view.post.name).toBe(postRes.post_view.post.name);
 

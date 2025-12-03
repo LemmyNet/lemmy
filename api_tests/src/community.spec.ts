@@ -770,6 +770,7 @@ test("Multi-community", async () => {
   expect(entryRes2.community_view.community.id).toBe(community2?.community.id);
 
   // federated to beta
+  // TODO this is failing sometimes
   betaRes = await waitUntil(
     () => beta.getMultiCommunity({ id: betaMulti.multi.id }),
     m => m.communities.length == 2,
