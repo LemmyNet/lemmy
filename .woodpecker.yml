@@ -247,7 +247,7 @@ steps:
       platforms: linux/amd64
       build_args:
         RUST_RELEASE_MODE: release
-      tag: ${CI_COMMIT_TAG=dev}
+      tag: ${CI_COMMIT_TAG=nightly}
     when:
       - event: tag
       - event: cron
