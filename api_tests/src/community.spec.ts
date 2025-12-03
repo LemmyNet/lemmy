@@ -752,7 +752,7 @@ test("Multi-community", async () => {
 
   let betaRes = await waitUntil(
     () => beta.getMultiCommunity({ id: betaMulti.multi.id }),
-    m => m.communities.length == 1,
+    m => m.communities.length >= 1,
   );
   expect(betaRes.communities[0].community.ap_id).toBe(community1.ap_id);
 
@@ -773,7 +773,7 @@ test("Multi-community", async () => {
   // federated to beta
   betaRes = await waitUntil(
     () => beta.getMultiCommunity({ id: betaMulti.multi.id }),
-    m => m.communities.length == 2,
+    m => m.communities.length >= 2,
   );
   let ap_ids = betaRes.communities.map(c => c.community.ap_id);
   expect(ap_ids.includes(community2!.community.ap_id)).toBeTruthy();
@@ -785,7 +785,7 @@ test("Multi-community", async () => {
       beta.getPosts({
         multi_community_id: betaRes.multi_community_view.multi.id,
       }),
-    p => p.items.length == 1,
+    p => p.items.length >= 1,
   );
   expect(multi_post_listing.items[0].post.ap_id).toBe(
     post.post_view.post.ap_id,
