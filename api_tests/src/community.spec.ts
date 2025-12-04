@@ -784,7 +784,7 @@ test("Multi-community", async () => {
     () =>
       beta.getPosts({
         multi_community_id: betaRes.multi_community_view.multi.id,
-        sort: "new",
+        sort: "old",
       }),
     p => p.items.length >= 1,
   );
