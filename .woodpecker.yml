@@ -40,66 +40,6 @@ steps:
     when:
       - event: [pull_request, tag]
 
-  cargo_build:
-    image: *rust_image
-    environment:
-      CARGO_HOME: .cargo_home
-      RUSTUP_HOME: .rustup_home
-    commands:
-      - cargo build
-      - mv target/debug/lemmy_server target/lemmy_server
-    when: *slow_check_paths
-
-  # `DROP OWNED` doesn't work for default user
-  create_database_user:
-    image: pgautoupgrade/pgautoupgrade:18-alpine
-    environment:
-      PGUSER: postgres
-      PGPASSWORD: password
-      PGHOST: database
-      PGDATABASE: lemmy
-    commands:
-      - psql -c "CREATE USER lemmy WITH PASSWORD 'password' SUPERUSER;"
-    when: *slow_check_paths
-
-  cargo_fmt:
-    image: *rust_nightly_image
-    environment:
-      # store cargo data in repo folder so that it gets cached between steps
-      CARGO_HOME: .cargo_home
-      RUSTUP_HOME: .rustup_home
-    commands:
-      - rustup component add rustfmt --toolchain nightly
-      - cargo +nightly fmt -- --check
-    when:
-      - event: pull_request
-
-  run_federation_tests:
-    image: node:24-trixie-slim
-    environment:
-      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
-      DO_WRITE_HOSTS_FILE: "1"
-    commands:
-      - *install_pnpm
-      - apt-get update && apt-get install -y bash curl postgresql-client
-      - bash api_tests/prepare-drone-federation-test.sh
-      - cd api_tests/
-      - pnpm i
-      # Unfortunately these tests are unstable on slower CI machines, so try it a few times.
-      # - bash run-multiple.sh
-      - pnpm api-test-multiple
-    when: *slow_check_paths
-
-  federation_tests_server_output:
-    image: alpine:3
-    commands:
-      # `|| true` prevents this step from appearing to fail if the server output files don't exist
-      - cat target/log/lemmy_*.out || true
-      - "# If you can't see all output, then use the download button"
-    when:
-      - event: pull_request
-        status: failure
-
   prettier_check:
     image: jauderho/prettier:3.7.3-alpine
     commands:
@@ -132,6 +72,18 @@ steps:
     when:
       - event: pull_request
 
+  cargo_fmt:
+    image: *rust_nightly_image
+    environment:
+      # store cargo data in repo folder so that it gets cached between steps
+      CARGO_HOME: .cargo_home
+      RUSTUP_HOME: .rustup_home
+    commands:
+      - rustup component add rustfmt --toolchain nightly
+      - cargo +nightly fmt -- --check
+    when:
+      - event: pull_request
+
   cargo_shear:
     image: *rust_nightly_image
     commands:
@@ -159,6 +111,28 @@ steps:
       - if [[ "$EMPTY_FILES" ]]; then echo "Empty files present:\n$EMPTY_FILES\n"; exit 1; fi
     when:
       - event: pull_request
+
+  cargo_build:
+    image: *rust_image
+    environment:
+      CARGO_HOME: .cargo_home
+      RUSTUP_HOME: .rustup_home
+    commands:
+      - cargo build
+      - mv target/debug/lemmy_server target/lemmy_server
+    when: *slow_check_paths
+
+  # `DROP OWNED` doesn't work for default user
+  create_database_user:
+    image: pgautoupgrade/pgautoupgrade:18-alpine
+    environment:
+      PGUSER: postgres
+      PGPASSWORD: password
+      PGHOST: database
+      PGDATABASE: lemmy
+    commands:
+      - psql -c "CREATE USER lemmy WITH PASSWORD 'password' SUPERUSER;"
+    when: *slow_check_paths
 
   cargo_test:
     image: *rust_image
@@ -237,6 +211,31 @@ steps:
       - diff tmp.schema crates/db_schema_file/src/schema.rs
     when: *slow_check_paths
 
+  run_federation_tests:
+    image: node:24-trixie-slim
+    environment:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
+      DO_WRITE_HOSTS_FILE: "1"
+    commands:
+      - *install_pnpm
+      - apt-get update && apt-get install -y bash curl postgresql-client
+      - bash api_tests/prepare-drone-federation-test.sh
+      - cd api_tests/
+      - pnpm i
+      # Unfortunately these tests are unstable on slower CI machines, so try it a few times.
+      - pnpm api-test-multiple
+    when: *slow_check_paths
+
+  federation_tests_server_output:
+    image: alpine:3
+    commands:
+      # `|| true` prevents this step from appearing to fail if the server output files don't exist
+      - cat target/log/lemmy_*.out || true
+      - "# If you can't see all output, then use the download button"
+    when:
+      - event: pull_request
+        status: failure
+
   publish_release_docker:
     image: woodpeckerci/plugin-docker-buildx
     settings:
@@ -249,7 +248,7 @@ steps:
       platforms: linux/amd64
       build_args:
         RUST_RELEASE_MODE: release
-      tag: ${CI_COMMIT_TAG=dev}
+      tag: ${CI_COMMIT_TAG=nightly}
     when:
       - event: tag
       - event: cron
