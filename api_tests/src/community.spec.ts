@@ -763,7 +763,14 @@ test("Multi-community", async () => {
   expect(followed.items[0].multi.ap_id).toBe(betaMulti.multi.ap_id);
 
   // add community to multi
-  let community2 = await resolveBetaCommunity(alpha);
+  let community2 = await waitUntil(
+    () => resolveBetaCommunity(alpha),
+    c => !!c?.community.instance_id,
+  );
+  if (!community2) {
+    throw "Missing beta community";
+  }
+
   let entryRes2 = await alpha.createMultiCommunityEntry({
     id: res.multi_community_view.multi.id,
     community_id: community2!.community.id,
