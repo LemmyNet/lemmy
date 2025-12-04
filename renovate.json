@@ -1,9 +1,8 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
-  "schedule": ["before 4am on the first day of the month"],
+  "schedule": ["every weekend"],
   "automerge": true,
-  "rebaseWhen": "conflicted",
   "packageRules": [
     {
       "groupName": "docker",
@@ -14,6 +13,5 @@
       "matchDatasources": ["npm"]
     }
   ],
-  "ignoreDeps": ["lemmy-js-client", "pgautoupgrade/pgautoupgrade"],
-  "ignorePaths": ["(^|/)Cargo\\.toml$"]
+  "ignoreDeps": ["lemmy-js-client", "pgautoupgrade/pgautoupgrade"]
 }
