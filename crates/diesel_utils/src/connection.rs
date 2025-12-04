@@ -1,8 +1,12 @@
+use crate::schema_setup::MIGRATIONS;
 use deadpool::Runtime;
-use diesel::result::{
-  ConnectionError,
-  ConnectionResult,
-  Error::{self as DieselError, QueryBuilderError},
+use diesel::{
+  connection::SimpleConnection,
+  result::{
+    ConnectionError,
+    ConnectionResult,
+    Error::{self as DieselError, QueryBuilderError},
+  },
 };
 use diesel_async::{
   AsyncConnection,
@@ -14,6 +18,7 @@ use diesel_async::{
   },
   scoped_futures::ScopedBoxFuture,
 };
+use diesel_migrations::MigrationHarness;
 use futures_util::{FutureExt, future::BoxFuture};
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
@@ -37,7 +42,7 @@ use std::{
   sync::Arc,
   time::Duration,
 };
-use tracing::error;
+use tracing::{debug, error};
 
 pub type ActualDbPool = Pool<AsyncPgConnection>;
 
@@ -179,7 +184,27 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
     }))
     .build()?;
 
-  crate::schema_setup::run(crate::schema_setup::Options::default().run(), &db_url)?;
+  let mut inner_harness = crate::schema_setup::MigrationHarnessWrapper::new(&db_url)?;
+  let mut harness =
+    TimedHarnessWithOutput::write_to_tracing(&mut inner_harness, tracing::Level::DEBUG);
+
+  // If possible, skip getting a lock and recreating the "r" schema, so lemmy_server processes in a
+  // horizontally scaled setup can start without causing locks
+  if harness.need_schema_setup()? {
+    // Block concurrent attempts to run migrations until `conn` is closed (otherwise, in a
+    // horizontally scaled setup, it's possible for multiple processes to try running the same
+    // migration, which would throw a unique violation error)
+    debug!("Waiting for lock...");
+    harness.conn.batch_execute("SELECT pg_advisory_lock(0);")?;
+
+    debug!("Running Database migrations (This may take a long time)...");
+    harness
+      .run_pending_migrations(MIGRATIONS)
+      .map_err(anyhow::Error::from_boxed)?;
+    harness.run_replaceable_schema()?;
+
+    debug!("Database migrations complete.");
+  }
 
   Ok(pool)
 }
