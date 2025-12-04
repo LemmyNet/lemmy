@@ -342,8 +342,6 @@ test("Delete a post", async () => {
     () => getPost(alpha, postRes.post_view.post.id),
     p => p.post_view.post.deleted,
   );
-  // TODO This is often failing, no idea why.
-  // expect(deletedPost.post_view.post.deleted).toBe(true);
   expect(deletedPost.post_view.post.name).toBe(postRes.post_view.post.name);
 
   // Make sure lemmy beta sees post is deleted
@@ -351,7 +349,6 @@ test("Delete a post", async () => {
   await waitForPost(beta, postRes.post_view.post, p => p?.post == undefined);
 
   // Undelete
-  // TODO This is also often failing.
   let undeletedPost = await deletePost(alpha, false, postRes.post_view.post);
   await waitUntil(
     () => getPost(alpha, postRes.post_view.post.id),
