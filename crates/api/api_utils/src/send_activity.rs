@@ -15,7 +15,6 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::PersonId;
 use lemmy_db_views_community::api::BanFromCommunity;
-use lemmy_db_views_post::api::DeletePost;
 use lemmy_db_views_private_message::PrivateMessageView;
 use lemmy_diesel_utils::dburl::DbUrl;
 use lemmy_utils::error::LemmyResult;
@@ -34,7 +33,7 @@ use url::Url;
 pub enum SendActivityData {
   CreatePost(Post),
   UpdatePost(Post),
-  DeletePost(Post, Person, DeletePost),
+  DeletePost(Post, Person, Community),
   RemovePost {
     post: Post,
     moderator: Person,
