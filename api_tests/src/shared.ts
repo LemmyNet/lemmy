@@ -1050,9 +1050,7 @@ export async function waitUntil<T>(
     } catch (error) {
       console.error(error);
     }
-    await delay(
-      delaySeconds[Math.min(retry - 1, delaySeconds.length - 1)] * 1000,
-    );
+    await delay(delaySeconds[(retry - 1) % delaySeconds.length] * 1000);
   }
   console.error("result", result);
   throw Error(
