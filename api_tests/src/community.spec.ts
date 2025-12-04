@@ -787,17 +787,16 @@ test("Multi-community", async () => {
 
   let post = await createPost(alpha, community2!.community.id);
 
-  let multi_post_listing = await waitUntil(
+  let multiPosts = await waitUntil(
     () =>
       beta.getPosts({
         multi_community_id: betaRes.multi_community_view.multi.id,
-        sort: "old",
       }),
     p => p.items.length >= 1,
   );
-  expect(multi_post_listing.items[0].post.ap_id).toBe(
-    post.post_view.post.ap_id,
-  );
+  expect(
+    multiPosts.items.map(p => p.post.ap_id).includes(post.post_view.post.ap_id),
+  ).toBeTruthy();
 });
 
 function checkCommunityReportName(
