@@ -123,6 +123,7 @@ test("Delete user", async () => {
     true,
   );
   // Make sure the remote post is deleted.
+  // TODO this fails occasionally
   await waitUntil(
     () => getPost(alpha, remotePost.id),
     p => p?.post_view.post.deleted === true,
