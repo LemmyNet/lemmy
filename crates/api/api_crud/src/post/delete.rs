@@ -48,7 +48,7 @@ pub async fn delete_post(
   .await?;
 
   ActivityChannel::submit_activity(
-    SendActivityData::DeletePost(post, local_user_view.person.clone(), data),
+    SendActivityData::DeletePost(post, local_user_view.person.clone(), community),
     &context,
   )?;
 
