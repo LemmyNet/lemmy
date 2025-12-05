@@ -81,7 +81,7 @@ macro_rules! location_info {
 cfg_if! {
   if #[cfg(feature = "full")] {
 use moka::future::Cache;use std::fmt::Debug;use std::hash::Hash;
-use serde_json::Value;use std::{sync::LazyLock};
+use serde_json::Value;
 
 /// Only include a basic context to save space and bandwidth. The main context is hosted statically
 /// on join-lemmy.org. Include activitystreams explicitly for better compat, but this could
