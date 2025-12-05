@@ -49,15 +49,16 @@ impl Activity for Vote {
     self.actor.inner()
   }
 
-  async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    let community = self.community(context).await?;
-    verify_person_in_community(&self.actor, &community, context).await?;
+  async fn verify(&self, _context: &Data<LemmyContext>) -> LemmyResult<()> {
     Ok(())
   }
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     let actor = self.actor.dereference(context).await?;
     let object = self.object.dereference(context).await?;
+    let community = self.community(context).await?;
+
+    verify_person_in_community(&actor, &community, context).await?;
 
     check_bot_account(&actor.0)?;
 

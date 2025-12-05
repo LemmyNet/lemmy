@@ -6,7 +6,7 @@ use crate::{
 use activitypub_federation::{
   actix_web::response::create_http_response,
   config::Data,
-  fetch::{collection_id::CollectionId, object_id::ObjectId},
+  fetch::collection_id::CollectionId,
 };
 use actix_web::HttpResponse;
 use community_featured::ApubCommunityFeatured;
@@ -15,9 +15,9 @@ use community_moderators::ApubCommunityModerators;
 use community_outbox::ApubCommunityOutbox;
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
-  objects::{community::ApubCommunity, person::ApubPerson},
+  objects::community::ApubCommunity,
   protocol::group::Group,
-  utils::protocol::{AttributedTo, PersonOrGroupType},
+  utils::protocol::AttributedTo,
 };
 use lemmy_db_schema::source::{comment::Comment, post::Post};
 use lemmy_utils::{FEDERATION_CONTEXT, error::LemmyResult, spawn_try_task};
@@ -52,14 +52,14 @@ pub fn fetch_community_collections(
         let moderators: CollectionId<ApubCommunityModerators> = l.moderators().into();
         moderators.dereference(&community, &context).await.ok();
       } else if let AttributedTo::Peertube(p) = moderators {
-        let new_mods = p
-          .iter()
-          .filter(|p| p.kind == PersonOrGroupType::Person)
-          .map(|p| ObjectId::<ApubPerson>::from(p.id.clone().into_inner()))
-          .collect();
-        handle_community_moderators(&new_mods, &community, &context)
-          .await
-          .ok();
+        for p in p {
+          let actor = p.dereference(&context).await?;
+          if let Some(person) = actor.left() {
+            handle_community_moderators(&vec![person.ap_id.clone().into()], &community, &context)
+              .await
+              .ok();
+          }
+        }
       }
     }
     Ok(())

@@ -182,13 +182,14 @@ pub(crate) async fn verify_delete_activity(
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let object = DeletableObjects::read_from_db(activity.object.id(), context).await?;
+  let actor = activity.actor.dereference(context).await?;
   match object {
     DeletableObjects::Community(community) => {
       verify_visibility(&activity.to, &[], &community)?;
       if community.local {
         // can only do this check for local community, in remote case it would try to fetch the
         // deleted community (which fails)
-        verify_person_in_community(&activity.actor, &community, context).await?;
+        verify_person_in_community(&actor, &community, context).await?;
       }
       // community deletion is always a mod (or admin) action
       verify_mod_action(&activity.actor, &community, context).await?;
@@ -202,7 +203,7 @@ pub(crate) async fn verify_delete_activity(
       let community = activity.community(context).await?;
       verify_visibility(&activity.to, &[], &community)?;
       verify_delete_post_or_comment(
-        &activity.actor,
+        &actor,
         &p.ap_id.clone().into(),
         &community,
         is_mod_action,
@@ -214,7 +215,7 @@ pub(crate) async fn verify_delete_activity(
       let community = activity.community(context).await?;
       verify_visibility(&activity.to, &[], &community)?;
       verify_delete_post_or_comment(
-        &activity.actor,
+        &actor,
         &c.ap_id.clone().into(),
         &community,
         is_mod_action,
@@ -231,7 +232,7 @@ pub(crate) async fn verify_delete_activity(
 }
 
 async fn verify_delete_post_or_comment(
-  actor: &ObjectId<ApubPerson>,
+  actor: &ApubPerson,
   object_id: &Url,
   community: &ApubCommunity,
   is_mod_action: bool,
@@ -239,10 +240,10 @@ async fn verify_delete_post_or_comment(
 ) -> LemmyResult<()> {
   verify_person_in_community(actor, community, context).await?;
   if is_mod_action {
-    verify_mod_action(actor, community, context).await?;
+    verify_mod_action(&actor.ap_id.clone().into(), community, context).await?;
   } else {
     // domain of post ap_id and post.creator ap_id are identical, so we just check the former
-    verify_domains_match(actor.inner(), object_id)?;
+    verify_domains_match(actor.ap_id.inner(), object_id)?;
   }
   Ok(())
 }

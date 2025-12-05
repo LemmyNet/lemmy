@@ -102,7 +102,6 @@ impl Activity for CreateOrUpdatePage {
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     let community = self.community(context).await?;
     verify_visibility(&self.to, &self.cc, &community)?;
-    verify_person_in_community(&self.actor, &community, context).await?;
     check_community_deleted_or_removed(&community)?;
     verify_domains_match(self.actor.inner(), self.object.id.inner())?;
     ApubPost::verify(&self.object, self.actor.inner(), context).await?;
@@ -110,7 +109,12 @@ impl Activity for CreateOrUpdatePage {
   }
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    if verify_urls_match(self.actor.inner(), self.object.creator()?.inner()).is_err()
+    let community = self.community(context).await?;
+    let object_actor = self.object.creator(context).await?;
+    verify_urls_match(self.actor.inner(), object_actor.ap_id.inner())?;
+    verify_person_in_community(&object_actor, &community, context).await?;
+
+    if verify_urls_match(self.actor.inner(), object_actor.ap_id.inner()).is_err()
       && verify_is_remote_object(&self.object.id, context).is_err()
     {
       if let Ok(post) = self.object.id.dereference_local(context).await {
@@ -140,7 +144,6 @@ impl Activity for CreateOrUpdatePage {
       return Ok(());
     }
 
-    verify_urls_match(self.actor.inner(), self.object.creator()?.inner())?;
     let site_view = SiteView::read_local(&mut context.pool()).await?;
 
     let post = ApubPost::from_json(self.object, context).await?;

@@ -30,6 +30,7 @@
         "@id": "pt:latencyMode"
       },
       "Infohash": "pt:Infohash",
+      "SensitiveTag": "pt:SensitiveTag",
       "tileWidth": {
         "@type": "sc:Number",
         "@id": "pt:tileWidth"
@@ -51,6 +52,8 @@
         "@id": "pt:uuid"
       },
       "originallyPublishedAt": "sc:datePublished",
+      "schedules": "sc:eventSchedule",
+      "startDate": "sc:startDate",
       "uploadDate": "sc:uploadDate",
       "hasParts": "sc:hasParts",
       "views": {
@@ -108,54 +111,68 @@
       },
       "PropertyValue": "sc:PropertyValue",
       "value": "sc:value"
+    },
+    {
+      "ptlc": "urn:peertube-plugin-livechat",
+      "peertubeLiveChat": {
+        "@id": "ptlc:peertubeLiveChat",
+        "@type": "@json"
+      }
     }
   ],
   "to": ["https://www.w3.org/ns/activitystreams#Public"],
-  "cc": ["https://tilvids.com/accounts/thelinuxexperiment/followers"],
+  "cc": ["https://fediverse.tv/accounts/alquimidia/followers"],
   "type": "Video",
-  "id": "https://tilvids.com/videos/watch/e7946124-7b72-4ad7-9d22-844a84bb2de1",
-  "name": "Mesa, Wayland & X.org in trouble, Debian leaves X, Facebook blocks Linux: Linux & Open Source News",
-  "duration": "PT1145S",
-  "uuid": "e7946124-7b72-4ad7-9d22-844a84bb2de1",
+  "id": "https://fediverse.tv/videos/watch/5e348297-7b05-4fe1-807d-e6b0765435e9",
+  "name": "1° WebSocialBR – Fórum do Fediverso Brasileiro - 12/3/2025, 8:21:48 PM",
+  "duration": "PT2814S",
+  "uuid": "5e348297-7b05-4fe1-807d-e6b0765435e9",
   "category": {
     "identifier": "15",
     "name": "Science & Technology"
   },
   "licence": {
-    "identifier": "2",
-    "name": "Attribution - Share Alike"
+    "identifier": "3",
+    "name": "Attribution - No Derivatives"
   },
   "language": {
-    "identifier": "en",
-    "name": "English"
+    "identifier": "pt",
+    "name": "Portuguese (Brazilian)"
   },
-  "views": 360,
+  "views": 6,
   "sensitive": false,
+  "summary": null,
   "waitTranscoding": true,
   "state": 1,
   "commentsEnabled": true,
   "canReply": null,
   "commentsPolicy": 1,
   "downloadEnabled": true,
-  "published": "2025-02-01T11:59:45.094Z",
-  "originallyPublishedAt": "2025-02-01T11:39:50.000Z",
-  "updated": "2025-02-04T09:00:50.396Z",
-  "tag": [],
+  "published": "2025-12-04T02:05:35.721Z",
+  "originallyPublishedAt": null,
+  "schedules": [],
+  "updated": "2025-12-04T11:55:53.733Z",
+  "tag": [
+    {
+      "type": "Hashtag",
+      "name": "WebSocialBR"
+    }
+  ],
   "mediaType": "text/markdown",
-  "content": "Head to https://squarespace.com/thelinuxexperiment to save 10% off your first purchase of a website or domain using code thelinuxexperiment\r\n\r\nGrab a brand new laptop or desktop running Linux: https://www.tuxedocomputers.com/en# \r\n\r\n\r\n👏 SUPPORT THE CHANNEL:\r\nGet access to:\r\n- a Daily Linux News show\r\n- a weekly patroncast for more personal thoughts\r\n- polls on the next topics I cover,\r\n- your name in the credits\r\n\r\nYouTube: https://www.youtube.com/@thelinuxexp/join\r\nPatreon: https://www.patreon.com/thelinuxexperiment\r\n\r\nOr, you can donate whatever you want:\r\nhttps://paypal.me/thelinuxexp\r\nLiberapay: https://liberapay.com/TheLinuxExperiment/\r\n\r\n👕 GET TLE MERCH\r\nSupport the channel AND get cool new gear: https://the-linux-experiment.creator-spring.com/\r\n\r\n🏆 FOLLOW ME ON THE FEDIVERSE:\r\nMastodon: https://mastodon.social/web/@thelinuxEXP\r\nPixelfed: https://pixelfed.social/TLENick\r\nPeerTube: https://tilvids.com/c/thelinuxexperiment_channel/videos\r\n\r\n🎙 LINUX AND OPEN SOURCE NEWS PODCAST:\r\nListen to the latestLinux and open source news, with more in depth coverage, and ad-free!  https://podcast.thelinuxexp.com\r\n\r\nTimestamps:\r\n00:00 Intro\r\n00:34 Sponsor: Squarespace\r\n01:42 Mesa, Wayland and X.org lose their hosting\r\n03:57 Debian quits Twitter\r\n06:07 GNOME 48 alpha is out\r\n08:14 Kernel wifi maintainersteps down without replacement\r\n10:15 Facebook blocked posts linked to Linux\r\n12:12 OpenAI accuses another model of stealing their stolen work\r\n14:13Steam Deck is getting outclassed\r\n17:15 Sponsor: Tuxedo Computers\r\n18:10 Support the channel\r\n\r\nLinks:\r\n\r\nMesa, Wayland and X.org lose their hosting\r\nhttps://www.phoronix.com/news/2025-XOrg-FreeDesktop-Cloud\r\n\r\nDebian quits Twitter\r\nhttps://news.itsfoss.com/debian-logs-off-twitter/\r\n\r\nGNOME 48 alpha is out\r\nhttps://discourse.gnome.org/t/gnome-48-alpha-released/26414\r\nhttps://download.gnome.org/teams/releng/48.alpha.8/NEWS\r\n\r\nKernelwifi maintainer steps down without replacement\r\nhttps://linuxiac.com/linux-kernel-surpasses-40-million-lines/\r\nhttps://www.phoronix.com/news/Linux-Wireless-Maintainer-2025\r\n\r\nFacebook blocking posts linked to Linux\r\nhttps://distrowatch.com/weekly.php?issue=20250127#sitenews\r\nhttps://www.theregister.com/2025/01/28/facebook_blocks_distrowatch/\r\n\r\nOpenAI accuses another model of stealing their stolen work\r\nhttps://www.techradar.com/pro/us-navy-bans-use-of-deepseek-in-any-capacity-due-to-potential-security-and-ethical-concerns\r\nhttps://www.techradar.com/computing/artificial-intelligence/openai-says-deepseek-used-its-models-illegally-and-it-has-evidence-to-prove-it-new-report-claims\r\n\r\nSteam Deck is getting outclassed\r\nhttps://www.forbes.com/sites/jasonevangelho/2025/01/28/the-steam-deck-suddenly-has-a-serious-switch-2-problem/",
-  "support": "Support the channel on Patreon: \r\nhttps://www.patreon.com/thelinuxexperiment\r\n\r\nSupport on Liberapay:\r\nhttps://liberapay.com/TheLinuxExperiment/",
+  "content": "O 1º WebSocialBR é um fórum que reúne administradores de comunidades, gestores, parlamentares, pesquisadores e comunicadores para trocarem experiências no intuito de fortalecer as redes federadas no Brasil. O é realizado no auditório do MCTI — Ministério da Ciência, Tecnologia e Inovação. Realizado pela Alquimídia, o evento conta com o apoio do Comitê Gestor da Internet no Brasil (CGI.br), do Instituto Brasileiro de Museus (Ibram), da POP Solutions, do MCTI — Ministério da Ciência, Tecnologia e Inovação, SindSaúde/SC, e do FediFórum. Também dão suporte à realização do encontro, a plataforma Apoia.se, o Instituto Mutirão, a Agência Ganesha (https://ganeshapress.net/author/agencia/) e a Rede Nacional de Produtoras Colaborativas.Para enviar perguntas, participe do chat ao lado.Outras informações e programação: https://websocial.org.br (https://websocial.org.br/)",
+  "support": null,
   "subtitleLanguage": [],
   "icon": [
     {
       "type": "Image",
-      "url": "https://tilvids.com/lazy-static/thumbnails/904efceb-0715-476f-b0dc-b5fba6769851.jpg",
+      "url": "https://fediverse.tv/lazy-static/thumbnails/c380a695-4d49-4bd5-b88f-5f0e576334d1.jpg",
       "mediaType": "image/jpeg",
       "width": 280,
       "height": 157
     },
     {
       "type": "Image",
-      "url": "https://tilvids.com/lazy-static/previews/ef6088ee-c83a-4fcf-8be2-58db95ca5135.jpg",
+      "url": "https://fediverse.tv/lazy-static/previews/df19fccb-2098-479f-960e-8df34eef5163.jpg",
       "mediaType": "image/jpeg",
       "width": 850,
       "height": 480
@@ -168,111 +185,110 @@
       "url": [
         {
           "mediaType": "image/jpeg",
-          "href": "https://tilvids.com/lazy-static/storyboards/b94d7ec4-97d4-4860-a4aa-220c5cf5beae.jpg",
+          "href": "https://fediverse.tv/lazy-static/storyboards/a2b11226-75b1-4f89-aa2f-42e279665fc6.jpg",
           "width": 2112,
           "height": 1188,
           "tileWidth": 192,
           "tileHeight": 108,
-          "tileDuration": "PT10S"
+          "tileDuration": "PT24S"
         }
       ]
     }
   ],
-  "aspectRatio": 1.7778,
+  "aspectRatio": 1.7785,
   "url": [
     {
       "type": "Link",
       "mediaType": "text/html",
-      "href": "https://tilvids.com/videos/watch/e7946124-7b72-4ad7-9d22-844a84bb2de1"
+      "href": "https://fediverse.tv/w/cCGUxnZuDUWGvQbUnDA4TP"
+    },
+    {
+      "type": "Link",
+      "mediaType": "text/html",
+      "href": "https://fediverse.tv/videos/watch/5e348297-7b05-4fe1-807d-e6b0765435e9"
     },
     {
       "type": "Link",
       "mediaType": "application/x-mpegURL",
-      "href": "https://tilvids.com/static/streaming-playlists/hls/e7946124-7b72-4ad7-9d22-844a84bb2de1/2020efb9-9f43-4e37-b268-3470a4bb89cd-master.m3u8",
+      "href": "https://ftv-webvideos.s3.eu-central-003.backblazeb2.com/streaming-playlistshls/5e348297-7b05-4fe1-807d-e6b0765435e9/7b8312bc-fdf9-4783-9a4c-96fa200a40e5-master.m3u8",
       "tag": [
         {
           "type": "Infohash",
-          "name": "bade027756842ecef7a1fb7b437dcaa52eb72350"
+          "name": "694944387446304a3735566f49776d667a307238"
         },
         {
           "type": "Infohash",
-          "name": "dc1091029454a93ae893b207cfb1e7faf8d4d8b8"
+          "name": "57456a36616c65706345716c756a7a416a4e5478"
         },
         {
           "type": "Infohash",
-          "name": "c83b5123b8dcb1b81b53fbdb4c95903cf61a2022"
+          "name": "312b347a794d2b5578356b4e6f3869522f493154"
+        },
+        {
+          "type": "Infohash",
+          "name": "387239566e666571436e71674141744449474d35"
         },
         {
           "type": "Link",
           "name": "sha256",
           "mediaType": "application/json",
-          "href": "https://tilvids.com/static/streaming-playlists/hls/e7946124-7b72-4ad7-9d22-844a84bb2de1/0c0d34b1-ab46-4fc8-ae02-c97c23bfb2db-segments-sha256.json"
+          "href": "https://ftv-webvideos.s3.eu-central-003.backblazeb2.com/streaming-playlistshls/5e348297-7b05-4fe1-807d-e6b0765435e9/801511ff-425c-4376-95f1-76931673ccba-segments-sha256.json"
         },
         {
           "type": "Link",
           "mediaType": "video/mp4",
-          "href": "https://tilvids.com/static/streaming-playlists/hls/e7946124-7b72-4ad7-9d22-844a84bb2de1/0b870685-4461-47a3-8fac-e5531cd8acf5-1080-fragmented.mp4",
-          "height": 1080,
-          "width": 1920,
-          "size": 245864545,
-          "fps": 60,
-          "attachment": [
-            {
-              "type": "PropertyValue",
-              "name": "ffprobe_codec_type",
-              "value": "audio"
-            },
-            {
-              "type": "PropertyValue",
-              "name": "ffprobe_codec_type",
-              "value": "video"
-            },
-            {
-              "type": "PropertyValue",
-              "name": "peertube_format_flag",
-              "value": "fragmented"
-            }
-          ]
-        },
-        {
-          "type": "Link",
-          "rel": ["metadata", "video/mp4"],
-          "mediaType": "application/json",
-          "href": "https://tilvids.com/api/v1/videos/e7946124-7b72-4ad7-9d22-844a84bb2de1/metadata/729362",
-          "height": 1080,
-          "width": 1920,
-          "fps": 60
-        },
-        {
-          "type": "Link",
-          "mediaType": "application/x-bittorrent",
-          "href": "https://tilvids.com/lazy-static/torrents/cf3222e4-b9fe-4cb3-8b43-2da8afd83895-1080-hls.torrent",
-          "height": 1080,
-          "width": 1920,
-          "fps": 60
-        },
-        {
-          "type": "Link",
-          "mediaType": "application/x-bittorrent;x-scheme-handler/magnet",
-          "href": "magnet:?xs=https%3A%2F%2Ftilvids.com%2Flazy-static%2Ftorrents%2Fcf3222e4-b9fe-4cb3-8b43-2da8afd83895-1080-hls.torrent&xt=urn:btih:f9b4ddffa454ad6a7d5d7000d307c33f84aba1d1&dn=Mesa%2C+Wayland+%26+X.org+in+trouble%2C+Debian+leaves+X%2C+Facebook+blocks+Linux%3A+Linux+%26+Open+Source+News&tr=https%3A%2F%2Ftilvids.com%2Ftracker%2Fannounce&tr=wss%3A%2F%2Ftilvids.com%3A443%2Ftracker%2Fsocket&ws=https%3A%2F%2Ftilvids.com%2Fstatic%2Fstreaming-playlists%2Fhls%2Fe7946124-7b72-4ad7-9d22-844a84bb2de1%2F0b870685-4461-47a3-8fac-e5531cd8acf5-1080-fragmented.mp4",
-          "height": 1080,
-          "width": 1920,
-          "fps": 60
-        },
-        {
-          "type": "Link",
-          "mediaType": "video/mp4",
-          "href": "https://tilvids.com/static/streaming-playlists/hls/e7946124-7b72-4ad7-9d22-844a84bb2de1/339ea14b-0fb9-495b-870e-218a9a6c22f9-360-fragmented.mp4",
-          "height": 360,
-          "width": 640,
-          "size": 62546436,
+          "href": "https://ftv-webvideos.s3.eu-central-003.backblazeb2.com/streaming-playlistshls/5e348297-7b05-4fe1-807d-e6b0765435e9/dd32920e-7917-4bde-8321-43c0786db2fd-480-fragmented.mp4",
+          "height": 480,
+          "width": 854,
+          "size": 356677234,
           "fps": 30,
           "attachment": [
             {
               "type": "PropertyValue",
               "name": "ffprobe_codec_type",
-              "value": "audio"
+              "value": "video"
             },
+            {
+              "type": "PropertyValue",
+              "name": "peertube_format_flag",
+              "value": "fragmented"
+            }
+          ]
+        },
+        {
+          "type": "Link",
+          "rel": ["metadata", "video/mp4"],
+          "mediaType": "application/json",
+          "href": "https://fediverse.tv/api/v1/videos/5e348297-7b05-4fe1-807d-e6b0765435e9/metadata/2042088",
+          "height": 480,
+          "width": 854,
+          "fps": 30
+        },
+        {
+          "type": "Link",
+          "mediaType": "application/x-bittorrent",
+          "href": "https://fediverse.tv/lazy-static/torrents/0356ea0e-68a7-44ba-b743-207cd6135ebb-480-hls.torrent",
+          "height": 480,
+          "width": 854,
+          "fps": 30
+        },
+        {
+          "type": "Link",
+          "mediaType": "application/x-bittorrent;x-scheme-handler/magnet",
+          "href": "magnet:?xs=https%3A%2F%2Ffediverse.tv%2Flazy-static%2Ftorrents%2F0356ea0e-68a7-44ba-b743-207cd6135ebb-480-hls.torrent&xt=urn:btih:31644fee5e92981d9e1cfcddc743ee1488a97f76&dn=1%C2%B0+WebSocialBR+%E2%80%93+F%C3%B3rum+do+Fediverso+Brasileiro+-+12%2F3%2F2025%2C+8%3A21%3A48+PM&tr=https%3A%2F%2Ffediverse.tv%2Ftracker%2Fannounce&tr=wss%3A%2F%2Ffediverse.tv%3A443%2Ftracker%2Fsocket&ws=https%3A%2F%2Fftv-webvideos.s3.eu-central-003.backblazeb2.com%2Fstreaming-playlistshls%2F5e348297-7b05-4fe1-807d-e6b0765435e9%2Fdd32920e-7917-4bde-8321-43c0786db2fd-480-fragmented.mp4",
+          "height": 480,
+          "width": 854,
+          "fps": 30
+        },
+        {
+          "type": "Link",
+          "mediaType": "video/mp4",
+          "href": "https://ftv-webvideos.s3.eu-central-003.backblazeb2.com/streaming-playlistshls/5e348297-7b05-4fe1-807d-e6b0765435e9/a214cc77-885c-4ab3-9660-1042cc1d70be-360-fragmented.mp4",
+          "height": 360,
+          "width": 640,
+          "size": 245784309,
+          "fps": 30,
+          "attachment": [
             {
               "type": "PropertyValue",
               "name": "ffprobe_codec_type",
@@ -289,7 +305,7 @@
           "type": "Link",
           "rel": ["metadata", "video/mp4"],
           "mediaType": "application/json",
-          "href": "https://tilvids.com/api/v1/videos/e7946124-7b72-4ad7-9d22-844a84bb2de1/metadata/729352",
+          "href": "https://fediverse.tv/api/v1/videos/5e348297-7b05-4fe1-807d-e6b0765435e9/metadata/2042089",
           "height": 360,
           "width": 640,
           "fps": 30
@@ -297,7 +313,7 @@
         {
           "type": "Link",
           "mediaType": "application/x-bittorrent",
-          "href": "https://tilvids.com/lazy-static/torrents/dbdbd47d-42e8-4544-bb78-ae7835312cab-360-hls.torrent",
+          "href": "https://fediverse.tv/lazy-static/torrents/9ccac517-aa17-4298-8ce9-1e9d43136e8e-360-hls.torrent",
           "height": 360,
           "width": 640,
           "fps": 30
@@ -305,7 +321,7 @@
         {
           "type": "Link",
           "mediaType": "application/x-bittorrent;x-scheme-handler/magnet",
-          "href": "magnet:?xs=https%3A%2F%2Ftilvids.com%2Flazy-static%2Ftorrents%2Fdbdbd47d-42e8-4544-bb78-ae7835312cab-360-hls.torrent&xt=urn:btih:913416ac02f6bbfe7bb46e0b19bfe2a4a48d40b8&dn=Mesa%2C+Wayland+%26+X.org+in+trouble%2C+Debian+leaves+X%2C+Facebook+blocks+Linux%3A+Linux+%26+Open+Source+News&tr=https%3A%2F%2Ftilvids.com%2Ftracker%2Fannounce&tr=wss%3A%2F%2Ftilvids.com%3A443%2Ftracker%2Fsocket&ws=https%3A%2F%2Ftilvids.com%2Fstatic%2Fstreaming-playlists%2Fhls%2Fe7946124-7b72-4ad7-9d22-844a84bb2de1%2F339ea14b-0fb9-495b-870e-218a9a6c22f9-360-fragmented.mp4",
+          "href": "magnet:?xs=https%3A%2F%2Ffediverse.tv%2Flazy-static%2Ftorrents%2F9ccac517-aa17-4298-8ce9-1e9d43136e8e-360-hls.torrent&xt=urn:btih:2bc286a5728781b24281f30ba182343f88378c41&dn=1%C2%B0+WebSocialBR+%E2%80%93+F%C3%B3rum+do+Fediverso+Brasileiro+-+12%2F3%2F2025%2C+8%3A21%3A48+PM&tr=https%3A%2F%2Ffediverse.tv%2Ftracker%2Fannounce&tr=wss%3A%2F%2Ffediverse.tv%3A443%2Ftracker%2Fsocket&ws=https%3A%2F%2Fftv-webvideos.s3.eu-central-003.backblazeb2.com%2Fstreaming-playlistshls%2F5e348297-7b05-4fe1-807d-e6b0765435e9%2Fa214cc77-885c-4ab3-9660-1042cc1d70be-360-fragmented.mp4",
           "height": 360,
           "width": 640,
           "fps": 30
@@ -313,11 +329,11 @@
         {
           "type": "Link",
           "mediaType": "video/mp4",
-          "href": "https://tilvids.com/static/streaming-playlists/hls/e7946124-7b72-4ad7-9d22-844a84bb2de1/15585bf4-ff07-4687-8c01-537922958877-144-fragmented.mp4",
-          "height": 144,
-          "width": 256,
-          "size": 31021375,
-          "fps": 30,
+          "href": "https://ftv-webvideos.s3.eu-central-003.backblazeb2.com/streaming-playlistshls/5e348297-7b05-4fe1-807d-e6b0765435e9/702453fa-001f-4ccd-adad-5ef15ef459ca-0-fragmented.mp4",
+          "height": 0,
+          "width": 0,
+          "size": 53019287,
+          "fps": 0,
           "attachment": [
             {
               "type": "PropertyValue",
@@ -326,11 +342,6 @@
             },
             {
               "type": "PropertyValue",
-              "name": "ffprobe_codec_type",
-              "value": "video"
-            },
-            {
-              "type": "PropertyValue",
               "name": "peertube_format_flag",
               "value": "fragmented"
             }
@@ -340,26 +351,26 @@
           "type": "Link",
           "rel": ["metadata", "video/mp4"],
           "mediaType": "application/json",
-          "href": "https://tilvids.com/api/v1/videos/e7946124-7b72-4ad7-9d22-844a84bb2de1/metadata/729356",
-          "height": 144,
-          "width": 256,
-          "fps": 30
+          "href": "https://fediverse.tv/api/v1/videos/5e348297-7b05-4fe1-807d-e6b0765435e9/metadata/2042087",
+          "height": 0,
+          "width": 0,
+          "fps": 0
         },
         {
           "type": "Link",
           "mediaType": "application/x-bittorrent",
-          "href": "https://tilvids.com/lazy-static/torrents/f8a4e994-7be7-46b5-b823-29e041baf687-144-hls.torrent",
-          "height": 144,
-          "width": 256,
-          "fps": 30
+          "href": "https://fediverse.tv/lazy-static/torrents/ccd13b8d-3200-49b3-8c39-31f26eea6d61-0-hls.torrent",
+          "height": 0,
+          "width": 0,
+          "fps": 0
         },
         {
           "type": "Link",
           "mediaType": "application/x-bittorrent;x-scheme-handler/magnet",
-          "href": "magnet:?xs=https%3A%2F%2Ftilvids.com%2Flazy-static%2Ftorrents%2Ff8a4e994-7be7-46b5-b823-29e041baf687-144-hls.torrent&xt=urn:btih:6594dbb8a43e77ae7565fcd5744019f630c97706&dn=Mesa%2C+Wayland+%26+X.org+in+trouble%2C+Debian+leaves+X%2C+Facebook+blocks+Linux%3A+Linux+%26+Open+Source+News&tr=https%3A%2F%2Ftilvids.com%2Ftracker%2Fannounce&tr=wss%3A%2F%2Ftilvids.com%3A443%2Ftracker%2Fsocket&ws=https%3A%2F%2Ftilvids.com%2Fstatic%2Fstreaming-playlists%2Fhls%2Fe7946124-7b72-4ad7-9d22-844a84bb2de1%2F15585bf4-ff07-4687-8c01-537922958877-144-fragmented.mp4",
-          "height": 144,
-          "width": 256,
-          "fps": 30
+          "href": "magnet:?xs=https%3A%2F%2Ffediverse.tv%2Flazy-static%2Ftorrents%2Fccd13b8d-3200-49b3-8c39-31f26eea6d61-0-hls.torrent&xt=urn:btih:6d9d9cceff9b4289e53837cf8093c6a05bcb467e&dn=1%C2%B0+WebSocialBR+%E2%80%93+F%C3%B3rum+do+Fediverso+Brasileiro+-+12%2F3%2F2025%2C+8%3A21%3A48+PM&tr=https%3A%2F%2Ffediverse.tv%2Ftracker%2Fannounce&tr=wss%3A%2F%2Ffediverse.tv%3A443%2Ftracker%2Fsocket&ws=https%3A%2F%2Fftv-webvideos.s3.eu-central-003.backblazeb2.com%2Fstreaming-playlistshls%2F5e348297-7b05-4fe1-807d-e6b0765435e9%2F702453fa-001f-4ccd-adad-5ef15ef459ca-0-fragmented.mp4",
+          "height": 0,
+          "width": 0,
+          "fps": 0
         }
       ]
     },
@@ -367,29 +378,23 @@
       "type": "Link",
       "name": "tracker-http",
       "rel": ["tracker", "http"],
-      "href": "https://tilvids.com/tracker/announce"
+      "href": "https://fediverse.tv/tracker/announce"
     },
     {
       "type": "Link",
       "name": "tracker-websocket",
       "rel": ["tracker", "websocket"],
-      "href": "wss://tilvids.com:443/tracker/socket"
+      "href": "wss://fediverse.tv:443/tracker/socket"
     }
   ],
-  "likes": "https://tilvids.com/videos/watch/e7946124-7b72-4ad7-9d22-844a84bb2de1/likes",
-  "dislikes": "https://tilvids.com/videos/watch/e7946124-7b72-4ad7-9d22-844a84bb2de1/dislikes",
-  "shares": "https://tilvids.com/videos/watch/e7946124-7b72-4ad7-9d22-844a84bb2de1/announces",
-  "comments": "https://tilvids.com/videos/watch/e7946124-7b72-4ad7-9d22-844a84bb2de1/comments",
-  "hasParts": "https://tilvids.com/videos/watch/e7946124-7b72-4ad7-9d22-844a84bb2de1/chapters",
+  "likes": "https://fediverse.tv/videos/watch/5e348297-7b05-4fe1-807d-e6b0765435e9/likes",
+  "dislikes": "https://fediverse.tv/videos/watch/5e348297-7b05-4fe1-807d-e6b0765435e9/dislikes",
+  "shares": "https://fediverse.tv/videos/watch/5e348297-7b05-4fe1-807d-e6b0765435e9/announces",
+  "comments": "https://fediverse.tv/videos/watch/5e348297-7b05-4fe1-807d-e6b0765435e9/comments",
+  "hasParts": "https://fediverse.tv/videos/watch/5e348297-7b05-4fe1-807d-e6b0765435e9/chapters",
   "attributedTo": [
-    {
-      "type": "Person",
-      "id": "https://tilvids.com/accounts/thelinuxexperiment"
-    },
-    {
-      "type": "Group",
-      "id": "https://tilvids.com/video-channels/thelinuxexperiment_channel"
-    }
+    "https://fediverse.tv/accounts/alquimidia",
+    "https://fediverse.tv/video-channels/noticias.alquimidia"
   ],
   "isLiveBroadcast": false,
   "liveSaveReplay": null,
