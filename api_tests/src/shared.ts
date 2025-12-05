@@ -968,11 +968,11 @@ export function wrapper(form: any): string {
 }
 
 export function randomString(length: number): string {
-  var result = "";
-  var characters =
+  let result = "";
+  let characters =
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
-  var charactersLength = characters.length;
-  for (var i = 0; i < length; i++) {
+  let charactersLength = characters.length;
+  for (let i = 0; i < length; i++) {
     result += characters.charAt(Math.floor(Math.random() * charactersLength));
   }
   return result;
@@ -1050,9 +1050,7 @@ export async function waitUntil<T>(
     } catch (error) {
       console.error(error);
     }
-    await delay(
-      delaySeconds[Math.min(retry - 1, delaySeconds.length - 1)] * 1000,
-    );
+    await delay(delaySeconds[(retry - 1) % delaySeconds.length] * 1000);
   }
   console.error("result", result);
   throw Error(
