@@ -100,7 +100,8 @@ impl Activity for Update {
       Either::Left(c) => {
         let community = self.community(context).await?;
         verify_visibility(&self.to, &self.cc, &community)?;
-        verify_person_in_community(&self.actor, &community, context).await?;
+        let actor = self.actor.dereference(context).await?;
+        verify_person_in_community(&actor, &community, context).await?;
         verify_mod_action(&self.actor, &community, context).await?;
         ApubCommunity::verify(c, &community.ap_id.clone().into(), context).await?;
       }

@@ -64,12 +64,6 @@ pub enum AttributedTo {
   Peertube(Vec<ObjectId<UserOrCommunity>>),
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub enum PersonOrGroupType {
-  Person,
-  Group,
-}
-
 impl AttributedTo {
   pub fn url(self) -> Option<DbUrl> {
     match self {

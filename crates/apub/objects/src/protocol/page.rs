@@ -1,14 +1,7 @@
 use crate::{
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::tags::CommunityTag,
-  utils::protocol::{
-    AttributedTo,
-    ImageObject,
-    InCommunity,
-    LanguageTag,
-    PersonOrGroupType,
-    Source,
-  },
+  utils::protocol::{AttributedTo, ImageObject, InCommunity, LanguageTag, Source},
 };
 use activitypub_federation::{
   config::Data,
@@ -26,7 +19,7 @@ use activitypub_federation::{
 use chrono::{DateTime, Utc};
 use itertools::Itertools;
 use lemmy_api_utils::{context::LemmyContext, utils::proxy_image_link};
-use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult, UntranslatedError};
+use lemmy_utils::error::{LemmyError, LemmyResult, UntranslatedError};
 use serde::{Deserialize, Deserializer, Serialize, de::Error};
 use serde_with::skip_serializing_none;
 use url::Url;

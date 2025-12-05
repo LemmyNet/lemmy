@@ -10,7 +10,8 @@
   "scripts": {
     "lint": "tsc --noEmit && eslint --report-unused-disable-directives && prettier --check 'src/**/*.ts'",
     "fix": "prettier --write src && eslint --fix src",
-    "api-test": "jest -i follow.spec.ts && jest -i image.spec.ts && jest -i user.spec.ts && jest -i private_message.spec.ts && jest -i community.spec.ts && jest -i private_comm.spec.ts && jest -i post.spec.ts && jest -i comment.spec.ts && jest -i tags.spec.ts && jest -i apiv3.spec.ts",
+    "api-test": "jest -i --bail --verbose --silent",
+    "api-test-multiple": "pnpm run api-test || pnpm run api-test || pnpm run api-test || pnpm run api-test",
     "api-test-follow": "jest -i follow.spec.ts",
     "api-test-comment": "jest -i comment.spec.ts",
     "api-test-post": "jest -i post.spec.ts",

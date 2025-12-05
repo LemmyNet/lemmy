@@ -105,7 +105,8 @@ impl Activity for CollectionRemove {
   async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     let community = self.community(context).await?;
     verify_visibility(&self.to, &self.cc, &community)?;
-    verify_person_in_community(&self.actor, &community, context).await?;
+    let actor = self.actor.dereference(context).await?;
+    verify_person_in_community(&actor, &community, context).await?;
     verify_mod_action(&self.actor, &community, context).await?;
     Ok(())
   }

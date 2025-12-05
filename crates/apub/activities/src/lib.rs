@@ -166,14 +166,14 @@ pub async fn match_outgoing_activities(
         let creator_id = post.creator_id;
         CreateOrUpdatePage::send(post, creator_id, CreateOrUpdateType::Update, context).await
       }
-      DeletePost(post, person, data) => {
-        let community = Community::read(&mut context.pool(), post.community_id).await?;
+      DeletePost(post, person, community) => {
+        let is_deleted = post.deleted;
         send_apub_delete_in_community(
           person,
           community,
           DeletableObjects::Post(post.into()),
           None,
-          data.deleted,
+          is_deleted,
           &context,
         )
         .await

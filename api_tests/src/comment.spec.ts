@@ -242,7 +242,10 @@ test("Remove a comment from admin and community on different instance", async ()
   expect(commentRes.comment_view.comment.content).toBeDefined();
 
   // Beta searches that to cache it, then removes it
-  let betaComment = await resolveComment(beta, commentRes.comment_view.comment);
+  let betaComment = await waitUntil(
+    () => resolveComment(beta, commentRes.comment_view.comment),
+    c => c?.comment !== undefined,
+  );
 
   if (!betaComment) {
     throw "beta comment missing";

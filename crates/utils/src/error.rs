@@ -164,7 +164,7 @@ pub enum UntranslatedError {
   /// A remote community sent an activity to us, but actually no local user follows the community
   /// so the activity was rejected.
   CommunityHasNoFollowers(String),
-  InvalidAttributedTo
+  InvalidAttributedTo,
 }
 
 cfg_if! {

@@ -108,7 +108,7 @@ async function assertPostFederation(
 
 test("Create a post", async () => {
   // Block alpha
-  var block_instance_params: AdminBlockInstanceParams = {
+  let block_instance_params: AdminBlockInstanceParams = {
     instance: "lemmy-alpha",
     block: true,
     reason: "block",
@@ -337,15 +337,23 @@ test("Delete a post", async () => {
   await waitForPost(beta, postRes.post_view.post, p => p?.post.id != undefined);
 
   let deletedPost = await deletePost(alpha, true, postRes.post_view.post);
-  expect(deletedPost.post_view.post.deleted).toBe(true);
+  // Make sure lemmy alpha sees post is deleted
+  await waitUntil(
+    () => getPost(alpha, postRes.post_view.post.id),
+    p => p.post_view.post.deleted,
+  );
   expect(deletedPost.post_view.post.name).toBe(postRes.post_view.post.name);
 
   // Make sure lemmy beta sees post is deleted
   // This will be undefined because of the tombstone
-  await waitForPost(beta, postRes.post_view.post, p => p == undefined);
+  await waitForPost(beta, postRes.post_view.post, p => p?.post == undefined);
 
   // Undelete
   let undeletedPost = await deletePost(alpha, false, postRes.post_view.post);
+  await waitUntil(
+    () => getPost(alpha, postRes.post_view.post.id),
+    p => !p.post_view.post.deleted,
+  );
 
   // Make sure lemmy beta sees post is undeleted
   let betaPost2 = await waitForPost(
