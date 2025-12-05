@@ -274,7 +274,7 @@ impl InCommunity for Page {
             return Ok(community);
           }
         }
-        return Err(UntranslatedError::InvalidAttributedTo.into());
+        Err(UntranslatedError::InvalidAttributedTo.into())
       }
     }
   }
