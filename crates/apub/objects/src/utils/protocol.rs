@@ -57,6 +57,9 @@ impl ImageObject {
   }
 }
 
+/// While Lemmy only has a single value in `attributed_to` (the moderators collection url),
+/// Peertube uses it to store an array with both the Person who created a video (post), and also
+/// the community it belongs in.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(untagged)]
 pub enum AttributedTo {

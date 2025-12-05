@@ -182,7 +182,10 @@ impl HashtagOrLemmyTag {
 impl Page {
   pub async fn creator(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubPerson> {
     match &self.attributed_to {
+      // Lemmy stores only the creator Person in `attributed_to` so its easy to parse
       AttributedTo::Lemmy(l) => Ok(l.creator().dereference(context).await?),
+      // Peertube also stores the community here, so we need to deref each one to find which
+      // one is a Person.
       AttributedTo::Peertube(p) => {
         for p in p {
           let actor = p.dereference(context).await?;
@@ -243,6 +246,8 @@ impl InCommunity for Page {
     if let Some(audience) = &self.audience {
       return audience.dereference(context).await;
     }
+    // Peertube only provides the community id in `attributed_to`, so it needs a special case
+    // to handle.
     match &self.attributed_to {
       AttributedTo::Lemmy(_) => {
         let mut iter = self.to.iter().merge(self.cc.iter());
