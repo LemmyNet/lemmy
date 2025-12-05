@@ -1,6 +1,6 @@
 use cfg_if::cfg_if;
 use chrono::Utc;
-use std::cmp::min;
+use std::{cmp::min, sync::LazyLock};
 
 cfg_if! {
   if #[cfg(feature = "full")] {
