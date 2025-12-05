@@ -247,7 +247,9 @@ pub fn comment_select_remove_deletes() -> _ {
   let deleted_or_removed = comment::deleted.or(comment::removed);
 
   // You can only view the content if it hasn't been removed, or you can mod.
-  let can_view_content = not(deleted_or_removed).or(local_user_can_mod_comment());
+  let can_view_content = not(deleted_or_removed)
+    .or(local_user_can_mod_comment())
+    .or(local_user::person_id.eq(comment::creator_id));
   let content = case_when(can_view_content, comment::content).otherwise("");
 
   (
@@ -284,7 +286,9 @@ pub fn post_select_remove_deletes() -> _ {
   let deleted_or_removed = post::deleted.or(post::removed);
 
   // You can only view the content if it hasn't been removed, or you can mod.
-  let can_view_content = not(deleted_or_removed).or(local_user_can_mod_post());
+  let can_view_content = not(deleted_or_removed)
+    .or(local_user_can_mod_post())
+    .or(local_user::person_id.eq(comment::creator_id));
   let body = case_when(can_view_content, post::body).otherwise("");
 
   (
