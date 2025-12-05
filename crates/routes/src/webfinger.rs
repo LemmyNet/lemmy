@@ -65,8 +65,11 @@ async fn get_webfinger_response(
           }
         });
 
+    // NOTE: Do not change the order of these items!
     // Mastodon seems to prioritize the last webfinger item in case of duplicates. Put
-    // community last so that it gets prioritized. For Lemmy the order doesn't matter.
+    // community last so that it gets prioritized.
+    // Lemmy also relies on this specific order, so in case a resolve for `reddit@lemmy.world`
+    // gives both user and community, the community is returned (also necessary for remote follow).
     vec![
       webfinger_link_for_actor(user_id, "Person", &context)?,
       webfinger_link_for_actor(community_id, "Group", &context)?,

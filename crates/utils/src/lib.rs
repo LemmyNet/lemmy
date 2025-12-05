@@ -1,5 +1,6 @@
 use cfg_if::cfg_if;
-use std::cmp::min;
+use chrono::Utc;
+use std::{cmp::min, sync::LazyLock};
 
 cfg_if! {
   if #[cfg(feature = "full")] {
@@ -16,15 +17,7 @@ use std::time::Duration;
 
 pub type ConnectionId = usize;
 
-/// git_version marks this crate as dirty and causes a rebuild if any file in the repo is changed.
-/// This slows down development a lot, so we only use git_version for release builds.
-#[cfg(not(debug_assertions))]
-pub const VERSION: &str = git_version::git_version!(
-  args = ["--tags", "--dirty=-modified"],
-  fallback = env!("CARGO_PKG_VERSION")
-);
-#[cfg(debug_assertions)]
-pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+pub static VERSION: LazyLock<String> = LazyLock::new(version);
 
 pub const REQWEST_TIMEOUT: Duration = Duration::from_secs(10);
 
@@ -52,6 +45,27 @@ pub const MAX_COMMENT_DEPTH_LIMIT: usize = 50;
 /// Doing DB transactions of bigger batches than this tend to cause seq scans.
 pub const DB_BATCH_SIZE: i64 = 1000;
 
+fn version() -> String {
+  if cfg!(debug_assertions) {
+    // For debug simply use the version from Cargo.toml. We can't use git_version here
+    // because it would cause a rebuild if any file in the repo is changed.
+    env!("CARGO_PKG_VERSION").to_string()
+  } else {
+    // Event cron means its a nightly build
+    // https://woodpecker-ci.org/docs/usage/environment
+    if option_env!("CI_PIPELINE_EVENT") == Some("cron") {
+      format!("nightly-{}", Utc::now().date_naive())
+    } else {
+      // For actual release builds use git binary for detailed version information.
+      git_version::git_version!(
+        args = ["--tags", "--dirty=-modified"],
+        fallback = env!("CARGO_PKG_VERSION")
+      )
+      .to_string()
+    }
+  }
+}
+
 #[macro_export]
 macro_rules! location_info {
   () => {
@@ -67,7 +81,7 @@ macro_rules! location_info {
 cfg_if! {
   if #[cfg(feature = "full")] {
 use moka::future::Cache;use std::fmt::Debug;use std::hash::Hash;
-use serde_json::Value;use std::{sync::LazyLock};
+use serde_json::Value;
 
 /// Only include a basic context to save space and bandwidth. The main context is hosted statically
 /// on join-lemmy.org. Include activitystreams explicitly for better compat, but this could

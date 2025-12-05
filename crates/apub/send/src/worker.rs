@@ -356,10 +356,7 @@ impl InstanceWorker {
   /// if we have inboxes to send to this limits CPU usage and reduces overhead for the (many)
   /// cases where we don't have any inboxes
   async fn spawn_send_if_needed(&mut self, activity_id: ActivityId) -> LemmyResult<()> {
-    let Some(ele) = get_activity_cached(&mut self.pool(), activity_id)
-      .await
-      .context("failed reading activity from db")?
-    else {
+    let Ok(Some(ele)) = get_activity_cached(&mut self.pool(), activity_id).await else {
       tracing::debug!("{}: {:?} does not exist", self.instance.domain, activity_id);
       self
         .report_send_result
