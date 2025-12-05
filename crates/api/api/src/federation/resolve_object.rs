@@ -46,7 +46,7 @@ pub(super) async fn resolve_object_internal(
 
   let object = if is_authenticated || cfg!(debug_assertions) {
     // user is fully authenticated; allow remote lookups as well.
-    search_query_to_object_id(query.to_string(), context).await
+    dbg!(search_query_to_object_id(query.to_string(), context).await)
   } else {
     // user isn't authenticated only allow a local search.
     search_query_to_object_id_local(query, context).await

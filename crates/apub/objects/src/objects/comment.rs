@@ -167,15 +167,15 @@ impl Object for ApubComment {
       }
       return Err(e.into());
     }
+
+    let (post, parent_comment) = Box::pin(note.get_parents(context)).await?;
+    let creator = Box::pin(note.attributed_to.dereference(context)).await?;
     Box::pin(verify_person_in_community(
-      &note.attributed_to,
+      &creator,
       &community,
       context,
     ))
     .await?;
-
-    let (post, parent_comment) = Box::pin(note.get_parents(context)).await?;
-    let creator = Box::pin(note.attributed_to.dereference(context)).await?;
 
     let is_mod_or_admin = check_is_mod_or_admin(&mut context.pool(), creator.id, community.id)
       .await

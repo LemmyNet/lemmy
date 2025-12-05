@@ -187,14 +187,18 @@ impl HashtagOrLemmyTag {
 }
 
 impl Page {
-  pub fn creator(&self) -> LemmyResult<ObjectId<ApubPerson>> {
+  pub async fn creator(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubPerson> {
     match &self.attributed_to {
-      AttributedTo::Lemmy(l) => Ok(l.creator()),
-      AttributedTo::Peertube(p) => p
-        .iter()
-        .find(|a| a.kind == PersonOrGroupType::Person)
-        .map(|a| ObjectId::<ApubPerson>::from(a.id.clone().into_inner()))
-        .ok_or_else(|| UntranslatedError::PageDoesNotSpecifyCreator.into()),
+      AttributedTo::Lemmy(l) => Ok(l.creator().dereference(context).await?),
+      AttributedTo::Peertube(p) => {
+        for p in p {
+          let actor = p.dereference(context).await?;
+          if let Some(person) = actor.left() {
+            return Ok(person);
+          }
+        }
+        Err(UntranslatedError::InvalidAttributedTo.into())
+      }
     }
   }
 }
@@ -246,7 +250,7 @@ impl InCommunity for Page {
     if let Some(audience) = &self.audience {
       return audience.dereference(context).await;
     }
-    let community = match &self.attributed_to {
+    match &self.attributed_to {
       AttributedTo::Lemmy(_) => {
         let mut iter = self.to.iter().merge(self.cc.iter());
         loop {
@@ -258,24 +262,23 @@ impl InCommunity for Page {
             }
             let cid = ObjectId::<ApubCommunity>::from(cid.clone());
             if let Ok(c) = cid.dereference(context).await {
-              break c;
+              return Ok(c);
             }
           } else {
-            Err(LemmyErrorType::NotFound)?;
+            return Err(UntranslatedError::InvalidAttributedTo.into());
           }
         }
       }
       AttributedTo::Peertube(p) => {
-        p.iter()
-          .find(|a| a.kind == PersonOrGroupType::Group)
-          .map(|a| ObjectId::<ApubCommunity>::from(a.id.clone().into_inner()))
-          .ok_or(LemmyErrorType::NotFound)?
-          .dereference(context)
-          .await?
+        for p in p {
+          let actor = p.dereference(context).await?;
+          if let Some(community) = actor.right() {
+            return Ok(community);
+          }
+        }
+        return Err(UntranslatedError::InvalidAttributedTo.into());
       }
-    };
-
-    Ok(community)
+    }
   }
 }
 

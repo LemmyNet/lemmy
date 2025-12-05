@@ -61,21 +61,13 @@ impl ImageObject {
 #[serde(untagged)]
 pub enum AttributedTo {
   Lemmy(PersonOrGroupModerators),
-  Peertube(Vec<AttributedToPeertube>),
+  Peertube(Vec<ObjectId<UserOrCommunity>>),
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum PersonOrGroupType {
   Person,
   Group,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
-pub struct AttributedToPeertube {
-  #[serde(rename = "type")]
-  pub kind: PersonOrGroupType,
-  pub id: ObjectId<UserOrCommunity>,
 }
 
 impl AttributedTo {
