@@ -53,7 +53,7 @@ tracing = { workspace = true }
 lemmy_utils = { workspace = true }
 extism = { workspace = true }
 extism-convert = { workspace = true }
-extism-manifest = "1.12.0"
+extism-manifest = "1.13.0"
 reqwest-middleware = { workspace = true }
 activitypub_federation = { workspace = true }
 mime = { version = "0.3.17" }
@@ -72,7 +72,7 @@ webmention = { version = "0.6.0" }
 urlencoding = { workspace = true }
 webpage = { version = "2.0", default-features = false, features = ["serde"] }
 regex = { workspace = true }
-jsonwebtoken = { version = "10.1.0", features = ["rust_crypto"] }
+jsonwebtoken = { version = "10.2.0", features = ["rust_crypto"] }
 either.workspace = true
 derive-new.workspace = true
 lemmy_diesel_utils = { workspace = true }
