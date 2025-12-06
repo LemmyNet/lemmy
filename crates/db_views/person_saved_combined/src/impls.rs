@@ -60,6 +60,7 @@ pub struct PersonSavedCombinedQuery {
 }
 
 #[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 struct PostCommentCombinedViewWrapper(PostCommentCombinedView);
 
 impl PaginationCursorConversion for PostCommentCombinedViewWrapper {
