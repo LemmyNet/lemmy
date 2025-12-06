@@ -18,7 +18,6 @@ import {
   resolveBetaCommunity,
   createComment,
   deletePost,
-  delay,
   removePost,
   getPost,
   unfollowRemotes,
@@ -42,6 +41,7 @@ import {
   getModlog,
   statusNotFound,
   statusBadRequest,
+  getSite,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
 import { AdminBlockInstanceParams } from "lemmy-js-client/dist/types/AdminBlockInstanceParams";
@@ -108,7 +108,7 @@ async function assertPostFederation(
 
 test("Create a post", async () => {
   // Block alpha
-  var block_instance_params: AdminBlockInstanceParams = {
+  let block_instance_params: AdminBlockInstanceParams = {
     instance: "lemmy-alpha",
     block: true,
     reason: "block",
@@ -334,21 +334,26 @@ test("Delete a post", async () => {
   let postRes = await createPost(alpha, betaCommunity.community.id);
   expect(postRes.post_view.post).toBeDefined();
 
+  await waitForPost(beta, postRes.post_view.post, p => p?.post.id != undefined);
+
   let deletedPost = await deletePost(alpha, true, postRes.post_view.post);
-  expect(deletedPost.post_view.post.deleted).toBe(true);
+  // Make sure lemmy alpha sees post is deleted
+  await waitUntil(
+    () => getPost(alpha, postRes.post_view.post.id),
+    p => p.post_view.post.deleted,
+  );
   expect(deletedPost.post_view.post.name).toBe(postRes.post_view.post.name);
 
   // Make sure lemmy beta sees post is deleted
   // This will be undefined because of the tombstone
-  await waitForPost(
-    beta,
-    postRes.post_view.post,
-    p => p?.post?.deleted || p == undefined,
-  );
-  await delay();
+  await waitForPost(beta, postRes.post_view.post, p => p?.post == undefined);
 
   // Undelete
   let undeletedPost = await deletePost(alpha, false, postRes.post_view.post);
+  await waitUntil(
+    () => getPost(alpha, postRes.post_view.post.id),
+    p => !p.post_view.post.deleted,
+  );
 
   // Make sure lemmy beta sees post is undeleted
   let betaPost2 = await waitForPost(
@@ -432,7 +437,7 @@ test("Remove a post from admin and community on same instance", async () => {
   // Make sure lemmy alpha sees post is removed
   let alphaPost = await waitUntil(
     () => getPost(alpha, alphaPost0.post.id),
-    p => p?.post_view.post.removed ?? false,
+    p => p?.post_view.post.removed,
   );
   expect(alphaPost?.post_view.post.removed).toBe(true);
   await assertPostFederation(
@@ -665,8 +670,8 @@ test("Enforce community ban for federated user", async () => {
   await waitUntil(
     () => getModlog(alpha),
     m =>
-      m.modlog[0].modlog.kind == "mod_ban_from_community" &&
-      m.modlog[0].modlog.is_revert == true,
+      m.items[0].modlog.kind == "mod_ban_from_community" &&
+      m.items[0].modlog.is_revert == true,
   );
 
   let postRes3 = await createPost(alpha, betaCommunity.community.id);
@@ -732,7 +737,7 @@ test("Report a post", async () => {
     (await waitUntil(
       () =>
         listReports(beta).then(p =>
-          p.reports.find(r => {
+          p.items.find(r => {
             return checkPostReportName(r, gammaReport);
           }),
         ),
@@ -753,7 +758,7 @@ test("Report a post", async () => {
     (await waitUntil(
       () =>
         listReports(alpha, true).then(p =>
-          p.reports.find(r => {
+          p.items.find(r => {
             return checkPostReportName(r, gammaReport);
           }),
         ),
@@ -772,7 +777,7 @@ test("Report a post", async () => {
     (await waitUntil(
       () =>
         listReports(epsilon).then(p =>
-          p.reports.find(r => {
+          p.items.find(r => {
             return checkPostReportName(r, gammaReport);
           }),
         ),
@@ -796,7 +801,7 @@ test("Report a post", async () => {
     (await waitUntil(
       () =>
         listReports(beta).then(p =>
-          p.reports.find(r => {
+          p.items.find(r => {
             return checkPostReportName(r, gammaReport) && !!r.resolver;
           }),
         ),
@@ -828,7 +833,7 @@ test("Fetch post via redirect", async () => {
   };
   let gammaPost = await gamma
     .resolveObject(form)
-    .then(a => a.results.at(0))
+    .then(a => a.resolve)
     .then(a => (a?.type_ == "post" ? a : undefined));
 
   expect(gammaPost).toBeDefined();
@@ -843,7 +848,10 @@ test("Block post that contains banned URL", async () => {
 
   await epsilon.editSite(editSiteForm);
 
-  await delay();
+  await waitUntil(
+    () => epsilon.getSite(),
+    s => s.blocked_urls.length == 1,
+  );
 
   if (!betaCommunity) {
     throw "Missing beta community";
@@ -876,7 +884,7 @@ test("Fetch post with redirect", async () => {
   };
   let gammaPost2 = await gamma
     .resolveObject(form)
-    .then(a => a.results.at(0))
+    .then(a => a.resolve)
     .then(a => (a?.type_ == "post" ? a : undefined));
 
   expect(gammaPost2?.post).toBeDefined();
@@ -909,10 +917,10 @@ test("Mention beta from alpha post body", async () => {
 
   let mentionsRes = await waitUntil(
     () => listNotifications(beta, "mention"),
-    m => !!m.notifications[0],
+    m => !!m.items[0],
   );
 
-  const firstMention = mentionsRes.notifications[0].data as PostView;
+  const firstMention = mentionsRes.items[0].data as PostView;
   expect(firstMention.post!.body).toBeDefined();
   expect(firstMention.community!.local).toBe(true);
   expect(firstMention.creator.local).toBe(false);
@@ -952,7 +960,10 @@ test("Don't allow NSFW posts on instances that disable it", async () => {
   await gamma.editSite(editSiteForm);
 
   // Wait for cache on Gamma's LocalSite
-  await delay(1_000);
+  await waitUntil(
+    () => getSite(gamma),
+    s => s.site_view.local_site.disallow_nsfw_content,
+  );
 
   if (!betaCommunity) {
     throw "Missing beta community";

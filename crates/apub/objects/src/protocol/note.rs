@@ -57,6 +57,7 @@ pub struct Note {
   // lemmy extension
   pub distinguished: Option<bool>,
   pub(crate) language: Option<LanguageTag>,
+  pub(crate) audience: Option<ObjectId<ApubCommunity>>,
   #[serde(default)]
   pub(crate) attachment: Vec<Attachment>,
   pub(crate) context: Option<String>,
@@ -106,6 +107,9 @@ impl Note {
 
 impl InCommunity for Note {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
+    if let Some(audience) = &self.audience {
+      return audience.dereference(context).await;
+    }
     let (post, _) = self.get_parents(context).await?;
     let community = Community::read(&mut context.pool(), post.community_id).await?;
     Ok(community.into())

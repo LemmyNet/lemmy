@@ -68,6 +68,7 @@ impl CreateOrUpdateNote {
       object: note,
       kind,
       id: id.clone(),
+      audience: Some(community.ap_id.clone().into()),
     };
 
     let tagged_users: Vec<ObjectId<ApubPerson>> = create_or_update

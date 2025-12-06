@@ -37,7 +37,7 @@ use lemmy_utils::{
 };
 
 pub async fn create_comment(
-  data: Json<CreateComment>,
+  Json(data): Json<CreateComment>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponse>> {
@@ -96,20 +96,13 @@ pub async fn create_comment(
     check_comment_depth(parent)?;
   }
 
-  let language_id = validate_post_language(
-    &mut context.pool(),
-    data.language_id,
-    community_id,
-    local_user_view.local_user.id,
-  )
-  .await?;
-
   let mut comment_form = CommentInsertForm {
-    language_id: Some(language_id),
+    language_id: data.language_id,
     federation_pending: Some(community_use_pending(&post_view.community, &context).await),
     ..CommentInsertForm::new(my_person_id, data.post_id, content.clone())
   };
   comment_form = plugin_hook_before("local_comment_before_create", comment_form).await?;
+  validate_post_language(&mut context.pool(), comment_form.language_id, community_id).await?;
 
   // Create the comment
   let parent_path = parent_opt.clone().map(|t| t.path);

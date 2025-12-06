@@ -25,4 +25,5 @@ pub struct ResolveReport {
   #[serde(rename = "type")]
   pub(crate) kind: ResolveType,
   pub(crate) id: Url,
+  pub(crate) audience: Option<ObjectId<ApubCommunity>>,
 }

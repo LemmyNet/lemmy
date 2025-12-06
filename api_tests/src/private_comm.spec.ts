@@ -260,18 +260,18 @@ test("Follow a private community and receive activities", async () => {
   // post and comment were federated to beta
   let posts = await waitUntil(
     () => getPosts(beta, "all", betaCommunityId),
-    c => c.posts.length == 1,
+    c => c.items.length == 1,
   );
-  expect(posts.posts[0].post.ap_id).toBe(post.post_view.post.ap_id);
-  expect(posts.posts[0].post.name).toBe(post.post_view.post.name);
+  expect(posts.items[0].post.ap_id).toBe(post.post_view.post.ap_id);
+  expect(posts.items[0].post.name).toBe(post.post_view.post.name);
   let comments = await waitUntil(
-    () => getComments(beta, posts.posts[0].post.id),
-    c => c.comments.length == 1,
+    () => getComments(beta, posts.items[0].post.id),
+    c => c.items.length == 1,
   );
-  expect(comments.comments[0].comment.ap_id).toBe(
+  expect(comments.items[0].comment.ap_id).toBe(
     comment.comment_view.comment.ap_id,
   );
-  expect(comments.comments[0].comment.content).toBe(
+  expect(comments.items[0].comment.content).toBe(
     comment.comment_view.comment.content,
   );
 });

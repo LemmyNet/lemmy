@@ -70,8 +70,8 @@ CREATE TABLE IF NOT EXISTS post_aggregates (
     upvotes bigint NOT NULL DEFAULT 0,
     downvotes bigint NOT NULL DEFAULT 0,
     published timestamp with time zone NOT NULL DEFAULT now(),
-    newest_comment_time_necro timestamp with time zone NOT NULL DEFAULT now(),
-    newest_comment_time timestamp with time zone NOT NULL DEFAULT now(),
+    newest_comment_time_necro timestamp with time zone DEFAULT now(),
+    newest_comment_time timestamp with time zone DEFAULT now(),
     featured_community boolean NOT NULL DEFAULT FALSE,
     featured_local boolean NOT NULL DEFAULT FALSE,
     hot_rank double precision NOT NULL DEFAULT 0.0001,
@@ -82,7 +82,9 @@ CREATE TABLE IF NOT EXISTS post_aggregates (
     instance_id integer NOT NULL REFERENCES instance (id) ON UPDATE CASCADE ON DELETE CASCADE,
     scaled_rank double precision NOT NULL DEFAULT 0.0001,
     report_count smallint NOT NULL DEFAULT 0,
-    unresolved_report_count smallint NOT NULL DEFAULT 0
+    unresolved_report_count smallint NOT NULL DEFAULT 0,
+    CONSTRAINT post_aggregates_newest_comment_time_not_null1 NOT NULL newest_comment_time,
+    CONSTRAINT post_aggregates_newest_comment_time_not_null NOT NULL newest_comment_time_necro
 );
 
 INSERT INTO post_aggregates
@@ -303,12 +305,17 @@ CREATE INDEX idx_community_aggregates_users_active_month ON public.community_agg
 
 -- move person_aggregates back into separate table
 CREATE TABLE person_aggregates (
-    person_id int PRIMARY KEY NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
-    post_count bigint NOT NULL DEFAULT 0,
-    post_score bigint NOT NULL DEFAULT 0,
-    comment_count bigint NOT NULL DEFAULT 0,
-    comment_score bigint NOT NULL DEFAULT 0,
-    published timestamp with time zone DEFAULT now() NOT NULL
+    person_id int PRIMARY KEY REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
+    post_count bigint DEFAULT 0,
+    post_score bigint DEFAULT 0,
+    comment_count bigint DEFAULT 0,
+    comment_score bigint DEFAULT 0,
+    published timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT user_aggregates_comment_count_not_null NOT NULL comment_count,
+    CONSTRAINT user_aggregates_comment_score_not_null NOT NULL comment_score,
+    CONSTRAINT user_aggregates_user_id_not_null NOT NULL person_id,
+    CONSTRAINT user_aggregates_post_count_not_null NOT NULL post_count,
+    CONSTRAINT user_aggregates_post_score_not_null NOT NULL post_score
 );
 
 INSERT INTO person_aggregates

@@ -1,7 +1,7 @@
 -- recreate columns in the original order
 ALTER TABLE community
     ADD COLUMN hidden bool DEFAULT FALSE NOT NULL,
-    ADD COLUMN visibility_new community_visibility NOT NULL DEFAULT 'Public';
+    ADD COLUMN visibility_new community_visibility DEFAULT 'Public';
 
 UPDATE
     community
@@ -41,7 +41,8 @@ ALTER TABLE community
     USING visibility::text::community_visibility;
 
 ALTER TABLE community
-    ALTER COLUMN visibility SET DEFAULT 'Public';
+    ALTER COLUMN visibility SET DEFAULT 'Public',
+    ALTER COLUMN visibility SET NOT NULL;
 
 CREATE INDEX idx_community_random_number ON community (random_number) INCLUDE (local, nsfw)
 WHERE
@@ -54,9 +55,10 @@ CREATE TABLE mod_hide_community (
     id serial PRIMARY KEY,
     community_id int REFERENCES community ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
     mod_person_id int REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
-    published timestamptz NOT NULL DEFAULT now(),
+    published timestamptz DEFAULT now(),
     reason text,
-    hidden boolean DEFAULT FALSE NOT NULL
+    hidden boolean DEFAULT FALSE NOT NULL,
+    CONSTRAINT mod_hide_community_when__not_null NOT NULL published
 );
 
 ALTER TABLE modlog_combined

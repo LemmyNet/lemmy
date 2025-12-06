@@ -26,7 +26,7 @@ use lemmy_diesel_utils::{connection::get_conn, traits::Crud};
 use lemmy_utils::{error::LemmyResult, utils::validation::is_valid_body_field};
 
 pub async fn ban_from_community(
-  data: Json<BanFromCommunity>,
+  Json(data): Json<BanFromCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PersonResponse>> {
@@ -106,7 +106,7 @@ pub async fn ban_from_community(
     data.person_id,
     Some(my_person_id),
     local_instance_id,
-    false,
+    true,
   )
   .await?;
 
@@ -115,7 +115,7 @@ pub async fn ban_from_community(
       moderator: local_user_view.person,
       community_id: data.community_id,
       target: person_view.person.clone(),
-      data: data.0.clone(),
+      data: data.clone(),
     },
     &context,
   )?;

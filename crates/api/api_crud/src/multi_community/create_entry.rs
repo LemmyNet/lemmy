@@ -22,7 +22,7 @@ use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn create_multi_community_entry(
-  data: Json<CreateOrDeleteMultiCommunityEntry>,
+  Json(data): Json<CreateOrDeleteMultiCommunityEntry>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityResponse>> {

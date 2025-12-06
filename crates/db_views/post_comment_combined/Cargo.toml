@@ -1,0 +1,41 @@
+[package]
+name = "lemmy_db_views_post_comment_combined"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[lib]
+doctest = false
+
+[lints]
+workspace = true
+
+[features]
+full = [
+  "diesel",
+  "lemmy_db_schema/full",
+  "lemmy_db_views_post/full",
+  "lemmy_db_views_comment/full",
+]
+ts-rs = [
+  "dep:ts-rs",
+  "lemmy_db_schema/ts-rs",
+  "lemmy_db_views_post/ts-rs",
+  "lemmy_db_views_comment/ts-rs",
+]
+
+[dependencies]
+lemmy_db_views_post = { workspace = true }
+lemmy_db_views_comment = { workspace = true }
+lemmy_db_schema = { workspace = true }
+diesel = { workspace = true, optional = true }
+serde = { workspace = true }
+ts-rs = { workspace = true, optional = true }
+chrono = { workspace = true }
+
+[dev-dependencies]

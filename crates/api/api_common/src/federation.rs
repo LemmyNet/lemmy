@@ -13,7 +13,6 @@ pub use lemmy_db_views_site::{
   api::{
     GetFederatedInstances,
     GetFederatedInstancesKind,
-    GetFederatedInstancesResponse,
     InstanceWithFederationState,
     ResolveObject,
     UserBlockInstanceCommunitiesParams,

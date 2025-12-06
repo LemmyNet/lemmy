@@ -69,11 +69,8 @@ pub struct Comment {
   pub locked: bool,
 }
 
-#[derive(Debug, Clone, derive_new::new)]
-#[cfg_attr(
-  feature = "full",
-  derive(Insertable, AsChangeset, Serialize, Deserialize)
-)]
+#[derive(Debug, Clone, derive_new::new, Serialize, Deserialize)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset,))]
 #[cfg_attr(feature = "full", diesel(table_name = comment))]
 pub struct CommentInsertForm {
   pub creator_id: PersonId,

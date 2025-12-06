@@ -62,7 +62,7 @@ actix-web = { workspace = true, optional = true }
 anyhow = { workspace = true, optional = true }
 strum = { workspace = true }
 futures = { workspace = true, optional = true }
-diesel = { workspace = true, optional = true, features = ["chrono"] }
+diesel = { workspace = true, optional = true }
 http = { workspace = true, optional = true }
 doku = { workspace = true, features = ["url-2"], optional = true }
 tokio = { workspace = true, optional = true }
@@ -72,7 +72,8 @@ smart-default = { version = "0.7.1", optional = true }
 markdown-it = { version = "0.6.1", optional = true }
 ts-rs = { workspace = true, optional = true }
 enum-map = { version = "2.7", optional = true }
-cfg-if = "1"
+chrono = { workspace = true }
+cfg-if = { workspace = true }
 clearurls = { version = "0.0.4", features = ["linkify"] }
 markdown-it-block-spoiler = "1.0.2"
 markdown-it-sub = "1.0.2"

@@ -90,6 +90,7 @@ impl Delete {
       kind: DeleteType::Delete,
       summary,
       id,
+      audience: community.map(|c| c.ap_id.clone().into()),
       remove_data: None,
     })
   }

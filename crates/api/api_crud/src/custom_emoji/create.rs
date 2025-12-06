@@ -14,7 +14,7 @@ use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn create_custom_emoji(
-  data: Json<CreateCustomEmoji>,
+  Json(data): Json<CreateCustomEmoji>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CustomEmojiResponse>> {

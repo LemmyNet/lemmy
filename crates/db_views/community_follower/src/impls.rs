@@ -1,4 +1,4 @@
-use crate::{CommunityFollowerView, PendingFollow};
+use crate::CommunityFollowerView;
 use chrono::Utc;
 use diesel::{
   ExpressionMethods,
@@ -9,11 +9,7 @@ use diesel::{
   select,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema::{
-  newtypes::{CommunityId, PaginationCursor},
-  source::community::CommunityActions,
-  traits::PaginationCursorBuilder,
-};
+use lemmy_db_schema::newtypes::CommunityId;
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
@@ -110,34 +106,5 @@ impl CommunityFollowerView {
     .await?
     .then_some(())
     .ok_or(LemmyErrorType::NotFound.into())
-  }
-}
-
-impl PaginationCursorBuilder for CommunityFollowerView {
-  type CursorData = CommunityActions;
-
-  fn to_cursor(&self) -> PaginationCursor {
-    // This needs a person and community
-    let prefixes_and_ids = [('P', self.follower.id.0), ('C', self.community.id.0)];
-
-    PaginationCursor::new(&prefixes_and_ids)
-  }
-  async fn from_cursor(
-    cursor: &PaginationCursor,
-    pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Self::CursorData> {
-    let [(_, person_id), (_, community_id)] = cursor.prefixes_and_ids()?;
-    CommunityActions::read(pool, CommunityId(community_id), PersonId(person_id)).await
-  }
-}
-
-impl PendingFollow {
-  pub fn to_cursor(&self) -> PaginationCursor {
-    // Build a fake community_follower_view to use its pagination cursor.
-    let cfv = CommunityFollowerView {
-      community: self.community.clone(),
-      follower: self.person.clone(),
-    };
-    cfv.to_cursor()
   }
 }

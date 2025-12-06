@@ -43,6 +43,7 @@ pub(crate) async fn send_update_community(
     cc: vec![community.id().clone()],
     kind: UpdateType::Update,
     id: id.clone(),
+    audience: Some(community.ap_id.clone().into()),
   };
 
   let activity = AnnouncableActivities::UpdateCommunity(Box::new(update));
@@ -72,6 +73,7 @@ pub(crate) async fn send_update_multi_community(
     cc: vec![],
     kind: UpdateType::Update,
     id: id.clone(),
+    audience: Some(multi.ap_id.clone().into()),
   };
 
   let activity = AnnouncableActivities::UpdateCommunity(Box::new(update));

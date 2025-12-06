@@ -48,7 +48,7 @@ pub(crate) async fn send_like_activity(
 
   let empty = ActivitySendTargets::empty();
   if let Some(s) = new_is_upvote {
-    let vote = Vote::new(object_id, &actor, s.into(), &context)?;
+    let vote = Vote::new(object_id, &actor, &community, s.into(), &context)?;
     let activity = AnnouncableActivities::Vote(vote);
     send_activity_in_community(activity, &actor, &community, empty, false, &context).await
   } else {
@@ -58,8 +58,8 @@ pub(crate) async fn send_like_activity(
     } else {
       VoteType::Dislike
     };
-    let vote = Vote::new(object_id, &actor, previous_vote_type, &context)?;
-    let undo_vote = UndoVote::new(vote, &actor, &context)?;
+    let vote = Vote::new(object_id, &actor, &community, previous_vote_type, &context)?;
+    let undo_vote = UndoVote::new(vote, &actor, &community, &context)?;
     let activity = AnnouncableActivities::UndoVote(undo_vote);
     send_activity_in_community(activity, &actor, &community, empty, false, &context).await
   }

@@ -18,6 +18,7 @@ pub struct Vote {
   #[serde(rename = "type")]
   pub(crate) kind: VoteType,
   pub(crate) id: Url,
+  pub(crate) audience: Option<ObjectId<ApubCommunity>>,
 }
 
 #[derive(Clone, Debug, Display, Deserialize, Serialize, PartialEq, Eq)]
@@ -44,6 +45,9 @@ impl From<&VoteType> for bool {
 
 impl InCommunity for Vote {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
+    if let Some(audience) = &self.audience {
+      return audience.dereference(context).await;
+    }
     let post_or_comment = self.object.dereference(context).await?;
     let community = post_or_comment_community(&post_or_comment, context).await?;
     Ok(community.into())

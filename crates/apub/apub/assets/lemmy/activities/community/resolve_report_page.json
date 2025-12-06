@@ -3,12 +3,14 @@
   "to": ["http://enterprise.lemmy.ml/c/main"],
   "type": "Resolve",
   "id": "http://ds9.lemmy.ml/activities/flag/4323412-5e45-4a95-a15f-e0dc86361ba4",
+  "audience": "http://ds9.lemmy.ml/u/main",
   "object": {
     "actor": "http://ds9.lemmy.ml/u/lemmy_alpha",
     "to": ["http://enterprise.lemmy.ml/c/main"],
     "object": "http://enterprise.lemmy.ml/post/7",
     "summary": "report this post",
     "type": "Flag",
+    "audience": "http://ds9.lemmy.ml/u/main",
     "id": "http://ds9.lemmy.ml/activities/flag/98b0933f-5e45-4a95-a15f-e0dc86361ba4"
   }
 }

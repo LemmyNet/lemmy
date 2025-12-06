@@ -62,6 +62,7 @@ impl BlockUser {
       summary: Some(reason),
       id: generate_activity_id(BlockType::Block, context)?,
       end_time: expires,
+      audience: target.as_ref().right().map(|c| c.ap_id.clone().into()),
     })
   }
 
@@ -129,7 +130,8 @@ impl Activity for BlockUser {
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     let expires_at = self.end_time;
     let mod_person = self.actor.dereference(context).await?;
-    let blocked_person = self.object.dereference(context).await?;
+    // Dereference local here so that deleted users can be banned as well.
+    let blocked_person = self.object.dereference_local(context).await?;
     let target = self.target.dereference(context).await?;
     let reason = self
       .summary

@@ -8,7 +8,7 @@ use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyError;
 
 pub async fn delete_oauth_provider(
-  data: Json<DeleteOAuthProvider>,
+  Json(data): Json<DeleteOAuthProvider>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> Result<Json<SuccessResponse>, LemmyError> {

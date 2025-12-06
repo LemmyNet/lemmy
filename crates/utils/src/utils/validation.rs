@@ -302,36 +302,51 @@ fn build_url_str_without_scheme(url_str: &str) -> LemmyResult<String> {
 
 // Shorten a string to n chars, being mindful of unicode grapheme
 // boundaries
+// To understand the difference between chars and graphemes see:
+// https://hsivonen.fi/string-length/
 fn truncate_for_db(text: &str, len: usize) -> String {
   if text.chars().count() <= len {
     text.to_string()
   } else {
-    let offset = text
+    // Get the char at the desired `len`
+    let char_at_len = text
       .char_indices()
       .nth(len)
       .unwrap_or(text.char_indices().last().unwrap_or_default());
     let graphemes: Vec<(usize, _)> = text.grapheme_indices(true).collect();
     let mut index = 0;
+
     // Walk the string backwards and find the first char within our length
     for idx in (0..graphemes.len()).rev() {
       if let Some(grapheme) = graphemes.get(idx)
-        && grapheme.0 < offset.0
+        && grapheme.0 < char_at_len.0
       {
         index = idx;
         break;
       }
     }
-    let grapheme = graphemes.get(index).unwrap_or(&(0, ""));
-    let grapheme_count = grapheme.1.chars().count();
+
+    let grapheme_at_index = graphemes.get(index).unwrap_or(&(0, ""));
+    // The char count of the grapheme at the very end of the range
+    let grapheme_at_index_count = grapheme_at_index.1.chars().count();
+    // Count the total chars within the selected grapheme range
+    let char_sum = graphemes
+      .get(0..index)
+      .unwrap_or_default()
+      .iter()
+      .map(|(_, g)| g.chars().count())
+      .sum();
+
+    // Get the actual count of chars we need to take from `text`.
     // `take` isn't inclusive, so if the last grapheme can fit we add its char
     // length
-    let char_count = if grapheme_count + grapheme.0 <= len {
-      grapheme.0 + grapheme_count
+    let char_total = if char_sum + grapheme_at_index_count <= len {
+      char_sum + grapheme_at_index_count
     } else {
-      grapheme.0
+      char_sum
     };
 
-    text.chars().take(char_count).collect::<String>()
+    text.chars().take(char_total).collect::<String>()
   }
 }
 
@@ -678,6 +693,8 @@ Line3",
     assert_eq!("word", truncate_for_db("word", 10));
     assert_eq!("Wales: ", truncate_for_db("Wales: 🏴󠁧󠁢󠁷󠁬󠁳󠁿", 10));
     assert_eq!("Wales: 🏴󠁧󠁢󠁷󠁬󠁳󠁿", truncate_for_db("Wales: 🏴󠁧󠁢󠁷󠁬󠁳󠁿", 14));
+    assert_eq!("it’s", truncate_for_db("it’s like this", 4));
+    assert_eq!("🤦🏼‍♂️150", truncate_for_db("🤦🏼‍♂️150🤦🏼‍♂️", 11));
 
     Ok(())
   }

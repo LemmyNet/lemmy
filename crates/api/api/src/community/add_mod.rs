@@ -19,7 +19,7 @@ use lemmy_diesel_utils::{connection::get_conn, traits::Crud};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn add_mod_to_community(
-  data: Json<AddModToCommunity>,
+  Json(data): Json<AddModToCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<AddModToCommunityResponse>> {

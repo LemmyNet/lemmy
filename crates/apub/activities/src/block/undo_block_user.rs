@@ -56,6 +56,7 @@ impl UndoBlockUser {
       kind: UndoType::Undo,
       id: id.clone(),
       restore_data: Some(restore_data),
+      audience: target.as_ref().right().map(|c| c.ap_id.clone().into()),
     };
 
     let mut inboxes = ActivitySendTargets::to_inbox(user.shared_inbox_or_inbox());
@@ -94,7 +95,7 @@ impl Activity for UndoBlockUser {
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     let expires_at = self.object.end_time;
     let mod_person = self.actor.dereference(context).await?;
-    let blocked_person = self.object.object.dereference(context).await?;
+    let blocked_person = self.object.object.dereference_local(context).await?;
     let reason = self
       .object
       .summary

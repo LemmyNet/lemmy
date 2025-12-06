@@ -22,7 +22,7 @@ use lemmy_db_views_person::{
 use lemmy_utils::{error::LemmyResult, utils::validation::is_valid_body_field};
 
 pub async fn ban_from_site(
-  data: Json<BanPerson>,
+  Json(data): Json<BanPerson>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PersonResponse>> {
@@ -79,7 +79,7 @@ pub async fn ban_from_site(
     data.person_id,
     Some(my_person_id),
     local_instance_id,
-    false,
+    true,
   )
   .await?;
 

@@ -10,7 +10,7 @@ use activitypub_federation::{
 };
 use lemmy_api_utils::{context::LemmyContext, utils::check_bot_account};
 use lemmy_apub_objects::{
-  objects::{PostOrComment, person::ApubPerson},
+  objects::{PostOrComment, community::ApubCommunity, person::ApubPerson},
   utils::{functions::verify_person_in_community, protocol::InCommunity},
 };
 use lemmy_db_schema_file::enums::FederationMode;
@@ -22,6 +22,7 @@ impl Vote {
   pub(in crate::voting) fn new(
     object_id: ObjectId<PostOrComment>,
     actor: &ApubPerson,
+    community: &ApubCommunity,
     kind: VoteType,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<Vote> {
@@ -30,6 +31,7 @@ impl Vote {
       object: object_id,
       kind: kind.clone(),
       id: generate_activity_id(kind, context)?,
+      audience: Some(community.ap_id.clone().into()),
     })
   }
 }

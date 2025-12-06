@@ -23,7 +23,6 @@ use lemmy_db_schema::{
     CommentReportId,
     CommunityId,
     CommunityReportId,
-    PaginationCursor,
     PostId,
     PostReportId,
     PrivateMessageReportId,
@@ -32,7 +31,7 @@ use lemmy_db_schema::{
     combined::report::{ReportCombined, report_combined_keys as key},
     person::Person,
   },
-  traits::{InternalToCombinedView, PaginationCursorBuilder},
+  traits::InternalToCombinedView,
   utils::limit_fetch,
 };
 use lemmy_db_schema_file::{
@@ -52,7 +51,13 @@ use lemmy_db_schema_file::{
 use lemmy_db_views_report_combined_sql::report_combined_joins;
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
-  utils::paginate,
+  pagination::{
+    CursorData,
+    PagedResponse,
+    PaginationCursor,
+    PaginationCursorConversion,
+    paginate_response,
+  },
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -169,28 +174,28 @@ impl ReportCombinedViewInternal {
   }
 }
 
-impl PaginationCursorBuilder for ReportCombinedView {
-  type CursorData = ReportCombined;
+impl PaginationCursorConversion for ReportCombinedView {
+  type PaginatedType = ReportCombined;
 
-  fn to_cursor(&self) -> PaginationCursor {
+  fn to_cursor(&self) -> CursorData {
     let (prefix, id) = match &self {
       ReportCombinedView::Comment(v) => ('C', v.comment_report.id.0),
       ReportCombinedView::Post(v) => ('P', v.post_report.id.0),
       ReportCombinedView::PrivateMessage(v) => ('M', v.private_message_report.id.0),
       ReportCombinedView::Community(v) => ('Y', v.community_report.id.0),
     };
-    PaginationCursor::new_single(prefix, id)
+    CursorData::new_with_prefix(prefix, id)
   }
 
   async fn from_cursor(
-    cursor: &PaginationCursor,
+    cursor: CursorData,
     pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Self::CursorData> {
+  ) -> LemmyResult<Self::PaginatedType> {
     let conn = &mut get_conn(pool).await?;
-    let [(prefix, id)] = cursor.prefixes_and_ids()?;
+    let (prefix, id) = cursor.id_and_prefix()?;
 
     let mut query = report_combined::table
-      .select(Self::CursorData::as_select())
+      .select(Self::PaginatedType::as_select())
       .into_boxed();
 
     query = match prefix {
@@ -214,9 +219,8 @@ pub struct ReportCombinedQuery {
   pub unresolved_only: Option<bool>,
   /// For admins, also show reports with `violates_instance_rules=false`
   pub show_community_rule_violations: Option<bool>,
-  pub cursor_data: Option<ReportCombined>,
+  pub page_cursor: Option<PaginationCursor>,
   pub my_reports_only: Option<bool>,
-  pub page_back: Option<bool>,
   pub limit: Option<i64>,
 }
 
@@ -225,9 +229,8 @@ impl ReportCombinedQuery {
     self,
     pool: &mut DbPool<'_>,
     user: &LocalUserView,
-  ) -> LemmyResult<Vec<ReportCombinedView>> {
-    let conn = &mut get_conn(pool).await?;
-    let limit = limit_fetch(self.limit)?;
+  ) -> LemmyResult<PagedResponse<ReportCombinedView>> {
+    let limit = limit_fetch(self.limit, None)?;
 
     let report_creator = aliases::person1.field(person::id);
 
@@ -283,17 +286,14 @@ impl ReportCombinedQuery {
     };
 
     // Sorting by published
-    let paginated_query = paginate(
-      query,
-      sort_direction,
-      self.cursor_data,
-      None,
-      self.page_back,
-    )
-    .then_order_by(key::published_at)
-    // Tie breaker
-    .then_order_by(key::id);
+    let paginated_query =
+      ReportCombinedView::paginate(query, &self.page_cursor, sort_direction, pool, None)
+        .await?
+        .then_order_by(key::published_at)
+        // Tie breaker
+        .then_order_by(key::id);
 
+    let conn = &mut get_conn(pool).await?;
     let res = paginated_query
       .load::<ReportCombinedViewInternal>(conn)
       .await?;
@@ -304,7 +304,7 @@ impl ReportCombinedQuery {
       .filter_map(InternalToCombinedView::map_to_enum)
       .collect();
 
-    Ok(out)
+    paginate_response(out, limit, self.page_cursor)
   }
 }
 

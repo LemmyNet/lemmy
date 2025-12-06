@@ -167,7 +167,7 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
   }
 
   // Print version number to log
-  println!("Starting Lemmy v{VERSION}");
+  println!("Starting Lemmy v{}", *VERSION);
 
   // return error 503 while running db migrations and startup tasks
   let mut startup_server_handle = None;

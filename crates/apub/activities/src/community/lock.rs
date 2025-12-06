@@ -163,6 +163,7 @@ pub(crate) async fn send_lock(
     kind: LockType::Lock,
     id,
     summary: Some(reason.clone()),
+    audience: Some(community.ap_id.clone().into()),
   };
   let activity = if locked {
     AnnouncableActivities::Lock(lock)
@@ -176,6 +177,7 @@ pub(crate) async fn send_lock(
       id,
       object: lock,
       summary: Some(reason),
+      audience: Some(community.ap_id.clone().into()),
     };
     AnnouncableActivities::UndoLock(undo)
   };

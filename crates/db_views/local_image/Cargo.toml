@@ -23,6 +23,7 @@ full = [
   "i-love-jesus",
   "lemmy_db_schema/full",
   "lemmy_db_schema_file/full",
+  "lemmy_diesel_utils/full",
 ]
 ts-rs = ["dep:ts-rs", "lemmy_db_schema/ts-rs"]
 

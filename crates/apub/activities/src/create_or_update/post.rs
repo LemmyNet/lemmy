@@ -54,6 +54,7 @@ impl CreateOrUpdatePage {
       cc: vec![community.id().clone()],
       kind,
       id: id.clone(),
+      audience: Some(community.ap_id.clone().into()),
     })
   }
 

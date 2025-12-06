@@ -10,6 +10,7 @@
       "http://enterprise.lemmy.ml/c/main",
       "http://ds9.lemmy.ml/u/lemmy_alpha"
     ],
+    "audience": "https://enterprise.lemmy.ml/c/main",
     "content": "hello",
     "mediaType": "text/html",
     "source": {
@@ -23,6 +24,7 @@
     "http://enterprise.lemmy.ml/c/main",
     "http://ds9.lemmy.ml/u/lemmy_alpha"
   ],
+  "audience": "https://enterprise.lemmy.ml/c/main",
   "tag": [
     {
       "href": "http://ds9.lemmy.ml/u/lemmy_alpha",

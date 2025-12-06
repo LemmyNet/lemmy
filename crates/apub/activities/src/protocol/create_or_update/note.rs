@@ -30,10 +30,14 @@ pub struct CreateOrUpdateNote {
   #[serde(rename = "type")]
   pub(crate) kind: CreateOrUpdateType,
   pub(crate) id: Url,
+  pub(crate) audience: Option<ObjectId<ApubCommunity>>,
 }
 
 impl InCommunity for CreateOrUpdateNote {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
+    if let Some(audience) = &self.audience {
+      return audience.dereference(context).await;
+    }
     let post = self.object.get_parents(context).await?.0;
     let community = Community::read(&mut context.pool(), post.community_id).await?;
     Ok(community.into())

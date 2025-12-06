@@ -1,10 +1,4 @@
-use crate::{
-  CommentView,
-  LocalUserView,
-  PersonContentCombinedView,
-  PersonContentCombinedViewInternal,
-  PostView,
-};
+use crate::LocalUserView;
 use diesel::{
   BoolExpressionMethods,
   ExpressionMethods,
@@ -18,9 +12,8 @@ use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   self,
   PersonContentType,
-  newtypes::PaginationCursor,
   source::combined::person_content::{PersonContentCombined, person_content_combined_keys as key},
-  traits::{InternalToCombinedView, PaginationCursorBuilder},
+  traits::InternalToCombinedView,
   utils::limit_fetch,
 };
 use lemmy_db_schema_file::{
@@ -29,6 +22,7 @@ use lemmy_db_schema_file::{
   joins::{
     community_join,
     creator_community_actions_join,
+    creator_community_instance_actions_join,
     creator_home_instance_actions_join,
     creator_local_instance_actions_join,
     creator_local_user_admin_join,
@@ -41,13 +35,74 @@ use lemmy_db_schema_file::{
   },
   schema::{comment, person, person_content_combined, post},
 };
+use lemmy_db_views_post_comment_combined::{
+  PostCommentCombinedView,
+  PostCommentCombinedViewInternal,
+};
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
-  utils::paginate,
+  pagination::{
+    CursorData,
+    PagedResponse,
+    PaginationCursor,
+    PaginationCursorConversion,
+    paginate_response,
+  },
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use serde::{Deserialize, Serialize};
 
-impl PersonContentCombinedViewInternal {
+#[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+struct PostCommentCombinedViewWrapper(PostCommentCombinedView);
+
+impl PaginationCursorConversion for PostCommentCombinedViewWrapper {
+  type PaginatedType = PersonContentCombined;
+
+  fn to_cursor(&self) -> CursorData {
+    let (prefix, id) = match &self.0 {
+      PostCommentCombinedView::Comment(v) => ('C', v.comment.id.0),
+      PostCommentCombinedView::Post(v) => ('P', v.post.id.0),
+    };
+    CursorData::new_with_prefix(prefix, id)
+  }
+
+  async fn from_cursor(
+    data: CursorData,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Self::PaginatedType> {
+    let conn = &mut get_conn(pool).await?;
+
+    let mut query = person_content_combined::table
+      .select(Self::PaginatedType::as_select())
+      .into_boxed();
+
+    let (prefix, id) = data.id_and_prefix()?;
+    query = match prefix {
+      'C' => query.filter(person_content_combined::comment_id.eq(id)),
+      'P' => query.filter(person_content_combined::post_id.eq(id)),
+      _ => return Err(LemmyErrorType::CouldntParsePaginationToken.into()),
+    };
+    let token = query.first(conn).await?;
+
+    Ok(token)
+  }
+}
+
+#[derive(derive_new::new)]
+pub struct PersonContentCombinedQuery {
+  pub creator_id: PersonId,
+  #[new(default)]
+  pub type_: Option<PersonContentType>,
+  #[new(default)]
+  pub page_cursor: Option<PaginationCursor>,
+  #[new(default)]
+  pub limit: Option<i64>,
+  #[new(default)]
+  pub no_limit: Option<bool>,
+}
+
+impl PersonContentCombinedQuery {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins(my_person_id: Option<PersonId>, local_instance_id: InstanceId) -> _ {
     let item_creator = person::id;
@@ -91,6 +146,7 @@ impl PersonContentCombinedViewInternal {
       .left_join(creator_community_actions_join())
       .left_join(creator_local_user_admin_join())
       .left_join(creator_home_instance_actions_join())
+      .left_join(creator_community_instance_actions_join())
       .left_join(creator_local_instance_actions_join)
       .left_join(my_local_user_admin_join)
       .left_join(my_community_actions_join)
@@ -98,94 +154,28 @@ impl PersonContentCombinedViewInternal {
       .left_join(my_person_actions_join)
       .left_join(my_comment_actions_join)
   }
-}
-
-impl PaginationCursorBuilder for PersonContentCombinedView {
-  type CursorData = PersonContentCombined;
-
-  fn to_cursor(&self) -> PaginationCursor {
-    let (prefix, id) = match &self {
-      PersonContentCombinedView::Comment(v) => ('C', v.comment.id.0),
-      PersonContentCombinedView::Post(v) => ('P', v.post.id.0),
-    };
-    PaginationCursor::new_single(prefix, id)
-  }
-
-  async fn from_cursor(
-    cursor: &PaginationCursor,
-    pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Self::CursorData> {
-    let conn = &mut get_conn(pool).await?;
-    let [(prefix, id)] = cursor.prefixes_and_ids()?;
-
-    let mut query = person_content_combined::table
-      .select(Self::CursorData::as_select())
-      .into_boxed();
-
-    query = match prefix {
-      'C' => query.filter(person_content_combined::comment_id.eq(id)),
-      'P' => query.filter(person_content_combined::post_id.eq(id)),
-      _ => return Err(LemmyErrorType::CouldntParsePaginationToken.into()),
-    };
-    let token = query.first(conn).await?;
-
-    Ok(token)
-  }
-}
-
-impl PersonContentCombinedView {
-  /// Useful in combination with filter_map
-  pub fn to_post_view(&self) -> Option<&PostView> {
-    if let Self::Post(v) = self {
-      Some(v)
-    } else {
-      None
-    }
-  }
-}
-
-#[derive(derive_new::new)]
-pub struct PersonContentCombinedQuery {
-  pub creator_id: PersonId,
-  #[new(default)]
-  pub type_: Option<PersonContentType>,
-  #[new(default)]
-  pub cursor_data: Option<PersonContentCombined>,
-  #[new(default)]
-  pub page_back: Option<bool>,
-  #[new(default)]
-  pub limit: Option<i64>,
-  #[new(default)]
-  pub no_limit: Option<bool>,
-}
-
-impl PersonContentCombinedQuery {
   pub async fn list(
     self,
     pool: &mut DbPool<'_>,
     user: Option<&LocalUserView>,
     local_instance_id: InstanceId,
-  ) -> LemmyResult<Vec<PersonContentCombinedView>> {
+  ) -> LemmyResult<PagedResponse<PostCommentCombinedView>> {
     let my_person_id = user.as_ref().map(|u| u.local_user.person_id);
     let item_creator = person::id;
-
-    let conn = &mut get_conn(pool).await?;
 
     // Notes: since the post_id and comment_id are optional columns,
     // many joins must use an OR condition.
     // For example, the creator must be the person table joined to either:
     // - post.creator_id
     // - comment.creator_id
-    let mut query = PersonContentCombinedViewInternal::joins(my_person_id, local_instance_id)
+    let mut query = Self::joins(my_person_id, local_instance_id)
       // The creator id filter
       .filter(item_creator.eq(self.creator_id))
-      .select(PersonContentCombinedViewInternal::as_select())
+      .select(PostCommentCombinedViewInternal::as_select())
       .into_boxed();
 
-    if !self.no_limit.unwrap_or_default() {
-      let limit = limit_fetch(self.limit)?;
-      query = query.limit(limit);
-    }
+    let limit = limit_fetch(self.limit, self.no_limit)?;
+    query = query.limit(limit);
 
     if let Some(type_) = self.type_ {
       query = match type_ {
@@ -198,75 +188,36 @@ impl PersonContentCombinedQuery {
     }
 
     // Sorting by published
-    let paginated_query = paginate(
+    let paginated_query = PostCommentCombinedViewWrapper::paginate(
       query,
+      &self.page_cursor,
       SortDirection::Desc,
-      self.cursor_data,
+      pool,
       None,
-      self.page_back,
     )
+    .await?
     .then_order_by(key::published_at)
     // Tie breaker
     .then_order_by(key::id);
 
+    let conn = &mut get_conn(pool).await?;
     let res = paginated_query
-      .load::<PersonContentCombinedViewInternal>(conn)
+      .load::<PostCommentCombinedViewInternal>(conn)
       .await?;
 
     // Map the query results to the enum
     let out = res
       .into_iter()
       .filter_map(InternalToCombinedView::map_to_enum)
+      .map(PostCommentCombinedViewWrapper)
       .collect();
 
-    Ok(out)
-  }
-}
-
-impl InternalToCombinedView for PersonContentCombinedViewInternal {
-  type CombinedView = PersonContentCombinedView;
-
-  fn map_to_enum(self) -> Option<Self::CombinedView> {
-    // Use for a short alias
-    let v = self;
-
-    if let Some(comment) = v.comment {
-      Some(PersonContentCombinedView::Comment(CommentView {
-        comment,
-        post: v.post,
-        community: v.community,
-        creator: v.item_creator,
-        community_actions: v.community_actions,
-        comment_actions: v.comment_actions,
-        person_actions: v.person_actions,
-        creator_is_admin: v.item_creator_is_admin,
-        post_tags: v.post_tags,
-        can_mod: v.can_mod,
-        creator_banned: v.creator_banned,
-        creator_ban_expires_at: v.creator_ban_expires_at,
-        creator_is_moderator: v.creator_is_moderator,
-        creator_banned_from_community: v.creator_banned_from_community,
-        creator_community_ban_expires_at: v.creator_community_ban_expires_at,
-      }))
-    } else {
-      Some(PersonContentCombinedView::Post(PostView {
-        post: v.post,
-        community: v.community,
-        creator: v.item_creator,
-        image_details: v.image_details,
-        community_actions: v.community_actions,
-        post_actions: v.post_actions,
-        person_actions: v.person_actions,
-        creator_is_admin: v.item_creator_is_admin,
-        tags: v.post_tags,
-        can_mod: v.can_mod,
-        creator_banned: v.creator_banned,
-        creator_ban_expires_at: v.creator_ban_expires_at,
-        creator_is_moderator: v.creator_is_moderator,
-        creator_banned_from_community: v.creator_banned_from_community,
-        creator_community_ban_expires_at: v.creator_community_ban_expires_at,
-      }))
-    }
+    let res = paginate_response(out, limit, self.page_cursor)?;
+    Ok(PagedResponse {
+      items: res.items.into_iter().map(|i| i.0).collect(),
+      next_page: res.next_page,
+      prev_page: res.prev_page,
+    })
   }
 }
 
@@ -274,7 +225,7 @@ impl InternalToCombinedView for PersonContentCombinedViewInternal {
 #[expect(clippy::indexing_slicing)]
 mod tests {
 
-  use crate::{PersonContentCombinedView, impls::PersonContentCombinedQuery};
+  use crate::impls::PersonContentCombinedQuery;
   use lemmy_db_schema::source::{
     comment::{Comment, CommentInsertForm},
     community::{Community, CommunityInsertForm},
@@ -282,6 +233,7 @@ mod tests {
     person::{Person, PersonInsertForm},
     post::{Post, PostInsertForm},
   };
+  use lemmy_db_views_post_comment_combined::PostCommentCombinedView;
   use lemmy_diesel_utils::{
     connection::{DbPool, build_db_pool_for_tests},
     traits::Crud,
@@ -371,19 +323,19 @@ mod tests {
     assert_eq!(3, timmy_content.len());
 
     // Make sure the types are correct
-    if let PersonContentCombinedView::Comment(v) = &timmy_content[0] {
+    if let PostCommentCombinedView::Comment(v) = &timmy_content[0] {
       assert_eq!(data.timmy_comment.id, v.comment.id);
       assert_eq!(data.timmy.id, v.creator.id);
     } else {
       panic!("wrong type");
     }
-    if let PersonContentCombinedView::Post(v) = &timmy_content[1] {
+    if let PostCommentCombinedView::Post(v) = &timmy_content[1] {
       assert_eq!(data.timmy_post_2.id, v.post.id);
       assert_eq!(data.timmy.id, v.post.creator_id);
     } else {
       panic!("wrong type");
     }
-    if let PersonContentCombinedView::Post(v) = &timmy_content[2] {
+    if let PostCommentCombinedView::Post(v) = &timmy_content[2] {
       assert_eq!(data.timmy_post.id, v.post.id);
       assert_eq!(data.timmy.id, v.post.creator_id);
     } else {
@@ -397,7 +349,7 @@ mod tests {
     assert_eq!(3, sara_content.len());
 
     // Make sure the report types are correct
-    if let PersonContentCombinedView::Comment(v) = &sara_content[0] {
+    if let PostCommentCombinedView::Comment(v) = &sara_content[0] {
       assert_eq!(data.sara_comment_2.id, v.comment.id);
       assert_eq!(data.sara.id, v.creator.id);
       // This one was to timmy_post_2
@@ -406,7 +358,7 @@ mod tests {
     } else {
       panic!("wrong type");
     }
-    if let PersonContentCombinedView::Comment(v) = &sara_content[1] {
+    if let PostCommentCombinedView::Comment(v) = &sara_content[1] {
       assert_eq!(data.sara_comment.id, v.comment.id);
       assert_eq!(data.sara.id, v.creator.id);
       assert_eq!(data.timmy_post.id, v.post.id);
@@ -414,7 +366,7 @@ mod tests {
     } else {
       panic!("wrong type");
     }
-    if let PersonContentCombinedView::Post(v) = &sara_content[2] {
+    if let PostCommentCombinedView::Post(v) = &sara_content[2] {
       assert_eq!(data.sara_post.id, v.post.id);
       assert_eq!(data.sara.id, v.post.creator_id);
     } else {

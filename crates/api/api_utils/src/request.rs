@@ -38,7 +38,11 @@ use urlencoding::encode;
 use webpage::{HTML, OpengraphObject};
 
 pub fn client_builder(settings: &Settings) -> ClientBuilder {
-  let user_agent = format!("Lemmy/{VERSION}; +{}", settings.get_protocol_and_hostname());
+  let user_agent = format!(
+    "Lemmy/{}; +{}",
+    *VERSION,
+    settings.get_protocol_and_hostname()
+  );
 
   Client::builder()
     .user_agent(user_agent.clone())

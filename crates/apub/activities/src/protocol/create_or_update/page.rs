@@ -26,10 +26,14 @@ pub struct CreateOrUpdatePage {
   #[serde(rename = "type")]
   pub(crate) kind: CreateOrUpdateType,
   pub(crate) id: Url,
+  pub(crate) audience: Option<ObjectId<ApubCommunity>>,
 }
 
 impl InCommunity for CreateOrUpdatePage {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
+    if let Some(audience) = &self.audience {
+      return audience.dereference(context).await;
+    }
     let community = self.object.community(context).await?;
     Ok(community)
   }
