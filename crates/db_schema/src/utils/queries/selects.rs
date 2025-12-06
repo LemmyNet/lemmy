@@ -246,8 +246,13 @@ pub fn local_user_community_can_mod() -> _ {
 pub fn comment_select_remove_deletes() -> _ {
   let deleted_or_removed = comment::deleted.or(comment::removed);
 
-  // You can only view the content if it hasn't been removed, or you can mod.
-  let can_view_content = not(deleted_or_removed).or(local_user_can_mod_comment());
+  // You can only view the content if it hasn't been removed, you're a mod or it's your own comment.
+  let is_creator = local_user::person_id
+    .nullable()
+    .eq(comment::creator_id.nullable());
+  let can_view_content = not(deleted_or_removed)
+    .or(local_user_can_mod_comment())
+    .or(is_creator);
   let content = case_when(can_view_content, comment::content).otherwise("");
 
   (
@@ -283,8 +288,13 @@ pub fn comment_select_remove_deletes() -> _ {
 pub fn post_select_remove_deletes() -> _ {
   let deleted_or_removed = post::deleted.or(post::removed);
 
-  // You can only view the content if it hasn't been removed, or you can mod.
-  let can_view_content = not(deleted_or_removed).or(local_user_can_mod_post());
+  // You can only view the content if it hasn't been removed, you're a mod or it's your own post.
+  let is_creator = local_user::person_id
+    .nullable()
+    .eq(post::creator_id.nullable());
+  let can_view_content = not(deleted_or_removed)
+    .or(local_user_can_mod_post())
+    .or(is_creator);
   let body = case_when(can_view_content, post::body).otherwise("");
 
   (
