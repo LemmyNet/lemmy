@@ -5,8 +5,4 @@
   pictrs: {
     image_mode: None
   }
-  plugins: [{
-"file": "https://github.com/LemmyNet/lemmy-plugins/releases/download/0.1.3-rust-release.0/rust_lingua.wasm",
-"allowed_hosts": ["0.0.0.0"]
-}]
 }
