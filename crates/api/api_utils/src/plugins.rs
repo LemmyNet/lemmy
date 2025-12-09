@@ -114,7 +114,7 @@ pub fn plugin_metadata() -> Vec<PluginMetadata> {
           let run = match plugin.pool.get(GET_PLUGIN_TIMEOUT) {
             Ok(p) => p,
             Err(e) => {
-              error!("Failed to load plugin: {e}");
+              error!("Failed to load plugin {}: {e}", plugin.filename);
               continue;
             }
           };

@@ -133,7 +133,7 @@ pub async fn create_post(
   )
   .await?;
 
-  let inserted_post = dbg!(Post::create(&mut context.pool(), &post_form).await)?;
+  let inserted_post = Post::create(&mut context.pool(), &post_form).await?;
 
   plugin_hook_after("local_post_after_create", &inserted_post);
 
