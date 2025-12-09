@@ -324,21 +324,11 @@ pub async fn check_local_vote_mode(
   if downvote_fail || upvote_fail {
     match post_or_comment_id {
       PostOrCommentId::Post(post_id) => {
-        let form = PostLikeForm {
-          person_id,
-          post_id,
-          vote_is_upvote: Some(None),
-          voted_at: Some(None),
-        };
+        let form = PostLikeForm::new(post_id, person_id, None);
         PostActions::like(pool, &form).await?;
       }
       PostOrCommentId::Comment(comment_id) => {
-        let form = CommentLikeForm {
-          person_id,
-          comment_id,
-          vote_is_upvote: Some(None),
-          voted_at: Some(None),
-        };
+        let form = CommentLikeForm::new(comment_id, person_id, None);
         CommentActions::like(pool, &form).await?;
       }
     };

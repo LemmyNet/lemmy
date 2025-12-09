@@ -574,7 +574,7 @@ mod tests {
     );
     let inserted_post = Post::create(pool, &new_post).await?;
 
-    let post_like = PostLikeForm::new(inserted_post.id, inserted_person.id, true);
+    let post_like = PostLikeForm::new(inserted_post.id, inserted_person.id, Some(Some(true)));
     let _inserted_post_like = PostActions::like(pool, &post_like).await?;
 
     let comment_form = CommentInsertForm::new(
@@ -584,7 +584,8 @@ mod tests {
     );
     let inserted_comment = Comment::create(pool, &comment_form, None).await?;
 
-    let mut comment_like = CommentLikeForm::new(inserted_person.id, inserted_comment.id, true);
+    let mut comment_like =
+      CommentLikeForm::new(inserted_person.id, inserted_comment.id, Some(Some(true)));
 
     let _inserted_comment_like = CommentActions::like(pool, &comment_like).await?;
 
@@ -596,8 +597,11 @@ mod tests {
     let inserted_child_comment =
       Comment::create(pool, &child_comment_form, Some(&inserted_comment.path)).await?;
 
-    let child_comment_like =
-      CommentLikeForm::new(another_inserted_person.id, inserted_child_comment.id, true);
+    let child_comment_like = CommentLikeForm::new(
+      another_inserted_person.id,
+      inserted_child_comment.id,
+      Some(Some(true)),
+    );
 
     let _inserted_child_comment_like = CommentActions::like(pool, &child_comment_like).await?;
 

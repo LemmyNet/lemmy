@@ -333,10 +333,12 @@ mod tests {
     assert_eq!(0, timmy_liked.len());
 
     // Like a few things
-    let like_sara_comment_2 = CommentLikeForm::new(data.timmy.id, data.sara_comment_2.id, true);
+    let like_sara_comment_2 =
+      CommentLikeForm::new(data.timmy.id, data.sara_comment_2.id, Some(true));
     CommentActions::like(pool, &like_sara_comment_2).await?;
 
-    let dislike_sara_comment = CommentLikeForm::new(data.timmy.id, data.sara_comment.id, false);
+    let dislike_sara_comment =
+      CommentLikeForm::new(data.timmy.id, data.sara_comment.id, Some(false));
     CommentActions::like(pool, &dislike_sara_comment).await?;
 
     let post_like_form = PostLikeForm::new(data.timmy_post.id, data.timmy.id, true);

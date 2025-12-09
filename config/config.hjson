@@ -5,8 +5,4 @@
   pictrs: {
     image_mode: None
   }
-  plugins: [{
-    "file": "/home/felix/workspace/lemmy/lemmy-plugins/plugins/rust_lingua/target/wasm32-unknown-unknown/release/rust_lingua.wasm"
-    "allowed_hosts": ["0.0.0.0"]
-  }]
 }

@@ -500,7 +500,8 @@ mod tests {
       Comment::create(pool, &child_comment_form, Some(&inserted_comment.path)).await?;
 
     // Comment Like
-    let comment_like_form = CommentLikeForm::new(inserted_person.id, inserted_comment.id, true);
+    let comment_like_form =
+      CommentLikeForm::new(inserted_person.id, inserted_comment.id, Some(true));
 
     let inserted_comment_like = CommentActions::like(pool, &comment_like_form).await?;
     assert_eq!(Some(true), inserted_comment_like.vote_is_upvote);
@@ -518,8 +519,6 @@ mod tests {
     let updated_comment = Comment::update(pool, inserted_comment.id, &comment_update_form).await?;
 
     let read_comment = Comment::read(pool, inserted_comment.id).await?;
-    let like_removed =
-      CommentActions::remove_like(pool, inserted_person.id, inserted_comment.id).await?;
     let saved_removed = CommentActions::unsave(pool, &comment_saved_form).await?;
     let num_deleted = Comment::delete(pool, inserted_comment.id).await?;
     Comment::delete(pool, inserted_child_comment.id).await?;
@@ -534,7 +533,6 @@ mod tests {
       format!("0.{}.{}", expected_comment.id, inserted_child_comment.id),
       inserted_child_comment.path.0,
     );
-    assert_eq!(UpleteCount::only_updated(1), like_removed);
     assert_eq!(UpleteCount::only_deleted(1), saved_removed);
     assert_eq!(1, num_deleted);
 

@@ -1,6 +1,5 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
-use chrono::Utc;
 use lemmy_api_utils::{
   build_response::build_post_response,
   context::LemmyContext,
@@ -65,13 +64,7 @@ pub async fn like_post(
 
   check_community_user_action(&local_user_view, &orig_post.community, &mut context.pool()).await?;
 
-  let mut like_form = PostLikeForm::new(data.post_id, my_person_id, Some(data.is_upvote));
-  like_form.voted_at = Some(
-    data
-      .is_upvote
-      .and_then(|_| Some(Some(Utc::now())))
-      .unwrap_or(None),
-  );
+  let mut like_form = PostLikeForm::new(data.post_id, my_person_id, data.is_upvote);
   like_form = plugin_hook_before("post_before_vote", like_form).await?;
   let like = PostActions::like(&mut context.pool(), &like_form).await?;
   PersonActions::like(

@@ -71,7 +71,7 @@ async fn vote_comment(
   comment: &ApubComment,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
-  let mut like_form = CommentLikeForm::new(actor.id, comment.id, Some(Some(vote_type.into())));
+  let mut like_form = CommentLikeForm::new(comment.id, actor.id, Some(vote_type.into()));
   comment.set_not_pending(&mut context.pool()).await?;
   like_form = plugin_hook_before("comment_before_vote", like_form).await?;
   let like = CommentActions::like(&mut context.pool(), &like_form).await?;
@@ -85,7 +85,7 @@ async fn vote_post(
   post: &ApubPost,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
-  let mut like_form = PostLikeForm::new(post.id, actor.id, Some(Some(vote_type.into())));
+  let mut like_form = PostLikeForm::new(post.id, actor.id, Some(vote_type.into()));
   post.set_not_pending(&mut context.pool()).await?;
   like_form = plugin_hook_before("post_before_vote", like_form).await?;
   let like = PostActions::like(&mut context.pool(), &like_form).await?;
@@ -98,12 +98,7 @@ async fn undo_vote_comment(
   comment: &ApubComment,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
-  let form = CommentLikeForm {
-    person_id: actor.id,
-    comment_id: comment.id,
-    vote_is_upvote: Some(None),
-    voted_at: Some(None),
-  };
+  let form = CommentLikeForm::new(comment.id, actor.id, None);
   CommentActions::like(&mut context.pool(), &form).await?;
   Ok(())
 }
@@ -113,12 +108,7 @@ async fn undo_vote_post(
   post: &ApubPost,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
-  let form = PostLikeForm {
-    person_id: actor.id,
-    post_id: post.id,
-    vote_is_upvote: Some(None),
-    voted_at: Some(None),
-  };
+  let form = PostLikeForm::new(post.id, actor.id, None);
   PostActions::like(&mut context.pool(), &form).await?;
   Ok(())
 }

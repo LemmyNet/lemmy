@@ -457,8 +457,6 @@ async fn post_listing_like(data: &mut Data) -> LemmyResult<()> {
     read_post_listing[0].post.id
   );
 
-  let like_removed = PostActions::remove_like(pool, data.tegan.person.id, data.post.id).await?;
-  assert_eq!(UpleteCount::only_deleted(1), like_removed);
   Ok(())
 }
 

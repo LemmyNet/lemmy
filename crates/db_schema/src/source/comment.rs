@@ -141,18 +141,33 @@ pub struct CommentActions {
   pub vote_is_upvote: Option<bool>,
 }
 
-#[derive(Clone, derive_new::new)]
+#[derive(Clone)]
 #[cfg_attr(
   feature = "full",
   derive(Insertable, AsChangeset, Serialize, Deserialize)
 )]
 #[cfg_attr(feature = "full", diesel(table_name = comment_actions))]
 pub struct CommentLikeForm {
-  pub person_id: PersonId,
-  pub comment_id: CommentId,
-  pub vote_is_upvote: Option<Option<bool>>,
-  #[new(value = "Some(Some(Utc::now()))")]
-  pub voted_at: Option<Option<DateTime<Utc>>>,
+  person_id: PersonId,
+  comment_id: CommentId,
+  vote_is_upvote: Option<Option<bool>>,
+  voted_at: Option<Option<DateTime<Utc>>>,
+}
+
+impl CommentLikeForm {
+  pub fn new(comment_id: CommentId, person_id: PersonId, is_upvote: Option<bool>) -> Self {
+    let mut form = Self {
+      comment_id,
+      person_id,
+      vote_is_upvote: Some(None),
+      voted_at: Some(None),
+    };
+    if is_upvote.is_some() {
+      form.vote_is_upvote = Some(is_upvote);
+      form.voted_at = Some(Some(Utc::now()));
+    }
+    form
+  }
 }
 
 #[derive(derive_new::new)]

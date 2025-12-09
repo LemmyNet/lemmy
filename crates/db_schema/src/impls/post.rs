@@ -670,7 +670,7 @@ mod tests {
     };
 
     // Post Like
-    let post_like_form = PostLikeForm::new(inserted_post.id, inserted_person.id, true);
+    let post_like_form = PostLikeForm::new(inserted_post.id, inserted_person.id, Some(Some(true)));
 
     let inserted_post_like = PostActions::like(pool, &post_like_form).await?;
     assert_eq!(Some(true), inserted_post_like.vote_is_upvote);
