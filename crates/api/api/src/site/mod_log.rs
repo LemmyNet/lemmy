@@ -97,7 +97,7 @@ mod tests {
     let post_form_1 = PostInsertForm::new("A test post tubular".into(), sara.id, community.id);
     let post_1 = Post::create(pool, &post_form_1).await?;
 
-    let post_like_form_1 = PostLikeForm::new(post_1.id, sara.id, true);
+    let post_like_form_1 = PostLikeForm::new(post_1.id, sara.id, Some(Some(true)));
     PostActions::like(pool, &post_like_form_1).await?;
 
     let post_form_2 = PostInsertForm::new("A test post radical".into(), sara.id, community.id);

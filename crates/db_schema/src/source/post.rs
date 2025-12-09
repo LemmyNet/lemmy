@@ -211,15 +211,15 @@ pub struct PostActions {
   pub notifications: Option<PostNotificationsMode>,
 }
 
-#[derive(Clone, derive_new::new, Serialize, Deserialize)]
+#[derive(Clone, derive_new::new, Serialize, Deserialize, Debug)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = post_actions))]
 pub struct PostLikeForm {
   pub post_id: PostId,
   pub person_id: PersonId,
-  pub vote_is_upvote: bool,
-  #[new(value = "Utc::now()")]
-  pub voted_at: DateTime<Utc>,
+  pub vote_is_upvote: Option<Option<bool>>,
+  #[new(value = "Some(Some(Utc::now()))")]
+  pub voted_at: Option<Option<DateTime<Utc>>>,
 }
 
 #[derive(derive_new::new)]

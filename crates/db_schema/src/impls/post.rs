@@ -364,20 +364,6 @@ impl Likeable for PostActions {
       .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
-  async fn remove_like(
-    pool: &mut DbPool<'_>,
-    person_id: PersonId,
-    post_id: Self::IdType,
-  ) -> LemmyResult<UpleteCount> {
-    let conn = &mut get_conn(pool).await?;
-    uplete(post_actions::table.find((person_id, post_id)))
-      .set_null(post_actions::vote_is_upvote)
-      .set_null(post_actions::voted_at)
-      .get_result(conn)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
-  }
-
   async fn remove_all_likes(
     pool: &mut DbPool<'_>,
     person_id: PersonId,

@@ -552,8 +552,8 @@ BEGIN
     table_name);
 END;
 $a$;
-CALL r.create_person_liked_combined_trigger ('post');
-CALL r.create_person_liked_combined_trigger ('comment');
+--CALL r.create_person_liked_combined_trigger ('post');
+--CALL r.create_person_liked_combined_trigger ('comment');
 -- Prevent using delete instead of uplete on action tables
 CREATE FUNCTION r.require_uplete ()
     RETURNS TRIGGER

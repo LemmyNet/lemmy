@@ -150,9 +150,9 @@ pub struct CommentActions {
 pub struct CommentLikeForm {
   pub person_id: PersonId,
   pub comment_id: CommentId,
-  pub vote_is_upvote: bool,
-  #[new(value = "Utc::now()")]
-  pub voted_at: DateTime<Utc>,
+  pub vote_is_upvote: Option<Option<bool>>,
+  #[new(value = "Some(Some(Utc::now()))")]
+  pub voted_at: Option<Option<DateTime<Utc>>>,
 }
 
 #[derive(derive_new::new)]

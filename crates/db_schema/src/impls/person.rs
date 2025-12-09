@@ -368,10 +368,13 @@ impl PersonActions {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     target_id: PersonId,
-    vote_is_upvote: bool,
-  ) -> LemmyResult<Self> {
+    vote_is_upvote: Option<bool>,
+  ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
 
+    let Some(vote_is_upvote) = vote_is_upvote else {
+      return Ok(());
+    };
     let (upvotes_inc, downvotes_inc) = if vote_is_upvote { (1, 0) } else { (0, 1) };
 
     let voted_at = Utc::now();
@@ -396,7 +399,8 @@ impl PersonActions {
       .returning(Self::as_select())
       .get_result::<Self>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::NotFound)
+      .with_lemmy_type(LemmyErrorType::NotFound)?;
+    Ok(())
   }
 
   /// Removes a person like.

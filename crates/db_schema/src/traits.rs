@@ -32,11 +32,6 @@ pub trait Likeable: Sized {
     pool: &mut DbPool<'_>,
     form: &Self::Form,
   ) -> impl Future<Output = LemmyResult<Self>> + Send;
-  fn remove_like(
-    pool: &mut DbPool<'_>,
-    person_id: PersonId,
-    item_id: Self::IdType,
-  ) -> impl Future<Output = LemmyResult<UpleteCount>> + Send;
 
   fn remove_all_likes(
     pool: &mut DbPool<'_>,
