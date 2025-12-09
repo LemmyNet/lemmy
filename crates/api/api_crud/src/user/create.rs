@@ -32,7 +32,7 @@ use lemmy_db_schema::{
     local_site::LocalSite,
     local_user::{LocalUser, LocalUserInsertForm},
     oauth_account::{OAuthAccount, OAuthAccountInsertForm},
-    oauth_provider::OAuthProvider,
+    oauth_provider::AdminOAuthProvider,
     person::{Person, PersonInsertForm},
     post::{Post, PostActions, PostInsertForm, PostLikeForm},
     registration_application::{RegistrationApplication, RegistrationApplicationInsertForm},
@@ -266,7 +266,7 @@ pub async fn authenticate_with_oauth(
 
   // Fetch the OAUTH provider and make sure it's enabled
   let oauth_provider_id = data.oauth_provider_id;
-  let oauth_provider = OAuthProvider::read(pool, oauth_provider_id)
+  let oauth_provider = AdminOAuthProvider::read(pool, oauth_provider_id)
     .await
     .ok()
     .ok_or(LemmyErrorType::OauthAuthorizationInvalid)?;
@@ -568,7 +568,7 @@ fn validate_registration_answer(
 
 async fn oauth_request_access_token(
   context: &Data<LemmyContext>,
-  oauth_provider: &OAuthProvider,
+  oauth_provider: &AdminOAuthProvider,
   code: &str,
   pkce_code_verifier: Option<&str>,
   redirect_uri: &str,
@@ -608,7 +608,7 @@ async fn oauth_request_access_token(
 
 async fn oidc_get_user_info(
   context: &Data<LemmyContext>,
-  oauth_provider: &OAuthProvider,
+  oauth_provider: &AdminOAuthProvider,
   access_token: &str,
 ) -> LemmyResult<serde_json::Value> {
   // Request the user info from the OAUTH provider

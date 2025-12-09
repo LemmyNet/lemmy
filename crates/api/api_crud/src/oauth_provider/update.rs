@@ -2,7 +2,7 @@ use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use chrono::Utc;
 use lemmy_api_utils::{context::LemmyContext, utils::is_admin};
-use lemmy_db_schema::source::oauth_provider::{OAuthProvider, OAuthProviderUpdateForm};
+use lemmy_db_schema::source::oauth_provider::{AdminOAuthProvider, OAuthProviderUpdateForm};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::api::EditOAuthProvider;
 use lemmy_diesel_utils::{
@@ -15,7 +15,7 @@ pub async fn update_oauth_provider(
   Json(data): Json<EditOAuthProvider>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> Result<Json<OAuthProvider>, LemmyError> {
+) -> Result<Json<AdminOAuthProvider>, LemmyError> {
   // Make sure user is an admin
   is_admin(&local_user_view)?;
 
@@ -38,7 +38,7 @@ pub async fn update_oauth_provider(
   };
 
   let update_result =
-    OAuthProvider::update(&mut context.pool(), data.id, &oauth_provider_form).await?;
-  let oauth_provider = OAuthProvider::read(&mut context.pool(), update_result.id).await?;
+    AdminOAuthProvider::update(&mut context.pool(), data.id, &oauth_provider_form).await?;
+  let oauth_provider = AdminOAuthProvider::read(&mut context.pool(), update_result.id).await?;
   Ok(Json(oauth_provider))
 }
