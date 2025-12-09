@@ -697,8 +697,6 @@ mod tests {
     let scheduled_post_count = Post::user_scheduled_post_count(inserted_person.id, pool).await?;
     assert_eq!(1, scheduled_post_count);
 
-    let like_removed = PostActions::remove_like(pool, inserted_person.id, inserted_post.id).await?;
-    assert_eq!(UpleteCount::only_updated(1), like_removed);
     let saved_removed = PostActions::unsave(pool, &post_saved_form).await?;
     assert_eq!(UpleteCount::only_updated(1), saved_removed);
 

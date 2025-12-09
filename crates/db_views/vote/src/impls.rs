@@ -222,11 +222,11 @@ mod tests {
     let inserted_comment = Comment::create(pool, &comment_form, None).await?;
 
     // Timmy upvotes his own post
-    let timmy_post_vote_form = PostLikeForm::new(inserted_post.id, inserted_timmy.id, true);
+    let timmy_post_vote_form = PostLikeForm::new(inserted_post.id, inserted_timmy.id, Some(true));
     PostActions::like(pool, &timmy_post_vote_form).await?;
 
     // Sara downvotes timmy's post
-    let sara_post_vote_form = PostLikeForm::new(inserted_post.id, inserted_sara.id, false);
+    let sara_post_vote_form = PostLikeForm::new(inserted_post.id, inserted_sara.id, Some(false));
     PostActions::like(pool, &sara_post_vote_form).await?;
 
     let mut expected_post_vote_views = [
@@ -252,11 +252,12 @@ mod tests {
 
     // Timothy votes down his own comment
     let timmy_comment_vote_form =
-      CommentLikeForm::new(inserted_timmy.id, inserted_comment.id, false);
+      CommentLikeForm::new(inserted_comment.id, inserted_timmy.id, Some(false));
     CommentActions::like(pool, &timmy_comment_vote_form).await?;
 
     // Sara upvotes timmy's comment
-    let sara_comment_vote_form = CommentLikeForm::new(inserted_sara.id, inserted_comment.id, true);
+    let sara_comment_vote_form =
+      CommentLikeForm::new(inserted_comment.id, inserted_sara.id, Some(true));
     CommentActions::like(pool, &sara_comment_vote_form).await?;
 
     let mut expected_comment_vote_views = [

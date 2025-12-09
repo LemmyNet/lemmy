@@ -501,7 +501,7 @@ mod tests {
 
     // Comment Like
     let comment_like_form =
-      CommentLikeForm::new(inserted_person.id, inserted_comment.id, Some(true));
+      CommentLikeForm::new(inserted_comment.id, inserted_person.id, Some(true));
 
     let inserted_comment_like = CommentActions::like(pool, &comment_like_form).await?;
     assert_eq!(Some(true), inserted_comment_like.vote_is_upvote);
@@ -585,7 +585,7 @@ mod tests {
     let _inserted_child_comment =
       Comment::create(pool, &child_comment_form, Some(&inserted_comment.path)).await?;
 
-    let comment_like = CommentLikeForm::new(inserted_person.id, inserted_comment.id, true);
+    let comment_like = CommentLikeForm::new(inserted_comment.id, inserted_person.id, Some(true));
 
     CommentActions::like(pool, &comment_like).await?;
 
@@ -597,7 +597,7 @@ mod tests {
 
     // Add a post dislike from the other person
     let comment_dislike =
-      CommentLikeForm::new(another_inserted_person.id, inserted_comment.id, false);
+      CommentLikeForm::new(inserted_comment.id, another_inserted_person.id, Some(false));
 
     CommentActions::like(pool, &comment_dislike).await?;
 
@@ -608,7 +608,8 @@ mod tests {
     assert_eq!(1, comment_aggs_after_dislike.downvotes);
 
     // Remove the first comment like
-    CommentActions::remove_like(pool, inserted_person.id, inserted_comment.id).await?;
+    let form = CommentLikeForm::new(inserted_comment.id, inserted_person.id, None);
+    CommentActions::like(pool, &form).await?;
     let after_like_remove = Comment::read(pool, inserted_comment.id).await?;
     assert_eq!(-1, after_like_remove.score);
     assert_eq!(0, after_like_remove.upvotes);

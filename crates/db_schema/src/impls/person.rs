@@ -574,7 +574,7 @@ mod tests {
     );
     let inserted_post = Post::create(pool, &new_post).await?;
 
-    let post_like = PostLikeForm::new(inserted_post.id, inserted_person.id, Some(Some(true)));
+    let post_like = PostLikeForm::new(inserted_post.id, inserted_person.id, Some(true));
     let _inserted_post_like = PostActions::like(pool, &post_like).await?;
 
     let comment_form = CommentInsertForm::new(
@@ -585,9 +585,9 @@ mod tests {
     let inserted_comment = Comment::create(pool, &comment_form, None).await?;
 
     let mut comment_like =
-      CommentLikeForm::new(inserted_person.id, inserted_comment.id, Some(Some(true)));
+      CommentLikeForm::new(inserted_comment.id, inserted_person.id, Some(true));
 
-    let _inserted_comment_like = CommentActions::like(pool, &comment_like).await?;
+    CommentActions::like(pool, &comment_like).await?;
 
     let child_comment_form = CommentInsertForm::new(
       inserted_person.id,
@@ -598,9 +598,9 @@ mod tests {
       Comment::create(pool, &child_comment_form, Some(&inserted_comment.path)).await?;
 
     let child_comment_like = CommentLikeForm::new(
-      another_inserted_person.id,
       inserted_child_comment.id,
-      Some(Some(true)),
+      another_inserted_person.id,
+      Some(true),
     );
 
     let _inserted_child_comment_like = CommentActions::like(pool, &child_comment_like).await?;
@@ -613,7 +613,8 @@ mod tests {
     assert_eq!(2, person_aggregates_before_delete.comment_score);
 
     // Remove a post like
-    PostActions::remove_like(pool, inserted_person.id, inserted_post.id).await?;
+    let form = PostLikeForm::new(inserted_post.id, inserted_person.id, None);
+    PostActions::like(pool, &form).await?;
     let after_post_like_remove = Person::read(pool, inserted_person.id).await?;
     assert_eq!(0, after_post_like_remove.post_score);
 
