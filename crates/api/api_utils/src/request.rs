@@ -8,7 +8,9 @@ use chrono::{DateTime, Utc};
 use encoding_rs::{Encoding, UTF_8};
 use futures::StreamExt;
 use lemmy_db_schema::source::{
+  community::Community,
   images::{ImageDetailsInsertForm, LocalImage, LocalImageForm},
+  person::Person,
   post::{Post, PostUpdateForm},
   site::Site,
 };
@@ -195,7 +197,9 @@ async fn collect_bytes_until_limit(
 pub async fn generate_post_link_metadata(
   post: Post,
   custom_thumbnail: Option<Url>,
-  send_activity: impl FnOnce(Post) -> Option<SendActivityData> + Send + 'static,
+  send_activity: impl FnOnce(Post, Community, Person) -> Option<SendActivityData> + Send + 'static,
+  community: Community,
+  creator: Person,
   context: Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let metadata = match &post.url {
@@ -259,7 +263,7 @@ pub async fn generate_post_link_metadata(
     ..Default::default()
   };
   let updated_post = Post::update(&mut context.pool(), post.id, &form).await?;
-  if let Some(send_activity) = send_activity(updated_post) {
+  if let Some(send_activity) = send_activity(updated_post, community, creator) {
     ActivityChannel::submit_activity(send_activity, &context)?;
   }
   Ok(())

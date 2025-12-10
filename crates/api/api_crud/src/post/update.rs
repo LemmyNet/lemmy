@@ -173,35 +173,43 @@ pub async fn update_post(
   .send(&context);
 
   // send out federation/webmention if necessary
-  match (
+  let send_activity = match (
     orig_post.post.scheduled_publish_time_at,
     data.scheduled_publish_time_at,
   ) {
     // schedule was removed, send create activity and webmention
     (Some(_), None) => {
-      let community = Community::read(&mut context.pool(), orig_post.community.id).await?;
-      send_webmention(updated_post.clone(), &community);
-      generate_post_link_metadata(
-        updated_post.clone(),
-        custom_thumbnail.flatten().map(Into::into),
-        |post| Some(SendActivityData::CreatePost(post)),
-        context.clone(),
-      )
-      .await?;
+      send_webmention(updated_post.clone(), &orig_post.community);
+      |post, community, creator| {
+        Some(SendActivityData::CreateOrUpdatePost {
+          post,
+          community,
+          creator,
+          is_create: true,
+        })
+      }
     }
     // post was already public, send update
-    (None, _) => {
-      generate_post_link_metadata(
-        updated_post.clone(),
-        custom_thumbnail.flatten().map(Into::into),
-        |post| Some(SendActivityData::UpdatePost(post)),
-        context.clone(),
-      )
-      .await?
-    }
+    (None, _) => |post, community, creator| {
+      Some(SendActivityData::CreateOrUpdatePost {
+        post,
+        community,
+        creator,
+        is_create: true,
+      })
+    },
     // schedule was changed, do nothing
-    (Some(_), Some(_)) => {}
+    (Some(_), Some(_)) => |_, _, _| None,
   };
+  generate_post_link_metadata(
+    updated_post.clone(),
+    custom_thumbnail.flatten().map(Into::into),
+    send_activity,
+    orig_post.community.clone(),
+    local_user_view.person.clone(),
+    context.clone(),
+  )
+  .await?;
 
   build_post_response(
     context.deref(),

@@ -93,8 +93,8 @@ pub async fn add_mod_to_community(
   ActivityChannel::submit_activity(
     SendActivityData::AddModToCommunity {
       moderator: local_user_view.person,
-      community_id: data.community_id,
-      target: data.person_id,
+      community,
+      target_id: data.person_id,
       added: data.added,
     },
     &context,

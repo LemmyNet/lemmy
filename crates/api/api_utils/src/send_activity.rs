@@ -70,8 +70,11 @@ pub enum SendActivityData {
   },
   FollowCommunity(Community, Person, bool),
   FollowMultiCommunity(MultiCommunity, Person, bool),
-  AcceptFollower(Community, Person),
-  RejectFollower(Community, Person),
+  AcceptOrRejectFollower {
+    community_id: CommunityId,
+    person_id: PersonId,
+    is_accept: bool,
+  },
   UpdateCommunity(Person, Community),
   DeleteCommunity(Person, Community, bool),
   RemoveCommunity {
@@ -83,7 +86,7 @@ pub enum SendActivityData {
   AddModToCommunity {
     moderator: Person,
     community: Community,
-    target: Person,
+    target_id: PersonId,
     added: bool,
   },
   BanFromCommunity {

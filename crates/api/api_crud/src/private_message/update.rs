@@ -55,7 +55,10 @@ pub async fn update_private_message(
   notify_private_message(&view, false, &context);
 
   ActivityChannel::submit_activity(
-    SendActivityData::UpdatePrivateMessage(view.clone()),
+    SendActivityData::CreateOrUpdatePrivateMessage {
+      pm: view.clone(),
+      is_create: false,
+    },
     &context,
   )?;
 

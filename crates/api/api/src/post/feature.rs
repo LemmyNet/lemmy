@@ -67,7 +67,12 @@ pub async fn feature_post(
   Modlog::create(&mut context.pool(), &[modlog_form]).await?;
 
   ActivityChannel::submit_activity(
-    SendActivityData::FeaturePost(post, local_user_view.person.clone(), data.featured),
+    SendActivityData::FeaturePost(
+      post,
+      local_user_view.person.clone(),
+      community,
+      data.featured,
+    ),
     &context,
   )?;
 

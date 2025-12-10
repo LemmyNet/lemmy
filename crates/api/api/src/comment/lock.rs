@@ -54,6 +54,7 @@ pub async fn lock_comment(
   ActivityChannel::submit_activity(
     SendActivityData::LockComment(
       comment.clone(),
+      orig_comment.community,
       local_user_view.person.clone(),
       data.locked,
       data.reason.clone(),

@@ -130,7 +130,7 @@ test("Update a comment", async () => {
   assertCommentFederation(betaCommentUpdated, updateCommentRes.comment_view);
 });
 
-test.only("Delete a comment", async () => {
+test("Delete a comment", async () => {
   let post = await createPost(alpha, betaCommunity!.community.id);
   // creating a comment on alpha (remote from home of community)
   let commentRes = await createComment(alpha, post.post_view.post.id);

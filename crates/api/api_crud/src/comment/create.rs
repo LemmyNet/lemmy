@@ -114,7 +114,7 @@ pub async fn create_comment(
     post.clone(),
     Some(inserted_comment.clone()),
     local_user_view.person.clone(),
-    post_view.community,
+    post_view.community.clone(),
     !local_site.disable_email_notifications,
   )
   .send(&context);
@@ -125,7 +125,12 @@ pub async fn create_comment(
   CommentActions::like(&mut context.pool(), &like_form).await?;
 
   ActivityChannel::submit_activity(
-    SendActivityData::CreateComment(inserted_comment.clone()),
+    SendActivityData::CreateOrUpdateComment {
+      comment: inserted_comment.clone(),
+      community: post_view.community,
+      creator: local_user_view.person.clone(),
+      is_create: true,
+    },
     &context,
   )?;
 

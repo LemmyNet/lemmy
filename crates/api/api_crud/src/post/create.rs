@@ -144,14 +144,23 @@ pub async fn create_post(
   let community_id = community.id;
   let federate_post = if scheduled_publish_time_at.is_none() {
     send_webmention(inserted_post.clone(), community);
-    |post| Some(SendActivityData::CreatePost(post))
+    |post, community, creator| {
+      Some(SendActivityData::CreateOrUpdatePost {
+        post,
+        community,
+        creator,
+        is_create: true,
+      })
+    }
   } else {
-    |_| None
+    |_, _, _| None
   };
   generate_post_link_metadata(
     inserted_post.clone(),
     custom_thumbnail.map(Into::into),
     federate_post,
+    community_view.community.clone(),
+    local_user_view.person.clone(),
     context.clone(),
   )
   .await?;
@@ -167,7 +176,7 @@ pub async fn create_post(
     inserted_post.clone(),
     None,
     local_user_view.person.clone(),
-    community.clone(),
+    community_view.community,
     !local_site.disable_email_notifications,
   )
   .send(&context);

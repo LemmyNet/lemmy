@@ -40,6 +40,7 @@ use lemmy_db_schema::source::{
   activity::{ActivitySendTargets, SentActivity, SentActivityForm},
   community::Community,
   instance::InstanceActions,
+  person::Person,
 };
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_site::SiteView;
@@ -295,15 +296,18 @@ pub async fn match_outgoing_activities(
         AddModToCommunity {
           moderator,
           community,
-          target,
+          target_id,
           added,
-        } => send_add_mod_to_community(
-          moderator.into(),
-          community.into(),
-          target.into(),
-          added,
-          &context,
-        ),
+        } => {
+          let target = Person::read(&mut context.pool(), target_id).await?;
+          send_add_mod_to_community(
+            moderator.into(),
+            community.into(),
+            target.into(),
+            added,
+            &context,
+          )
+        }
         BanFromCommunity {
           moderator,
           community,
@@ -369,11 +373,16 @@ pub async fn match_outgoing_activities(
         )
         .await
         .map(Some),
-        AcceptFollower(community, person) => {
-          send_accept_or_reject_follow(community.into(), person.into(), true, &context).map(Some)
-        }
-        RejectFollower(community, person) => {
-          send_accept_or_reject_follow(community.into(), person.into(), false, &context).map(Some)
+        AcceptOrRejectFollower {
+          community_id,
+          person_id,
+          is_accept,
+        } => {
+          let community = Community::read(&mut context.pool(), community_id).await?;
+          let person = Person::read(&mut context.pool(), person_id).await?;
+
+          send_accept_or_reject_follow(community.into(), person.into(), is_accept, &context)
+            .map(Some)
         }
         UpdateMultiCommunity(multi, actor) => send_update_multi_community(multi, actor, &context)
           .await

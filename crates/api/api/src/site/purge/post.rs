@@ -6,6 +6,7 @@ use lemmy_api_utils::{
   utils::{is_admin, purge_post_images},
 };
 use lemmy_db_schema::source::{
+  community::Community,
   local_user::LocalUser,
   modlog::{Modlog, ModlogInsertForm},
   post::Post,
@@ -44,9 +45,11 @@ pub async fn purge_post(
     ModlogInsertForm::admin_purge_post(local_user_view.person.id, post.community_id, &data.reason);
   Modlog::create(&mut context.pool(), &[form]).await?;
 
+  let community = Community::read(&mut context.pool(), post.community_id).await?;
   ActivityChannel::submit_activity(
     SendActivityData::RemovePost {
       post,
+      community,
       moderator: local_user_view.person.clone(),
       reason: data.reason.clone(),
       removed: true,

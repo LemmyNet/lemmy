@@ -82,13 +82,18 @@ pub async fn update_comment(
     orig_comment.post,
     Some(updated_comment.clone()),
     local_user_view.person.clone(),
-    orig_comment.community,
+    orig_comment.community.clone(),
     false,
   )
   .send(&context);
 
   ActivityChannel::submit_activity(
-    SendActivityData::UpdateComment(updated_comment.clone()),
+    SendActivityData::CreateOrUpdateComment {
+      comment: updated_comment.clone(),
+      community: orig_comment.community,
+      creator: local_user_view.person.clone(),
+      is_create: false,
+    },
     &context,
   )?;
 

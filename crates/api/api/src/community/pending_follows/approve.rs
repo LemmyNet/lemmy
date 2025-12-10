@@ -19,16 +19,10 @@ pub async fn post_pending_follows_approve(
 ) -> LemmyResult<Json<SuccessResponse>> {
   is_mod_or_admin(&mut context.pool(), &local_user_view, data.community_id).await?;
 
-  let (state, activity_data) = if data.approve {
-    (
-      CommunityFollowerState::Accepted,
-      SendActivityData::AcceptFollower(data.community_id, data.follower_id),
-    )
+  let state = if data.approve {
+    CommunityFollowerState::Accepted
   } else {
-    (
-      CommunityFollowerState::Denied,
-      SendActivityData::RejectFollower(data.community_id, data.follower_id),
-    )
+    CommunityFollowerState::Denied
   };
   CommunityActions::approve_private_community_follower(
     &mut context.pool(),
@@ -38,6 +32,11 @@ pub async fn post_pending_follows_approve(
     state,
   )
   .await?;
+  let activity_data = SendActivityData::AcceptOrRejectFollower {
+    community_id: data.community_id,
+    person_id: data.follower_id,
+    is_accept: data.approve,
+  };
   ActivityChannel::submit_activity(activity_data, &context)?;
 
   Ok(Json(SuccessResponse::default()))

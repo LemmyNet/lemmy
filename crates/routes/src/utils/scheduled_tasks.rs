@@ -26,6 +26,7 @@ use lemmy_db_schema::{
     community::Community,
     instance::{Instance, InstanceForm},
     local_user::LocalUser,
+    person::Person,
     post::{Post, PostUpdateForm},
   },
   utils::DELETED_REPLACEMENT_TEXT,
@@ -598,11 +599,15 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) -> LemmyResult<()
     .filter(not(exists(not_community_banned_action)))
     // ensure that user isnt banned from local
     .filter(not(exists(not_local_banned_action)))
-    .select((Post::as_select(), Community::as_select()))
-    .get_results::<(Post, Community)>(conn)
+    .select((
+      Post::as_select(),
+      Community::as_select(),
+      Person::as_select(),
+    ))
+    .get_results::<(Post, Community, Person)>(conn)
     .await?;
 
-  for (post, community) in scheduled_posts {
+  for (post, community, person) in scheduled_posts {
     // mark post as published in db
     let form = PostUpdateForm {
       scheduled_publish_time_at: Some(None),
@@ -611,9 +616,14 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) -> LemmyResult<()
     Post::update(&mut context.pool(), post.id, &form).await?;
 
     // send out post via federation and webmention
-    let send_activity = SendActivityData::CreatePost(post.clone());
+    send_webmention(post.clone(), &community);
+    let send_activity = SendActivityData::CreateOrUpdatePost {
+      post,
+      community,
+      creator: person,
+      is_create: true,
+    };
     ActivityChannel::submit_activity(send_activity, context)?;
-    send_webmention(post, &community);
   }
   Ok(())
 }

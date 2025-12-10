@@ -60,7 +60,7 @@ pub static FETCH_COMMUNITY_COLLECTIONS: OnceLock<
 > = OnceLock::new();
 
 #[derive(Clone, Debug)]
-pub struct ApubCommunity(Community);
+pub struct ApubCommunity(pub(crate) Community);
 
 impl Deref for ApubCommunity {
   type Target = Community;

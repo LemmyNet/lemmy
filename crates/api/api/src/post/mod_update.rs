@@ -63,7 +63,15 @@ pub async fn mod_update_post(
     update_post_tags(&updated_post, tags, &context).await?;
   }
 
-  ActivityChannel::submit_activity(SendActivityData::UpdatePost(updated_post.clone()), &context)?;
+  ActivityChannel::submit_activity(
+    SendActivityData::CreateOrUpdatePost {
+      post: updated_post.clone(),
+      community: community.clone(),
+      creator: local_user_view.person.clone(),
+      is_create: false,
+    },
+    &context,
+  )?;
 
   build_post_response(context.deref(), community.id, local_user_view, post_id).await
 }

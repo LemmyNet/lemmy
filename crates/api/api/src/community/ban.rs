@@ -113,7 +113,7 @@ pub async fn ban_from_community(
   ActivityChannel::submit_activity(
     SendActivityData::BanFromCommunity {
       moderator: local_user_view.person,
-      community_id: data.community_id,
+      community,
       target: person_view.person.clone(),
       data: data.clone(),
     },

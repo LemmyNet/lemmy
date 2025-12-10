@@ -70,6 +70,7 @@ pub async fn remove_post(
   ActivityChannel::submit_activity(
     SendActivityData::RemovePost {
       post,
+      community,
       moderator: local_user_view.person.clone(),
       reason: data.reason.clone(),
       removed: data.removed,

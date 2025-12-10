@@ -70,6 +70,7 @@ pub async fn lock_post(
   ActivityChannel::submit_activity(
     SendActivityData::LockPost(
       post,
+      orig_post.community.clone(),
       local_user_view.person.clone(),
       data.locked,
       data.reason.clone(),

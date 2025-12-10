@@ -5,7 +5,10 @@ use lemmy_api_utils::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_local_user_valid,
 };
-use lemmy_db_schema::source::private_message::{PrivateMessage, PrivateMessageUpdateForm};
+use lemmy_db_schema::source::{
+  person::Person,
+  private_message::{PrivateMessage, PrivateMessageUpdateForm},
+};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_private_message::{
   PrivateMessageView,
@@ -40,8 +43,14 @@ pub async fn delete_private_message(
   )
   .await?;
 
+  let recipient = Person::read(&mut context.pool(), private_message.recipient_id).await?;
   ActivityChannel::submit_activity(
-    SendActivityData::DeletePrivateMessage(local_user_view.person, private_message, data.deleted),
+    SendActivityData::DeletePrivateMessage(
+      local_user_view.person,
+      recipient,
+      private_message,
+      data.deleted,
+    ),
     &context,
   )?;
 
