@@ -77,6 +77,11 @@ pub(crate) async fn send_activity_in_community(
     inboxes.add_inbox(community.shared_inbox_or_inbox());
   }
 
+  // TODO: instead of SentActivityForm make a separate struct, with methods like
+  // `send_to_person_followers: Option<PersonId>` and `send_to_community: Option<CommunityId>`
+  // in order to lift these async db reads out of here
+  todo!();
+
   send_lemmy_activity(activity.clone(), actor, inboxes, false)
 }
 

@@ -132,6 +132,7 @@ impl ActivityChannel {
   pub async fn retrieve_activities() -> Option<Vec<SendActivityData>> {
     let mut lock = ACTIVITY_CHANNEL.receiver.lock().await;
     let mut data = vec![];
+    // TODO: use select! with timeout, higher limit in prod
     if lock.recv_many(&mut data, 1).await > 0 {
       Some(data)
     } else {
