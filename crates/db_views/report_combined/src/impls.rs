@@ -139,11 +139,7 @@ impl ReportCombinedViewInternal {
   }
 
   /// returns the current unresolved report count for the communities you mod
-  pub async fn get_report_count(
-    pool: &mut DbPool<'_>,
-    user: &LocalUserView,
-    community_id: Option<CommunityId>,
-  ) -> LemmyResult<i64> {
+  pub async fn get_report_count(pool: &mut DbPool<'_>, user: &LocalUserView) -> LemmyResult<i64> {
     use diesel::dsl::count;
 
     let conn = &mut get_conn(pool).await?;
@@ -152,14 +148,6 @@ impl ReportCombinedViewInternal {
       .filter(report_is_not_resolved())
       .select(count(report_combined::id))
       .into_boxed();
-
-    if let Some(community_id) = community_id {
-      query = query.filter(
-        community::id
-          .eq(community_id)
-          .and(report_combined::community_report_id.is_null()),
-      );
-    }
 
     if user.local_user.admin {
       query = query.filter(filter_admin_reports(Utc::now() - Days::new(3)));

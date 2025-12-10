@@ -747,3 +747,13 @@ impl Default for SuccessResponse {
     SuccessResponse { success: true }
   }
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+pub struct CountsResponse {
+  pub notification_count: i64,
+  pub report_count: i64,
+  pub pending_follow_count: i64,
+  pub registration_application_count: i64,
+}
