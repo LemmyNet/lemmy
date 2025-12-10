@@ -519,6 +519,8 @@ mod tests {
     let updated_comment = Comment::update(pool, inserted_comment.id, &comment_update_form).await?;
 
     let read_comment = Comment::read(pool, inserted_comment.id).await?;
+    let form = CommentLikeForm::new(inserted_comment.id, inserted_person.id, None);
+    CommentActions::like(pool, &form).await?;
     let saved_removed = CommentActions::unsave(pool, &comment_saved_form).await?;
     let num_deleted = Comment::delete(pool, inserted_comment.id).await?;
     Comment::delete(pool, inserted_child_comment.id).await?;
