@@ -31,8 +31,12 @@ use url::Url;
 
 #[derive(Debug)]
 pub enum SendActivityData {
-  CreatePost(Post),
-  UpdatePost(Post),
+  CreateOrUpdatePost {
+    post: Post,
+    community: Community,
+    creator: Person,
+    is_create: bool,
+  },
   DeletePost(Post, Person, Community),
   RemovePost {
     post: Post,
@@ -43,8 +47,12 @@ pub enum SendActivityData {
   },
   LockPost(Post, Community, Person, bool, String),
   FeaturePost(Post, Person, Community, bool),
-  CreateComment(Comment),
-  UpdateComment(Comment),
+  CreateOrUpdateComment {
+    comment: Comment,
+    community: Community,
+    creator: Person,
+    is_create: bool,
+  },
   DeleteComment(Comment, Person, Community),
   RemoveComment {
     comment: Comment,
@@ -52,7 +60,7 @@ pub enum SendActivityData {
     community: Community,
     reason: String,
   },
-  LockComment(Comment, Community,Person, bool, String),
+  LockComment(Comment, Community, Person, bool, String),
   LikePostOrComment {
     object_id: DbUrl,
     actor: Person,
@@ -92,8 +100,10 @@ pub enum SendActivityData {
     ban: bool,
     expires_at: Option<i64>,
   },
-  CreatePrivateMessage(PrivateMessageView),
-  UpdatePrivateMessage(PrivateMessageView),
+  CreateOrUpdatePrivateMessage {
+    pm: PrivateMessageView,
+    is_create: bool,
+  },
   DeletePrivateMessage(Person, Person, PrivateMessage, bool),
   DeleteUser(Person, bool),
   CreateReport {

@@ -18,9 +18,14 @@ use url::Url;
 
 pub(crate) async fn send_create_or_update_pm(
   pm_view: PrivateMessageView,
-  kind: CreateOrUpdateType,
+  is_create: bool,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<SentActivityForm> {
+  let kind = if is_create {
+    CreateOrUpdateType::Create
+  } else {
+    CreateOrUpdateType::Update
+  };
   let actor: ApubPerson = pm_view.creator.into();
   let recipient: ApubPerson = pm_view.recipient.into();
 

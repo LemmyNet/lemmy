@@ -159,13 +159,14 @@ pub async fn match_outgoing_activities(
     let mut forms = vec![];
     for d in data {
       forms.push(match d {
-        CreatePost(post) => {
-          let creator_id = post.creator_id;
-          CreateOrUpdatePage::send(post, creator_id, CreateOrUpdateType::Create, &context).await
-        }
-        UpdatePost(post) => {
-          let creator_id = post.creator_id;
-          CreateOrUpdatePage::send(post, creator_id, CreateOrUpdateType::Update, &context).await
+        CreateOrUpdatePost {
+          post,
+          community,
+          creator,
+          is_create,
+        } => {
+          CreateOrUpdatePage::send(post, community.into(), creator.into(), is_create, &context)
+            .await
         }
         DeletePost(post, person, community) => {
           let is_deleted = post.deleted;
@@ -203,13 +204,20 @@ pub async fn match_outgoing_activities(
         FeaturePost(post, actor, community, featured) => {
           send_feature_post(post, actor, community.into(), featured, &context)
         }
-        CreateComment(comment) => {
-          let creator_id = comment.creator_id;
-          CreateOrUpdateNote::send(comment, creator_id, CreateOrUpdateType::Create, &context).await
-        }
-        UpdateComment(comment) => {
-          let creator_id = comment.creator_id;
-          CreateOrUpdateNote::send(comment, creator_id, CreateOrUpdateType::Update, &context).await
+        CreateOrUpdateComment {
+          comment,
+          community,
+          creator,
+          is_create,
+        } => {
+          CreateOrUpdateNote::send(
+            comment,
+            community.into(),
+            creator.into(),
+            is_create,
+            &context,
+          )
+          .await
         }
         DeleteComment(comment, actor, community) => {
           let is_deleted = comment.deleted;
@@ -321,13 +329,8 @@ pub async fn match_outgoing_activities(
           )
           .await
         }
-        CreatePrivateMessage(pm) => {
-          send_create_or_update_pm(pm, CreateOrUpdateType::Create, &context)
-            .await
-            .map(Some)
-        }
-        UpdatePrivateMessage(pm) => {
-          send_create_or_update_pm(pm, CreateOrUpdateType::Update, &context)
+        CreateOrUpdatePrivateMessage { pm, is_create } => {
+          send_create_or_update_pm(pm, is_create, &context)
             .await
             .map(Some)
         }

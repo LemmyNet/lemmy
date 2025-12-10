@@ -44,24 +44,22 @@ use url::Url;
 impl CreateOrUpdateNote {
   pub(crate) async fn send(
     comment: Comment,
-    person_id: PersonId,
-    kind: CreateOrUpdateType,
+    community: ApubCommunity,
+    creator: ApubPerson,
+    is_create: bool,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<Option<SentActivityForm>> {
-    // TODO: might be helpful to add a comment method to retrieve community directly
-    let post_id = comment.post_id;
-    let post = Post::read(&mut context.pool(), post_id).await?;
-    let community_id = post.community_id;
-    let person: ApubPerson = Person::read(&mut context.pool(), person_id).await?.into();
-    let community: ApubCommunity = Community::read(&mut context.pool(), community_id)
-      .await?
-      .into();
+    let kind = if is_create {
+      CreateOrUpdateType::Create
+    } else {
+      CreateOrUpdateType::Update
+    };
 
     let id = generate_activity_id(kind.clone(), context)?;
     let note = ApubComment(comment).into_json(context).await?;
 
     let create_or_update = CreateOrUpdateNote {
-      actor: person.id().clone().into(),
+      actor: creator.id().clone().into(),
       to: generate_to(&community)?,
       cc: note.cc.clone(),
       tag: note.tag.clone(),
@@ -95,7 +93,7 @@ impl CreateOrUpdateNote {
     // to convert this to NoteWrapper, by serializing and then deserializing again.
     let converted = from_value(to_value(create_or_update)?)?;
     let activity = AnnouncableActivities::CreateOrUpdateNoteWrapper(converted);
-    send_activity_in_community(activity, &person, &community, inboxes, false, context)
+    send_activity_in_community(activity, &creator, &community, inboxes, false, context)
   }
 }
 

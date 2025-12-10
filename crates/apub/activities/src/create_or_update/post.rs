@@ -60,22 +60,22 @@ impl CreateOrUpdatePage {
 
   pub(crate) async fn send(
     post: Post,
-    person_id: PersonId,
-    kind: CreateOrUpdateType,
+    community: ApubCommunity,
+    creator: ApubPerson,
+    is_create: bool,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<Option<SentActivityForm>> {
-    let community_id = post.community_id;
-    let person: ApubPerson = Person::read(&mut context.pool(), person_id).await?.into();
-    let community: ApubCommunity = Community::read(&mut context.pool(), community_id)
-      .await?
-      .into();
-
+    let kind = if is_create {
+      CreateOrUpdateType::Create
+    } else {
+      CreateOrUpdateType::Update
+    };
     let create_or_update =
-      CreateOrUpdatePage::new(post.into(), &person, &community, kind, context).await?;
+      CreateOrUpdatePage::new(post.into(), &creator, &community, kind, context).await?;
     let activity = AnnouncableActivities::CreateOrUpdatePost(create_or_update);
     send_activity_in_community(
       activity,
-      &person,
+      &creator,
       &community,
       ActivitySendTargets::empty(),
       false,
