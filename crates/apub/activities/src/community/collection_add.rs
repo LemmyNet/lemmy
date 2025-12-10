@@ -157,23 +157,16 @@ impl Activity for CollectionAdd {
 }
 
 pub(crate) async fn send_add_mod_to_community(
-  actor: Person,
-  community_id: CommunityId,
-  updated_mod_id: PersonId,
+  actor: ApubPerson,
+  community: ApubCommunity,
+  updated_mod: ApubPerson,
   added: bool,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<Option<SentActivityForm>> {
-  let actor: ApubPerson = actor.into();
-  let community: ApubCommunity = Community::read(&mut context.pool(), community_id)
-    .await?
-    .into();
-  let updated_mod: ApubPerson = Person::read(&mut context.pool(), updated_mod_id)
-    .await?
-    .into();
   if added {
-    CollectionAdd::send_add_mod(&community, &updated_mod, &actor, &context).await
+    CollectionAdd::send_add_mod(&community, &updated_mod, &actor, context).await
   } else {
-    CollectionRemove::send_remove_mod(&community, &updated_mod, &actor, &context).await
+    CollectionRemove::send_remove_mod(&community, &updated_mod, &actor, context).await
   }
 }
 
@@ -189,8 +182,8 @@ pub(crate) async fn send_feature_post(
     .await?
     .into();
   if featured {
-    CollectionAdd::send_add_featured_post(&community, &post, &actor, &context).await
+    CollectionAdd::send_add_featured_post(&community, &post, &actor, context).await
   } else {
-    CollectionRemove::send_remove_featured_post(&community, &post, &actor, &context).await
+    CollectionRemove::send_remove_featured_post(&community, &post, &actor, context).await
   }
 }

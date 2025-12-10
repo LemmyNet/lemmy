@@ -77,12 +77,7 @@ pub(crate) async fn send_activity_in_community(
     inboxes.add_inbox(community.shared_inbox_or_inbox());
   }
 
-  Ok(send_lemmy_activity(
-    activity.clone(),
-    actor,
-    inboxes,
-    false,
-  )?)
+  send_lemmy_activity(activity.clone(), actor, inboxes, false)
 }
 
 async fn report_inboxes(

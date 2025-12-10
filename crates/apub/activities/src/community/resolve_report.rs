@@ -48,8 +48,8 @@ impl ResolveReport {
     context: &Data<LemmyContext>,
   ) -> LemmyResult<Option<SentActivityForm>> {
     let kind = ResolveType::Resolve;
-    let id = generate_activity_id(kind.clone(), &context)?;
-    let object = Report::new(&object_id, report_creator, receiver, None, &context)?;
+    let id = generate_activity_id(kind.clone(), context)?;
+    let object = Report::new(&object_id, report_creator, receiver, None, context)?;
     let resolve = ResolveReport {
       actor: actor.id().clone().into(),
       to: [receiver.id().clone().into()],
@@ -58,7 +58,7 @@ impl ResolveReport {
       id: id.clone(),
       audience: receiver.as_ref().right().map(|c| c.ap_id.clone().into()),
     };
-    let inboxes = report_inboxes(object_id, receiver, report_creator, &context).await?;
+    let inboxes = report_inboxes(object_id, receiver, report_creator, context).await?;
 
     send_lemmy_activity(resolve, actor, inboxes, false)
   }

@@ -74,8 +74,8 @@ impl Report {
     reason: String,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<Option<SentActivityForm>> {
-    let report = Self::new(&object_id, actor, receiver, Some(reason), &context)?;
-    let inboxes = report_inboxes(object_id, receiver, actor, &context).await?;
+    let report = Self::new(&object_id, actor, receiver, Some(reason), context)?;
+    let inboxes = report_inboxes(object_id, receiver, actor, context).await?;
 
     send_lemmy_activity(report, actor, inboxes, false)
   }

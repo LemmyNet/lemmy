@@ -80,17 +80,13 @@ pub(crate) async fn send_apub_delete_in_community(
   .await
 }
 
-pub(crate) async fn send_apub_delete_private_message(
+pub(crate) fn send_apub_delete_private_message(
   actor: &ApubPerson,
+  recipient: &ApubPerson,
   pm: DbPrivateMessage,
   deleted: bool,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<Option<SentActivityForm>> {
-  let recipient_id = pm.recipient_id;
-  let recipient: ApubPerson = Person::read(&mut context.pool(), recipient_id)
-    .await?
-    .into();
-
   let deletable = DeletableObjects::PrivateMessage(pm.into());
   let inbox = ActivitySendTargets::to_inbox(recipient.shared_inbox_or_inbox());
   if deleted {
@@ -100,7 +96,7 @@ pub(crate) async fn send_apub_delete_private_message(
       vec![recipient.id().clone()],
       None,
       None,
-      &context,
+      context,
     )?;
     send_lemmy_activity(delete, actor, inbox, true)
   } else {
@@ -110,13 +106,13 @@ pub(crate) async fn send_apub_delete_private_message(
       vec![recipient.id().clone()],
       None,
       None,
-      &context,
+      context,
     )?;
     send_lemmy_activity(undo, actor, inbox, true)
   }
 }
 
-pub async fn send_apub_delete_user(
+pub fn send_apub_delete_user(
   person: Person,
   remove_data: bool,
   context: &Data<LemmyContext>,
@@ -124,7 +120,7 @@ pub async fn send_apub_delete_user(
   let person: ApubPerson = person.into();
 
   let deletable = DeletableObjects::Person(person.clone());
-  let mut delete: Delete = Delete::new(&person, deletable, vec![public()], None, None, &context)?;
+  let mut delete: Delete = Delete::new(&person, deletable, vec![public()], None, None, context)?;
   delete.remove_data = Some(remove_data);
 
   let inboxes = ActivitySendTargets::to_all_instances();

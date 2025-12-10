@@ -71,7 +71,7 @@ impl CreateOrUpdatePage {
       .into();
 
     let create_or_update =
-      CreateOrUpdatePage::new(post.into(), &person, &community, kind, &context).await?;
+      CreateOrUpdatePage::new(post.into(), &person, &community, kind, context).await?;
     let activity = AnnouncableActivities::CreateOrUpdatePost(create_or_update);
     send_activity_in_community(
       activity,
@@ -79,7 +79,7 @@ impl CreateOrUpdatePage {
       &community,
       ActivitySendTargets::empty(),
       false,
-      &context,
+      context,
     )
     .await
   }

@@ -45,7 +45,7 @@ pub(crate) async fn send_ban_from_site(
   remove_or_restore_data: Option<bool>,
   ban: bool,
   expires: Option<i64>,
-  context:& Data<LemmyContext>,
+  context: &Data<LemmyContext>,
 ) -> LemmyResult<Option<SentActivityForm>> {
   let site = SiteOrCommunity::Left(Site::read_local(&mut context.pool()).await?.into());
   let expires = check_expire_time(expires)?;
@@ -58,7 +58,7 @@ pub(crate) async fn send_ban_from_site(
       remove_or_restore_data.unwrap_or(false),
       reason.clone(),
       expires,
-      &context,
+      context,
     )
     .await
   } else {
@@ -68,7 +68,7 @@ pub(crate) async fn send_ban_from_site(
       &moderator.into(),
       remove_or_restore_data.unwrap_or(false),
       reason.clone(),
-      &context,
+      context,
     )
     .await
   }
@@ -76,14 +76,11 @@ pub(crate) async fn send_ban_from_site(
 
 pub(crate) async fn send_ban_from_community(
   mod_: Person,
-  community_id: CommunityId,
+  community: ApubCommunity,
   banned_person: Person,
   data: BanFromCommunity,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<Option<SentActivityForm>> {
-  let community: ApubCommunity = Community::read(&mut context.pool(), community_id)
-    .await?
-    .into();
   let expires_at = check_expire_time(data.expires_at)?;
 
   if data.ban {
@@ -94,7 +91,7 @@ pub(crate) async fn send_ban_from_community(
       data.remove_or_restore_data.unwrap_or(false),
       data.reason.clone(),
       expires_at,
-      &context,
+      context,
     )
     .await
   } else {
@@ -104,7 +101,7 @@ pub(crate) async fn send_ban_from_community(
       &mod_.into(),
       data.remove_or_restore_data.unwrap_or(false),
       data.reason.clone(),
-      &context,
+      context,
     )
     .await
   }

@@ -267,10 +267,10 @@ pub async fn match_outgoing_activities(
           .await
         }
         FollowCommunity(community, person, follow) => {
-          send_follow(Either::Left(community.into()), person, follow, &context).await
+          send_follow(Either::Left(community.into()), person, follow, &context)
         }
         FollowMultiCommunity(multi, person, follow) => {
-          send_follow(Either::Right(multi.into()), person, follow, &context).await
+          send_follow(Either::Right(multi.into()), person, follow, &context)
         }
         UpdateCommunity(actor, community) => {
           send_update_community(community, actor, &context).await
@@ -298,16 +298,25 @@ pub async fn match_outgoing_activities(
         }
         AddModToCommunity {
           moderator,
-          community_id,
+          community,
           target,
           added,
-        } => send_add_mod_to_community(moderator, community_id, target, added, &context).await,
+        } => {
+          send_add_mod_to_community(
+            moderator.into(),
+            community.into(),
+            target.into(),
+            added,
+            &context,
+          )
+          .await
+        }
         BanFromCommunity {
           moderator,
-          community_id,
+          community,
           target,
           data,
-        } => send_ban_from_community(moderator, community_id, target, data, &context).await,
+        } => send_ban_from_community(moderator, community.into(), target, data, &context).await,
         BanFromSite {
           moderator,
           banned_user,
@@ -333,12 +342,10 @@ pub async fn match_outgoing_activities(
         UpdatePrivateMessage(pm) => {
           send_create_or_update_pm(pm, CreateOrUpdateType::Update, &context).await
         }
-        DeletePrivateMessage(person, pm, deleted) => {
-          send_apub_delete_private_message(&person.into(), pm, deleted, &context).await
+        DeletePrivateMessage(person, recipient, pm, deleted) => {
+          send_apub_delete_private_message(&person.into(), &recipient.into(), pm, deleted, &context)
         }
-        DeleteUser(person, remove_data) => {
-          send_apub_delete_user(person, remove_data, &context).await
-        }
+        DeleteUser(person, remove_data) => send_apub_delete_user(person, remove_data, &context),
         CreateReport {
           object_id,
           actor,
@@ -369,11 +376,11 @@ pub async fn match_outgoing_activities(
           )
           .await
         }
-        AcceptFollower(community_id, person_id) => {
-          send_accept_or_reject_follow(community_id, person_id, true, &context).await
+        AcceptFollower(community, person) => {
+          send_accept_or_reject_follow(community.into(), person.into(), true, &context)
         }
-        RejectFollower(community_id, person_id) => {
-          send_accept_or_reject_follow(community_id, person_id, false, &context).await
+        RejectFollower(community, person) => {
+          send_accept_or_reject_follow(community.into(), person.into(), false, &context)
         }
         UpdateMultiCommunity(multi, actor) => {
           send_update_multi_community(multi, actor, &context).await
@@ -382,9 +389,8 @@ pub async fn match_outgoing_activities(
     }
     let forms = forms
       .into_iter()
-      .filter(|f| f.is_ok())
-      .map(|f| f.unwrap())
-      .flatten()
+      .filter(std::result::Result::is_ok)
+      .filter_map(|f| f.unwrap())
       .collect::<Vec<SentActivityForm>>();
     SentActivity::create(&mut context2.pool(), &forms).await?;
     Ok::<_, LemmyError>(())

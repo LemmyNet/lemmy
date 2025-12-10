@@ -8,7 +8,12 @@ use crate::protocol::following::{
 use activitypub_federation::{config::Data, kinds::activity::FollowType, traits::Activity};
 use either::Either::*;
 use lemmy_api_utils::context::LemmyContext;
-use lemmy_apub_objects::objects::{CommunityOrMulti, UserOrCommunityOrMulti, person::ApubPerson};
+use lemmy_apub_objects::objects::{
+  CommunityOrMulti,
+  UserOrCommunityOrMulti,
+  community::ApubCommunity,
+  person::ApubPerson,
+};
 use lemmy_db_schema::{
   newtypes::CommunityId,
   source::{
@@ -27,7 +32,7 @@ pub(crate) mod follow;
 pub(crate) mod reject;
 pub(crate) mod undo_follow;
 
-pub async fn send_follow(
+pub fn send_follow(
   target: CommunityOrMulti,
   person: Person,
   follow: bool,
@@ -41,26 +46,23 @@ pub async fn send_follow(
   }
 }
 
-pub async fn send_accept_or_reject_follow(
-  community_id: CommunityId,
-  person_id: PersonId,
+pub fn send_accept_or_reject_follow(
+  community: ApubCommunity,
+  person: ApubPerson,
   accepted: bool,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<Option<SentActivityForm>> {
-  let community = Community::read(&mut context.pool(), community_id).await?;
-  let person = Person::read(&mut context.pool(), person_id).await?;
-
   let follow = Follow {
-    actor: person.ap_id.into(),
+    actor: person.ap_id.clone().into(),
     to: Some([community.ap_id.clone().into()]),
-    object: community.ap_id.into(),
+    object: community.ap_id.clone().into(),
     kind: FollowType::Follow,
     id: generate_activity_id(FollowType::Follow, context)?,
   };
   if accepted {
-    AcceptFollow::send(follow, context).await
+    AcceptFollow::send(follow, community, person, context)
   } else {
-    RejectFollow::send(follow, context).await
+    RejectFollow::send(follow, community, person, context)
   }
 }
 

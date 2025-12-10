@@ -7,32 +7,36 @@ use activitypub_federation::{
   config::Data,
   kinds::activity::AcceptType,
   protocol::verification::verify_urls_match,
-  traits::{Activity, Actor, Object},
+  traits::{Activity, Actor},
 };
 use lemmy_api_utils::context::LemmyContext;
+use lemmy_apub_objects::objects::{community::ApubCommunity, person::ApubPerson};
 use lemmy_db_schema::{
-  source::{activity::{ActivitySendTargets, SentActivityForm}, community::CommunityActions},
+  source::{
+    activity::{ActivitySendTargets, SentActivityForm},
+    community::CommunityActions,
+  },
   traits::Followable,
 };
 use lemmy_utils::error::{LemmyError, LemmyResult, UntranslatedError};
 use url::Url;
 
 impl AcceptFollow {
-  pub async fn send(
+  pub fn send(
     follow: Follow,
+    community: ApubCommunity,
+    person: ApubPerson,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<Option<SentActivityForm>> {
-    let target = follow.object.dereference_local(context).await?;
-    let person = follow.actor.clone().dereference(context).await?;
     let accept = AcceptFollow {
-      actor: target.id().clone().into(),
-      to: Some([person.id().clone().into()]),
+      actor: person.ap_id.clone().into(),
+      to: Some([person.ap_id.clone().into()]),
       object: follow,
       kind: AcceptType::Accept,
       id: generate_activity_id(AcceptType::Accept, context)?,
     };
     let inbox = ActivitySendTargets::to_inbox(person.shared_inbox_or_inbox());
-    send_lemmy_activity(accept, &target, inbox, true)
+    send_lemmy_activity(accept, &person, inbox, true)
   }
 }
 

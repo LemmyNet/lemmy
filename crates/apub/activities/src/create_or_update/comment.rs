@@ -57,8 +57,8 @@ impl CreateOrUpdateNote {
       .await?
       .into();
 
-    let id = generate_activity_id(kind.clone(), &context)?;
-    let note = ApubComment(comment).into_json(&context).await?;
+    let id = generate_activity_id(kind.clone(), context)?;
+    let note = ApubComment(comment).into_json(context).await?;
 
     let create_or_update = CreateOrUpdateNote {
       actor: person.id().clone().into(),
@@ -86,7 +86,7 @@ impl CreateOrUpdateNote {
       .collect();
     let mut inboxes = ActivitySendTargets::empty();
     for t in tagged_users {
-      let person = t.dereference(&context).await?;
+      let person = t.dereference(context).await?;
       inboxes.add_inbox(person.shared_inbox_or_inbox());
     }
 
@@ -95,7 +95,7 @@ impl CreateOrUpdateNote {
     // to convert this to NoteWrapper, by serializing and then deserializing again.
     let converted = from_value(to_value(create_or_update)?)?;
     let activity = AnnouncableActivities::CreateOrUpdateNoteWrapper(converted);
-    send_activity_in_community(activity, &person, &community, inboxes, false, &context).await
+    send_activity_in_community(activity, &person, &community, inboxes, false, context).await
   }
 }
 

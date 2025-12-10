@@ -61,8 +61,8 @@ pub enum SendActivityData {
   },
   FollowCommunity(Community, Person, bool),
   FollowMultiCommunity(MultiCommunity, Person, bool),
-  AcceptFollower(CommunityId, PersonId),
-  RejectFollower(CommunityId, PersonId),
+  AcceptFollower(Community, Person),
+  RejectFollower(Community, Person),
   UpdateCommunity(Person, Community),
   DeleteCommunity(Person, Community, bool),
   RemoveCommunity {
@@ -73,13 +73,13 @@ pub enum SendActivityData {
   },
   AddModToCommunity {
     moderator: Person,
-    community_id: CommunityId,
-    target: PersonId,
+    community: Community,
+    target: Person,
     added: bool,
   },
   BanFromCommunity {
     moderator: Person,
-    community_id: CommunityId,
+    community: Community,
     target: Person,
     data: BanFromCommunity,
   },
@@ -93,7 +93,7 @@ pub enum SendActivityData {
   },
   CreatePrivateMessage(PrivateMessageView),
   UpdatePrivateMessage(PrivateMessageView),
-  DeletePrivateMessage(Person, PrivateMessage, bool),
+  DeletePrivateMessage(Person, Person, PrivateMessage, bool),
   DeleteUser(Person, bool),
   CreateReport {
     object_id: Url,

@@ -35,11 +35,11 @@ pub(crate) async fn send_update_community(
 ) -> LemmyResult<Option<SentActivityForm>> {
   let community: ApubCommunity = community.into();
   let actor: ApubPerson = actor.into();
-  let id = generate_activity_id(UpdateType::Update, &context)?;
+  let id = generate_activity_id(UpdateType::Update, context)?;
   let update = Update {
     actor: actor.id().clone().into(),
     to: generate_to(&community)?,
-    object: Either::Left(community.clone().into_json(&context).await?),
+    object: Either::Left(community.clone().into_json(context).await?),
     cc: vec![community.id().clone()],
     kind: UpdateType::Update,
     id: id.clone(),
@@ -53,7 +53,7 @@ pub(crate) async fn send_update_community(
     &community,
     ActivitySendTargets::empty(),
     true,
-    &context,
+    context,
   )
   .await
 }
@@ -65,11 +65,11 @@ pub(crate) async fn send_update_multi_community(
 ) -> LemmyResult<Option<SentActivityForm>> {
   let multi: ApubMultiCommunity = multi.into();
   let actor: ApubPerson = actor.into();
-  let id = generate_activity_id(UpdateType::Update, &context)?;
+  let id = generate_activity_id(UpdateType::Update, context)?;
   let update = Update {
     actor: actor.id().clone().into(),
     to: vec![multi.ap_id.clone().into(), public()],
-    object: Either::Right(multi.clone().into_json(&context).await?),
+    object: Either::Right(multi.clone().into_json(context).await?),
     cc: vec![],
     kind: UpdateType::Update,
     id: id.clone(),
