@@ -25,7 +25,7 @@ use lemmy_apub_objects::{
 };
 use lemmy_db_schema::{
   source::{
-    activity::ActivitySendTargets,
+    activity::{ActivitySendTargets, SentActivityForm},
     community::Community,
     person::Person,
     post::{Post, PostActions, PostLikeForm, PostUpdateForm},
@@ -62,8 +62,8 @@ impl CreateOrUpdatePage {
     post: Post,
     person_id: PersonId,
     kind: CreateOrUpdateType,
-    context: Data<LemmyContext>,
-  ) -> LemmyResult<()> {
+    context: &Data<LemmyContext>,
+  ) -> LemmyResult<Option<SentActivityForm>> {
     let community_id = post.community_id;
     let person: ApubPerson = Person::read(&mut context.pool(), person_id).await?.into();
     let community: ApubCommunity = Community::read(&mut context.pool(), community_id)
@@ -81,8 +81,7 @@ impl CreateOrUpdatePage {
       false,
       &context,
     )
-    .await?;
-    Ok(())
+    .await
   }
 }
 

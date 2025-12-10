@@ -29,6 +29,7 @@ use lemmy_apub_objects::{
 };
 use lemmy_db_schema::{
   source::{
+    activity::{SentActivity, SentActivityForm},
     comment_report::CommentReport,
     community_report::CommunityReport,
     post_report::PostReport,
@@ -44,8 +45,8 @@ impl ResolveReport {
     actor: &ApubPerson,
     report_creator: &ApubPerson,
     receiver: &Either<ApubSite, ApubCommunity>,
-    context: Data<LemmyContext>,
-  ) -> LemmyResult<()> {
+    context: &Data<LemmyContext>,
+  ) -> LemmyResult<Option<SentActivityForm>> {
     let kind = ResolveType::Resolve;
     let id = generate_activity_id(kind.clone(), &context)?;
     let object = Report::new(&object_id, report_creator, receiver, None, &context)?;
@@ -59,7 +60,7 @@ impl ResolveReport {
     };
     let inboxes = report_inboxes(object_id, receiver, report_creator, &context).await?;
 
-    send_lemmy_activity(&context, resolve, actor, inboxes, false).await
+    send_lemmy_activity(resolve, actor, inboxes, false)
   }
 }
 
@@ -108,7 +109,8 @@ impl Activity for ResolveReport {
       let announce = AnnouncableActivities::ResolveReport(self);
       let announce = AnnounceActivity::new(announce.try_into()?, community, context)?;
       let inboxes = report_inboxes(object_id, &receiver, &reporter, context).await?;
-      send_lemmy_activity(context, announce, community, inboxes.clone(), false).await?;
+      let form = send_lemmy_activity(announce, community, inboxes.clone(), false)?;
+      SentActivity::create(&mut context.pool(), &[form.unwrap()]).await?;
     }
 
     Ok(())

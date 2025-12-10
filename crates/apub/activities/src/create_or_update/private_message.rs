@@ -11,7 +11,7 @@ use activitypub_federation::{
 };
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::objects::{person::ApubPerson, private_message::ApubPrivateMessage};
-use lemmy_db_schema::source::activity::ActivitySendTargets;
+use lemmy_db_schema::source::activity::{ActivitySendTargets, SentActivityForm};
 use lemmy_db_views_private_message::PrivateMessageView;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
@@ -19,8 +19,8 @@ use url::Url;
 pub(crate) async fn send_create_or_update_pm(
   pm_view: PrivateMessageView,
   kind: CreateOrUpdateType,
-  context: Data<LemmyContext>,
-) -> LemmyResult<()> {
+  context: &Data<LemmyContext>,
+) -> LemmyResult<Option<SentActivityForm>> {
   let actor: ApubPerson = pm_view.creator.into();
   let recipient: ApubPerson = pm_view.recipient.into();
 
@@ -35,7 +35,7 @@ pub(crate) async fn send_create_or_update_pm(
     kind,
   };
   let inbox = ActivitySendTargets::to_inbox(recipient.shared_inbox_or_inbox());
-  send_lemmy_activity(&context, create_or_update, &actor, inbox, true).await
+  send_lemmy_activity(create_or_update, &actor, inbox, true)
 }
 
 #[async_trait::async_trait]

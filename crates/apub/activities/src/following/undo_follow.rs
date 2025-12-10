@@ -14,7 +14,7 @@ use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::objects::{CommunityOrMulti, person::ApubPerson};
 use lemmy_db_schema::{
   source::{
-    activity::ActivitySendTargets,
+    activity::{ActivitySendTargets, SentActivityForm},
     community::CommunityActions,
     community_community_follow::CommunityCommunityFollow,
     instance::InstanceActions,
@@ -27,11 +27,11 @@ use lemmy_utils::error::{LemmyError, LemmyResult, UntranslatedError};
 use url::Url;
 
 impl UndoFollow {
-  pub async fn send(
+  pub fn send(
     actor: &ApubPerson,
     target: &CommunityOrMulti,
     context: &Data<LemmyContext>,
-  ) -> LemmyResult<()> {
+  ) -> LemmyResult<Option<SentActivityForm>> {
     let object = Follow::new(actor, target, context)?;
     let undo = UndoFollow {
       actor: actor.id().clone().into(),
@@ -41,7 +41,7 @@ impl UndoFollow {
       id: generate_activity_id(UndoType::Undo, context)?,
     };
     let inbox = ActivitySendTargets::to_inbox(target.shared_inbox_or_inbox());
-    send_lemmy_activity(context, undo, actor, inbox, true).await
+    send_lemmy_activity(undo, actor, inbox, true)
   }
 }
 

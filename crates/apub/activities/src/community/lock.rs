@@ -22,7 +22,7 @@ use lemmy_apub_objects::{
   },
 };
 use lemmy_db_schema::source::{
-  activity::ActivitySendTargets,
+  activity::{ActivitySendTargets, SentActivityForm},
   comment::Comment,
   modlog::{Modlog, ModlogInsertForm},
   person::Person,
@@ -145,8 +145,8 @@ pub(crate) async fn send_lock(
   actor: Person,
   locked: bool,
   reason: String,
-  context: Data<LemmyContext>,
-) -> LemmyResult<()> {
+  context: &Data<LemmyContext>,
+) -> LemmyResult<Option<SentActivityForm>> {
   let community: ApubCommunity = post_or_comment_community(&object, &context).await?.into();
   let id = generate_activity_id(LockType::Lock, &context)?;
   let community_id = community.ap_id.inner().clone();
@@ -189,6 +189,5 @@ pub(crate) async fn send_lock(
     true,
     &context,
   )
-  .await?;
-  Ok(())
+  .await
 }

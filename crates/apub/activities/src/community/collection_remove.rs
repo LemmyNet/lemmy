@@ -25,7 +25,7 @@ use lemmy_apub_objects::{
 use lemmy_db_schema::{
   impls::community::CollectionType,
   source::{
-    activity::ActivitySendTargets,
+    activity::{ActivitySendTargets, SentActivityForm},
     community::{Community, CommunityActions, CommunityModeratorForm},
     modlog::{Modlog, ModlogInsertForm},
     post::{Post, PostUpdateForm},
@@ -41,7 +41,7 @@ impl CollectionRemove {
     removed_mod: &ApubPerson,
     actor: &ApubPerson,
     context: &Data<LemmyContext>,
-  ) -> LemmyResult<()> {
+  ) -> LemmyResult<Option<SentActivityForm>> {
     let id = generate_activity_id(RemoveType::Remove, context)?;
     let remove = CollectionRemove {
       actor: actor.id().clone().into(),
@@ -64,7 +64,7 @@ impl CollectionRemove {
     featured_post: &ApubPost,
     actor: &ApubPerson,
     context: &Data<LemmyContext>,
-  ) -> LemmyResult<()> {
+  ) -> LemmyResult<Option<SentActivityForm>> {
     let id = generate_activity_id(RemoveType::Remove, context)?;
     let remove = CollectionRemove {
       actor: actor.id().clone().into(),

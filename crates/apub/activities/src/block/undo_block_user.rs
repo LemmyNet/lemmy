@@ -25,7 +25,7 @@ use lemmy_apub_objects::{
 };
 use lemmy_db_schema::{
   source::{
-    activity::ActivitySendTargets,
+    activity::{ActivitySendTargets, SentActivityForm},
     community::{CommunityActions, CommunityPersonBanForm},
     instance::{InstanceActions, InstanceBanForm},
     modlog::{Modlog, ModlogInsertForm},
@@ -43,7 +43,7 @@ impl UndoBlockUser {
     restore_data: bool,
     reason: String,
     context: &Data<LemmyContext>,
-  ) -> LemmyResult<()> {
+  ) -> LemmyResult<Option<SentActivityForm>> {
     let block = BlockUser::new(target, user, mod_, None, reason, None, context).await?;
     let to = to(target)?;
 
@@ -63,7 +63,7 @@ impl UndoBlockUser {
     match target {
       SiteOrCommunity::Left(_) => {
         inboxes.set_all_instances();
-        send_lemmy_activity(context, undo, mod_, inboxes, false).await
+        send_lemmy_activity(undo, mod_, inboxes, false)
       }
       SiteOrCommunity::Right(c) => {
         let activity = AnnouncableActivities::UndoBlockUser(undo);

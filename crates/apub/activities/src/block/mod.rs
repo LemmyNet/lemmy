@@ -8,7 +8,14 @@ use lemmy_apub_objects::{
 };
 use lemmy_db_schema::{
   newtypes::CommunityId,
-  source::{comment::Comment, community::Community, person::Person, post::Post, site::Site},
+  source::{
+    activity::SentActivityForm,
+    comment::Comment,
+    community::Community,
+    person::Person,
+    post::Post,
+    site::Site,
+  },
 };
 use lemmy_db_views_community::api::BanFromCommunity;
 use lemmy_diesel_utils::{connection::DbPool, traits::Crud};
@@ -38,8 +45,8 @@ pub(crate) async fn send_ban_from_site(
   remove_or_restore_data: Option<bool>,
   ban: bool,
   expires: Option<i64>,
-  context: Data<LemmyContext>,
-) -> LemmyResult<()> {
+  context:& Data<LemmyContext>,
+) -> LemmyResult<Option<SentActivityForm>> {
   let site = SiteOrCommunity::Left(Site::read_local(&mut context.pool()).await?.into());
   let expires = check_expire_time(expires)?;
 
@@ -72,8 +79,8 @@ pub(crate) async fn send_ban_from_community(
   community_id: CommunityId,
   banned_person: Person,
   data: BanFromCommunity,
-  context: Data<LemmyContext>,
-) -> LemmyResult<()> {
+  context: &Data<LemmyContext>,
+) -> LemmyResult<Option<SentActivityForm>> {
   let community: ApubCommunity = Community::read(&mut context.pool(), community_id)
     .await?
     .into();

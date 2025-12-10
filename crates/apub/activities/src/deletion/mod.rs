@@ -33,7 +33,7 @@ use lemmy_apub_objects::{
   },
 };
 use lemmy_db_schema::source::{
-  activity::ActivitySendTargets,
+  activity::{ActivitySendTargets, SentActivityForm},
   comment::{Comment, CommentUpdateForm},
   community::{Community, CommunityUpdateForm},
   person::Person,
@@ -58,7 +58,7 @@ pub(crate) async fn send_apub_delete_in_community(
   reason: Option<String>,
   deleted: bool,
   context: &Data<LemmyContext>,
-) -> LemmyResult<()> {
+) -> LemmyResult<Option<SentActivityForm>> {
   let actor = ApubPerson::from(actor);
   let is_mod_action = reason.is_some();
   let to = generate_to(&community)?;
@@ -84,8 +84,8 @@ pub(crate) async fn send_apub_delete_private_message(
   actor: &ApubPerson,
   pm: DbPrivateMessage,
   deleted: bool,
-  context: Data<LemmyContext>,
-) -> LemmyResult<()> {
+  context: &Data<LemmyContext>,
+) -> LemmyResult<Option<SentActivityForm>> {
   let recipient_id = pm.recipient_id;
   let recipient: ApubPerson = Person::read(&mut context.pool(), recipient_id)
     .await?
@@ -102,7 +102,7 @@ pub(crate) async fn send_apub_delete_private_message(
       None,
       &context,
     )?;
-    send_lemmy_activity(&context, delete, actor, inbox, true).await?;
+    send_lemmy_activity(delete, actor, inbox, true)
   } else {
     let undo = UndoDelete::new(
       actor,
@@ -112,16 +112,15 @@ pub(crate) async fn send_apub_delete_private_message(
       None,
       &context,
     )?;
-    send_lemmy_activity(&context, undo, actor, inbox, true).await?;
-  };
-  Ok(())
+    send_lemmy_activity(undo, actor, inbox, true)
+  }
 }
 
 pub async fn send_apub_delete_user(
   person: Person,
   remove_data: bool,
-  context: Data<LemmyContext>,
-) -> LemmyResult<()> {
+  context: &Data<LemmyContext>,
+) -> LemmyResult<Option<SentActivityForm>> {
   let person: ApubPerson = person.into();
 
   let deletable = DeletableObjects::Person(person.clone());
@@ -130,8 +129,7 @@ pub async fn send_apub_delete_user(
 
   let inboxes = ActivitySendTargets::to_all_instances();
 
-  send_lemmy_activity(&context, delete, &person, inboxes, true).await?;
-  Ok(())
+  send_lemmy_activity(delete, &person, inboxes, true)
 }
 
 pub enum DeletableObjects {

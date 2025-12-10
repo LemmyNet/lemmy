@@ -26,7 +26,7 @@ use lemmy_apub_objects::{
 };
 use lemmy_db_schema::{
   source::{
-    activity::ActivitySendTargets,
+    activity::{ActivitySendTargets, SentActivityForm},
     comment::{Comment, CommentActions, CommentLikeForm},
     community::Community,
     person::Person,
@@ -46,8 +46,8 @@ impl CreateOrUpdateNote {
     comment: Comment,
     person_id: PersonId,
     kind: CreateOrUpdateType,
-    context: Data<LemmyContext>,
-  ) -> LemmyResult<()> {
+    context: &Data<LemmyContext>,
+  ) -> LemmyResult<Option<SentActivityForm>> {
     // TODO: might be helpful to add a comment method to retrieve community directly
     let post_id = comment.post_id;
     let post = Post::read(&mut context.pool(), post_id).await?;

@@ -17,7 +17,7 @@ use lemmy_apub_objects::{
   utils::functions::verify_mod_action,
 };
 use lemmy_db_schema::source::{
-  activity::ActivitySendTargets,
+  activity::{ActivitySendTargets, SentActivityForm},
   person::{Person, PersonActions},
   site::Site,
 };
@@ -55,10 +55,10 @@ pub(crate) async fn send_activity_in_community(
   extra_inboxes: ActivitySendTargets,
   is_mod_action: bool,
   context: &Data<LemmyContext>,
-) -> LemmyResult<()> {
+) -> LemmyResult<Option<SentActivityForm>> {
   // If community is local only, don't send anything out
   if !community.visibility.can_federate() {
-    return Ok(());
+    return Ok(None);
   }
 
   // send to any users which are mentioned or affected directly
@@ -77,8 +77,12 @@ pub(crate) async fn send_activity_in_community(
     inboxes.add_inbox(community.shared_inbox_or_inbox());
   }
 
-  send_lemmy_activity(context, activity.clone(), actor, inboxes, false).await?;
-  Ok(())
+  Ok(send_lemmy_activity(
+    activity.clone(),
+    actor,
+    inboxes,
+    false,
+  )?)
 }
 
 async fn report_inboxes(

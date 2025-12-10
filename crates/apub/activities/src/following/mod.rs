@@ -11,7 +11,11 @@ use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::objects::{CommunityOrMulti, UserOrCommunityOrMulti, person::ApubPerson};
 use lemmy_db_schema::{
   newtypes::CommunityId,
-  source::{activity::ActivitySendTargets, community::Community, person::Person},
+  source::{
+    activity::{ActivitySendTargets, SentActivityForm},
+    community::Community,
+    person::Person,
+  },
 };
 use lemmy_db_schema_file::PersonId;
 use lemmy_diesel_utils::traits::Crud;
@@ -28,12 +32,12 @@ pub async fn send_follow(
   person: Person,
   follow: bool,
   context: &Data<LemmyContext>,
-) -> LemmyResult<()> {
+) -> LemmyResult<Option<SentActivityForm>> {
   let actor: ApubPerson = person.into();
   if follow {
-    Follow::send(&actor, &target, context).await
+    Follow::send(&actor, &target, context)
   } else {
-    UndoFollow::send(&actor, &target, context).await
+    UndoFollow::send(&actor, &target, context)
   }
 }
 
@@ -42,7 +46,7 @@ pub async fn send_accept_or_reject_follow(
   person_id: PersonId,
   accepted: bool,
   context: &Data<LemmyContext>,
-) -> LemmyResult<()> {
+) -> LemmyResult<Option<SentActivityForm>> {
   let community = Community::read(&mut context.pool(), community_id).await?;
   let person = Person::read(&mut context.pool(), person_id).await?;
 
@@ -61,20 +65,17 @@ pub async fn send_accept_or_reject_follow(
 }
 
 /// Wrapper type which is needed because we cant implement ActorT for Either.
-async fn send_activity_from_user_or_community_or_multi<A>(
-  context: &Data<LemmyContext>,
+fn send_activity_from_user_or_community_or_multi<A>(
   activity: A,
   target: UserOrCommunityOrMulti,
   send_targets: ActivitySendTargets,
-) -> LemmyResult<()>
+) -> LemmyResult<Option<SentActivityForm>>
 where
   A: Activity + Serialize + Send + Sync + Clone + Activity<Error = LemmyError>,
 {
   match target {
-    Left(user) => send_lemmy_activity(context, activity, &user, send_targets, true).await,
-    Right(Left(community)) => {
-      send_lemmy_activity(context, activity, &community, send_targets, true).await
-    }
-    Right(Right(multi)) => send_lemmy_activity(context, activity, &multi, send_targets, true).await,
+    Left(user) => send_lemmy_activity(activity, &user, send_targets, true),
+    Right(Left(community)) => send_lemmy_activity(activity, &community, send_targets, true),
+    Right(Right(multi)) => send_lemmy_activity(activity, &multi, send_targets, true),
   }
 }

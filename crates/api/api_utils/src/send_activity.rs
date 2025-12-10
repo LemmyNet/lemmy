@@ -129,9 +129,14 @@ pub struct ActivityChannel {
 }
 
 impl ActivityChannel {
-  pub async fn retrieve_activity() -> Option<SendActivityData> {
+  pub async fn retrieve_activities() -> Option<Vec<SendActivityData>> {
     let mut lock = ACTIVITY_CHANNEL.receiver.lock().await;
-    lock.recv().await
+    let mut data = vec![];
+    if lock.recv_many(&mut data, 1).await > 0 {
+      Some(data)
+    } else {
+      None
+    }
   }
 
   pub fn submit_activity(data: SendActivityData, _context: &Data<LemmyContext>) -> LemmyResult<()> {

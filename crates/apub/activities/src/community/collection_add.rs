@@ -26,7 +26,7 @@ use lemmy_db_schema::{
   impls::community::CollectionType,
   newtypes::CommunityId,
   source::{
-    activity::ActivitySendTargets,
+    activity::{ActivitySendTargets, SentActivityForm},
     community::{Community, CommunityActions, CommunityModeratorForm},
     modlog::{Modlog, ModlogInsertForm},
     person::Person,
@@ -44,7 +44,7 @@ impl CollectionAdd {
     added_mod: &ApubPerson,
     actor: &ApubPerson,
     context: &Data<LemmyContext>,
-  ) -> LemmyResult<()> {
+  ) -> LemmyResult<Option<SentActivityForm>> {
     let id = generate_activity_id(AddType::Add, context)?;
     let add = CollectionAdd {
       actor: actor.id().clone().into(),
@@ -67,7 +67,7 @@ impl CollectionAdd {
     featured_post: &ApubPost,
     actor: &ApubPerson,
     context: &Data<LemmyContext>,
-  ) -> LemmyResult<()> {
+  ) -> LemmyResult<Option<SentActivityForm>> {
     let id = generate_activity_id(AddType::Add, context)?;
     let add = CollectionAdd {
       actor: actor.id().clone().into(),
@@ -161,8 +161,8 @@ pub(crate) async fn send_add_mod_to_community(
   community_id: CommunityId,
   updated_mod_id: PersonId,
   added: bool,
-  context: Data<LemmyContext>,
-) -> LemmyResult<()> {
+  context: &Data<LemmyContext>,
+) -> LemmyResult<Option<SentActivityForm>> {
   let actor: ApubPerson = actor.into();
   let community: ApubCommunity = Community::read(&mut context.pool(), community_id)
     .await?
@@ -181,8 +181,8 @@ pub(crate) async fn send_feature_post(
   post: Post,
   actor: Person,
   featured: bool,
-  context: Data<LemmyContext>,
-) -> LemmyResult<()> {
+  context: &Data<LemmyContext>,
+) -> LemmyResult<Option<SentActivityForm>> {
   let actor: ApubPerson = actor.into();
   let post: ApubPost = post.into();
   let community = Community::read(&mut context.pool(), post.community_id)

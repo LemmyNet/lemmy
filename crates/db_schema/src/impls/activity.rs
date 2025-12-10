@@ -12,11 +12,11 @@ use lemmy_diesel_utils::{
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl SentActivity {
-  pub async fn create(pool: &mut DbPool<'_>, form: SentActivityForm) -> LemmyResult<Self> {
+  pub async fn create(pool: &mut DbPool<'_>, forms: &[SentActivityForm]) -> LemmyResult<Self> {
     use lemmy_db_schema_file::schema::sent_activity::dsl::sent_activity;
     let conn = &mut get_conn(pool).await?;
     insert_into(sent_activity)
-      .values(form)
+      .values(forms)
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntCreate)
@@ -111,7 +111,7 @@ mod tests {
       send_inboxes: vec![],
     };
 
-    SentActivity::create(pool, form).await?;
+    SentActivity::create(pool, &[form]).await?;
 
     let res = SentActivity::read_from_apub_id(pool, &ap_id).await?;
     assert_eq!(res.ap_id, ap_id);

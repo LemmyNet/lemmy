@@ -14,7 +14,7 @@ use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::objects::{CommunityOrMulti, person::ApubPerson};
 use lemmy_db_schema::{
   source::{
-    activity::ActivitySendTargets,
+    activity::{ActivitySendTargets, SentActivityForm},
     community::{CommunityActions, CommunityFollowerForm},
     community_community_follow::CommunityCommunityFollow,
     instance::{Instance, InstanceActions},
@@ -43,14 +43,14 @@ impl Follow {
     })
   }
 
-  pub async fn send(
+  pub fn send(
     actor: &ApubPerson,
     target: &CommunityOrMulti,
     context: &Data<LemmyContext>,
-  ) -> LemmyResult<()> {
+  ) -> LemmyResult<Option<SentActivityForm>> {
     let follow = Follow::new(actor, target, context)?;
     let inbox = ActivitySendTargets::to_inbox(target.shared_inbox_or_inbox());
-    send_lemmy_activity(context, follow, actor, inbox, true).await
+    send_lemmy_activity(follow, actor, inbox, true)
   }
 }
 

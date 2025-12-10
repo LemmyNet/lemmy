@@ -20,7 +20,7 @@ use lemmy_apub_objects::objects::{
 };
 use lemmy_db_schema::{
   source::{
-    activity::ActivitySendTargets,
+    activity::{ActivitySendTargets, SentActivityForm},
     comment::{CommentActions, CommentLikeForm},
     community::Community,
     person::Person,
@@ -40,8 +40,8 @@ pub(crate) async fn send_like_activity(
   community: Community,
   previous_is_upvote: Option<bool>,
   new_is_upvote: Option<bool>,
-  context: Data<LemmyContext>,
-) -> LemmyResult<()> {
+  context: &Data<LemmyContext>,
+) -> LemmyResult<Option<SentActivityForm>> {
   let object_id: ObjectId<PostOrComment> = object_id.into();
   let actor: ApubPerson = actor.into();
   let community: ApubCommunity = community.into();

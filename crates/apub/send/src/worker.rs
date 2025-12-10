@@ -794,7 +794,7 @@ mod test {
       actor_type: ActorType::Person,
       actor_apub_id: ap_id,
     };
-    let sent = SentActivity::create(&mut context.pool(), form).await?;
+    let sent = SentActivity::create(&mut context.pool(), &[form]).await?;
 
     if wait {
       sleep(*WORK_FINISHED_RECHECK_DELAY * 2).await;

@@ -35,6 +35,7 @@ use lemmy_apub_objects::{
 };
 use lemmy_db_schema::{
   source::{
+    activity::{SentActivity, SentActivityForm},
     comment_report::{CommentReport, CommentReportForm},
     community_report::{CommunityReport, CommunityReportForm},
     post_report::{PostReport, PostReportForm},
@@ -71,12 +72,12 @@ impl Report {
     actor: &ApubPerson,
     receiver: &Either<ApubSite, ApubCommunity>,
     reason: String,
-    context: Data<LemmyContext>,
-  ) -> LemmyResult<()> {
+    context: &Data<LemmyContext>,
+  ) -> LemmyResult<Option<SentActivityForm>> {
     let report = Self::new(&object_id, actor, receiver, Some(reason), &context)?;
     let inboxes = report_inboxes(object_id, receiver, actor, &context).await?;
 
-    send_lemmy_activity(&context, report, actor, inboxes, false).await
+    send_lemmy_activity(report, actor, inboxes, false)
   }
 }
 
@@ -153,7 +154,8 @@ impl Activity for Report {
       let announce = AnnouncableActivities::Report(self);
       let announce = AnnounceActivity::new(announce.try_into()?, community, context)?;
       let inboxes = report_inboxes(object_id, &receiver, &actor, context).await?;
-      send_lemmy_activity(context, announce, community, inboxes.clone(), false).await?;
+      let form = send_lemmy_activity(announce, community, inboxes.clone(), false)?;
+      SentActivity::create(&mut context.pool(), &[form.unwrap()]).await?;
     }
 
     Ok(())

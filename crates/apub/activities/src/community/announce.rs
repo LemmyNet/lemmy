@@ -113,7 +113,7 @@ impl AnnounceActivity {
   ) -> LemmyResult<()> {
     let announce = AnnounceActivity::new(object.clone(), community, context)?;
     let inboxes = ActivitySendTargets::to_local_community_followers(community.id);
-    send_lemmy_activity(context, announce, community, inboxes.clone(), false).await?;
+    send_lemmy_activity(announce, community, inboxes.clone(), false)?;
 
     // Pleroma and Mastodon can't handle activities like Announce/Create/Page. So for
     // compatibility, we also send Announce/Page so that they can follow Lemmy communities.
@@ -130,7 +130,7 @@ impl AnnounceActivity {
           .clone(),
       };
       let announce_compat = AnnounceActivity::new(announcable_page, community, context)?;
-      send_lemmy_activity(context, announce_compat, community, inboxes, false).await?;
+      send_lemmy_activity(announce_compat, community, inboxes, false)?;
     }
     Ok(())
   }

@@ -19,7 +19,7 @@ use lemmy_apub_objects::{
   },
 };
 use lemmy_db_schema::source::{
-  activity::ActivitySendTargets,
+  activity::{ActivitySendTargets, SentActivityForm},
   community::Community,
   modlog::{Modlog, ModlogInsertForm},
   multi_community::MultiCommunity,
@@ -31,8 +31,8 @@ use url::Url;
 pub(crate) async fn send_update_community(
   community: Community,
   actor: Person,
-  context: Data<LemmyContext>,
-) -> LemmyResult<()> {
+  context: &Data<LemmyContext>,
+) -> LemmyResult<Option<SentActivityForm>> {
   let community: ApubCommunity = community.into();
   let actor: ApubPerson = actor.into();
   let id = generate_activity_id(UpdateType::Update, &context)?;
@@ -61,8 +61,8 @@ pub(crate) async fn send_update_community(
 pub(crate) async fn send_update_multi_community(
   multi: MultiCommunity,
   actor: Person,
-  context: Data<LemmyContext>,
-) -> LemmyResult<()> {
+  context: &Data<LemmyContext>,
+) -> LemmyResult<Option<SentActivityForm>> {
   let multi: ApubMultiCommunity = multi.into();
   let actor: ApubPerson = actor.into();
   let id = generate_activity_id(UpdateType::Update, &context)?;
@@ -79,7 +79,7 @@ pub(crate) async fn send_update_multi_community(
   let activity = AnnouncableActivities::UpdateCommunity(Box::new(update));
   let mut inboxes = ActivitySendTargets::empty();
   inboxes.add_inboxes(MultiCommunity::follower_inboxes(&mut context.pool(), multi.id).await?);
-  send_lemmy_activity(&context, activity, &actor, inboxes, false).await
+  send_lemmy_activity(activity, &actor, inboxes, false)
 }
 
 #[async_trait::async_trait]

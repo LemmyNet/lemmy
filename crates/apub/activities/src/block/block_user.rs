@@ -30,7 +30,7 @@ use lemmy_apub_objects::{
 };
 use lemmy_db_schema::{
   source::{
-    activity::ActivitySendTargets,
+    activity::{ActivitySendTargets, SentActivityForm},
     community::{CommunityActions, CommunityPersonBanForm},
     instance::{InstanceActions, InstanceBanForm},
     modlog::{Modlog, ModlogInsertForm},
@@ -74,7 +74,7 @@ impl BlockUser {
     reason: String,
     expires: Option<DateTime<Utc>>,
     context: &Data<LemmyContext>,
-  ) -> LemmyResult<()> {
+  ) -> LemmyResult<Option<SentActivityForm>> {
     let block = BlockUser::new(
       target,
       user,
@@ -89,7 +89,7 @@ impl BlockUser {
     match target {
       SiteOrCommunity::Left(_) => {
         let inboxes = ActivitySendTargets::to_all_instances();
-        send_lemmy_activity(context, block, mod_, inboxes, false).await
+        send_lemmy_activity(block, mod_, inboxes, false)
       }
       SiteOrCommunity::Right(c) => {
         let activity = AnnouncableActivities::BlockUser(block);

@@ -11,14 +11,17 @@ use activitypub_federation::{
 };
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
-  source::{activity::ActivitySendTargets, community::CommunityActions},
+  source::{activity::{ActivitySendTargets, SentActivityForm}, community::CommunityActions},
   traits::Followable,
 };
 use lemmy_utils::error::{LemmyError, LemmyResult, UntranslatedError};
 use url::Url;
 
 impl AcceptFollow {
-  pub async fn send(follow: Follow, context: &Data<LemmyContext>) -> LemmyResult<()> {
+  pub async fn send(
+    follow: Follow,
+    context: &Data<LemmyContext>,
+  ) -> LemmyResult<Option<SentActivityForm>> {
     let target = follow.object.dereference_local(context).await?;
     let person = follow.actor.clone().dereference(context).await?;
     let accept = AcceptFollow {
@@ -29,7 +32,7 @@ impl AcceptFollow {
       id: generate_activity_id(AcceptType::Accept, context)?,
     };
     let inbox = ActivitySendTargets::to_inbox(person.shared_inbox_or_inbox());
-    send_lemmy_activity(context, accept, &target, inbox, true).await
+    send_lemmy_activity(accept, &target, inbox, true)
   }
 }
 
