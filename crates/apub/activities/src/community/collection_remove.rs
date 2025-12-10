@@ -36,7 +36,7 @@ use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 impl CollectionRemove {
-  pub(super) async fn send_remove_mod(
+  pub(super) fn send_remove_mod(
     community: &ApubCommunity,
     removed_mod: &ApubPerson,
     actor: &ApubPerson,
@@ -56,10 +56,10 @@ impl CollectionRemove {
 
     let activity = AnnouncableActivities::CollectionRemove(remove);
     let inboxes = ActivitySendTargets::to_inbox(removed_mod.shared_inbox_or_inbox());
-    send_activity_in_community(activity, actor, community, inboxes, true, context).await
+    send_activity_in_community(activity, actor, community, inboxes, true, context)
   }
 
-  pub(super) async fn send_remove_featured_post(
+  pub(super) fn send_remove_featured_post(
     community: &ApubCommunity,
     featured_post: &ApubPost,
     actor: &ApubPerson,
@@ -85,7 +85,6 @@ impl CollectionRemove {
       true,
       context,
     )
-    .await
   }
 }
 

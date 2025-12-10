@@ -1,4 +1,3 @@
-use crate::post_or_comment_community;
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
@@ -14,6 +13,8 @@ use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
 use strum::Display;
 use url::Url;
+
+use crate::post_or_comment_community;
 
 #[derive(Clone, Debug, Display, Deserialize, Serialize)]
 pub enum LockType {

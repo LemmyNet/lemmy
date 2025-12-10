@@ -34,7 +34,7 @@ use lemmy_utils::error::LemmyResult;
 pub mod undo_vote;
 pub mod vote;
 
-pub(crate) async fn send_like_activity(
+pub(crate) fn send_like_activity(
   object_id: DbUrl,
   actor: Person,
   community: Community,
@@ -50,7 +50,7 @@ pub(crate) async fn send_like_activity(
   if let Some(s) = new_is_upvote {
     let vote = Vote::new(object_id, &actor, &community, s.into(), context)?;
     let activity = AnnouncableActivities::Vote(vote);
-    send_activity_in_community(activity, &actor, &community, empty, false, context).await
+    send_activity_in_community(activity, &actor, &community, empty, false, context)
   } else {
     // undo a previous vote
     let previous_vote_type = if previous_is_upvote == Some(true) {
@@ -61,7 +61,7 @@ pub(crate) async fn send_like_activity(
     let vote = Vote::new(object_id, &actor, &community, previous_vote_type, context)?;
     let undo_vote = UndoVote::new(vote, &actor, &community, context)?;
     let activity = AnnouncableActivities::UndoVote(undo_vote);
-    send_activity_in_community(activity, &actor, &community, empty, false, context).await
+    send_activity_in_community(activity, &actor, &community, empty, false, context)
   }
 }
 

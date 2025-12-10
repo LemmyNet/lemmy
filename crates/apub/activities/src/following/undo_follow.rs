@@ -31,7 +31,7 @@ impl UndoFollow {
     actor: &ApubPerson,
     target: &CommunityOrMulti,
     context: &Data<LemmyContext>,
-  ) -> LemmyResult<Option<SentActivityForm>> {
+  ) -> LemmyResult<SentActivityForm> {
     let object = Follow::new(actor, target, context)?;
     let undo = UndoFollow {
       actor: actor.id().clone().into(),

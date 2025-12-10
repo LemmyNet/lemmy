@@ -33,7 +33,7 @@ use lemmy_apub_objects::{
   },
 };
 use lemmy_db_schema::source::{
-  activity::{ActivitySendTargets, SentActivityForm},
+  activity::{ActivitySendTargets, SentActivity, SentActivityForm},
   comment::{Comment, CommentUpdateForm},
   community::{Community, CommunityUpdateForm},
   person::Person,
@@ -51,7 +51,7 @@ pub mod undo_delete;
 
 /// Parameter `reason` being set indicates that this is a removal by a mod. If its unset, this
 /// action was done by a normal user.
-pub(crate) async fn send_apub_delete_in_community(
+pub(crate) fn send_apub_delete_in_community(
   actor: Person,
   community: Community,
   object: DeletableObjects,
@@ -77,7 +77,6 @@ pub(crate) async fn send_apub_delete_in_community(
     is_mod_action,
     context,
   )
-  .await
 }
 
 pub(crate) fn send_apub_delete_private_message(
@@ -86,7 +85,7 @@ pub(crate) fn send_apub_delete_private_message(
   pm: DbPrivateMessage,
   deleted: bool,
   context: &Data<LemmyContext>,
-) -> LemmyResult<Option<SentActivityForm>> {
+) -> LemmyResult<SentActivityForm> {
   let deletable = DeletableObjects::PrivateMessage(pm.into());
   let inbox = ActivitySendTargets::to_inbox(recipient.shared_inbox_or_inbox());
   if deleted {
@@ -116,7 +115,7 @@ pub fn send_apub_delete_user(
   person: Person,
   remove_data: bool,
   context: &Data<LemmyContext>,
-) -> LemmyResult<Option<SentActivityForm>> {
+) -> LemmyResult<SentActivityForm> {
   let person: ApubPerson = person.into();
 
   let deletable = DeletableObjects::Person(person.clone());
@@ -255,7 +254,9 @@ async fn receive_delete_action(
         let mod_: Person = actor.dereference(context).await?.deref().clone();
         let object = DeletableObjects::Community(community.clone());
         let c: Community = community.deref().clone();
-        send_apub_delete_in_community(mod_, c, object, None, true, context).await?;
+        if let Some(form) = send_apub_delete_in_community(mod_, c, object, None, true, context)? {
+          SentActivity::create(&mut context.pool(), &[form]).await?;
+        }
       }
 
       Community::update(

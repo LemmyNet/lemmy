@@ -1,7 +1,8 @@
-use crate::newtypes::{ActivityId, CommunityId};
+use crate::newtypes::{ActivityId, CommunityId, MultiCommunityId};
 use chrono::{DateTime, Utc};
 use diesel::Queryable;
 use lemmy_db_schema_file::{
+  PersonId,
   enums::ActorType,
   schema::{received_activity, sent_activity},
 };
@@ -17,6 +18,8 @@ pub struct ActivitySendTargets {
   pub inboxes: HashSet<Url>,
   /// send to all followers of these local communities
   pub community_followers_of: Option<CommunityId>,
+  pub person_followers_of: Option<PersonId>,
+  pub multi_comm_followers_of: Option<MultiCommunityId>,
   /// send to all remote instances
   pub all_instances: bool,
 }
@@ -48,8 +51,11 @@ impl ActivitySendTargets {
   pub fn add_inbox(&mut self, inbox: Url) {
     self.inboxes.insert(inbox);
   }
-  pub fn add_inboxes(&mut self, inboxes: Vec<DbUrl>) {
-    self.inboxes.extend(inboxes.into_iter().map(Into::into));
+  pub fn add_person_followers(&mut self, id: PersonId) {
+    self.person_followers_of = Some(id);
+  }
+  pub fn add_multi_comm_followers(&mut self, id: MultiCommunityId) {
+    self.multi_comm_followers_of = Some(id);
   }
 }
 
@@ -68,6 +74,8 @@ pub struct SentActivity {
   pub send_all_instances: bool,
   pub actor_type: ActorType,
   pub actor_apub_id: Option<DbUrl>,
+  pub send_person_followers_of: Option<PersonId>,
+  pub send_multi_comm_followers_of: Option<MultiCommunityId>,
 }
 
 #[cfg_attr(feature = "full", derive(Insertable))]
@@ -77,10 +85,12 @@ pub struct SentActivityForm {
   pub data: Value,
   pub sensitive: bool,
   pub send_inboxes: Vec<Option<DbUrl>>,
-  pub send_community_followers_of: Option<i32>,
+  pub send_community_followers_of: Option<CommunityId>,
   pub send_all_instances: bool,
   pub actor_type: ActorType,
   pub actor_apub_id: DbUrl,
+  pub send_person_followers_of: Option<PersonId>,
+  pub send_multi_comm_followers_of: Option<MultiCommunityId>,
 }
 
 #[derive(PartialEq, Eq, Debug)]

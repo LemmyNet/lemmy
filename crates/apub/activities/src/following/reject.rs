@@ -9,6 +9,7 @@ use activitypub_federation::{
   protocol::verification::verify_urls_match,
   traits::{Activity, Actor, Object},
 };
+use either::Either::*;
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::objects::{community::ApubCommunity, person::ApubPerson};
 use lemmy_db_schema::{
@@ -27,7 +28,7 @@ impl RejectFollow {
     community: ApubCommunity,
     person: ApubPerson,
     context: &Data<LemmyContext>,
-  ) -> LemmyResult<Option<SentActivityForm>> {
+  ) -> LemmyResult<SentActivityForm> {
     let reject = RejectFollow {
       actor: community.id().clone().into(),
       to: Some([person.id().clone().into()]),
@@ -36,7 +37,7 @@ impl RejectFollow {
       id: generate_activity_id(RejectType::Reject, context)?,
     };
     let inbox = ActivitySendTargets::to_inbox(person.shared_inbox_or_inbox());
-    send_activity_from_user_or_community_or_multi(reject, community.into(), inbox)
+    send_activity_from_user_or_community_or_multi(reject, Right(Left(community)), inbox)
   }
 }
 

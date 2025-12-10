@@ -39,7 +39,7 @@ use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
 impl CollectionAdd {
-  async fn send_add_mod(
+  fn send_add_mod(
     community: &ApubCommunity,
     added_mod: &ApubPerson,
     actor: &ApubPerson,
@@ -59,10 +59,10 @@ impl CollectionAdd {
 
     let activity = AnnouncableActivities::CollectionAdd(add);
     let inboxes = ActivitySendTargets::to_inbox(added_mod.shared_inbox_or_inbox());
-    send_activity_in_community(activity, actor, community, inboxes, true, context).await
+    send_activity_in_community(activity, actor, community, inboxes, true, context)
   }
 
-  async fn send_add_featured_post(
+  fn send_add_featured_post(
     community: &ApubCommunity,
     featured_post: &ApubPost,
     actor: &ApubPerson,
@@ -88,7 +88,6 @@ impl CollectionAdd {
       true,
       context,
     )
-    .await
   }
 }
 
@@ -156,7 +155,7 @@ impl Activity for CollectionAdd {
   }
 }
 
-pub(crate) async fn send_add_mod_to_community(
+pub(crate) fn send_add_mod_to_community(
   actor: ApubPerson,
   community: ApubCommunity,
   updated_mod: ApubPerson,
@@ -164,26 +163,24 @@ pub(crate) async fn send_add_mod_to_community(
   context: &Data<LemmyContext>,
 ) -> LemmyResult<Option<SentActivityForm>> {
   if added {
-    CollectionAdd::send_add_mod(&community, &updated_mod, &actor, context).await
+    CollectionAdd::send_add_mod(&community, &updated_mod, &actor, context)
   } else {
-    CollectionRemove::send_remove_mod(&community, &updated_mod, &actor, context).await
+    CollectionRemove::send_remove_mod(&community, &updated_mod, &actor, context)
   }
 }
 
-pub(crate) async fn send_feature_post(
+pub(crate) fn send_feature_post(
   post: Post,
   actor: Person,
+  community: ApubCommunity,
   featured: bool,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<Option<SentActivityForm>> {
   let actor: ApubPerson = actor.into();
   let post: ApubPost = post.into();
-  let community = Community::read(&mut context.pool(), post.community_id)
-    .await?
-    .into();
   if featured {
-    CollectionAdd::send_add_featured_post(&community, &post, &actor, context).await
+    CollectionAdd::send_add_featured_post(&community, &post, &actor, context)
   } else {
-    CollectionRemove::send_remove_featured_post(&community, &post, &actor, context).await
+    CollectionRemove::send_remove_featured_post(&community, &post, &actor, context)
   }
 }

@@ -95,7 +95,7 @@ impl CreateOrUpdateNote {
     // to convert this to NoteWrapper, by serializing and then deserializing again.
     let converted = from_value(to_value(create_or_update)?)?;
     let activity = AnnouncableActivities::CreateOrUpdateNoteWrapper(converted);
-    send_activity_in_community(activity, &person, &community, inboxes, false, context).await
+    send_activity_in_community(activity, &person, &community, inboxes, false, context)
   }
 }
 

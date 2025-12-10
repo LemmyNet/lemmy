@@ -81,7 +81,6 @@ impl CreateOrUpdatePage {
       false,
       context,
     )
-    .await
   }
 }
 

@@ -55,14 +55,13 @@ pub(crate) async fn send_update_community(
     true,
     context,
   )
-  .await
 }
 
 pub(crate) async fn send_update_multi_community(
   multi: MultiCommunity,
   actor: Person,
   context: &Data<LemmyContext>,
-) -> LemmyResult<Option<SentActivityForm>> {
+) -> LemmyResult<SentActivityForm> {
   let multi: ApubMultiCommunity = multi.into();
   let actor: ApubPerson = actor.into();
   let id = generate_activity_id(UpdateType::Update, context)?;
@@ -78,7 +77,7 @@ pub(crate) async fn send_update_multi_community(
 
   let activity = AnnouncableActivities::UpdateCommunity(Box::new(update));
   let mut inboxes = ActivitySendTargets::empty();
-  inboxes.add_inboxes(MultiCommunity::follower_inboxes(&mut context.pool(), multi.id).await?);
+  inboxes.add_multi_comm_followers(multi.id);
   send_lemmy_activity(activity, &actor, inboxes, false)
 }
 

@@ -37,7 +37,7 @@ pub fn send_follow(
   person: Person,
   follow: bool,
   context: &Data<LemmyContext>,
-) -> LemmyResult<Option<SentActivityForm>> {
+) -> LemmyResult<SentActivityForm> {
   let actor: ApubPerson = person.into();
   if follow {
     Follow::send(&actor, &target, context)
@@ -51,7 +51,7 @@ pub fn send_accept_or_reject_follow(
   person: ApubPerson,
   accepted: bool,
   context: &Data<LemmyContext>,
-) -> LemmyResult<Option<SentActivityForm>> {
+) -> LemmyResult<SentActivityForm> {
   let follow = Follow {
     actor: person.ap_id.clone().into(),
     to: Some([community.ap_id.clone().into()]),
@@ -60,7 +60,7 @@ pub fn send_accept_or_reject_follow(
     id: generate_activity_id(FollowType::Follow, context)?,
   };
   if accepted {
-    AcceptFollow::send(follow, community, person, context)
+    AcceptFollow::send(follow, Right(Left(community)), Left(person), context)
   } else {
     RejectFollow::send(follow, community, person, context)
   }
@@ -71,7 +71,7 @@ fn send_activity_from_user_or_community_or_multi<A>(
   activity: A,
   target: UserOrCommunityOrMulti,
   send_targets: ActivitySendTargets,
-) -> LemmyResult<Option<SentActivityForm>>
+) -> LemmyResult<SentActivityForm>
 where
   A: Activity + Serialize + Send + Sync + Clone + Activity<Error = LemmyError>,
 {

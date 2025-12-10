@@ -115,14 +115,14 @@ fn send_lemmy_activity<A, ActorT>(
   actor: &ActorT,
   send_targets: ActivitySendTargets,
   sensitive: bool,
-) -> LemmyResult<Option<SentActivityForm>>
+) -> LemmyResult<SentActivityForm>
 where
   A: Activity + Serialize + Send + Sync + Clone + Activity<Error = LemmyError>,
   ActorT: Actor + GetActorType,
 {
   info!("Saving outgoing activity to queue {}", activity.id());
 
-  Ok(Some(SentActivityForm {
+  Ok(SentActivityForm {
     ap_id: activity.id().clone().into(),
     data: serde_json::to_value(activity)?,
     sensitive,
@@ -132,10 +132,12 @@ where
       .map(|e| Some(e.into()))
       .collect(),
     send_all_instances: send_targets.all_instances,
-    send_community_followers_of: send_targets.community_followers_of.map(|e| e.0),
+    send_community_followers_of: send_targets.community_followers_of,
+    send_person_followers_of: send_targets.person_followers_of,
+    send_multi_comm_followers_of: send_targets.multi_comm_followers_of,
     actor_type: actor.actor_type(),
     actor_apub_id: actor.id().clone().into(),
-  }))
+  })
 }
 
 pub async fn handle_outgoing_activities(context: Data<LemmyContext>) {
@@ -175,37 +177,31 @@ pub async fn match_outgoing_activities(
             is_deleted,
             &context,
           )
-          .await
         }
         RemovePost {
           post,
+          community,
           moderator,
           reason,
           removed,
-        } => {
-          let community = Community::read(&mut context.pool(), post.community_id).await?;
-          send_apub_delete_in_community(
-            moderator,
-            community,
-            DeletableObjects::Post(post.into()),
-            Some(reason),
-            removed,
-            &context,
-          )
-          .await
-        }
-        LockPost(post, actor, locked, reason) => {
-          send_lock(
-            PostOrComment::Left(post.into()),
-            actor,
-            locked,
-            reason,
-            &context,
-          )
-          .await
-        }
-        FeaturePost(post, actor, featured) => {
-          send_feature_post(post, actor, featured, &context).await
+        } => send_apub_delete_in_community(
+          moderator,
+          community,
+          DeletableObjects::Post(post.into()),
+          Some(reason),
+          removed,
+          &context,
+        ),
+        LockPost(post, community, actor, locked, reason) => send_lock(
+          PostOrComment::Left(post.into()),
+          community.into(),
+          actor,
+          locked,
+          reason,
+          &context,
+        ),
+        FeaturePost(post, actor, community, featured) => {
+          send_feature_post(post, actor, community.into(), featured, &context)
         }
         CreateComment(comment) => {
           let creator_id = comment.creator_id;
@@ -219,7 +215,6 @@ pub async fn match_outgoing_activities(
           let is_deleted = comment.deleted;
           let deletable = DeletableObjects::Comment(comment.into());
           send_apub_delete_in_community(actor, community, deletable, None, is_deleted, &context)
-            .await
         }
         RemoveComment {
           comment,
@@ -237,47 +232,41 @@ pub async fn match_outgoing_activities(
             is_removed,
             &context,
           )
-          .await
         }
-        LockComment(comment, actor, locked, reason) => {
-          send_lock(
-            PostOrComment::Right(comment.into()),
-            actor,
-            locked,
-            reason,
-            &context,
-          )
-          .await
-        }
+        LockComment(comment, community, actor, locked, reason) => send_lock(
+          PostOrComment::Right(comment.into()),
+          community.into(),
+          actor,
+          locked,
+          reason,
+          &context,
+        ),
         LikePostOrComment {
           object_id,
           actor,
           community,
           previous_is_upvote,
           new_is_upvote,
-        } => {
-          send_like_activity(
-            object_id,
-            actor,
-            community,
-            previous_is_upvote,
-            new_is_upvote,
-            &context,
-          )
-          .await
-        }
+        } => send_like_activity(
+          object_id,
+          actor,
+          community,
+          previous_is_upvote,
+          new_is_upvote,
+          &context,
+        ),
         FollowCommunity(community, person, follow) => {
-          send_follow(Either::Left(community.into()), person, follow, &context)
+          send_follow(Either::Left(community.into()), person, follow, &context).map(Some)
         }
         FollowMultiCommunity(multi, person, follow) => {
-          send_follow(Either::Right(multi.into()), person, follow, &context)
+          send_follow(Either::Right(multi.into()), person, follow, &context).map(Some)
         }
         UpdateCommunity(actor, community) => {
           send_update_community(community, actor, &context).await
         }
         DeleteCommunity(actor, community, removed) => {
           let deletable = DeletableObjects::Community(community.clone().into());
-          send_apub_delete_in_community(actor, community, deletable, None, removed, &context).await
+          send_apub_delete_in_community(actor, community, deletable, None, removed, &context)
         }
         RemoveCommunity {
           moderator,
@@ -294,23 +283,19 @@ pub async fn match_outgoing_activities(
             removed,
             &context,
           )
-          .await
         }
         AddModToCommunity {
           moderator,
           community,
           target,
           added,
-        } => {
-          send_add_mod_to_community(
-            moderator.into(),
-            community.into(),
-            target.into(),
-            added,
-            &context,
-          )
-          .await
-        }
+        } => send_add_mod_to_community(
+          moderator.into(),
+          community.into(),
+          target.into(),
+          added,
+          &context,
+        ),
         BanFromCommunity {
           moderator,
           community,
@@ -337,56 +322,62 @@ pub async fn match_outgoing_activities(
           .await
         }
         CreatePrivateMessage(pm) => {
-          send_create_or_update_pm(pm, CreateOrUpdateType::Create, &context).await
+          send_create_or_update_pm(pm, CreateOrUpdateType::Create, &context)
+            .await
+            .map(Some)
         }
         UpdatePrivateMessage(pm) => {
-          send_create_or_update_pm(pm, CreateOrUpdateType::Update, &context).await
+          send_create_or_update_pm(pm, CreateOrUpdateType::Update, &context)
+            .await
+            .map(Some)
         }
         DeletePrivateMessage(person, recipient, pm, deleted) => {
           send_apub_delete_private_message(&person.into(), &recipient.into(), pm, deleted, &context)
+            .map(Some)
         }
-        DeleteUser(person, remove_data) => send_apub_delete_user(person, remove_data, &context),
+        DeleteUser(person, remove_data) => {
+          send_apub_delete_user(person, remove_data, &context).map(Some)
+        }
         CreateReport {
           object_id,
           actor,
           receiver,
           reason,
-        } => {
-          Report::send(
-            ObjectId::from(object_id),
-            &actor.into(),
-            &receiver.map_either(Into::into, Into::into),
-            reason,
-            &context,
-          )
-          .await
-        }
+        } => Report::send(
+          ObjectId::from(object_id),
+          &actor.into(),
+          &receiver.map_either(Into::into, Into::into),
+          reason,
+          &context,
+        )
+        .await
+        .map(Some),
         SendResolveReport {
           object_id,
           actor,
           report_creator,
           receiver,
-        } => {
-          ResolveReport::send(
-            ObjectId::from(object_id),
-            &actor.into(),
-            &report_creator.into(),
-            &receiver.map_either(Into::into, Into::into),
-            &context,
-          )
-          .await
-        }
+        } => ResolveReport::send(
+          ObjectId::from(object_id),
+          &actor.into(),
+          &report_creator.into(),
+          &receiver.map_either(Into::into, Into::into),
+          &context,
+        )
+        .await
+        .map(Some),
         AcceptFollower(community, person) => {
-          send_accept_or_reject_follow(community.into(), person.into(), true, &context)
+          send_accept_or_reject_follow(community.into(), person.into(), true, &context).map(Some)
         }
         RejectFollower(community, person) => {
-          send_accept_or_reject_follow(community.into(), person.into(), false, &context)
+          send_accept_or_reject_follow(community.into(), person.into(), false, &context).map(Some)
         }
-        UpdateMultiCommunity(multi, actor) => {
-          send_update_multi_community(multi, actor, &context).await
-        }
+        UpdateMultiCommunity(multi, actor) => send_update_multi_community(multi, actor, &context)
+          .await
+          .map(Some),
       })
     }
+    // TODO: log errors
     let forms = forms
       .into_iter()
       .filter(std::result::Result::is_ok)

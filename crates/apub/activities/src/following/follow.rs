@@ -14,7 +14,7 @@ use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::objects::{CommunityOrMulti, person::ApubPerson};
 use lemmy_db_schema::{
   source::{
-    activity::{ActivitySendTargets, SentActivityForm},
+    activity::{ActivitySendTargets, SentActivity, SentActivityForm},
     community::{CommunityActions, CommunityFollowerForm},
     community_community_follow::CommunityCommunityFollow,
     instance::{Instance, InstanceActions},
@@ -47,7 +47,7 @@ impl Follow {
     actor: &ApubPerson,
     target: &CommunityOrMulti,
     context: &Data<LemmyContext>,
-  ) -> LemmyResult<Option<SentActivityForm>> {
+  ) -> LemmyResult<SentActivityForm> {
     let follow = Follow::new(actor, target, context)?;
     let inbox = ActivitySendTargets::to_inbox(target.shared_inbox_or_inbox());
     send_lemmy_activity(follow, actor, inbox, true)
@@ -93,20 +93,24 @@ impl Activity for Follow {
       && (community.visibility == Public || community.visibility == Unlisted)
     {
       CommunityCommunityFollow::follow(&mut context.pool(), community.id, follower.id).await?;
-      AcceptFollow::send(self, context).await?;
-      return Ok(());
+      //AcceptFollow::send(self, context).await?;
+      //return Ok(());
+      // TODO: needs to send Accept here and return, otherwise code below will fail
+      todo!();
     }
 
-    let person = actor.left().ok_or(UntranslatedError::InvalidFollow(
-      "Groups can only follow public groups".to_string(),
-    ))?;
+    let person = actor
+      .as_ref()
+      .left()
+      .ok_or(UntranslatedError::InvalidFollow(
+        "Groups can only follow public groups".to_string(),
+      ))?;
     InstanceActions::check_ban(&mut context.pool(), person.id, person.instance_id).await?;
 
-    match object {
+    match &object {
       Left(u) => {
         let form = PersonFollowerForm::new(u.id, person.id, false);
         PersonActions::follow(&mut context.pool(), &form).await?;
-        AcceptFollow::send(self, context).await?;
       }
       Right(Left(c)) => {
         CommunityPersonBanView::check(&mut context.pool(), person.id, c.id).await?;
@@ -127,8 +131,10 @@ impl Activity for Follow {
         };
         let form = CommunityFollowerForm::new(c.id, person.id, follow_state);
         CommunityActions::follow(&mut context.pool(), &form).await?;
-        if c.visibility == CommunityVisibility::Public {
-          AcceptFollow::send(self, context).await?;
+        if c.visibility != CommunityVisibility::Public
+          && c.visibility != CommunityVisibility::Unlisted
+        {
+          return Ok(());
         }
       }
       Right(Right(m)) => {
@@ -139,9 +145,11 @@ impl Activity for Follow {
         };
 
         MultiCommunity::follow(&mut context.pool(), &form).await?;
-        AcceptFollow::send(self, context).await?;
       }
     }
+
+    let form = AcceptFollow::send(self, object, actor, context)?;
+    SentActivity::create(&mut context.pool(), &[form]).await?;
     Ok(())
   }
 }

@@ -1,0 +1,2 @@
+alter table sent_activity add column send_person_followers_of int references person(id) on update cascade on delete cascade;
+alter table sent_activity add column send_multi_comm_followers_of int references multi_community(id) on update cascade on delete cascade;

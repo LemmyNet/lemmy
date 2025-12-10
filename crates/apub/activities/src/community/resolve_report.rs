@@ -46,7 +46,7 @@ impl ResolveReport {
     report_creator: &ApubPerson,
     receiver: &Either<ApubSite, ApubCommunity>,
     context: &Data<LemmyContext>,
-  ) -> LemmyResult<Option<SentActivityForm>> {
+  ) -> LemmyResult<SentActivityForm> {
     let kind = ResolveType::Resolve;
     let id = generate_activity_id(kind.clone(), context)?;
     let object = Report::new(&object_id, report_creator, receiver, None, context)?;
@@ -110,7 +110,7 @@ impl Activity for ResolveReport {
       let announce = AnnounceActivity::new(announce.try_into()?, community, context)?;
       let inboxes = report_inboxes(object_id, &receiver, &reporter, context).await?;
       let form = send_lemmy_activity(announce, community, inboxes.clone(), false)?;
-      SentActivity::create(&mut context.pool(), &[form.unwrap()]).await?;
+      SentActivity::create(&mut context.pool(), &[form]).await?;
     }
 
     Ok(())

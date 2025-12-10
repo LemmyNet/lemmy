@@ -4,7 +4,6 @@ use crate::{
   check_community_deleted_or_removed,
   community::send_activity_in_community,
   generate_activity_id,
-  post_or_comment_community,
   protocol::community::lock::{LockPageOrNote, LockType, UndoLockPageOrNote},
 };
 use activitypub_federation::{
@@ -24,6 +23,7 @@ use lemmy_apub_objects::{
 use lemmy_db_schema::source::{
   activity::{ActivitySendTargets, SentActivityForm},
   comment::Comment,
+  community::Community,
   modlog::{Modlog, ModlogInsertForm},
   person::Person,
   post::{Post, PostUpdateForm},
@@ -140,14 +140,14 @@ impl Activity for UndoLockPageOrNote {
   }
 }
 
-pub(crate) async fn send_lock(
+pub(crate) fn send_lock(
   object: PostOrComment,
+  community: ApubCommunity,
   actor: Person,
   locked: bool,
   reason: String,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<Option<SentActivityForm>> {
-  let community: ApubCommunity = post_or_comment_community(&object, context).await?.into();
   let id = generate_activity_id(LockType::Lock, context)?;
   let community_id = community.ap_id.inner().clone();
   let ap_id = match object {
@@ -189,5 +189,4 @@ pub(crate) async fn send_lock(
     true,
     context,
   )
-  .await
 }

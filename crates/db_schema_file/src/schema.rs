@@ -898,6 +898,8 @@ diesel::table! {
         send_all_instances -> Bool,
         actor_type -> ActorTypeEnum,
         actor_apub_id -> Nullable<Text>,
+        send_person_followers_of -> Nullable<Int4>,
+        send_multi_comm_followers_of -> Nullable<Int4>
     }
 }
 

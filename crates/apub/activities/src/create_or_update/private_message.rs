@@ -20,7 +20,7 @@ pub(crate) async fn send_create_or_update_pm(
   pm_view: PrivateMessageView,
   kind: CreateOrUpdateType,
   context: &Data<LemmyContext>,
-) -> LemmyResult<Option<SentActivityForm>> {
+) -> LemmyResult<SentActivityForm> {
   let actor: ApubPerson = pm_view.creator.into();
   let recipient: ApubPerson = pm_view.recipient.into();
 

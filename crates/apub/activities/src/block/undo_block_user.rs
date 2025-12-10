@@ -63,11 +63,11 @@ impl UndoBlockUser {
     match target {
       SiteOrCommunity::Left(_) => {
         inboxes.set_all_instances();
-        send_lemmy_activity(undo, mod_, inboxes, false)
+        Ok(Some(send_lemmy_activity(undo, mod_, inboxes, false)?))
       }
       SiteOrCommunity::Right(c) => {
         let activity = AnnouncableActivities::UndoBlockUser(undo);
-        send_activity_in_community(activity, mod_, c, inboxes, true, context).await
+        send_activity_in_community(activity, mod_, c, inboxes, true, context)
       }
     }
   }

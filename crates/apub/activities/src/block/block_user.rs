@@ -89,12 +89,12 @@ impl BlockUser {
     match target {
       SiteOrCommunity::Left(_) => {
         let inboxes = ActivitySendTargets::to_all_instances();
-        send_lemmy_activity(block, mod_, inboxes, false)
+        Ok(Some(send_lemmy_activity(block, mod_, inboxes, false)?))
       }
       SiteOrCommunity::Right(c) => {
         let activity = AnnouncableActivities::BlockUser(block);
         let inboxes = ActivitySendTargets::to_inbox(user.shared_inbox_or_inbox());
-        send_activity_in_community(activity, mod_, c, inboxes, true, context).await
+        send_activity_in_community(activity, mod_, c, inboxes, true, context)
       }
     }
   }

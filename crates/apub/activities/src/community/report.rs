@@ -73,7 +73,7 @@ impl Report {
     receiver: &Either<ApubSite, ApubCommunity>,
     reason: String,
     context: &Data<LemmyContext>,
-  ) -> LemmyResult<Option<SentActivityForm>> {
+  ) -> LemmyResult<SentActivityForm> {
     let report = Self::new(&object_id, actor, receiver, Some(reason), context)?;
     let inboxes = report_inboxes(object_id, receiver, actor, context).await?;
 
@@ -155,7 +155,7 @@ impl Activity for Report {
       let announce = AnnounceActivity::new(announce.try_into()?, community, context)?;
       let inboxes = report_inboxes(object_id, &receiver, &actor, context).await?;
       let form = send_lemmy_activity(announce, community, inboxes.clone(), false)?;
-      SentActivity::create(&mut context.pool(), &[form.unwrap()]).await?;
+      SentActivity::create(&mut context.pool(), &[form]).await?;
     }
 
     Ok(())

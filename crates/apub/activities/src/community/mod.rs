@@ -48,7 +48,7 @@ pub mod update;
 /// * `inboxes` - Any additional inboxes the activity should be sent to (for example, to the user
 ///   who is being promoted to moderator)
 /// * `is_mod_activity` - True for things like Add/Mod, these are not sent to user followers
-pub(crate) async fn send_activity_in_community(
+pub(crate) fn send_activity_in_community(
   activity: AnnouncableActivities,
   actor: &ApubPerson,
   community: &ApubCommunity,
@@ -66,23 +66,18 @@ pub(crate) async fn send_activity_in_community(
 
   // send to user followers
   if !is_mod_action {
-    inboxes.add_inboxes(PersonActions::follower_inboxes(&mut context.pool(), actor.id).await?);
+    inboxes.add_person_followers(actor.id);
   }
 
   if community.local {
     // send directly to community followers
-    AnnounceActivity::send(activity.clone().try_into()?, community, context).await?;
+    AnnounceActivity::send(activity.clone().try_into()?, community, context)?;
   } else {
     // send to the community, which will then forward to followers
     inboxes.add_inbox(community.shared_inbox_or_inbox());
   }
 
-  // TODO: instead of SentActivityForm make a separate struct, with methods like
-  // `send_to_person_followers: Option<PersonId>` and `send_to_community: Option<CommunityId>`
-  // in order to lift these async db reads out of here
-  todo!();
-
-  send_lemmy_activity(activity.clone(), actor, inboxes, false)
+  send_lemmy_activity(activity.clone(), actor, inboxes, false).map(Some)
 }
 
 async fn report_inboxes(

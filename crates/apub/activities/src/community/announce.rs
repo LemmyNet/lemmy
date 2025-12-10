@@ -65,7 +65,7 @@ impl Activity for RawAnnouncableActivities {
       && community.local
     {
       verify_person_in_community(&ap_id, &community, context).await?;
-      AnnounceActivity::send(self, &community, context).await?;
+      AnnounceActivity::send(self, &community, context)?;
     }
 
     Ok(())
@@ -106,7 +106,7 @@ impl AnnounceActivity {
     })
   }
 
-  pub async fn send(
+  pub fn send(
     object: RawAnnouncableActivities,
     community: &ApubCommunity,
     context: &Data<LemmyContext>,
@@ -130,7 +130,8 @@ impl AnnounceActivity {
           .clone(),
       };
       let announce_compat = AnnounceActivity::new(announcable_page, community, context)?;
-      send_lemmy_activity(announce_compat, community, inboxes, false)?;
+      let form = send_lemmy_activity(announce_compat, community, inboxes, false)?;
+      todo!(); // TODO: we would have to return vec from all methods just for this.
     }
     Ok(())
   }
