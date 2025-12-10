@@ -9,7 +9,7 @@ use lemmy_db_schema::{
     local_site_url_blocklist::LocalSiteUrlBlocklist,
     local_user::LocalUser,
     login_token::LoginToken,
-    oauth_provider::{OAuthProvider, PublicOAuthProvider},
+    oauth_provider::{AdminOAuthProvider, PublicOAuthProvider},
     person::Person,
     post::Post,
     private_message::PrivateMessage,
@@ -317,7 +317,7 @@ pub struct GetSiteResponse {
   pub tagline: Option<Tagline>,
   /// A list of external auth methods your site supports.
   pub oauth_providers: Vec<PublicOAuthProvider>,
-  pub admin_oauth_providers: Vec<OAuthProvider>,
+  pub admin_oauth_providers: Vec<AdminOAuthProvider>,
   pub blocked_urls: Vec<LocalSiteUrlBlocklist>,
   // If true then uploads for post images or markdown images are disabled. Only avatars, icons and
   // banners can be set.

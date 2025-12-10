@@ -1,7 +1,7 @@
 use crate::{
   newtypes::OAuthProviderId,
   source::oauth_provider::{
-    OAuthProvider,
+    AdminOAuthProvider,
     OAuthProviderInsertForm,
     OAuthProviderUpdateForm,
     PublicOAuthProvider,
@@ -16,7 +16,7 @@ use lemmy_diesel_utils::{
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
-impl Crud for OAuthProvider {
+impl Crud for AdminOAuthProvider {
   type InsertForm = OAuthProviderInsertForm;
   type UpdateForm = OAuthProviderUpdateForm;
   type IdType = OAuthProviderId;
@@ -44,7 +44,7 @@ impl Crud for OAuthProvider {
   }
 }
 
-impl OAuthProvider {
+impl AdminOAuthProvider {
   pub async fn get_all(pool: &mut DbPool<'_>) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
     oauth_provider::table
@@ -56,17 +56,24 @@ impl OAuthProvider {
   }
 
   pub fn convert_providers_to_public(
-    oauth_providers: Vec<OAuthProvider>,
+    oauth_providers: Vec<AdminOAuthProvider>,
   ) -> Vec<PublicOAuthProvider> {
     oauth_providers
       .into_iter()
       .filter(|x| x.enabled)
-      .map(PublicOAuthProvider)
+      .map(|p| PublicOAuthProvider {
+        id: p.id,
+        display_name: p.display_name,
+        authorization_endpoint: p.authorization_endpoint,
+        client_id: p.client_id,
+        scopes: p.scopes,
+        use_pkce: p.use_pkce,
+      })
       .collect()
   }
 
   pub async fn get_all_public(pool: &mut DbPool<'_>) -> LemmyResult<Vec<PublicOAuthProvider>> {
-    OAuthProvider::get_all(pool)
+    AdminOAuthProvider::get_all(pool)
       .await
       .map(Self::convert_providers_to_public)
   }

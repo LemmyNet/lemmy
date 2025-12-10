@@ -20,7 +20,7 @@ CREATE TABLE oauth_provider (
 );
 
 ALTER TABLE local_site
-    ADD COLUMN oauth_registration boolean DEFAULT FALSE NOT NULL;
+    ADD COLUMN oauth_registration boolean DEFAULT TRUE NOT NULL;
 
 CREATE TABLE oauth_account (
     local_user_id int REFERENCES local_user ON UPDATE CASCADE ON DELETE CASCADE NOT NULL,
