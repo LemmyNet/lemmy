@@ -368,51 +368,21 @@ impl PersonActions {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     target_id: PersonId,
-    vote_is_upvote: Option<bool>,
-  ) -> LemmyResult<()> {
-    let conn = &mut get_conn(pool).await?;
-
-    let Some(vote_is_upvote) = vote_is_upvote else {
-      return Ok(());
-    };
-    let (upvotes_inc, downvotes_inc) = if vote_is_upvote { (1, 0) } else { (0, 1) };
-
-    let voted_at = Utc::now();
-
-    insert_into(person_actions::table)
-      .values((
-        person_actions::person_id.eq(person_id),
-        person_actions::target_id.eq(target_id),
-        person_actions::voted_at.eq(voted_at),
-        person_actions::upvotes.eq(upvotes_inc),
-        person_actions::downvotes.eq(downvotes_inc),
-      ))
-      .on_conflict((person_actions::person_id, person_actions::target_id))
-      .do_update()
-      .set((
-        person_actions::person_id.eq(person_id),
-        person_actions::target_id.eq(target_id),
-        person_actions::voted_at.eq(voted_at),
-        person_actions::upvotes.eq(person_actions::upvotes + upvotes_inc),
-        person_actions::downvotes.eq(person_actions::downvotes + downvotes_inc),
-      ))
-      .returning(Self::as_select())
-      .get_result::<Self>(conn)
-      .await
-      .with_lemmy_type(LemmyErrorType::NotFound)?;
-    Ok(())
-  }
-
-  /// Removes a person like.
-  pub async fn remove_like(
-    pool: &mut DbPool<'_>,
-    person_id: PersonId,
-    target_id: PersonId,
-    previous_is_upvote: bool,
+    previous_vote_is_upvote: Option<bool>,
+    current_vote_is_upvote: Option<bool>,
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
 
-    let (upvotes_inc, downvotes_inc) = if previous_is_upvote { (-1, 0) } else { (0, -1) };
+    let (upvotes_inc, downvotes_inc) = match (previous_vote_is_upvote, current_vote_is_upvote) {
+      (None, Some(true)) => (1, 0),
+      (None, Some(false)) => (0, 1),
+      (Some(true), Some(false)) => (-1, 1),
+      (Some(false), Some(true)) => (1, -1),
+      (Some(true), None) => (-1, 0),
+      (Some(false), None) => (0, -1),
+      _ => (0, 0),
+    };
+
     let voted_at = Utc::now();
 
     insert_into(person_actions::table)
@@ -584,8 +554,7 @@ mod tests {
     );
     let inserted_comment = Comment::create(pool, &comment_form, None).await?;
 
-    let mut comment_like =
-      CommentLikeForm::new(inserted_comment.id, inserted_person.id, Some(true));
+    let comment_like = CommentLikeForm::new(inserted_comment.id, inserted_person.id, Some(true));
 
     CommentActions::like(pool, &comment_like).await?;
 
@@ -603,7 +572,7 @@ mod tests {
       Some(true),
     );
 
-    let _inserted_child_comment_like = CommentActions::like(pool, &child_comment_like).await?;
+    CommentActions::like(pool, &child_comment_like).await?;
 
     let person_aggregates_before_delete = Person::read(pool, inserted_person.id).await?;
 
@@ -654,7 +623,7 @@ mod tests {
     let new_parent_comment = Comment::create(pool, &comment_form, None).await?;
     let _new_child_comment =
       Comment::create(pool, &child_comment_form, Some(&new_parent_comment.path)).await?;
-    comment_like.comment_id = new_parent_comment.id;
+    let comment_like = CommentLikeForm::new(new_parent_comment.id, inserted_person.id, Some(true));
     CommentActions::like(pool, &comment_like).await?;
     let after_comment_add = Person::read(pool, inserted_person.id).await?;
     assert_eq!(2, after_comment_add.comment_count);

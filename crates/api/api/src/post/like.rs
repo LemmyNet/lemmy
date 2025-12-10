@@ -71,6 +71,7 @@ pub async fn like_post(
     &mut context.pool(),
     my_person_id,
     orig_post.creator.id,
+    previous_is_upvote,
     data.is_upvote,
   )
   .await?;

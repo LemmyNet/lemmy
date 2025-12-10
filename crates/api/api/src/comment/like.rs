@@ -74,6 +74,7 @@ pub async fn like_comment(
     &mut context.pool(),
     my_person_id,
     orig_comment.creator.id,
+    previous_is_upvote,
     data.is_upvote,
   )
   .await?;

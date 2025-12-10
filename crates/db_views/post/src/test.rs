@@ -537,7 +537,24 @@ async fn post_listing_person_vote_totals(data: &mut Data) -> LemmyResult<()> {
     )
   );
 
-  PersonActions::like(pool, data.tegan.person.id, data.bot.person.id, Some(true)).await?;
+  let inserted_person_like = PersonActions::like(
+    pool,
+    data.tegan.person.id,
+    data.bot.person.id,
+    None,
+    Some(true),
+  )
+  .await?;
+
+  assert_eq!(
+    (data.tegan.person.id, data.bot.person.id, Some(1), Some(0),),
+    (
+      inserted_person_like.person_id,
+      inserted_person_like.target_id,
+      inserted_person_like.upvotes,
+      inserted_person_like.downvotes,
+    )
+  );
 
   let post_listing = PostView::read(
     pool,
@@ -572,14 +589,36 @@ async fn post_listing_person_vote_totals(data: &mut Data) -> LemmyResult<()> {
   let post_2_like_form = PostLikeForm::new(bot_post_2.id, data.tegan.person.id, Some(true));
   PostActions::like(pool, &post_2_like_form).await?;
 
-  PersonActions::like(pool, data.tegan.person.id, data.bot.person.id, Some(true)).await?;
+  let inserted_person_like_2 = PersonActions::like(
+    pool,
+    data.tegan.person.id,
+    data.bot.person.id,
+    None,
+    Some(true),
+  )
+  .await?;
+  assert_eq!(
+    (data.tegan.person.id, data.bot.person.id, Some(2), Some(0),),
+    (
+      inserted_person_like_2.person_id,
+      inserted_person_like_2.target_id,
+      inserted_person_like_2.upvotes,
+      inserted_person_like_2.downvotes,
+    )
+  );
 
   // Remove the like
   let form = PostLikeForm::new(data.bot_post.id, data.tegan.person.id, None);
   PostActions::like(pool, &form).await?;
 
-  let person_like_removed =
-    PersonActions::remove_like(pool, data.tegan.person.id, data.bot.person.id, true).await?;
+  let person_like_removed = PersonActions::like(
+    pool,
+    data.tegan.person.id,
+    data.bot.person.id,
+    Some(true),
+    None,
+  )
+  .await?;
   assert_eq!(
     (data.tegan.person.id, data.bot.person.id, Some(1), Some(0),),
     (
@@ -593,7 +632,23 @@ async fn post_listing_person_vote_totals(data: &mut Data) -> LemmyResult<()> {
   // Now do a downvote
   let post_like_form = PostLikeForm::new(data.bot_post.id, data.tegan.person.id, Some(false));
   PostActions::like(pool, &post_like_form).await?;
-  PersonActions::like(pool, data.tegan.person.id, data.bot.person.id, Some(false)).await?;
+  let inserted_person_dislike = PersonActions::like(
+    pool,
+    data.tegan.person.id,
+    data.bot.person.id,
+    None,
+    Some(false),
+  )
+  .await?;
+  assert_eq!(
+    (data.tegan.person.id, data.bot.person.id, Some(1), Some(1),),
+    (
+      inserted_person_dislike.person_id,
+      inserted_person_dislike.target_id,
+      inserted_person_dislike.upvotes,
+      inserted_person_dislike.downvotes,
+    )
+  );
 
   let post_listing = PostView::read(
     pool,
