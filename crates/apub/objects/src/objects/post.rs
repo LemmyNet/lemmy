@@ -322,7 +322,8 @@ impl Object for ApubPost {
           post_,
           None,
           |_, _, _| None,
-          community.0,creator.0,
+          community.0,
+          creator.0,
           context_,
         )
         .await

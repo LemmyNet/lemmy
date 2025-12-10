@@ -1,2 +1,6 @@
-alter table sent_activity drop column send_person_followers_of;
-alter table sent_activity drop column send_multi_comm_followers_of;
+ALTER TABLE sent_activity
+    DROP COLUMN send_person_followers_of;
+
+ALTER TABLE sent_activity
+    DROP COLUMN send_multi_comm_followers_of;
+
