@@ -533,7 +533,11 @@ BEGIN
                         WHERE
                             id = NEW.person_id) = TRUE THEN
                         INSERT INTO person_liked_combined (voted_at, vote_is_upvote, person_id, thing_id)
-                            VALUES (NEW.voted_at, NEW.vote_is_upvote, NEW.person_id, NEW.thing_id);
+                            VALUES (NEW.voted_at, NEW.vote_is_upvote, NEW.person_id, NEW.thing_id)
+                        ON CONFLICT (person_id, post_id)
+                            DO UPDATE SET
+                                voted_at = NEW.voted_at,
+                                vote_is_upvote = NEW.vote_is_upvote;
                         -- If liked gets set as null, delete the row
                     ELSE
                         DELETE FROM person_liked_combined AS p
@@ -552,8 +556,8 @@ BEGIN
     table_name);
 END;
 $a$;
---CALL r.create_person_liked_combined_trigger ('post');
---CALL r.create_person_liked_combined_trigger ('comment');
+CALL r.create_person_liked_combined_trigger ('post');
+CALL r.create_person_liked_combined_trigger ('comment');
 -- Prevent using delete instead of uplete on action tables
 CREATE FUNCTION r.require_uplete ()
     RETURNS TRIGGER
