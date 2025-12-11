@@ -273,7 +273,11 @@ impl SearchCombinedQuery {
           .or(multi_community::name.ilike(searcher.clone()));
 
         query = if self.title_only.unwrap_or_default() {
-          query.filter(name_or_title_filter)
+          query
+            .filter(name_or_title_filter)
+            // Comments are the only type that don't have a description, so don't return them for
+            // title_only searches.
+            .filter(search_combined::comment_id.is_null())
         } else {
           let body_or_description_filter = post::body
             .ilike(searcher.clone())
@@ -1062,6 +1066,17 @@ mod tests {
     .await?;
 
     assert!(post_search_title_only.is_empty());
+
+    // Make sure a search for title_only does not return comments, only the post
+    let search_title_only_no_type = SearchCombinedQuery {
+      search_term: Some("timmy post prv 2".into()),
+      title_only: Some(true),
+      ..Default::default()
+    }
+    .list(pool, &None, &data.site)
+    .await?;
+
+    assert_length!(1, search_title_only_no_type);
 
     // Test title only search to make sure 'postbody' doesn't show up
     // Using a term
