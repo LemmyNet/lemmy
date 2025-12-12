@@ -411,9 +411,9 @@ test("Reply to a comment from another instance, get notification", async () => {
   // Did alpha get notified of the reply from beta?
   let alphaUnreadCountRes = await waitUntil(
     () => getUnreadCount(alpha),
-    e => e.count >= 1,
+    e => e.notification_count >= 1,
   );
-  expect(alphaUnreadCountRes.count).toBeGreaterThanOrEqual(1);
+  expect(alphaUnreadCountRes.notification_count).toBeGreaterThanOrEqual(1);
 
   // check inbox of replies on alpha, fetching read/unread both
   let alphaRepliesRes = await waitUntil(
@@ -469,7 +469,7 @@ test("Bot reply notifications are filtered when bots are hidden", async () => {
   expect(commentRes).toBeDefined();
 
   let alphaUnreadCountRes = await getUnreadCount(alpha);
-  expect(alphaUnreadCountRes.count).toBe(0);
+  expect(alphaUnreadCountRes.notification_count).toBe(0);
 
   // This both restores the original state that may be expected by other tests
   // implicitly and is used by the next steps to ensure replies are still
@@ -480,7 +480,7 @@ test("Bot reply notifications are filtered when bots are hidden", async () => {
   await saveUserSettings(alpha, form);
 
   alphaUnreadCountRes = await getUnreadCount(alpha);
-  expect(alphaUnreadCountRes.count).toBe(1);
+  expect(alphaUnreadCountRes.notification_count).toBe(1);
 
   let alphaUnreadRepliesRes = await listNotifications(alpha, "reply", true);
   expect(alphaUnreadRepliesRes.items.length).toBe(1);
@@ -822,7 +822,7 @@ test("Dont send a comment reply to a blocked community", async () => {
 
   // Check beta's inbox count
   let unreadCount = await getUnreadCount(beta);
-  expect(unreadCount.count).toBe(0);
+  expect(unreadCount.notification_count).toBe(0);
 
   // Beta blocks the new beta community
   let blockRes = await blockCommunity(beta, newCommunityId, true);
@@ -841,7 +841,7 @@ test("Dont send a comment reply to a blocked community", async () => {
 
   // Check beta's inbox count, make sure it stays the same
   unreadCount = await getUnreadCount(beta);
-  expect(unreadCount.count).toBe(0);
+  expect(unreadCount.notification_count).toBe(0);
 
   let replies = await listNotifications(beta, "reply", true);
   expect(replies.items.length).toBe(0);

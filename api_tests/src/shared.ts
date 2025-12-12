@@ -5,7 +5,6 @@ import {
   CommunityVisibility,
   CreatePrivateMessageReport,
   EditCommunity,
-  GetCommunityPendingFollowsCountResponse,
   GetUnreadCountResponse,
   InstanceId,
   LemmyHttp,
@@ -82,10 +81,11 @@ import {
   Search,
   PagedResponse,
   NotificationView,
-  PersonContentCombinedView,
   ReportCombinedView,
   PendingFollowerView,
   ModlogView,
+  PostCommentCombinedView,
+  CountsResponse,
 } from "lemmy-js-client";
 
 export const fetchFunction = fetch;
@@ -395,9 +395,7 @@ export async function getComments(
   return api.getComments(form);
 }
 
-export async function getUnreadCount(
-  api: LemmyHttp,
-): Promise<GetUnreadCountResponse> {
+export async function getUnreadCount(api: LemmyHttp): Promise<CountsResponse> {
   return api.getUnreadCount();
 }
 
@@ -786,7 +784,7 @@ export async function listPersonContent(
   api: LemmyHttp,
   person_id: number,
   type_?: PersonContentType,
-): Promise<PagedResponse<PersonContentCombinedView>> {
+): Promise<PagedResponse<PostCommentCombinedView>> {
   let form: ListPersonContent = {
     person_id,
     type_,
@@ -937,12 +935,6 @@ export function listCommunityPendingFollows(
     limit: 50,
   };
   return api.listCommunityPendingFollows(form);
-}
-
-export function getCommunityPendingFollowsCount(
-  api: LemmyHttp,
-): Promise<GetCommunityPendingFollowsCountResponse> {
-  return api.getCommunityPendingFollowsCount();
 }
 
 export function approveCommunityPendingFollow(
