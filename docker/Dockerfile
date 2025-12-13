@@ -35,18 +35,18 @@ RUN cat crates/utils/src/version.rs
 
 # Debug build
 RUN --mount=type=cache,target=/lemmy/target set -ex; \
-    if [ "${RUST_RELEASE_MODE}" = "debug" ]; then \
-        cargo build --features "${CARGO_BUILD_FEATURES}"; \
-        mv target/"${RUST_RELEASE_MODE}"/lemmy_server ./lemmy_server; \
-    fi
+  if [ "${RUST_RELEASE_MODE}" = "debug" ]; then \
+  cargo build --features "${CARGO_BUILD_FEATURES}"; \
+  mv target/"${RUST_RELEASE_MODE}"/lemmy_server ./lemmy_server; \
+  fi
 
 # Release build
 RUN --mount=type=cache,target=/lemmy/target set -ex; \
-    if [ "${RUST_RELEASE_MODE}" = "release" ]; then \
-        cargo clean --release; \
-        cargo build --features "${CARGO_BUILD_FEATURES}" --release; \
-        mv target/"${RUST_RELEASE_MODE}"/lemmy_server ./lemmy_server; \
-    fi
+  if [ "${RUST_RELEASE_MODE}" = "release" ]; then \
+  cargo clean --release; \
+  cargo build --features "${CARGO_BUILD_FEATURES}" --release; \
+  mv target/"${RUST_RELEASE_MODE}"/lemmy_server ./lemmy_server; \
+  fi
 
 # ARM64 builder
 # NB(raskyld): this is a hack to be able to COPY --from= this image, because the variable doesn't
@@ -72,22 +72,22 @@ RUN cat crates/utils/src/version.rs
 
 ENV PATH="/home/lemmy/.cargo/bin:${PATH}"
 ENV RUST_RELEASE_MODE=${RUST_RELEASE_MODE} \
-    CARGO_BUILD_FEATURES=${CARGO_BUILD_FEATURES}
+  CARGO_BUILD_FEATURES=${CARGO_BUILD_FEATURES}
 
 # Debug build
 RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
-    if [ "${RUST_RELEASE_MODE}" = "debug" ]; then \
-        cargo build --features "${CARGO_BUILD_FEATURES}"; \
-        mv "./target/$CARGO_BUILD_TARGET/$RUST_RELEASE_MODE/lemmy_server" /home/lemmy/lemmy_server; \
-    fi
+  if [ "${RUST_RELEASE_MODE}" = "debug" ]; then \
+  cargo build --features "${CARGO_BUILD_FEATURES}"; \
+  mv "./target/$CARGO_BUILD_TARGET/$RUST_RELEASE_MODE/lemmy_server" /home/lemmy/lemmy_server; \
+  fi
 
 # Release build
 RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
-    if [ "${RUST_RELEASE_MODE}" = "release" ]; then \
-        cargo clean --release; \
-        cargo build --features "${CARGO_BUILD_FEATURES}" --release; \
-        mv "./target/$CARGO_BUILD_TARGET/$RUST_RELEASE_MODE/lemmy_server" /home/lemmy/lemmy_server; \
-    fi
+  if [ "${RUST_RELEASE_MODE}" = "release" ]; then \
+  cargo clean --release; \
+  cargo build --features "${CARGO_BUILD_FEATURES}" --release; \
+  mv "./target/$CARGO_BUILD_TARGET/$RUST_RELEASE_MODE/lemmy_server" /home/lemmy/lemmy_server; \
+  fi
 
 # amd64 base runner
 FROM ${AMD_RUNNER_IMAGE} AS runner-linux-amd64
@@ -117,7 +117,7 @@ ARG GID
 ARG UID
 
 RUN groupadd -g ${GID} -o ${UNAME} && \
-    useradd -m -u ${UID} -g ${GID} -o -s /bin/bash ${UNAME}
+  useradd -m -u ${UID} -g ${GID} -o -s /bin/bash ${UNAME}
 USER $UNAME
 
 ENTRYPOINT ["lemmy_server"]
