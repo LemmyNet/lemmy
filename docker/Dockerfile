@@ -29,8 +29,8 @@ COPY . ./
 # If the CI is the cron, then use nightly, otherwise use the tag.
 ARG CI_PIPELINE_EVENT
 RUN \
-  VERSION_OUT=$([ "$CI_PIPELINE_EVENT" = "cron" ] && echo "nightly-$(date -u +"%Y-%m-%d")" || echo $(git describe --tag)); \
-  echo 'pub const VERSION: &str = "$VERSION_OUT";' > "crates/utils/src/version.rs"
+  VERSION_OUT=$([ "${CI_PIPELINE_EVENT}" = "cron" ] && echo "nightly-$(date -u +"%Y-%m-%d")" || echo $(git describe --tag)); \
+  echo "pub const VERSION: &str = \"${VERSION_OUT}\";" > "crates/utils/src/version.rs"
 RUN cat crates/utils/src/version.rs
 
 # Debug build
@@ -66,8 +66,8 @@ COPY --chown=lemmy:lemmy . ./
 # If the CI is the cron, then use nightly, otherwise use the tag.
 ARG CI_PIPELINE_EVENT
 RUN \
-  VERSION_OUT=$([ "$CI_PIPELINE_EVENT" = "cron" ] && echo "nightly-$(date -u +"%Y-%m-%d")" || echo $(git describe --tag)); \
-  echo 'pub const VERSION: &str = "$VERSION_OUT";' > "crates/utils/src/version.rs"
+  VERSION_OUT=$([ "${CI_PIPELINE_EVENT}" = "cron" ] && echo "nightly-$(date -u +"%Y-%m-%d")" || echo $(git describe --tag)); \
+  echo "pub const VERSION: &str = \"${VERSION_OUT}\";" > "crates/utils/src/version.rs"
 RUN cat crates/utils/src/version.rs
 
 ENV PATH="/home/lemmy/.cargo/bin:${PATH}"
