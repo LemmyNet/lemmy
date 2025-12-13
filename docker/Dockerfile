@@ -25,6 +25,14 @@ WORKDIR /lemmy
 
 COPY . ./
 
+# Set UI version 
+# If the CI is the cron, then use nightly, otherwise use the tag.
+ARG CI_PIPELINE_EVENT
+RUN \
+  VERSION_OUT=$([ "$CI_PIPELINE_EVENT" = "cron" ] && echo "nightly-$(date -u +"%Y-%m-%d")" || echo $(git describe --tag)); \
+  echo 'pub const VERSION: &str = "$VERSION_OUT";' > "crates/utils/src/version.rs"
+RUN cat crates/utils/src/version.rs
+
 # Debug build
 RUN --mount=type=cache,target=/lemmy/target set -ex; \
     if [ "${RUST_RELEASE_MODE}" = "debug" ]; then \
@@ -53,6 +61,14 @@ WORKDIR /home/lemmy/src
 USER 10001:10001
 
 COPY --chown=lemmy:lemmy . ./
+
+# Set UI version 
+# If the CI is the cron, then use nightly, otherwise use the tag.
+ARG CI_PIPELINE_EVENT
+RUN \
+  VERSION_OUT=$([ "$CI_PIPELINE_EVENT" = "cron" ] && echo "nightly-$(date -u +"%Y-%m-%d")" || echo $(git describe --tag)); \
+  echo 'pub const VERSION: &str = "$VERSION_OUT";' > "crates/utils/src/version.rs"
+RUN cat crates/utils/src/version.rs
 
 ENV PATH="/home/lemmy/.cargo/bin:${PATH}"
 ENV RUST_RELEASE_MODE=${RUST_RELEASE_MODE} \
