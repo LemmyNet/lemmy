@@ -25,7 +25,7 @@ WORKDIR /lemmy
 
 COPY . ./
 
-# Set UI version 
+# Set the version
 # If the CI is the cron, then use nightly, otherwise use the tag.
 ARG CI_PIPELINE_EVENT
 RUN \
@@ -62,7 +62,7 @@ USER 10001:10001
 
 COPY --chown=lemmy:lemmy . ./
 
-# Set UI version 
+# Set the version
 # If the CI is the cron, then use nightly, otherwise use the tag.
 ARG CI_PIPELINE_EVENT
 RUN \
