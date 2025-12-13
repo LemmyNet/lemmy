@@ -32,7 +32,6 @@ members = [
   "crates/db_views/person",
   "crates/db_views/post",
   "crates/db_views/vote",
-  "crates/db_views/local_image",
   "crates/db_views/comment",
   "crates/db_views/community",
   "crates/db_views/community_moderator",
@@ -60,7 +59,6 @@ members = [
   "crates/apub/activities",
   "crates/apub/objects",
   "crates/apub/send",
-  "crates/routes",
   "crates/server",
 ]
 resolver = "3"
