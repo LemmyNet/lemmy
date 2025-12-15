@@ -39,6 +39,5 @@ ts-rs = { workspace = true, optional = true }
 i-love-jesus = { workspace = true, optional = true }
 
 [dev-dependencies]
-tokio = { workspace = true }
 tokio-shared-rt = { workspace = true }
 pretty_assertions = { workspace = true }

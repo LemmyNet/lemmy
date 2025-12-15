@@ -88,14 +88,20 @@ impl Settings {
   }
 
   pub fn get_lemmy_connection_options(&self) -> Vec<(String, String)> {
-    Vec::from([("lemmy.protocol_and_hostname".to_string(), self.get_protocol_and_hostname().to_string())])
+    Vec::from([(
+      "lemmy.protocol_and_hostname".to_string(),
+      self.get_protocol_and_hostname().to_string(),
+    )])
   }
 
   /// Sets a few additional config options necessary for starting lemmy
   pub fn get_database_url_with_options(&self) -> LemmyResult<String> {
     let mut url = Url::parse(&self.get_database_url())?;
 
-    let mut options = CONNECTION_OPTIONS.iter().map(|s| s.to_string()).collect::<Vec<String>>();
+    let mut options = CONNECTION_OPTIONS
+      .iter()
+      .map(|s| s.to_string())
+      .collect::<Vec<String>>();
     for (k, v) in self.get_lemmy_connection_options() {
       options.push(format!("{}={}", k, v));
     }

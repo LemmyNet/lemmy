@@ -3797,7 +3797,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "tokio",
  "tokio-shared-rt",
  "ts-rs",
 ]
@@ -3816,7 +3815,6 @@ dependencies = [
  "lemmy_utils 1.0.0-alpha.12",
  "serde",
  "serde_with",
- "tokio",
  "tokio-shared-rt",
  "ts-rs",
  "url",
@@ -3835,7 +3833,6 @@ dependencies = [
  "lemmy_utils 1.0.0-alpha.12",
  "serde",
  "serde_with",
- "tokio",
  "ts-rs",
 ]
 
@@ -3852,7 +3849,6 @@ dependencies = [
  "lemmy_utils 1.0.0-alpha.12",
  "serde",
  "serde_with",
- "tokio",
  "tokio-shared-rt",
  "ts-rs",
 ]
@@ -3919,7 +3915,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "tokio",
  "tokio-shared-rt",
  "ts-rs",
 ]
@@ -3949,7 +3944,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "tokio",
  "tokio-shared-rt",
  "ts-rs",
 ]
@@ -3974,7 +3968,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "tokio",
  "tokio-shared-rt",
  "ts-rs",
 ]
@@ -4004,7 +3997,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "tokio",
  "tokio-shared-rt",
  "ts-rs",
 ]
@@ -4026,7 +4018,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "tokio",
  "tokio-shared-rt",
  "ts-rs",
 ]
@@ -4047,7 +4038,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "tokio",
  "tokio-shared-rt",
  "ts-rs",
 ]
@@ -4068,7 +4058,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "tokio",
  "tokio-shared-rt",
  "ts-rs",
 ]
@@ -4092,7 +4081,6 @@ dependencies = [
  "serde_with",
  "test-context",
  "tokio",
- "tokio-shared-rt",
  "tracing",
  "ts-rs",
  "url",
@@ -4139,7 +4127,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "tokio",
  "tokio-shared-rt",
  "ts-rs",
 ]
@@ -4161,7 +4148,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "tokio",
  "tokio-shared-rt",
  "ts-rs",
 ]
@@ -4194,7 +4180,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "tokio",
  "tokio-shared-rt",
  "ts-rs",
  "url",
@@ -4222,7 +4207,6 @@ dependencies = [
  "lemmy_utils 1.0.0-alpha.12",
  "serde",
  "serde_with",
- "tokio",
  "tokio-shared-rt",
  "ts-rs",
  "url",
@@ -4241,7 +4225,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
- "tokio",
  "tokio-shared-rt",
  "ts-rs",
 ]

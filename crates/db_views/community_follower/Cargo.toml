@@ -40,4 +40,3 @@ chrono = { workspace = true }
 lemmy_diesel_utils = { workspace = true, optional = true }
 
 [dev-dependencies]
-tokio = { workspace = true }

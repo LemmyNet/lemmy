@@ -7,7 +7,7 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::InstanceId;
 use lemmy_db_views_community_follower::CommunityFollowerView;
 use lemmy_diesel_utils::{
-  connection::{GenericDbPool, DbPool},
+  connection::{DbPool, GenericDbPool},
   dburl::DbUrl,
 };
 use lemmy_utils::error::LemmyResult;

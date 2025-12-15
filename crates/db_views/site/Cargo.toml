@@ -63,5 +63,4 @@ i-love-jesus = { workspace = true, optional = true }
 chrono = { workspace = true }
 
 [dev-dependencies]
-tokio = { workspace = true }
 tokio-shared-rt = { workspace = true }

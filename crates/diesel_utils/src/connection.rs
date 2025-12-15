@@ -1,5 +1,6 @@
-use deadpool::{Runtime, Status};
+use crate::schema_setup;
 use db_pool::{
+  PrivilegedPostgresConfig,
   r#async::{
     DatabasePool,
     DatabasePoolBuilderTrait,
@@ -7,8 +8,8 @@ use db_pool::{
     DieselDeadpool,
     ReusableConnectionPool,
   },
-  PrivilegedPostgresConfig,
 };
+use deadpool::{Runtime, Status};
 use diesel::result::{
   ConnectionError,
   ConnectionResult,
@@ -16,6 +17,7 @@ use diesel::result::{
 };
 use diesel_async::{
   AsyncConnection,
+  async_connection_wrapper::AsyncConnectionWrapper,
   pg::AsyncPgConnection,
   pooled_connection::{
     AsyncDieselConnectionManager,
@@ -47,15 +49,13 @@ use std::{
   sync::Arc,
   time::Duration,
 };
-use diesel_async::async_connection_wrapper::AsyncConnectionWrapper;
 use tokio::sync::OnceCell;
 use tracing::error;
 use url::Url;
-use crate::schema_setup;
 
 pub type ActualDbPool = Pool<AsyncPgConnection>;
 pub type ReusableDbPool =
-ReusableConnectionPool<'static, DieselAsyncPostgresBackend<DieselDeadpool>>;
+  ReusableConnectionPool<'static, DieselAsyncPostgresBackend<DieselDeadpool>>;
 
 /// References a pool or connection. Functions must take `&mut DbPool<'_>` to allow implicit
 /// reborrowing.
@@ -242,8 +242,8 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
 }
 
 #[allow(clippy::expect_used)]
-pub async fn build_db_pool_for_tests(
-) -> ReusableConnectionPool<'static, DieselAsyncPostgresBackend<DieselDeadpool>> {
+pub async fn build_db_pool_for_tests()
+-> ReusableConnectionPool<'static, DieselAsyncPostgresBackend<DieselDeadpool>> {
   static POOL: OnceCell<DatabasePool<DieselAsyncPostgresBackend<DieselDeadpool>>> =
     OnceCell::const_new();
   let db_pool = POOL
@@ -274,17 +274,17 @@ pub async fn build_db_pool_for_tests(
                 schema_setup::Options::default().run(),
                 &mut async_wrapper,
               )
-                .expect("run migrations")
+              .expect("run migrations")
             })
-              .await
-              .expect("task panicked");
+            .await
+            .expect("task panicked");
 
             None
           })
         },
       )
-        .await
-        .expect("diesel postgres backend");
+      .await
+      .expect("diesel postgres backend");
 
       backend
         .create_database_pool()

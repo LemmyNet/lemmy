@@ -25,7 +25,7 @@ use lemmy_apub_objects::objects::{community::FETCH_COMMUNITY_COLLECTIONS, instan
 use lemmy_apub_send::{Opts, SendManager};
 use lemmy_db_schema::source::secret::Secret;
 use lemmy_db_views_site::SiteView;
-use lemmy_diesel_utils::connection::{build_db_pool, GenericDbPool};
+use lemmy_diesel_utils::connection::{GenericDbPool, build_db_pool};
 use lemmy_routes::{
   feeds,
   middleware::{

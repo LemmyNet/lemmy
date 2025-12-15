@@ -19,7 +19,7 @@ use lemmy_db_schema::{
     instance::{Instance, InstanceForm},
   },
 };
-use lemmy_diesel_utils::connection::{GenericDbPool, DbPool};
+use lemmy_diesel_utils::connection::{DbPool, GenericDbPool};
 use lemmy_utils::{
   error::LemmyResult,
   federate_retry_sleep_duration,
