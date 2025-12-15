@@ -252,35 +252,43 @@ impl SearchCombinedQuery {
 
     // The filters
 
+    // Some helpers
+    let is_post = search_combined::post_id.is_not_null();
+    let is_comment = search_combined::comment_id.is_not_null();
+    let is_community = search_combined::community_id.is_not_null();
+    let is_person = search_combined::person_id.is_not_null();
+    let is_multi_community = search_combined::multi_community_id.is_not_null();
+
     // The search term
     if let Some(search_term) = &self.search_term {
       if self.post_url_only.unwrap_or_default() {
         // Needs to be parsed to a rusts common url format before searching, since those are whats
         // inserted as the post url
         let search_url: String = Url::parse(search_term)?.into();
-        query = query.filter(post::url.eq(search_url));
+        query = query.filter(is_post.and(post::url.eq(search_url)));
       } else {
         let searcher = fuzzy_search(search_term);
 
-        let name_or_title_filter = post::name
-          .ilike(searcher.clone())
-          .or(comment::content.ilike(searcher.clone()))
-          .or(community::name.ilike(searcher.clone()))
-          .or(community::title.ilike(searcher.clone()))
-          .or(person::name.ilike(searcher.clone()))
-          .or(person::display_name.ilike(searcher.clone()))
-          .or(multi_community::title.ilike(searcher.clone()))
-          .or(multi_community::name.ilike(searcher.clone()));
+        // These need to also filter by the type, otherwise they may return children
+        let name_or_title_filter = is_post
+          .and(post::name.ilike(searcher.clone()))
+          .or(is_comment.and(comment::content.ilike(searcher.clone())))
+          .or(is_community.and(community::name.ilike(searcher.clone())))
+          .or(is_community.and(community::title.ilike(searcher.clone())))
+          .or(is_person.and(person::name.ilike(searcher.clone())))
+          .or(is_person.and(person::display_name.ilike(searcher.clone())))
+          .or(is_multi_community.and(multi_community::title.ilike(searcher.clone())))
+          .or(is_multi_community.and(multi_community::name.ilike(searcher.clone())));
 
         query = if self.title_only.unwrap_or_default() {
           query.filter(name_or_title_filter)
         } else {
-          let body_or_description_or_bio_filter = post::body
-            .ilike(searcher.clone())
-            .or(community::description.ilike(searcher.clone()))
-            .or(multi_community::description.ilike(searcher.clone()))
-            .or(person::bio.ilike(searcher.clone()));
-          query.filter(name_or_title_filter.or(body_or_description_or_bio_filter))
+          let body_or_description_filter = is_post
+            .and(post::body.ilike(searcher.clone()))
+            .or(is_community.and(community::description.ilike(searcher.clone())))
+            .or(is_multi_community.and(multi_community::description.ilike(searcher.clone())))
+            .or(is_person.and(person::bio.ilike(searcher.clone())));
+          query.filter(name_or_title_filter.or(body_or_description_filter))
         }
       }
     }
@@ -299,14 +307,9 @@ impl SearchCombinedQuery {
     if let Some(my_id) = my_person_id {
       let not_creator_filter = item_creator.ne(my_id);
       let liked_disliked_filter = |should_be_upvote: bool| {
-        search_combined::post_id
-          .is_not_null()
+        is_post
           .and(post_actions::vote_is_upvote.eq(should_be_upvote))
-          .or(
-            search_combined::comment_id
-              .is_not_null()
-              .and(comment_actions::vote_is_upvote.eq(should_be_upvote)),
-          )
+          .or(is_comment.and(comment_actions::vote_is_upvote.eq(should_be_upvote)))
       };
 
       if self.liked_only.unwrap_or_default() {
@@ -323,13 +326,11 @@ impl SearchCombinedQuery {
     // Type
     query = match self.type_.unwrap_or_default() {
       SearchType::All => query,
-      SearchType::Posts => query.filter(search_combined::post_id.is_not_null()),
-      SearchType::Comments => query.filter(search_combined::comment_id.is_not_null()),
-      SearchType::Communities => query.filter(search_combined::community_id.is_not_null()),
-      SearchType::Users => query.filter(search_combined::person_id.is_not_null()),
-      SearchType::MultiCommunities => {
-        query.filter(search_combined::multi_community_id.is_not_null())
-      }
+      SearchType::Posts => query.filter(is_post),
+      SearchType::Comments => query.filter(is_comment),
+      SearchType::Communities => query.filter(is_community),
+      SearchType::Users => query.filter(is_person),
+      SearchType::MultiCommunities => query.filter(is_multi_community),
     };
 
     // Listing type
@@ -339,19 +340,20 @@ impl SearchCombinedQuery {
         community::local
           .eq(true)
           .and(filter_not_unlisted_or_is_subscribed())
-          .or(search_combined::person_id.is_not_null().and(person::local))
+          .or(is_person.and(person::local))
           .or(multi_community::local),
       ),
       ListingType::All => query.filter(
         filter_not_unlisted_or_is_subscribed()
-          .or(search_combined::person_id.is_not_null())
-          .or(search_combined::multi_community_id.is_not_null()),
+          .or(is_person)
+          .or(is_multi_community),
       ),
       ListingType::ModeratorView => {
         query.filter(community_actions::became_moderator_at.is_not_null())
       }
       ListingType::Suggested => query.filter(filter_suggested_communities()),
     };
+
     // Filter by the time range
     if let Some(time_range_seconds) = self.time_range_seconds {
       query = query.filter(
@@ -366,21 +368,12 @@ impl SearchCombinedQuery {
       let safe_post_and_community = post::nsfw.eq(false).and(safe_community);
 
       query = query.filter(
-        search_combined::community_id
-          .is_not_null()
+        is_community
           .and(safe_community)
-          .or(
-            search_combined::post_id
-              .is_not_null()
-              .and(safe_post_and_community),
-          )
-          .or(
-            search_combined::comment_id
-              .is_not_null()
-              .and(safe_post_and_community),
-          )
-          .or(search_combined::person_id.is_not_null())
-          .or(search_combined::multi_community_id.is_not_null()),
+          .or(is_post.and(safe_post_and_community))
+          .or(is_comment.and(safe_post_and_community))
+          .or(is_person)
+          .or(is_multi_community),
       );
     };
 
@@ -1117,6 +1110,50 @@ mod tests {
     } else {
       panic!("wrong type");
     }
+
+    cleanup(data, pool).await?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  // Due to the joins which return children, double check to make sure the search term filters
+  // aren't returning child content. IE a search for post title my_post won't return any comments.
+  async fn no_children() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // Post searches should not return the child comments
+    let post_no_children = SearchCombinedQuery {
+      search_term: Some("timmy post prv 2".into()),
+      ..Default::default()
+    }
+    .list(pool, &None, &data.site)
+    .await?;
+
+    assert_length!(1, post_no_children);
+
+    // Community searches should not return posts or comments
+    let community_no_children = SearchCombinedQuery {
+      search_term: Some("asklemmy".into()),
+      ..Default::default()
+    }
+    .list(pool, &None, &data.site)
+    .await?;
+
+    assert_length!(1, community_no_children);
+
+    // Person searches should not return communities, posts, or comments
+    let person_no_children = SearchCombinedQuery {
+      search_term: Some("timmy_pcv".into()),
+      ..Default::default()
+    }
+    .list(pool, &None, &data.site)
+    .await?;
+
+    assert_length!(1, person_no_children);
 
     cleanup(data, pool).await?;
 
