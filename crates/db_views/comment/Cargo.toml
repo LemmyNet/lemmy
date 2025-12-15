@@ -47,3 +47,6 @@ lemmy_db_views_local_user = { workspace = true }
 tokio = { workspace = true }
 tokio-shared-rt = { workspace = true }
 pretty_assertions = { workspace = true }
+
+[package.metadata.cargo-shear]
+ignored = ["tokio"]

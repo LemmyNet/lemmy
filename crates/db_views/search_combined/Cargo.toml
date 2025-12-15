@@ -61,3 +61,6 @@ url = { workspace = true }
 pretty_assertions = { workspace = true }
 tokio = { workspace = true }
 tokio-shared-rt = { workspace = true }
+
+[package.metadata.cargo-shear]
+ignored = ["tokio"]
