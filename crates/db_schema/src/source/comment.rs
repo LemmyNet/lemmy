@@ -155,6 +155,7 @@ pub struct CommentLikeForm {
 }
 
 impl CommentLikeForm {
+  /// Pass `is_upvote: None` to remove an existing vote for this comment
   pub fn new(comment_id: CommentId, person_id: PersonId, is_upvote: Option<bool>) -> Self {
     let mut form = Self {
       comment_id,

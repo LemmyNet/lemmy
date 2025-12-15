@@ -222,6 +222,7 @@ pub struct PostLikeForm {
 }
 
 impl PostLikeForm {
+  /// Pass `is_upvote: None` to remove an existing vote for this post
   pub fn new(post_id: PostId, person_id: PersonId, is_upvote: Option<bool>) -> Self {
     let mut form = Self {
       post_id,
