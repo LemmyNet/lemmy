@@ -658,7 +658,7 @@ mod tests {
     Ok(())
   }
 
-  #[tokio::test]
+  #[tokio_shared_rt::test(shared = true)]
   async fn combined() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
@@ -834,7 +834,7 @@ mod tests {
     Ok(())
   }
 
-  #[tokio::test]
+  #[tokio_shared_rt::test(shared = true)]
   async fn community() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
@@ -907,7 +907,7 @@ mod tests {
     Ok(())
   }
 
-  #[tokio::test]
+  #[tokio_shared_rt::test(shared = true)]
   async fn person() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
@@ -988,7 +988,7 @@ mod tests {
     Ok(())
   }
 
-  #[tokio::test]
+  #[tokio_shared_rt::test(shared = true)]
   async fn post() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
@@ -1118,7 +1118,7 @@ mod tests {
     Ok(())
   }
 
-  #[tokio::test]
+  #[tokio_shared_rt::test(shared = true)]
   async fn nsfw_post() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
@@ -1146,7 +1146,7 @@ mod tests {
     Ok(())
   }
 
-  #[tokio::test]
+  #[tokio_shared_rt::test(shared = true)]
   async fn nsfw_comment() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
@@ -1175,7 +1175,7 @@ mod tests {
     Ok(())
   }
 
-  #[tokio::test]
+  #[tokio_shared_rt::test(shared = true)]
   async fn comment() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
@@ -1281,7 +1281,7 @@ mod tests {
     Ok(())
   }
 
-  #[tokio::test]
+  #[tokio_shared_rt::test(shared = true)]
   async fn multi_community() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();

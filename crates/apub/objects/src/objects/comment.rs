@@ -266,7 +266,7 @@ pub(crate) mod tests {
     Ok((person, community, post, site))
   }
 
-  #[tokio::test]
+  #[tokio_shared_rt::test(shared = true)]
   pub(crate) async fn test_parse_lemmy_comment() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let test_data = TestData::create(&mut context.pool()).await?;
@@ -290,7 +290,7 @@ pub(crate) mod tests {
     Ok(())
   }
 
-  #[tokio::test]
+  #[tokio_shared_rt::test(shared = true)]
   async fn test_parse_pleroma_comment() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let test_data = TestData::create(&mut context.pool()).await?;
@@ -316,7 +316,7 @@ pub(crate) mod tests {
     Ok(())
   }
 
-  #[tokio::test]
+  #[tokio_shared_rt::test(shared = true)]
   async fn test_html_to_markdown_sanitize() {
     let parsed = parse_html("<script></script><b>hello</b>");
     assert_eq!(parsed, "**hello**");

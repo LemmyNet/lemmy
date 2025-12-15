@@ -602,7 +602,7 @@ mod tests {
   use url::Url;
 
   // These helped with testing
-  #[tokio::test]
+  #[tokio_shared_rt::test(shared = true)]
   async fn test_link_metadata() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let sample_url = Url::parse("https://gitlab.com/IzzyOnDroid/repo/-/wikis/FAQ")?;

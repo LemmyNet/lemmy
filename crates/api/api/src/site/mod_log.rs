@@ -67,7 +67,7 @@ mod tests {
   use lemmy_diesel_utils::traits::Crud;
   use pretty_assertions::assert_eq;
 
-  #[tokio::test]
+  #[tokio_shared_rt::test(shared = true)]
   async fn test_mod_remove_or_restore_data() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();

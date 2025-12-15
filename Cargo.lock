@@ -3361,6 +3361,7 @@ dependencies = [
  "serde_json",
  "sitemap-rs",
  "tokio",
+ "tokio-shared-rt",
  "totp-rs",
  "tracing",
  "url",
@@ -3546,6 +3547,7 @@ dependencies = [
  "reqwest-middleware",
  "serde",
  "tokio",
+ "tokio-shared-rt",
  "tracing",
  "url",
  "urlencoding",
@@ -3579,6 +3581,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
+ "tokio-shared-rt",
  "tracing",
  "url",
 ]
@@ -3649,6 +3652,7 @@ dependencies = [
  "serde_with",
  "stringreader",
  "tokio",
+ "tokio-shared-rt",
  "tracing",
  "url",
 ]
@@ -3731,6 +3735,7 @@ dependencies = [
  "serde_with",
  "strum 0.27.2",
  "tokio",
+ "tokio-shared-rt",
  "ts-rs",
  "url",
  "uuid",
@@ -3793,6 +3798,7 @@ dependencies = [
  "serde",
  "serde_with",
  "tokio",
+ "tokio-shared-rt",
  "ts-rs",
 ]
 
@@ -3811,6 +3817,7 @@ dependencies = [
  "serde",
  "serde_with",
  "tokio",
+ "tokio-shared-rt",
  "ts-rs",
  "url",
 ]
@@ -3846,6 +3853,7 @@ dependencies = [
  "serde",
  "serde_with",
  "tokio",
+ "tokio-shared-rt",
  "ts-rs",
 ]
 
@@ -3912,6 +3920,7 @@ dependencies = [
  "serde",
  "serde_with",
  "tokio",
+ "tokio-shared-rt",
  "ts-rs",
 ]
 
@@ -3941,6 +3950,7 @@ dependencies = [
  "serde",
  "serde_with",
  "tokio",
+ "tokio-shared-rt",
  "ts-rs",
 ]
 
@@ -3965,6 +3975,7 @@ dependencies = [
  "serde",
  "serde_with",
  "tokio",
+ "tokio-shared-rt",
  "ts-rs",
 ]
 
@@ -3994,6 +4005,7 @@ dependencies = [
  "serde",
  "serde_with",
  "tokio",
+ "tokio-shared-rt",
  "ts-rs",
 ]
 
@@ -4015,6 +4027,7 @@ dependencies = [
  "serde",
  "serde_with",
  "tokio",
+ "tokio-shared-rt",
  "ts-rs",
 ]
 
@@ -4035,6 +4048,7 @@ dependencies = [
  "serde",
  "serde_with",
  "tokio",
+ "tokio-shared-rt",
  "ts-rs",
 ]
 
@@ -4055,6 +4069,7 @@ dependencies = [
  "serde",
  "serde_with",
  "tokio",
+ "tokio-shared-rt",
  "ts-rs",
 ]
 
@@ -4125,6 +4140,7 @@ dependencies = [
  "serde",
  "serde_with",
  "tokio",
+ "tokio-shared-rt",
  "ts-rs",
 ]
 
@@ -4146,6 +4162,7 @@ dependencies = [
  "serde",
  "serde_with",
  "tokio",
+ "tokio-shared-rt",
  "ts-rs",
 ]
 
@@ -4178,6 +4195,7 @@ dependencies = [
  "serde",
  "serde_with",
  "tokio",
+ "tokio-shared-rt",
  "ts-rs",
  "url",
 ]
@@ -4205,6 +4223,7 @@ dependencies = [
  "serde",
  "serde_with",
  "tokio",
+ "tokio-shared-rt",
  "ts-rs",
  "url",
 ]
@@ -4317,6 +4336,7 @@ dependencies = [
  "rss",
  "serde",
  "tokio",
+ "tokio-shared-rt",
  "tracing",
  "url",
 ]

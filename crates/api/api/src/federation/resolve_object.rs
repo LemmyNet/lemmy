@@ -130,7 +130,7 @@ mod tests {
   };
   use lemmy_diesel_utils::traits::Crud;
 
-  #[tokio::test]
+  #[tokio_shared_rt::test(shared = true)]
   async fn test_object_visibility() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();

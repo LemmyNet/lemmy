@@ -1011,7 +1011,7 @@ mod tests {
     Ok(())
   }
 
-  #[tokio::test]
+  #[tokio_shared_rt::test(shared = true)]
   async fn test_proxy_image_link() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
 

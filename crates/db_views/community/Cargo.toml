@@ -47,4 +47,5 @@ i-love-jesus = { workspace = true, optional = true }
 
 [dev-dependencies]
 tokio = { workspace = true }
+tokio-shared-rt = { workspace = true }
 url = { workspace = true }

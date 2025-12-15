@@ -128,7 +128,7 @@ mod tests {
     Ok((person, report))
   }
 
-  #[tokio::test]
+  #[tokio_shared_rt::test(shared = true)]
   async fn test_resolve_post_report() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
@@ -147,7 +147,7 @@ mod tests {
     Ok(())
   }
 
-  #[tokio::test]
+  #[tokio_shared_rt::test(shared = true)]
   async fn test_resolve_all_post_reports() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();

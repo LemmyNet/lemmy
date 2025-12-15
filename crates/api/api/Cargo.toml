@@ -78,6 +78,7 @@ lemmy_diesel_utils = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true }
+tokio-shared-rt = { workspace = true }
 elementtree = "1.2.3"
 pretty_assertions = { workspace = true }
 lemmy_api_crud = { workspace = true }

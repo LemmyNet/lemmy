@@ -80,7 +80,7 @@ mod tests {
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
 
-  #[tokio::test]
+  #[tokio_shared_rt::test(shared = true)]
   async fn test_markdown_rewrite_remote_links() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let data = TestData::create(&mut context.pool()).await?;

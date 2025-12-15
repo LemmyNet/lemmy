@@ -72,7 +72,7 @@ mod tests {
   use serde_json::json;
   use url::Url;
 
-  #[tokio::test]
+  #[tokio_shared_rt::test(shared = true)]
   async fn receive_activity_duplicate() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
@@ -86,7 +86,7 @@ mod tests {
     Ok(())
   }
 
-  #[tokio::test]
+  #[tokio_shared_rt::test(shared = true)]
   async fn sent_activity_write_read() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();

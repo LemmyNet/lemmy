@@ -93,7 +93,7 @@ mod tests {
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
 
-  #[tokio::test]
+  #[tokio_shared_rt::test(shared = true)]
   async fn test_should_not_validate_user_token_after_password_change() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();

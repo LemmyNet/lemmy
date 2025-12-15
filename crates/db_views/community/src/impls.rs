@@ -463,7 +463,7 @@ mod tests {
     Ok(())
   }
 
-  #[tokio::test]
+  #[tokio_shared_rt::test(shared = true)]
   async fn follow_state() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
@@ -534,7 +534,7 @@ mod tests {
     cleanup(data, pool).await
   }
 
-  #[tokio::test]
+  #[tokio_shared_rt::test(shared = true)]
   async fn local_only_community() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
@@ -578,7 +578,7 @@ mod tests {
     cleanup(data, pool).await
   }
 
-  #[tokio::test]
+  #[tokio_shared_rt::test(shared = true)]
   async fn community_sort_name() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
@@ -607,7 +607,7 @@ mod tests {
     cleanup(data, pool).await
   }
 
-  #[tokio::test]
+  #[tokio_shared_rt::test(shared = true)]
   async fn can_mod() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
@@ -653,7 +653,7 @@ mod tests {
     cleanup(data, pool).await
   }
 
-  #[tokio::test]
+  #[tokio_shared_rt::test(shared = true)]
   async fn test_multi_community_list() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();

@@ -277,7 +277,7 @@ pub(crate) mod tests {
     Ok(serde_json::from_str(body)?)
   }
 
-  #[tokio::test]
+  #[tokio_shared_rt::test(shared = true)]
   async fn test_get_community() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let (data, community, path) = init(false, CommunityVisibility::Public, &context).await?;
@@ -315,7 +315,7 @@ pub(crate) mod tests {
     Ok(())
   }
 
-  #[tokio::test]
+  #[tokio_shared_rt::test(shared = true)]
   async fn test_get_deleted_community() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let (data, _, path) = init(true, CommunityVisibility::Public, &context).await?;
@@ -344,7 +344,7 @@ pub(crate) mod tests {
     Ok(())
   }
 
-  #[tokio::test]
+  #[tokio_shared_rt::test(shared = true)]
   async fn test_get_local_only_community() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let (data, _, path) = init(false, CommunityVisibility::LocalOnlyPrivate, &context).await?;
@@ -369,7 +369,7 @@ pub(crate) mod tests {
     Ok(())
   }
 
-  #[tokio::test]
+  #[tokio_shared_rt::test(shared = true)]
   async fn test_outbox_deleted_user() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let (data, community, path) = init(false, CommunityVisibility::Public, &context).await?;
