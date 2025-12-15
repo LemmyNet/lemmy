@@ -38,6 +38,8 @@ pub struct NotifyData {
   creator: Person,
   community: Community,
   do_send_email: bool,
+  #[new(value = "None")]
+  pub apub_mentions: Option<Vec<Person>>,
 }
 
 struct CollectedNotifyData<'a> {
@@ -205,20 +207,28 @@ impl NotifyData {
     &'a self,
     context: &LemmyContext,
   ) -> LemmyResult<Vec<CollectedNotifyData<'a>>> {
-    let mentions = scrape_text_for_mentions(&self.content())
-      .into_iter()
-      .filter(|m| m.is_local(&context.settings().hostname) && m.name.ne(&self.creator.name));
+    let mentions = if let Some(apub_mentions) = self.apub_mentions.clone() {
+      apub_mentions
+    } else {
+      let scraped = scrape_text_for_mentions(&self.content())
+        .into_iter()
+        .filter(|m| m.is_local(&context.settings().hostname) && m.name.ne(&self.creator.name));
+      let mut persons = vec![];
+      for m in scraped {
+        let Ok(Some(p)) = Person::read_from_name(&mut context.pool(), &m.name, None, false).await
+        else {
+          // Ignore error if user is remote
+          continue;
+        };
+        persons.push(p);
+      }
+      persons
+    };
+
     let mut res = vec![];
     for mention in mentions {
-      let Ok(Some(person)) =
-        Person::read_from_name(&mut context.pool(), &mention.name, None, false).await
-      else {
-        // Ignore error if user is remote
-        continue;
-      };
-
       res.push(CollectedNotifyData {
-        person_id: person.id,
+        person_id: mention.id,
         local_url: self.link(context)?.into(),
         data: NotificationEmailData::Mention {
           content: self.content().clone(),
@@ -515,6 +525,7 @@ mod tests {
       creator: data.sara.person.clone(),
       community: data.community.clone(),
       do_send_email: false,
+      apub_mentions: None,
     }
     .send_internal(context.app_data().clone())
     .await?;

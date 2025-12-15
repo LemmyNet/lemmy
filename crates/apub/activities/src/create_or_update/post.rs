@@ -2,11 +2,13 @@ use crate::{
   activity_lists::AnnouncableActivities,
   check_community_deleted_or_removed,
   community::send_activity_in_community,
+  create_or_update::{parse_apub_mentions, tagged_user_inboxes},
   generate_activity_id,
   protocol::{CreateOrUpdateType, create_or_update::page::CreateOrUpdatePage},
 };
 use activitypub_federation::{
   config::Data,
+  fetch::object_id::ObjectId,
   protocol::verification::{verify_domains_match, verify_is_remote_object, verify_urls_match},
   traits::{Activity, Object},
 };
@@ -18,6 +20,7 @@ use lemmy_apub_objects::{
     person::ApubPerson,
     post::{ApubPost, post_nsfw, update_apub_post_tags},
   },
+  protocol::page::ApubTag,
   utils::{
     functions::{generate_to, verify_mod_action, verify_person_in_community, verify_visibility},
     protocol::InCommunity,
@@ -72,16 +75,9 @@ impl CreateOrUpdatePage {
 
     let create_or_update =
       CreateOrUpdatePage::new(post.into(), &person, &community, kind, &context).await?;
+    let inboxes = tagged_user_inboxes(create_or_update.object.tag, &context).await?;
     let activity = AnnouncableActivities::CreateOrUpdatePost(create_or_update);
-    send_activity_in_community(
-      activity,
-      &person,
-      &community,
-      ActivitySendTargets::empty(),
-      false,
-      &context,
-    )
-    .await?;
+    send_activity_in_community(activity, &person, &community, inboxes, false, &context).await?;
     Ok(())
   }
 }
@@ -157,7 +153,10 @@ impl Activity for CreateOrUpdatePage {
     let actor = self.actor.dereference(context).await?;
 
     let community = Community::read(&mut context.pool(), post.community_id).await?;
-    NotifyData::new(post.0, None, actor.0, community, do_send_email).send(context);
+
+    let mut notifs = NotifyData::new(post.0, None, actor.0, community, do_send_email);
+    notifs.apub_mentions = parse_apub_mentions(self.object.tag, &context).await?;
+    notifs.send(context);
 
     Ok(())
   }

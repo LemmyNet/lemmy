@@ -1,13 +1,9 @@
 use crate::{
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   protocol::tags::CommunityTag,
-  utils::protocol::{
-    AttributedTo,
-    ImageObject,
-    InCommunity,
-    LanguageTag,
-    PersonOrGroupType,
-    Source,
+  utils::{
+    mentions::Mention,
+    protocol::{AttributedTo, ImageObject, InCommunity, LanguageTag, PersonOrGroupType, Source},
   },
 };
 use activitypub_federation::{
@@ -28,6 +24,7 @@ use itertools::Itertools;
 use lemmy_api_utils::{context::LemmyContext, utils::proxy_image_link};
 use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult, UntranslatedError};
 use serde::{Deserialize, Deserializer, Serialize, de::Error};
+use serde_json::Value;
 use serde_with::skip_serializing_none;
 use url::Url;
 
@@ -74,7 +71,7 @@ pub struct Page {
   /// Contains hashtags and post tags.
   /// https://www.w3.org/TR/activitystreams-vocabulary/#dfn-tag
   #[serde(deserialize_with = "deserialize_skip_error", default)]
-  pub(crate) tag: Vec<HashtagOrLemmyTag>,
+  pub tag: Vec<ApubTag>,
   pub(crate) context: Option<String>,
 }
 
@@ -172,15 +169,17 @@ pub enum HashtagType {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
-pub enum HashtagOrLemmyTag {
+pub enum ApubTag {
   Hashtag(Hashtag),
   CommunityTag(CommunityTag),
+  Mention(Mention),
+  Unknown(Value),
 }
 
-impl HashtagOrLemmyTag {
+impl ApubTag {
   pub fn community_tag_url(&self) -> Option<Url> {
     match self {
-      HashtagOrLemmyTag::CommunityTag(t) => Some(t.id.clone()),
+      ApubTag::CommunityTag(t) => Some(t.id.clone()),
       _ => None,
     }
   }
