@@ -36,7 +36,6 @@ use lemmy_api::{
     block::user_block_person,
     change_password::change_password,
     change_password_after_reset::change_password_after_reset,
-    counts::get_counts,
     donation_dialog_shown::donation_dialog_shown,
     export_data::export_data,
     generate_totp_secret::generate_totp_secret,
@@ -58,6 +57,7 @@ use lemmy_api::{
     resend_verification_email::resend_verification_email,
     reset_password::reset_password,
     save_settings::save_user_settings,
+    unread_counts::get_unread_counts,
     update_totp::update_totp,
     user_block_instance::{user_block_instance_communities, user_block_instance_persons},
     validate_auth::validate_auth,
@@ -354,7 +354,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
       .service(
         scope("/account")
           .route("", get().to(get_my_user))
-          .route("/counts", get().to(get_counts))
+          .route("/unread_counts", get().to(get_unread_counts))
           .service(
             scope("/media")
               .route("", delete().to(delete_image))

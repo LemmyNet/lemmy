@@ -10,7 +10,7 @@ pub use lemmy_db_schema::{
 pub use lemmy_db_schema_file::enums::RegistrationMode;
 pub use lemmy_db_views_site::{
   SiteView,
-  api::{CountsResponse, GetSiteResponse, PostOrCommentOrPrivateMessage, SiteResponse},
+  api::{GetSiteResponse, PostOrCommentOrPrivateMessage, SiteResponse, UnreadCountsResponse},
 };
 
 pub mod administration {

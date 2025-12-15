@@ -748,12 +748,16 @@ impl Default for SuccessResponse {
   }
 }
 
+/// Contains the amount of unread items of various types. For normal users this means the number of
+/// unread notifications, mods and admins get additional unread counts for reports, registration
+/// applications and pending follows to private communities.
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-pub struct CountsResponse {
+pub struct UnreadCountsResponse {
   pub notification_count: i64,
-  pub report_count: i64,
-  pub pending_follow_count: i64,
-  pub registration_application_count: i64,
+  pub report_count: Option<i64>,
+  pub pending_follow_count: Option<i64>,
+  pub registration_application_count: Option<i64>,
 }
