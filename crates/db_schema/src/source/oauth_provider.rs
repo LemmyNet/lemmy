@@ -3,11 +3,7 @@ use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::oauth_provider;
 use lemmy_diesel_utils::{dburl::DbUrl, sensitive::SensitiveString};
-use serde::{
-  Deserialize,
-  Serialize,
-  ser::{SerializeStruct, Serializer},
-};
+use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
 #[skip_serializing_none]
@@ -18,7 +14,7 @@ use serde_with::skip_serializing_none;
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// oauth provider with client_secret - should never be sent to the client
-pub struct OAuthProvider {
+pub struct AdminOAuthProvider {
   pub id: OAuthProviderId,
   /// The OAuth 2.0 provider name displayed to the user on the Login page
   pub display_name: String,
@@ -62,28 +58,28 @@ pub struct OAuthProvider {
   pub use_pkce: bool,
 }
 
-#[derive(Clone, PartialEq, Eq, Debug, Deserialize)]
-#[serde(transparent)]
+#[skip_serializing_none]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 // A subset of OAuthProvider used for public requests, for example to display the OAUTH buttons on
 // the login page
-pub struct PublicOAuthProvider(pub OAuthProvider);
-
-impl Serialize for PublicOAuthProvider {
-  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-  where
-    S: Serializer,
-  {
-    let mut state = serializer.serialize_struct("PublicOAuthProvider", 5)?;
-    state.serialize_field("id", &self.0.id)?;
-    state.serialize_field("display_name", &self.0.display_name)?;
-    state.serialize_field("authorization_endpoint", &self.0.authorization_endpoint)?;
-    state.serialize_field("client_id", &self.0.client_id)?;
-    state.serialize_field("scopes", &self.0.scopes)?;
-    state.serialize_field("use_pkce", &self.0.use_pkce)?;
-    state.end()
-  }
+pub struct PublicOAuthProvider {
+  pub id: OAuthProviderId,
+  /// The OAuth 2.0 provider name displayed to the user on the Login page
+  pub display_name: String,
+  /// The authorization endpoint is used to interact with the resource owner and obtain an
+  /// authorization grant. This is usually provided by the OAUTH provider.
+  #[cfg_attr(feature = "ts-rs", ts(type = "string"))]
+  pub authorization_endpoint: DbUrl,
+  /// The client_id is provided by the OAuth 2.0 provider and is a unique identifier to this
+  /// service
+  pub client_id: String,
+  /// Lists the scopes requested from users. Users will have to grant access to the requested scope
+  /// at sign up.
+  pub scopes: String,
+  /// switch to enable or disable PKCE
+  pub use_pkce: bool,
 }
 
 #[derive(Debug, Clone)]

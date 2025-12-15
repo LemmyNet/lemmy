@@ -20,7 +20,7 @@ use std::{
   time::Duration,
 };
 use tokio::task::spawn_blocking;
-use tracing::warn;
+use tracing::{error, warn};
 use url::Url;
 
 const GET_PLUGIN_TIMEOUT: Duration = Duration::from_secs(1);
@@ -111,7 +111,13 @@ pub fn plugin_metadata() -> Vec<PluginMetadata> {
       METADATA.get_or_init(|| {
         let mut metadata = vec![];
         for plugin in LemmyPlugins::get_or_init().0 {
-          let run = plugin.pool.get(GET_PLUGIN_TIMEOUT).ok().flatten();
+          let run = match plugin.pool.get(GET_PLUGIN_TIMEOUT) {
+            Ok(p) => p,
+            Err(e) => {
+              error!("Failed to load plugin {}: {e}", plugin.filename);
+              continue;
+            }
+          };
           let m = run.and_then(|run| run.call("metadata", 0).ok());
           if let Some(m) = m {
             metadata.push(m);
@@ -143,10 +149,9 @@ struct LemmyPlugin {
 
 impl LemmyPlugin {
   fn init(settings: PluginSettings) -> LemmyResult<Self> {
-    let meta = WasmMetadata {
-      hash: settings.hash,
-      name: None,
-    };
+    // if no hash was provided in config, set a dummy value here to enforce hash check
+    let hash = Some(settings.hash.unwrap_or_else(|| "dummy".to_string()));
+    let meta = WasmMetadata { hash, name: None };
     let (wasm, filename) = if settings.file.starts_with("http") {
       let name: Option<String> = Url::parse(&settings.file)?
         .path_segments()

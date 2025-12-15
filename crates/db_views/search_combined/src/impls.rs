@@ -275,11 +275,12 @@ impl SearchCombinedQuery {
         query = if self.title_only.unwrap_or_default() {
           query.filter(name_or_title_filter)
         } else {
-          let body_or_description_filter = post::body
+          let body_or_description_or_bio_filter = post::body
             .ilike(searcher.clone())
             .or(community::description.ilike(searcher.clone()))
-            .or(multi_community::description.ilike(searcher.clone()));
-          query.filter(name_or_title_filter.or(body_or_description_filter))
+            .or(multi_community::description.ilike(searcher.clone()))
+            .or(person::bio.ilike(searcher.clone()));
+          query.filter(name_or_title_filter.or(body_or_description_or_bio_filter))
         }
       }
     }
