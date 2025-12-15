@@ -287,6 +287,7 @@ impl SearchCombinedQuery {
             .and(post::body.ilike(searcher.clone()))
             .or(is_community.and(community::description.ilike(searcher.clone())))
             .or(is_multi_community.and(multi_community::description.ilike(searcher.clone())));
+            .or(is_person.and(person::bio.ilike(searcher.clone())));
           query.filter(name_or_title_filter.or(body_or_description_filter))
         }
       }

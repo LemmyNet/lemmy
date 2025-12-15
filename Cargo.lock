@@ -35,7 +35,7 @@ dependencies = [
  "pin-project-lite",
  "rand 0.8.5",
  "regex",
- "reqwest 0.12.24",
+ "reqwest 0.12.25",
  "reqwest-middleware",
  "rsa",
  "serde",
@@ -1679,9 +1679,9 @@ dependencies = [
 
 [[package]]
 name = "deser-hjson"
-version = "2.2.4"
+version = "2.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d94aac4095c08ded7e4b9ba7fc2b2929f11b94bb96897ca188b0f64e01688e1"
+checksum = "1fbc1498156ddf9adc2eb251c1697b3a0dea599c94fb8cf1313f986adcc70f6e"
 dependencies = [
  "serde",
 ]
@@ -2098,7 +2098,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2751,7 +2751,7 @@ dependencies = [
  "base64 0.22.1",
  "http-signature-normalization",
  "httpdate",
- "reqwest 0.12.24",
+ "reqwest 0.12.25",
  "reqwest-middleware",
  "sha2",
  "thiserror 2.0.17",
@@ -2864,7 +2864,7 @@ dependencies = [
  "libc",
  "percent-encoding",
  "pin-project-lite",
- "socket2 0.6.1",
+ "socket2 0.5.10",
  "tokio",
  "tower-service",
  "tracing",
@@ -3340,20 +3340,20 @@ dependencies = [
 
 [[package]]
 name = "lemmy_api_common"
-version = "0.19.12"
+version = "0.19.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "04cfb0ac58e40e536864d83471f2e3f99c5e20621f8f9cc6ad4b0d4e55f3c90c"
+checksum = "f1291e1d2bf17e59567faa97df88dec49978f14ef8608179b7c30fd64df8ae76"
 dependencies = [
  "anyhow",
  "chrono",
  "enum-map",
  "getrandom 0.2.16",
  "infer 0.16.0",
- "lemmy_db_schema 0.19.12",
+ "lemmy_db_schema 0.19.14",
  "lemmy_db_views",
  "lemmy_db_views_actor",
  "lemmy_db_views_moderator",
- "lemmy_utils 0.19.12",
+ "lemmy_utils 0.19.14",
  "mime_guess",
  "moka",
  "regex",
@@ -3428,7 +3428,7 @@ dependencies = [
  "lemmy_email",
  "lemmy_utils 1.0.0-alpha.12",
  "regex",
- "reqwest 0.12.24",
+ "reqwest 0.12.25",
  "serde",
  "serde_json",
  "serde_with",
@@ -3455,7 +3455,7 @@ dependencies = [
  "actix-web",
  "chrono",
  "lemmy_api",
- "lemmy_api_common 0.19.12",
+ "lemmy_api_common 0.19.14",
  "lemmy_api_crud",
  "lemmy_api_utils",
  "lemmy_db_schema 1.0.0-alpha.12",
@@ -3514,7 +3514,7 @@ dependencies = [
  "moka",
  "pretty_assertions",
  "regex",
- "reqwest 0.12.24",
+ "reqwest 0.12.25",
  "reqwest-middleware",
  "serde",
  "serial_test",
@@ -3650,7 +3650,7 @@ dependencies = [
  "lemmy_utils 1.0.0-alpha.12",
  "mockall",
  "moka",
- "reqwest 0.12.24",
+ "reqwest 0.12.25",
  "serde",
  "serde_json",
  "serial_test",
@@ -3665,9 +3665,9 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_schema"
-version = "0.19.12"
+version = "0.19.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "650f1334921063c8ebacde7cb1647202dcb9dc5bbb6bc02c3ed796474fe22f7f"
+checksum = "79b3829044de83cf01d42454d02a0a9d326081ef30ba00803ebc4245e5ab0988"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3729,24 +3729,24 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views"
-version = "0.19.12"
+version = "0.19.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8d19c1f9061f4867a8099b0a03ffe6d92a60f5a75e63df5907852b3c40386ca6"
+checksum = "52b842d659bf5785685169e6ba51dd80cdd271e140bc1474dce32a72ab91eea6"
 dependencies = [
  "chrono",
- "lemmy_db_schema 0.19.12",
+ "lemmy_db_schema 0.19.14",
  "serde",
  "serde_with",
 ]
 
 [[package]]
 name = "lemmy_db_views_actor"
-version = "0.19.12"
+version = "0.19.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6c1128ed073768d63a295895c79181c0b6f8cf048fa0a11b6d2f3936d92b5715"
+checksum = "e78e9cc9625843bfd9456cc347f2280939acb2b96c565a91d9cde9021dc932b5"
 dependencies = [
  "chrono",
- "lemmy_db_schema 0.19.12",
+ "lemmy_db_schema 0.19.14",
  "serde",
  "serde_with",
  "strum 0.26.3",
@@ -3897,11 +3897,11 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_moderator"
-version = "0.19.12"
+version = "0.19.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c95077880930ea415c9b39c2c696679fc3aa9a54f682d3698d6ce3098bf14bc8"
+checksum = "0ffada80050ba7da37fa64ed0986374115c9480c296c53c20ea1a673c15653a9"
 dependencies = [
- "lemmy_db_schema 0.19.12",
+ "lemmy_db_schema 0.19.14",
  "serde",
  "serde_with",
 ]
@@ -4302,7 +4302,7 @@ dependencies = [
  "pretty_assertions",
  "prometheus",
  "rand 0.9.2",
- "reqwest 0.12.24",
+ "reqwest 0.12.25",
  "reqwest-middleware",
  "rss",
  "serde",
@@ -4345,9 +4345,9 @@ dependencies = [
 
 [[package]]
 name = "lemmy_utils"
-version = "0.19.12"
+version = "0.19.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d5fdb24231f6667917ba034920c5e578431b2d6ae626f72a8ca2579bc1439c7f"
+checksum = "88bb24d32691e06a2a6e0baff2656700069ee5aa10bd5535e80dced5d1fbb5fe"
 dependencies = [
  "cfg-if",
  "clearurls",
@@ -4943,7 +4943,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -5647,7 +5647,7 @@ dependencies = [
  "quinn-udp",
  "rustc-hash",
  "rustls 0.23.35",
- "socket2 0.6.1",
+ "socket2 0.5.10",
  "thiserror 2.0.17",
  "tokio",
  "tracing",
@@ -5684,9 +5684,9 @@ dependencies = [
  "cfg_aliases",
  "libc",
  "once_cell",
- "socket2 0.6.1",
+ "socket2 0.5.10",
  "tracing",
- "windows-sys 0.60.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -5932,11 +5932,10 @@ dependencies = [
 
 [[package]]
 name = "reqwest"
-version = "0.12.24"
+version = "0.12.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d0946410b9f7b082a427e4ef5c8ff541a88b357bc6c637c40db3a68ac70a36f"
+checksum = "b6eff9328d40131d43bd911d42d79eb6a47312002a4daefc9e37f17e74a7701a"
 dependencies = [
- "async-compression",
  "base64 0.22.1",
  "bytes",
  "futures-channel",
@@ -5982,7 +5981,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "http 1.4.0",
- "reqwest 0.12.24",
+ "reqwest 0.12.25",
  "serde",
  "thiserror 1.0.69",
  "tower-service",
@@ -5999,7 +5998,7 @@ dependencies = [
  "getrandom 0.2.16",
  "http 1.4.0",
  "matchit",
- "reqwest 0.12.24",
+ "reqwest 0.12.25",
  "reqwest-middleware",
  "tracing",
 ]
@@ -6155,7 +6154,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.11.0",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -6931,7 +6930,7 @@ dependencies = [
  "getrandom 0.3.4",
  "once_cell",
  "rustix 1.1.2",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -7340,17 +7339,22 @@ dependencies = [
 
 [[package]]
 name = "tower-http"
-version = "0.6.6"
+version = "0.6.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "adc82fd73de2a9722ac5da747f12383d2bfdb93591ee6c58486e0097890f05f2"
+checksum = "d4e6559d53cc268e5031cd8429d05415bc4cb4aefc4aa5d6cc35fbf5b924a1f8"
 dependencies = [
+ "async-compression",
  "bitflags 2.10.0",
  "bytes",
+ "futures-core",
  "futures-util",
  "http 1.4.0",
  "http-body 1.0.1",
+ "http-body-util",
  "iri-string",
  "pin-project-lite",
+ "tokio",
+ "tokio-util",
  "tower",
  "tower-layer",
  "tower-service",
@@ -7382,9 +7386,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-actix-web"
-version = "0.7.19"
+version = "0.7.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5360edd490ec8dee9fedfc6a9fd83ac2f01b3e1996e3261b9ad18a61971fe064"
+checksum = "2f28f45dd524790b44a7b372f7c3aec04a3af6b42d494e861b67de654cb25a5e"
 dependencies = [
  "actix-web",
  "mutually_exclusive_features",
@@ -8344,7 +8348,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
