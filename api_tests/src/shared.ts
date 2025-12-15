@@ -5,7 +5,6 @@ import {
   CommunityVisibility,
   CreatePrivateMessageReport,
   EditCommunity,
-  GetUnreadCountResponse,
   InstanceId,
   LemmyHttp,
   ListCommunityPendingFollows,
@@ -85,7 +84,7 @@ import {
   PendingFollowerView,
   ModlogView,
   PostCommentCombinedView,
-  CountsResponse,
+  UnreadCountsResponse,
 } from "lemmy-js-client";
 
 export const fetchFunction = fetch;
@@ -395,8 +394,10 @@ export async function getComments(
   return api.getComments(form);
 }
 
-export async function getUnreadCount(api: LemmyHttp): Promise<CountsResponse> {
-  return api.getUnreadCount();
+export async function getUnreadCounts(
+  api: LemmyHttp,
+): Promise<UnreadCountsResponse> {
+  return api.getUnreadCounts();
 }
 
 export async function listNotifications(

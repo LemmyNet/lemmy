@@ -1,4 +1,5 @@
-use actix_web::web::{Data, Json};
+use activitypub_federation::config::Data;
+use actix_web::web::Json;
 use lemmy_api_utils::{
   context::LemmyContext,
   utils::{check_community_mod_of_any_or_admin_action, is_admin},
