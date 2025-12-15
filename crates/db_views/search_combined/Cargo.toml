@@ -59,4 +59,5 @@ url = { workspace = true }
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }
+tokio = { workspace = true }
 tokio-shared-rt = { workspace = true }

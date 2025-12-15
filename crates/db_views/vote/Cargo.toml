@@ -38,5 +38,6 @@ serde_with = { workspace = true }
 ts-rs = { workspace = true, optional = true }
 
 [dev-dependencies]
+tokio = { workspace = true }
 tokio-shared-rt = { workspace = true }
 pretty_assertions = { workspace = true }

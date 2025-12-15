@@ -44,5 +44,6 @@ chrono = { workspace = true }
 
 [dev-dependencies]
 lemmy_db_views_local_user = { workspace = true }
+tokio = { workspace = true }
 tokio-shared-rt = { workspace = true }
 pretty_assertions = { workspace = true }

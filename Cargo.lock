@@ -3797,6 +3797,7 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
+ "tokio",
  "tokio-shared-rt",
  "ts-rs",
 ]
@@ -3815,6 +3816,7 @@ dependencies = [
  "lemmy_utils 1.0.0-alpha.12",
  "serde",
  "serde_with",
+ "tokio",
  "tokio-shared-rt",
  "ts-rs",
  "url",
@@ -3849,6 +3851,7 @@ dependencies = [
  "lemmy_utils 1.0.0-alpha.12",
  "serde",
  "serde_with",
+ "tokio",
  "tokio-shared-rt",
  "ts-rs",
 ]
@@ -3915,6 +3918,7 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
+ "tokio",
  "tokio-shared-rt",
  "ts-rs",
 ]
@@ -3944,6 +3948,7 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
+ "tokio",
  "tokio-shared-rt",
  "ts-rs",
 ]
@@ -3968,6 +3973,7 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
+ "tokio",
  "tokio-shared-rt",
  "ts-rs",
 ]
@@ -3997,6 +4003,7 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
+ "tokio",
  "tokio-shared-rt",
  "ts-rs",
 ]
@@ -4018,6 +4025,7 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
+ "tokio",
  "tokio-shared-rt",
  "ts-rs",
 ]
@@ -4038,6 +4046,7 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
+ "tokio",
  "tokio-shared-rt",
  "ts-rs",
 ]
@@ -4058,6 +4067,7 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
+ "tokio",
  "tokio-shared-rt",
  "ts-rs",
 ]
@@ -4127,6 +4137,7 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
+ "tokio",
  "tokio-shared-rt",
  "ts-rs",
 ]
@@ -4148,6 +4159,7 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
+ "tokio",
  "tokio-shared-rt",
  "ts-rs",
 ]
@@ -4180,6 +4192,7 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
+ "tokio",
  "tokio-shared-rt",
  "ts-rs",
  "url",
@@ -4207,6 +4220,7 @@ dependencies = [
  "lemmy_utils 1.0.0-alpha.12",
  "serde",
  "serde_with",
+ "tokio",
  "tokio-shared-rt",
  "ts-rs",
  "url",
@@ -4225,6 +4239,7 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_with",
+ "tokio",
  "tokio-shared-rt",
  "ts-rs",
 ]
