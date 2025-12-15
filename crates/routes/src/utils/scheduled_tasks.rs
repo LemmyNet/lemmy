@@ -728,9 +728,8 @@ mod tests {
   };
   use pretty_assertions::assert_eq;
   use reqwest_middleware::ClientBuilder;
-  use serial_test::serial;
 
-  #[tokio::test]
+  #[tokio_shared_rt::test(shared = true)]
   async fn test_nodeinfo_lemmy_ml() -> LemmyResult<()> {
     let client = ClientBuilder::new(client_builder(&Settings::default()).build()?).build();
     let form = build_update_instance_form("lemmy.ml", &client)
@@ -740,7 +739,7 @@ mod tests {
     Ok(())
   }
 
-  #[tokio::test]
+  #[tokio_shared_rt::test(shared = true)]
   async fn test_nodeinfo_mastodon_social() -> LemmyResult<()> {
     let client = ClientBuilder::new(client_builder(&Settings::default()).build()?).build();
     let form = build_update_instance_form("mastodon.social", &client)
@@ -750,8 +749,7 @@ mod tests {
     Ok(())
   }
 
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn test_scheduled_tasks() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();

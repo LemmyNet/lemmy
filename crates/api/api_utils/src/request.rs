@@ -599,12 +599,10 @@ mod tests {
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
-  use serial_test::serial;
   use url::Url;
 
   // These helped with testing
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn test_link_metadata() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let sample_url = Url::parse("https://gitlab.com/IzzyOnDroid/repo/-/wikis/FAQ")?;

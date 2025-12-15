@@ -8,7 +8,7 @@ cd "$CWD/../"
 PACKAGE="$1"
 TEST="$2"
 
-source scripts/start_dev_db.sh
+source scripts/start_test_db.sh
 
 # tests are executed in working directory crates/api (or similar),
 # so to load the config we need to traverse to the repo root
@@ -24,5 +24,4 @@ fi
 
 # Add this to do printlns: -- --nocapture
 
-pg_ctl stop --silent
-rm -rf $PGDATA
+docker-compose -f docker/docker-compose-test.yml down

@@ -117,10 +117,8 @@ mod tests {
   };
   use lemmy_diesel_utils::traits::Crud;
   use pretty_assertions::assert_eq;
-  use serial_test::serial;
 
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn test_parse_lemmy_community_moderators() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let test_data = TestData::create(&mut context.pool()).await?;

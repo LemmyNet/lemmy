@@ -30,12 +30,10 @@ mod tests {
   use crate::source::instance::Instance;
   use lemmy_diesel_utils::connection::build_db_pool_for_tests;
   use pretty_assertions::assert_eq;
-  use serial_test::serial;
 
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn test_allowlist_insert_and_clear() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let instances = vec![
       Instance::read_or_create(pool, "tld1.xyz").await?,

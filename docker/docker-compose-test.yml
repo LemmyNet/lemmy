@@ -1,0 +1,10 @@
+services:
+  postgres:
+    image: pgautoupgrade/pgautoupgrade:16-alpine
+    ports:
+      # use a different port so it doesn't conflict with potential postgres db running on the host
+      - "5433:5432"
+    environment:
+      - POSTGRES_USER=lemmy
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=lemmy

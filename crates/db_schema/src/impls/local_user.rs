@@ -407,12 +407,10 @@ mod tests {
   };
   use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use lemmy_utils::error::LemmyResult;
-  use serial_test::serial;
 
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn test_admin_higher_check() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
@@ -448,10 +446,9 @@ mod tests {
     Ok(())
   }
 
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn test_email_taken() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     let darwin_email = "charles.darwin@gmail.com";
