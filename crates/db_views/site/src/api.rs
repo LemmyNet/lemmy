@@ -752,7 +752,7 @@ impl Default for SuccessResponse {
 /// unread notifications, mods and admins get additional unread counts for reports, registration
 /// applications and pending follows to private communities.
 #[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct UnreadCountsResponse {
