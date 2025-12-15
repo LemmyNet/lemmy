@@ -145,9 +145,8 @@ async fn test_post() -> LemmyResult<()> {
 }
 
 #[tokio::test]
-#[serial]
 async fn test_modlog() -> LemmyResult<()> {
-  let pool = &build_db_pool_for_tests();
+  let pool = &build_db_pool_for_tests().await;
   let pool = &mut pool.into();
   let data = init_data(pool).await?;
 

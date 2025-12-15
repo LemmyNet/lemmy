@@ -240,7 +240,7 @@ mod tests {
 
   #[tokio::test]
   async fn test_instance_list() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     // insert test data

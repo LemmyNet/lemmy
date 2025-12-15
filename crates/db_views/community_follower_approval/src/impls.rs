@@ -251,7 +251,7 @@ mod tests {
 
   #[tokio::test]
   async fn test_has_followers_from_instance() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     // insert local community
@@ -319,7 +319,7 @@ mod tests {
 
   #[tokio::test]
   async fn test_pending_followers() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     // insert local community

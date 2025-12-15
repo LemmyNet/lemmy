@@ -1287,12 +1287,11 @@ mod tests {
   }
 
   #[tokio::test]
-  #[serial]
   async fn ensure_creator_data_is_correct() -> LemmyResult<()> {
     // The creator_banned and other creator_data should be the content creator, not the report
     // creator.
 
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
