@@ -27,6 +27,10 @@ old_tag=$(grep version Cargo.toml | head -1 | cut -d'"' -f 2)
 sed -i "s/{ version = \"=$old_tag\", path/{ version = \"=$new_tag\", path/g" Cargo.toml
 sed -i "s/version = \"$old_tag\"/version = \"$new_tag\"/g" Cargo.toml
 
+# Update the version file
+echo "pub const VERSION: &str = \"$new_tag\";" >crates/utils/src/version.rs
+git add crates/utils/src/version.rs
+
 # Update the submodules
 git submodule update --remote
 

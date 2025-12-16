@@ -40,7 +40,7 @@ use webpage::{HTML, OpengraphObject};
 pub fn client_builder(settings: &Settings) -> ClientBuilder {
   let user_agent = format!(
     "Lemmy/{}; +{}",
-    *VERSION,
+    VERSION,
     settings.get_protocol_and_hostname()
   );
 
