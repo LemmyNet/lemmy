@@ -20,6 +20,7 @@ FROM --platform=${BUILDPLATFORM} ${AMD_BUILDER_IMAGE} AS build-amd64
 ARG CARGO_BUILD_FEATURES
 ARG RUST_RELEASE_MODE
 ARG RUSTFLAGS
+ARG LEMMY_VERSION
 
 WORKDIR /lemmy
 
@@ -48,6 +49,7 @@ FROM --platform=linux/amd64 ${ARM_BUILDER_IMAGE} AS build-arm64
 ARG RUST_RELEASE_MODE
 ARG CARGO_BUILD_FEATURES
 ARG RUSTFLAGS
+ARG LEMMY_VERSION
 
 WORKDIR /home/lemmy/src
 USER 10001:10001
@@ -55,9 +57,7 @@ USER 10001:10001
 COPY --chown=lemmy:lemmy . ./
 
 ENV PATH="/home/lemmy/.cargo/bin:${PATH}"
-ENV RUST_RELEASE_MODE=${RUST_RELEASE_MODE} \
-    CARGO_BUILD_FEATURES=${CARGO_BUILD_FEATURES}
-
+    
 # Debug build
 RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
     if [ "${RUST_RELEASE_MODE}" = "debug" ]; then \
@@ -84,7 +84,7 @@ COPY --from=build-amd64 --chmod=0755 /lemmy/lemmy_server /usr/local/bin
 # arm base runner
 FROM ${ARM_RUNNER_IMAGE} AS runner-linux-arm64
 
-RUN apt update && apt install -y libssl-dev libpq-dev ca-certificates curl git
+RUN apt update && apt install -y libssl-dev libpq-dev ca-certificates curl
 
 COPY --from=build-arm64 --chmod=0755 /home/lemmy/lemmy_server /usr/local/bin
 
