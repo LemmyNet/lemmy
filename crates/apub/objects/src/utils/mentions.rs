@@ -22,7 +22,7 @@ pub(crate) struct MentionsAndAddresses {
   pub mentions: Vec<ApubTag>,
 }
 
-/// This takes a comment, and builds a list of to_addresses, inboxes,
+/// This takes a markdown text, and builds a list of to_addresses, inboxes,
 /// and mention tags, so they know where to be sent to.
 /// Addresses are the persons / addresses that go in the cc field.
 pub(crate) async fn collect_non_local_mentions(

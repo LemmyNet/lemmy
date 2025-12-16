@@ -9,6 +9,8 @@ pub(crate) mod note_wrapper;
 pub mod post;
 pub mod private_message;
 
+/// From Activitypub `tag` field extract the mentions, and return the inboxes for these users.
+/// Used when sending out activity to ensure the mentioned users see it.
 async fn tagged_user_inboxes(
   tagged_users: &Vec<ApubTag>,
   context: &Data<LemmyContext>,
@@ -22,12 +24,12 @@ async fn tagged_user_inboxes(
   Ok(inboxes)
 }
 
+/// Extracts the users who are mentioned in a received, federated post.
 async fn parse_apub_mentions(
   tags: &Vec<ApubTag>,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<Vec<Person>> {
   let mentions: Vec<_> = tags.iter().filter_map(ApubTag::mention_id).collect();
-  // TODO: resolve, filter local
   let mut res = vec![];
   for m in mentions {
     let person = m.dereference(context).await?.0;

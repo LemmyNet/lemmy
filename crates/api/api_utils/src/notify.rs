@@ -34,10 +34,10 @@ use url::Url;
 #[derive(derive_new::new, Debug, Clone)]
 pub struct NotifyData {
   post: Post,
-  #[new(value = "None")]
-  comment_opt: Option<Comment>,
   creator: Person,
   community: Community,
+  #[new(value = "None")]
+  comment_opt: Option<Comment>,
   #[new(value = "false")]
   do_send_email: bool,
   #[new(value = "None")]
