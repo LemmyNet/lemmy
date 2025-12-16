@@ -6,7 +6,7 @@ use crate::{
     person::ApubPerson,
     post::ApubPost,
   },
-  protocol::page::{ApubTag, Attachment},
+  protocol::{page::Attachment, tags::ApubTag},
   utils::protocol::{InCommunity, LanguageTag, Source},
 };
 use activitypub_federation::{

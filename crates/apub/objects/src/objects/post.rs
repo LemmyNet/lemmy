@@ -1,14 +1,7 @@
 use crate::{
   protocol::{
-    page::{
-      ApubTag,
-      Attachment,
-      Hashtag,
-      HashtagType::{self},
-      Page,
-      PageType,
-    },
-    tags::CommunityTag,
+    page::{Attachment, Page, PageType},
+    tags::{ApubTag, CommunityTag, Hashtag, HashtagType},
   },
   utils::{
     functions::{
@@ -338,12 +331,12 @@ pub async fn update_apub_post_tags(
   let post_tag_ap_ids = page
     .tag
     .iter()
-    .filter_map(ApubTag::community_tag_url)
+    .filter_map(ApubTag::community_tag_id)
     .collect::<HashSet<_>>();
   let community_tags = Tag::read_for_community(&mut context.pool(), post.community_id).await?;
   let post_tags = community_tags
     .into_iter()
-    .filter(|t| post_tag_ap_ids.contains(&t.ap_id))
+    .filter(|t| post_tag_ap_ids.contains(&*t.ap_id.0))
     .map(|t| t.id)
     .collect::<Vec<_>>();
   update_post_tags(post, &post_tags, context).await?;

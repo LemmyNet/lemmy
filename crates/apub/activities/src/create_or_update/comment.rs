@@ -139,7 +139,7 @@ impl Activity for CreateOrUpdateNote {
     let community = Community::read(&mut context.pool(), post.community_id).await?;
     NotifyData::new(post.0, actor.0, community)
       .comment(comment.0)
-      .apub_mentions(parse_apub_mentions(self.tag, &context).await?)
+      .apub_mentions(parse_apub_mentions(&self.tag, &context).await?)
       .do_send_email(do_send_email)
       .send(context);
     Ok(())

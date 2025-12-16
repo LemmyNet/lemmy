@@ -7,7 +7,7 @@ use activitypub_federation::{
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
   objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::{note::Note, page::ApubTag},
+  protocol::{note::Note, tags::ApubTag},
   utils::protocol::InCommunity,
 };
 use lemmy_db_schema::source::community::Community;

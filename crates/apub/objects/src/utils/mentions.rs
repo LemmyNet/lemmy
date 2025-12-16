@@ -1,7 +1,10 @@
-use crate::{objects::person::ApubPerson, protocol::page::ApubTag};
+use crate::{
+  objects::person::ApubPerson,
+  protocol::tags::{ApubTag, Mention},
+};
 use activitypub_federation::{
   config::Data,
-  fetch::{object_id::ObjectId, webfinger::webfinger_resolve_actor},
+  fetch::webfinger::webfinger_resolve_actor,
   kinds::link::MentionType,
   traits::Object,
 };
@@ -12,16 +15,7 @@ use lemmy_utils::{
   error::{LemmyResult, UntranslatedError},
   utils::mention::scrape_text_for_mentions,
 };
-use serde::{Deserialize, Serialize};
 use url::Url;
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct Mention {
-  pub href: ObjectId<ApubPerson>,
-  name: Option<String>,
-  #[serde(rename = "type")]
-  pub kind: MentionType,
-}
 
 pub(crate) struct MentionsAndAddresses {
   pub ccs: Vec<Url>,
