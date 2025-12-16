@@ -17,33 +17,44 @@ pub async fn get_unread_counts(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<UnreadCountsResponse>> {
   let person = &local_user_view.person;
-  let mut res = UnreadCountsResponse::default();
-
   let show_bot_accounts = local_user_view.local_user.show_bot_accounts;
-  res.notification_count =
+
+  let notification_count =
     NotificationView::get_unread_count(&mut context.pool(), person, show_bot_accounts).await?;
 
   // Community mods get additional counts for reports and pending follows for private communities.
-  if check_community_mod_of_any_or_admin_action(&local_user_view, &mut context.pool())
-    .await
-    .is_ok()
-  {
-    res.report_count = Some(
-      ReportCombinedViewInternal::get_report_count(&mut context.pool(), &local_user_view).await?,
-    );
-    res.pending_follow_count =
-      Some(PendingFollowerView::count_approval_required(&mut context.pool(), person.id).await?);
-  }
+  let (report_count, pending_follow_count) =
+    if check_community_mod_of_any_or_admin_action(&local_user_view, &mut context.pool())
+      .await
+      .is_ok()
+    {
+      (
+        Some(
+          ReportCombinedViewInternal::get_report_count(&mut context.pool(), &local_user_view)
+            .await?,
+        ),
+        Some(PendingFollowerView::count_approval_required(&mut context.pool(), person.id).await?),
+      )
+    } else {
+      (None, None)
+    };
 
   // Admins also get the number of unread registration applications.
-  if is_admin(&local_user_view).is_ok() {
+  let registration_application_count = if is_admin(&local_user_view).is_ok() {
     let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
     let verified_email_only = local_site.require_email_verification;
-    res.registration_application_count = Some(
+    Some(
       RegistrationApplicationView::get_unread_count(&mut context.pool(), verified_email_only)
         .await?,
     )
-  }
+  } else {
+    None
+  };
 
-  Ok(Json(res))
+  Ok(Json(UnreadCountsResponse {
+    notification_count,
+    report_count,
+    pending_follow_count,
+    registration_application_count,
+  }))
 }
