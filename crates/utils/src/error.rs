@@ -7,7 +7,6 @@ use strum::{Display, EnumIter};
 #[derive(Display, Debug, Serialize, Deserialize, Clone, PartialEq, EnumIter, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
-#[serde(tag = "error", content = "message", rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum LemmyErrorType {
   BlockKeywordTooShort,
@@ -230,7 +229,13 @@ cfg_if! {
       }
 
       fn error_response(&self) -> actix_web::HttpResponse {
-        actix_web::HttpResponse::build(self.status_code()).json(&self.error_type)
+        #[derive(Serialize)]
+        struct Res<'a> {
+          error: &'a LemmyErrorType,
+          details: String
+        }
+        let json = Res {error: &self.error_type, details:self.inner.to_string()};
+        actix_web::HttpResponse::build(self.status_code()).json(json)
       }
     }
 
