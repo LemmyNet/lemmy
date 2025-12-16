@@ -1,1 +1,1 @@
-pub const VERSION: &str = "0.19.14";
+pub const VERSION: &str = "1.0.0-test-ci-nightly-versioning.1";
