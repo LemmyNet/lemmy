@@ -50,7 +50,7 @@ pub(crate) async fn collect_non_local_mentions(
 
   // Get the person IDs for any mentions
   let scraped = content
-    .map(|c| scrape_text_for_mentions(c))
+    .map(scrape_text_for_mentions)
     .into_iter()
     .flatten()
     // Filter only the non-local ones
