@@ -139,11 +139,7 @@ impl ReportCombinedViewInternal {
   }
 
   /// returns the current unresolved report count for the communities you mod
-  pub async fn get_report_count(
-    pool: &mut DbPool<'_>,
-    user: &LocalUserView,
-    community_id: Option<CommunityId>,
-  ) -> LemmyResult<i64> {
+  pub async fn get_report_count(pool: &mut DbPool<'_>, user: &LocalUserView) -> LemmyResult<i64> {
     use diesel::dsl::count;
 
     let conn = &mut get_conn(pool).await?;
@@ -152,14 +148,6 @@ impl ReportCombinedViewInternal {
       .filter(report_is_not_resolved())
       .select(count(report_combined::id))
       .into_boxed();
-
-    if let Some(community_id) = community_id {
-      query = query.filter(
-        community::id
-          .eq(community_id)
-          .and(report_combined::community_report_id.is_null()),
-      );
-    }
 
     if user.local_user.admin {
       query = query.filter(filter_admin_reports(Utc::now() - Days::new(3)));
@@ -683,10 +671,10 @@ mod tests {
     }
 
     let report_count_mod =
-      ReportCombinedViewInternal::get_report_count(pool, &data.timmy_view, None).await?;
+      ReportCombinedViewInternal::get_report_count(pool, &data.timmy_view).await?;
     assert_eq!(2, report_count_mod);
     let report_count_admin =
-      ReportCombinedViewInternal::get_report_count(pool, &data.admin_view, None).await?;
+      ReportCombinedViewInternal::get_report_count(pool, &data.admin_view).await?;
     assert_eq!(2, report_count_admin);
 
     // Make sure the type_ filter is working
@@ -732,7 +720,7 @@ mod tests {
     }
 
     let report_count_timmy =
-      ReportCombinedViewInternal::get_report_count(pool, &data.timmy_view, None).await?;
+      ReportCombinedViewInternal::get_report_count(pool, &data.timmy_view).await?;
     assert_eq!(2, report_count_timmy);
 
     // Resolve the post report
@@ -750,7 +738,7 @@ mod tests {
 
     // Make sure the counts are correct
     let report_count_after_resolved =
-      ReportCombinedViewInternal::get_report_count(pool, &data.timmy_view, None).await?;
+      ReportCombinedViewInternal::get_report_count(pool, &data.timmy_view).await?;
     assert_eq!(1, report_count_after_resolved);
 
     cleanup(data, pool).await?;
@@ -895,8 +883,7 @@ mod tests {
     }
 
     // Make sure the counts are correct
-    let report_count =
-      ReportCombinedViewInternal::get_report_count(pool, &data.timmy_view, None).await?;
+    let report_count = ReportCombinedViewInternal::get_report_count(pool, &data.timmy_view).await?;
     assert_eq!(2, report_count);
 
     // Pretend the post was removed, and resolve all reports for that object.
@@ -949,7 +936,7 @@ mod tests {
 
     // Make sure the counts are correct
     let report_count_after_resolved =
-      ReportCombinedViewInternal::get_report_count(pool, &data.timmy_view, None).await?;
+      ReportCombinedViewInternal::get_report_count(pool, &data.timmy_view).await?;
     assert_eq!(1, report_count_after_resolved);
 
     cleanup(data, pool).await?;
@@ -1014,8 +1001,7 @@ mod tests {
     }
 
     // Make sure the counts are correct
-    let report_count =
-      ReportCombinedViewInternal::get_report_count(pool, &data.timmy_view, None).await?;
+    let report_count = ReportCombinedViewInternal::get_report_count(pool, &data.timmy_view).await?;
     assert_eq!(2, report_count);
 
     // Resolve the report
@@ -1063,7 +1049,7 @@ mod tests {
 
     // Make sure the counts are correct
     let report_count_after_resolved =
-      ReportCombinedViewInternal::get_report_count(pool, &data.timmy_view, None).await?;
+      ReportCombinedViewInternal::get_report_count(pool, &data.timmy_view).await?;
     assert_eq!(1, report_count_after_resolved);
 
     // Filter by post id, which should still include the comments.
@@ -1177,7 +1163,7 @@ mod tests {
       .list(pool, &data.timmy_view)
       .await?;
     assert_length!(0, mod_reports);
-    let count = ReportCombinedViewInternal::get_report_count(pool, &data.timmy_view, None).await?;
+    let count = ReportCombinedViewInternal::get_report_count(pool, &data.timmy_view).await?;
     assert_eq!(0, count);
 
     // only admin can see the report
@@ -1185,7 +1171,7 @@ mod tests {
       .list(pool, &data.admin_view)
       .await?;
     assert_length!(1, admin_reports);
-    let count = ReportCombinedViewInternal::get_report_count(pool, &data.admin_view, None).await?;
+    let count = ReportCombinedViewInternal::get_report_count(pool, &data.admin_view).await?;
     assert_eq!(1, count);
 
     // cleanup the report for easier checks below
@@ -1206,7 +1192,7 @@ mod tests {
       .list(pool, &data.timmy_view)
       .await?;
     assert_length!(1, mod_reports);
-    let count = ReportCombinedViewInternal::get_report_count(pool, &data.timmy_view, None).await?;
+    let count = ReportCombinedViewInternal::get_report_count(pool, &data.timmy_view).await?;
     assert_eq!(1, count);
 
     // but not the admin
@@ -1214,7 +1200,7 @@ mod tests {
       .list(pool, &data.admin_view)
       .await?;
     assert_length!(0, admin_reports);
-    let count = ReportCombinedViewInternal::get_report_count(pool, &data.admin_view, None).await?;
+    let count = ReportCombinedViewInternal::get_report_count(pool, &data.admin_view).await?;
     assert_eq!(0, count);
 
     // admin can see the report with `view_mod_reports` set
