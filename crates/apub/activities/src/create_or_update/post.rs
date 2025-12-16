@@ -8,7 +8,6 @@ use crate::{
 };
 use activitypub_federation::{
   config::Data,
-  fetch::object_id::ObjectId,
   protocol::verification::{verify_domains_match, verify_is_remote_object, verify_urls_match},
   traits::{Activity, Object},
 };
@@ -20,7 +19,6 @@ use lemmy_apub_objects::{
     person::ApubPerson,
     post::{ApubPost, post_nsfw, update_apub_post_tags},
   },
-  protocol::page::ApubTag,
   utils::{
     functions::{generate_to, verify_mod_action, verify_person_in_community, verify_visibility},
     protocol::InCommunity,
@@ -28,7 +26,6 @@ use lemmy_apub_objects::{
 };
 use lemmy_db_schema::{
   source::{
-    activity::ActivitySendTargets,
     community::Community,
     person::Person,
     post::{Post, PostActions, PostLikeForm, PostUpdateForm},
@@ -75,7 +72,7 @@ impl CreateOrUpdatePage {
 
     let create_or_update =
       CreateOrUpdatePage::new(post.into(), &person, &community, kind, &context).await?;
-    let inboxes = tagged_user_inboxes(create_or_update.object.tag, &context).await?;
+    let inboxes = tagged_user_inboxes(&create_or_update.object.tag, &context).await?;
     let activity = AnnouncableActivities::CreateOrUpdatePost(create_or_update);
     send_activity_in_community(activity, &person, &community, inboxes, false, &context).await?;
     Ok(())
@@ -139,7 +136,7 @@ impl Activity for CreateOrUpdatePage {
     verify_urls_match(self.actor.inner(), self.object.creator()?.inner())?;
     let site_view = SiteView::read_local(&mut context.pool()).await?;
 
-    let post = ApubPost::from_json(self.object, context).await?;
+    let post = ApubPost::from_json(self.object.clone(), context).await?;
 
     // author likes their own post by default
     let like_form = PostLikeForm::new(post.id, post.creator_id, true);
@@ -154,9 +151,10 @@ impl Activity for CreateOrUpdatePage {
 
     let community = Community::read(&mut context.pool(), post.community_id).await?;
 
-    let mut notifs = NotifyData::new(post.0, None, actor.0, community, do_send_email);
-    notifs.apub_mentions = parse_apub_mentions(self.object.tag, &context).await?;
-    notifs.send(context);
+    NotifyData::new(post.0, actor.0, community)
+      .apub_mentions(parse_apub_mentions(self.object.tag, &context).await?)
+      .do_send_email(do_send_email)
+      .send(context);
 
     Ok(())
   }

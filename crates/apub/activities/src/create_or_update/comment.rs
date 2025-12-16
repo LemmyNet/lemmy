@@ -69,7 +69,7 @@ impl CreateOrUpdateNote {
       audience: Some(community.ap_id.clone().into()),
     };
 
-    let inboxes = tagged_user_inboxes(create_or_update.tag, &context).await?;
+    let inboxes = tagged_user_inboxes(&create_or_update.tag, &context).await?;
 
     // AnnouncableActivities doesnt contain Comment activity but only NoteWrapper,
     // to be able to handle both comment and private message. So to send this out we need
@@ -137,9 +137,11 @@ impl Activity for CreateOrUpdateNote {
     let actor = self.actor.dereference(context).await?;
 
     let community = Community::read(&mut context.pool(), post.community_id).await?;
-    let notifs = NotifyData::new(post.0, Some(comment.0), actor.0, community, do_send_email);
-    notifs.apub_mentions = parse_apub_mentions(self.tag, &context).await?;
-    notifs.send(context);
+    NotifyData::new(post.0, actor.0, community)
+      .comment(comment.0)
+      .apub_mentions(parse_apub_mentions(self.tag, &context).await?)
+      .do_send_email(do_send_email)
+      .send(context);
     Ok(())
   }
 }

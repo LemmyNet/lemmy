@@ -112,11 +112,11 @@ pub async fn create_comment(
 
   NotifyData::new(
     post.clone(),
-    Some(inserted_comment.clone()),
     local_user_view.person.clone(),
     post_view.community,
-    !local_site.disable_email_notifications,
   )
+  .comment(inserted_comment.clone())
+  .do_send_email(!local_site.disable_email_notifications)
   .send(&context);
 
   // You like your own comment by default

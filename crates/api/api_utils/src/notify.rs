@@ -34,9 +34,11 @@ use url::Url;
 #[derive(derive_new::new, Debug, Clone)]
 pub struct NotifyData {
   post: Post,
+  #[new(value = "None")]
   comment_opt: Option<Comment>,
   creator: Person,
   community: Community,
+  #[new(value = "false")]
   do_send_email: bool,
   #[new(value = "None")]
   pub apub_mentions: Option<Vec<Person>>,
@@ -66,6 +68,19 @@ impl<'a> Hash for CollectedNotifyData<'a> {
 impl<'a> Eq for CollectedNotifyData<'a> {}
 
 impl NotifyData {
+  pub fn comment(mut self, comment: Comment) -> Self {
+    self.comment_opt = Some(comment);
+    self
+  }
+  pub fn do_send_email(mut self, do_send_email: bool) -> Self {
+    self.do_send_email = do_send_email;
+    self
+  }
+  pub fn apub_mentions(mut self, apub_mentions: Vec<Person>) -> Self {
+    self.apub_mentions = Some(apub_mentions);
+    self
+  }
+
   /// Scans the post/comment content for mentions, then sends notifications via db and email
   /// to mentioned users and parent creator. Spawns a task for background processing.
   pub fn send(self, context: &LemmyContext) {

@@ -80,11 +80,10 @@ pub async fn update_comment(
   // Do the mentions / recipients
   NotifyData::new(
     orig_comment.post,
-    Some(updated_comment.clone()),
     local_user_view.person.clone(),
     orig_comment.community,
-    false,
   )
+  .comment(updated_comment.clone())
   .send(&context);
 
   ActivityChannel::submit_activity(

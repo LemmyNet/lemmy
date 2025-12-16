@@ -165,10 +165,8 @@ pub async fn update_post(
 
   NotifyData::new(
     updated_post.clone(),
-    None,
     local_user_view.person.clone(),
     orig_post.community.clone(),
-    false,
   )
   .send(&context);
 

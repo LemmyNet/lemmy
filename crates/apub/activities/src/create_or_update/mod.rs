@@ -14,11 +14,11 @@ pub mod post;
 pub mod private_message;
 
 async fn tagged_user_inboxes(
-  tagged_users: Vec<ApubTag>,
+  tagged_users: &Vec<ApubTag>,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<ActivitySendTargets> {
   let tagged_users: Vec<ObjectId<ApubPerson>> = tagged_users
-    .into_iter()
+    .iter()
     .flat_map(|u| {
       if let ApubTag::Mention(m) = u {
         Some(m)
@@ -42,7 +42,7 @@ async fn parse_apub_mentions(
   context: &Data<LemmyContext>,
 ) -> LemmyResult<Vec<Person>> {
   let mentions: Vec<Mention> = tags
-    .iter()
+    .into_iter()
     .filter_map(|t| {
       if let ApubTag::Mention(m) = t {
         Some(m)
@@ -54,7 +54,7 @@ async fn parse_apub_mentions(
   // TODO: resolve, filter local
   let mut res = vec![];
   for m in mentions {
-    m.dereference(context).await?;
+    res.push(m.href.dereference(context).await?.0);
   }
   Ok(res)
 }
