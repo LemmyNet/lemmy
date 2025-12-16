@@ -464,7 +464,8 @@ mod tests {
       )
     );
 
-    let comment_like_form = CommentLikeForm::new(inserted_timmy_person.id, comment_0.id, true);
+    let comment_like_form =
+      CommentLikeForm::new(comment_0.id, inserted_timmy_person.id, Some(true));
 
     CommentActions::like(pool, &comment_like_form).await?;
 
@@ -764,15 +765,6 @@ mod tests {
   }
 
   async fn cleanup(data: Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
-    CommentActions::remove_like(
-      pool,
-      data.timmy_local_user_view.person.id,
-      data.comment_0.id,
-    )
-    .await?;
-    Comment::delete(pool, data.comment_0.id).await?;
-    Comment::delete(pool, data.comment_1.id).await?;
-    Post::delete(pool, data.post.id).await?;
     Community::delete(pool, data.community.id).await?;
     Person::delete(pool, data.timmy_local_user_view.person.id).await?;
     LocalUser::delete(pool, data.timmy_local_user_view.local_user.id).await?;

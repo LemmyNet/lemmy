@@ -71,11 +71,8 @@ async fn vote_comment(
   comment: &ApubComment,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
-  let comment_id = comment.id;
-  let mut like_form = CommentLikeForm::new(actor.id, comment_id, vote_type.into());
-  let person_id = actor.id;
+  let mut like_form = CommentLikeForm::new(comment.id, actor.id, Some(vote_type.into()));
   comment.set_not_pending(&mut context.pool()).await?;
-  CommentActions::remove_like(&mut context.pool(), person_id, comment_id).await?;
   like_form = plugin_hook_before("comment_before_vote", like_form).await?;
   let like = CommentActions::like(&mut context.pool(), &like_form).await?;
   plugin_hook_after("comment_after_vote", &like);
@@ -88,11 +85,8 @@ async fn vote_post(
   post: &ApubPost,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
-  let post_id = post.id;
-  let mut like_form = PostLikeForm::new(post.id, actor.id, vote_type.into());
-  let person_id = actor.id;
+  let mut like_form = PostLikeForm::new(post.id, actor.id, Some(vote_type.into()));
   post.set_not_pending(&mut context.pool()).await?;
-  PostActions::remove_like(&mut context.pool(), person_id, post_id).await?;
   like_form = plugin_hook_before("post_before_vote", like_form).await?;
   let like = PostActions::like(&mut context.pool(), &like_form).await?;
   plugin_hook_after("post_after_vote", &like);
@@ -104,9 +98,8 @@ async fn undo_vote_comment(
   comment: &ApubComment,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
-  let comment_id = comment.id;
-  let person_id = actor.id;
-  CommentActions::remove_like(&mut context.pool(), person_id, comment_id).await?;
+  let form = CommentLikeForm::new(comment.id, actor.id, None);
+  CommentActions::like(&mut context.pool(), &form).await?;
   Ok(())
 }
 
@@ -115,8 +108,7 @@ async fn undo_vote_post(
   post: &ApubPost,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
-  let post_id = post.id;
-  let person_id = actor.id;
-  PostActions::remove_like(&mut context.pool(), person_id, post_id).await?;
+  let form = PostLikeForm::new(post.id, actor.id, None);
+  PostActions::like(&mut context.pool(), &form).await?;
   Ok(())
 }

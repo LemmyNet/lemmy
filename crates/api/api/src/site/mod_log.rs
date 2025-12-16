@@ -97,7 +97,7 @@ mod tests {
     let post_form_1 = PostInsertForm::new("A test post tubular".into(), sara.id, community.id);
     let post_1 = Post::create(pool, &post_form_1).await?;
 
-    let post_like_form_1 = PostLikeForm::new(post_1.id, sara.id, true);
+    let post_like_form_1 = PostLikeForm::new(post_1.id, sara.id, Some(true));
     PostActions::like(pool, &post_like_form_1).await?;
 
     let post_form_2 = PostInsertForm::new("A test post radical".into(), sara.id, community.id);
@@ -107,7 +107,7 @@ mod tests {
       CommentInsertForm::new(sara.id, post_1.id, "A test comment tubular".into());
     let comment_1 = Comment::create(pool, &comment_form_1, None).await?;
 
-    let comment_like_form_1 = CommentLikeForm::new(sara.id, comment_1.id, true);
+    let comment_like_form_1 = CommentLikeForm::new(comment_1.id, sara.id, Some(true));
     CommentActions::like(pool, &comment_like_form_1).await?;
 
     let comment_form_2 =

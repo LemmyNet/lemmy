@@ -333,13 +333,15 @@ mod tests {
     assert_eq!(0, timmy_liked.len());
 
     // Like a few things
-    let like_sara_comment_2 = CommentLikeForm::new(data.timmy.id, data.sara_comment_2.id, true);
+    let like_sara_comment_2 =
+      CommentLikeForm::new(data.sara_comment_2.id, data.timmy.id, Some(true));
     CommentActions::like(pool, &like_sara_comment_2).await?;
 
-    let dislike_sara_comment = CommentLikeForm::new(data.timmy.id, data.sara_comment.id, false);
+    let dislike_sara_comment =
+      CommentLikeForm::new(data.sara_comment.id, data.timmy.id, Some(false));
     CommentActions::like(pool, &dislike_sara_comment).await?;
 
-    let post_like_form = PostLikeForm::new(data.timmy_post.id, data.timmy.id, true);
+    let post_like_form = PostLikeForm::new(data.timmy_post.id, data.timmy.id, Some(true));
     PostActions::like(pool, &post_like_form).await?;
 
     let timmy_liked_all = PersonLikedCombinedQuery::default()
@@ -399,8 +401,10 @@ mod tests {
     }
 
     // Try unliking 2 things
-    CommentActions::remove_like(pool, data.timmy.id, data.sara_comment.id).await?;
-    PostActions::remove_like(pool, data.timmy.id, data.timmy_post.id).await?;
+    let form = CommentLikeForm::new(data.sara_comment.id, data.timmy.id, None);
+    CommentActions::like(pool, &form).await?;
+    let form = PostLikeForm::new(data.timmy_post.id, data.timmy.id, None);
+    PostActions::like(pool, &form).await?;
 
     let timmy_likes_removed = PersonLikedCombinedQuery::default()
       .list(pool, &data.timmy_view)

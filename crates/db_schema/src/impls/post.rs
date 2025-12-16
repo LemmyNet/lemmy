@@ -364,20 +364,6 @@ impl Likeable for PostActions {
       .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
-  async fn remove_like(
-    pool: &mut DbPool<'_>,
-    person_id: PersonId,
-    post_id: Self::IdType,
-  ) -> LemmyResult<UpleteCount> {
-    let conn = &mut get_conn(pool).await?;
-    uplete(post_actions::table.find((person_id, post_id)))
-      .set_null(post_actions::vote_is_upvote)
-      .set_null(post_actions::voted_at)
-      .get_result(conn)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
-  }
-
   async fn remove_all_likes(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
@@ -684,7 +670,7 @@ mod tests {
     };
 
     // Post Like
-    let post_like_form = PostLikeForm::new(inserted_post.id, inserted_person.id, true);
+    let post_like_form = PostLikeForm::new(inserted_post.id, inserted_person.id, Some(true));
 
     let inserted_post_like = PostActions::like(pool, &post_like_form).await?;
     assert_eq!(Some(true), inserted_post_like.vote_is_upvote);
@@ -711,8 +697,9 @@ mod tests {
     let scheduled_post_count = Post::user_scheduled_post_count(inserted_person.id, pool).await?;
     assert_eq!(1, scheduled_post_count);
 
-    let like_removed = PostActions::remove_like(pool, inserted_person.id, inserted_post.id).await?;
-    assert_eq!(UpleteCount::only_updated(1), like_removed);
+    let form = PostLikeForm::new(inserted_post.id, inserted_person.id, None);
+    PostActions::like(pool, &form).await?;
+
     let saved_removed = PostActions::unsave(pool, &post_saved_form).await?;
     assert_eq!(UpleteCount::only_updated(1), saved_removed);
 
@@ -785,7 +772,7 @@ mod tests {
     let inserted_child_comment =
       Comment::create(pool, &child_comment_form, Some(&inserted_comment.path)).await?;
 
-    let post_like = PostLikeForm::new(inserted_post.id, inserted_person.id, true);
+    let post_like = PostLikeForm::new(inserted_post.id, inserted_person.id, Some(true));
 
     PostActions::like(pool, &post_like).await?;
 
@@ -797,7 +784,7 @@ mod tests {
     assert_eq!(0, post_aggs_before_delete.downvotes);
 
     // Add a post dislike from the other person
-    let post_dislike = PostLikeForm::new(inserted_post.id, another_inserted_person.id, false);
+    let post_dislike = PostLikeForm::new(inserted_post.id, another_inserted_person.id, Some(false));
 
     PostActions::like(pool, &post_dislike).await?;
 
@@ -818,7 +805,8 @@ mod tests {
     assert_eq!(1, after_comment_delete.downvotes);
 
     // Remove the first post like
-    PostActions::remove_like(pool, inserted_person.id, inserted_post.id).await?;
+    let form = PostLikeForm::new(inserted_post.id, inserted_person.id, None);
+    PostActions::like(pool, &form).await?;
     let after_like_remove = Post::read(pool, inserted_post.id).await?;
     assert_eq!(0, after_like_remove.comments);
     assert_eq!(-1, after_like_remove.score);

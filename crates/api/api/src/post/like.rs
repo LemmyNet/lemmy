@@ -64,34 +64,19 @@ pub async fn like_post(
 
   check_community_user_action(&local_user_view, &orig_post.community, &mut context.pool()).await?;
 
-  // Remove any likes first
-  PostActions::remove_like(&mut context.pool(), my_person_id, post_id).await?;
-  if let Some(previous_is_upvote) = previous_is_upvote {
-    PersonActions::remove_like(
-      &mut context.pool(),
-      my_person_id,
-      orig_post.creator.id,
-      previous_is_upvote,
-    )
-    .await
-    // Ignore errors, since a previous_like of zero throws an error
-    .ok();
-  }
+  let mut like_form = PostLikeForm::new(data.post_id, my_person_id, data.is_upvote);
+  like_form = plugin_hook_before("post_before_vote", like_form).await?;
+  let like = PostActions::like(&mut context.pool(), &like_form).await?;
+  PersonActions::like(
+    &mut context.pool(),
+    my_person_id,
+    orig_post.creator.id,
+    previous_is_upvote,
+    data.is_upvote,
+  )
+  .await?;
 
-  if let Some(is_upvote) = data.is_upvote {
-    let mut like_form = PostLikeForm::new(data.post_id, my_person_id, is_upvote);
-    like_form = plugin_hook_before("post_before_vote", like_form).await?;
-    let like = PostActions::like(&mut context.pool(), &like_form).await?;
-    PersonActions::like(
-      &mut context.pool(),
-      my_person_id,
-      orig_post.creator.id,
-      like_form.vote_is_upvote,
-    )
-    .await?;
-
-    plugin_hook_after("post_after_vote", &like);
-  }
+  plugin_hook_after("post_after_vote", &like);
 
   // Mark Post Read
   PostActions::mark_as_read(&mut context.pool(), my_person_id, &[post_id]).await?;
