@@ -119,10 +119,6 @@ pub enum LemmyErrorType {
   PostScheduleTimeMustBeInFuture,
   TooManyScheduledPosts,
   CannotCombineFederationBlocklistAndAllowlist,
-  UntranslatedError {
-    #[cfg_attr(feature = "ts-rs", ts(optional))]
-    error: Option<UntranslatedError>,
-  },
   CouldntParsePaginationToken,
   PluginError(String),
   InvalidFetchLimit,
@@ -131,12 +127,15 @@ pub enum LemmyErrorType {
   CannotCombineCommunityIdAndMultiCommunityId,
   MultiCommunityEntryLimitReached,
   TooManyRequests,
+  #[serde(untagged)]
+  UntranslatedError(#[cfg_attr(feature = "ts-rs", ts(optional))] Option<UntranslatedError>),
 }
 
 /// These errors are only used for federation or internally and dont need to be translated.
 #[derive(Display, Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
+#[serde(tag = "error", content = "message", rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum UntranslatedError {
   InvalidCommunity,
@@ -253,7 +252,7 @@ cfg_if! {
       fn from(error_type: UntranslatedError) -> Self {
         let inner = anyhow::anyhow!("{}", error_type);
         LemmyError {
-          error_type: LemmyErrorType::UntranslatedError { error: Some(error_type) },
+          error_type: LemmyErrorType::UntranslatedError ( Some(error_type) ),
           inner,
           caller: *Location::caller(),
         }
@@ -262,7 +261,7 @@ cfg_if! {
 
     impl From<UntranslatedError> for LemmyErrorType {
       fn from(error: UntranslatedError) -> Self {
-        LemmyErrorType::UntranslatedError { error: Some(error) }
+        LemmyErrorType::UntranslatedError (Some(error) )
       }
     }
 
@@ -304,6 +303,15 @@ cfg_if! {
       use super::*;
       use actix_web::{body::MessageBody, ResponseError};
       use pretty_assertions::assert_eq;
+
+      #[test]
+      fn untranslated_error_format() -> LemmyResult<()> {
+        let err = LemmyError::from(UntranslatedError::ResolveObjectFailed("test".to_string())).error_response();
+        let json = String::from_utf8(err.into_body().try_into_bytes().unwrap_or_default().to_vec())?;
+        assert_eq!(&json, r#"{"error":"resolve_object_failed","message":"test"}"#);
+
+        Ok(())
+      }
 
       #[test]
       fn deserializes_no_message() -> LemmyResult<()> {
