@@ -49,17 +49,15 @@ pub const DB_BATCH_SIZE: i64 = 1000;
 
 #[cfg(not(debug_assertions))]
 fn version() -> String {
-  match option_env!("LEMMY_VERSION") {
-    // For nightly add current date
-    Some("nightly") => format!("nightly-{}", chrono::Utc::now().date_naive()),
-    // Otherwise use the provided version name
-    Some(v) => v.to_string(),
-    // If no version was given take it from git
-    None => git_version::git_version!(
+  if let Some(v) = option_env!("LEMMY_VERSION") {
+    v.to_string()
+  } else {
+    // Use version from git if none was passed via env
+    git_version::git_version!(
       args = ["--tags", "--dirty=-modified"],
       fallback = env!("CARGO_PKG_VERSION")
     )
-    .to_string(),
+    .to_string()
   }
 }
 

@@ -4365,7 +4365,6 @@ dependencies = [
  "actix-web",
  "anyhow",
  "cfg-if",
- "chrono",
  "clearurls",
  "dashmap",
  "deser-hjson",

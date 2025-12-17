@@ -30,15 +30,15 @@ COPY . ./
 RUN --mount=type=cache,target=/lemmy/target set -ex; \
     if [ "${RUST_RELEASE_MODE}" = "debug" ]; then \
         cargo build --features "${CARGO_BUILD_FEATURES}"; \
-        mv target/"${RUST_RELEASE_MODE}"/lemmy_server ./lemmy_server; \
+        mv target/debug/lemmy_server ./lemmy_server; \
     fi
 
 # Release build
 RUN --mount=type=cache,target=/lemmy/target set -ex; \
     if [ "${RUST_RELEASE_MODE}" = "release" ]; then \
-        cargo clean --release; \
+        [ "$LEMMY_VERSION" = "nightly" ] && export LEMMY_VERSION="nightly-$(date -u +"%Y-%m-%d")"; \
         cargo build --features "${CARGO_BUILD_FEATURES}" --release; \
-        mv target/"${RUST_RELEASE_MODE}"/lemmy_server ./lemmy_server; \
+        mv target/release/lemmy_server ./lemmy_server; \
     fi
 
 # ARM64 builder
@@ -62,15 +62,15 @@ ENV PATH="/home/lemmy/.cargo/bin:${PATH}"
 RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
     if [ "${RUST_RELEASE_MODE}" = "debug" ]; then \
         cargo build --features "${CARGO_BUILD_FEATURES}"; \
-        mv "./target/$CARGO_BUILD_TARGET/$RUST_RELEASE_MODE/lemmy_server" /home/lemmy/lemmy_server; \
+        mv "./target/$CARGO_BUILD_TARGET/debug/lemmy_server" /home/lemmy/lemmy_server; \
     fi
 
 # Release build
 RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
     if [ "${RUST_RELEASE_MODE}" = "release" ]; then \
-        cargo clean --release; \
+        [ "$LEMMY_VERSION" = "nightly" ] && export LEMMY_VERSION="nightly-$(date -u +"%Y-%m-%d")"; \
         cargo build --features "${CARGO_BUILD_FEATURES}" --release; \
-        mv "./target/$CARGO_BUILD_TARGET/$RUST_RELEASE_MODE/lemmy_server" /home/lemmy/lemmy_server; \
+        mv "./target/$CARGO_BUILD_TARGET/debug/lemmy_server" /home/lemmy/lemmy_server; \
     fi
 
 # amd64 base runner
