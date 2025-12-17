@@ -7,6 +7,7 @@ use strum::{Display, EnumIter};
 #[derive(Display, Debug, Serialize, Deserialize, Clone, PartialEq, EnumIter, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
+#[serde(tag = "error", content = "message", rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum LemmyErrorType {
   BlockKeywordTooShort,
@@ -164,6 +165,7 @@ pub enum UntranslatedError {
   /// A remote community sent an activity to us, but actually no local user follows the community
   /// so the activity was rejected.
   CommunityHasNoFollowers(String),
+  ResolveObjectFailed(String),
 }
 
 cfg_if! {
@@ -229,13 +231,7 @@ cfg_if! {
       }
 
       fn error_response(&self) -> actix_web::HttpResponse {
-        #[derive(Serialize)]
-        struct Res<'a> {
-          error: &'a LemmyErrorType,
-          details: String
-        }
-        let json = Res {error: &self.error_type, details:self.inner.to_string()};
-        actix_web::HttpResponse::build(self.status_code()).json(json)
+        actix_web::HttpResponse::build(self.status_code()).json(&self.error_type)
       }
     }
 
