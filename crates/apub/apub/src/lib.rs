@@ -29,24 +29,15 @@ impl UrlVerifier for VerifyUrlData {
 
     check_apub_id_valid(url, &local_site_data).map_err(|err| match err {
       LemmyError {
-        error_type:
-          LemmyErrorType::UntranslatedError {
-            error: Some(FederationDisabled),
-          },
+        error_type: LemmyErrorType::UntranslatedError(Some(FederationDisabled)),
         ..
       } => ActivityPubError::Other("Federation disabled".into()),
       LemmyError {
-        error_type:
-          LemmyErrorType::UntranslatedError {
-            error: Some(DomainBlocked(domain)),
-          },
+        error_type: LemmyErrorType::UntranslatedError(Some(DomainBlocked(domain))),
         ..
       } => ActivityPubError::Other(format!("Domain {domain:?} is blocked")),
       LemmyError {
-        error_type:
-          LemmyErrorType::UntranslatedError {
-            error: Some(DomainNotInAllowList(domain)),
-          },
+        error_type: LemmyErrorType::UntranslatedError(Some(DomainNotInAllowList(domain))),
         ..
       } => ActivityPubError::Other(format!("Domain {domain:?} is not in allowlist")),
       _ => ActivityPubError::Other("Failed validating apub id".into()),
