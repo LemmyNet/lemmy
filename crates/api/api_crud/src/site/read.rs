@@ -4,7 +4,7 @@ use lemmy_db_schema::source::{
   actor_language::SiteLanguage,
   language::Language,
   local_site_url_blocklist::LocalSiteUrlBlocklist,
-  oauth_provider::OAuthProvider,
+  oauth_provider::AdminOAuthProvider,
   registration_application::RegistrationApplication,
   tagline::Tagline,
 };
@@ -48,8 +48,9 @@ async fn read_site(context: &LemmyContext) -> LemmyResult<GetSiteResponse> {
   let discussion_languages = SiteLanguage::read_local_raw(&mut context.pool()).await?;
   let blocked_urls = LocalSiteUrlBlocklist::get_all(&mut context.pool()).await?;
   let tagline = Tagline::get_random(&mut context.pool()).await.ok();
-  let admin_oauth_providers = OAuthProvider::get_all(&mut context.pool()).await?;
-  let oauth_providers = OAuthProvider::convert_providers_to_public(admin_oauth_providers.clone());
+  let admin_oauth_providers = AdminOAuthProvider::get_all(&mut context.pool()).await?;
+  let oauth_providers =
+    AdminOAuthProvider::convert_providers_to_public(admin_oauth_providers.clone());
   let last_application_duration_seconds =
     RegistrationApplication::last_updated(&mut context.pool())
       .await

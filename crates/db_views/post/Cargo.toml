@@ -47,5 +47,5 @@ serial_test = { workspace = true }
 tokio = { workspace = true }
 pretty_assertions = { workspace = true }
 url = { workspace = true }
-test-context = "0.5.0"
+test-context = "0.5.4"
 diesel-uplete.workspace = true

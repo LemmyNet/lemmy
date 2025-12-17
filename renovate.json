@@ -3,6 +3,7 @@
   "extends": ["config:recommended"],
   "schedule": ["every weekend"],
   "automerge": true,
+  "rebaseWhen": "conflicted",
   "packageRules": [
     {
       "groupName": "docker",

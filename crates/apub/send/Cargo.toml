@@ -53,5 +53,5 @@ url.workspace = true
 actix-web.workspace = true
 tracing-test = "0.2.5"
 uuid.workspace = true
-test-context = "0.5.0"
+test-context = "0.5.4"
 mockall = "0.14.0"

@@ -35,23 +35,19 @@ use rss::{
   extension::{ExtensionBuilder, ExtensionMap, dublincore::DublinCoreExtension},
 };
 use serde::Deserialize;
-use std::{collections::BTreeMap, str::FromStr, sync::LazyLock};
+use std::{collections::BTreeMap, sync::LazyLock};
 
 const RSS_FETCH_LIMIT: i64 = 20;
 
 #[derive(Deserialize)]
 struct Params {
-  sort: Option<String>,
+  sort: Option<PostSortType>,
   limit: Option<i64>,
 }
 
 impl Params {
-  fn sort_type(&self) -> Result<PostSortType, Error> {
-    let sort_query = self
-      .sort
-      .clone()
-      .unwrap_or_else(|| PostSortType::Hot.to_string());
-    PostSortType::from_str(&sort_query).map_err(ErrorBadRequest)
+  fn sort_type(&self) -> PostSortType {
+    self.sort.unwrap_or_default()
   }
   fn get_limit(&self) -> i64 {
     self.limit.unwrap_or(RSS_FETCH_LIMIT)
@@ -97,26 +93,26 @@ static RSS_NAMESPACE: LazyLock<BTreeMap<String, String>> = LazyLock::new(|| {
 });
 
 async fn get_all_feed(
-  info: web::Query<Params>,
+  web::Query(info): web::Query<Params>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
   get_feed_data(
     &context,
     ListingType::All,
-    info.sort_type()?,
+    info.sort_type(),
     info.get_limit(),
   )
   .await
 }
 
 async fn get_local_feed(
-  info: web::Query<Params>,
+  web::Query(info): web::Query<Params>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
   get_feed_data(
     &context,
     ListingType::Local,
-    info.sort_type()?,
+    info.sort_type(),
     info.get_limit(),
   )
   .await
@@ -148,7 +144,7 @@ async fn get_feed_data(
 }
 
 async fn get_feed_user(
-  info: web::Query<Params>,
+  web::Query(info): web::Query<Params>,
   name: web::Path<String>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
@@ -198,7 +194,7 @@ fn split_name(name: &str) -> (&str, Option<&str>) {
 }
 
 async fn get_feed_community(
-  info: web::Query<Params>,
+  web::Query(info): web::Query<Params>,
   name: web::Path<String>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
@@ -215,7 +211,7 @@ async fn get_feed_community(
   check_private_instance(&None, &site_view.local_site)?;
 
   let posts = PostQuery {
-    sort: Some(info.sort_type()?),
+    sort: Some(info.sort_type()),
     community_id: Some(community.id),
     limit: Some(info.get_limit()),
     ..Default::default()
@@ -237,7 +233,7 @@ async fn get_feed_community(
 }
 
 async fn get_feed_multi_community(
-  info: web::Query<Params>,
+  web::Query(info): web::Query<Params>,
   name: web::Path<String>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
@@ -250,7 +246,7 @@ async fn get_feed_multi_community(
   check_private_instance(&None, &site_view.local_site)?;
 
   let posts = PostQuery {
-    sort: Some(info.sort_type()?),
+    sort: Some(info.sort_type()),
     multi_community_id: Some(multi_community.id),
     limit: Some(info.get_limit()),
     ..Default::default()
@@ -273,7 +269,7 @@ async fn get_feed_multi_community(
 
 async fn get_feed_front(
   req: HttpRequest,
-  info: web::Query<Params>,
+  web::Query(info): web::Query<Params>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
   let jwt: String = req.match_info().get("jwt").unwrap_or("none").parse()?;
@@ -285,7 +281,7 @@ async fn get_feed_front(
   let posts = PostQuery {
     listing_type: Some(ListingType::Subscribed),
     local_user: Some(&local_user.local_user),
-    sort: Some(info.sort_type()?),
+    sort: Some(info.sort_type()),
     limit: Some(info.get_limit()),
     ..Default::default()
   }

@@ -20,7 +20,7 @@ ALTER TABLE local_site
     ADD COLUMN default_post_listing_mode_new public.post_listing_mode_enum DEFAULT 'List'::public.post_listing_mode_enum,
     ADD COLUMN default_post_sort_type_new public.post_sort_type_enum DEFAULT 'Active'::public.post_sort_type_enum,
     ADD COLUMN default_comment_sort_type_new public.comment_sort_type_enum DEFAULT 'Hot'::public.comment_sort_type_enum,
-    ADD COLUMN oauth_registration_new boolean DEFAULT FALSE,
+    ADD COLUMN oauth_registration_new boolean DEFAULT TRUE,
     ADD COLUMN post_upvotes_new public.federation_mode_enum DEFAULT 'All'::public.federation_mode_enum,
     ADD COLUMN post_downvotes_new public.federation_mode_enum DEFAULT 'All'::public.federation_mode_enum,
     ADD COLUMN comment_upvotes_new public.federation_mode_enum DEFAULT 'All'::public.federation_mode_enum,
