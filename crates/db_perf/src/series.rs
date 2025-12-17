@@ -58,6 +58,7 @@ impl<T, S: AppearsOnTable<current_value>> AppearsOnTable<T> for ValuesFromSeries
 
 impl<T, S: SelectableExpression<current_value>> SelectableExpression<T> for ValuesFromSeries<S> {}
 
+#[allow(deprecated)]
 impl<T, S: SelectableExpression<current_value>> Insertable<T> for ValuesFromSeries<S>
 where
   dsl::BareSelect<Self>: AsQuery + Insertable<T>,
