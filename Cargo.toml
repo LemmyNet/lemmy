@@ -106,9 +106,9 @@ lemmy_federate = { version = "=0.19.14", path = "./crates/federate" }
 activitypub_federation = { version = "0.5.10", default-features = false, features = [
   "actix-web",
 ] }
-diesel = "2.1.6"
+diesel = "2.2.3"
 diesel_migrations = "2.1.0"
-diesel-async = "0.4.1"
+diesel-async = "0.5"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_with = "3.12.0"
 actix-web = { version = "4.8.0", default-features = false, features = [
@@ -214,7 +214,7 @@ tokio.workspace = true
 actix-cors = "0.7.1"
 futures-util = { workspace = true }
 chrono = { workspace = true }
-prometheus = { version = "0.13.4", features = ["process"] }
+prometheus = { version = "0.14.0", features = ["process"] }
 serial_test = { workspace = true }
 clap = { workspace = true }
 actix-web-prom = "0.8.0"
