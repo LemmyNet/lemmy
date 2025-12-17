@@ -213,7 +213,7 @@ steps:
     when: *slow_check_paths
 
   run_federation_tests:
-    image: node:current-slim
+    image: node:current-trixie-slim
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
       DO_WRITE_HOSTS_FILE: "1"
