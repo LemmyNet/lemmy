@@ -120,7 +120,6 @@ impl Activity for BlockUser {
       }
       SiteOrCommunity::Right(community) => {
         verify_visibility(&self.to, &self.cc, &community)?;
-        verify_person_in_community(&self.actor, &community, context).await?;
         verify_mod_action(&self.actor, &community, context).await?;
       }
     }
@@ -159,6 +158,7 @@ impl Activity for BlockUser {
         notify_mod_action(action.clone(), context);
       }
       SiteOrCommunity::Right(community) => {
+        verify_person_in_community(&mod_person, &community, context).await?;
         let community_user_ban_form = CommunityPersonBanForm {
           ban_expires_at: Some(expires_at),
           ..CommunityPersonBanForm::new(community.id, blocked_person.id)

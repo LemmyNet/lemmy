@@ -1,5 +1,5 @@
 use crate::{
-  deletion::{DeletableObjects, receive_delete_action, verify_delete_activity},
+  deletion::{DeletableObjects, receive_delete_action},
   generate_activity_id,
   protocol::deletion::{delete::Delete, undo_delete::UndoDelete},
 };
@@ -32,7 +32,6 @@ impl Activity for UndoDelete {
 
   async fn verify(&self, data: &Data<Self::DataType>) -> Result<(), Self::Error> {
     self.object.verify(data).await?;
-    verify_delete_activity(&self.object, self.object.summary.is_some(), data).await?;
     Ok(())
   }
 

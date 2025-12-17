@@ -210,11 +210,10 @@ pub fn generate_to(community: &Community) -> LemmyResult<Vec<Url>> {
 /// Fetches the person and community to verify their type, then checks if person is banned from site
 /// or community.
 pub async fn verify_person_in_community(
-  person_id: &ObjectId<ApubPerson>,
+  person: &ApubPerson,
   community: &ApubCommunity,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
-  let person = person_id.dereference(context).await?;
   InstanceActions::check_ban(&mut context.pool(), person.id, person.instance_id).await?;
   let person_id = person.id;
   let community_id = community.id;

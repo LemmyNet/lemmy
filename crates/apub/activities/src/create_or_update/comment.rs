@@ -117,7 +117,6 @@ impl Activity for CreateOrUpdateNote {
     let community = self.community(context).await?;
     verify_visibility(&self.to, &self.cc, &community)?;
 
-    verify_person_in_community(&self.actor, &community, context).await?;
     verify_domains_match(self.actor.inner(), self.object.id.inner())?;
     check_community_deleted_or_removed(&community)?;
     check_post_deleted_or_removed(&post)?;
@@ -142,6 +141,10 @@ impl Activity for CreateOrUpdateNote {
       check_is_mod_or_admin(&mut context.pool(), creator.id, post.community_id).await?;
     }
 
+    let actor = self.actor.dereference(context).await?;
+    let community = self.community(context).await?;
+    verify_person_in_community(&actor, &community, context).await?;
+
     let comment = ApubComment::from_json(self.object, context).await?;
 
     // author likes their own comment by default
@@ -153,7 +156,6 @@ impl Activity for CreateOrUpdateNote {
 
     let do_send_email =
       self.kind == CreateOrUpdateType::Create && !site_view.local_site.disable_email_notifications;
-    let actor = self.actor.dereference(context).await?;
 
     // Note:
     // Although mentions could be gotten from the post tags (they are included there), or the ccs,

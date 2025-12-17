@@ -10,12 +10,13 @@ use crate::{
 };
 use activitypub_federation::{
   config::Data,
+  fetch::object_id::ObjectId,
   kinds::activity::AnnounceType,
   traits::{Activity, Object},
 };
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
-  objects::community::ApubCommunity,
+  objects::{community::ApubCommunity, person::ApubPerson},
   utils::{
     functions::{generate_to, verify_person_in_community, verify_visibility},
     protocol::{Id, InCommunity},
@@ -57,14 +58,15 @@ impl Activity for RawAnnouncableActivities {
 
     // verify and receive activity
     activity.verify(context).await?;
-    let ap_id = activity.actor().clone().into();
+    let actor_id: ObjectId<ApubPerson> = activity.actor().clone().into();
     activity.receive(context).await?;
 
     // if community is local, send activity to followers
     if let Some(community) = community
       && community.local
     {
-      verify_person_in_community(&ap_id, &community, context).await?;
+      let actor = actor_id.dereference(context).await?;
+      verify_person_in_community(&actor, &community, context).await?;
       AnnounceActivity::send(self, &community, context).await?;
     }
 

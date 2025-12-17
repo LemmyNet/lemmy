@@ -48,15 +48,15 @@ impl Activity for UndoVote {
   }
 
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    let community = self.object.community(context).await?;
-    verify_person_in_community(&self.actor, &community, context).await?;
     verify_urls_match(self.actor.inner(), self.object.actor.inner())?;
     self.object.verify(context).await?;
     Ok(())
   }
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
+    let community = self.object.community(context).await?;
     let actor = self.actor.dereference(context).await?;
+    verify_person_in_community(&actor, &community, context).await?;
     let object = self.object.object.dereference(context).await?;
     match object {
       PostOrComment::Left(p) => undo_vote_post(actor, &p, context).await,

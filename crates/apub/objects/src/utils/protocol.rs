@@ -57,25 +57,14 @@ impl ImageObject {
   }
 }
 
+/// While Lemmy only has a single value in `attributed_to` (the moderators collection url),
+/// Peertube uses it to store an array with both the Person who created a video (post), and also
+/// the community it belongs in.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(untagged)]
 pub enum AttributedTo {
   Lemmy(PersonOrGroupModerators),
-  Peertube(Vec<AttributedToPeertube>),
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub enum PersonOrGroupType {
-  Person,
-  Group,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
-pub struct AttributedToPeertube {
-  #[serde(rename = "type")]
-  pub kind: PersonOrGroupType,
-  pub id: ObjectId<UserOrCommunity>,
+  Peertube(Vec<ObjectId<UserOrCommunity>>),
 }
 
 impl AttributedTo {

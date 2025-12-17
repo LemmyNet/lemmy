@@ -48,7 +48,8 @@ impl Activity for LockPageOrNote {
   async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
     let community = self.community(context).await?;
     verify_visibility(&self.to, &self.cc, &community)?;
-    verify_person_in_community(&self.actor, &community, context).await?;
+    let actor = self.actor.dereference(context).await?;
+    verify_person_in_community(&actor, &community, context).await?;
     check_community_deleted_or_removed(&community)?;
     verify_mod_action(&self.actor, &community, context).await?;
     Ok(())
@@ -101,7 +102,8 @@ impl Activity for UndoLockPageOrNote {
   async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
     let community = self.object.community(context).await?;
     verify_visibility(&self.to, &self.cc, &community)?;
-    verify_person_in_community(&self.actor, &community, context).await?;
+    let actor = self.actor.dereference(context).await?;
+    verify_person_in_community(&actor, &community, context).await?;
     check_community_deleted_or_removed(&community)?;
     verify_mod_action(&self.actor, &community, context).await?;
     Ok(())

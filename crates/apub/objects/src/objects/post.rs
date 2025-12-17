@@ -193,12 +193,10 @@ impl Object for ApubPost {
     // remote mod. This is safe as we validate `expected_domain`.
 
     check_apub_id_valid_with_strictness(page.id.inner(), community.local, context).await?;
-    verify_person_in_community(&page.creator()?, &community, context).await?;
 
     let slur_regex = slur_regex(context).await?;
     check_slurs_opt(&page.name, &slur_regex)?;
 
-    verify_domains_match(page.creator()?.inner(), page.id.inner())?;
     verify_visibility(&page.to, &page.cc, &community)?;
     Ok(())
   }
@@ -208,8 +206,10 @@ impl Object for ApubPost {
       .await
       .ok()
       .map(|s| s.local_site);
-    let creator = page.creator()?.dereference(context).await?;
+    let creator = page.creator(context).await?;
     let community = page.community(context).await?;
+    verify_person_in_community(&creator, &community, context).await?;
+    verify_domains_match(&creator.ap_id, page.id.inner())?;
 
     // Prevent posts from non-mod users in local, restricted community. If its a remote community
     // then its possible that the restricted setting was enabled recently, so existing user posts
