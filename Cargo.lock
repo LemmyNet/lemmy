@@ -336,15 +336,15 @@ dependencies = [
 
 [[package]]
 name = "actix-web-prom"
-version = "0.8.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "76743e67d4e7efa9fc2ac7123de0dd7b2ca592668e19334f1d81a3b077afc6ac"
+checksum = "a7eb266b4c692a4a7e68429fcbe4eb3bd55c053f6d84c0522dc83df22395edf6"
 dependencies = [
  "actix-web",
  "futures-core",
  "log",
  "pin-project-lite",
- "prometheus 0.13.4",
+ "prometheus",
  "regex",
  "strfmt",
 ]
@@ -3486,7 +3486,7 @@ dependencies = [
  "opentelemetry_sdk 0.21.2",
  "pict-rs",
  "pretty_assertions",
- "prometheus 0.14.0",
+ "prometheus",
  "reqwest 0.11.27",
  "reqwest-middleware 0.2.5",
  "reqwest-tracing 0.4.8",
@@ -4892,20 +4892,6 @@ checksum = "239df02d8349b06fc07398a3a1697b06418223b1c7725085e801e7c0fc6a12ec"
 dependencies = [
  "bitflags 2.9.1",
  "hex",
-]
-
-[[package]]
-name = "prometheus"
-version = "0.13.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d33c28a30771f7f96db69893f78b857f7450d7e0237e9c8fc6427a81bae7ed1"
-dependencies = [
- "cfg-if",
- "fnv",
- "lazy_static",
- "memchr",
- "parking_lot 0.12.4",
- "thiserror 1.0.69",
 ]
 
 [[package]]
