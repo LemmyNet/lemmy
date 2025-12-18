@@ -11,6 +11,7 @@ use lemmy_utils::error::LemmyResult;
 pub struct TestData {
   pub instance: Instance,
   pub site: Site,
+  pub person: Person,
 }
 
 impl TestData {
@@ -28,7 +29,15 @@ impl TestData {
     let local_site = LocalSite::create(pool, &local_site_form).await?;
     LocalSiteRateLimit::create(pool, &LocalSiteRateLimitInsertForm::new(local_site.id)).await?;
 
-    Ok(Self { instance, site })
+    let person_form = PersonInsertForm::test_form(instance.id, "holly");
+
+    let person = Person::create(pool, &person_form).await?;
+
+    Ok(Self {
+      instance,
+      site,
+      person,
+    })
   }
 
   pub async fn delete(self, pool: &mut DbPool<'_>) -> LemmyResult<()> {

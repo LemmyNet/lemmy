@@ -368,47 +368,22 @@ impl PersonActions {
     pool: &mut DbPool<'_>,
     person_id: PersonId,
     target_id: PersonId,
-    vote_is_upvote: bool,
+    previous_vote_is_upvote: Option<bool>,
+    current_vote_is_upvote: Option<bool>,
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
 
-    let (upvotes_inc, downvotes_inc) = if vote_is_upvote { (1, 0) } else { (0, 1) };
+    // here
+    let (upvotes_inc, downvotes_inc) = match (previous_vote_is_upvote, current_vote_is_upvote) {
+      (None, Some(true)) => (1, 0),
+      (None, Some(false)) => (0, 1),
+      (Some(true), Some(false)) => (-1, 1),
+      (Some(false), Some(true)) => (1, -1),
+      (Some(true), None) => (-1, 0),
+      (Some(false), None) => (0, -1),
+      _ => (0, 0),
+    };
 
-    let voted_at = Utc::now();
-
-    insert_into(person_actions::table)
-      .values((
-        person_actions::person_id.eq(person_id),
-        person_actions::target_id.eq(target_id),
-        person_actions::voted_at.eq(voted_at),
-        person_actions::upvotes.eq(upvotes_inc),
-        person_actions::downvotes.eq(downvotes_inc),
-      ))
-      .on_conflict((person_actions::person_id, person_actions::target_id))
-      .do_update()
-      .set((
-        person_actions::person_id.eq(person_id),
-        person_actions::target_id.eq(target_id),
-        person_actions::voted_at.eq(voted_at),
-        person_actions::upvotes.eq(person_actions::upvotes + upvotes_inc),
-        person_actions::downvotes.eq(person_actions::downvotes + downvotes_inc),
-      ))
-      .returning(Self::as_select())
-      .get_result::<Self>(conn)
-      .await
-      .with_lemmy_type(LemmyErrorType::NotFound)
-  }
-
-  /// Removes a person like.
-  pub async fn remove_like(
-    pool: &mut DbPool<'_>,
-    person_id: PersonId,
-    target_id: PersonId,
-    previous_is_upvote: bool,
-  ) -> LemmyResult<Self> {
-    let conn = &mut get_conn(pool).await?;
-
-    let (upvotes_inc, downvotes_inc) = if previous_is_upvote { (-1, 0) } else { (0, -1) };
     let voted_at = Utc::now();
 
     insert_into(person_actions::table)
@@ -442,10 +417,10 @@ mod tests {
     source::{
       comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm, CommentUpdateForm},
       community::{Community, CommunityInsertForm},
-      instance::Instance,
       person::{Person, PersonActions, PersonFollowerForm, PersonInsertForm, PersonUpdateForm},
       post::{Post, PostActions, PostInsertForm, PostLikeForm},
     },
+    test_data::TestData,
     traits::{Followable, Likeable},
   };
   use diesel_uplete::UpleteCount;
@@ -459,54 +434,50 @@ mod tests {
   async fn test_crud() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
-
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
-
-    let new_person = PersonInsertForm::test_form(inserted_instance.id, "holly");
-
-    let inserted_person = Person::create(pool, &new_person).await?;
+    let data = TestData::create(pool).await?;
 
     let expected_person = Person {
-      id: inserted_person.id,
+      id: data.person.id,
       name: "holly".into(),
       display_name: None,
       avatar: None,
       banner: None,
       deleted: false,
-      published_at: inserted_person.published_at,
+      published_at: data.person.published_at,
       updated_at: None,
-      ap_id: inserted_person.ap_id.clone(),
+      ap_id: data.person.ap_id.clone(),
       bio: None,
       local: true,
       bot_account: false,
       private_key: None,
       public_key: "pubkey".to_owned(),
-      last_refreshed_at: inserted_person.published_at,
-      inbox_url: inserted_person.inbox_url.clone(),
+      last_refreshed_at: data.person.published_at,
+      inbox_url: data.person.inbox_url.clone(),
       matrix_user_id: None,
-      instance_id: inserted_instance.id,
+      instance_id: data.instance.id,
       post_count: 0,
       post_score: 0,
       comment_count: 0,
       comment_score: 0,
     };
 
-    let read_person = Person::read(pool, inserted_person.id).await?;
+    let read_person = Person::read(pool, data.person.id).await?;
 
     let update_person_form = PersonUpdateForm {
-      ap_id: Some(inserted_person.ap_id.clone()),
+      ap_id: Some(data.person.ap_id.clone()),
       ..Default::default()
     };
-    let updated_person = Person::update(pool, inserted_person.id, &update_person_form).await?;
-
-    let num_deleted = Person::delete(pool, inserted_person.id).await?;
-    Instance::delete(pool, inserted_instance.id).await?;
+    let updated_person = Person::update(pool, data.person.id, &update_person_form).await?;
 
     assert_eq!(expected_person, read_person);
-    assert_eq!(expected_person, inserted_person);
+    assert_eq!(expected_person, data.person);
     assert_eq!(expected_person, updated_person);
+
+    let num_deleted = Person::delete(pool, data.person.id).await?;
+
     assert_eq!(1, num_deleted);
 
+    data.delete(pool).await?;
     Ok(())
   }
 
@@ -515,26 +486,25 @@ mod tests {
   async fn follow() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
+    let data = TestData::create(pool).await?;
 
-    let person_form_1 = PersonInsertForm::test_form(inserted_instance.id, "erich");
-    let person_1 = Person::create(pool, &person_form_1).await?;
-    let person_form_2 = PersonInsertForm::test_form(inserted_instance.id, "michele");
+    let person_form_2 = PersonInsertForm::test_form(data.instance.id, "michele");
     let person_2 = Person::create(pool, &person_form_2).await?;
 
-    let follow_form = PersonFollowerForm::new(person_1.id, person_2.id, false);
+    let follow_form = PersonFollowerForm::new(data.person.id, person_2.id, false);
     let person_follower = PersonActions::follow(pool, &follow_form).await?;
-    assert_eq!(person_1.id, person_follower.target_id);
+    assert_eq!(data.person.id, person_follower.target_id);
     assert_eq!(person_2.id, person_follower.person_id);
     assert!(person_follower.follow_pending.is_some_and(|x| !x));
 
-    let followers = PersonActions::follower_inboxes(pool, person_1.id).await?;
+    let followers = PersonActions::follower_inboxes(pool, data.person.id).await?;
     assert_eq!(vec![person_2.inbox_url], followers);
 
     let unfollow =
       PersonActions::unfollow(pool, follow_form.person_id, follow_form.target_id).await?;
     assert_eq!(UpleteCount::only_deleted(1), unfollow);
 
+    data.delete(pool).await?;
     Ok(())
   }
 
@@ -543,19 +513,13 @@ mod tests {
   async fn test_aggregates() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
+    let data = TestData::create(pool).await?;
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
-
-    let new_person = PersonInsertForm::test_form(inserted_instance.id, "thommy_user_agg");
-
-    let inserted_person = Person::create(pool, &new_person).await?;
-
-    let another_person = PersonInsertForm::test_form(inserted_instance.id, "jerry_user_agg");
-
+    let another_person = PersonInsertForm::test_form(data.instance.id, "jerry_user_agg");
     let another_inserted_person = Person::create(pool, &another_person).await?;
 
     let new_community = CommunityInsertForm::new(
-      inserted_instance.id,
+      data.instance.id,
       "TIL_site_agg".into(),
       "nada".to_owned(),
       "pubkey".to_string(),
@@ -563,41 +527,34 @@ mod tests {
 
     let inserted_community = Community::create(pool, &new_community).await?;
 
-    let new_post = PostInsertForm::new(
-      "A test post".into(),
-      inserted_person.id,
-      inserted_community.id,
-    );
+    let new_post = PostInsertForm::new("A test post".into(), data.person.id, inserted_community.id);
     let inserted_post = Post::create(pool, &new_post).await?;
 
-    let post_like = PostLikeForm::new(inserted_post.id, inserted_person.id, true);
+    let post_like = PostLikeForm::new(inserted_post.id, data.person.id, Some(true));
     let _inserted_post_like = PostActions::like(pool, &post_like).await?;
 
-    let comment_form = CommentInsertForm::new(
-      inserted_person.id,
-      inserted_post.id,
-      "A test comment".into(),
-    );
+    let comment_form =
+      CommentInsertForm::new(data.person.id, inserted_post.id, "A test comment".into());
     let inserted_comment = Comment::create(pool, &comment_form, None).await?;
 
-    let mut comment_like = CommentLikeForm::new(inserted_person.id, inserted_comment.id, true);
+    let comment_like = CommentLikeForm::new(inserted_comment.id, data.person.id, Some(true));
 
-    let _inserted_comment_like = CommentActions::like(pool, &comment_like).await?;
+    CommentActions::like(pool, &comment_like).await?;
 
-    let child_comment_form = CommentInsertForm::new(
-      inserted_person.id,
-      inserted_post.id,
-      "A test comment".into(),
-    );
+    let child_comment_form =
+      CommentInsertForm::new(data.person.id, inserted_post.id, "A test comment".into());
     let inserted_child_comment =
       Comment::create(pool, &child_comment_form, Some(&inserted_comment.path)).await?;
 
-    let child_comment_like =
-      CommentLikeForm::new(another_inserted_person.id, inserted_child_comment.id, true);
+    let child_comment_like = CommentLikeForm::new(
+      inserted_child_comment.id,
+      another_inserted_person.id,
+      Some(true),
+    );
 
-    let _inserted_child_comment_like = CommentActions::like(pool, &child_comment_like).await?;
+    CommentActions::like(pool, &child_comment_like).await?;
 
-    let person_aggregates_before_delete = Person::read(pool, inserted_person.id).await?;
+    let person_aggregates_before_delete = Person::read(pool, data.person.id).await?;
 
     assert_eq!(1, person_aggregates_before_delete.post_count);
     assert_eq!(1, person_aggregates_before_delete.post_score);
@@ -605,8 +562,9 @@ mod tests {
     assert_eq!(2, person_aggregates_before_delete.comment_score);
 
     // Remove a post like
-    PostActions::remove_like(pool, inserted_person.id, inserted_post.id).await?;
-    let after_post_like_remove = Person::read(pool, inserted_person.id).await?;
+    let form = PostLikeForm::new(inserted_post.id, data.person.id, None);
+    PostActions::like(pool, &form).await?;
+    let after_post_like_remove = Person::read(pool, data.person.id).await?;
     assert_eq!(0, after_post_like_remove.post_score);
 
     Comment::update(
@@ -628,7 +586,7 @@ mod tests {
     )
     .await?;
 
-    let after_parent_comment_removed = Person::read(pool, inserted_person.id).await?;
+    let after_parent_comment_removed = Person::read(pool, data.person.id).await?;
     assert_eq!(0, after_parent_comment_removed.comment_count);
     // TODO: fix person aggregate comment score calculation
     // assert_eq!(0, after_parent_comment_removed.comment_score);
@@ -636,7 +594,7 @@ mod tests {
     // Remove a parent comment (the scores should also be removed)
     Comment::delete(pool, inserted_comment.id).await?;
     Comment::delete(pool, inserted_child_comment.id).await?;
-    let after_parent_comment_delete = Person::read(pool, inserted_person.id).await?;
+    let after_parent_comment_delete = Person::read(pool, data.person.id).await?;
     assert_eq!(0, after_parent_comment_delete.comment_count);
     // TODO: fix person aggregate comment score calculation
     // assert_eq!(0, after_parent_comment_delete.comment_score);
@@ -645,15 +603,15 @@ mod tests {
     let new_parent_comment = Comment::create(pool, &comment_form, None).await?;
     let _new_child_comment =
       Comment::create(pool, &child_comment_form, Some(&new_parent_comment.path)).await?;
-    comment_like.comment_id = new_parent_comment.id;
+    let comment_like = CommentLikeForm::new(new_parent_comment.id, data.person.id, Some(true));
     CommentActions::like(pool, &comment_like).await?;
-    let after_comment_add = Person::read(pool, inserted_person.id).await?;
+    let after_comment_add = Person::read(pool, data.person.id).await?;
     assert_eq!(2, after_comment_add.comment_count);
     // TODO: fix person aggregate comment score calculation
     // assert_eq!(1, after_comment_add.comment_score);
 
     Post::delete(pool, inserted_post.id).await?;
-    let after_post_delete = Person::read(pool, inserted_person.id).await?;
+    let after_post_delete = Person::read(pool, data.person.id).await?;
     // TODO: fix person aggregate comment score calculation
     // assert_eq!(0, after_post_delete.comment_score);
     assert_eq!(0, after_post_delete.comment_count);
@@ -661,7 +619,7 @@ mod tests {
     assert_eq!(0, after_post_delete.post_count);
 
     // This should delete all the associated rows, and fire triggers
-    let person_num_deleted = Person::delete(pool, inserted_person.id).await?;
+    let person_num_deleted = Person::delete(pool, data.person.id).await?;
     assert_eq!(1, person_num_deleted);
     Person::delete(pool, another_inserted_person.id).await?;
 
@@ -670,11 +628,51 @@ mod tests {
     assert_eq!(1, community_num_deleted);
 
     // Should be none found
-    let after_delete = Person::read(pool, inserted_person.id).await;
+    let after_delete = Person::read(pool, data.person.id).await;
     assert!(after_delete.is_err());
 
-    Instance::delete(pool, inserted_instance.id).await?;
+    data.delete(pool).await?;
+    Ok(())
+  }
 
+  #[tokio::test]
+  #[serial]
+  async fn person_vote_counts() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+
+    let data = TestData::create(pool).await?;
+    let person_form = PersonInsertForm::test_form(data.instance.id, "jerry_user_agg");
+    let other_person = Person::create(pool, &person_form).await?;
+
+    // initial upvote
+    let res = PersonActions::like(pool, data.person.id, other_person.id, None, Some(true)).await?;
+    assert_eq!(Some(1), res.upvotes);
+    assert_eq!(Some(0), res.downvotes);
+
+    // change upvote to downvote
+    let res = PersonActions::like(
+      pool,
+      data.person.id,
+      other_person.id,
+      Some(true),
+      Some(false),
+    )
+    .await?;
+    assert_eq!(Some(0), res.upvotes);
+    assert_eq!(Some(1), res.downvotes);
+
+    // downvote a different item
+    let res = PersonActions::like(pool, data.person.id, other_person.id, None, Some(false)).await?;
+    assert_eq!(Some(0), res.upvotes);
+    assert_eq!(Some(2), res.downvotes);
+
+    // remove the downvote
+    let res = PersonActions::like(pool, data.person.id, other_person.id, Some(false), None).await?;
+    assert_eq!(Some(0), res.upvotes);
+    assert_eq!(Some(1), res.downvotes);
+
+    data.delete(pool).await?;
     Ok(())
   }
 }

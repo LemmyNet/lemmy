@@ -401,7 +401,7 @@ async fn post_listing_like(data: &mut Data) -> LemmyResult<()> {
   let pool = &data.pool();
   let pool = &mut pool.into();
 
-  let post_like_form = PostLikeForm::new(data.post.id, data.tegan.person.id, true);
+  let post_like_form = PostLikeForm::new(data.post.id, data.tegan.person.id, Some(true));
 
   let inserted_post_like = PostActions::like(pool, &post_like_form).await?;
 
@@ -457,8 +457,6 @@ async fn post_listing_like(data: &mut Data) -> LemmyResult<()> {
     read_post_listing[0].post.id
   );
 
-  let like_removed = PostActions::remove_like(pool, data.tegan.person.id, data.post.id).await?;
-  assert_eq!(UpleteCount::only_deleted(1), like_removed);
   Ok(())
 }
 
@@ -527,7 +525,7 @@ async fn post_listing_person_vote_totals(data: &mut Data) -> LemmyResult<()> {
   );
   let bot_post_2 = Post::create(pool, &bot_post_2).await?;
 
-  let post_like_form = PostLikeForm::new(data.bot_post.id, data.tegan.person.id, true);
+  let post_like_form = PostLikeForm::new(data.bot_post.id, data.tegan.person.id, Some(true));
   let inserted_post_like = PostActions::like(pool, &post_like_form).await?;
 
   assert_eq!(
@@ -539,8 +537,14 @@ async fn post_listing_person_vote_totals(data: &mut Data) -> LemmyResult<()> {
     )
   );
 
-  let inserted_person_like =
-    PersonActions::like(pool, data.tegan.person.id, data.bot.person.id, true).await?;
+  let inserted_person_like = PersonActions::like(
+    pool,
+    data.tegan.person.id,
+    data.bot.person.id,
+    None,
+    Some(true),
+  )
+  .await?;
 
   assert_eq!(
     (data.tegan.person.id, data.bot.person.id, Some(1), Some(0),),
@@ -582,10 +586,17 @@ async fn post_listing_person_vote_totals(data: &mut Data) -> LemmyResult<()> {
   );
 
   // Do a 2nd like to another post
-  let post_2_like_form = PostLikeForm::new(bot_post_2.id, data.tegan.person.id, true);
-  let _inserted_post_2_like = PostActions::like(pool, &post_2_like_form).await?;
-  let inserted_person_like_2 =
-    PersonActions::like(pool, data.tegan.person.id, data.bot.person.id, true).await?;
+  let post_2_like_form = PostLikeForm::new(bot_post_2.id, data.tegan.person.id, Some(true));
+  PostActions::like(pool, &post_2_like_form).await?;
+
+  let inserted_person_like_2 = PersonActions::like(
+    pool,
+    data.tegan.person.id,
+    data.bot.person.id,
+    None,
+    Some(true),
+  )
+  .await?;
   assert_eq!(
     (data.tegan.person.id, data.bot.person.id, Some(2), Some(0),),
     (
@@ -597,11 +608,17 @@ async fn post_listing_person_vote_totals(data: &mut Data) -> LemmyResult<()> {
   );
 
   // Remove the like
-  let like_removed = PostActions::remove_like(pool, data.tegan.person.id, data.bot_post.id).await?;
-  assert_eq!(UpleteCount::only_deleted(1), like_removed);
+  let form = PostLikeForm::new(data.bot_post.id, data.tegan.person.id, None);
+  PostActions::like(pool, &form).await?;
 
-  let person_like_removed =
-    PersonActions::remove_like(pool, data.tegan.person.id, data.bot.person.id, true).await?;
+  let person_like_removed = PersonActions::like(
+    pool,
+    data.tegan.person.id,
+    data.bot.person.id,
+    Some(true),
+    None,
+  )
+  .await?;
   assert_eq!(
     (data.tegan.person.id, data.bot.person.id, Some(1), Some(0),),
     (
@@ -613,10 +630,16 @@ async fn post_listing_person_vote_totals(data: &mut Data) -> LemmyResult<()> {
   );
 
   // Now do a downvote
-  let post_like_form = PostLikeForm::new(data.bot_post.id, data.tegan.person.id, false);
-  let _inserted_post_dislike = PostActions::like(pool, &post_like_form).await?;
-  let inserted_person_dislike =
-    PersonActions::like(pool, data.tegan.person.id, data.bot.person.id, false).await?;
+  let post_like_form = PostLikeForm::new(data.bot_post.id, data.tegan.person.id, Some(false));
+  PostActions::like(pool, &post_like_form).await?;
+  let inserted_person_dislike = PersonActions::like(
+    pool,
+    data.tegan.person.id,
+    data.bot.person.id,
+    None,
+    Some(false),
+  )
+  .await?;
   assert_eq!(
     (data.tegan.person.id, data.bot.person.id, Some(1), Some(1),),
     (
@@ -656,8 +679,8 @@ async fn post_listing_person_vote_totals(data: &mut Data) -> LemmyResult<()> {
     )
   );
 
-  let like_removed = PostActions::remove_like(pool, data.tegan.person.id, data.bot_post.id).await?;
-  assert_eq!(UpleteCount::only_deleted(1), like_removed);
+  let form = PostLikeForm::new(data.bot_post.id, data.tegan.person.id, None);
+  PostActions::like(pool, &form).await?;
 
   Ok(())
 }

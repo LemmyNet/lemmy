@@ -120,7 +120,7 @@ pub async fn create_comment(
   .send(&context);
 
   // You like your own comment by default
-  let like_form = CommentLikeForm::new(my_person_id, inserted_comment.id, true);
+  let like_form = CommentLikeForm::new(inserted_comment.id, my_person_id, Some(true));
 
   CommentActions::like(&mut context.pool(), &like_form).await?;
 

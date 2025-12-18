@@ -734,7 +734,7 @@ fn create_welcome_post(local_user: LocalUser, context: &LemmyContext) {
     let post = Post::create(pool, &post_form).await?;
 
     // Own upvote for post
-    let like_form = PostLikeForm::new(post.id, person.id, true);
+    let like_form = PostLikeForm::new(post.id, person.id, Some(true));
     PostActions::like(&mut context.pool(), &like_form).await?;
 
     Ok(())

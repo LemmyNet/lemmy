@@ -139,7 +139,7 @@ impl Activity for CreateOrUpdatePage {
     let post = ApubPost::from_json(self.object.clone(), context).await?;
 
     // author likes their own post by default
-    let like_form = PostLikeForm::new(post.id, post.creator_id, true);
+    let like_form = PostLikeForm::new(post.id, post.creator_id, Some(true));
     PostActions::like(&mut context.pool(), &like_form).await?;
 
     // Calculate initial hot_rank for post

@@ -107,15 +107,9 @@ mod tests {
     parse_lemmy_person,
   };
   use lemmy_db_schema::{
-    source::{
-      community::{Community, CommunityActions, CommunityModeratorForm},
-      instance::Instance,
-      person::{Person, PersonInsertForm},
-      site::Site,
-    },
+    source::community::{CommunityActions, CommunityModeratorForm},
     test_data::TestData,
   };
-  use lemmy_diesel_utils::traits::Crud;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -123,17 +117,12 @@ mod tests {
   #[serial]
   async fn test_parse_lemmy_community_moderators() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
-    let test_data = TestData::create(&mut context.pool()).await?;
+    let data = TestData::create(&mut context.pool()).await?;
     let (new_mod, site) = parse_lemmy_person(&context).await?;
     let community = parse_lemmy_community(&context).await?;
     let community_id = community.id;
 
-    let inserted_instance = Instance::read_or_create(&mut context.pool(), "my_domain.tld").await?;
-
-    let old_mod = PersonInsertForm::test_form(inserted_instance.id, "holly");
-
-    let old_mod = Person::create(&mut context.pool(), &old_mod).await?;
-    let community_moderator_form = CommunityModeratorForm::new(community.id, old_mod.id);
+    let community_moderator_form = CommunityModeratorForm::new(community.id, data.person.id);
 
     CommunityActions::join(&mut context.pool(), &community_moderator_form).await?;
 
@@ -152,12 +141,7 @@ mod tests {
     assert_eq!(current_moderators.len(), 1);
     assert_eq!(current_moderators[0].moderator.id, new_mod.id);
 
-    Person::delete(&mut context.pool(), old_mod.id).await?;
-    Person::delete(&mut context.pool(), new_mod.id).await?;
-    Community::delete(&mut context.pool(), community.id).await?;
-    Site::delete(&mut context.pool(), site.id).await?;
-    Instance::delete(&mut context.pool(), inserted_instance.id).await?;
-    test_data.delete(&mut context.pool()).await?;
+    data.delete(&mut context.pool()).await?;
     Ok(())
   }
 }

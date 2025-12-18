@@ -211,15 +211,32 @@ pub struct PostActions {
   pub notifications: Option<PostNotificationsMode>,
 }
 
-#[derive(Clone, derive_new::new, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = post_actions))]
 pub struct PostLikeForm {
-  pub post_id: PostId,
-  pub person_id: PersonId,
-  pub vote_is_upvote: bool,
-  #[new(value = "Utc::now()")]
-  pub voted_at: DateTime<Utc>,
+  post_id: PostId,
+  person_id: PersonId,
+  vote_is_upvote: Option<Option<bool>>,
+  voted_at: Option<Option<DateTime<Utc>>>,
+}
+
+impl PostLikeForm {
+  /// Pass `is_upvote: None` to remove an existing vote for this post
+  pub fn new(post_id: PostId, person_id: PersonId, is_upvote: Option<bool>) -> Self {
+    let voted_at = if is_upvote.is_some() {
+      Some(Some(Utc::now()))
+    } else {
+      Some(None)
+    };
+
+    Self {
+      post_id,
+      person_id,
+      vote_is_upvote: Some(is_upvote),
+      voted_at,
+    }
+  }
 }
 
 #[derive(derive_new::new)]
