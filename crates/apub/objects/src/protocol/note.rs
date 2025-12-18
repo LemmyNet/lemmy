@@ -6,11 +6,8 @@ use crate::{
     person::ApubPerson,
     post::ApubPost,
   },
-  protocol::page::Attachment,
-  utils::{
-    mentions::MentionOrValue,
-    protocol::{InCommunity, LanguageTag, Source},
-  },
+  protocol::{page::Attachment, tags::ApubTag},
+  utils::protocol::{InCommunity, LanguageTag, Source},
 };
 use activitypub_federation::{
   config::Data,
@@ -53,7 +50,7 @@ pub struct Note {
   pub(crate) published: Option<DateTime<Utc>>,
   pub(crate) updated: Option<DateTime<Utc>>,
   #[serde(default)]
-  pub tag: Vec<MentionOrValue>,
+  pub tag: Vec<ApubTag>,
   // lemmy extension
   pub distinguished: Option<bool>,
   pub(crate) language: Option<LanguageTag>,

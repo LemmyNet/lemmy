@@ -165,11 +165,10 @@ pub async fn create_post(
 
   NotifyData::new(
     inserted_post.clone(),
-    None,
     local_user_view.person.clone(),
     community.clone(),
-    !local_site.disable_email_notifications,
   )
+  .do_send_email(!local_site.disable_email_notifications)
   .send(&context);
 
   PostActions::mark_as_read(&mut context.pool(), person_id, &[post_id]).await?;

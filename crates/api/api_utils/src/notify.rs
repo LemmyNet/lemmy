@@ -34,10 +34,14 @@ use url::Url;
 #[derive(derive_new::new, Debug, Clone)]
 pub struct NotifyData {
   post: Post,
-  comment_opt: Option<Comment>,
   creator: Person,
   community: Community,
+  #[new(value = "None")]
+  comment_opt: Option<Comment>,
+  #[new(value = "false")]
   do_send_email: bool,
+  #[new(value = "None")]
+  pub apub_mentions: Option<Vec<Person>>,
 }
 
 struct CollectedNotifyData<'a> {
@@ -64,6 +68,19 @@ impl<'a> Hash for CollectedNotifyData<'a> {
 impl<'a> Eq for CollectedNotifyData<'a> {}
 
 impl NotifyData {
+  pub fn comment(mut self, comment: Comment) -> Self {
+    self.comment_opt = Some(comment);
+    self
+  }
+  pub fn do_send_email(mut self, do_send_email: bool) -> Self {
+    self.do_send_email = do_send_email;
+    self
+  }
+  pub fn apub_mentions(mut self, apub_mentions: Vec<Person>) -> Self {
+    self.apub_mentions = Some(apub_mentions);
+    self
+  }
+
   /// Scans the post/comment content for mentions, then sends notifications via db and email
   /// to mentioned users and parent creator. Spawns a task for background processing.
   pub fn send(self, context: &LemmyContext) {
@@ -205,20 +222,28 @@ impl NotifyData {
     &'a self,
     context: &LemmyContext,
   ) -> LemmyResult<Vec<CollectedNotifyData<'a>>> {
-    let mentions = scrape_text_for_mentions(&self.content())
-      .into_iter()
-      .filter(|m| m.is_local(&context.settings().hostname) && m.name.ne(&self.creator.name));
+    let mentions = if let Some(apub_mentions) = self.apub_mentions.clone() {
+      apub_mentions
+    } else {
+      let scraped = scrape_text_for_mentions(&self.content())
+        .into_iter()
+        .filter(|m| m.is_local(&context.settings().hostname) && m.name.ne(&self.creator.name));
+      let mut persons = vec![];
+      for m in scraped {
+        let Ok(Some(p)) = Person::read_from_name(&mut context.pool(), &m.name, None, false).await
+        else {
+          // Ignore error if user is remote
+          continue;
+        };
+        persons.push(p);
+      }
+      persons
+    };
+
     let mut res = vec![];
     for mention in mentions {
-      let Ok(Some(person)) =
-        Person::read_from_name(&mut context.pool(), &mention.name, None, false).await
-      else {
-        // Ignore error if user is remote
-        continue;
-      };
-
       res.push(CollectedNotifyData {
-        person_id: person.id,
+        person_id: mention.id,
         local_url: self.link(context)?.into(),
         data: NotificationEmailData::Mention {
           content: self.content().clone(),
@@ -515,6 +540,7 @@ mod tests {
       creator: data.sara.person.clone(),
       community: data.community.clone(),
       do_send_email: false,
+      apub_mentions: None,
     }
     .send_internal(context.app_data().clone())
     .await?;
