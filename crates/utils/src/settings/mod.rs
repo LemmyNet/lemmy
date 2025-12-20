@@ -10,8 +10,11 @@ pub mod structs;
 
 static DEFAULT_CONFIG_FILE: &str = "config/config.hjson";
 
-/// Some connection options to speed up queries
-const CONNECTION_OPTIONS: [&str; 1] = ["geqo_threshold=12"];
+const CONNECTION_OPTIONS: [&str; 2] = [
+  "geqo_threshold=12", // speed up queries
+  "application_name=lemmy", /* disable the trigger that prevents the Diesel CLI from running
+                        * migrations */
+];
 
 #[allow(clippy::expect_used)]
 pub static SETTINGS: LazyLock<Settings> = LazyLock::new(|| {
