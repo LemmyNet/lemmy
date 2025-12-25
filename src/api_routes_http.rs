@@ -89,6 +89,7 @@ use lemmy_api::{
     },
   },
   sitemap::get_sitemap,
+  vote_analytics::given_by_person::get_vote_analytics_given_by_person,
 };
 use lemmy_api_crud::{
   comment::{
@@ -378,6 +379,10 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
               .route("/community", web::post().to(purge_community))
               .route("/post", web::post().to(purge_post))
               .route("/comment", web::post().to(purge_comment)),
+          )
+          .route(
+            "/vote_analytics/given_by_person",
+            web::get().to(get_vote_analytics_given_by_person),
           ),
       )
       .service(
