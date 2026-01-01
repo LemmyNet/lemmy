@@ -10,7 +10,7 @@ use enum_map::{EnumMap, enum_map};
 use lemmy_db_schema::{
   newtypes::{CommunityId, PostId, PostOrCommentId, TagId},
   source::{
-    comment::{Comment, CommentActions},
+    comment::{Comment, CommentActions, CommentLikeForm},
     community::{Community, CommunityActions, CommunityUpdateForm},
     images::{ImageDetails, RemoteImage},
     instance::InstanceActions,
@@ -20,7 +20,7 @@ use lemmy_db_schema::{
     modlog::{Modlog, ModlogInsertForm},
     oauth_account::OAuthAccount,
     person::{Person, PersonUpdateForm},
-    post::{Post, PostActions, PostReadCommentsForm},
+    post::{Post, PostActions, PostLikeForm, PostReadCommentsForm},
     private_message::PrivateMessage,
     registration_application::RegistrationApplication,
     site::Site,
@@ -323,9 +323,13 @@ pub async fn check_local_vote_mode(
   // Undo previous vote for item if new vote fails
   if downvote_fail || upvote_fail {
     match post_or_comment_id {
-      PostOrCommentId::Post(post_id) => PostActions::remove_like(pool, person_id, post_id).await?,
+      PostOrCommentId::Post(post_id) => {
+        let form = PostLikeForm::new(post_id, person_id, None);
+        PostActions::like(pool, &form).await?;
+      }
       PostOrCommentId::Comment(comment_id) => {
-        CommentActions::remove_like(pool, person_id, comment_id).await?
+        let form = CommentLikeForm::new(comment_id, person_id, None);
+        CommentActions::like(pool, &form).await?;
       }
     };
   }
