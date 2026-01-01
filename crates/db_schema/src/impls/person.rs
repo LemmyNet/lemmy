@@ -631,10 +631,9 @@ mod tests {
     Ok(())
   }
 
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn person_vote_counts() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     let data = TestData::create(pool).await?;

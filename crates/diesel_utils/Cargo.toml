@@ -53,6 +53,7 @@ diesel-derive-newtype = { workspace = true }
 diesel-async = { workspace = true, features = [
   "deadpool",
   "postgres",
+  "async-connection-wrapper",
 ], optional = true }
 db-pool = { git = "https://github.com/momentary-lapse/db-pool.git", branch = "edition2021-test-superuser", features = [
   "diesel-async-postgres",
