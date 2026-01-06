@@ -86,6 +86,7 @@ import {
   ReportCombinedView,
   PendingFollowerView,
   ModlogView,
+  LemmyError,
 } from "lemmy-js-client";
 
 export const fetchFunction = fetch;
@@ -110,7 +111,7 @@ export const gamma = new LemmyHttp(gammaUrl, { fetchFunction });
 export const delta = new LemmyHttp(deltaUrl, { fetchFunction });
 export const epsilon = new LemmyHttp(epsilonUrl, { fetchFunction });
 
-const password = "lemmylemmy";
+export const password = "lemmylemmy";
 
 export async function setupLogins() {
   let formAlpha: Login = {
@@ -713,10 +714,10 @@ export async function registerUser(
   let login_response = await api.register(form);
 
   expect(login_response.jwt).toBeDefined();
-  let lemmy_http = new LemmyHttp(url, {
+  let lemmyHttp = new LemmyHttp(url, {
     headers: { Authorization: `Bearer ${login_response.jwt ?? ""}` },
   });
-  return lemmy_http;
+  return lemmyHttp;
 }
 
 export async function loginUser(
@@ -1081,4 +1082,23 @@ export function assertCommunityFederation(
   expect(communityOne?.community.nsfw).toBe(communityTwo?.community.nsfw);
   expect(communityOne?.community.removed).toBe(communityTwo?.community.removed);
   expect(communityOne?.community.deleted).toBe(communityTwo?.community.deleted);
+}
+
+/**
+ * Jest officially doesn't support deep checking custom errors,
+ * so we have to check each field manually.
+ *
+ * https://github.com/jestjs/jest/issues/15378
+ **/
+export async function jestLemmyError<T>(
+  fetcher: () => Promise<T>,
+  err: LemmyError,
+) {
+  try {
+    await fetcher();
+  } catch (e) {
+    expect(e.name).toBe(err.name);
+    expect(e.status).toBe(err.status);
+    expect(e.message).toBe(err.message);
+  }
 }
