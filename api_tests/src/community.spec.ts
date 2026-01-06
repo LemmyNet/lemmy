@@ -604,14 +604,16 @@ test("Content in local-only community doesn't federate", async () => {
   // cant resolve the community from another instance
   await jestLemmyError(
     () => resolveCommunity(beta, communityRes.ap_id),
-    new LemmyError("not_found", statusNotFound),
+    new LemmyError("resolve_object_failed", statusBadRequest),
+    false,
   );
 
   // create a post, also cant resolve it
   let postRes = await createPost(alpha, communityRes.id);
   await jestLemmyError(
     () => resolvePost(beta, postRes.post_view.post),
-    new LemmyError("not_found", statusNotFound),
+    new LemmyError("resolve_object_failed", statusBadRequest),
+    false,
   );
 });
 

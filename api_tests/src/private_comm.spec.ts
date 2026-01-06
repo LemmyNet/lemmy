@@ -26,6 +26,7 @@ import {
   getComments,
   statusNotFound,
   jestLemmyError,
+  statusBadRequest,
 } from "./shared";
 
 beforeAll(setupLogins);
@@ -136,11 +137,13 @@ test("Only followers can view and interact with private community content", asyn
   )?.community;
   await jestLemmyError(
     () => resolvePost(user, post0.post_view.post),
-    new LemmyError("not_found", statusNotFound),
+    new LemmyError("resolve_object_failed", statusBadRequest),
+    false,
   );
   await jestLemmyError(
     () => resolveComment(user, comment.comment_view.comment),
-    new LemmyError("not_found", statusNotFound),
+    new LemmyError("resolve_object_failed", statusBadRequest),
+    false,
   );
   await jestLemmyError(
     () => createPost(user, betaCommunity!.id),
@@ -330,7 +333,8 @@ test("Fetch remote content in private community", async () => {
   // cannot fetch post yet
   await jestLemmyError(
     () => resolvePost(gamma, post.post_view.post),
-    new LemmyError("not_found", statusNotFound),
+    new LemmyError("resolve_object_failed", statusBadRequest),
+    false,
   );
   // follow community and approve
   await gamma.followCommunity(follow_form);

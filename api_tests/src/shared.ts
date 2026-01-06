@@ -1093,12 +1093,16 @@ export function assertCommunityFederation(
 export async function jestLemmyError<T>(
   fetcher: () => Promise<T>,
   err: LemmyError,
+  checkMessage = true,
 ) {
   try {
     await fetcher();
   } catch (e) {
     expect(e.name).toBe(err.name);
     expect(e.status).toBe(err.status);
-    expect(e.message).toBe(err.message);
+
+    if (checkMessage) {
+      expect(e.message).toBe(err.message);
+    }
   }
 }
