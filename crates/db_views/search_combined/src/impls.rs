@@ -41,7 +41,7 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
-  enums::ListingType,
+  enums::{CommunityFollowerState, CommunityVisibility, ListingType},
   joins::{
     creator_community_actions_join,
     creator_home_instance_actions_join,
@@ -240,7 +240,8 @@ impl SearchCombinedQuery {
     user: &Option<LocalUserView>,
     site_local: &Site,
   ) -> LemmyResult<PagedResponse<SearchCombinedView>> {
-    let my_person_id = user.as_ref().map(|u| u.local_user.person_id);
+    let my_local_user = user.as_ref().map(|u| &u.local_user);
+    let my_person_id = my_local_user.person_id();
     let item_creator = person::id;
 
     let limit = limit_fetch(self.limit, None)?;
@@ -362,7 +363,7 @@ impl SearchCombinedQuery {
     }
 
     // NSFW
-    let user_and_site_nsfw = user.as_ref().map(|u| &u.local_user).show_nsfw(site_local);
+    let user_and_site_nsfw = my_local_user.show_nsfw(site_local);
     if !self.show_nsfw.unwrap_or(user_and_site_nsfw) {
       let safe_community = community::nsfw.eq(false);
       let safe_post_and_community = post::nsfw.eq(false).and(safe_community);
@@ -372,6 +373,26 @@ impl SearchCombinedQuery {
           .and(safe_community)
           .or(is_post.and(safe_post_and_community))
           .or(is_comment.and(safe_post_and_community))
+          .or(is_person)
+          .or(is_multi_community),
+      );
+    };
+
+    // Check permissions to view private community content.
+    // Specifically, if the community is private then only accepted followers may view its
+    // content, otherwise it is filtered out. Admins can view private community content
+    // without restriction.
+    if !my_local_user.is_admin() {
+      let view_private_community = community::visibility
+        .ne(CommunityVisibility::Private)
+        .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted));
+
+      // Only filter for communities, posts, and comments
+      query = query.filter(
+        is_community
+          .and(view_private_community.clone())
+          .or(is_post.and(view_private_community.clone()))
+          .or(is_comment.and(view_private_community.clone()))
           .or(is_person)
           .or(is_multi_community),
       );
@@ -493,7 +514,7 @@ mod tests {
     assert_length,
     source::{
       comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm, CommentUpdateForm},
-      community::{Community, CommunityInsertForm},
+      community::{Community, CommunityActions, CommunityFollowerForm, CommunityInsertForm},
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm},
       multi_community::{MultiCommunity, MultiCommunityInsertForm},
@@ -501,8 +522,9 @@ mod tests {
       post::{Post, PostActions, PostInsertForm, PostLikeForm, PostUpdateForm},
       site::{Site, SiteInsertForm},
     },
-    traits::Likeable,
+    traits::{Followable, Likeable},
   };
+  use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility};
   use lemmy_diesel_utils::{
     connection::{DbPool, build_db_pool_for_tests},
     traits::Crud,
@@ -520,14 +542,17 @@ mod tests {
     sara: Person,
     community: Community,
     community_2: Community,
+    private_community: Community,
     timmy_post: Post,
     timmy_post_2: Post,
     sara_post: Post,
     nsfw_post: Post,
+    timmy_post_private_comm: Post,
     timmy_comment: Comment,
     sara_comment: Comment,
     sara_comment_2: Comment,
     comment_in_nsfw_post: Comment,
+    timmy_comment_private_comm: Comment,
   }
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
@@ -568,6 +593,17 @@ mod tests {
     );
     let community_2 = Community::create(pool, &community_form_2).await?;
 
+    let private_community_form = CommunityInsertForm {
+      visibility: Some(CommunityVisibility::Private),
+      ..CommunityInsertForm::new(
+        instance.id,
+        "private_comm".to_string(),
+        "This is a private comm".to_owned(),
+        "pubkey".to_string(),
+      )
+    };
+    let private_community = Community::create(pool, &private_community_form).await?;
+
     let timmy_post_form = PostInsertForm {
       body: Some("postbody inside here".into()),
       url: Some(Url::parse("https://google.com")?.into()),
@@ -589,6 +625,13 @@ mod tests {
     };
     let nsfw_post = Post::create(pool, &nsfw_post_form).await?;
 
+    let timmy_post_private_comm_form = PostInsertForm::new(
+      "timmy post private comm".into(),
+      timmy.id,
+      private_community.id,
+    );
+    let timmy_post_private_comm = Post::create(pool, &timmy_post_private_comm_form).await?;
+
     let timmy_comment_form =
       CommentInsertForm::new(timmy.id, timmy_post.id, "timmy comment prv gold".into());
     let timmy_comment = Comment::create(pool, &timmy_comment_form, None).await?;
@@ -607,6 +650,14 @@ mod tests {
       "sara comment in nsfw post prv 2".into(),
     );
     let comment_in_nsfw_post = Comment::create(pool, &comment_in_nsfw_post_form, None).await?;
+
+    let timmy_comment_private_comm_form = CommentInsertForm::new(
+      timmy.id,
+      timmy_post_private_comm.id,
+      "timmy comment private comm".into(),
+    );
+    let timmy_comment_private_comm =
+      Comment::create(pool, &timmy_comment_private_comm_form, None).await?;
 
     // Timmy likes and dislikes a few things
     let timmy_like_post_form = PostLikeForm::new(timmy_post.id, timmy.id, Some(true));
@@ -636,14 +687,17 @@ mod tests {
       sara,
       community,
       community_2,
+      private_community,
       timmy_post,
       timmy_post_2,
       sara_post,
       nsfw_post,
+      timmy_post_private_comm,
       timmy_comment,
       sara_comment,
       sara_comment_2,
       comment_in_nsfw_post,
+      timmy_comment_private_comm,
     })
   }
 
@@ -1211,6 +1265,75 @@ mod tests {
       assert_eq!(data.comment_in_nsfw_post.id, v.comment.id);
       assert_eq!(data.nsfw_post.id, v.post.id);
       assert!(v.post.nsfw);
+    } else {
+      panic!("wrong type");
+    }
+
+    cleanup(data, pool).await?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn private_community() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    let unsubbed_private_search = SearchCombinedQuery {
+      community_id: Some(data.private_community.id),
+      ..Default::default()
+    }
+    .list(pool, &Some(data.timmy_view.clone()), &data.site)
+    .await?;
+
+    assert_length!(0, unsubbed_private_search);
+
+    // Approve timmy to the community
+    let follow_form = CommunityFollowerForm::new(
+      data.private_community.id,
+      data.timmy.id,
+      CommunityFollowerState::ApprovalRequired,
+    );
+
+    CommunityActions::follow(pool, &follow_form).await?;
+    CommunityActions::approve_private_community_follower(
+      pool,
+      data.private_community.id,
+      data.timmy.id,
+      data.sara.id,
+      CommunityFollowerState::Accepted,
+    )
+    .await?;
+
+    let subbed_private_search = SearchCombinedQuery {
+      community_id: Some(data.private_community.id),
+      ..Default::default()
+    }
+    .list(pool, &Some(data.timmy_view.clone()), &data.site)
+    .await?;
+
+    // Timmy subscribes to the comm and its accepted
+    // 1 community, 1 post, and 1 comment
+    assert_length!(3, subbed_private_search);
+
+    // Check the content
+    if let SearchCombinedView::Comment(v) = &subbed_private_search[0] {
+      assert_eq!(data.timmy_comment_private_comm.id, v.comment.id);
+      assert_eq!(data.timmy_post_private_comm.id, v.post.id);
+      assert_eq!(data.private_community.id, v.community.id);
+    } else {
+      panic!("wrong type");
+    }
+    if let SearchCombinedView::Post(v) = &subbed_private_search[1] {
+      assert_eq!(data.timmy_post_private_comm.id, v.post.id);
+      assert_eq!(data.private_community.id, v.community.id);
+    } else {
+      panic!("wrong type");
+    }
+    if let SearchCombinedView::Community(v) = &subbed_private_search[2] {
+      assert_eq!(data.private_community.id, v.community.id);
     } else {
       panic!("wrong type");
     }
