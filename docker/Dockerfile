@@ -5,7 +5,7 @@ ARG RUST_RELEASE_MODE=debug
 
 ARG AMD_BUILDER_IMAGE=rust:${RUST_VERSION}
 # Repo: https://github.com/raskyld/lemmy-cross-toolchains
-ARG ARM_BUILDER_IMAGE="ghcr.io/raskyld/aarch64-lemmy-linux-gnu:v0.6.0"
+ARG ARM_BUILDER_IMAGE="ghcr.io/raskyld/aarch64-lemmy-linux-gnu:v1.0.0"
 
 ARG AMD_RUNNER_IMAGE=debian:sid-slim
 ARG ARM_RUNNER_IMAGE=debian:sid-slim
