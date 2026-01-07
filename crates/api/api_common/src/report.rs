@@ -21,8 +21,6 @@ pub use lemmy_db_views_report_combined::{
     CreateCommunityReport,
     CreatePostReport,
     CreatePrivateMessageReport,
-    GetReportCount,
-    GetReportCountResponse,
     ListReports,
     PostReportResponse,
     PrivateMessageReportResponse,

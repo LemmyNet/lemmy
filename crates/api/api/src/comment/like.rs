@@ -67,34 +67,19 @@ pub async fn like_comment(
   )
   .await?;
 
-  // Remove any likes first
-  CommentActions::remove_like(&mut context.pool(), my_person_id, comment_id).await?;
-  if let Some(previous_is_upvote) = previous_is_upvote {
-    PersonActions::remove_like(
-      &mut context.pool(),
-      my_person_id,
-      orig_comment.creator.id,
-      previous_is_upvote,
-    )
-    .await
-    // Ignore errors, since a previous_like of zero throws an error
-    .ok();
-  }
+  let mut like_form = CommentLikeForm::new(data.comment_id, my_person_id, data.is_upvote);
+  like_form = plugin_hook_before("comment_before_vote", like_form).await?;
+  let like = CommentActions::like(&mut context.pool(), &like_form).await?;
+  PersonActions::like(
+    &mut context.pool(),
+    my_person_id,
+    orig_comment.creator.id,
+    previous_is_upvote,
+    data.is_upvote,
+  )
+  .await?;
 
-  if let Some(is_upvote) = data.is_upvote {
-    let mut like_form = CommentLikeForm::new(my_person_id, data.comment_id, is_upvote);
-    like_form = plugin_hook_before("comment_before_vote", like_form).await?;
-    let like = CommentActions::like(&mut context.pool(), &like_form).await?;
-    PersonActions::like(
-      &mut context.pool(),
-      my_person_id,
-      orig_comment.creator.id,
-      like_form.vote_is_upvote,
-    )
-    .await?;
-
-    plugin_hook_after("comment_after_vote", &like);
-  }
+  plugin_hook_after("comment_after_vote", &like);
 
   // Mark any notification as read
   Notification::mark_read_by_comment_and_recipient(

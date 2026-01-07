@@ -777,7 +777,7 @@ mod tests {
       &PostInsertForm::new("i am grrreat".to_owned(), person.id, community.id),
     )
     .await?;
-    PostActions::like(pool, &PostLikeForm::new(post.id, person.id, true)).await?;
+    PostActions::like(pool, &PostLikeForm::new(post.id, person.id, Some(true))).await?;
 
     active_counts(pool, ONE_DAY).await?;
     all_active_counts(pool).await?;

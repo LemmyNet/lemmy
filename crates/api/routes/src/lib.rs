@@ -13,11 +13,7 @@ use lemmy_api::{
     block::user_block_community,
     follow::follow_community,
     multi_community_follow::follow_multi_community,
-    pending_follows::{
-      approve::post_pending_follows_approve,
-      count::get_pending_follows_count,
-      list::get_pending_follows_list,
-    },
+    pending_follows::{approve::post_pending_follows_approve, list::get_pending_follows_list},
     random::get_random_community,
     tag::{create_community_tag, delete_community_tag, update_community_tag},
     transfer::transfer_community,
@@ -57,12 +53,11 @@ use lemmy_api::{
       list::list_notifications,
       mark_all_read::mark_all_notifications_read,
       mark_notification_read::mark_notification_as_read,
-      unread_count::unread_count,
     },
-    report_count::report_count,
     resend_verification_email::resend_verification_email,
     reset_password::reset_password,
     save_settings::save_user_settings,
+    unread_counts::get_unread_counts,
     update_totp::update_totp,
     user_block_instance::{user_block_instance_communities, user_block_instance_persons},
     validate_auth::validate_auth,
@@ -105,7 +100,6 @@ use lemmy_api::{
       approve::approve_registration_application,
       get::get_registration_application,
       list::list_registration_applications,
-      unread_count::get_unread_registration_application_count,
     },
   },
 };
@@ -250,7 +244,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("/notifications", post().to(update_community_notifications))
           .service(
             scope("/pending_follows")
-              .route("/count", get().to(get_pending_follows_count))
               .route("/list", get().to(get_pending_follows_list))
               .route("/approve", post().to(post_pending_follows_approve)),
           ),
@@ -336,7 +329,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
       .service(
         scope("/report")
           .wrap(rate_limit.message())
-          .route("/count", get().to(report_count))
           .route("/list", get().to(list_reports)),
       )
       // User
@@ -362,6 +354,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
       .service(
         scope("/account")
           .route("", get().to(get_my_user))
+          .route("/unread_counts", get().to(get_unread_counts))
           .service(
             scope("/media")
               .route("", delete().to(delete_image))
@@ -371,8 +364,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
             scope("/notification")
               .route("/list", get().to(list_notifications))
               .route("/mark_as_read/all", post().to(mark_all_notifications_read))
-              .route("/mark_as_read", post().to(mark_notification_as_read))
-              .route("/count", get().to(unread_count)),
+              .route("/mark_as_read", post().to(mark_notification_as_read)),
           )
           .route("", delete().to(delete_account))
           .route("/login/list", get().to(list_logins))
@@ -424,10 +416,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .service(
             scope("/registration_application")
               .route("", get().to(get_registration_application))
-              .route(
-                "/count",
-                get().to(get_unread_registration_application_count),
-              )
               .route("/list", get().to(list_registration_applications))
               .route("/approve", put().to(approve_registration_application)),
           )

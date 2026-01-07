@@ -34,7 +34,6 @@ import {
   randomString,
   assertCommunityFederation,
   listReports,
-  statusNotFound,
   statusBadRequest,
   jestLemmyError,
 } from "./shared";
