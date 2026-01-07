@@ -89,10 +89,7 @@ pub enum LemmyErrorType {
   InvalidUrl,
   EmailSendFailed,
   Slurs,
-  RegistrationDenied {
-    #[cfg_attr(feature = "ts-rs", ts(optional))]
-    reason: Option<String>,
-  },
+  RegistrationDenied(String),
   SiteNameRequired,
   SiteNameLengthOverflow,
   PermissiveRegex,
@@ -127,6 +124,7 @@ pub enum LemmyErrorType {
   CannotCombineCommunityIdAndMultiCommunityId,
   MultiCommunityEntryLimitReached,
   TooManyRequests,
+  ResolveObjectFailed(String),
   #[serde(untagged)]
   UntranslatedError(#[cfg_attr(feature = "ts-rs", ts(optional))] Option<UntranslatedError>),
 }
@@ -164,7 +162,6 @@ pub enum UntranslatedError {
   /// A remote community sent an activity to us, but actually no local user follows the community
   /// so the activity was rejected.
   CommunityHasNoFollowers(String),
-  ResolveObjectFailed(String),
 }
 
 cfg_if! {
@@ -306,9 +303,9 @@ cfg_if! {
 
       #[test]
       fn untranslated_error_format() -> LemmyResult<()> {
-        let err = LemmyError::from(UntranslatedError::ResolveObjectFailed("test".to_string())).error_response();
+        let err = LemmyError::from(UntranslatedError::DomainBlocked("test".to_string())).error_response();
         let json = String::from_utf8(err.into_body().try_into_bytes().unwrap_or_default().to_vec())?;
-        assert_eq!(&json, r#"{"error":"resolve_object_failed","message":"test"}"#);
+        assert_eq!(&json, r#"{"error":"domain_blocked","message":"test"}"#);
 
         Ok(())
       }
