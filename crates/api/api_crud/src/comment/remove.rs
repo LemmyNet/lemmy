@@ -3,6 +3,7 @@ use actix_web::web::Json;
 use lemmy_api_utils::{
   build_response::build_comment_response,
   context::LemmyContext,
+  notify::notify_mod_action,
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_community_mod_action,
 };
@@ -11,19 +12,20 @@ use lemmy_db_schema::{
     comment::{Comment, CommentUpdateForm},
     comment_report::CommentReport,
     local_user::LocalUser,
-    mod_log::moderator::{ModRemoveComment, ModRemoveCommentForm},
+    modlog::{Modlog, ModlogInsertForm},
   },
-  traits::{Crud, Reportable},
+  traits::Reportable,
 };
 use lemmy_db_views_comment::{
-  api::{CommentResponse, RemoveComment},
   CommentView,
+  api::{CommentResponse, RemoveComment},
 };
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn remove_comment(
-  data: Json<RemoveComment>,
+  Json(data): Json<RemoveComment>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponse>> {
@@ -75,13 +77,14 @@ pub async fn remove_comment(
     .await?;
 
   // Mod tables
-  let form = ModRemoveCommentForm {
-    mod_person_id: local_user_view.person.id,
-    comment_id: data.comment_id,
-    removed: Some(removed),
-    reason: data.reason.clone(),
-  };
-  ModRemoveComment::create(&mut context.pool(), &form).await?;
+  let form = ModlogInsertForm::mod_remove_comment(
+    local_user_view.person.id,
+    &orig_comment.comment,
+    removed,
+    &data.reason,
+  );
+  let actions = Modlog::create(&mut context.pool(), &[form]).await?;
+  notify_mod_action(actions, context.app_data());
 
   let updated_comment_id = updated_comment.id;
 

@@ -1,13 +1,19 @@
 -- Merge comment_aggregates into comment table
 ALTER TABLE comment
-    ADD COLUMN score int NOT NULL DEFAULT 0,
-    ADD COLUMN upvotes int NOT NULL DEFAULT 0,
+    ADD COLUMN score int NOT NULL DEFAULT 1, -- Default value only for previous rows, to match the similar thing done with `upvotes`
+    ADD COLUMN upvotes int NOT NULL DEFAULT 1, -- Default value only for previous rows, so the update below can filter out more rows by using `upvotes != 1` instead of `upvotes != 0`
     ADD COLUMN downvotes int NOT NULL DEFAULT 0,
     ADD COLUMN child_count int NOT NULL DEFAULT 0,
-    ADD COLUMN hot_rank double precision NOT NULL DEFAULT 0.0001,
-    ADD COLUMN controversy_rank double precision NOT NULL DEFAULT 0,
+    ADD COLUMN hot_rank real NOT NULL DEFAULT 0, -- Default value only for previous rows, so the update below can filter out more rows by using `hot_rank != 0` instead of `hot_rank != 0.0001`
+    ADD COLUMN controversy_rank real NOT NULL DEFAULT 0,
     ADD COLUMN report_count smallint NOT NULL DEFAULT 0,
     ADD COLUMN unresolved_report_count smallint NOT NULL DEFAULT 0;
+
+-- Default values only for future rows
+ALTER TABLE comment
+    ALTER COLUMN score SET DEFAULT 0,
+    ALTER COLUMN upvotes SET DEFAULT 0,
+    ALTER COLUMN hot_rank SET DEFAULT 0.0001;
 
 -- Disable the triggers temporarily
 ALTER TABLE comment DISABLE TRIGGER ALL;
@@ -40,7 +46,14 @@ SET
 FROM
     comment_aggregates AS ca
 WHERE
-    comment.id = ca.comment_id;
+    comment.id = ca.comment_id
+    -- If `(upvotes, downvotes) = (1, 0)`, then `(score, controversy_rank) = (1, 0)`, so it would be redundant to check `score` and `controversy_rank` in this filter.
+    AND (ca.upvotes != 1
+        OR ca.downvotes != 0
+        OR ca.child_count != 0
+        OR ca.hot_rank != 0
+        OR ca.report_count != 0
+        OR ca.unresolved_report_count != 0);
 
 DROP TABLE comment_aggregates;
 
@@ -77,19 +90,26 @@ CREATE INDEX idx_comment_score ON comment USING btree (score DESC);
 
 -- merge post_aggregates into post table
 ALTER TABLE post
+    ADD COLUMN newest_comment_time_necro timestamp with time zone,
+    ADD COLUMN newest_comment_time timestamp with time zone,
     ADD COLUMN comments int NOT NULL DEFAULT 0,
-    ADD COLUMN score int NOT NULL DEFAULT 0,
-    ADD COLUMN upvotes int NOT NULL DEFAULT 0,
+    ADD COLUMN score int NOT NULL DEFAULT 1, -- Default value only for previous rows, to match the similar thing done with `upvotes`
+    ADD COLUMN upvotes int NOT NULL DEFAULT 1, -- Default value only for previous rows, so the update below can filter out more rows by using `upvotes != 1` instead of `upvotes != 0`
     ADD COLUMN downvotes int NOT NULL DEFAULT 0,
-    ADD COLUMN newest_comment_time_necro timestamp with time zone NOT NULL DEFAULT now(),
-    ADD COLUMN newest_comment_time timestamp with time zone NOT NULL DEFAULT now(),
-    ADD COLUMN hot_rank double precision NOT NULL DEFAULT 0.0001,
-    ADD COLUMN hot_rank_active double precision NOT NULL DEFAULT 0.0001,
-    ADD COLUMN controversy_rank double precision NOT NULL DEFAULT 0,
-    ADD COLUMN instance_id int REFERENCES instance (id) ON UPDATE CASCADE ON DELETE CASCADE,
-    ADD COLUMN scaled_rank double precision NOT NULL DEFAULT 0.0001,
+    ADD COLUMN hot_rank real NOT NULL DEFAULT 0, -- Default value only for previous rows, so the update below can filter out more rows by using `hot_rank != 0` instead of `hot_rank != 0.0001`
+    ADD COLUMN hot_rank_active real NOT NULL DEFAULT 0, -- Default value only for previous rows, so the update below can filter out more rows by using `hot_rank_active != 0` instead of `hot_rank_active != 0.0001`
+    ADD COLUMN controversy_rank real NOT NULL DEFAULT 0,
+    ADD COLUMN scaled_rank real NOT NULL DEFAULT 0, -- Default value only for previous rows, so the update below can filter out more rows by using `scaled_rank != 0` instead of `scaled_rank != 0.0001`
     ADD COLUMN report_count smallint NOT NULL DEFAULT 0,
     ADD COLUMN unresolved_report_count smallint NOT NULL DEFAULT 0;
+
+-- Default values only for future rows
+ALTER TABLE post
+    ALTER COLUMN score SET DEFAULT 0,
+    ALTER COLUMN upvotes SET DEFAULT 0,
+    ALTER COLUMN hot_rank SET DEFAULT 0.0001,
+    ALTER COLUMN hot_rank_active SET DEFAULT 0.0001,
+    ALTER COLUMN scaled_rank SET DEFAULT 0.0001;
 
 -- Disable the triggers temporarily
 ALTER TABLE post DISABLE TRIGGER ALL;
@@ -111,23 +131,33 @@ WHERE
 UPDATE
     post
 SET
+    newest_comment_time_necro = nullif (pa.newest_comment_time_necro, pa.published),
+    newest_comment_time = nullif (pa.newest_comment_time, pa.published),
     comments = pa.comments,
     score = pa.score,
     upvotes = pa.upvotes,
     downvotes = pa.downvotes,
-    newest_comment_time_necro = pa.newest_comment_time_necro,
-    newest_comment_time = pa.newest_comment_time,
     hot_rank = pa.hot_rank,
     hot_rank_active = pa.hot_rank_active,
     controversy_rank = pa.controversy_rank,
-    instance_id = pa.instance_id,
     scaled_rank = pa.scaled_rank,
     report_count = pa.report_count,
     unresolved_report_count = pa.unresolved_report_count
 FROM
     post_aggregates AS pa
 WHERE
-    post.id = pa.post_id;
+    post.id = pa.post_id
+    -- If `(upvotes, downvotes) = (1, 0)`, then `(score, controversy_rank) = (1, 0)`, so it would be redundant to check `score` and `controversy_rank` in this filter.
+    AND (pa.newest_comment_time_necro != pa.published
+        OR pa.newest_comment_time != pa.published
+        OR pa.comments != 0
+        OR pa.upvotes != 1
+        OR pa.downvotes != 0
+        OR pa.hot_rank != 0
+        OR pa.hot_rank_active != 0
+        OR pa.scaled_rank != 0
+        OR pa.report_count != 0
+        OR pa.unresolved_report_count != 0);
 
 -- Delete that data
 DROP TABLE post_aggregates;
@@ -160,9 +190,9 @@ CREATE INDEX idx_post_community_hot ON post USING btree (community_id, featured_
 
 CREATE INDEX idx_post_community_most_comments ON post USING btree (community_id, featured_local DESC, comments DESC, published DESC, id DESC);
 
-CREATE INDEX idx_post_community_newest_comment_time ON post USING btree (community_id, featured_local DESC, newest_comment_time DESC, id DESC);
+CREATE INDEX idx_post_community_newest_comment_time ON post USING btree (community_id, featured_local DESC, coalesce(newest_comment_time, published) DESC, id DESC);
 
-CREATE INDEX idx_post_community_newest_comment_time_necro ON post USING btree (community_id, featured_local DESC, newest_comment_time_necro DESC, id DESC);
+CREATE INDEX idx_post_community_newest_comment_time_necro ON post USING btree (community_id, featured_local DESC, coalesce(newest_comment_time_necro, published) DESC, id DESC);
 
 -- INDEX idx_post_community_published ON post USING btree (community_id, featured_local DESC, published DESC);
 --CREATE INDEX idx_post_community_published_asc ON post USING btree (community_id, featured_local DESC, reverse_timestamp_sort (published) DESC);
@@ -178,9 +208,9 @@ CREATE INDEX idx_post_featured_community_hot ON post USING btree (community_id, 
 
 CREATE INDEX idx_post_featured_community_most_comments ON post USING btree (community_id, featured_community DESC, comments DESC, published DESC, id DESC);
 
-CREATE INDEX idx_post_featured_community_newest_comment_time ON post USING btree (community_id, featured_community DESC, newest_comment_time DESC, id DESC);
+CREATE INDEX idx_post_featured_community_newest_comment_time ON post USING btree (community_id, featured_community DESC, coalesce(newest_comment_time, published) DESC, id DESC);
 
-CREATE INDEX idx_post_featured_community_newest_comment_time_necr ON post USING btree (community_id, featured_community DESC, newest_comment_time_necro DESC, id DESC);
+CREATE INDEX idx_post_featured_community_newest_comment_time_necr ON post USING btree (community_id, featured_community DESC, coalesce(newest_comment_time_necro, published) DESC, id DESC);
 
 --CREATE INDEX idx_post_featured_community_published ON post USING btree (community_id, featured_community DESC, published DESC);
 CREATE INDEX idx_post_featured_community_published_asc ON post USING btree (community_id, featured_community DESC, reverse_timestamp_sort (published) DESC, id DESC);
@@ -197,9 +227,9 @@ CREATE INDEX idx_post_featured_local_hot ON post USING btree (featured_local DES
 
 CREATE INDEX idx_post_featured_local_most_comments ON post USING btree (featured_local DESC, comments DESC, published DESC, id DESC);
 
-CREATE INDEX idx_post_featured_local_newest_comment_time ON post USING btree (featured_local DESC, newest_comment_time DESC, id DESC);
+CREATE INDEX idx_post_featured_local_newest_comment_time ON post USING btree (featured_local DESC, coalesce(newest_comment_time, published) DESC, id DESC);
 
-CREATE INDEX idx_post_featured_local_newest_comment_time_necro ON post USING btree (featured_local DESC, newest_comment_time_necro DESC, id DESC);
+CREATE INDEX idx_post_featured_local_newest_comment_time_necro ON post USING btree (featured_local DESC, coalesce(newest_comment_time_necro, published) DESC, id DESC);
 
 CREATE INDEX idx_post_featured_local_published ON post USING btree (featured_local DESC, published DESC, id DESC);
 
@@ -216,18 +246,23 @@ CREATE INDEX idx_post_published_asc ON post USING btree (reverse_timestamp_sort 
 
 -- merge community_aggregates into community table
 ALTER TABLE community
-    ADD COLUMN subscribers int NOT NULL DEFAULT 0,
+    ADD COLUMN subscribers int NOT NULL DEFAULT 1, -- Default value only for previous rows, so the update below can filter out more rows by using `subscribers != 1` instead of `subscribers != 0`
     ADD COLUMN posts int NOT NULL DEFAULT 0,
     ADD COLUMN comments int NOT NULL DEFAULT 0,
     ADD COLUMN users_active_day int NOT NULL DEFAULT 0,
     ADD COLUMN users_active_week int NOT NULL DEFAULT 0,
     ADD COLUMN users_active_month int NOT NULL DEFAULT 0,
     ADD COLUMN users_active_half_year int NOT NULL DEFAULT 0,
-    ADD COLUMN hot_rank double precision NOT NULL DEFAULT 0.0001,
+    ADD COLUMN hot_rank real NOT NULL DEFAULT 0, -- Default value only for previous rows, so the update below can filter out more rows by using `hot_rank != 0` instead of `hot_rank != 0.0001`
     ADD COLUMN subscribers_local int NOT NULL DEFAULT 0,
+    ADD COLUMN interactions_month int NOT NULL DEFAULT 0,
     ADD COLUMN report_count smallint NOT NULL DEFAULT 0,
-    ADD COLUMN unresolved_report_count smallint NOT NULL DEFAULT 0,
-    ADD COLUMN interactions_month int NOT NULL DEFAULT 0;
+    ADD COLUMN unresolved_report_count smallint NOT NULL DEFAULT 0;
+
+-- Default values only for future rows
+ALTER TABLE community
+    ALTER COLUMN subscribers SET DEFAULT 0,
+    ALTER COLUMN hot_rank SET DEFAULT 0.0001;
 
 -- Disable the triggers temporarily
 ALTER TABLE community DISABLE TRIGGER ALL;
@@ -258,13 +293,25 @@ SET
     users_active_half_year = ca.users_active_half_year,
     hot_rank = ca.hot_rank,
     subscribers_local = ca.subscribers_local,
+    interactions_month = ca.interactions_month,
     report_count = ca.report_count,
-    unresolved_report_count = ca.unresolved_report_count,
-    interactions_month = ca.interactions_month
+    unresolved_report_count = ca.unresolved_report_count
 FROM
     community_aggregates AS ca
 WHERE
-    community.id = ca.community_id;
+    community.id = ca.community_id
+    AND (ca.subscribers != 1
+        OR ca.posts != 0
+        OR ca.comments != 0
+        OR ca.users_active_day != 0
+        OR ca.users_active_week != 0
+        OR ca.users_active_month != 0
+        OR ca.users_active_half_year != 0
+        OR ca.hot_rank != 0
+        OR ca.subscribers_local != 0
+        OR ca.interactions_month != 0
+        OR ca.report_count != 0
+        OR ca.unresolved_report_count != 0);
 
 DROP TABLE community_aggregates;
 
@@ -290,7 +337,7 @@ REINDEX TABLE community;
 
 CREATE INDEX idx_community_hot ON public.community USING btree (hot_rank DESC);
 
-CREATE INDEX idx_community_nonzero_hotrank ON public.community USING btree (published)
+CREATE INDEX idx_community_nonzero_hotrank ON community USING btree (published)
 WHERE (hot_rank <> (0)::double precision);
 
 CREATE INDEX idx_community_subscribers ON public.community USING btree (subscribers DESC);
@@ -331,7 +378,11 @@ SET
 FROM
     person_aggregates AS pa
 WHERE
-    person.id = pa.person_id;
+    person.id = pa.person_id
+    AND (pa.post_count != 0
+        OR pa.post_score != 0
+        OR pa.comment_count != 0
+        OR pa.comment_score != 0);
 
 DROP TABLE person_aggregates;
 
@@ -455,7 +506,11 @@ SET
 FROM
     local_user_vote_display_mode AS v
 WHERE
-    local_user.id = v.local_user_id;
+    local_user.id = v.local_user_id
+    AND (v.score
+        OR NOT v.upvotes
+        OR NOT v.downvotes
+        OR v.upvote_percentage);
 
 DROP TABLE local_user_vote_display_mode;
 

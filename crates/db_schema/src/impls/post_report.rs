@@ -1,18 +1,18 @@
 use crate::{
-  newtypes::{PersonId, PostId, PostReportId},
+  newtypes::{PostId, PostReportId},
   source::post_report::{PostReport, PostReportForm},
   traits::Reportable,
-  utils::{get_conn, DbPool},
 };
 use chrono::Utc;
 use diesel::{
-  dsl::{insert_into, update},
   BoolExpressionMethods,
   ExpressionMethods,
   QueryDsl,
+  dsl::{insert_into, update},
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::post_report;
+use lemmy_db_schema_file::{PersonId, schema::post_report};
+use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Reportable for PostReport {
@@ -93,20 +93,17 @@ impl Reportable for PostReport {
 mod tests {
 
   use super::*;
-  use crate::{
-    source::{
-      community::{Community, CommunityInsertForm},
-      instance::Instance,
-      person::{Person, PersonInsertForm},
-      post::{Post, PostInsertForm},
-    },
-    traits::Crud,
-    utils::build_db_pool_for_tests,
+  use crate::source::{
+    community::{Community, CommunityInsertForm},
+    instance::Instance,
+    person::{Person, PersonInsertForm},
+    post::{Post, PostInsertForm},
   };
+  use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use serial_test::serial;
 
   async fn init(pool: &mut DbPool<'_>) -> LemmyResult<(Person, PostReport)> {
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
     let person_form = PersonInsertForm::test_form(inserted_instance.id, "jim");
     let person = Person::create(pool, &person_form).await?;
 

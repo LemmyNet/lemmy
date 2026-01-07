@@ -4,10 +4,9 @@ use diesel::{
   dsl::{exists, not, select},
   query_builder::AsQuery,
 };
-use diesel_async::{scoped_futures::ScopedFutureExt, RunQueryDsl};
+use diesel_async::{RunQueryDsl, scoped_futures::ScopedFutureExt};
 use lemmy_api_utils::utils::generate_inbox_url;
 use lemmy_db_schema::{
-  sensitive::SensitiveString,
   source::{
     instance::Instance,
     local_site::{LocalSite, LocalSiteInsertForm},
@@ -16,16 +15,20 @@ use lemmy_db_schema::{
     person::{Person, PersonInsertForm},
     site::{Site, SiteInsertForm},
   },
-  traits::{ApubActor, Crud},
-  utils::{get_conn, DbPool},
+  traits::ApubActor,
 };
 use lemmy_db_schema_file::schema::local_site;
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  sensitive::SensitiveString,
+  traits::Crud,
+};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
 };
-use rand::{distr::Alphanumeric, Rng};
+use rand::{Rng, distr::Alphanumeric};
 use tracing::info;
 use url::Url;
 
@@ -46,7 +49,7 @@ pub async fn setup_local_site(pool: &mut DbPool<'_>, settings: &Settings) -> Lem
       .run_transaction(|conn| {
         async move {
           // Upsert this to the instance table
-          let instance = Instance::read_or_create(&mut conn.into(), domain).await?;
+          let instance = Instance::read_or_create(&mut conn.into(), &domain).await?;
 
           if let Some(setup) = &settings.setup {
             let person_keypair = generate_actor_keypair()?;
@@ -94,22 +97,22 @@ pub async fn setup_local_site(pool: &mut DbPool<'_>, settings: &Settings) -> Lem
           // create multi-comm follower account
           let r: String = rand::rng()
             .sample_iter(&Alphanumeric)
-            .take(11)
+            .take(14)
             .map(char::from)
             .collect();
-          let name = format!("multicomm{}", r);
+          let name = format!("lemmy_{}", r);
           let form = PersonInsertForm {
             private_key: site.private_key.map(SensitiveString::into_inner),
             inbox_url: Some(site.inbox_url),
             bot_account: Some(true),
             ..PersonInsertForm::new(name, site.public_key, instance.id)
           };
-          let multi_comm_follower = Person::create(&mut conn.into(), &form).await?;
+          let system_account = Person::create(&mut conn.into(), &form).await?;
 
           // Finally create the local_site row
           let local_site_form = LocalSiteInsertForm {
             site_setup: Some(settings.setup.is_some()),
-            multi_comm_follower: Some(multi_comm_follower.id),
+            system_account: Some(system_account.id),
             ..LocalSiteInsertForm::new(site.id)
           };
           let local_site = LocalSite::create(&mut conn.into(), &local_site_form).await?;

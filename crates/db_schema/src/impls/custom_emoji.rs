@@ -4,14 +4,16 @@ use crate::{
     custom_emoji::{CustomEmoji, CustomEmojiInsertForm, CustomEmojiUpdateForm},
     custom_emoji_keyword::{CustomEmojiKeyword, CustomEmojiKeywordInsertForm},
   },
-  traits::Crud,
-  utils::{get_conn, DbPool},
 };
-use diesel::{dsl::insert_into, ExpressionMethods, QueryDsl};
+use diesel::{ExpressionMethods, QueryDsl, dsl::insert_into};
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::{
   custom_emoji::dsl::custom_emoji,
   custom_emoji_keyword::dsl::{custom_emoji_id, custom_emoji_keyword},
+};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  traits::Crud,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -44,9 +46,25 @@ impl Crud for CustomEmoji {
 }
 
 impl CustomEmojiKeyword {
+  pub async fn create_from_keywords(
+    pool: &mut DbPool<'_>,
+    for_custom_emoji_id: CustomEmojiId,
+    keywords: &[String],
+  ) -> LemmyResult<Vec<Self>> {
+    let forms = keywords
+      .iter()
+      .map(|k| CustomEmojiKeywordInsertForm {
+        custom_emoji_id: for_custom_emoji_id,
+        keyword: k.to_lowercase().trim().to_string(),
+      })
+      .collect();
+
+    Self::create(pool, &forms).await
+  }
+
   pub async fn create(
     pool: &mut DbPool<'_>,
-    form: Vec<CustomEmojiKeywordInsertForm>,
+    form: &Vec<CustomEmojiKeywordInsertForm>,
   ) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
     insert_into(custom_emoji_keyword)

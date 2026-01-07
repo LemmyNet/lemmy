@@ -1,10 +1,11 @@
-use crate::newtypes::{ActivityId, CommunityId, DbUrl};
+use crate::newtypes::{ActivityId, CommunityId};
 use chrono::{DateTime, Utc};
 use diesel::Queryable;
 use lemmy_db_schema_file::{
   enums::ActorType,
   schema::{received_activity, sent_activity},
 };
+use lemmy_diesel_utils::dburl::DbUrl;
 use serde_json::Value;
 use std::{collections::HashSet, fmt::Debug};
 use url::Url;

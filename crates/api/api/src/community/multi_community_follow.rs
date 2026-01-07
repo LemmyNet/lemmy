@@ -5,24 +5,24 @@ use lemmy_api_utils::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_local_user_valid,
 };
-use lemmy_db_schema::{
-  source::multi_community::{MultiCommunity, MultiCommunityFollowForm},
-  traits::Crud,
-};
+use lemmy_db_schema::source::multi_community::{MultiCommunity, MultiCommunityFollowForm};
 use lemmy_db_schema_file::enums::CommunityFollowerState;
-use lemmy_db_views_community::api::FollowMultiCommunity;
+use lemmy_db_views_community::{
+  MultiCommunityView,
+  api::{FollowMultiCommunity, MultiCommunityResponse},
+};
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_site::api::SuccessResponse;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn follow_multi_community(
-  data: Json<FollowMultiCommunity>,
+  Json(data): Json<FollowMultiCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
-) -> LemmyResult<Json<SuccessResponse>> {
+) -> LemmyResult<Json<MultiCommunityResponse>> {
   check_local_user_valid(&local_user_view)?;
   let multi_community_id = data.multi_community_id;
-  let person_id = local_user_view.person.id;
+  let my_person_id = local_user_view.person.id;
   let multi = MultiCommunity::read(&mut context.pool(), multi_community_id).await?;
 
   let follow_state = if multi.local {
@@ -32,14 +32,14 @@ pub async fn follow_multi_community(
   };
   let form = MultiCommunityFollowForm {
     multi_community_id,
-    person_id,
+    person_id: my_person_id,
     follow_state,
   };
 
   if data.follow {
     MultiCommunity::follow(&mut context.pool(), &form).await?;
   } else {
-    MultiCommunity::unfollow(&mut context.pool(), person_id, multi_community_id).await?;
+    MultiCommunity::unfollow(&mut context.pool(), my_person_id, multi_community_id).await?;
   }
 
   if !multi.local {
@@ -49,5 +49,10 @@ pub async fn follow_multi_community(
     )?;
   }
 
-  Ok(Json(SuccessResponse::default()))
+  let multi_community_view =
+    MultiCommunityView::read(&mut context.pool(), multi_community_id, Some(my_person_id)).await?;
+
+  Ok(Json(MultiCommunityResponse {
+    multi_community_view,
+  }))
 }

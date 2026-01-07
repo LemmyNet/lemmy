@@ -5,19 +5,17 @@ use lemmy_api_utils::{
   request::{delete_image_alias, purge_image_from_pictrs},
   utils::{is_admin, is_mod_or_admin},
 };
-use lemmy_db_schema::{
-  source::{
-    community::{Community, CommunityUpdateForm},
-    images::LocalImage,
-    person::{Person, PersonUpdateForm},
-    site::{Site, SiteUpdateForm},
-  },
-  traits::Crud,
+use lemmy_db_schema::source::{
+  community::{Community, CommunityUpdateForm},
+  images::LocalImage,
+  person::{Person, PersonUpdateForm},
+  site::{Site, SiteUpdateForm},
 };
 use lemmy_db_views_community::api::CommunityIdQuery;
 use lemmy_db_views_local_image::api::DeleteImageParams;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::api::SuccessResponse;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn delete_site_icon(
@@ -56,7 +54,7 @@ pub async fn delete_site_banner(
 }
 
 pub async fn delete_community_icon(
-  data: Json<CommunityIdQuery>,
+  Json(data): Json<CommunityIdQuery>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
@@ -75,7 +73,7 @@ pub async fn delete_community_icon(
 }
 
 pub async fn delete_community_banner(
-  data: Json<CommunityIdQuery>,
+  Json(data): Json<CommunityIdQuery>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
@@ -125,7 +123,7 @@ pub async fn delete_user_banner(
 
 /// Deletes an image for a specific user.
 pub async fn delete_image(
-  data: Json<DeleteImageParams>,
+  Json(data): Json<DeleteImageParams>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
@@ -143,7 +141,7 @@ pub async fn delete_image(
 
 /// Deletes any image, only for admins.
 pub async fn delete_image_admin(
-  data: Json<DeleteImageParams>,
+  Json(data): Json<DeleteImageParams>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {

@@ -1,5 +1,5 @@
 use crate::{
-  newtypes::{CommunityId, DbUrl, InstanceId, PaginationCursor, PersonId, PostId},
+  newtypes::{CommunityId, PostId},
   source::post::{
     Post,
     PostActions,
@@ -11,23 +11,11 @@ use crate::{
     PostSavedForm,
     PostUpdateForm,
   },
-  traits::{Crud, Likeable, Saveable},
-  utils::{
-    functions::{coalesce, hot_rank, scaled_rank},
-    get_conn,
-    now,
-    validate_like,
-    DbPool,
-    DELETED_REPLACEMENT_TEXT,
-    FETCH_LIMIT_MAX,
-    SITEMAP_DAYS,
-    SITEMAP_LIMIT,
-  },
+  traits::{Likeable, Saveable},
+  utils::{DELETED_REPLACEMENT_TEXT, FETCH_LIMIT_MAX, SITEMAP_DAYS, SITEMAP_LIMIT},
 };
 use chrono::{DateTime, Utc};
 use diesel::{
-  dsl::{count, insert_into, not, update},
-  expression::SelectableHelper,
   BoolExpressionMethods,
   DecoratableTarget,
   ExpressionMethods,
@@ -35,15 +23,28 @@ use diesel::{
   NullableExpressionMethods,
   OptionalExtension,
   QueryDsl,
+  dsl::{count, insert_into, not, update},
+  expression::SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
-use diesel_uplete::{uplete, UpleteCount};
+use diesel_uplete::{UpleteCount, uplete};
 use lemmy_db_schema_file::{
+  InstanceId,
+  PersonId,
   enums::PostNotificationsMode,
   schema::{community, local_user, person, post, post_actions},
 };
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  dburl::DbUrl,
+  traits::Crud,
+  utils::{
+    functions::{coalesce, hot_rank, scaled_rank},
+    now,
+  },
+};
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult},
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
 };
 use url::Url;
@@ -221,7 +222,7 @@ impl Post {
     update(post::table)
       .filter(post::id.eq_any(post_ids.clone()))
       .set((post::removed.eq(removed), post::updated_at.eq(Utc::now())))
-      .get_results::<Self>(conn)
+      .get_results(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
@@ -236,7 +237,7 @@ impl Post {
     update(post::table)
       .filter(post::creator_id.eq(creator_id))
       .set((post::removed.eq(removed), post::updated_at.eq(Utc::now())))
-      .get_results::<Self>(conn)
+      .get_results(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
@@ -247,10 +248,9 @@ impl Post {
 
   pub async fn read_from_apub_id(
     pool: &mut DbPool<'_>,
-    object_id: Url,
+    object_id: DbUrl,
   ) -> LemmyResult<Option<Self>> {
     let conn = &mut get_conn(pool).await?;
-    let object_id: DbUrl = object_id.into();
     post::table
       .filter(post::ap_id.eq(object_id))
       .filter(post::scheduled_publish_time_at.is_null())
@@ -314,7 +314,10 @@ impl Post {
     diesel::update(post::table.find(post_id))
       .set((
         post::hot_rank.eq(hot_rank(post::score, post::published_at)),
-        post::hot_rank_active.eq(hot_rank(post::score, post::newest_comment_time_necro_at)),
+        post::hot_rank_active.eq(hot_rank(
+          post::score,
+          coalesce(post::newest_comment_time_necro_at, post::published_at),
+        )),
         post::scaled_rank.eq(scaled_rank(
           post::score,
           post::published_at,
@@ -350,8 +353,6 @@ impl Likeable for PostActions {
   async fn like(pool: &mut DbPool<'_>, form: &Self::Form) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
 
-    validate_like(form.like_score).with_lemmy_type(LemmyErrorType::CouldntCreate)?;
-
     insert_into(post_actions::table)
       .values(form)
       .on_conflict((post_actions::post_id, post_actions::person_id))
@@ -363,20 +364,6 @@ impl Likeable for PostActions {
       .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
-  async fn remove_like(
-    pool: &mut DbPool<'_>,
-    person_id: PersonId,
-    post_id: Self::IdType,
-  ) -> LemmyResult<UpleteCount> {
-    let conn = &mut get_conn(pool).await?;
-    uplete(post_actions::table.find((person_id, post_id)))
-      .set_null(post_actions::like_score)
-      .set_null(post_actions::liked_at)
-      .get_result(conn)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
-  }
-
   async fn remove_all_likes(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
@@ -384,8 +371,8 @@ impl Likeable for PostActions {
     let conn = &mut get_conn(pool).await?;
 
     uplete(post_actions::table.filter(post_actions::person_id.eq(person_id)))
-      .set_null(post_actions::like_score)
-      .set_null(post_actions::liked_at)
+      .set_null(post_actions::vote_is_upvote)
+      .set_null(post_actions::voted_at)
       .get_result(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -401,8 +388,8 @@ impl Likeable for PostActions {
     let conn = &mut get_conn(pool).await?;
 
     uplete(post_actions::table.filter(post_actions::post_id.eq_any(post_ids.clone())))
-      .set_null(post_actions::like_score)
-      .set_null(post_actions::liked_at)
+      .set_null(post_actions::vote_is_upvote)
+      .set_null(post_actions::voted_at)
       .get_result(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -434,20 +421,18 @@ impl Saveable for PostActions {
 }
 
 impl PostActions {
-  pub async fn mark_as_read(pool: &mut DbPool<'_>, form: &PostReadForm) -> LemmyResult<usize> {
-    Self::mark_many_as_read(pool, std::slice::from_ref(form)).await
-  }
-
   pub async fn mark_as_unread(
     pool: &mut DbPool<'_>,
-    form: &PostReadForm,
+    person_id: PersonId,
+    post_ids: &[PostId],
   ) -> LemmyResult<UpleteCount> {
     let conn = &mut get_conn(pool).await?;
 
+    let post_ids: Vec<_> = post_ids.to_vec();
     uplete(
       post_actions::table
-        .filter(post_actions::post_id.eq(form.post_id))
-        .filter(post_actions::person_id.eq(form.person_id)),
+        .filter(post_actions::post_id.eq_any(post_ids))
+        .filter(post_actions::person_id.eq(person_id)),
     )
     .set_null(post_actions::read_at)
     .get_result(conn)
@@ -455,11 +440,17 @@ impl PostActions {
     .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
-  pub async fn mark_many_as_read(
+  pub async fn mark_as_read(
     pool: &mut DbPool<'_>,
-    forms: &[PostReadForm],
+    person_id: PersonId,
+    post_ids: &[PostId],
   ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
+
+    let forms: Vec<_> = post_ids
+      .iter()
+      .map(|post_id| PostReadForm::new(*post_id, person_id))
+      .collect();
 
     insert_into(post_actions::table)
       .values(forms)
@@ -534,18 +525,6 @@ impl PostActions {
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
-  pub async fn from_cursor(cursor: &PaginationCursor, pool: &mut DbPool<'_>) -> LemmyResult<Self> {
-    let [(_, person_id), (_, post_id)] = cursor.prefixes_and_ids()?;
-    Self::read(pool, PostId(post_id), PersonId(person_id)).await
-  }
-
-  pub fn build_many_read_forms(post_ids: &[PostId], person_id: PersonId) -> Vec<PostReadForm> {
-    post_ids
-      .iter()
-      .map(|post_id| PostReadForm::new(*post_id, person_id))
-      .collect::<Vec<_>>()
-  }
-
   pub async fn update_notification_state(
     post_id: PostId,
     person_id: PersonId,
@@ -594,21 +573,14 @@ mod tests {
       community::{Community, CommunityInsertForm},
       instance::Instance,
       person::{Person, PersonInsertForm},
-      post::{
-        Post,
-        PostActions,
-        PostInsertForm,
-        PostLikeForm,
-        PostReadForm,
-        PostSavedForm,
-        PostUpdateForm,
-      },
+      post::{Post, PostActions, PostInsertForm, PostLikeForm, PostSavedForm, PostUpdateForm},
     },
-    traits::{Crud, Likeable, Saveable},
-    utils::{build_db_pool_for_tests, RANK_DEFAULT},
+    traits::{Likeable, Saveable},
+    utils::RANK_DEFAULT,
   };
   use chrono::DateTime;
   use diesel_uplete::UpleteCount;
+  use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
@@ -620,7 +592,7 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
 
     let new_person = PersonInsertForm::test_form(inserted_instance.id, "jim");
 
@@ -689,8 +661,8 @@ mod tests {
       score: 1,
       hot_rank: RANK_DEFAULT,
       hot_rank_active: RANK_DEFAULT,
-      newest_comment_time_at: inserted_post.published_at,
-      newest_comment_time_necro_at: inserted_post.published_at,
+      newest_comment_time_at: None,
+      newest_comment_time_necro_at: None,
       report_count: 0,
       scaled_rank: RANK_DEFAULT,
       unresolved_report_count: 0,
@@ -698,10 +670,10 @@ mod tests {
     };
 
     // Post Like
-    let post_like_form = PostLikeForm::new(inserted_post.id, inserted_person.id, 1);
+    let post_like_form = PostLikeForm::new(inserted_post.id, inserted_person.id, Some(true));
 
     let inserted_post_like = PostActions::like(pool, &post_like_form).await?;
-    assert_eq!(Some(1), inserted_post_like.like_score);
+    assert_eq!(Some(true), inserted_post_like.vote_is_upvote);
 
     // Post Save
     let post_saved_form = PostSavedForm::new(inserted_post.id, inserted_person.id);
@@ -710,10 +682,8 @@ mod tests {
     assert!(inserted_post_saved.saved_at.is_some());
 
     // Mark 2 posts as read
-    let post_read_form_1 = PostReadForm::new(inserted_post.id, inserted_person.id);
-    PostActions::mark_as_read(pool, &post_read_form_1).await?;
-    let post_read_form_2 = PostReadForm::new(inserted_post2.id, inserted_person.id);
-    PostActions::mark_as_read(pool, &post_read_form_2).await?;
+    PostActions::mark_as_read(pool, inserted_person.id, &[inserted_post.id]).await?;
+    PostActions::mark_as_read(pool, inserted_person.id, &[inserted_post2.id]).await?;
 
     let read_post = Post::read(pool, inserted_post.id).await?;
 
@@ -727,17 +697,18 @@ mod tests {
     let scheduled_post_count = Post::user_scheduled_post_count(inserted_person.id, pool).await?;
     assert_eq!(1, scheduled_post_count);
 
-    let like_removed = PostActions::remove_like(pool, inserted_person.id, inserted_post.id).await?;
-    assert_eq!(UpleteCount::only_updated(1), like_removed);
+    let form = PostLikeForm::new(inserted_post.id, inserted_person.id, None);
+    PostActions::like(pool, &form).await?;
+
     let saved_removed = PostActions::unsave(pool, &post_saved_form).await?;
     assert_eq!(UpleteCount::only_updated(1), saved_removed);
 
-    let read_remove_form_1 = PostReadForm::new(inserted_post.id, inserted_person.id);
-    let read_removed_1 = PostActions::mark_as_unread(pool, &read_remove_form_1).await?;
+    let read_removed_1 =
+      PostActions::mark_as_unread(pool, inserted_person.id, &[inserted_post.id]).await?;
     assert_eq!(UpleteCount::only_deleted(1), read_removed_1);
 
-    let read_remove_form_2 = PostReadForm::new(inserted_post2.id, inserted_person.id);
-    let read_removed_2 = PostActions::mark_as_unread(pool, &read_remove_form_2).await?;
+    let read_removed_2 =
+      PostActions::mark_as_unread(pool, inserted_person.id, &[inserted_post2.id]).await?;
     assert_eq!(UpleteCount::only_deleted(1), read_removed_2);
 
     let num_deleted = Post::delete(pool, inserted_post.id).await?
@@ -761,7 +732,7 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
 
     let new_person = PersonInsertForm::test_form(inserted_instance.id, "thommy_community_agg");
 
@@ -801,7 +772,7 @@ mod tests {
     let inserted_child_comment =
       Comment::create(pool, &child_comment_form, Some(&inserted_comment.path)).await?;
 
-    let post_like = PostLikeForm::new(inserted_post.id, inserted_person.id, 1);
+    let post_like = PostLikeForm::new(inserted_post.id, inserted_person.id, Some(true));
 
     PostActions::like(pool, &post_like).await?;
 
@@ -813,7 +784,7 @@ mod tests {
     assert_eq!(0, post_aggs_before_delete.downvotes);
 
     // Add a post dislike from the other person
-    let post_dislike = PostLikeForm::new(inserted_post.id, another_inserted_person.id, -1);
+    let post_dislike = PostLikeForm::new(inserted_post.id, another_inserted_person.id, Some(false));
 
     PostActions::like(pool, &post_dislike).await?;
 
@@ -834,7 +805,8 @@ mod tests {
     assert_eq!(1, after_comment_delete.downvotes);
 
     // Remove the first post like
-    PostActions::remove_like(pool, inserted_person.id, inserted_post.id).await?;
+    let form = PostLikeForm::new(inserted_post.id, inserted_person.id, None);
+    PostActions::like(pool, &form).await?;
     let after_like_remove = Post::read(pool, inserted_post.id).await?;
     assert_eq!(0, after_like_remove.comments);
     assert_eq!(-1, after_like_remove.score);
@@ -865,7 +837,7 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
 
     let new_person = PersonInsertForm::test_form(inserted_instance.id, "thommy_community_agg");
 

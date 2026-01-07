@@ -1,17 +1,12 @@
-use crate::{
-  newtypes::{LocalUserId, PersonId},
-  sensitive::SensitiveString,
-};
+use crate::newtypes::LocalUserId;
 use chrono::{DateTime, Utc};
-use lemmy_db_schema_file::enums::{
-  CommentSortType,
-  ListingType,
-  PostListingMode,
-  PostSortType,
-  VoteShow,
-};
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::local_user;
+use lemmy_db_schema_file::{
+  PersonId,
+  enums::{CommentSortType, ListingType, PostListingMode, PostSortType, VoteShow},
+};
+use lemmy_diesel_utils::sensitive::SensitiveString;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -60,8 +55,6 @@ pub struct LocalUser {
   /// A post-view mode that changes how multiple post listings look.
   pub post_listing_mode: PostListingMode,
   pub totp_2fa_enabled: bool,
-  /// Whether to allow keyboard navigation (for browsing and interacting with posts and comments).
-  pub enable_keyboard_navigation: bool,
   /// Whether user avatars and inline images in the UI that are gifs should be allowed to play or
   /// should be paused
   pub enable_animated_images: bool,
@@ -132,8 +125,6 @@ pub struct LocalUserInsertForm {
   #[new(default)]
   pub totp_2fa_enabled: Option<bool>,
   #[new(default)]
-  pub enable_keyboard_navigation: Option<bool>,
-  #[new(default)]
   pub enable_animated_images: Option<bool>,
   #[new(default)]
   pub collapse_bot_comments: Option<bool>,
@@ -185,7 +176,6 @@ pub struct LocalUserUpdateForm {
   pub admin: Option<bool>,
   pub post_listing_mode: Option<PostListingMode>,
   pub totp_2fa_enabled: Option<bool>,
-  pub enable_keyboard_navigation: Option<bool>,
   pub enable_animated_images: Option<bool>,
   pub collapse_bot_comments: Option<bool>,
   pub last_donation_notification_at: Option<DateTime<Utc>>,

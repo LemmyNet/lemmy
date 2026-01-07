@@ -1,11 +1,11 @@
 pub use lemmy_db_schema::{
   newtypes::CommentId,
-  source::comment::{Comment, CommentActions},
+  source::comment::{Comment, CommentActions, CommentInsertForm},
 };
 pub use lemmy_db_views_comment::{
-  api::{CommentResponse, GetComment, GetComments, GetCommentsResponse, GetCommentsSlimResponse},
   CommentSlimView,
   CommentView,
+  api::{CommentResponse, GetComment, GetComments},
 };
 
 pub mod actions {
@@ -21,7 +21,6 @@ pub mod actions {
     pub use lemmy_db_views_comment::api::{
       DistinguishComment,
       ListCommentLikes,
-      ListCommentLikesResponse,
       PurgeComment,
       RemoveComment,
     };

@@ -1,45 +1,42 @@
-use crate::{
-  aliases::{
-    creator_community_actions,
-    creator_community_instance_actions,
-    creator_home_instance_actions,
-    creator_local_instance_actions,
-    creator_local_user,
-    my_instance_persons_actions,
-    person1,
-    person2,
-    CreatorCommunityInstanceActions,
-    CreatorHomeInstanceActions,
-    CreatorLocalInstanceActions,
-  },
-  utils::functions::{coalesce_2_nullable, coalesce_3_nullable},
-  MyInstancePersonsActionsAllColumnsTuple,
-  Person1AliasAllColumnsTuple,
-  Person2AliasAllColumnsTuple,
-};
+use crate::{Person1AliasAllColumnsTuple, Person2AliasAllColumnsTuple};
 use diesel::{
-  dsl::{case_when, exists, not},
-  expression::SqlLiteral,
-  helper_types::Nullable,
-  query_source::AliasedField,
-  sql_types::{Json, Timestamptz},
   BoolExpressionMethods,
   ExpressionMethods,
   NullableExpressionMethods,
   PgExpressionMethods,
   QueryDsl,
+  dsl::{case_when, exists, not},
+  expression::SqlLiteral,
+  helper_types::Nullable,
+  query_source::AliasedField,
+  sql_types::{Json, Timestamptz},
 };
-use lemmy_db_schema_file::schema::{
-  comment,
-  community,
-  community_actions,
-  instance_actions,
-  local_user,
-  person,
-  post,
-  post_tag,
-  tag,
+use lemmy_db_schema_file::{
+  aliases::{
+    CreatorCommunityInstanceActions,
+    CreatorHomeInstanceActions,
+    CreatorLocalInstanceActions,
+    creator_community_actions,
+    creator_community_instance_actions,
+    creator_home_instance_actions,
+    creator_local_instance_actions,
+    creator_local_user,
+    person1,
+    person2,
+  },
+  schema::{
+    comment,
+    community,
+    community_actions,
+    instance_actions,
+    local_user,
+    person,
+    post,
+    post_tag,
+    tag,
+  },
 };
+use lemmy_diesel_utils::utils::functions::{coalesce_2_nullable, coalesce_3_nullable};
 
 /// Checks that the creator_local_user is an admin.
 #[diesel::dsl::auto_type]
@@ -249,8 +246,13 @@ pub fn local_user_community_can_mod() -> _ {
 pub fn comment_select_remove_deletes() -> _ {
   let deleted_or_removed = comment::deleted.or(comment::removed);
 
-  // You can only view the content if it hasn't been removed, or you can mod.
-  let can_view_content = not(deleted_or_removed).or(local_user_can_mod_comment());
+  // You can only view the content if it hasn't been removed, you're a mod or it's your own comment.
+  let is_creator = local_user::person_id
+    .nullable()
+    .eq(comment::creator_id.nullable());
+  let can_view_content = not(deleted_or_removed)
+    .or(local_user_can_mod_comment())
+    .or(is_creator);
   let content = case_when(can_view_content, comment::content).otherwise("");
 
   (
@@ -277,6 +279,64 @@ pub fn comment_select_remove_deletes() -> _ {
     comment::unresolved_report_count,
     comment::federation_pending,
     comment::locked,
+  )
+}
+
+/// Selects the post columns, but gives an empty string for content when
+/// deleted or removed, and you're not a mod/admin.
+#[diesel::dsl::auto_type]
+pub fn post_select_remove_deletes() -> _ {
+  let deleted_or_removed = post::deleted.or(post::removed);
+
+  // You can only view the content if it hasn't been removed, you're a mod or it's your own post.
+  let is_creator = local_user::person_id
+    .nullable()
+    .eq(post::creator_id.nullable());
+  let can_view_content = not(deleted_or_removed)
+    .or(local_user_can_mod_post())
+    .or(is_creator);
+  let body = case_when(can_view_content, post::body).otherwise("");
+
+  (
+    post::id,
+    post::name,
+    post::url,
+    body,
+    post::creator_id,
+    post::community_id,
+    post::removed,
+    post::locked,
+    post::published_at,
+    post::updated_at,
+    post::deleted,
+    post::nsfw,
+    post::embed_title,
+    post::embed_description,
+    post::thumbnail_url,
+    post::ap_id,
+    post::local,
+    post::embed_video_url,
+    post::language_id,
+    post::featured_community,
+    post::featured_local,
+    post::url_content_type,
+    post::alt_text,
+    post::scheduled_publish_time_at,
+    post::newest_comment_time_necro_at,
+    post::newest_comment_time_at,
+    post::comments,
+    post::score,
+    post::upvotes,
+    post::downvotes,
+    post::hot_rank,
+    post::hot_rank_active,
+    post::controversy_rank,
+    post::scaled_rank,
+    post::report_count,
+    post::unresolved_report_count,
+    post::federation_pending,
+    post::embed_video_width,
+    post::embed_video_height,
   )
 }
 
@@ -311,11 +371,4 @@ pub fn person1_select() -> Person1AliasAllColumnsTuple {
 /// The select for the person2 alias.
 pub fn person2_select() -> Person2AliasAllColumnsTuple {
   person2.fields(person::all_columns)
-}
-
-/// The select for the my_instance_persons_actions alias
-pub fn my_instance_persons_actions_select() -> Nullable<MyInstancePersonsActionsAllColumnsTuple> {
-  my_instance_persons_actions
-    .fields(instance_actions::all_columns)
-    .nullable()
 }

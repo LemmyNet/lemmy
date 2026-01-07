@@ -9,7 +9,6 @@ import {
   resolveCommunity,
   createCommunity,
   deleteCommunity,
-  delay,
   removeCommunity,
   getCommunity,
   followCommunity,
@@ -26,7 +25,6 @@ import {
   waitUntil,
   alphaUrl,
   delta,
-  longDelay,
   editCommunity,
   unfollows,
   getMyUser,
@@ -36,6 +34,8 @@ import {
   randomString,
   assertCommunityFederation,
   listReports,
+  statusBadRequest,
+  jestLemmyError,
 } from "./shared";
 import { AdminAllowInstanceParams } from "lemmy-js-client/dist/types/AdminAllowInstanceParams";
 import {
@@ -60,8 +60,9 @@ test("Create community", async () => {
 
   // A dupe check
   let prevName = communityRes.community_view.community.name;
-  await expect(createCommunity(alpha, prevName)).rejects.toStrictEqual(
-    new LemmyError("community_already_exists"),
+  await jestLemmyError(
+    () => createCommunity(alpha, prevName),
+    new LemmyError("already_exists", statusBadRequest),
   );
 
   // Cache the community on beta, make sure it has the other fields
@@ -194,7 +195,7 @@ test("Report a community", async () => {
     (await waitUntil(
       () =>
         listReports(alpha).then(p =>
-          p.reports.find(r => {
+          p.items.find(r => {
             return checkCommunityReportName(r, betaReport);
           }),
         ),
@@ -236,7 +237,7 @@ test("Report a community", async () => {
     (await waitUntil(
       () =>
         listReports(beta).then(p =>
-          p.reports.find(r => {
+          p.items.find(r => {
             return (
               checkCommunityReportName(r, alphaReport) && r.resolver != null
             );
@@ -274,12 +275,12 @@ test("Admin actions in remote community are not federated to origin", async () =
   await followCommunity(gamma, true, gammaCommunity.community.id);
   gammaCommunity = await waitUntil(
     () => resolveCommunity(gamma, communityRes.community.ap_id),
-    g => g?.community_actions?.follow_state == "Accepted",
+    g => g?.community_actions?.follow_state == "accepted",
   );
   if (!gammaCommunity) {
     throw "Missing gamma community";
   }
-  expect(gammaCommunity.community_actions?.follow_state).toBe("Accepted");
+  expect(gammaCommunity.community_actions?.follow_state).toBe("accepted");
   let gammaPost = (await createPost(gamma, gammaCommunity.community.id))
     .post_view;
   expect(gammaPost.post.id).toBeDefined();
@@ -309,7 +310,7 @@ test("Admin actions in remote community are not federated to origin", async () =
     true,
     true,
   );
-  expect(banRes.banned).toBe(true);
+  expect(banRes).toBeDefined();
 
   // ban doesn't federate to community's origin instance alpha
   let alphaPost = await resolvePost(alpha, gammaPost.post);
@@ -357,11 +358,11 @@ test("moderator view", async () => {
   expect(otherAlphaComment.comment.id).toBeDefined();
 
   // alpha lists posts and comments on home page, should contain all posts that were made
-  let posts = (await getPosts(alpha, "All")).posts;
+  let posts = (await getPosts(alpha, "all")).items;
   expect(posts).toBeDefined();
   let postIds = posts.map(post => post.post.id);
 
-  let comments = (await getComments(alpha, undefined, "All")).comments;
+  let comments = (await getComments(alpha, undefined, "all")).items;
   expect(comments).toBeDefined();
   let commentIds = comments.map(comment => comment.comment.id);
 
@@ -375,11 +376,11 @@ test("moderator view", async () => {
   expect(commentIds).toContain(otherAlphaComment.comment.id);
 
   // in moderator view, alpha should not see otherPost, wich was posted on a community alpha doesn't moderate
-  posts = (await getPosts(alpha, "ModeratorView")).posts;
+  posts = (await getPosts(alpha, "moderator_view")).items;
   expect(posts).toBeDefined();
   postIds = posts.map(post => post.post.id);
 
-  comments = (await getComments(alpha, undefined, "ModeratorView")).comments;
+  comments = (await getComments(alpha, undefined, "moderator_view")).items;
   expect(comments).toBeDefined();
   commentIds = comments.map(comment => comment.comment.id);
 
@@ -399,8 +400,9 @@ test("Get community for different casing on domain", async () => {
 
   // A dupe check
   let prevName = communityRes.community_view.community.name;
-  await expect(createCommunity(alpha, prevName)).rejects.toStrictEqual(
-    new LemmyError("community_already_exists"),
+  await jestLemmyError(
+    () => createCommunity(alpha, prevName),
+    new LemmyError("already_exists", statusBadRequest),
   );
 
   // Cache the community on beta, make sure it has the other fields
@@ -425,8 +427,8 @@ test("User blocks instance, communities are hidden", async () => {
   expect(alphaPost?.post).toBeDefined();
 
   // post should be included in listing
-  let listing = await getPosts(alpha, "All");
-  let listing_ids = listing.posts.map(p => p.post.ap_id);
+  let listing = await getPosts(alpha, "all");
+  let listing_ids = listing.items.map(p => p.post.ap_id);
   expect(listing_ids).toContain(postRes.post_view.post.ap_id);
 
   // block the beta instance
@@ -437,8 +439,8 @@ test("User blocks instance, communities are hidden", async () => {
   );
 
   // after blocking, post should not be in listing
-  let listing2 = await getPosts(alpha, "All");
-  let listing_ids2 = listing2.posts.map(p => p.post.ap_id);
+  let listing2 = await getPosts(alpha, "all");
+  let listing_ids2 = listing2.items.map(p => p.post.ap_id);
   expect(listing_ids2.indexOf(postRes.post_view.post.ap_id)).toBe(-1);
 
   // unblock instance again
@@ -449,8 +451,8 @@ test("User blocks instance, communities are hidden", async () => {
   );
 
   // post should be included in listing
-  let listing3 = await getPosts(alpha, "All");
-  let listing_ids3 = listing3.posts.map(p => p.post.ap_id);
+  let listing3 = await getPosts(alpha, "all");
+  let listing_ids3 = listing3.items.map(p => p.post.ap_id);
   expect(listing_ids3).toContain(postRes.post_view.post.ap_id);
 });
 
@@ -467,7 +469,7 @@ test.skip("Community follower count is federated", async () => {
   await followCommunity(alpha, true, resolved.community.id);
   let followed = await waitUntil(
     () => resolveCommunity(alpha, communityActorId),
-    c => c?.community_actions?.follow_state == "Accepted",
+    c => c?.community_actions?.follow_state == "accepted",
   );
 
   // Make sure there is 1 subscriber
@@ -482,7 +484,7 @@ test.skip("Community follower count is federated", async () => {
   await followCommunity(gamma, true, resolved.community.id);
   followed = await waitUntil(
     () => resolveCommunity(gamma, communityActorId),
-    c => c?.community_actions?.follow_state == "Accepted",
+    c => c?.community_actions?.follow_state == "accepted",
   );
 
   // Make sure there are 2 subscribers
@@ -497,7 +499,7 @@ test.skip("Community follower count is federated", async () => {
   await followCommunity(delta, true, resolved.community.id);
   followed = await waitUntil(
     () => resolveCommunity(delta, communityActorId),
-    c => c?.community_actions?.follow_state == "Accepted",
+    c => c?.community_actions?.follow_state == "accepted",
   );
 });
 
@@ -523,13 +525,12 @@ test("Dont receive community activities after unsubscribe", async () => {
   expect(communityRes1.community_view.community.subscribers).toBe(2);
 
   // temporarily block alpha, so that it doesn't know about unfollow
-  var allow_instance_params: AdminAllowInstanceParams = {
+  let allow_instance_params: AdminAllowInstanceParams = {
     instance: "lemmy-alpha",
     allow: false,
-    reason: undefined,
+    reason: "allow",
   };
   await beta.adminAllowInstance(allow_instance_params);
-  await longDelay();
 
   // unfollow
   await followCommunity(beta, false, betaCommunity!.community.id);
@@ -544,7 +545,6 @@ test("Dont receive community activities after unsubscribe", async () => {
   // unblock alpha
   allow_instance_params.allow = true;
   await beta.adminAllowInstance(allow_instance_params);
-  await longDelay();
 
   // create a post, it shouldnt reach beta
   let postRes = await createPost(
@@ -556,12 +556,12 @@ test("Dont receive community activities after unsubscribe", async () => {
 
   let form: Search = {
     q: postRes.post_view.post.name,
-    type_: "Posts",
-    listing_type: "All",
+    type_: "posts",
+    listing_type: "all",
   };
 
   let res = await beta.search(form);
-  expect(res.results.length).toBe(0);
+  expect(res.search.length).toBe(0);
 });
 
 test("Fetch community, includes posts", async () => {
@@ -584,11 +584,11 @@ test("Fetch community, includes posts", async () => {
     communityRes.community_view.community.ap_id,
   );
 
-  await longDelay();
-
-  let post_listing = await getPosts(beta, "All", betaCommunity?.community.id);
-  expect(post_listing.posts.length).toBe(1);
-  expect(post_listing.posts[0].post.ap_id).toBe(postRes.post_view.post.ap_id);
+  let post_listing = await waitUntil(
+    () => getPosts(beta, "all", betaCommunity?.community.id),
+    p => p.items.length == 1,
+  );
+  expect(post_listing.items[0].post.ap_id).toBe(postRes.post_view.post.ap_id);
 });
 
 test("Content in local-only community doesn't federate", async () => {
@@ -596,19 +596,23 @@ test("Content in local-only community doesn't federate", async () => {
   let communityRes = (await createCommunity(alpha)).community_view.community;
   let form: EditCommunity = {
     community_id: communityRes.id,
-    visibility: "LocalOnlyPublic",
+    visibility: "local_only_public",
   };
   await editCommunity(alpha, form);
 
   // cant resolve the community from another instance
-  await expect(
-    resolveCommunity(beta, communityRes.ap_id),
-  ).rejects.toStrictEqual(new LemmyError("not_found"));
+  await jestLemmyError(
+    () => resolveCommunity(beta, communityRes.ap_id),
+    new LemmyError("resolve_object_failed", statusBadRequest),
+    false,
+  );
 
   // create a post, also cant resolve it
   let postRes = await createPost(alpha, communityRes.id);
-  await expect(resolvePost(beta, postRes.post_view.post)).rejects.toStrictEqual(
-    new LemmyError("not_found"),
+  await jestLemmyError(
+    () => resolvePost(beta, postRes.post_view.post),
+    new LemmyError("resolve_object_failed", statusBadRequest),
+    false,
   );
 });
 
@@ -633,20 +637,15 @@ test("Remote mods can edit communities", async () => {
 
   let form2: EditCommunity = {
     community_id: betaCommunity.community.id as number,
-    description: "Example description",
+    sidebar: "Example sidebar",
   };
 
   await editCommunity(beta, form2);
-  // give alpha time to get and process the edit
-  await delay(1000);
 
-  let alphaCommunity = await getCommunity(
-    alpha,
-    communityRes.community_view.community.id,
-  );
-
-  expect(alphaCommunity.community_view.community.description).toBe(
-    "Example description",
+  const communityId = communityRes.community_view.community.id;
+  await waitUntil(
+    () => getCommunity(alpha, communityId),
+    c => c.community_view.community.sidebar == "Example sidebar",
   );
 });
 
@@ -673,7 +672,10 @@ test("Remote mods can add mods", async () => {
   };
   await alpha.addModToCommunity(form);
 
-  await delay(500);
+  await waitUntil(
+    () => getCommunity(beta, betaCommunity.community.id),
+    c => c.moderators.length == 2,
+  );
 
   let form2: AddModToCommunity = {
     community_id: betaCommunity.community.id,
@@ -682,18 +684,15 @@ test("Remote mods can add mods", async () => {
   };
   await beta.addModToCommunity(form2);
 
-  await delay(500);
-
-  let betaCommunity2 = await getCommunity(beta, betaCommunity.community.id);
-
-  expect(betaCommunity2.moderators.length).toBe(3);
-
-  let alphaCommunity2 = await getCommunity(
-    alpha,
-    alphaCommunity.community_view.community.id,
+  await waitUntil(
+    () => getCommunity(beta, betaCommunity.community.id),
+    c => c.moderators.length == 3,
   );
 
-  expect(alphaCommunity2.moderators.length).toBe(3);
+  await waitUntil(
+    () => getCommunity(alpha, alphaCommunity.community_view.community.id),
+    c => c.moderators.length == 3,
+  );
 });
 
 test("Community name with non-ascii chars", async () => {
@@ -719,17 +718,18 @@ test("Community name with non-ascii chars", async () => {
     community_name: fediName,
   };
   let posts = await beta.getPosts(form);
-  expect(posts.posts.length).toBe(1);
-  expect(posts.posts[0].post.name).toBe(postRes.post_view.post.name);
+  expect(posts.items.length).toBe(1);
+  expect(posts.items[0].post.name).toBe(postRes.post_view.post.name);
 });
 
 test("Multi-community", async () => {
   // create multi
-  let res = await alpha.createMultiCommunity({ name: "multi-comm" });
+  const multiName = randomString(10);
+  let res = await alpha.createMultiCommunity({ name: multiName });
   let myUser = await getMyUser(alpha);
-  expect(res.multi_community_view.multi.name).toBe("multi-comm");
+  expect(res.multi_community_view.multi.name).toBe(multiName);
   expect(res.multi_community_view.multi.ap_id).toBe(
-    "http://lemmy-alpha:8541/m/multi-comm",
+    `http://lemmy-alpha:8541/m/${multiName}`,
   );
   expect(res.multi_community_view.owner.id).toBe(
     myUser.local_user_view.person.id,
@@ -737,23 +737,17 @@ test("Multi-community", async () => {
 
   // add initial community
   let community1 = (await createCommunity(alpha)).community_view.community;
-  let success1 = await alpha.createMultiCommunityEntry({
+  let entryRes = await alpha.createMultiCommunityEntry({
     id: res.multi_community_view.multi.id,
     community_id: community1.id,
   });
-  expect(success1.success).toBeTruthy();
+  expect(entryRes.community_view.community.id).toBe(community1.id);
 
   // resolve over federation
   let betaMulti = (
     await beta.resolveObject({ q: res.multi_community_view.multi.ap_id })
-  ).results[0] as MultiCommunityView;
+  ).resolve as MultiCommunityView;
   expect(betaMulti.multi.ap_id).toBe(res.multi_community_view.multi.ap_id);
-
-  var betaRes = await waitUntil(
-    () => beta.getMultiCommunity({ id: betaMulti.multi.id }),
-    m => m.communities.length == 1,
-  );
-  expect(betaRes.communities[0].community.ap_id).toBe(community1.ap_id);
 
   // follow multi over federation
   let form: FollowMultiCommunity = {
@@ -762,40 +756,49 @@ test("Multi-community", async () => {
   };
   await beta.followMultiCommunity(form);
 
-  let followed = await waitUntil(
-    () => beta.listMultiCommunities({ followed_only: true }),
-    m => m.multi_communities.length == 1,
+  let betaRes = await waitUntil(
+    () => beta.getMultiCommunity({ id: betaMulti.multi.id }),
+    m => m.communities.length >= 1,
   );
-  expect(followed.multi_communities[0].multi.ap_id).toBe(betaMulti.multi.ap_id);
-  await delay();
+  expect(betaRes.communities[0].community.ap_id).toBe(community1.ap_id);
+
+  let followed = await waitUntil(
+    () => beta.listMultiCommunities({}),
+    m => m.items.length >= 1,
+  );
+  expect(followed.items[0].multi.ap_id).toBe(betaMulti.multi.ap_id);
 
   // add community to multi
-  let community2 = await resolveBetaCommunity(alpha);
-  let success2 = await alpha.createMultiCommunityEntry({
+  let community2 = await waitUntil(
+    () => resolveBetaCommunity(alpha),
+    c => !!c?.community.instance_id,
+  );
+  if (!community2) {
+    throw "Missing beta community";
+  }
+
+  let entryRes2 = await alpha.createMultiCommunityEntry({
     id: res.multi_community_view.multi.id,
     community_id: community2!.community.id,
   });
-  expect(success2.success).toBeTruthy();
+  expect(entryRes2.community_view.community.id).toBe(community2.community.id);
 
   // federated to beta
   betaRes = await waitUntil(
     () => beta.getMultiCommunity({ id: betaMulti.multi.id }),
-    m => m.communities.length == 2,
+    m => m.communities.length >= 2,
   );
   let ap_ids = betaRes.communities.map(c => c.community.ap_id);
   expect(ap_ids.includes(community2!.community.ap_id)).toBeTruthy();
 
   let post = await createPost(alpha, community2!.community.id);
 
-  let multi_post_listing = await waitUntil(
+  await waitUntil(
     () =>
       beta.getPosts({
         multi_community_id: betaRes.multi_community_view.multi.id,
       }),
-    p => p.posts.length == 1,
-  );
-  expect(multi_post_listing.posts[0].post.ap_id).toBe(
-    post.post_view.post.ap_id,
+    p => p.items.map(p => p.post.ap_id).includes(post.post_view.post.ap_id),
   );
 });
 
@@ -804,7 +807,7 @@ function checkCommunityReportName(
   report: CommunityReport,
 ) {
   switch (rcv.type_) {
-    case "Community":
+    case "community":
       return (
         rcv.community_report.original_community_name ===
         report.original_community_name

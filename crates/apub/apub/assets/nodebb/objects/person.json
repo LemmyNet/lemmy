@@ -1,0 +1,28 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/v1"
+  ],
+  "id": "https://bb.devnull.land/uid/1",
+  "url": "https://bb.devnull.land/user/julian",
+  "followers": "https://bb.devnull.land/uid/1/followers",
+  "following": "https://bb.devnull.land/uid/1/following",
+  "inbox": "https://bb.devnull.land/uid/1/inbox",
+  "outbox": "https://bb.devnull.land/uid/1/outbox",
+  "type": "Person",
+  "name": "julian",
+  "preferredUsername": "julian",
+  "summary": "<p dir=\"auto\">This is a test account for NodeBB ActivityPub Development</p>\n",
+  "icon": null,
+  "image": null,
+  "published": "2025-10-07T15:22:41.457Z",
+  "attachment": [],
+  "publicKey": {
+    "id": "https://bb.devnull.land/uid/1#key",
+    "owner": "https://bb.devnull.land/uid/1",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArSOkxd0fjmW69jN5CnJ2\nLLw+A4TGjMKqDVlPUTuY3trkCk4O1jVa3d+kyC+y8CF56VNHOQTjkq4po0b+2k6V\nDtaGTexrjPVvRqJhk7+3trP6t584jT9IxEXy6hs72CatpJGN3/tEgAfLXpDnw6pa\nRBbGDX31lri7ssdHcIlR9TioK3+U1RisGKmuuGjuv1WDEiR5arbBbIfzNsfMyjgr\nMWIR10VkE7axy/ybO8y6kATVtSoq8qQcw2/KJwzqnDPmZPtmbX/93JP6+sIBXS4T\nf409xGZp3fHVEDRqLFiEAn9rHg4cxRp71DFql2EpRdt/Z1oZGZpN9y4VJRoLXGdC\nAwIDAQAB\n-----END PUBLIC KEY-----\n"
+  },
+  "endpoints": {
+    "sharedInbox": "https://bb.devnull.land/inbox"
+  }
+}

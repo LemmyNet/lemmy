@@ -1,21 +1,22 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_utils::context::LemmyContext;
+use lemmy_api_utils::{context::LemmyContext, utils::check_local_user_valid};
 use lemmy_db_schema::{
-  source::post::{PostActions, PostReadForm, PostSavedForm},
+  source::post::{PostActions, PostSavedForm},
   traits::Saveable,
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::{
-  api::{PostResponse, SavePost},
   PostView,
+  api::{PostResponse, SavePost},
 };
 use lemmy_utils::error::LemmyResult;
 
 pub async fn save_post(
-  data: Json<SavePost>,
+  Json(data): Json<SavePost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
+  check_local_user_valid(&local_user_view)?;
   let post_saved_form = PostSavedForm::new(data.post_id, local_user_view.person.id);
 
   if data.save {
@@ -36,8 +37,7 @@ pub async fn save_post(
   )
   .await?;
 
-  let read_form = PostReadForm::new(post_id, person_id);
-  PostActions::mark_as_read(&mut context.pool(), &read_form).await?;
+  PostActions::mark_as_read(&mut context.pool(), person_id, &[post_id]).await?;
 
   Ok(Json(PostResponse { post_view }))
 }

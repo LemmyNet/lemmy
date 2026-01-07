@@ -1,10 +1,10 @@
-use super::check_community_visibility_allowed;
 use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
 use actix_web::web::Json;
 use lemmy_api_utils::{
   build_response::build_community_response,
   context::LemmyContext,
   utils::{
+    check_local_user_valid,
     check_nsfw_allowed,
     generate_featured_url,
     generate_followers_url,
@@ -27,12 +27,13 @@ use lemmy_db_schema::{
       CommunityModeratorForm,
     },
   },
-  traits::{ApubActor, Crud, Followable},
+  traits::{ApubActor, Followable},
 };
 use lemmy_db_schema_file::enums::CommunityFollowerState;
 use lemmy_db_views_community::api::{CommunityResponse, CreateCommunity};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::{
@@ -47,10 +48,11 @@ use lemmy_utils::{
 };
 
 pub async fn create_community(
-  data: Json<CreateCommunity>,
+  Json(data): Json<CreateCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityResponse>> {
+  check_local_user_valid(&local_user_view)?;
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let local_site = site_view.local_site;
 
@@ -83,8 +85,6 @@ pub async fn create_community(
   if let Some(desc) = &data.description {
     is_valid_body_field(desc, false)?;
   }
-
-  check_community_visibility_allowed(data.visibility, &local_user_view)?;
 
   // Double check for duplicate community actor_ids
   let community_ap_id = Community::generate_local_actor_url(&data.name, context.settings())?;

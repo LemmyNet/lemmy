@@ -1,0 +1,2 @@
+DROP INDEX idx_post_aggregates_creator, idx_post_aggregates_community;
+

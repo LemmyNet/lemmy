@@ -1,14 +1,15 @@
-use crate::site::registration_applications::{
-  approve::approve_registration_application,
-  list::list_registration_applications,
-  unread_count::get_unread_registration_application_count,
+use crate::{
+  local_user::unread_counts::get_unread_counts,
+  site::registration_applications::{
+    approve::approve_registration_application,
+    list::list_registration_applications,
+  },
 };
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use lemmy_api_crud::site::update::update_site;
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
-  newtypes::InstanceId,
   source::{
     local_site::{LocalSite, LocalSiteUpdateForm},
     local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
@@ -16,18 +17,16 @@ use lemmy_db_schema::{
     registration_application::{RegistrationApplication, RegistrationApplicationInsertForm},
   },
   test_data::TestData,
-  traits::Crud,
-  utils::DbPool,
 };
-use lemmy_db_schema_file::enums::RegistrationMode;
+use lemmy_db_schema_file::{InstanceId, enums::RegistrationMode};
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_notification::api::GetUnreadRegistrationApplicationCountResponse;
-use lemmy_db_views_registration_applications::api::{
-  ApproveRegistrationApplication,
-  ListRegistrationApplicationsResponse,
+use lemmy_db_views_registration_applications::{
+  RegistrationApplicationView,
+  api::ApproveRegistrationApplication,
 };
 use lemmy_db_views_site::api::EditSite;
-use lemmy_utils::{error::LemmyResult, CACHE_DURATION_API};
+use lemmy_diesel_utils::{connection::DbPool, traits::Crud};
+use lemmy_utils::{CACHE_DURATION_API, error::LemmyResult};
 use serial_test::serial;
 
 async fn create_test_site(context: &Data<LemmyContext>) -> LemmyResult<(TestData, LocalUserView)> {
@@ -94,28 +93,33 @@ async fn get_application_statuses(
   context: &Data<LemmyContext>,
   admin: LocalUserView,
 ) -> LemmyResult<(
-  Json<GetUnreadRegistrationApplicationCountResponse>,
-  Json<ListRegistrationApplicationsResponse>,
-  Json<ListRegistrationApplicationsResponse>,
+  i64,
+  Vec<RegistrationApplicationView>,
+  Vec<RegistrationApplicationView>,
 )> {
-  let application_count =
-    get_unread_registration_application_count(context.clone(), admin.clone()).await?;
+  let Json(unread_counts) = get_unread_counts(context.clone(), admin.clone()).await?;
 
-  let unread_applications = list_registration_applications(
+  let Json(unread_applications) = list_registration_applications(
     Query::from_query("unread_only=true")?,
     context.clone(),
     admin.clone(),
   )
   .await?;
 
-  let all_applications = list_registration_applications(
+  let Json(all_applications) = list_registration_applications(
     Query::from_query("unread_only=false")?,
     context.clone(),
     admin,
   )
   .await?;
 
-  Ok((application_count, unread_applications, all_applications))
+  Ok((
+    unread_counts
+      .registration_application_count
+      .unwrap_or_default(),
+    unread_applications.items,
+    all_applications.items,
+  ))
 }
 
 #[serial]
@@ -144,18 +148,12 @@ async fn test_application_approval() -> LemmyResult<()> {
 
   // When email verification is required and the email is not verified the application should not
   // be visible to admins
+  assert_eq!(application_count, i64::from(expected_unread_applications),);
   assert_eq!(
-    application_count.registration_applications,
-    i64::from(expected_unread_applications),
-  );
-  assert_eq!(
-    unread_applications.registration_applications.len(),
+    unread_applications.len(),
     usize::from(expected_unread_applications),
   );
-  assert_eq!(
-    all_applications.registration_applications.len(),
-    expected_total_applications,
-  );
+  assert_eq!(all_applications.len(), expected_total_applications,);
 
   LocalUser::update(
     pool,
@@ -175,23 +173,17 @@ async fn test_application_approval() -> LemmyResult<()> {
 
   // When email verification is required and the email is verified the application should be
   // visible to admins
+  assert_eq!(application_count, i64::from(expected_unread_applications),);
   assert_eq!(
-    application_count.registration_applications,
-    i64::from(expected_unread_applications),
-  );
-  assert_eq!(
-    unread_applications.registration_applications.len(),
+    unread_applications.len(),
     usize::from(expected_unread_applications),
   );
   assert!(
-    !unread_applications.registration_applications[0]
+    !unread_applications[0]
       .creator_local_user
       .accepted_application
   );
-  assert_eq!(
-    all_applications.registration_applications.len(),
-    expected_total_applications,
-  );
+  assert_eq!(all_applications.len(), expected_total_applications,);
 
   approve_registration_application(
     Json(ApproveRegistrationApplication {
@@ -210,23 +202,13 @@ async fn test_application_approval() -> LemmyResult<()> {
     get_application_statuses(&context, admin_local_user_view.clone()).await?;
 
   // When the application is approved it should only be returned for unread queries
+  assert_eq!(application_count, i64::from(expected_unread_applications),);
   assert_eq!(
-    application_count.registration_applications,
-    i64::from(expected_unread_applications),
-  );
-  assert_eq!(
-    unread_applications.registration_applications.len(),
+    unread_applications.len(),
     usize::from(expected_unread_applications),
   );
-  assert_eq!(
-    all_applications.registration_applications.len(),
-    expected_total_applications,
-  );
-  assert!(
-    all_applications.registration_applications[0]
-      .creator_local_user
-      .accepted_application
-  );
+  assert_eq!(all_applications.len(), expected_total_applications,);
+  assert!(all_applications[0].creator_local_user.accepted_application);
 
   let (_local_user, app_with_email_2) = signup(
     pool,
@@ -239,27 +221,21 @@ async fn test_application_approval() -> LemmyResult<()> {
     get_application_statuses(&context, admin_local_user_view.clone()).await?;
 
   // Email not verified, so application still not visible
+  assert_eq!(application_count, i64::from(expected_unread_applications),);
   assert_eq!(
-    application_count.registration_applications,
-    i64::from(expected_unread_applications),
-  );
-  assert_eq!(
-    unread_applications.registration_applications.len(),
+    unread_applications.len(),
     usize::from(expected_unread_applications),
   );
-  assert_eq!(
-    all_applications.registration_applications.len(),
-    expected_total_applications,
-  );
+  assert_eq!(all_applications.len(), expected_total_applications,);
 
-  update_site(
+  Box::pin(update_site(
     Json(EditSite {
       require_email_verification: Some(false),
       ..Default::default()
     }),
     context.clone(),
     admin_local_user_view.clone(),
-  )
+  ))
   .await?;
 
   // TODO: There is probably a better way to ensure cache invalidation
@@ -272,18 +248,12 @@ async fn test_application_approval() -> LemmyResult<()> {
     get_application_statuses(&context, admin_local_user_view.clone()).await?;
 
   // After disabling email verification the application should now be visible
+  assert_eq!(application_count, i64::from(expected_unread_applications),);
   assert_eq!(
-    application_count.registration_applications,
-    i64::from(expected_unread_applications),
-  );
-  assert_eq!(
-    unread_applications.registration_applications.len(),
+    unread_applications.len(),
     usize::from(expected_unread_applications),
   );
-  assert_eq!(
-    all_applications.registration_applications.len(),
-    expected_total_applications,
-  );
+  assert_eq!(all_applications.len(), expected_total_applications,);
 
   approve_registration_application(
     Json(ApproveRegistrationApplication {
@@ -302,18 +272,12 @@ async fn test_application_approval() -> LemmyResult<()> {
     get_application_statuses(&context, admin_local_user_view.clone()).await?;
 
   // Denied applications should not be marked as unread
+  assert_eq!(application_count, i64::from(expected_unread_applications),);
   assert_eq!(
-    application_count.registration_applications,
-    i64::from(expected_unread_applications),
-  );
-  assert_eq!(
-    unread_applications.registration_applications.len(),
+    unread_applications.len(),
     usize::from(expected_unread_applications),
   );
-  assert_eq!(
-    all_applications.registration_applications.len(),
-    expected_total_applications,
-  );
+  assert_eq!(all_applications.len(), expected_total_applications,);
 
   signup(pool, data.instance.id, "user_wo_email", None).await?;
 
@@ -324,18 +288,12 @@ async fn test_application_approval() -> LemmyResult<()> {
     get_application_statuses(&context, admin_local_user_view.clone()).await?;
 
   // New user without email should immediately be visible
+  assert_eq!(application_count, i64::from(expected_unread_applications),);
   assert_eq!(
-    application_count.registration_applications,
-    i64::from(expected_unread_applications),
-  );
-  assert_eq!(
-    unread_applications.registration_applications.len(),
+    unread_applications.len(),
     usize::from(expected_unread_applications),
   );
-  assert_eq!(
-    all_applications.registration_applications.len(),
-    expected_total_applications,
-  );
+  assert_eq!(all_applications.len(), expected_total_applications,);
 
   signup(pool, data.instance.id, "user_w_email_3", None).await?;
 
@@ -346,27 +304,21 @@ async fn test_application_approval() -> LemmyResult<()> {
     get_application_statuses(&context, admin_local_user_view.clone()).await?;
 
   // New user with email should immediately be visible
+  assert_eq!(application_count, i64::from(expected_unread_applications),);
   assert_eq!(
-    application_count.registration_applications,
-    i64::from(expected_unread_applications),
-  );
-  assert_eq!(
-    unread_applications.registration_applications.len(),
+    unread_applications.len(),
     usize::from(expected_unread_applications),
   );
-  assert_eq!(
-    all_applications.registration_applications.len(),
-    expected_total_applications,
-  );
+  assert_eq!(all_applications.len(), expected_total_applications,);
 
-  update_site(
+  Box::pin(update_site(
     Json(EditSite {
       registration_mode: Some(RegistrationMode::Open),
       ..Default::default()
     }),
     context.clone(),
     admin_local_user_view.clone(),
-  )
+  ))
   .await?;
 
   // TODO: There is probably a better way to ensure cache invalidation
@@ -382,18 +334,12 @@ async fn test_application_approval() -> LemmyResult<()> {
 
   // When applications are not required all previous applications should become approved but still
   // visible
+  assert_eq!(application_count, i64::from(expected_unread_applications),);
   assert_eq!(
-    application_count.registration_applications,
-    i64::from(expected_unread_applications),
-  );
-  assert_eq!(
-    unread_applications.registration_applications.len(),
+    unread_applications.len(),
     usize::from(expected_unread_applications),
   );
-  assert_eq!(
-    all_applications.registration_applications.len(),
-    expected_total_applications,
-  );
+  assert_eq!(all_applications.len(), expected_total_applications,);
 
   LocalSite::delete(pool).await?;
   // Instance deletion cascades cleanup of all created persons

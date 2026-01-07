@@ -1,11 +1,8 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_utils::{context::LemmyContext, utils::is_admin};
-use lemmy_db_schema::{
-  source::{
-    local_user::{LocalUser, LocalUserUpdateForm},
-    mod_log::admin::{AdminAdd, AdminAddForm},
-  },
-  traits::Crud,
+use lemmy_api_utils::{context::LemmyContext, notify::notify_mod_action, utils::is_admin};
+use lemmy_db_schema::source::{
+  local_user::{LocalUser, LocalUserUpdateForm},
+  modlog::{Modlog, ModlogInsertForm},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::{
@@ -15,7 +12,7 @@ use lemmy_db_views_person::{
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn add_admin(
-  data: Json<AddAdmin>,
+  Json(data): Json<AddAdmin>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<AddAdminResponse>> {
@@ -59,13 +56,13 @@ pub async fn add_admin(
   .await?;
 
   // Mod tables
-  let form = AdminAddForm {
-    mod_person_id: my_person_id,
-    other_person_id: added_local_user.person.id,
-    removed: Some(!data.added),
-  };
-
-  AdminAdd::create(&mut context.pool(), &form).await?;
+  let form = ModlogInsertForm::admin_add(
+    &local_user_view.person,
+    added_local_user.person.id,
+    !data.added,
+  );
+  let action = Modlog::create(&mut context.pool(), &[form]).await?;
+  notify_mod_action(action.clone(), &context);
 
   let admins = PersonQuery {
     admins_only: Some(true),
@@ -78,5 +75,7 @@ pub async fn add_admin(
   )
   .await?;
 
-  Ok(Json(AddAdminResponse { admins }))
+  Ok(Json(AddAdminResponse {
+    admins: admins.items,
+  }))
 }

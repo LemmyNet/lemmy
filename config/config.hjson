@@ -2,4 +2,7 @@
 # https://join-lemmy.org/docs/en/administration/configuration.html
 {
   hostname: lemmy-alpha
+  pictrs: {
+    image_mode: None
+  }
 }

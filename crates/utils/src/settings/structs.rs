@@ -3,6 +3,7 @@ use doku::Document;
 use serde::{Deserialize, Serialize};
 use smart_default::SmartDefault;
 use std::{
+  collections::BTreeMap,
   env,
   net::{IpAddr, Ipv4Addr},
 };
@@ -51,6 +52,8 @@ pub struct Settings {
   cors_origin: Vec<String>,
   /// Print logs in JSON format. You can also disable ANSI colors in logs with env var `NO_COLOR`.
   pub json_logging: bool,
+  /// Data for loading Lemmy plugins
+  pub plugins: Vec<PluginSettings>,
 }
 
 impl Settings {
@@ -187,6 +190,9 @@ pub struct SetupConfig {
   /// Email for the admin user (optional, can be omitted and set later through the website)
   #[doku(example = "user@example.com")]
   pub admin_email: Option<String>,
+  /// By default a new Lemmy instance gets populated with data from the most popular communities.
+  /// Set this to true to start with an empty instance instead.
+  pub no_default_data: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
@@ -211,4 +217,25 @@ pub struct FederationWorkerConfig {
   /// per second) and if a receiving instance is not keeping up.
   #[default(1)]
   pub concurrent_sends_per_instance: i8,
+}
+
+/// See the extism docs for more details: https://extism.org/docs/concepts/manifest
+#[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
+#[serde(default, deny_unknown_fields)]
+pub struct PluginSettings {
+  /// Where to load the .wasm file from, can be a local file path or URL
+  #[doku(
+    example = "https://github.com/LemmyNet/lemmy-plugins/releases/download/0.1.1/go_replace_words.wasm"
+  )]
+  pub file: String,
+  /// SHA256 hash of the .wasm file
+  #[doku(example = "37cdc01a3ff26eef578b668c6cc57fc06649deddb3a92cb6bae8e79b4e60fe12")]
+  pub hash: Option<String>,
+  /// Which websites the plugin may connect to
+  #[serde(default)]
+  #[doku(example = "lemmy.ml")]
+  pub allowed_hosts: Option<Vec<String>>,
+  /// Configuration options for the plugin
+  #[serde(default)]
+  pub config: BTreeMap<String, String>,
 }

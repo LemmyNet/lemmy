@@ -1,4 +1,3 @@
-use super::check_community_visibility_allowed;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use chrono::Utc;
@@ -8,24 +7,22 @@ use lemmy_api_utils::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
     check_community_mod_action,
+    check_local_user_valid,
     check_nsfw_allowed,
     get_url_blocklist,
     process_markdown_opt,
     slur_regex,
   },
 };
-use lemmy_db_schema::{
-  source::{
-    actor_language::{CommunityLanguage, SiteLanguage},
-    community::{Community, CommunityUpdateForm},
-    mod_log::moderator::{ModChangeCommunityVisibility, ModChangeCommunityVisibilityForm},
-  },
-  traits::Crud,
-  utils::diesel_string_update,
+use lemmy_db_schema::source::{
+  actor_language::{CommunityLanguage, SiteLanguage},
+  community::{Community, CommunityUpdateForm},
+  modlog::{Modlog, ModlogInsertForm},
 };
 use lemmy_db_views_community::api::{CommunityResponse, EditCommunity};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::{traits::Crud, utils::diesel_string_update};
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::{
@@ -35,10 +32,11 @@ use lemmy_utils::{
 };
 
 pub async fn update_community(
-  data: Json<EditCommunity>,
+  Json(data): Json<EditCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityResponse>> {
+  check_local_user_valid(&local_user_view)?;
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
 
   let slur_regex = slur_regex(&context).await?;
@@ -61,7 +59,6 @@ pub async fn update_community(
     is_valid_body_field(sidebar, false)?;
   }
 
-  check_community_visibility_allowed(data.visibility, &local_user_view)?;
   let description = diesel_string_update(data.description.as_deref());
 
   let old_community = Community::read(&mut context.pool(), data.community_id).await?;
@@ -96,12 +93,11 @@ pub async fn update_community(
   let community = Community::update(&mut context.pool(), community_id, &community_form).await?;
 
   if old_community.visibility != community.visibility {
-    let form = ModChangeCommunityVisibilityForm {
-      mod_person_id: local_user_view.person.id,
-      community_id: community.id,
-      visibility: community.visibility,
-    };
-    ModChangeCommunityVisibility::create(&mut context.pool(), &form).await?;
+    let form = ModlogInsertForm::mod_change_community_visibility(
+      local_user_view.person.id,
+      data.community_id,
+    );
+    Modlog::create(&mut context.pool(), &[form]).await?;
   }
 
   ActivityChannel::submit_activity(

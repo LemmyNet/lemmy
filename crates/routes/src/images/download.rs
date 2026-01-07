@@ -1,17 +1,17 @@
 use super::utils::{adapt_request, convert_header};
 use actix_web::{
-  body::{BodyStream, BoxBody},
-  http::StatusCode,
-  web::{Data, *},
   HttpRequest,
   HttpResponse,
   Responder,
+  body::{BodyStream, BoxBody},
+  http::StatusCode,
+  web::{Data, *},
 };
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::source::images::RemoteImage;
 use lemmy_db_views_local_image::api::{ImageGetParams, ImageProxyParams};
 use lemmy_utils::error::LemmyResult;
-use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
+use percent_encoding::{NON_ALPHANUMERIC, utf8_percent_encode};
 use url::Url;
 
 pub async fn get_image(

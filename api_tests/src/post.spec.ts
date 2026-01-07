@@ -18,7 +18,6 @@ import {
   resolveBetaCommunity,
   createComment,
   deletePost,
-  delay,
   removePost,
   getPost,
   unfollowRemotes,
@@ -40,6 +39,10 @@ import {
   getMyUser,
   listNotifications,
   getModlog,
+  statusNotFound,
+  statusBadRequest,
+  getSite,
+  jestLemmyError,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
 import { AdminBlockInstanceParams } from "lemmy-js-client/dist/types/AdminBlockInstanceParams";
@@ -106,9 +109,10 @@ async function assertPostFederation(
 
 test("Create a post", async () => {
   // Block alpha
-  var block_instance_params: AdminBlockInstanceParams = {
+  let block_instance_params: AdminBlockInstanceParams = {
     instance: "lemmy-alpha",
     block: true,
+    reason: "block",
   };
   await epsilon.adminBlockInstance(block_instance_params);
 
@@ -141,14 +145,24 @@ test("Create a post", async () => {
   await assertPostFederation(betaPost, postRes.post_view);
 
   // Delta only follows beta, so it should not see an alpha ap_id
-  await expect(
-    resolvePost(delta, postRes.post_view.post),
-  ).rejects.toStrictEqual(new LemmyError("not_found"));
+  await jestLemmyError(
+    () => resolvePost(delta, postRes.post_view.post),
+    new LemmyError(
+      "resolve_object_failed",
+      statusBadRequest,
+      'Domain "lemmy-alpha" is not in allowlist',
+    ),
+  );
 
   // Epsilon has alpha blocked, it should not see the alpha post
-  await expect(
-    resolvePost(epsilon, postRes.post_view.post),
-  ).rejects.toStrictEqual(new LemmyError("not_found"));
+  await jestLemmyError(
+    () => resolvePost(epsilon, postRes.post_view.post),
+    new LemmyError(
+      "resolve_object_failed",
+      statusBadRequest,
+      'Domain "lemmy-alpha" is blocked',
+    ),
+  );
 
   // remove blocked instance
   block_instance_params.block = false;
@@ -156,8 +170,9 @@ test("Create a post", async () => {
 });
 
 test("Create a post in a non-existent community", async () => {
-  await expect(createPost(alpha, -2)).rejects.toStrictEqual(
-    new LemmyError("not_found"),
+  await jestLemmyError(
+    () => createPost(alpha, -2),
+    new LemmyError("not_found", statusNotFound),
   );
 });
 
@@ -166,11 +181,11 @@ test("Unlike a post", async () => {
     throw "Missing beta community";
   }
   let postRes = await createPost(alpha, betaCommunity.community.id);
-  let unlike = await likePost(alpha, 0, postRes.post_view.post);
+  let unlike = await likePost(alpha, undefined, postRes.post_view.post);
   expect(unlike.post_view.post.score).toBe(0);
 
   // Try to unlike it again, make sure it stays at 0
-  let unlike2 = await likePost(alpha, 0, postRes.post_view.post);
+  let unlike2 = await likePost(alpha, undefined, postRes.post_view.post);
   expect(unlike2.post_view.post.score).toBe(0);
 
   // Make sure that post is unliked on beta
@@ -187,43 +202,11 @@ test("Unlike a post", async () => {
   await assertPostFederation(betaPost, postRes.post_view);
 });
 
-test("Make sure like is within range", async () => {
-  if (!betaCommunity) {
-    throw "Missing beta community";
-  }
-  let postRes = await createPost(alpha, betaCommunity.community.id);
-
-  // Try a like with score 2
-  await expect(
-    likePost(alpha, 2, postRes.post_view.post),
-  ).rejects.toStrictEqual(new LemmyError("couldnt_like_post"));
-
-  // Try a like with score -2
-  await expect(
-    likePost(alpha, -2, postRes.post_view.post),
-  ).rejects.toStrictEqual(new LemmyError("couldnt_like_post"));
-
-  // Make sure that post stayed at 1
-  const betaPost = await waitForPost(
-    beta,
-    postRes.post_view.post,
-    post => post?.post.score === 1,
-  );
-
-  expect(betaPost).toBeDefined();
-  expect(betaPost?.community.local).toBe(true);
-  expect(betaPost?.creator.local).toBe(false);
-  expect(betaPost?.post.score).toBe(1);
-  await assertPostFederation(betaPost, postRes.post_view);
-});
-
 test("Update a post", async () => {
   if (!betaCommunity) {
     throw "Missing beta community";
   }
   let postRes = await createPost(alpha, betaCommunity.community.id);
-  await waitForPost(beta, postRes.post_view.post);
-
   let updatedName = "A jest test federated post, updated";
   let updatedPost = await editPost(alpha, postRes.post_view.post);
   expect(updatedPost.post_view.post.name).toBe(updatedName);
@@ -238,8 +221,9 @@ test("Update a post", async () => {
   await assertPostFederation(betaPost, updatedPost.post_view);
 
   // Make sure lemmy beta cannot update the post
-  await expect(editPost(beta, betaPost.post)).rejects.toStrictEqual(
-    new LemmyError("no_post_edit_allowed"),
+  await jestLemmyError(
+    () => editPost(beta, betaPost.post),
+    new LemmyError("no_post_edit_allowed", statusBadRequest),
   );
 });
 
@@ -313,7 +297,7 @@ test("Lock a post", async () => {
   await followCommunity(alpha, true, betaCommunity.community.id);
   await waitUntil(
     () => resolveBetaCommunity(alpha),
-    c => c?.community_actions?.follow_state == "Accepted",
+    c => c?.community_actions?.follow_state == "accepted",
   );
 
   let postRes = await createPost(alpha, betaCommunity.community.id);
@@ -332,8 +316,9 @@ test("Lock a post", async () => {
   // Try to make a new comment there, on alpha. For this we need to create a normal
   // user account because admins/mods can comment in locked posts.
   let user = await registerUser(alpha, alphaUrl);
-  await expect(createComment(user, alphaPost1.post.id)).rejects.toStrictEqual(
-    new LemmyError("locked"),
+  await jestLemmyError(
+    () => createComment(user, alphaPost1.post.id),
+    new LemmyError("locked", statusBadRequest),
   );
 
   // Unlock a post
@@ -362,23 +347,27 @@ test("Delete a post", async () => {
 
   let postRes = await createPost(alpha, betaCommunity.community.id);
   expect(postRes.post_view.post).toBeDefined();
-  await waitForPost(beta, postRes.post_view.post);
+
+  await waitForPost(beta, postRes.post_view.post, p => p?.post.id != undefined);
 
   let deletedPost = await deletePost(alpha, true, postRes.post_view.post);
-  expect(deletedPost.post_view.post.deleted).toBe(true);
+  // Make sure lemmy alpha sees post is deleted
+  await waitUntil(
+    () => getPost(alpha, postRes.post_view.post.id),
+    p => p.post_view.post.deleted,
+  );
   expect(deletedPost.post_view.post.name).toBe(postRes.post_view.post.name);
 
   // Make sure lemmy beta sees post is deleted
   // This will be undefined because of the tombstone
-  await waitForPost(
-    beta,
-    postRes.post_view.post,
-    p => p?.post?.deleted || p == undefined,
-  );
-  await delay();
+  await waitForPost(beta, postRes.post_view.post, p => p?.post == undefined);
 
   // Undelete
   let undeletedPost = await deletePost(alpha, false, postRes.post_view.post);
+  await waitUntil(
+    () => getPost(alpha, postRes.post_view.post.id),
+    p => !p.post_view.post.deleted,
+  );
 
   // Make sure lemmy beta sees post is undeleted
   let betaPost2 = await waitForPost(
@@ -394,8 +383,9 @@ test("Delete a post", async () => {
   await assertPostFederation(betaPost2, undeletedPost.post_view);
 
   // Make sure lemmy beta cannot delete the post
-  await expect(deletePost(beta, true, betaPost2.post)).rejects.toStrictEqual(
-    new LemmyError("couldnt_update"),
+  await jestLemmyError(
+    () => deletePost(beta, true, betaPost2.post),
+    new LemmyError("no_post_edit_allowed", statusBadRequest),
   );
 });
 
@@ -462,7 +452,7 @@ test("Remove a post from admin and community on same instance", async () => {
   // Make sure lemmy alpha sees post is removed
   let alphaPost = await waitUntil(
     () => getPost(alpha, alphaPost0.post.id),
-    p => p?.post_view.post.removed ?? false,
+    p => p?.post_view.post.removed,
   );
   expect(alphaPost?.post_view.post.removed).toBe(true);
   await assertPostFederation(
@@ -530,14 +520,14 @@ test("Enforce site ban federation for local user", async () => {
     true,
     true,
   );
-  expect(banAlpha.banned).toBe(true);
+  expect(banAlpha.person_view.banned).toBe(true);
 
   // alpha ban should be federated to beta
   let alphaUserOnBeta1 = await waitUntil(
     () => resolvePerson(beta, alphaUserActorId!),
-    res => res?.creator_banned == true,
+    res => res?.banned == true,
   );
-  expect(alphaUserOnBeta1?.creator_banned).toBe(true);
+  expect(alphaUserOnBeta1?.banned).toBe(true);
 
   // existing alpha post should be removed on beta
   let betaBanRes = await waitUntil(
@@ -553,7 +543,7 @@ test("Enforce site ban federation for local user", async () => {
     false,
     true,
   );
-  expect(unBanAlpha.banned).toBe(false);
+  expect(unBanAlpha.person_view.banned).toBe(false);
 
   // existing alpha post should be restored on beta
   betaBanRes = await waitUntil(
@@ -593,7 +583,7 @@ test("Enforce site ban federation for federated user", async () => {
   await followBeta(alphaUserHttp);
 
   let alphaUserOnBeta2 = await resolvePerson(beta, alphaUserActorId!);
-  expect(alphaUserOnBeta2?.creator_banned).toBe(false);
+  expect(alphaUserOnBeta2?.banned).toBe(false);
 
   if (!alphaUserOnBeta2?.person) {
     throw "Missing alpha person";
@@ -611,7 +601,7 @@ test("Enforce site ban federation for federated user", async () => {
     true,
     true,
   );
-  expect(banAlphaOnBeta.banned).toBe(true);
+  expect(banAlphaOnBeta.person_view.banned).toBe(true);
 
   // existing alpha post should be removed on beta
   let betaRemovedPost = await getPost(beta, searchBeta1.post.id);
@@ -629,9 +619,10 @@ test("Enforce site ban federation for federated user", async () => {
   expect(alphaPerson2.banned).toBe(false);
 
   // post to beta community is rejected
-  await expect(
-    createPost(alphaUserHttp, betaCommunity.community.id),
-  ).rejects.toStrictEqual(new LemmyError("site_ban"));
+  await jestLemmyError(
+    () => createPost(alphaUserHttp, betaCommunity!.community.id),
+    new LemmyError("site_ban", statusBadRequest),
+  );
 
   await unfollowRemotes(alpha);
 });
@@ -661,7 +652,7 @@ test("Enforce community ban for federated user", async () => {
     true,
     true,
   );
-  expect(banAlpha.banned).toBe(true);
+  expect(banAlpha).toBeDefined();
 
   // ensure that the post by alpha got removed
   let removePostRes = await waitUntil(
@@ -675,9 +666,10 @@ test("Enforce community ban for federated user", async () => {
   ).toBeDefined();
 
   // Alpha tries to make post on beta, but it fails because of ban
-  await expect(
-    createPost(alpha, betaCommunity.community.id),
-  ).rejects.toStrictEqual(new LemmyError("person_is_banned_from_community"));
+  await jestLemmyError(
+    () => createPost(alpha, betaCommunity!.community.id),
+    new LemmyError("person_is_banned_from_community", statusBadRequest),
+  );
 
   // Unban alpha
   let unBanAlpha = await banPersonFromCommunity(
@@ -687,14 +679,14 @@ test("Enforce community ban for federated user", async () => {
     false,
     false,
   );
-  expect(unBanAlpha.banned).toBe(false);
+  expect(unBanAlpha).toBeDefined();
 
   // Check that unban was federated to alpha
   await waitUntil(
     () => getModlog(alpha),
     m =>
-      m.modlog[0].type_ == "ModBanFromCommunity" &&
-      m.modlog[0].mod_ban_from_community.banned == false,
+      m.items[0].modlog.kind == "mod_ban_from_community" &&
+      m.items[0].modlog.is_revert == true,
   );
 
   let postRes3 = await createPost(alpha, betaCommunity.community.id);
@@ -760,7 +752,7 @@ test("Report a post", async () => {
     (await waitUntil(
       () =>
         listReports(beta).then(p =>
-          p.reports.find(r => {
+          p.items.find(r => {
             return checkPostReportName(r, gammaReport);
           }),
         ),
@@ -781,7 +773,7 @@ test("Report a post", async () => {
     (await waitUntil(
       () =>
         listReports(alpha, true).then(p =>
-          p.reports.find(r => {
+          p.items.find(r => {
             return checkPostReportName(r, gammaReport);
           }),
         ),
@@ -800,7 +792,7 @@ test("Report a post", async () => {
     (await waitUntil(
       () =>
         listReports(epsilon).then(p =>
-          p.reports.find(r => {
+          p.items.find(r => {
             return checkPostReportName(r, gammaReport);
           }),
         ),
@@ -824,7 +816,7 @@ test("Report a post", async () => {
     (await waitUntil(
       () =>
         listReports(beta).then(p =>
-          p.reports.find(r => {
+          p.items.find(r => {
             return checkPostReportName(r, gammaReport) && !!r.resolver;
           }),
         ),
@@ -856,8 +848,8 @@ test("Fetch post via redirect", async () => {
   };
   let gammaPost = await gamma
     .resolveObject(form)
-    .then(a => a.results.at(0))
-    .then(a => (a?.type_ == "Post" ? a : undefined));
+    .then(a => a.resolve)
+    .then(a => (a?.type_ == "post" ? a : undefined));
 
   expect(gammaPost).toBeDefined();
   expect(gammaPost?.post.ap_id).toBe(alphaPost.post_view.post.ap_id);
@@ -871,15 +863,19 @@ test("Block post that contains banned URL", async () => {
 
   await epsilon.editSite(editSiteForm);
 
-  await delay();
+  await waitUntil(
+    () => epsilon.getSite(),
+    s => s.blocked_urls.length == 1,
+  );
 
   if (!betaCommunity) {
     throw "Missing beta community";
   }
 
-  expect(
-    createPost(epsilon, betaCommunity.community.id, "https://evil.com"),
-  ).rejects.toStrictEqual(new LemmyError("blocked_url"));
+  await jestLemmyError(
+    () => createPost(epsilon, betaCommunity!.community.id, "https://evil.com"),
+    new LemmyError("blocked_url", statusBadRequest),
+  );
 
   // Later tests need this to be empty
   editSiteForm.blocked_urls = [];
@@ -904,8 +900,8 @@ test("Fetch post with redirect", async () => {
   };
   let gammaPost2 = await gamma
     .resolveObject(form)
-    .then(a => a.results.at(0))
-    .then(a => (a?.type_ == "Post" ? a : undefined));
+    .then(a => a.resolve)
+    .then(a => (a?.type_ == "post" ? a : undefined));
 
   expect(gammaPost2?.post).toBeDefined();
 });
@@ -936,11 +932,11 @@ test("Mention beta from alpha post body", async () => {
   await assertPostFederation(betaPost, postOnAlphaRes.post_view);
 
   let mentionsRes = await waitUntil(
-    () => listNotifications(beta, "Mention"),
-    m => !!m.notifications[0],
+    () => listNotifications(beta, "mention"),
+    m => !!m.items[0],
   );
 
-  const firstMention = mentionsRes.notifications[0].data as PostView;
+  const firstMention = mentionsRes.items[0].data as PostView;
   expect(firstMention.post!.body).toBeDefined();
   expect(firstMention.community!.local).toBe(true);
   expect(firstMention.creator.local).toBe(false);
@@ -980,7 +976,10 @@ test("Don't allow NSFW posts on instances that disable it", async () => {
   await gamma.editSite(editSiteForm);
 
   // Wait for cache on Gamma's LocalSite
-  await delay(1_000);
+  await waitUntil(
+    () => getSite(gamma),
+    s => s.site_view.local_site.disallow_nsfw_content,
+  );
 
   if (!betaCommunity) {
     throw "Missing beta community";
@@ -995,9 +994,10 @@ test("Don't allow NSFW posts on instances that disable it", async () => {
   let updatePost = await beta.editPost(form);
 
   // Gamma reject resolving the post
-  await expect(
-    resolvePost(gamma, updatePost.post_view.post),
-  ).rejects.toStrictEqual(new LemmyError("not_found"));
+  await jestLemmyError(
+    () => resolvePost(gamma, updatePost.post_view.post),
+    new LemmyError("resolve_object_failed", statusBadRequest, "NsfwNotAllowed"),
+  );
 
   // Local users can't create NSFW post on Gamma
   let gammaCommunity = await resolveCommunity(
@@ -1012,8 +1012,9 @@ test("Don't allow NSFW posts on instances that disable it", async () => {
     nsfw: true,
     post_id: gammaPost.post_view.post.id,
   };
-  await expect(gamma.editPost(form2)).rejects.toStrictEqual(
-    new LemmyError("nsfw_not_allowed"),
+  await jestLemmyError(
+    () => gamma.editPost(form2),
+    new LemmyError("nsfw_not_allowed", statusBadRequest),
   );
 });
 
@@ -1028,22 +1029,22 @@ test("Plugin test", async () => {
   );
   expect(postRes1.post_view.post.name).toBe("Go");
 
-  await expect(
-    createPost(
-      epsilon,
-      community.community_view.community.id,
-      "https://example.com/",
-      randomString(10),
-      "Java",
-    ),
-  ).rejects.toStrictEqual(
-    new LemmyError("plugin_error", "We dont talk about Java"),
+  await jestLemmyError(
+    () =>
+      createPost(
+        epsilon,
+        community.community_view.community.id,
+        "https://example.com/",
+        randomString(10),
+        "Java",
+      ),
+    new LemmyError("plugin_error", statusBadRequest, "We dont talk about Java"),
   );
 });
 
 function checkPostReportName(rcv: ReportCombinedView, report: PostReport) {
   switch (rcv.type_) {
-    case "Post":
+    case "post":
       return rcv.post_report.original_post_name === report.original_post_name;
     default:
       return false;

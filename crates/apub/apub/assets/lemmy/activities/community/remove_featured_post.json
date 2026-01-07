@@ -1,0 +1,10 @@
+{
+  "cc": ["https://ds9.lemmy.ml/c/main"],
+  "id": "https://ds9.lemmy.ml/activities/add/47d911f5-52c5-4659-b2fd-0e58c451a427",
+  "to": ["https://www.w3.org/ns/activitystreams#Public"],
+  "type": "Remove",
+  "actor": "https://ds9.lemmy.ml/u/lemmy_alpha",
+  "object": "https://ds9.lemmy.ml/post/2",
+  "target": "https://ds9.lemmy.ml/c/main/featured",
+  "audience": "https://ds9.lemmy.ml/c/main"
+}

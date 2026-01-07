@@ -1,7 +1,8 @@
-use crate::newtypes::{CustomEmojiId, DbUrl};
+use crate::newtypes::CustomEmojiId;
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::custom_emoji;
+use lemmy_diesel_utils::dburl::DbUrl;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -23,7 +24,7 @@ pub struct CustomEmoji {
   pub updated_at: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Clone, derive_new::new)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = custom_emoji))]
 pub struct CustomEmojiInsertForm {
@@ -33,11 +34,12 @@ pub struct CustomEmojiInsertForm {
   pub category: String,
 }
 
-#[derive(Debug, Clone, derive_new::new)]
+#[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = custom_emoji))]
 pub struct CustomEmojiUpdateForm {
-  pub image_url: DbUrl,
-  pub alt_text: String,
-  pub category: String,
+  pub shortcode: Option<String>,
+  pub image_url: Option<DbUrl>,
+  pub alt_text: Option<String>,
+  pub category: Option<String>,
 }

@@ -1,24 +1,18 @@
-use crate::{
-  CommentReportView,
-  CommunityReportView,
-  PostReportView,
-  PrivateMessageReportView,
-  ReportCombinedView,
-};
+use crate::{CommentReportView, CommunityReportView, PostReportView, PrivateMessageReportView};
 use lemmy_db_schema::{
+  ReportType,
   newtypes::{
     CommentId,
     CommentReportId,
     CommunityId,
     CommunityReportId,
-    PaginationCursor,
     PostId,
     PostReportId,
     PrivateMessageId,
     PrivateMessageReportId,
   },
-  ReportType,
 };
+use lemmy_diesel_utils::pagination::PaginationCursor;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -37,23 +31,11 @@ pub struct ListReports {
   /// if no community is given, it returns reports for all communities moderated by the auth user
   pub community_id: Option<CommunityId>,
   pub page_cursor: Option<PaginationCursor>,
-  pub page_back: Option<bool>,
   pub limit: Option<i64>,
   /// Only for admins: also show reports with `violates_instance_rules=false`
   pub show_community_rule_violations: Option<bool>,
   /// If true, view all your created reports. Works for non-admins/mods also.
   pub my_reports_only: Option<bool>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// The post reports response.
-pub struct ListReportsResponse {
-  pub reports: Vec<ReportCombinedView>,
-  /// the pagination cursor to use to fetch the next page
-  pub next_page: Option<PaginationCursor>,
-  pub prev_page: Option<PaginationCursor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -99,24 +81,6 @@ pub struct CreatePostReport {
   pub post_id: PostId,
   pub reason: String,
   pub violates_instance_rules: Option<bool>,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// Get a count of the number of reports.
-pub struct GetReportCount {
-  pub community_id: Option<CommunityId>,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// A response for the number of reports.
-pub struct GetReportCountResponse {
-  pub count: i64,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]

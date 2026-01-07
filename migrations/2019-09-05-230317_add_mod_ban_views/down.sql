@@ -71,30 +71,30 @@ SELECT
     ap.*,
     u.id AS user_id,
     coalesce(pl.score, 0) AS my_vote,
-    (
-        SELECT
-            cf.id::bool
-        FROM
-            community_follower cf
-        WHERE
-            u.id = cf.user_id
-            AND cf.community_id = ap.community_id) AS subscribed,
-    (
-        SELECT
-            pr.id::bool
-        FROM
-            post_read pr
-        WHERE
-            u.id = pr.user_id
-            AND pr.post_id = ap.id) AS read,
-    (
-        SELECT
-            ps.id::bool
-        FROM
-            post_saved ps
-        WHERE
-            u.id = ps.user_id
-            AND ps.post_id = ap.id) AS saved
+(
+    SELECT
+        cf.id::bool
+    FROM
+        community_follower cf
+    WHERE
+        u.id = cf.user_id
+        AND cf.community_id = ap.community_id) AS subscribed,
+(
+    SELECT
+        pr.id::bool
+    FROM
+        post_read pr
+    WHERE
+        u.id = pr.user_id
+        AND pr.post_id = ap.id) AS read,
+(
+    SELECT
+        ps.id::bool
+    FROM
+        post_saved ps
+    WHERE
+        u.id = ps.user_id
+        AND ps.post_id = ap.id) AS saved
 FROM
     user_ u
     CROSS JOIN all_post ap

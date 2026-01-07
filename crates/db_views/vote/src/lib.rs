@@ -18,5 +18,6 @@ pub struct VoteView {
   pub creator: Person,
   pub creator_banned: bool,
   pub creator_banned_from_community: bool,
-  pub score: i16,
+  /// True means Upvote, False means Downvote.
+  pub is_upvote: bool,
 }

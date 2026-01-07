@@ -1,19 +1,19 @@
 use crate::captcha_as_wav_base64;
 use actix_web::{
-  http::{
-    header::{CacheControl, CacheDirective},
-    StatusCode,
-  },
-  web::{Data, Json},
   HttpResponse,
   HttpResponseBuilder,
+  http::{
+    StatusCode,
+    header::{CacheControl, CacheDirective},
+  },
+  web::{Data, Json},
 };
-use captcha::{generate, Difficulty};
+use captcha::{Difficulty, generate};
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::source::captcha_answer::{CaptchaAnswer, CaptchaAnswerForm};
 use lemmy_db_views_site::{
-  api::{CaptchaResponse, GetCaptchaResponse},
   SiteView,
+  api::{CaptchaResponse, GetCaptchaResponse},
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 

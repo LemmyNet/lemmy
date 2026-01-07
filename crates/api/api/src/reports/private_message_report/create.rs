@@ -1,27 +1,33 @@
 use crate::check_report_reason;
 use actix_web::web::{Data, Json};
-use lemmy_api_utils::{context::LemmyContext, utils::slur_regex};
+use lemmy_api_utils::{
+  context::LemmyContext,
+  plugins::plugin_hook_after,
+  utils::{check_local_user_valid, slur_regex},
+};
 use lemmy_db_schema::{
   source::{
     private_message::PrivateMessage,
     private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
   },
-  traits::{Crud, Reportable},
+  traits::Reportable,
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_report_combined::{
-  api::{CreatePrivateMessageReport, PrivateMessageReportResponse},
   ReportCombinedViewInternal,
+  api::{CreatePrivateMessageReport, PrivateMessageReportResponse},
 };
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_email::admin::send_new_report_email_to_admins;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn create_pm_report(
-  data: Json<CreatePrivateMessageReport>,
+  Json(data): Json<CreatePrivateMessageReport>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PrivateMessageReportResponse>> {
+  check_local_user_valid(&local_user_view)?;
   let reason = data.reason.trim().to_string();
   let slur_regex = slur_regex(&context).await?;
   check_report_reason(&reason, &slur_regex)?;
@@ -47,6 +53,10 @@ pub async fn create_pm_report(
   let private_message_report_view =
     ReportCombinedViewInternal::read_private_message_report(&mut context.pool(), report.id, person)
       .await?;
+  plugin_hook_after(
+    "private_message_report_after_create",
+    &private_message_report_view,
+  );
 
   // Email the admins
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;

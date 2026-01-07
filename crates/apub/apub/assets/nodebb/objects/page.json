@@ -1,0 +1,40 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    {
+      "toot": "http://joinmastodon.org/ns#",
+      "Emoji": "toot:Emoji"
+    }
+  ],
+  "id": "https://bb.devnull.land/post/1",
+  "type": "Article",
+  "to": [
+    "https://www.w3.org/ns/activitystreams#Public",
+    "https://bb.devnull.land/category/2"
+  ],
+  "cc": ["https://bb.devnull.land/uid/1/followers"],
+  "inReplyTo": null,
+  "published": "2025-10-07T15:22:42.176Z",
+  "updated": null,
+  "url": "https://bb.devnull.land/post/1",
+  "attributedTo": "https://bb.devnull.land/uid/1",
+  "context": "https://bb.devnull.land/topic/1",
+  "audience": "https://bb.devnull.land/category/2",
+  "summary": " <h3>Welcome to your brand new NodeBB forum!</h3> <p>This is what a topic and post looks like. As an administrator, you can edit the post's title and content.<br /> To customise your forum, go to the <a href=\"https://bb.devnull.land/admin\">Administrator Control Panel</a>. You can modify all aspects of your forum there, including installation of third-party plugins.</p> <h4>Additional Resources</h4> <ul> <li><a href=\"https://docs.nodebb.org/\" rel=\"nofollow ugc\">NodeBB Documentation</a></li> <li><a href=\"https://community.nodebb.org/\" rel=\"nofollow ugc\">Community Support Forum</a></li> <li><a href=\"https://github.com/nodebb/nodebb\" rel=\"nofollow ugc\">Project repository</a></li> </ul>",
+  "name": "Welcome to your NodeBB!",
+  "preview": {
+    "type": "Note",
+    "attributedTo": "https://bb.devnull.land/uid/1",
+    "content": "<h3>Welcome to your brand new NodeBB forum!</h3>\n<p>This is what a topic and post looks like. As an administrator, you can edit the post's title and content.<br />\nTo customise your forum, go to the <a href=\"https://bb.devnull.land/admin\">Administrator Control Panel</a>. You can modify all aspects of your forum there, including installation of third-party plugins.</p>\n<h4>Additional Resources</h4>\n<ul>\n<li><a href=\"https://docs.nodebb.org/\" rel=\"nofollow ugc\">NodeBB Documentation</a></li>\n<li><a href=\"https://community.nodebb.org/\" rel=\"nofollow ugc\">Community Support Forum</a></li>\n<li><a href=\"https://github.com/nodebb/nodebb\" rel=\"nofollow ugc\">Project repository</a></li>\n</ul>\n",
+    "published": "2025-10-07T15:22:42.176Z",
+    "attachment": []
+  },
+  "content": "<h3>Welcome to your brand new NodeBB forum!</h3>\n<p>This is what a topic and post looks like. As an administrator, you can edit the post's title and content.<br />\nTo customise your forum, go to the <a href=\"https://bb.devnull.land/admin\">Administrator Control Panel</a>. You can modify all aspects of your forum there, including installation of third-party plugins.</p>\n<h4>Additional Resources</h4>\n<ul>\n<li><a href=\"https://docs.nodebb.org/\" rel=\"nofollow ugc\">NodeBB Documentation</a></li>\n<li><a href=\"https://community.nodebb.org/\" rel=\"nofollow ugc\">Community Support Forum</a></li>\n<li><a href=\"https://github.com/nodebb/nodebb\" rel=\"nofollow ugc\">Project repository</a></li>\n</ul>\n",
+  "source": {
+    "content": "### Welcome to your brand new NodeBB forum!\n\nThis is what a topic and post looks like. As an administrator, you can edit the post\\'s title and content.\nTo customise your forum, go to the [Administrator Control Panel](https://bb.devnull.land/admin). You can modify all aspects of your forum there, including installation of third-party plugins.\n\n#### Additional Resources\n\n* [NodeBB Documentation](https://docs.nodebb.org/)\n* [Community SupportForum](https://community.nodebb.org/)\n* [Project repository](https://github.com/nodebb/nodebb)",
+    "mediaType": "text/markdown"
+  },
+  "tag": [],
+  "attachment": [],
+  "replies": "https://bb.devnull.land/post/1/replies"
+}

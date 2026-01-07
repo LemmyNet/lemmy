@@ -1,7 +1,7 @@
-use crate::{CommentSlimView, CommentView};
-use lemmy_db_schema::newtypes::{CommentId, CommunityId, LanguageId, PaginationCursor, PostId};
+use crate::CommentView;
+use lemmy_db_schema::newtypes::{CommentId, CommunityId, LanguageId, PostId};
 use lemmy_db_schema_file::enums::{CommentSortType, ListingType};
-use lemmy_db_views_vote::VoteView;
+use lemmy_diesel_utils::pagination::PaginationCursor;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -32,8 +32,8 @@ pub struct CreateComment {
 /// Like a comment.
 pub struct CreateCommentLike {
   pub comment_id: CommentId,
-  /// Must be -1, 0, or 1 .
-  pub score: i16,
+  /// True means Upvote, False means Downvote, and None means remove vote.
+  pub is_upvote: Option<bool>,
 }
 
 #[skip_serializing_none]
@@ -78,32 +78,11 @@ pub struct GetComments {
   pub time_range_seconds: Option<i32>,
   pub max_depth: Option<i32>,
   pub page_cursor: Option<PaginationCursor>,
-  pub page_back: Option<bool>,
   pub limit: Option<i64>,
   pub community_id: Option<CommunityId>,
   pub community_name: Option<String>,
   pub post_id: Option<PostId>,
   pub parent_id: Option<CommentId>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// The comment list response.
-pub struct GetCommentsResponse {
-  pub comments: Vec<CommentView>,
-  pub next_page: Option<PaginationCursor>,
-  pub prev_page: Option<PaginationCursor>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// A slimmer comment list response, without the post or community.
-pub struct GetCommentsSlimResponse {
-  pub comments: Vec<CommentSlimView>,
-  pub next_page: Option<PaginationCursor>,
-  pub prev_page: Option<PaginationCursor>,
 }
 
 #[skip_serializing_none]
@@ -114,7 +93,6 @@ pub struct GetCommentsSlimResponse {
 pub struct ListCommentLikes {
   pub comment_id: CommentId,
   pub page_cursor: Option<PaginationCursor>,
-  pub page_back: Option<bool>,
   pub limit: Option<i64>,
 }
 
@@ -126,18 +104,7 @@ pub struct ListCommentLikes {
 pub struct LockComment {
   pub comment_id: CommentId,
   pub locked: bool,
-  pub reason: Option<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// The comment likes response
-pub struct ListCommentLikesResponse {
-  pub comment_likes: Vec<VoteView>,
-  /// the pagination cursor to use to fetch the next page
-  pub next_page: Option<PaginationCursor>,
-  pub prev_page: Option<PaginationCursor>,
+  pub reason: String,
 }
 
 #[skip_serializing_none]
@@ -147,7 +114,7 @@ pub struct ListCommentLikesResponse {
 /// Purges a comment from the database. This will delete all content attached to that comment.
 pub struct PurgeComment {
   pub comment_id: CommentId,
-  pub reason: Option<String>,
+  pub reason: String,
 }
 
 #[skip_serializing_none]
@@ -158,7 +125,7 @@ pub struct PurgeComment {
 pub struct RemoveComment {
   pub comment_id: CommentId,
   pub removed: bool,
-  pub reason: Option<String>,
+  pub reason: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]

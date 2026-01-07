@@ -1,10 +1,13 @@
-use crate::newtypes::{CommentId, NotificationId, PersonId, PostId, PrivateMessageId};
+use crate::{
+  newtypes::{CommentId, ModlogId, NotificationId, PostId, PrivateMessageId},
+  source::private_message::PrivateMessage,
+};
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;
-use lemmy_db_schema_file::enums::NotificationTypes;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::notification;
+use lemmy_db_schema_file::{PersonId, enums::NotificationType};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -23,51 +26,52 @@ pub struct Notification {
   pub comment_id: Option<CommentId>,
   pub read: bool,
   pub published_at: DateTime<Utc>,
-  pub kind: NotificationTypes,
+  pub kind: NotificationType,
   pub post_id: Option<PostId>,
   pub private_message_id: Option<PrivateMessageId>,
+  pub modlog_id: Option<ModlogId>,
 }
 
+#[derive(derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable))]
 #[cfg_attr(feature = "full", diesel(table_name = notification))]
 pub struct NotificationInsertForm {
   pub recipient_id: PersonId,
+  pub kind: NotificationType,
+  #[new(default)]
   pub comment_id: Option<CommentId>,
-  pub kind: NotificationTypes,
+  #[new(default)]
   pub post_id: Option<PostId>,
+  #[new(default)]
   pub private_message_id: Option<PrivateMessageId>,
+  #[new(default)]
+  pub modlog_id: Option<ModlogId>,
 }
 
 impl NotificationInsertForm {
-  pub fn new_post(post_id: PostId, recipient_id: PersonId, kind: NotificationTypes) -> Self {
+  pub fn new_post(post_id: PostId, recipient_id: PersonId, kind: NotificationType) -> Self {
     Self {
       post_id: Some(post_id),
-      comment_id: None,
-      private_message_id: None,
-      recipient_id,
-      kind,
+      ..Self::new(recipient_id, kind)
     }
   }
   pub fn new_comment(
     comment_id: CommentId,
     recipient_id: PersonId,
-    kind: NotificationTypes,
+    kind: NotificationType,
   ) -> Self {
     Self {
-      post_id: None,
       comment_id: Some(comment_id),
-      private_message_id: None,
-      recipient_id,
-      kind,
+      ..Self::new(recipient_id, kind)
     }
   }
-  pub fn new_private_message(private_message_id: PrivateMessageId, recipient_id: PersonId) -> Self {
+  pub fn new_private_message(private_message: &PrivateMessage) -> Self {
     Self {
-      post_id: None,
-      comment_id: None,
-      private_message_id: Some(private_message_id),
-      recipient_id,
-      kind: NotificationTypes::PrivateMessage,
+      private_message_id: Some(private_message.id),
+      ..Self::new(
+        private_message.recipient_id,
+        NotificationType::PrivateMessage,
+      )
     }
   }
 }

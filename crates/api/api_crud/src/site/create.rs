@@ -14,21 +14,17 @@ use lemmy_api_utils::{
     slur_regex,
   },
 };
-use lemmy_db_schema::{
-  newtypes::DbUrl,
-  source::{
-    local_site::{LocalSite, LocalSiteUpdateForm},
-    local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitUpdateForm},
-    site::{Site, SiteUpdateForm},
-  },
-  traits::Crud,
-  utils::diesel_string_update,
+use lemmy_db_schema::source::{
+  local_site::{LocalSite, LocalSiteUpdateForm},
+  local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitUpdateForm},
+  site::{Site, SiteUpdateForm},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::{
-  api::{CreateSite, SiteResponse},
   SiteView,
+  api::{CreateSite, SiteResponse},
 };
+use lemmy_diesel_utils::{dburl::DbUrl, traits::Crud, utils::diesel_string_update};
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::{
@@ -44,7 +40,7 @@ use lemmy_utils::{
 use url::Url;
 
 pub async fn create_site(
-  data: Json<CreateSite>,
+  Json(data): Json<CreateSite>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SiteResponse>> {
@@ -184,7 +180,6 @@ fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> 
 
 #[cfg(test)]
 mod tests {
-
   use crate::site::create::validate_create_payload;
   use lemmy_db_schema::source::local_site::LocalSite;
   use lemmy_db_schema_file::enums::{ListingType, PostSortType, RegistrationMode};

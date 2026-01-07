@@ -1,19 +1,13 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_utils::context::LemmyContext;
-use lemmy_db_schema::source::local_user::LocalUser;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_notification::{impls::NotificationQuery, NotificationData};
-use lemmy_db_views_person_content_combined::{
-  impls::PersonContentCombinedQuery,
-  PersonContentCombinedView,
-};
-use lemmy_db_views_person_liked_combined::{
-  impls::PersonLikedCombinedQuery,
-  PersonLikedCombinedView,
-};
+use lemmy_db_views_notification::{NotificationData, impls::NotificationQuery};
+use lemmy_db_views_person_content_combined::impls::PersonContentCombinedQuery;
+use lemmy_db_views_person_liked_combined::impls::PersonLikedCombinedQuery;
 use lemmy_db_views_post::PostView;
+use lemmy_db_views_post_comment_combined::PostCommentCombinedView;
 use lemmy_db_views_site::{
   api::{ExportDataResponse, PostOrCommentOrPrivateMessage},
   impls::user_backup_list_to_user_settings_backup,
@@ -41,8 +35,8 @@ pub async fn export_data(
   .await?
   .into_iter()
   .map(|u| match u {
-    PersonContentCombinedView::Post(pv) => Post(pv.post),
-    PersonContentCombinedView::Comment(cv) => Comment(cv.comment),
+    PostCommentCombinedView::Post(pv) => Post(pv.post),
+    PostCommentCombinedView::Comment(cv) => Comment(cv.comment),
   })
   .collect();
 
@@ -54,10 +48,12 @@ pub async fn export_data(
   .list(pool, &local_user_view.person)
   .await?
   .into_iter()
-  .map(|u| match u.data {
-    NotificationData::Post(p) => Post(p.post),
-    NotificationData::Comment(c) => Comment(c.comment),
-    NotificationData::PrivateMessage(pm) => PrivateMessage(pm.private_message),
+  .flat_map(|u| match u.data {
+    NotificationData::Post(p) => Some(Post(p.post)),
+    NotificationData::Comment(c) => Some(Comment(c.comment)),
+    NotificationData::PrivateMessage(pm) => Some(PrivateMessage(pm.private_message)),
+    // skip modlog items
+    NotificationData::ModAction(_) => None,
   })
   .collect();
 
@@ -70,14 +66,14 @@ pub async fn export_data(
   .into_iter()
   .map(|u| {
     match u {
-      PersonLikedCombinedView::Post(pv) => pv.post.ap_id,
-      PersonLikedCombinedView::Comment(cv) => cv.comment.ap_id,
+      PostCommentCombinedView::Post(pv) => pv.post.ap_id,
+      PostCommentCombinedView::Comment(cv) => cv.comment.ap_id,
     }
     .into()
   })
   .collect();
 
-  let read_posts = PostView::list_read(pool, my_person, None, None, None, Some(true))
+  let read_posts = PostView::list_read(pool, my_person, None, None, Some(true))
     .await?
     .into_iter()
     .map(|pv| pv.post.ap_id.into())
@@ -89,8 +85,8 @@ pub async fn export_data(
     .map(|cv| cv.community.ap_id.into())
     .collect();
 
-  let lists = LocalUser::export_backup(pool, local_user_view.person.id).await?;
-  let settings = user_backup_list_to_user_settings_backup(local_user_view, lists);
+  let settings =
+    user_backup_list_to_user_settings_backup(local_user_view, &mut context.pool()).await?;
 
   Ok(Json(ExportDataResponse {
     notifications,

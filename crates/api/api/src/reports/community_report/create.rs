@@ -4,8 +4,9 @@ use actix_web::web::Json;
 use either::Either;
 use lemmy_api_utils::{
   context::LemmyContext,
+  plugins::plugin_hook_after,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::slur_regex,
+  utils::{check_local_user_valid, slur_regex},
 };
 use lemmy_db_schema::{
   source::{
@@ -13,22 +14,24 @@ use lemmy_db_schema::{
     community_report::{CommunityReport, CommunityReportForm},
     site::Site,
   },
-  traits::{Crud, Reportable},
+  traits::Reportable,
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_report_combined::{
-  api::{CommunityReportResponse, CreateCommunityReport},
   ReportCombinedViewInternal,
+  api::{CommunityReportResponse, CreateCommunityReport},
 };
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_email::admin::send_new_report_email_to_admins;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn create_community_report(
-  data: Json<CreateCommunityReport>,
+  Json(data): Json<CreateCommunityReport>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityReportResponse>> {
+  check_local_user_valid(&local_user_view)?;
   let reason = data.reason.trim().to_string();
   let slur_regex = slur_regex(&context).await?;
   check_report_reason(&reason, &slur_regex)?;
@@ -55,6 +58,7 @@ pub async fn create_community_report(
   let community_report_view =
     ReportCombinedViewInternal::read_community_report(&mut context.pool(), report.id, person)
       .await?;
+  plugin_hook_after("community_report_after_create", &community_report_view);
 
   // Email the admins
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;

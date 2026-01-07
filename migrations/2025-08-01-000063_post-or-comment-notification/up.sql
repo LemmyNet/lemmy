@@ -77,9 +77,13 @@ ALTER TABLE notification
 
 CREATE INDEX idx_notification_recipient_published ON notification (recipient_id, published_at);
 
-CREATE INDEX idx_notification_post ON notification (post_id);
+CREATE INDEX idx_notification_post ON notification (post_id)
+WHERE
+    post_id IS NOT NULL;
 
-CREATE INDEX idx_notification_private_message ON notification (private_message_id);
+CREATE INDEX idx_notification_private_message ON notification (private_message_id)
+WHERE
+    private_message_id IS NOT NULL;
 
 DROP TABLE inbox_combined, person_post_mention, person_comment_mention;
 

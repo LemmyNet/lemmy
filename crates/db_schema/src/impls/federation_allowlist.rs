@@ -1,11 +1,8 @@
-use crate::{
-  newtypes::InstanceId,
-  source::federation_allowlist::{FederationAllowList, FederationAllowListForm},
-  utils::{get_conn, DbPool},
-};
-use diesel::{delete, dsl::insert_into, ExpressionMethods, QueryDsl};
+use crate::source::federation_allowlist::{FederationAllowList, FederationAllowListForm};
+use diesel::{ExpressionMethods, QueryDsl, delete, dsl::insert_into};
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::federation_allowlist;
+use lemmy_db_schema_file::{InstanceId, schema::federation_allowlist};
+use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl FederationAllowList {
@@ -30,7 +27,8 @@ impl FederationAllowList {
 mod tests {
 
   use super::*;
-  use crate::{source::instance::Instance, utils::build_db_pool_for_tests};
+  use crate::source::instance::Instance;
+  use lemmy_diesel_utils::connection::build_db_pool_for_tests;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -40,16 +38,13 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let instances = vec![
-      Instance::read_or_create(pool, "tld1.xyz".to_string()).await?,
-      Instance::read_or_create(pool, "tld2.xyz".to_string()).await?,
-      Instance::read_or_create(pool, "tld3.xyz".to_string()).await?,
+      Instance::read_or_create(pool, "tld1.xyz").await?,
+      Instance::read_or_create(pool, "tld2.xyz").await?,
+      Instance::read_or_create(pool, "tld3.xyz").await?,
     ];
     let forms: Vec<_> = instances
       .iter()
-      .map(|i| FederationAllowListForm {
-        instance_id: i.id,
-        updated_at: None,
-      })
+      .map(|i| FederationAllowListForm::new(i.id))
       .collect();
 
     for f in &forms {

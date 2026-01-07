@@ -22,15 +22,15 @@ use lemmy_api_utils::{
 };
 use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
-  source::post::{Post, PostActions, PostInsertForm, PostLikeForm, PostReadForm},
-  traits::{Crud, Likeable},
-  utils::diesel_url_create,
+  source::post::{Post, PostActions, PostInsertForm, PostLikeForm},
+  traits::Likeable,
 };
 use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::api::{CreatePost, PostResponse};
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::{traits::Crud, utils::diesel_url_create};
 use lemmy_utils::{
   error::LemmyResult,
   utils::{
@@ -46,7 +46,7 @@ use lemmy_utils::{
 };
 
 pub async fn create_post(
-  data: Json<CreatePost>,
+  Json(data): Json<CreatePost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
@@ -108,14 +108,6 @@ pub async fn create_post(
     .await?;
   }
 
-  let language_id = validate_post_language(
-    &mut context.pool(),
-    data.language_id,
-    data.community_id,
-    local_user_view.local_user.id,
-  )
-  .await?;
-
   let scheduled_publish_time_at =
     convert_published_time(data.scheduled_publish_time_at, &local_user_view, &context).await?;
   let mut post_form = PostInsertForm {
@@ -123,7 +115,7 @@ pub async fn create_post(
     body,
     alt_text: data.alt_text.clone(),
     nsfw,
-    language_id: Some(language_id),
+    language_id: data.language_id,
     federation_pending: Some(community_use_pending(community, &context).await),
     scheduled_publish_time_at,
     ..PostInsertForm::new(
@@ -133,11 +125,17 @@ pub async fn create_post(
     )
   };
 
-  post_form = plugin_hook_before("before_create_local_post", post_form).await?;
+  post_form = plugin_hook_before("local_post_before_create", post_form).await?;
+  validate_post_language(
+    &mut context.pool(),
+    post_form.language_id,
+    data.community_id,
+  )
+  .await?;
 
   let inserted_post = Post::create(&mut context.pool(), &post_form).await?;
 
-  plugin_hook_after("after_create_local_post", &inserted_post)?;
+  plugin_hook_after("local_post_after_create", &inserted_post);
 
   if let Some(tags) = &data.tags {
     update_post_tags(&inserted_post, tags, &context).await?;
@@ -161,7 +159,7 @@ pub async fn create_post(
   // They like their own post by default
   let person_id = local_user_view.person.id;
   let post_id = inserted_post.id;
-  let like_form = PostLikeForm::new(post_id, person_id, 1);
+  let like_form = PostLikeForm::new(post_id, person_id, Some(true));
 
   PostActions::like(&mut context.pool(), &like_form).await?;
 
@@ -174,8 +172,7 @@ pub async fn create_post(
   )
   .send(&context);
 
-  let read_form = PostReadForm::new(post_id, person_id);
-  PostActions::mark_as_read(&mut context.pool(), &read_form).await?;
+  PostActions::mark_as_read(&mut context.pool(), person_id, &[post_id]).await?;
 
   build_post_response(&context, community_id, local_user_view, post_id).await
 }

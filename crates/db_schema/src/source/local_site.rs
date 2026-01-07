@@ -1,15 +1,18 @@
-use crate::newtypes::{LocalSiteId, MultiCommunityId, PersonId, SiteId};
+use crate::newtypes::{LocalSiteId, MultiCommunityId, SiteId};
 use chrono::{DateTime, Utc};
-use lemmy_db_schema_file::enums::{
-  CommentSortType,
-  FederationMode,
-  ListingType,
-  PostListingMode,
-  PostSortType,
-  RegistrationMode,
-};
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::local_site;
+use lemmy_db_schema_file::{
+  PersonId,
+  enums::{
+    CommentSortType,
+    FederationMode,
+    ListingType,
+    PostListingMode,
+    PostSortType,
+    RegistrationMode,
+  },
+};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -93,7 +96,8 @@ pub struct LocalSite {
   /// Dont send email notifications to users for new replies, mentions etc
   pub disable_email_notifications: bool,
   pub suggested_communities: Option<MultiCommunityId>,
-  pub multi_comm_follower: PersonId,
+  #[serde(skip)]
+  pub system_account: PersonId,
   pub default_items_per_page: i32,
 }
 
@@ -159,7 +163,7 @@ pub struct LocalSiteInsertForm {
   #[new(default)]
   pub suggested_communities: Option<MultiCommunityId>,
   #[new(default)]
-  pub multi_comm_follower: Option<PersonId>,
+  pub system_account: Option<PersonId>,
 }
 
 #[derive(Clone, Default)]

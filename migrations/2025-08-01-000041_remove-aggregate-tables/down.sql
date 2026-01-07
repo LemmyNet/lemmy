@@ -70,8 +70,8 @@ CREATE TABLE IF NOT EXISTS post_aggregates (
     upvotes bigint NOT NULL DEFAULT 0,
     downvotes bigint NOT NULL DEFAULT 0,
     published timestamp with time zone NOT NULL DEFAULT now(),
-    newest_comment_time_necro timestamp with time zone NOT NULL DEFAULT now(),
-    newest_comment_time timestamp with time zone NOT NULL DEFAULT now(),
+    newest_comment_time_necro timestamp with time zone DEFAULT now(),
+    newest_comment_time timestamp with time zone DEFAULT now(),
     featured_community boolean NOT NULL DEFAULT FALSE,
     featured_local boolean NOT NULL DEFAULT FALSE,
     hot_rank double precision NOT NULL DEFAULT 0.0001,
@@ -82,7 +82,9 @@ CREATE TABLE IF NOT EXISTS post_aggregates (
     instance_id integer NOT NULL REFERENCES instance (id) ON UPDATE CASCADE ON DELETE CASCADE,
     scaled_rank double precision NOT NULL DEFAULT 0.0001,
     report_count smallint NOT NULL DEFAULT 0,
-    unresolved_report_count smallint NOT NULL DEFAULT 0
+    unresolved_report_count smallint NOT NULL DEFAULT 0,
+    CONSTRAINT post_aggregates_newest_comment_time_not_null1 NOT NULL newest_comment_time,
+    CONSTRAINT post_aggregates_newest_comment_time_not_null NOT NULL newest_comment_time_necro
 );
 
 INSERT INTO post_aggregates
@@ -93,8 +95,8 @@ SELECT
     upvotes,
     downvotes,
     published,
-    newest_comment_time_necro,
-    newest_comment_time,
+    coalesce(newest_comment_time_necro, published),
+    coalesce(newest_comment_time, published),
     featured_community,
     featured_local,
     hot_rank,
@@ -102,7 +104,13 @@ SELECT
     community_id,
     creator_id,
     controversy_rank,
-    instance_id,
+    (
+        SELECT
+            community.instance_id
+        FROM
+            community
+        WHERE
+            community.id = post.community_id) AS instance_id,
     scaled_rank,
     report_count,
     unresolved_report_count
@@ -139,7 +147,6 @@ ALTER TABLE post
     DROP COLUMN hot_rank,
     DROP COLUMN hot_rank_active,
     DROP COLUMN controversy_rank,
-    DROP COLUMN instance_id,
     DROP COLUMN scaled_rank,
     DROP COLUMN report_count,
     DROP COLUMN unresolved_report_count;
@@ -149,6 +156,10 @@ ALTER TABLE post_aggregates
     ALTER CONSTRAINT post_aggregates_creator_id_fkey DEFERRABLE INITIALLY DEFERRED,
     ALTER CONSTRAINT post_aggregates_instance_id_fkey DEFERRABLE INITIALLY DEFERRED,
     ALTER CONSTRAINT post_aggregates_post_id_fkey DEFERRABLE INITIALLY DEFERRED;
+
+CREATE INDEX IF NOT EXISTS idx_post_aggregates_creator ON post_aggregates USING btree (creator_id);
+
+CREATE INDEX IF NOT EXISTS idx_post_aggregates_community ON post_aggregates USING btree (community_id);
 
 CREATE INDEX IF NOT EXISTS idx_post_aggregates_community_active ON post_aggregates USING btree (community_id, featured_local DESC, hot_rank_active DESC, published DESC, post_id DESC);
 
@@ -294,12 +305,17 @@ CREATE INDEX idx_community_aggregates_users_active_month ON public.community_agg
 
 -- move person_aggregates back into separate table
 CREATE TABLE person_aggregates (
-    person_id int PRIMARY KEY NOT NULL REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
-    post_count bigint NOT NULL DEFAULT 0,
-    post_score bigint NOT NULL DEFAULT 0,
-    comment_count bigint NOT NULL DEFAULT 0,
-    comment_score bigint NOT NULL DEFAULT 0,
-    published timestamp with time zone DEFAULT now() NOT NULL
+    person_id int PRIMARY KEY REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
+    post_count bigint DEFAULT 0,
+    post_score bigint DEFAULT 0,
+    comment_count bigint DEFAULT 0,
+    comment_score bigint DEFAULT 0,
+    published timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT user_aggregates_comment_count_not_null NOT NULL comment_count,
+    CONSTRAINT user_aggregates_comment_score_not_null NOT NULL comment_score,
+    CONSTRAINT user_aggregates_user_id_not_null NOT NULL person_id,
+    CONSTRAINT user_aggregates_post_count_not_null NOT NULL post_count,
+    CONSTRAINT user_aggregates_post_score_not_null NOT NULL post_score
 );
 
 INSERT INTO person_aggregates

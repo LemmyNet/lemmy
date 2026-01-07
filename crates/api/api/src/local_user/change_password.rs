@@ -1,20 +1,25 @@
 use actix_web::{
-  web::{Data, Json},
   HttpRequest,
+  web::{Data, Json},
 };
 use bcrypt::verify;
-use lemmy_api_utils::{claims::Claims, context::LemmyContext, utils::password_length_check};
+use lemmy_api_utils::{
+  claims::Claims,
+  context::LemmyContext,
+  utils::{check_local_user_valid, password_length_check},
+};
 use lemmy_db_schema::source::{local_user::LocalUser, login_token::LoginToken};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::api::{ChangePassword, LoginResponse};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn change_password(
-  data: Json<ChangePassword>,
+  Json(data): Json<ChangePassword>,
   req: HttpRequest,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<LoginResponse>> {
+  check_local_user_valid(&local_user_view)?;
   password_length_check(&data.new_password)?;
 
   // Make sure passwords match
@@ -43,7 +48,7 @@ pub async fn change_password(
 
   // Return the jwt
   Ok(Json(LoginResponse {
-    jwt: Some(Claims::generate(updated_local_user.id, req, &context).await?),
+    jwt: Some(Claims::generate(updated_local_user.id, data.stay_logged_in, req, &context).await?),
     verify_email_sent: false,
     registration_created: false,
   }))

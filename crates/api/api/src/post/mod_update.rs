@@ -13,21 +13,19 @@ use lemmy_api_utils::{
     update_post_tags,
   },
 };
-use lemmy_db_schema::{
-  source::post::{Post, PostUpdateForm},
-  traits::Crud,
-};
+use lemmy_db_schema::source::post::{Post, PostUpdateForm};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::{
-  api::{ModEditPost, PostResponse},
   PostView,
+  api::{ModEditPost, PostResponse},
 };
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 use std::ops::Deref;
 
 pub async fn mod_update_post(
-  data: Json<ModEditPost>,
+  Json(data): Json<ModEditPost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
@@ -55,11 +53,11 @@ pub async fn mod_update_post(
     updated_at: Some(Some(Utc::now())),
     ..Default::default()
   };
-  post_form = plugin_hook_before("before_update_local_post", post_form).await?;
+  post_form = plugin_hook_before("local_post_after_vote", post_form).await?;
 
   let post_id = data.post_id;
   let updated_post = Post::update(&mut context.pool(), post_id, &post_form).await?;
-  plugin_hook_after("after_update_local_post", &post_form)?;
+  plugin_hook_after("local_post_after_vote", &post_form);
 
   if let Some(tags) = &data.tags {
     update_post_tags(&updated_post, tags, &context).await?;

@@ -1,128 +1,108 @@
 use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
-  newtypes::PaginationCursor,
+  NotificationDataType,
   source::{
     comment::{Comment, CommentActions},
     community::{Community, CommunityActions},
     images::ImageDetails,
+    instance::Instance,
+    modlog::Modlog,
     notification::Notification,
     person::{Person, PersonActions},
     post::{Post, PostActions},
     private_message::PrivateMessage,
     tag::TagsView,
   },
-  NotificationDataType,
 };
 use lemmy_db_views_comment::CommentView;
+use lemmy_db_views_modlog::ModlogView;
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_private_message::PrivateMessageView;
+use lemmy_diesel_utils::pagination::PaginationCursor;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
   diesel::{Queryable, Selectable},
   lemmy_db_schema::{
+    Person1AliasAllColumnsTuple,
     utils::queries::selects::{
-      creator_ban_expires_from_community,
-      creator_banned_from_community,
+      CreatorLocalHomeBanExpiresType,
       creator_is_admin,
       creator_is_moderator,
       creator_local_home_ban_expires,
       creator_local_home_banned,
       local_user_can_mod,
+    },
+    utils::queries::selects::{
+      creator_ban_expires_from_community,
+      creator_banned_from_community,
       person1_select,
       post_tags_fragment,
-      CreatorLocalHomeBanExpiresType,
     },
-    Person1AliasAllColumnsTuple,
   },
 };
 
 pub mod api;
 #[cfg(feature = "full")]
 pub mod impls;
+#[cfg(test)]
+#[expect(clippy::indexing_slicing)]
+pub mod tests;
 
-#[derive(Clone)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable))]
-#[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg(feature = "full")]
+#[derive(Clone, Debug, Queryable, Selectable)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 struct NotificationViewInternal {
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   notification: Notification,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   private_message: Option<PrivateMessage>,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   comment: Option<Comment>,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   post: Option<Post>,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   community: Option<Community>,
-  #[cfg_attr(feature = "full", diesel(embed))]
-  creator: Person,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression_type = Person1AliasAllColumnsTuple,
-      select_expression = person1_select()
-    )
+  #[diesel(embed)]
+  instance: Option<Instance>,
+  #[diesel(embed)]
+  creator: Option<Person>,
+  #[diesel(
+    select_expression_type = Person1AliasAllColumnsTuple,
+    select_expression = person1_select()
   )]
   recipient: Person,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   image_details: Option<ImageDetails>,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   community_actions: Option<CommunityActions>,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   post_actions: Option<PostActions>,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   person_actions: Option<PersonActions>,
-  #[cfg_attr(feature = "full", diesel(embed))]
+  #[diesel(embed)]
   comment_actions: Option<CommentActions>,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression = creator_is_admin()
-    )
-  )]
-  creator_is_admin: bool,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression = post_tags_fragment()
-    )
-  )]
+  #[diesel(embed)]
+  modlog: Option<Modlog>,
+  #[diesel(select_expression = post_tags_fragment())]
   post_tags: TagsView,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression = local_user_can_mod()
-    )
-  )]
+  #[diesel(select_expression = creator_is_admin())]
+  creator_is_admin: bool,
+  #[diesel(select_expression = local_user_can_mod())]
   can_mod: bool,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression = creator_local_home_banned()
-    )
-  )]
+  #[diesel(select_expression = creator_local_home_banned())]
   creator_banned: bool,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression_type = CreatorLocalHomeBanExpiresType,
-      select_expression = creator_local_home_ban_expires()
-     )
+  #[diesel(
+    select_expression_type = CreatorLocalHomeBanExpiresType,
+    select_expression = creator_local_home_ban_expires()
   )]
   pub creator_ban_expires_at: Option<DateTime<Utc>>,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression = creator_is_moderator()
-    )
-  )]
+  #[diesel(select_expression = creator_is_moderator())]
   creator_is_moderator: bool,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression = creator_banned_from_community()
-    )
-  )]
+  #[diesel(select_expression = creator_banned_from_community())]
   creator_banned_from_community: bool,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression = creator_ban_expires_from_community()
-    )
-  )]
+  #[diesel(select_expression = creator_ban_expires_from_community())]
   pub creator_community_ban_expires_at: Option<DateTime<Utc>>,
 }
 
@@ -137,11 +117,12 @@ pub struct NotificationView {
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
-#[serde(tag = "type_")]
+#[serde(tag = "type_", rename_all = "snake_case")]
 pub enum NotificationData {
   Comment(CommentView),
   Post(PostView),
   PrivateMessage(PrivateMessageView),
+  ModAction(ModlogView),
 }
 
 #[skip_serializing_none]
@@ -153,17 +134,5 @@ pub struct ListNotifications {
   pub type_: Option<NotificationDataType>,
   pub unread_only: Option<bool>,
   pub page_cursor: Option<PaginationCursor>,
-  pub page_back: Option<bool>,
   pub limit: Option<i64>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// Get your inbox (replies, comment mentions, post mentions, and messages)
-pub struct ListNotificationsResponse {
-  pub notifications: Vec<NotificationView>,
-  /// the pagination cursor to use to fetch the next page
-  pub next_page: Option<PaginationCursor>,
-  pub prev_page: Option<PaginationCursor>,
 }

@@ -1,14 +1,18 @@
 use crate::{
   diesel::{DecoratableTarget, OptionalExtension},
-  newtypes::{DbUrl, PersonId, PrivateMessageId},
+  newtypes::PrivateMessageId,
   source::private_message::{PrivateMessage, PrivateMessageInsertForm, PrivateMessageUpdateForm},
-  traits::Crud,
-  utils::{functions::coalesce, get_conn, DbPool},
 };
 use chrono::{DateTime, Utc};
-use diesel::{dsl::insert_into, ExpressionMethods, QueryDsl};
+use diesel::{ExpressionMethods, QueryDsl, dsl::insert_into};
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::private_message;
+use lemmy_db_schema_file::{PersonId, schema::private_message};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  dburl::DbUrl,
+  traits::Crud,
+  utils::functions::coalesce,
+};
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
@@ -65,10 +69,9 @@ impl PrivateMessage {
 
   pub async fn read_from_apub_id(
     pool: &mut DbPool<'_>,
-    object_id: Url,
+    object_id: DbUrl,
   ) -> LemmyResult<Option<Self>> {
     let conn = &mut get_conn(pool).await?;
-    let object_id: DbUrl = object_id.into();
     private_message::table
       .filter(private_message::ap_id.eq(object_id))
       .first(conn)
@@ -101,15 +104,12 @@ impl PrivateMessage {
 #[cfg(test)]
 mod tests {
 
-  use crate::{
-    source::{
-      instance::Instance,
-      person::{Person, PersonInsertForm},
-      private_message::{PrivateMessage, PrivateMessageInsertForm, PrivateMessageUpdateForm},
-    },
-    traits::Crud,
-    utils::build_db_pool_for_tests,
+  use crate::source::{
+    instance::Instance,
+    person::{Person, PersonInsertForm},
+    private_message::{PrivateMessage, PrivateMessageInsertForm, PrivateMessageUpdateForm},
   };
+  use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
@@ -121,7 +121,7 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
 
     let creator_form = PersonInsertForm::test_form(inserted_instance.id, "creator_pm");
 

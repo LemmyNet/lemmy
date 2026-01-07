@@ -1,7 +1,8 @@
-use crate::newtypes::{ActivityId, InstanceId};
+use crate::newtypes::ActivityId;
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use diesel::prelude::*;
+use lemmy_db_schema_file::InstanceId;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -14,7 +15,7 @@ use serde_with::skip_serializing_none;
 #[cfg_attr(feature = "full", diesel(table_name = lemmy_db_schema_file::schema::federation_queue_state))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct FederationQueueState {
   pub instance_id: InstanceId,
   /// the last successfully sent activity id

@@ -1,51 +1,50 @@
 use crate::{
-  diesel::{dsl::IntervalDsl, PgSortExpressionMethods},
-  newtypes::{InstanceId, PersonId},
-  source::{
-    federation_queue_state::FederationQueueState,
-    instance::{
-      Instance,
-      InstanceActions,
-      InstanceBanForm,
-      InstanceCommunitiesBlockForm,
-      InstanceForm,
-      InstancePersonsBlockForm,
-    },
+  diesel::dsl::IntervalDsl,
+  source::instance::{
+    Instance,
+    InstanceActions,
+    InstanceBanForm,
+    InstanceCommunitiesBlockForm,
+    InstanceForm,
+    InstancePersonsBlockForm,
   },
   traits::Bannable,
-  utils::{
-    functions::{coalesce, lower},
-    get_conn,
-    now,
-    DbPool,
-  },
 };
 use chrono::Utc;
 use diesel::{
-  dsl::{count_star, exists, insert_into, not, select},
   ExpressionMethods,
   NullableExpressionMethods,
   OptionalExtension,
   QueryDsl,
   SelectableHelper,
+  dsl::{count_star, exists, insert_into, not, select},
 };
 use diesel_async::RunQueryDsl;
-use diesel_uplete::{uplete, UpleteCount};
-use lemmy_db_schema_file::schema::{
-  federation_allowlist,
-  federation_blocklist,
-  federation_queue_state,
-  instance,
-  instance_actions,
-  local_site,
-  site,
+use diesel_uplete::{UpleteCount, uplete};
+use lemmy_db_schema_file::{
+  InstanceId,
+  PersonId,
+  schema::{
+    federation_allowlist,
+    federation_blocklist,
+    federation_queue_state,
+    instance,
+    instance_actions,
+  },
+};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  utils::{
+    functions::{coalesce, lower},
+    now,
+  },
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Instance {
   /// Attempt to read Instance column for the given domain. If it doesn't exist, insert a new one.
   /// There is no need for update as the domain of an existing instance cant change.
-  pub async fn read_or_create(pool: &mut DbPool<'_>, domain_: String) -> LemmyResult<Self> {
+  pub async fn read_or_create(pool: &mut DbPool<'_>, domain_: &str) -> LemmyResult<Self> {
     use lemmy_db_schema_file::schema::instance::domain;
     let conn = &mut get_conn(pool).await?;
 
@@ -63,7 +62,7 @@ impl Instance {
         // Instance not in database yet, insert it
         let form = InstanceForm {
           updated_at: Some(Utc::now()),
-          ..InstanceForm::new(domain_)
+          ..InstanceForm::new(domain_.to_string())
         };
         insert_into(instance::table)
           .values(&form)
@@ -187,34 +186,6 @@ impl Instance {
         .await
         .with_lemmy_type(LemmyErrorType::NotFound)
     }
-  }
-
-  /// returns (instance, blocked, allowed, fed queue state) tuples
-  pub async fn read_all_with_fed_state(
-    pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Vec<(Self, Option<FederationQueueState>, bool, bool)>> {
-    let conn = &mut get_conn(pool).await?;
-    instance::table
-      // omit instance representing the local site
-      .left_join(site::table.inner_join(local_site::table))
-      .filter(local_site::id.is_null())
-      .left_join(federation_blocklist::table)
-      .left_join(federation_allowlist::table)
-      .left_join(federation_queue_state::table)
-      // Show recently updated instances and those with valid metadata first
-      .order((
-        instance::updated_at.desc(),
-        instance::software.asc().nulls_last(),
-      ))
-      .select((
-        Self::as_select(),
-        Option::<FederationQueueState>::as_select(),
-        federation_blocklist::instance_id.nullable().is_not_null(),
-        federation_allowlist::instance_id.nullable().is_not_null(),
-      ))
-      .get_results(conn)
-      .await
-      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }
 

@@ -12,6 +12,8 @@ import {
   unfollows,
   listNotifications,
   resolvePerson,
+  statusBadRequest,
+  jestLemmyError,
 } from "./shared";
 
 let recipient_id: number;
@@ -36,10 +38,10 @@ test("Create a private message", async () => {
   expect(pmRes.private_message_view.recipient.local).toBe(false);
 
   let betaPms = await waitUntil(
-    () => listNotifications(beta, "PrivateMessage"),
-    e => !!e.notifications[0],
+    () => listNotifications(beta, "private_message"),
+    e => !!e.items[0],
   );
-  const firstPm = betaPms.notifications[0].data as PrivateMessageView;
+  const firstPm = betaPms.items[0].data as PrivateMessageView;
   expect(firstPm.private_message.content).toBeDefined();
   expect(firstPm.private_message.local).toBe(false);
   expect(firstPm.creator.local).toBe(false);
@@ -59,23 +61,23 @@ test("Update a private message", async () => {
   );
 
   let betaPms = await waitUntil(
-    () => listNotifications(beta, "PrivateMessage"),
+    () => listNotifications(beta, "private_message"),
     p =>
-      p.notifications[0].data.type_ == "PrivateMessage" &&
-      p.notifications[0].data.private_message.content === updatedContent,
+      p.items[0].data.type_ == "private_message" &&
+      p.items[0].data.private_message.content === updatedContent,
   );
-  let pm = betaPms.notifications[0].data as PrivateMessageView;
+  let pm = betaPms.items[0].data as PrivateMessageView;
   expect(pm.private_message.content).toBe(updatedContent);
 });
 
 test("Delete a private message", async () => {
   let pmRes = await createPrivateMessage(alpha, recipient_id);
   let betaPms1 = await waitUntil(
-    () => listNotifications(beta, "PrivateMessage"),
+    () => listNotifications(beta, "private_message"),
     m =>
-      !!m.notifications.find(
+      !!m.items.find(
         e =>
-          e.data.type_ == "PrivateMessage" &&
+          e.data.type_ == "private_message" &&
           e.data.private_message.ap_id ===
             pmRes.private_message_view.private_message.ap_id,
       ),
@@ -91,10 +93,10 @@ test("Delete a private message", async () => {
   // even though they are in the actual database.
   // no reason to show them
   let betaPms2 = await waitUntil(
-    () => listNotifications(beta, "PrivateMessage"),
-    p => p.notifications.length === betaPms1.notifications.length - 1,
+    () => listNotifications(beta, "private_message"),
+    p => p.items.length === betaPms1.items.length - 1,
   );
-  expect(betaPms2.notifications.length).toBe(betaPms1.notifications.length - 1);
+  expect(betaPms2.items.length).toBe(betaPms1.items.length - 1);
 
   // Undelete
   let undeletedPmRes = await deletePrivateMessage(
@@ -107,35 +109,37 @@ test("Delete a private message", async () => {
   );
 
   let betaPms3 = await waitUntil(
-    () => listNotifications(beta, "PrivateMessage"),
-    p => p.notifications.length === betaPms1.notifications.length,
+    () => listNotifications(beta, "private_message"),
+    p => p.items.length === betaPms1.items.length,
   );
-  expect(betaPms3.notifications.length).toBe(betaPms1.notifications.length);
+  expect(betaPms3.items.length).toBe(betaPms1.items.length);
 });
 
 test("Create a private message report", async () => {
   let pmRes = await createPrivateMessage(alpha, recipient_id);
   let betaPms1 = await waitUntil(
-    () => listNotifications(beta, "PrivateMessage"),
+    () => listNotifications(beta, "private_message"),
     m =>
-      !!m.notifications.find(
+      !!m.items.find(
         e =>
-          e.data.type_ == "PrivateMessage" &&
+          e.data.type_ == "private_message" &&
           e.data.private_message.ap_id ===
             pmRes.private_message_view.private_message.ap_id,
       ),
   );
-  let betaPm = betaPms1.notifications[0].data as PrivateMessageView;
+  let betaPm = betaPms1.items[0].data as PrivateMessageView;
   expect(betaPm).toBeDefined();
 
   // Make sure that only the recipient can report it, so this should fail
-  await expect(
-    reportPrivateMessage(
-      alpha,
-      pmRes.private_message_view.private_message.id,
-      "a reason",
-    ),
-  ).rejects.toStrictEqual(new LemmyError("couldnt_create_report"));
+  await jestLemmyError(
+    () =>
+      reportPrivateMessage(
+        alpha,
+        pmRes.private_message_view.private_message.id,
+        "a reason",
+      ),
+    new LemmyError("couldnt_create", statusBadRequest),
+  );
 
   // This one should pass
   let reason = "another reason";

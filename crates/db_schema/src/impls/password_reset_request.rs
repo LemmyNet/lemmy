@@ -1,17 +1,17 @@
 use crate::{
   newtypes::LocalUserId,
   source::password_reset_request::{PasswordResetRequest, PasswordResetRequestForm},
-  utils::{get_conn, DbPool},
 };
 use diesel::{
-  delete,
-  dsl::{insert_into, now, IntervalDsl},
-  sql_types::Timestamptz,
   ExpressionMethods,
   IntoSql,
+  delete,
+  dsl::{IntervalDsl, insert_into, now},
+  sql_types::Timestamptz,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::schema::password_reset_request;
+use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl PasswordResetRequest {
@@ -46,16 +46,13 @@ impl PasswordResetRequest {
 #[cfg(test)]
 mod tests {
 
-  use crate::{
-    source::{
-      instance::Instance,
-      local_user::{LocalUser, LocalUserInsertForm},
-      password_reset_request::PasswordResetRequest,
-      person::{Person, PersonInsertForm},
-    },
-    traits::Crud,
-    utils::build_db_pool_for_tests,
+  use crate::source::{
+    instance::Instance,
+    local_user::{LocalUser, LocalUserInsertForm},
+    password_reset_request::PasswordResetRequest,
+    person::{Person, PersonInsertForm},
   };
+  use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
@@ -67,7 +64,7 @@ mod tests {
     let pool = &mut pool.into();
 
     // Setup
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
     let new_person = PersonInsertForm::test_form(inserted_instance.id, "thommy prw");
     let inserted_person = Person::create(pool, &new_person).await?;
     let new_local_user = LocalUserInsertForm::test_form(inserted_person.id);

@@ -302,36 +302,51 @@ fn build_url_str_without_scheme(url_str: &str) -> LemmyResult<String> {
 
 // Shorten a string to n chars, being mindful of unicode grapheme
 // boundaries
+// To understand the difference between chars and graphemes see:
+// https://hsivonen.fi/string-length/
 fn truncate_for_db(text: &str, len: usize) -> String {
   if text.chars().count() <= len {
     text.to_string()
   } else {
-    let offset = text
+    // Get the char at the desired `len`
+    let char_at_len = text
       .char_indices()
       .nth(len)
       .unwrap_or(text.char_indices().last().unwrap_or_default());
     let graphemes: Vec<(usize, _)> = text.grapheme_indices(true).collect();
     let mut index = 0;
+
     // Walk the string backwards and find the first char within our length
     for idx in (0..graphemes.len()).rev() {
-      if let Some(grapheme) = graphemes.get(idx) {
-        if grapheme.0 < offset.0 {
-          index = idx;
-          break;
-        }
+      if let Some(grapheme) = graphemes.get(idx)
+        && grapheme.0 < char_at_len.0
+      {
+        index = idx;
+        break;
       }
     }
-    let grapheme = graphemes.get(index).unwrap_or(&(0, ""));
-    let grapheme_count = grapheme.1.chars().count();
+
+    let grapheme_at_index = graphemes.get(index).unwrap_or(&(0, ""));
+    // The char count of the grapheme at the very end of the range
+    let grapheme_at_index_count = grapheme_at_index.1.chars().count();
+    // Count the total chars within the selected grapheme range
+    let char_sum = graphemes
+      .get(0..index)
+      .unwrap_or_default()
+      .iter()
+      .map(|(_, g)| g.chars().count())
+      .sum();
+
+    // Get the actual count of chars we need to take from `text`.
     // `take` isn't inclusive, so if the last grapheme can fit we add its char
     // length
-    let char_count = if grapheme_count + grapheme.0 <= len {
-      grapheme.0 + grapheme_count
+    let char_total = if char_sum + grapheme_at_index_count <= len {
+      char_sum + grapheme_at_index_count
     } else {
-      grapheme.0
+      char_sum
     };
 
-    text.chars().take(char_count).collect::<String>()
+    text.chars().take(char_total).collect::<String>()
   }
 }
 
@@ -351,6 +366,10 @@ mod tests {
   use crate::{
     error::{LemmyErrorType, LemmyResult},
     utils::validation::{
+      BIO_MAX_LENGTH,
+      SITE_DESCRIPTION_MAX_LENGTH,
+      SITE_NAME_MAX_LENGTH,
+      URL_MAX_LENGTH,
       build_and_check_regex,
       check_urls_are_valid,
       clean_url,
@@ -365,10 +384,6 @@ mod tests {
       is_valid_url,
       site_name_length_check,
       truncate_for_db,
-      BIO_MAX_LENGTH,
-      SITE_DESCRIPTION_MAX_LENGTH,
-      SITE_NAME_MAX_LENGTH,
-      URL_MAX_LENGTH,
     },
   };
   use pretty_assertions::assert_eq;
@@ -396,7 +411,7 @@ mod tests {
     let text = format!("[a link]({URL_WITH_TRACKING})");
     let cleaned = clean_urls_in_text(&text);
     let expected = format!("[a link]({URL_TRACKING_REMOVED})");
-    assert_eq!(expected.to_string(), cleaned.to_string());
+    assert_eq!(expected.clone(), cleaned.clone());
 
     let text = "[a link](https://example.com/path/123)";
     let cleaned = clean_urls_in_text(text);
@@ -436,12 +451,14 @@ mod tests {
     // empty
     assert!(is_valid_actor_name("",).is_err());
     // newline
-    assert!(is_valid_actor_name(
-      r"Line1
+    assert!(
+      is_valid_actor_name(
+        r"Line1
 
 Line3",
-    )
-    .is_err());
+      )
+      .is_err()
+    );
     assert!(is_valid_actor_name("Line1\nLine3",).is_err());
   }
 
@@ -460,10 +477,12 @@ Line3",
   #[test]
   fn test_valid_post_title() {
     assert!(is_valid_post_title("Post Title").is_ok());
-    assert!(is_valid_post_title(
-      "აშშ ითხოვს ირანს დაუყოვნებლივ გაანთავისუფლოს დაკავებული ნავთობის ტანკერი"
-    )
-    .is_ok());
+    assert!(
+      is_valid_post_title(
+        "აშშ ითხოვს ირანს დაუყოვნებლივ გაანთავისუფლოს დაკავებული ნავთობის ტანკერი"
+      )
+      .is_ok()
+    );
     assert!(is_valid_post_title("   POST TITLE 😃😃😃😃😃").is_ok());
     assert!(is_valid_post_title("\n \n \n \n    		").is_err()); // tabs/spaces/newlines
     assert!(is_valid_post_title("\u{206a}").is_err()); // invisible chars
@@ -537,12 +556,14 @@ Line3",
 
   #[test]
   fn test_valid_site_description() {
-    assert!(description_length_check(
-      &(0..SITE_DESCRIPTION_MAX_LENGTH)
-        .map(|_| 'A')
-        .collect::<String>()
-    )
-    .is_ok());
+    assert!(
+      description_length_check(
+        &(0..SITE_DESCRIPTION_MAX_LENGTH)
+          .map(|_| 'A')
+          .collect::<String>()
+      )
+      .is_ok()
+    );
 
     let invalid_result = description_length_check(
       &(0..SITE_DESCRIPTION_MAX_LENGTH + 1)
@@ -604,12 +625,16 @@ Line3",
     assert!(is_valid_url(&Url::parse("http://example.com")?).is_ok());
     assert!(is_valid_url(&Url::parse("https://example.com")?).is_ok());
     assert!(is_valid_url(&Url::parse("https://example.com")?).is_ok());
-    assert!(is_valid_url(&Url::parse("ftp://example.com")?)
-      .is_err_and(|e| e.error_type.eq(&LemmyErrorType::InvalidUrlScheme)));
-    assert!(is_valid_url(&Url::parse("javascript:void")?)
-      .is_err_and(|e| e.error_type.eq(&LemmyErrorType::InvalidUrlScheme)));
+    assert!(
+      is_valid_url(&Url::parse("ftp://example.com")?)
+        .is_err_and(|e| e.error_type.eq(&LemmyErrorType::InvalidUrlScheme))
+    );
+    assert!(
+      is_valid_url(&Url::parse("javascript:void")?)
+        .is_err_and(|e| e.error_type.eq(&LemmyErrorType::InvalidUrlScheme))
+    );
 
-    let magnet_link="magnet:?xt=urn:btih:4b390af3891e323778959d5abfff4b726510f14c&dn=Ravel%20Complete%20Piano%20Sheet%20Music%20-%20Public%20Domain&tr=udp%3A%2F%2Fopen.tracker.cl%3A1337%2Fannounce";
+    let magnet_link = "magnet:?xt=urn:btih:4b390af3891e323778959d5abfff4b726510f14c&dn=Ravel%20Complete%20Piano%20Sheet%20Music%20-%20Public%20Domain&tr=udp%3A%2F%2Fopen.tracker.cl%3A1337%2Fannounce";
     assert!(is_valid_url(&Url::parse(magnet_link)?).is_ok());
 
     // Also make sure the length overflow hits an error
@@ -668,6 +693,8 @@ Line3",
     assert_eq!("word", truncate_for_db("word", 10));
     assert_eq!("Wales: ", truncate_for_db("Wales: 🏴󠁧󠁢󠁷󠁬󠁳󠁿", 10));
     assert_eq!("Wales: 🏴󠁧󠁢󠁷󠁬󠁳󠁿", truncate_for_db("Wales: 🏴󠁧󠁢󠁷󠁬󠁳󠁿", 14));
+    assert_eq!("it’s", truncate_for_db("it’s like this", 4));
+    assert_eq!("🤦🏼‍♂️150", truncate_for_db("🤦🏼‍♂️150🤦🏼‍♂️", 11));
 
     Ok(())
   }

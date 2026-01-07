@@ -1,11 +1,10 @@
 #[cfg(feature = "full")]
 use diesel_derive_enum::DbEnum;
 use serde::{Deserialize, Serialize};
-use strum::{Display, EnumString};
+use strum::Display;
 
-#[derive(
-  EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
-)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash)]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
   feature = "full",
@@ -29,9 +28,8 @@ pub enum PostSortType {
   Scaled,
 }
 
-#[derive(
-  EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
-)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash)]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
   feature = "full",
@@ -50,9 +48,8 @@ pub enum CommentSortType {
   Controversial,
 }
 
-#[derive(
-  EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
-)]
+#[derive(Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash)]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
   feature = "full",
@@ -76,9 +73,8 @@ pub enum ListingType {
   Suggested,
 }
 
-#[derive(
-  EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
-)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash)]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
   feature = "full",
@@ -98,9 +94,8 @@ pub enum RegistrationMode {
   Open,
 }
 
-#[derive(
-  EnumString, Display, Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash,
-)]
+#[derive(Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
   feature = "full",
@@ -120,9 +115,8 @@ pub enum PostListingMode {
   SmallCard,
 }
 
-#[derive(
-  EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
-)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash)]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
   feature = "full",
@@ -158,9 +152,8 @@ impl CommunityVisibility {
   }
 }
 
-#[derive(
-  EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
-)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash)]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
   feature = "full",
@@ -193,7 +186,8 @@ pub enum ActorType {
   MultiCommunity,
 }
 
-#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
   feature = "full",
@@ -206,11 +200,11 @@ pub enum CommunityFollowerState {
   Accepted,
   Pending,
   ApprovalRequired,
+  Denied,
 }
 
-#[derive(
-  EnumString, Display, Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash,
-)]
+#[derive(Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
   feature = "full",
@@ -227,9 +221,8 @@ pub enum VoteShow {
   Hide,
 }
 
-#[derive(
-  EnumString, Display, Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash,
-)]
+#[derive(Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
   feature = "full",
@@ -246,9 +239,8 @@ pub enum PostNotificationsMode {
   Mute,
 }
 
-#[derive(
-  EnumString, Display, Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash,
-)]
+#[derive(Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
   feature = "full",
@@ -266,7 +258,8 @@ pub enum CommunityNotificationsMode {
   Mute,
 }
 
-#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
   feature = "full",
@@ -276,9 +269,43 @@ pub enum CommunityNotificationsMode {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// Types of notifications which can be received in inbox
-pub enum NotificationTypes {
+pub enum NotificationType {
   Mention,
   Reply,
   Subscribed,
   PrivateMessage,
+  ModAction,
+}
+
+#[derive(Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "full", derive(DbEnum))]
+#[cfg_attr(
+  feature = "full",
+  ExistingTypePath = "crate::schema::sql_types::ModlogKind"
+)]
+#[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
+/// A list of possible types for the various modlog actions.
+pub enum ModlogKind {
+  AdminAdd,
+  AdminBan,
+  AdminAllowInstance,
+  AdminBlockInstance,
+  AdminPurgeComment,
+  AdminPurgeCommunity,
+  AdminPurgePerson,
+  AdminPurgePost,
+  ModAddToCommunity,
+  ModBanFromCommunity,
+  AdminFeaturePostSite,
+  ModFeaturePostCommunity,
+  ModChangeCommunityVisibility,
+  ModLockPost,
+  ModRemoveComment,
+  AdminRemoveCommunity,
+  ModRemovePost,
+  ModTransferCommunity,
+  ModLockComment,
 }

@@ -1,7 +1,7 @@
 use crate::check_totp_2fa_valid;
 use actix_web::{
-  web::{Data, Json},
   HttpRequest,
+  web::{Data, Json},
 };
 use bcrypt::verify;
 use lemmy_api_utils::{
@@ -11,13 +11,13 @@ use lemmy_api_utils::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::{
-  api::{Login, LoginResponse},
   SiteView,
+  api::{Login, LoginResponse},
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn login(
-  data: Json<Login>,
+  Json(data): Json<Login>,
   req: HttpRequest,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<LoginResponse>> {
@@ -53,7 +53,13 @@ pub async fn login(
     )?;
   }
 
-  let jwt = Claims::generate(local_user_view.local_user.id, req, &context).await?;
+  let jwt = Claims::generate(
+    local_user_view.local_user.id,
+    data.stay_logged_in,
+    req,
+    &context,
+  )
+  .await?;
 
   Ok(Json(LoginResponse {
     jwt: Some(jwt.clone()),

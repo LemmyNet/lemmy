@@ -3,15 +3,16 @@ use activitypub_federation::config::Data;
 use chrono::{DateTime, TimeZone, Utc};
 use clokwerk::{AsyncScheduler, TimeUnits as CTimeUnits};
 use diesel::{
-  dsl::{count, exists, not, update, IntervalDsl},
-  query_builder::AsQuery,
-  sql_query,
-  sql_types::{BigInt, Integer, Timestamptz},
   BoolExpressionMethods,
   ExpressionMethods,
   NullableExpressionMethods,
   QueryDsl,
   QueryableByName,
+  SelectableHelper,
+  dsl::{IntervalDsl, count, exists, not, update},
+  query_builder::AsQuery,
+  sql_query,
+  sql_types::{BigInt, Integer, Timestamptz},
 };
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use diesel_uplete::uplete;
@@ -27,8 +28,7 @@ use lemmy_db_schema::{
     local_user::LocalUser,
     post::{Post, PostUpdateForm},
   },
-  traits::Crud,
-  utils::{functions::coalesce, get_conn, now, DbPool, DELETED_REPLACEMENT_TEXT},
+  utils::DELETED_REPLACEMENT_TEXT,
 };
 use lemmy_db_schema_file::schema::{
   captcha_answer,
@@ -47,9 +47,14 @@ use lemmy_db_schema_file::schema::{
   site,
 };
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  traits::Crud,
+  utils::{functions::coalesce, now},
+};
 use lemmy_utils::{
-  error::{LemmyErrorType, LemmyResult},
   DB_BATCH_SIZE,
+  error::{LemmyErrorType, LemmyResult},
 };
 use reqwest_middleware::ClientWithMiddleware;
 use std::time::Duration;
@@ -250,7 +255,7 @@ async fn process_post_aggregates_ranks_in_batches(conn: &mut AsyncPgConnection) 
            FOR UPDATE SKIP LOCKED)
       UPDATE post pa
       SET hot_rank = r.hot_rank(pa.score, pa.published_at),
-          hot_rank_active = r.hot_rank(pa.score, pa.newest_comment_time_necro_at),
+          hot_rank_active = r.hot_rank(pa.score, coalesce(pa.newest_comment_time_necro_at, pa.published_at)),
           scaled_rank = r.scaled_rank(pa.score, pa.published_at, ca.interactions_month)
       FROM batch, community ca
       WHERE pa.id = batch.id
@@ -593,7 +598,7 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) -> LemmyResult<()
     .filter(not(exists(not_community_banned_action)))
     // ensure that user isnt banned from local
     .filter(not(exists(not_local_banned_action)))
-    .select((post::all_columns, community::all_columns))
+    .select((Post::as_select(), Community::as_select()))
     .get_results::<(Post, Community)>(conn)
     .await?;
 
@@ -714,8 +719,9 @@ mod tests {
       post::{Post, PostActions, PostInsertForm, PostLikeForm},
     },
     test_data::TestData,
-    traits::{Crud, Likeable},
+    traits::Likeable,
   };
+  use lemmy_diesel_utils::traits::Crud;
   use lemmy_utils::{
     error::{LemmyErrorType, LemmyResult},
     settings::structs::Settings,
@@ -771,7 +777,7 @@ mod tests {
       &PostInsertForm::new("i am grrreat".to_owned(), person.id, community.id),
     )
     .await?;
-    PostActions::like(pool, &PostLikeForm::new(post.id, person.id, 1)).await?;
+    PostActions::like(pool, &PostLikeForm::new(post.id, person.id, Some(true))).await?;
 
     active_counts(pool, ONE_DAY).await?;
     all_active_counts(pool).await?;

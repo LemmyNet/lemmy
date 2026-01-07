@@ -4,8 +4,14 @@ use actix_web::web::Json;
 use either::Either;
 use lemmy_api_utils::{
   context::LemmyContext,
+  plugins::plugin_hook_after,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_user_action, check_post_deleted_or_removed, slur_regex},
+  utils::{
+    check_community_user_action,
+    check_local_user_valid,
+    check_post_deleted_or_removed,
+    slur_regex,
+  },
 };
 use lemmy_db_schema::{
   source::post_report::{PostReport, PostReportForm},
@@ -14,8 +20,8 @@ use lemmy_db_schema::{
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_report_combined::{
-  api::{CreatePostReport, PostReportResponse},
   ReportCombinedViewInternal,
+  api::{CreatePostReport, PostReportResponse},
 };
 use lemmy_db_views_site::SiteView;
 use lemmy_email::admin::send_new_report_email_to_admins;
@@ -23,10 +29,11 @@ use lemmy_utils::error::LemmyResult;
 
 /// Creates a post report and notifies the moderators of the community
 pub async fn create_post_report(
-  data: Json<CreatePostReport>,
+  Json(data): Json<CreatePostReport>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostReportResponse>> {
+  check_local_user_valid(&local_user_view)?;
   let reason = data.reason.trim().to_string();
   let slur_regex = slur_regex(&context).await?;
   check_report_reason(&reason, &slur_regex)?;
@@ -61,6 +68,7 @@ pub async fn create_post_report(
 
   let post_report_view =
     ReportCombinedViewInternal::read_post_report(&mut context.pool(), report.id, person).await?;
+  plugin_hook_after("post_report_after_create", &post_report_view);
 
   // Email the admins
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;

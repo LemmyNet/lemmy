@@ -6,19 +6,16 @@ use lemmy_api_utils::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_community_mod_action, slur_regex},
 };
-use lemmy_db_schema::{
-  source::{
-    community::Community,
-    tag::{Tag, TagInsertForm, TagUpdateForm},
-  },
-  traits::Crud,
-  utils::diesel_string_update,
+use lemmy_db_schema::source::{
+  community::Community,
+  tag::{Tag, TagInsertForm, TagUpdateForm},
 };
 use lemmy_db_views_community::{
-  api::{CreateCommunityTag, DeleteCommunityTag, UpdateCommunityTag},
   CommunityView,
+  api::{CreateCommunityTag, DeleteCommunityTag, UpdateCommunityTag},
 };
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_diesel_utils::{traits::Crud, utils::diesel_string_update};
 use lemmy_utils::{
   error::LemmyResult,
   utils::{
@@ -29,7 +26,7 @@ use lemmy_utils::{
 use url::Url;
 
 pub async fn create_community_tag(
-  data: Json<CreateCommunityTag>,
+  Json(data): Json<CreateCommunityTag>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<Tag>> {
@@ -71,7 +68,7 @@ pub async fn create_community_tag(
 }
 
 pub async fn update_community_tag(
-  data: Json<UpdateCommunityTag>,
+  Json(data): Json<UpdateCommunityTag>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<Tag>> {
@@ -99,7 +96,7 @@ pub async fn update_community_tag(
 }
 
 pub async fn delete_community_tag(
-  data: Json<DeleteCommunityTag>,
+  Json(data): Json<DeleteCommunityTag>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<Tag>> {

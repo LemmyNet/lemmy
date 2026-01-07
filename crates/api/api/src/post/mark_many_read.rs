@@ -7,7 +7,7 @@ use lemmy_db_views_site::api::SuccessResponse;
 use lemmy_utils::{error::LemmyResult, utils::validation::check_api_elements_count};
 
 pub async fn mark_posts_as_read(
-  data: Json<MarkManyPostsAsRead>,
+  Json(data): Json<MarkManyPostsAsRead>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
@@ -16,10 +16,12 @@ pub async fn mark_posts_as_read(
 
   let person_id = local_user_view.person.id;
 
-  let forms = PostActions::build_many_read_forms(post_ids, person_id);
-
-  // Mark the posts as read
-  PostActions::mark_many_as_read(&mut context.pool(), &forms).await?;
+  // Mark the posts as read / unread
+  if data.read {
+    PostActions::mark_as_read(&mut context.pool(), person_id, post_ids).await?;
+  } else {
+    PostActions::mark_as_unread(&mut context.pool(), person_id, post_ids).await?;
+  }
 
   Ok(Json(SuccessResponse::default()))
 }

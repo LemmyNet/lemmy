@@ -23,23 +23,14 @@ full = [
   "i-love-jesus",
   "lemmy_db_schema/full",
   "lemmy_db_schema_file/full",
-  "lemmy_db_views_community/full",
-  "lemmy_db_views_vote/full",
+  "lemmy_diesel_utils/full",
 ]
-ts-rs = [
-  "dep:ts-rs",
-  "lemmy_db_schema/ts-rs",
-  "lemmy_db_schema_file/ts-rs",
-  "lemmy_db_views_community/ts-rs",
-  "lemmy_db_views_vote/ts-rs",
-]
+ts-rs = ["dep:ts-rs", "lemmy_db_schema/ts-rs", "lemmy_db_schema_file/ts-rs"]
 
 [dependencies]
 lemmy_db_schema = { workspace = true }
 lemmy_utils = { workspace = true, optional = true }
 lemmy_db_schema_file = { workspace = true }
-lemmy_db_views_community = { workspace = true }
-lemmy_db_views_vote = { workspace = true }
 diesel = { workspace = true, optional = true }
 diesel-async = { workspace = true, optional = true }
 serde = { workspace = true }
@@ -48,6 +39,7 @@ ts-rs = { workspace = true, optional = true }
 i-love-jesus = { workspace = true, optional = true }
 chrono = { workspace = true }
 tracing = { workspace = true }
+lemmy_diesel_utils = { workspace = true }
 
 [dev-dependencies]
 lemmy_db_views_local_user = { workspace = true }
@@ -55,5 +47,5 @@ serial_test = { workspace = true }
 tokio = { workspace = true }
 pretty_assertions = { workspace = true }
 url = { workspace = true }
-test-context = "0.4.1"
+test-context = "0.5.4"
 diesel-uplete.workspace = true

@@ -1,0 +1,109 @@
+use crate::federation::{
+  comment_sort_type_with_default,
+  fetch_limit_with_default,
+  fetcher::resolve_community_identifier,
+  listing_type_with_default,
+  post_time_range_seconds_with_default,
+};
+use activitypub_federation::config::Data;
+use actix_web::web::{Json, Query};
+use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
+use lemmy_db_schema::source::comment::Comment;
+use lemmy_db_views_comment::{CommentSlimView, CommentView, api::GetComments, impls::CommentQuery};
+use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::{pagination::PagedResponse, traits::Crud};
+use lemmy_utils::error::LemmyResult;
+
+/// A common fetcher for both the CommentView, and CommentSlimView.
+async fn list_comments_common(
+  data: GetComments,
+  context: Data<LemmyContext>,
+  local_user_view: Option<LocalUserView>,
+) -> LemmyResult<PagedResponse<CommentView>> {
+  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  let local_site = &site_view.local_site;
+
+  check_private_instance(&local_user_view, local_site)?;
+
+  let community_id = resolve_community_identifier(
+    &data.community_name,
+    data.community_id,
+    &context,
+    &local_user_view,
+  )
+  .await?;
+  let local_user = local_user_view.as_ref().map(|u| &u.local_user);
+  let sort = Some(comment_sort_type_with_default(
+    data.sort, local_user, local_site,
+  ));
+  let time_range_seconds =
+    post_time_range_seconds_with_default(data.time_range_seconds, local_user, local_site);
+  let limit = Some(fetch_limit_with_default(data.limit, local_user, local_site));
+  let max_depth = data.max_depth;
+  let parent_id = data.parent_id;
+
+  let listing_type = Some(listing_type_with_default(
+    data.type_,
+    local_user_view.as_ref().map(|u| &u.local_user),
+    local_site,
+    community_id,
+  ));
+
+  // If a parent_id is given, fetch the comment to get the path
+  let parent_path_ = if let Some(parent_id) = parent_id {
+    Some(Comment::read(&mut context.pool(), parent_id).await?.path)
+  } else {
+    None
+  };
+
+  let parent_path = parent_path_.clone();
+  let post_id = data.post_id;
+  let local_user = local_user_view.as_ref().map(|l| &l.local_user);
+
+  CommentQuery {
+    listing_type,
+    sort,
+    time_range_seconds,
+    max_depth,
+    community_id,
+    parent_path,
+    post_id,
+    local_user,
+    page_cursor: data.page_cursor,
+    limit,
+  }
+  .list(&site_view.site, &mut context.pool())
+  .await
+}
+
+pub async fn list_comments(
+  Query(data): Query<GetComments>,
+  context: Data<LemmyContext>,
+  local_user_view: Option<LocalUserView>,
+) -> LemmyResult<Json<PagedResponse<CommentView>>> {
+  let common = list_comments_common(data, context, local_user_view).await?;
+
+  Ok(Json(common))
+}
+
+pub async fn list_comments_slim(
+  Query(data): Query<GetComments>,
+  context: Data<LemmyContext>,
+  local_user_view: Option<LocalUserView>,
+) -> LemmyResult<Json<PagedResponse<CommentSlimView>>> {
+  let common = list_comments_common(data, context, local_user_view).await?;
+
+  let data = common
+    .items
+    .into_iter()
+    .map(CommentView::map_to_slim)
+    .collect();
+  let res = PagedResponse {
+    items: data,
+    next_page: common.next_page,
+    prev_page: common.prev_page,
+  };
+
+  Ok(Json(res))
+}

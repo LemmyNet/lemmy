@@ -6,27 +6,26 @@ use lemmy_api_utils::{
   notify::notify_private_message,
   plugins::{plugin_hook_after, plugin_hook_before},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{get_url_blocklist, process_markdown, slur_regex},
+  utils::{check_local_user_valid, get_url_blocklist, process_markdown, slur_regex},
 };
-use lemmy_db_schema::{
-  source::private_message::{PrivateMessage, PrivateMessageUpdateForm},
-  traits::Crud,
-};
+use lemmy_db_schema::source::private_message::{PrivateMessage, PrivateMessageUpdateForm};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_private_message::{
-  api::{EditPrivateMessage, PrivateMessageResponse},
   PrivateMessageView,
+  api::{EditPrivateMessage, PrivateMessageResponse},
 };
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::validation::is_valid_body_field,
 };
 
 pub async fn update_private_message(
-  data: Json<EditPrivateMessage>,
+  Json(data): Json<EditPrivateMessage>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PrivateMessageResponse>> {
+  check_local_user_valid(&local_user_view)?;
   // Checking permissions
   let private_message_id = data.private_message_id;
   let orig_private_message = PrivateMessage::read(&mut context.pool(), private_message_id).await?;
@@ -46,14 +45,14 @@ pub async fn update_private_message(
     updated_at: Some(Some(Utc::now())),
     ..Default::default()
   };
-  form = plugin_hook_before("before_update_local_private_message", form).await?;
+  form = plugin_hook_before("local_private_message_before_update", form).await?;
   let private_message =
     PrivateMessage::update(&mut context.pool(), private_message_id, &form).await?;
-  plugin_hook_after("after_update_local_private_message", &private_message)?;
+  plugin_hook_after("local_private_message_after_update", &private_message);
 
   let view = PrivateMessageView::read(&mut context.pool(), private_message_id).await?;
 
-  notify_private_message(&view, false, &context).await?;
+  notify_private_message(&view, false, &context);
 
   ActivityChannel::submit_activity(
     SendActivityData::UpdatePrivateMessage(view.clone()),

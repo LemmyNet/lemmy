@@ -1,6 +1,6 @@
 use crate::{
   diesel::{DecoratableTarget, JoinOnDsl, OptionalExtension},
-  newtypes::{CommunityId, DbUrl, PersonId},
+  newtypes::CommunityId,
   source::{
     actor_language::CommunityLanguage,
     community::{
@@ -15,35 +15,37 @@ use crate::{
     },
     post::Post,
   },
-  traits::{ApubActor, Bannable, Blockable, Crud, Followable},
-  utils::{
-    format_actor_url,
-    functions::{coalesce, coalesce_2_nullable, lower, random_smallint},
-    get_conn,
-    DbPool,
-  },
+  traits::{ApubActor, Bannable, Blockable, Followable},
+  utils::format_actor_url,
 };
 use chrono::{DateTime, Utc};
 use diesel::{
-  dsl::{exists, insert_into, not},
-  expression::SelectableHelper,
-  select,
-  update,
   BoolExpressionMethods,
   ExpressionMethods,
   NullableExpressionMethods,
   QueryDsl,
+  dsl::{exists, insert_into, not},
+  expression::SelectableHelper,
+  select,
+  update,
 };
 use diesel_async::RunQueryDsl;
-use diesel_uplete::{uplete, UpleteCount};
+use diesel_uplete::{UpleteCount, uplete};
 use lemmy_db_schema_file::{
+  PersonId,
   enums::{CommunityFollowerState, CommunityNotificationsMode, CommunityVisibility, ListingType},
   schema::{comment, community, community_actions, instance, local_user, post},
 };
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  dburl::DbUrl,
+  traits::Crud,
+  utils::functions::{coalesce, coalesce_2_nullable, lower, random_smallint},
+};
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
-  settings::structs::Settings,
   CACHE_DURATION_LARGEST_COMMUNITY,
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult, UntranslatedError},
+  settings::structs::Settings,
 };
 use moka::future::Cache;
 use std::sync::{Arc, LazyLock};
@@ -60,7 +62,8 @@ impl Crud for Community {
     let community_ = insert_into(community::table)
       .values(form)
       .get_result::<Self>(conn)
-      .await?;
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)?;
 
     // Initialize languages for new community
     CommunityLanguage::update(pool, vec![], community_.id).await?;
@@ -341,9 +344,10 @@ impl CommunityActions {
   /// Dont use this check for local communities.
   pub async fn check_accept_activity_in_community(
     pool: &mut DbPool<'_>,
-    remote_community_id: CommunityId,
+    remote_community: &Community,
   ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
+    let remote_community_id = remote_community.id;
     let follow_action = community_actions::table
       .filter(community_actions::followed_at.is_not_null())
       .filter(community_actions::community_id.eq(remote_community_id));
@@ -358,14 +362,15 @@ impl CommunityActions {
       .get_result::<bool>(conn)
       .await?
       .then_some(())
-      .ok_or(LemmyErrorType::CommunityHasNoFollowers.into())
+      .ok_or(UntranslatedError::CommunityHasNoFollowers(remote_community.ap_id.to_string()).into())
   }
 
-  pub async fn approve_follower(
+  pub async fn approve_private_community_follower(
     pool: &mut DbPool<'_>,
     community_id: CommunityId,
     follower_id: PersonId,
     approver_id: PersonId,
+    state: CommunityFollowerState,
   ) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
     let find_action = community_actions::table
@@ -373,7 +378,7 @@ impl CommunityActions {
       .filter(community_actions::followed_at.is_not_null());
     diesel::update(find_action)
       .set((
-        community_actions::follow_state.eq(CommunityFollowerState::Accepted),
+        community_actions::follow_state.eq(state),
         community_actions::follow_approver_id.eq(approver_id),
       ))
       .execute(conn)
@@ -624,7 +629,7 @@ impl ApubActor for Community {
   ) -> LemmyResult<Option<Self>> {
     let conn = &mut get_conn(pool).await?;
     community::table
-      .filter(community::ap_id.eq(object_id))
+      .filter(lower(community::ap_id).eq(object_id.to_lowercase()))
       .first(conn)
       .await
       .optional()
@@ -634,34 +639,24 @@ impl ApubActor for Community {
   async fn read_from_name(
     pool: &mut DbPool<'_>,
     community_name: &str,
+    domain: Option<&str>,
     include_deleted: bool,
   ) -> LemmyResult<Option<Self>> {
     let conn = &mut get_conn(pool).await?;
     let mut q = community::table
+      .inner_join(instance::table)
       .into_boxed()
-      .filter(community::local.eq(true))
-      .filter(lower(community::name).eq(community_name.to_lowercase()));
+      .filter(lower(community::name).eq(community_name.to_lowercase()))
+      .select(community::all_columns);
     if !include_deleted {
       q = q.filter(Self::hide_removed_and_deleted())
     }
+    if let Some(domain) = domain {
+      q = q.filter(lower(instance::domain).eq(domain.to_lowercase()))
+    } else {
+      q = q.filter(community::local.eq(true))
+    }
     q.first(conn)
-      .await
-      .optional()
-      .with_lemmy_type(LemmyErrorType::NotFound)
-  }
-
-  async fn read_from_name_and_domain(
-    pool: &mut DbPool<'_>,
-    community_name: &str,
-    for_domain: &str,
-  ) -> LemmyResult<Option<Self>> {
-    let conn = &mut get_conn(pool).await?;
-    community::table
-      .inner_join(instance::table)
-      .filter(lower(community::name).eq(community_name.to_lowercase()))
-      .filter(lower(instance::domain).eq(for_domain.to_lowercase()))
-      .select(community::all_columns)
-      .first(conn)
       .await
       .optional()
       .with_lemmy_type(LemmyErrorType::NotFound)
@@ -703,9 +698,10 @@ mod tests {
       person::{Person, PersonInsertForm},
       post::{Post, PostInsertForm},
     },
-    traits::{Bannable, Crud, Followable},
-    utils::{build_db_pool_for_tests, RANK_DEFAULT},
+    traits::{Bannable, Followable},
+    utils::RANK_DEFAULT,
   };
+  use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
@@ -716,7 +712,7 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
 
     let bobby_person = PersonInsertForm::test_form(inserted_instance.id, "bobby");
     let inserted_bobby = Person::create(pool, &bobby_person).await?;
@@ -867,7 +863,7 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
 
     let new_person = PersonInsertForm::test_form(inserted_instance.id, "thommy_community_agg");
 

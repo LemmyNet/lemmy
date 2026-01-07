@@ -18,7 +18,7 @@ async fn community_use_pending(community: &Community, context: &LemmyContext) ->
   if community.local {
     return false;
   }
-  CommunityActions::check_accept_activity_in_community(&mut context.pool(), community.id)
+  CommunityActions::check_accept_activity_in_community(&mut context.pool(), community)
     .await
     .is_ok()
 }

@@ -1,9 +1,9 @@
 use actix_web::{
-  body::MessageBody,
-  dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
-  http::header::{HeaderValue, CACHE_CONTROL},
   Error,
   HttpMessage,
+  body::MessageBody,
+  dev::{Service, ServiceRequest, ServiceResponse, Transform, forward_ready},
+  http::header::{CACHE_CONTROL, HeaderValue},
 };
 use core::future::Ready;
 use futures_util::future::LocalBoxFuture;
@@ -102,14 +102,12 @@ mod tests {
 
   use actix_web::test::TestRequest;
   use lemmy_api_utils::{claims::Claims, context::LemmyContext};
-  use lemmy_db_schema::{
-    source::{
-      instance::Instance,
-      local_user::{LocalUser, LocalUserInsertForm},
-      person::{Person, PersonInsertForm},
-    },
-    traits::Crud,
+  use lemmy_db_schema::source::{
+    instance::Instance,
+    local_user::{LocalUser, LocalUserInsertForm},
+    person::{Person, PersonInsertForm},
   };
+  use lemmy_diesel_utils::traits::Crud;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
@@ -119,8 +117,7 @@ mod tests {
   async fn test_session_auth() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
 
-    let inserted_instance =
-      Instance::read_or_create(&mut context.pool(), "my_domain.tld".to_string()).await?;
+    let inserted_instance = Instance::read_or_create(&mut context.pool(), "my_domain.tld").await?;
 
     let new_person = PersonInsertForm::test_form(inserted_instance.id, "Gerry9812");
 
@@ -132,7 +129,7 @@ mod tests {
       LocalUser::create(&mut context.pool(), &local_user_form, vec![]).await?;
 
     let req = TestRequest::default().to_http_request();
-    let jwt = Claims::generate(inserted_local_user.id, req, &context).await?;
+    let jwt = Claims::generate(inserted_local_user.id, None, req, &context).await?;
 
     let valid = Claims::validate(&jwt, &context).await;
     assert!(valid.is_ok());

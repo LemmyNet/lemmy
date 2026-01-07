@@ -1,10 +1,4 @@
-use crate::{
-  CommentView,
-  LocalUserView,
-  PersonLikedCombinedView,
-  PersonLikedCombinedViewInternal,
-  PostView,
-};
+use crate::{LocalUserView, Serialize};
 use diesel::{
   BoolExpressionMethods,
   ExpressionMethods,
@@ -12,69 +6,86 @@ use diesel::{
   NullableExpressionMethods,
   QueryDsl,
   SelectableHelper,
+  dsl::not,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  newtypes::{InstanceId, PaginationCursor, PersonId},
-  source::combined::person_liked::{person_liked_combined_keys as key, PersonLikedCombined},
-  traits::{InternalToCombinedView, PaginationCursorBuilder},
-  utils::{
-    get_conn,
-    limit_fetch,
-    paginate,
-    queries::joins::{
-      community_join,
-      creator_community_actions_join,
-      creator_community_instance_actions_join,
-      creator_home_instance_actions_join,
-      creator_local_instance_actions_join,
-      creator_local_user_admin_join,
-      image_details_join,
-      my_comment_actions_join,
-      my_community_actions_join,
-      my_local_user_admin_join,
-      my_person_actions_join,
-      my_post_actions_join,
-    },
-    DbPool,
-  },
   LikeType,
   PersonContentType,
+  source::combined::person_liked::{PersonLikedCombined, person_liked_combined_keys as key},
+  traits::InternalToCombinedView,
+  utils::limit_fetch,
 };
-use lemmy_db_schema_file::schema::{comment, person, person_liked_combined, post};
+use lemmy_db_schema_file::{
+  InstanceId,
+  PersonId,
+  joins::{
+    community_join,
+    creator_community_actions_join,
+    creator_community_instance_actions_join,
+    creator_home_instance_actions_join,
+    creator_local_instance_actions_join,
+    creator_local_user_admin_join,
+    image_details_join,
+    my_comment_actions_join,
+    my_community_actions_join,
+    my_local_user_admin_join,
+    my_person_actions_join,
+    my_post_actions_join,
+  },
+  schema::{comment, person, person_liked_combined, post},
+};
+use lemmy_db_views_post_comment_combined::{
+  PostCommentCombinedView,
+  PostCommentCombinedViewInternal,
+};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  pagination::{
+    CursorData,
+    PagedResponse,
+    PaginationCursor,
+    PaginationCursorConversion,
+    paginate_response,
+  },
+};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use serde::Deserialize;
 
 #[derive(Default)]
 pub struct PersonLikedCombinedQuery {
   pub type_: Option<PersonContentType>,
   pub like_type: Option<LikeType>,
-  pub cursor_data: Option<PersonLikedCombined>,
-  pub page_back: Option<bool>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
   pub no_limit: Option<bool>,
 }
 
-impl PaginationCursorBuilder for PersonLikedCombinedView {
-  type CursorData = PersonLikedCombined;
+#[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+struct PostCommentCombinedViewWrapper(PostCommentCombinedView);
 
-  fn to_cursor(&self) -> PaginationCursor {
-    let (prefix, id) = match &self {
-      PersonLikedCombinedView::Comment(v) => ('C', v.comment.id.0),
-      PersonLikedCombinedView::Post(v) => ('P', v.post.id.0),
+impl PaginationCursorConversion for PostCommentCombinedViewWrapper {
+  type PaginatedType = PersonLikedCombined;
+
+  fn to_cursor(&self) -> CursorData {
+    let (prefix, id) = match &self.0 {
+      PostCommentCombinedView::Comment(v) => ('C', v.comment.id.0),
+      PostCommentCombinedView::Post(v) => ('P', v.post.id.0),
     };
-    PaginationCursor::new_single(prefix, id)
+    CursorData::new_with_prefix(prefix, id)
   }
 
   async fn from_cursor(
-    cursor: &PaginationCursor,
+    cursor: CursorData,
     pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Self::CursorData> {
+  ) -> LemmyResult<Self::PaginatedType> {
     let conn = &mut get_conn(pool).await?;
-    let [(prefix, id)] = cursor.prefixes_and_ids()?;
+    let (prefix, id) = cursor.id_and_prefix()?;
 
     let mut query = person_liked_combined::table
-      .select(Self::CursorData::as_select())
+      .select(Self::PaginatedType::as_select())
       .into_boxed();
 
     query = match prefix {
@@ -88,7 +99,7 @@ impl PaginationCursorBuilder for PersonLikedCombinedView {
   }
 }
 
-impl PersonLikedCombinedViewInternal {
+impl PersonLikedCombinedQuery {
   #[diesel::dsl::auto_type(no_type_alias)]
   pub(crate) fn joins(my_person_id: PersonId, local_instance_id: InstanceId) -> _ {
     let item_creator = person::id;
@@ -143,28 +154,20 @@ impl PersonLikedCombinedViewInternal {
       .left_join(my_community_actions_join)
       .left_join(my_local_user_admin_join)
   }
-}
-
-impl PersonLikedCombinedQuery {
   pub async fn list(
     self,
     pool: &mut DbPool<'_>,
     user: &LocalUserView,
-  ) -> LemmyResult<Vec<PersonLikedCombinedView>> {
+  ) -> LemmyResult<PagedResponse<PostCommentCombinedView>> {
     let my_person_id = user.local_user.person_id;
     let local_instance_id = user.person.instance_id;
 
-    let conn = &mut get_conn(pool).await?;
-
-    let mut query = PersonLikedCombinedViewInternal::joins(my_person_id, local_instance_id)
+    let mut query = Self::joins(my_person_id, local_instance_id)
       .filter(person_liked_combined::person_id.eq(my_person_id))
-      .select(PersonLikedCombinedViewInternal::as_select())
+      .select(PostCommentCombinedViewInternal::as_select())
       .into_boxed();
 
-    if !self.no_limit.unwrap_or_default() {
-      let limit = limit_fetch(self.limit)?;
-      query = query.limit(limit);
-    }
+    let limit = limit_fetch(self.limit, self.no_limit)?;
 
     if let Some(type_) = self.type_ {
       query = match type_ {
@@ -179,90 +182,51 @@ impl PersonLikedCombinedQuery {
     if let Some(like_type) = self.like_type {
       query = match like_type {
         LikeType::All => query,
-        LikeType::LikedOnly => query.filter(person_liked_combined::like_score.eq(1)),
-        LikeType::DislikedOnly => query.filter(person_liked_combined::like_score.eq(-1)),
+        LikeType::LikedOnly => query.filter(person_liked_combined::vote_is_upvote),
+        LikeType::DislikedOnly => query.filter(not(person_liked_combined::vote_is_upvote)),
       }
     }
 
     // Sorting by liked desc
-    let paginated_query = paginate(
+    let paginated_query = PostCommentCombinedViewWrapper::paginate(
       query,
+      &self.page_cursor,
       SortDirection::Desc,
-      self.cursor_data,
+      pool,
       None,
-      self.page_back,
     )
-    .then_order_by(key::liked_at)
+    .await?
+    .then_order_by(key::voted_at)
     // Tie breaker
     .then_order_by(key::id);
 
+    let conn = &mut get_conn(pool).await?;
     let res = paginated_query
-      .load::<PersonLikedCombinedViewInternal>(conn)
+      .load::<PostCommentCombinedViewInternal>(conn)
       .await?;
 
     // Map the query results to the enum
     let out = res
       .into_iter()
       .filter_map(InternalToCombinedView::map_to_enum)
+      .map(PostCommentCombinedViewWrapper)
       .collect();
 
-    Ok(out)
-  }
-}
-
-impl InternalToCombinedView for PersonLikedCombinedViewInternal {
-  type CombinedView = PersonLikedCombinedView;
-
-  fn map_to_enum(self) -> Option<Self::CombinedView> {
-    // Use for a short alias
-    let v = self;
-
-    if let Some(comment) = v.comment {
-      Some(PersonLikedCombinedView::Comment(CommentView {
-        comment,
-        post: v.post,
-        community: v.community,
-        creator: v.item_creator,
-        community_actions: v.community_actions,
-        comment_actions: v.comment_actions,
-        person_actions: v.person_actions,
-        creator_is_admin: v.item_creator_is_admin,
-        post_tags: v.post_tags,
-        can_mod: v.can_mod,
-        creator_banned: v.creator_banned,
-        creator_ban_expires_at: v.creator_ban_expires_at,
-        creator_is_moderator: v.creator_is_moderator,
-        creator_banned_from_community: v.creator_banned_from_community,
-        creator_community_ban_expires_at: v.creator_community_ban_expires_at,
-      }))
-    } else {
-      Some(PersonLikedCombinedView::Post(PostView {
-        post: v.post,
-        community: v.community,
-        creator: v.item_creator,
-        image_details: v.image_details,
-        community_actions: v.community_actions,
-        post_actions: v.post_actions,
-        person_actions: v.person_actions,
-        creator_is_admin: v.item_creator_is_admin,
-        tags: v.post_tags,
-        can_mod: v.can_mod,
-        creator_banned: v.creator_banned,
-        creator_ban_expires_at: v.creator_ban_expires_at,
-        creator_is_moderator: v.creator_is_moderator,
-        creator_banned_from_community: v.creator_banned_from_community,
-        creator_community_ban_expires_at: v.creator_community_ban_expires_at,
-      }))
-    }
+    let res = paginate_response(out, limit, self.page_cursor)?;
+    Ok(PagedResponse {
+      items: res.items.into_iter().map(|i| i.0).collect(),
+      next_page: res.next_page,
+      prev_page: res.prev_page,
+    })
   }
 }
 
 #[cfg(test)]
 #[expect(clippy::indexing_slicing)]
 mod tests {
-
-  use crate::{impls::PersonLikedCombinedQuery, LocalUserView, PersonLikedCombinedView};
+  use crate::{LocalUserView, impls::PersonLikedCombinedQuery};
   use lemmy_db_schema::{
+    LikeType,
     source::{
       comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm},
       community::{Community, CommunityInsertForm},
@@ -271,9 +235,12 @@ mod tests {
       person::{Person, PersonInsertForm},
       post::{Post, PostActions, PostInsertForm, PostLikeForm},
     },
-    traits::{Crud, Likeable},
-    utils::{build_db_pool_for_tests, DbPool},
-    LikeType,
+    traits::Likeable,
+  };
+  use lemmy_db_views_post_comment_combined::PostCommentCombinedView;
+  use lemmy_diesel_utils::{
+    connection::{DbPool, build_db_pool_for_tests},
+    traits::Crud,
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
@@ -290,7 +257,7 @@ mod tests {
   }
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
-    let instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
 
     let timmy_form = PersonInsertForm::test_form(instance.id, "timmy_pcv");
     let timmy = Person::create(pool, &timmy_form).await?;
@@ -366,13 +333,15 @@ mod tests {
     assert_eq!(0, timmy_liked.len());
 
     // Like a few things
-    let like_sara_comment_2 = CommentLikeForm::new(data.timmy.id, data.sara_comment_2.id, 1);
+    let like_sara_comment_2 =
+      CommentLikeForm::new(data.sara_comment_2.id, data.timmy.id, Some(true));
     CommentActions::like(pool, &like_sara_comment_2).await?;
 
-    let dislike_sara_comment = CommentLikeForm::new(data.timmy.id, data.sara_comment.id, -1);
+    let dislike_sara_comment =
+      CommentLikeForm::new(data.sara_comment.id, data.timmy.id, Some(false));
     CommentActions::like(pool, &dislike_sara_comment).await?;
 
-    let post_like_form = PostLikeForm::new(data.timmy_post.id, data.timmy.id, 1);
+    let post_like_form = PostLikeForm::new(data.timmy_post.id, data.timmy.id, Some(true));
     PostActions::like(pool, &post_like_form).await?;
 
     let timmy_liked_all = PersonLikedCombinedQuery::default()
@@ -381,29 +350,32 @@ mod tests {
     assert_eq!(3, timmy_liked_all.len());
 
     // Make sure the types and order are correct
-    if let PersonLikedCombinedView::Post(v) = &timmy_liked_all[0] {
+    if let PostCommentCombinedView::Post(v) = &timmy_liked_all[0] {
       assert_eq!(data.timmy_post.id, v.post.id);
       assert_eq!(data.timmy.id, v.post.creator_id);
-      assert_eq!(Some(1), v.post_actions.as_ref().and_then(|l| l.like_score));
-    } else {
-      panic!("wrong type");
-    }
-    if let PersonLikedCombinedView::Comment(v) = &timmy_liked_all[1] {
-      assert_eq!(data.sara_comment.id, v.comment.id);
-      assert_eq!(data.sara.id, v.comment.creator_id);
       assert_eq!(
-        Some(-1),
-        v.comment_actions.as_ref().and_then(|l| l.like_score)
+        Some(true),
+        v.post_actions.as_ref().and_then(|l| l.vote_is_upvote)
       );
     } else {
       panic!("wrong type");
     }
-    if let PersonLikedCombinedView::Comment(v) = &timmy_liked_all[2] {
+    if let PostCommentCombinedView::Comment(v) = &timmy_liked_all[1] {
+      assert_eq!(data.sara_comment.id, v.comment.id);
+      assert_eq!(data.sara.id, v.comment.creator_id);
+      assert_eq!(
+        Some(false),
+        v.comment_actions.as_ref().and_then(|l| l.vote_is_upvote)
+      );
+    } else {
+      panic!("wrong type");
+    }
+    if let PostCommentCombinedView::Comment(v) = &timmy_liked_all[2] {
       assert_eq!(data.sara_comment_2.id, v.comment.id);
       assert_eq!(data.sara.id, v.comment.creator_id);
       assert_eq!(
-        Some(1),
-        v.comment_actions.as_ref().and_then(|l| l.like_score)
+        Some(true),
+        v.comment_actions.as_ref().and_then(|l| l.vote_is_upvote)
       );
     } else {
       panic!("wrong type");
@@ -417,27 +389,29 @@ mod tests {
     .await?;
     assert_eq!(1, timmy_disliked.len());
 
-    if let PersonLikedCombinedView::Comment(v) = &timmy_disliked[0] {
+    if let PostCommentCombinedView::Comment(v) = &timmy_disliked[0] {
       assert_eq!(data.sara_comment.id, v.comment.id);
       assert_eq!(data.sara.id, v.comment.creator_id);
       assert_eq!(
-        Some(-1),
-        v.comment_actions.as_ref().and_then(|l| l.like_score)
+        Some(false),
+        v.comment_actions.as_ref().and_then(|l| l.vote_is_upvote)
       );
     } else {
       panic!("wrong type");
     }
 
     // Try unliking 2 things
-    CommentActions::remove_like(pool, data.timmy.id, data.sara_comment.id).await?;
-    PostActions::remove_like(pool, data.timmy.id, data.timmy_post.id).await?;
+    let form = CommentLikeForm::new(data.sara_comment.id, data.timmy.id, None);
+    CommentActions::like(pool, &form).await?;
+    let form = PostLikeForm::new(data.timmy_post.id, data.timmy.id, None);
+    PostActions::like(pool, &form).await?;
 
     let timmy_likes_removed = PersonLikedCombinedQuery::default()
       .list(pool, &data.timmy_view)
       .await?;
     assert_eq!(1, timmy_likes_removed.len());
 
-    if let PersonLikedCombinedView::Comment(v) = &timmy_likes_removed[0] {
+    if let PostCommentCombinedView::Comment(v) = &timmy_likes_removed[0] {
       assert_eq!(data.sara_comment_2.id, v.comment.id);
       assert_eq!(data.sara.id, v.comment.creator_id);
     } else {

@@ -1,26 +1,24 @@
 use super::utils::{adapt_request, delete_old_image, make_send};
-use actix_web::{self, web::*, HttpRequest};
+use UploadType::*;
+use actix_web::{self, HttpRequest, web::*};
 use lemmy_api_utils::{
   context::LemmyContext,
   request::PictrsResponse,
   utils::{is_admin, is_mod_or_admin},
 };
-use lemmy_db_schema::{
-  source::{
-    community::{Community, CommunityUpdateForm},
-    images::{LocalImage, LocalImageForm},
-    person::{Person, PersonUpdateForm},
-    site::{Site, SiteUpdateForm},
-  },
-  traits::Crud,
+use lemmy_db_schema::source::{
+  community::{Community, CommunityUpdateForm},
+  images::{LocalImage, LocalImageForm},
+  person::{Person, PersonUpdateForm},
+  site::{Site, SiteUpdateForm},
 };
 use lemmy_db_views_community::api::CommunityIdQuery;
 use lemmy_db_views_local_image::api::UploadImageResponse;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_diesel_utils::traits::Crud;
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use reqwest::Body;
 use std::time::Duration;
-use UploadType::*;
 
 pub enum UploadType {
   Avatar,
@@ -165,7 +163,7 @@ pub async fn upload_site_banner(
   Ok(Json(image))
 }
 
-pub async fn do_upload_image(
+async fn do_upload_image(
   req: HttpRequest,
   body: Payload,
   upload_type: UploadType,
@@ -208,12 +206,17 @@ pub async fn do_upload_image(
   if let Some(addr) = req.head().peer_addr {
     client_req = client_req.header("X-Forwarded-For", addr.to_string())
   };
+  // Make HTTP request to pict-rs with the user provided image data.
   let res = client_req
     .timeout(Duration::from_secs(pictrs.upload_timeout))
     .body(Body::wrap_stream(make_send(body)))
     .send()
-    .await?
-    .error_for_status()?;
+    .await
+    // Dont check for status code here and dont call `error_for_status()`. If the upload failed,
+    // this is handled below as `images.files` is empty.
+    .with_lemmy_type(LemmyErrorType::PictrsInvalidImageUpload(
+      "HTTP request to pict-rs failed".to_string(),
+    ))?;
 
   let mut images = res.json::<PictrsResponse>().await?;
   for image in &images.files {
@@ -221,7 +224,7 @@ pub async fn do_upload_image(
     // but still a user may upload multiple and so we need to store all links in db for
     // to allow deletion via web ui.
     let form = LocalImageForm {
-      pictrs_alias: image.file.to_string(),
+      pictrs_alias: image.file.clone(),
       person_id: local_user_view.person.id,
       thumbnail_for_post_id: None,
     };
@@ -236,7 +239,7 @@ pub async fn do_upload_image(
   let image = images
     .files
     .pop()
-    .ok_or(LemmyErrorType::InvalidImageUpload)?;
+    .ok_or(LemmyErrorType::PictrsInvalidImageUpload(images.msg))?;
 
   let url = image.image_url(&context.settings().get_protocol_and_hostname())?;
   Ok(UploadImageResponse {

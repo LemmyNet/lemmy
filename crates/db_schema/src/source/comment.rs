@@ -1,5 +1,7 @@
-use crate::newtypes::{CommentId, DbUrl, LanguageId, PersonId, PostId};
+use crate::newtypes::{CommentId, LanguageId, PostId};
 use chrono::{DateTime, Utc};
+use lemmy_db_schema_file::PersonId;
+use lemmy_diesel_utils::dburl::DbUrl;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -55,9 +57,9 @@ pub struct Comment {
   /// The total number of children in this comment branch.
   pub child_count: i32,
   #[serde(skip)]
-  pub hot_rank: f64,
+  pub hot_rank: f32,
   #[serde(skip)]
-  pub controversy_rank: f64,
+  pub controversy_rank: f32,
   pub report_count: i16,
   pub unresolved_report_count: i16,
   /// If a local user comments in a remote community, the comment is hidden until it is confirmed
@@ -67,11 +69,8 @@ pub struct Comment {
   pub locked: bool,
 }
 
-#[derive(Debug, Clone, derive_new::new)]
-#[cfg_attr(
-  feature = "full",
-  derive(Insertable, AsChangeset, Serialize, Deserialize)
-)]
+#[derive(Debug, Clone, derive_new::new, Serialize, Deserialize)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset,))]
 #[cfg_attr(feature = "full", diesel(table_name = comment))]
 pub struct CommentInsertForm {
   pub creator_id: PersonId,
@@ -130,30 +129,47 @@ pub struct CommentUpdateForm {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct CommentActions {
+  /// When the comment was upvoted or downvoted.
+  pub voted_at: Option<DateTime<Utc>>,
+  /// When the comment was saved.
+  pub saved_at: Option<DateTime<Utc>>,
   #[serde(skip)]
   pub person_id: PersonId,
   #[serde(skip)]
   pub comment_id: CommentId,
-  /// The like / score for the comment.
-  pub like_score: Option<i16>,
-  /// When the comment was liked.
-  pub liked_at: Option<DateTime<Utc>>,
-  /// When the comment was saved.
-  pub saved_at: Option<DateTime<Utc>>,
+  /// True if upvoted, false if downvoted. Upvote is greater than downvote.
+  pub vote_is_upvote: Option<bool>,
 }
 
-#[derive(Clone, derive_new::new)]
+#[derive(Clone)]
 #[cfg_attr(
   feature = "full",
   derive(Insertable, AsChangeset, Serialize, Deserialize)
 )]
 #[cfg_attr(feature = "full", diesel(table_name = comment_actions))]
 pub struct CommentLikeForm {
-  pub person_id: PersonId,
-  pub comment_id: CommentId,
-  pub like_score: i16,
-  #[new(value = "Utc::now()")]
-  pub liked_at: DateTime<Utc>,
+  person_id: PersonId,
+  comment_id: CommentId,
+  vote_is_upvote: Option<Option<bool>>,
+  voted_at: Option<Option<DateTime<Utc>>>,
+}
+
+impl CommentLikeForm {
+  /// Pass `is_upvote: None` to remove an existing vote for this comment
+  pub fn new(comment_id: CommentId, person_id: PersonId, is_upvote: Option<bool>) -> Self {
+    let voted_at = if is_upvote.is_some() {
+      Some(Some(Utc::now()))
+    } else {
+      Some(None)
+    };
+
+    Self {
+      comment_id,
+      person_id,
+      vote_is_upvote: Some(is_upvote),
+      voted_at,
+    }
+  }
 }
 
 #[derive(derive_new::new)]

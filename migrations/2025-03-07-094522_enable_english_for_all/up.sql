@@ -7,7 +7,7 @@ BEGIN
             count(*)
         FROM
             site_language
-            INNER JOIN local_site ON site_language.site_id = local_site.site_id) = 184 THEN
+                INNER JOIN local_site ON site_language.site_id = local_site.site_id) = 184 THEN
         INSERT INTO local_user_language (local_user_id, language_id)
         SELECT
             local_user_id,

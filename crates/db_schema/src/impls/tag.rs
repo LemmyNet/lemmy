@@ -1,14 +1,14 @@
 use crate::{
   diesel::SelectableHelper,
-  newtypes::{CommunityId, DbUrl, PostId, TagId},
+  newtypes::{CommunityId, PostId, TagId},
   source::{
     post::Post,
     tag::{PostTag, PostTagForm, Tag, TagInsertForm, TagUpdateForm, TagsView},
   },
-  traits::Crud,
-  utils::{get_conn, DbPool},
 };
 use diesel::{
+  ExpressionMethods,
+  QueryDsl,
   delete,
   deserialize::FromSql,
   insert_into,
@@ -16,11 +16,14 @@ use diesel::{
   serialize::ToSql,
   sql_types::{Json, Nullable},
   upsert::excluded,
-  ExpressionMethods,
-  QueryDsl,
 };
-use diesel_async::{scoped_futures::ScopedFutureExt, RunQueryDsl};
+use diesel_async::{RunQueryDsl, scoped_futures::ScopedFutureExt};
 use lemmy_db_schema_file::schema::{post_tag, tag};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  dburl::DbUrl,
+  traits::Crud,
+};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use std::collections::HashSet;
 

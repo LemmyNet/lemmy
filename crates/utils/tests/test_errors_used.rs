@@ -17,8 +17,7 @@ fn test_errors_used() {
       .arg("-R")
       .arg("--exclude=error.rs")
       .arg(&search)
-      .arg("crates/")
-      .arg("src/");
+      .arg("crates/");
     let output = grep_all.output().unwrap();
     let grep_all_out = std::str::from_utf8(&output.stdout).unwrap();
 
@@ -36,7 +35,7 @@ fn test_errors_used() {
       println!("LemmyErrorType::{} is unused", error);
       unused_error_found = true;
     }
-    if search != "LemmyErrorType::FederationError" && grep_all_out == grep_apub_out {
+    if search != "LemmyErrorType::UntranslatedError" && grep_all_out == grep_apub_out {
       println!("LemmyErrorType::{} is only used for federation", error);
       unused_error_found = true;
     }

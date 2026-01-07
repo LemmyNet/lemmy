@@ -3,13 +3,13 @@ use lemmy_api_utils::{context::LemmyContext, utils::is_admin};
 use lemmy_db_schema::{source::private_message_report::PrivateMessageReport, traits::Reportable};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_report_combined::{
-  api::{PrivateMessageReportResponse, ResolvePrivateMessageReport},
   ReportCombinedViewInternal,
+  api::{PrivateMessageReportResponse, ResolvePrivateMessageReport},
 };
 use lemmy_utils::error::LemmyResult;
 
 pub async fn resolve_pm_report(
-  data: Json<ResolvePrivateMessageReport>,
+  Json(data): Json<ResolvePrivateMessageReport>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PrivateMessageReportResponse>> {

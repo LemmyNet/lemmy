@@ -1,18 +1,18 @@
 use crate::{
-  newtypes::{PersonId, PrivateMessageId, PrivateMessageReportId},
+  newtypes::{PrivateMessageId, PrivateMessageReportId},
   source::private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
   traits::Reportable,
-  utils::{get_conn, DbPool},
 };
 use chrono::Utc;
 use diesel::{
-  dsl::{insert_into, update},
   ExpressionMethods,
   QueryDsl,
+  dsl::{insert_into, update},
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::private_message_report;
-use lemmy_utils::error::{FederationError, LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_db_schema_file::{PersonId, schema::private_message_report};
+use lemmy_diesel_utils::connection::{DbPool, get_conn};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult, UntranslatedError};
 
 impl Reportable for PrivateMessageReport {
   type Form = PrivateMessageReportForm;
@@ -51,7 +51,7 @@ impl Reportable for PrivateMessageReport {
     _report_creator_id: PersonId,
     _resolver_id: PersonId,
   ) -> LemmyResult<usize> {
-    Err(FederationError::Unreachable.into())
+    Err(UntranslatedError::Unreachable.into())
   }
 
   // TODO: this is unused because private message doesn't have remove handler

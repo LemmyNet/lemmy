@@ -1,36 +1,51 @@
 use crate::RegistrationApplicationView;
 use diesel::{
-  dsl::count,
   ExpressionMethods,
   JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
   SelectableHelper,
+  dsl::count,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  aliases,
-  newtypes::{PaginationCursor, PersonId, RegistrationApplicationId},
-  source::registration_application::RegistrationApplication,
-  traits::{Crud, PaginationCursorBuilder},
-  utils::{get_conn, limit_fetch, paginate, DbPool},
+  newtypes::RegistrationApplicationId,
+  source::registration_application::{
+    RegistrationApplication,
+    registration_application_keys as key,
+  },
+  utils::limit_fetch,
 };
-use lemmy_db_schema_file::schema::{local_user, person, registration_application};
+use lemmy_db_schema_file::{
+  PersonId,
+  aliases,
+  schema::{local_user, person, registration_application},
+};
+use lemmy_diesel_utils::{
+  connection::{DbPool, get_conn},
+  pagination::{
+    CursorData,
+    PagedResponse,
+    PaginationCursor,
+    PaginationCursorConversion,
+    paginate_response,
+  },
+  traits::Crud,
+};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
-impl PaginationCursorBuilder for RegistrationApplicationView {
-  type CursorData = RegistrationApplication;
-  fn to_cursor(&self) -> PaginationCursor {
-    PaginationCursor::new_single('R', self.registration_application.id.0)
+impl PaginationCursorConversion for RegistrationApplicationView {
+  type PaginatedType = RegistrationApplication;
+  fn to_cursor(&self) -> CursorData {
+    CursorData::new_id(self.registration_application.id.0)
   }
 
   async fn from_cursor(
-    cursor: &PaginationCursor,
+    cursor: CursorData,
     pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Self::CursorData> {
-    let [(_, id)] = cursor.prefixes_and_ids()?;
-    RegistrationApplication::read(pool, RegistrationApplicationId(id)).await
+  ) -> LemmyResult<Self::PaginatedType> {
+    RegistrationApplication::read(pool, RegistrationApplicationId(cursor.id()?)).await
   }
 }
 
@@ -97,15 +112,16 @@ impl RegistrationApplicationView {
 pub struct RegistrationApplicationQuery {
   pub unread_only: Option<bool>,
   pub verified_email_only: Option<bool>,
-  pub cursor_data: Option<RegistrationApplication>,
-  pub page_back: Option<bool>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }
 
 impl RegistrationApplicationQuery {
-  pub async fn list(self, pool: &mut DbPool<'_>) -> LemmyResult<Vec<RegistrationApplicationView>> {
-    let conn = &mut get_conn(pool).await?;
-    let limit = limit_fetch(self.limit)?;
+  pub async fn list(
+    self,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<PagedResponse<RegistrationApplicationView>> {
+    let limit = limit_fetch(self.limit, None)?;
     let o = self;
 
     let mut query = RegistrationApplicationView::joins()
@@ -126,33 +142,35 @@ impl RegistrationApplicationQuery {
     }
 
     // Sorting by published
-    let paginated_query = paginate(query, SortDirection::Desc, o.cursor_data, None, o.page_back);
+    let paginated_query =
+      RegistrationApplicationView::paginate(query, &o.page_cursor, SortDirection::Desc, pool, None)
+        .await?
+        .then_order_by(key::published_at);
 
-    paginated_query
+    let conn = &mut get_conn(pool).await?;
+    let res = paginated_query
       .load::<RegistrationApplicationView>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::NotFound)
+      .with_lemmy_type(LemmyErrorType::NotFound)?;
+    paginate_response(res, limit, o.page_cursor)
   }
 }
 
 #[cfg(test)]
 mod tests {
 
-  use crate::{impls::RegistrationApplicationQuery, RegistrationApplicationView};
-  use lemmy_db_schema::{
-    source::{
-      instance::Instance,
-      local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
-      person::{Person, PersonInsertForm},
-      registration_application::{
-        RegistrationApplication,
-        RegistrationApplicationInsertForm,
-        RegistrationApplicationUpdateForm,
-      },
+  use crate::{RegistrationApplicationView, impls::RegistrationApplicationQuery};
+  use lemmy_db_schema::source::{
+    instance::Instance,
+    local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
+    person::{Person, PersonInsertForm},
+    registration_application::{
+      RegistrationApplication,
+      RegistrationApplicationInsertForm,
+      RegistrationApplicationUpdateForm,
     },
-    traits::Crud,
-    utils::build_db_pool_for_tests,
   };
+  use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
@@ -163,7 +181,7 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
-    let instance = Instance::read_or_create(pool, "my_domain.tld".to_string()).await?;
+    let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
 
     let timmy_person_form = PersonInsertForm::test_form(instance.id, "timmy_rav");
 
@@ -236,7 +254,6 @@ mod tests {
         infinite_scroll_enabled: sara_local_user.infinite_scroll_enabled,
         post_listing_mode: sara_local_user.post_listing_mode,
         totp_2fa_enabled: sara_local_user.totp_2fa_enabled,
-        enable_keyboard_navigation: sara_local_user.enable_keyboard_navigation,
         enable_animated_images: sara_local_user.enable_animated_images,
         enable_private_messages: sara_local_user.enable_private_messages,
         collapse_bot_comments: sara_local_user.collapse_bot_comments,
@@ -286,7 +303,8 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await?;
+    .await?
+    .items;
 
     assert_eq!(
       apps,
@@ -301,6 +319,8 @@ mod tests {
     let approve_form = RegistrationApplicationUpdateForm {
       admin_id: Some(Some(timmy_person.id)),
       deny_reason: None,
+      // Normally this would be Utc::now()
+      updated_at: None,
     };
 
     RegistrationApplication::update(pool, sara_app.id, &approve_form).await?;
@@ -355,7 +375,8 @@ mod tests {
       ..Default::default()
     }
     .list(pool)
-    .await?;
+    .await?
+    .items;
     assert_eq!(apps_after_resolve, vec![read_jess_app_view]);
 
     // Make sure the counts are correct

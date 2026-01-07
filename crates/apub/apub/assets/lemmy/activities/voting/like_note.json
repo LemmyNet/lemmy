@@ -1,0 +1,7 @@
+{
+  "actor": "http://ds9.lemmy.ml/u/lemmy_alpha",
+  "object": "http://ds9.lemmy.ml/comment/1",
+  "audience": "https://enterprise.lemmy.ml/c/tenforward",
+  "type": "Like",
+  "id": "http://ds9.lemmy.ml/activities/like/fd61d070-7382-46a9-b2b7-6bb253732877"
+}

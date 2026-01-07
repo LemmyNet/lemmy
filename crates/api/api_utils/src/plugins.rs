@@ -1,49 +1,69 @@
+use crate::context::LemmyContext;
 use anyhow::anyhow;
-use extism::{Manifest, PluginBuilder, Pool, PoolPlugin};
+use extism::{Manifest, PluginBuilder, Pool, PoolPlugin, Wasm, WasmMetadata};
 use extism_convert::Json;
+use extism_manifest::HttpRequest;
+use lemmy_db_schema::source::{notification::Notification, person::Person};
+use lemmy_db_views_notification::NotificationView;
 use lemmy_db_views_site::api::PluginMetadata;
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType, LemmyResult},
-  settings::SETTINGS,
   VERSION,
+  error::{LemmyError, LemmyErrorType, LemmyResult},
+  settings::{SETTINGS, structs::PluginSettings},
 };
-use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::{
-  env,
-  ffi::OsStr,
-  fs::{read_dir, File},
-  io::BufReader,
   ops::Deref,
   path::PathBuf,
+  sync::{LazyLock, OnceLock},
   time::Duration,
 };
 use tokio::task::spawn_blocking;
-use tracing::warn;
+use tracing::{error, warn};
+use url::Url;
 
 const GET_PLUGIN_TIMEOUT: Duration = Duration::from_secs(1);
 
 /// Call a plugin hook without rewriting data
-pub fn plugin_hook_after<T>(name: &'static str, data: &T) -> LemmyResult<()>
+pub fn plugin_hook_after<T>(name: &'static str, data: &T)
 where
   T: Clone + Serialize + for<'b> Deserialize<'b> + Sync + Send + 'static,
 {
   let plugins = LemmyPlugins::get_or_init();
   if !plugins.function_exists(name) {
-    return Ok(());
+    return;
   }
 
   let data = data.clone();
-  spawn_blocking(move || {
-    run_plugin_hook_after(plugins, name, data).inspect_err(|e| warn!("Plugin error: {e}"))
-  });
+  spawn_blocking(move || run_plugin_hook_after(name, data));
+}
+
+/// Calls plugin hook for the given notifications Loads additional data via
+/// NotificationView, but only if a plugin is active.
+pub async fn plugin_hook_notification(
+  notifications: Vec<Notification>,
+  context: &LemmyContext,
+) -> LemmyResult<()> {
+  let name = "notification_after_create";
+  let plugins = LemmyPlugins::get_or_init();
+  if !plugins.function_exists(name) {
+    return Ok(());
+  }
+
+  for n in notifications {
+    let person = Person::read(&mut context.pool(), n.recipient_id).await?;
+    let view = NotificationView::read(&mut context.pool(), n.id, &person).await?;
+    spawn_blocking(move || run_plugin_hook_after(name, view));
+  }
   Ok(())
 }
 
-fn run_plugin_hook_after<T>(plugins: LemmyPlugins, name: &'static str, data: T) -> LemmyResult<()>
+fn run_plugin_hook_after<T>(name: &'static str, data: T) -> LemmyResult<()>
 where
   T: Clone + Serialize + for<'b> Deserialize<'b>,
 {
+  let plugins = LemmyPlugins::get_or_init();
   for p in plugins.0 {
     if let Some(plugin) = p.get(name)? {
       let params: Json<T> = data.clone().into();
@@ -81,11 +101,41 @@ where
 }
 
 pub fn plugin_metadata() -> Vec<PluginMetadata> {
-  LemmyPlugins::get_or_init()
-    .0
-    .into_iter()
-    .map(|p| p.metadata)
-    .collect()
+  static METADATA: OnceLock<Vec<PluginMetadata>> = OnceLock::new();
+  if let Some(m) = METADATA.get() {
+    m.clone()
+  } else {
+    // Loading metadata can take multiple seconds. Do this in background task to avoid blocking
+    // /api/v4/site endpoint.
+    std::thread::spawn(|| {
+      METADATA.get_or_init(|| {
+        let mut metadata = vec![];
+        for plugin in LemmyPlugins::get_or_init().0 {
+          let run = match plugin.pool.get(GET_PLUGIN_TIMEOUT) {
+            Ok(p) => p,
+            Err(e) => {
+              error!("Failed to load plugin {}: {e}", plugin.filename);
+              continue;
+            }
+          };
+          let m = run.and_then(|run| run.call("metadata", 0).ok());
+          if let Some(m) = m {
+            metadata.push(m);
+          } else {
+            // Failed to load plugin metadata, use placeholder
+            metadata.push(PluginMetadata {
+              name: plugin.filename,
+              url: None,
+              description: None,
+            });
+          }
+        }
+        metadata
+      });
+    });
+    // Return empty metadata until loading is finished
+    vec![]
+  }
 }
 
 #[derive(Clone)]
@@ -93,15 +143,39 @@ struct LemmyPlugins(Vec<LemmyPlugin>);
 
 #[derive(Clone)]
 struct LemmyPlugin {
-  plugin_pool: Pool,
-  metadata: PluginMetadata,
+  pool: Pool,
+  filename: String,
 }
 
 impl LemmyPlugin {
-  fn init(path: &PathBuf) -> LemmyResult<Self> {
-    let file = File::open(path)?;
-    let reader = BufReader::new(file);
-    let mut manifest: Manifest = serde_json::from_reader(reader)?;
+  fn init(settings: PluginSettings) -> LemmyResult<Self> {
+    // if no hash was provided in config, set a dummy value here to enforce hash check
+    let hash = Some(settings.hash.unwrap_or_else(|| "dummy".to_string()));
+    let meta = WasmMetadata { hash, name: None };
+    let (wasm, filename) = if settings.file.starts_with("http") {
+      let name: Option<String> = Url::parse(&settings.file)?
+        .path_segments()
+        .and_then(|mut p| p.next_back())
+        .map(std::string::ToString::to_string);
+      let req = HttpRequest {
+        url: settings.file.clone(),
+        headers: Default::default(),
+        method: None,
+      };
+      (Wasm::Url { req, meta }, name)
+    } else {
+      let path = PathBuf::from(settings.file.clone());
+      let name: Option<String> = path.file_name().map(|n| n.to_string_lossy().to_string());
+      (Wasm::File { path, meta }, name)
+    };
+    let mut manifest = Manifest {
+      wasm: vec![wasm],
+      config: settings.config,
+      allowed_hosts: settings.allowed_hosts,
+      memory: Default::default(),
+      allowed_paths: None,
+      timeout_ms: None,
+    };
     manifest.config.insert(
       "lemmy_url".to_string(),
       format!("http://{}:{}/", SETTINGS.bind, SETTINGS.port),
@@ -110,17 +184,16 @@ impl LemmyPlugin {
       .config
       .insert("lemmy_version".to_string(), VERSION.to_string());
     let builder = move || PluginBuilder::new(manifest.clone()).with_wasi(true).build();
-    let metadata: PluginMetadata = builder()?.call("metadata", 0)?;
-    let plugin_pool: Pool = Pool::new(builder);
+    let pool = Pool::new(builder);
     Ok(LemmyPlugin {
-      plugin_pool,
-      metadata,
+      pool,
+      filename: filename.unwrap_or(settings.file),
     })
   }
 
   fn get(&self, name: &'static str) -> LemmyResult<Option<PoolPlugin>> {
     let p = self
-      .plugin_pool
+      .pool
       .get(GET_PLUGIN_TIMEOUT)?
       .ok_or(anyhow!("plugin timeout"))?;
 
@@ -135,25 +208,13 @@ impl LemmyPlugin {
 impl LemmyPlugins {
   /// Load and initialize all plugins
   fn get_or_init() -> Self {
-    // TODO: use std::sync::OnceLock once get_mut_or_init() is stabilized
-    // https://doc.rust-lang.org/std/sync/struct.OnceLock.html#method.get_mut_or_init
-    static PLUGINS: Lazy<LemmyPlugins> = Lazy::new(|| {
-      let dir = env::var("LEMMY_PLUGIN_PATH").unwrap_or("plugins".to_string());
-      let plugin_paths = match read_dir(dir) {
-        Ok(r) => r,
-        Err(e) => {
-          warn!("Failed to read plugin folder: {e}");
-          return LemmyPlugins(vec![]);
-        }
-      };
-
-      let plugins = plugin_paths
-        .flat_map(Result::ok)
-        .map(|p| p.path())
-        .filter(|p| p.extension() == Some(OsStr::new("json")))
+    static PLUGINS: LazyLock<LemmyPlugins> = LazyLock::new(|| {
+      let plugins: Vec<_> = SETTINGS
+        .plugins
+        .iter()
         .flat_map(|p| {
-          LemmyPlugin::init(&p)
-            .inspect_err(|e| warn!("Failed to load plugin {}: {e}", p.to_string_lossy()))
+          LemmyPlugin::init(p.clone())
+            .inspect_err(|e| warn!("Failed to load plugin {}: {e}", p.file))
             .ok()
         })
         .collect();
@@ -165,7 +226,7 @@ impl LemmyPlugins {
   /// Return early if no plugin is loaded for the given hook name
   fn function_exists(&self, name: &'static str) -> bool {
     self.0.iter().any(|p| {
-      p.plugin_pool
+      p.pool
         .function_exists(name, GET_PLUGIN_TIMEOUT)
         .unwrap_or(false)
     })

@@ -1,0 +1,41 @@
+{
+  "id": "https://enterprise.lemmy.ml/post/55143",
+  "type": "Page",
+  "attributedTo": "https://enterprise.lemmy.ml/u/picard",
+  "to": [
+    "https://enterprise.lemmy.ml/c/tenforward",
+    "https://www.w3.org/ns/activitystreams#Public"
+  ],
+  "audience": "https://enterprise.lemmy.ml/c/tenforward",
+  "name": "Post title",
+  "content": "<p>This is a post in the /c/tenforward community</p>\n",
+  "mediaType": "text/html",
+  "source": {
+    "content": "This is a post in the /c/tenforward community",
+    "mediaType": "text/markdown"
+  },
+  "attachment": [
+    {
+      "type": "Link",
+      "href": "https://enterprise.lemmy.ml/pictrs/image/eOtYb9iEiB.png"
+    }
+  ],
+  "image": {
+    "type": "Image",
+    "url": "https://enterprise.lemmy.ml/pictrs/image/eOtYb9iEiB.png"
+  },
+  "sensitive": false,
+  "language": {
+    "identifier": "fr",
+    "name": "Français"
+  },
+  "tag": [
+    {
+      "type": "CommunityPostTag",
+      "id": "https://enterprise.lemmy.ml/c/tenforward/tag/news",
+      "preferredUsername": "news"
+    }
+  ],
+  "context": "https://enterprise.lemmy.ml/post/55143/context",
+  "published": "2021-02-26T12:35:34.292626Z"
+}

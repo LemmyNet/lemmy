@@ -1,5 +1,5 @@
 use crate::{error::LemmyResult, location_info};
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use deser_hjson::from_str;
 use std::{env, fs, sync::LazyLock};
 use structs::{PictrsConfig, Settings};
@@ -19,7 +19,9 @@ pub static SETTINGS: LazyLock<Settings> = LazyLock::new(|| {
     println!(
       "LEMMY_INITIALIZE_WITH_DEFAULT_SETTINGS was set, any configuration file has been ignored."
     );
-    println!("Use with other environment variables to configure this instance further; e.g. LEMMY_DATABASE_URL.");
+    println!(
+      "Use with other environment variables to configure this instance further; e.g. LEMMY_DATABASE_URL."
+    );
     Settings::default()
   } else {
     Settings::init().expect("Failed to load settings file, see documentation (https://join-lemmy.org/docs/en/administration/configuration.html).")
@@ -54,11 +56,7 @@ impl Settings {
 
   /// Returns either "http" or "https", depending on tls_enabled setting
   fn get_protocol_string(&self) -> &'static str {
-    if self.tls_enabled {
-      "https"
-    } else {
-      "http"
-    }
+    if self.tls_enabled { "https" } else { "http" }
   }
 
   /// Returns something like `http://localhost` or `https://lemmy.ml`,
@@ -127,6 +125,7 @@ mod tests {
   #[test]
   fn test_load_config() -> LemmyResult<()> {
     Settings::init()?;
+
     Ok(())
   }
 }

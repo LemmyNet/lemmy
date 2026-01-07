@@ -1,9 +1,0 @@
-{
-  "id": "http://lemmy-alpha:8541/activities/lock/cb48761d-9e8c-42ce-aacb-b4bbe6408db2",
-  "actor": "http://lemmy-alpha:8541/u/lemmy_alpha",
-  "to": ["https://www.w3.org/ns/activitystreams#Public"],
-  "object": "http://lemmy-alpha:8541/post/2",
-  "cc": ["http://lemmy-alpha:8541/c/main"],
-  "type": "Lock",
-  "summary": "A reason for the lock"
-}

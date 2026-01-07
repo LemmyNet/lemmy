@@ -1,15 +1,6 @@
-use crate::SiteView;
-use chrono::{DateTime, Utc};
+use crate::{ReadableFederationState, SiteView};
 use lemmy_db_schema::{
-  newtypes::{
-    InstanceId,
-    LanguageId,
-    MultiCommunityId,
-    OAuthProviderId,
-    PaginationCursor,
-    TaglineId,
-  },
-  sensitive::SensitiveString,
+  newtypes::{LanguageId, MultiCommunityId, OAuthProviderId, TaglineId},
   source::{
     comment::Comment,
     community::Community,
@@ -18,35 +9,38 @@ use lemmy_db_schema::{
     local_site_url_blocklist::LocalSiteUrlBlocklist,
     local_user::LocalUser,
     login_token::LoginToken,
-    oauth_provider::{OAuthProvider, PublicOAuthProvider},
+    oauth_provider::{AdminOAuthProvider, PublicOAuthProvider},
     person::Person,
     post::Post,
     private_message::PrivateMessage,
     tagline::Tagline,
   },
 };
-use lemmy_db_schema_file::enums::{
-  CommentSortType,
-  FederationMode,
-  ListingType,
-  PostListingMode,
-  PostSortType,
-  RegistrationMode,
-  VoteShow,
+use lemmy_db_schema_file::{
+  InstanceId,
+  enums::{
+    CommentSortType,
+    FederationMode,
+    ListingType,
+    PostListingMode,
+    PostSortType,
+    RegistrationMode,
+    VoteShow,
+  },
 };
+use lemmy_db_views_community::MultiCommunityView;
 use lemmy_db_views_community_follower::CommunityFollowerView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
-use lemmy_db_views_post::PostView;
-use lemmy_db_views_readable_federation_state::ReadableFederationState;
+use lemmy_diesel_utils::{pagination::PaginationCursor, sensitive::SensitiveString};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
 #[cfg(feature = "full")]
 use {
   extism::FromBytes,
-  extism_convert::{encoding, Json},
+  extism_convert::{Json, encoding},
 };
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
@@ -55,7 +49,7 @@ use {
 pub struct AdminAllowInstanceParams {
   pub instance: String,
   pub allow: bool,
-  pub reason: Option<String>,
+  pub reason: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
@@ -64,8 +58,11 @@ pub struct AdminAllowInstanceParams {
 pub struct AdminBlockInstanceParams {
   pub instance: String,
   pub block: bool,
-  pub reason: Option<String>,
-  pub expires_at: Option<DateTime<Utc>>,
+  pub reason: String,
+  /// A time that the block will expire, in unix epoch seconds.
+  ///
+  /// An i64 unix timestamp is used for a simpler API client implementation.
+  pub expires_at: Option<i64>,
 }
 
 #[skip_serializing_none]
@@ -83,6 +80,8 @@ pub struct AuthenticateWithOauth {
   /// An answer is mandatory if require application is enabled on the server
   pub answer: Option<String>,
   pub pkce_code_verifier: Option<String>,
+  /// If this is true the login is valid forever, otherwise it expires after one week.
+  pub stay_logged_in: Option<bool>,
 }
 
 #[skip_serializing_none]
@@ -280,24 +279,27 @@ pub struct EditSite {
   pub suggested_communities: Option<MultiCommunityId>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// A list of federated instances.
-pub struct FederatedInstances {
-  pub linked: Vec<InstanceWithFederationState>,
-  pub allowed: Vec<InstanceWithFederationState>,
-  pub blocked: Vec<InstanceWithFederationState>,
+#[cfg_attr(feature = "ts-rs", ts(export))]
+pub enum GetFederatedInstancesKind {
+  #[default]
+  All,
+  Linked,
+  Allowed,
+  Blocked,
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// A response of federated instances.
-pub struct GetFederatedInstancesResponse {
-  /// Optional, because federation may be disabled.
-  pub federated_instances: Option<FederatedInstances>,
+pub struct GetFederatedInstances {
+  pub domain_filter: Option<String>,
+  pub kind: GetFederatedInstancesKind,
+  pub page_cursor: Option<PaginationCursor>,
+  pub limit: Option<i64>,
 }
 
 #[skip_serializing_none]
@@ -315,12 +317,16 @@ pub struct GetSiteResponse {
   pub tagline: Option<Tagline>,
   /// A list of external auth methods your site supports.
   pub oauth_providers: Vec<PublicOAuthProvider>,
-  pub admin_oauth_providers: Vec<OAuthProvider>,
+  pub admin_oauth_providers: Vec<AdminOAuthProvider>,
   pub blocked_urls: Vec<LocalSiteUrlBlocklist>,
   // If true then uploads for post images or markdown images are disabled. Only avatars, icons and
   // banners can be set.
   pub image_upload_disabled: bool,
   pub active_plugins: Vec<PluginMetadata>,
+  /// The number of seconds between the last application published, and approved / denied time.
+  ///
+  /// Useful for estimating when your application will be approved.
+  pub last_application_duration_seconds: Option<i64>,
 }
 
 #[skip_serializing_none]
@@ -364,6 +370,8 @@ pub struct ChangePassword {
   pub new_password: SensitiveString,
   pub new_password_verify: SensitiveString,
   pub old_password: SensitiveString,
+  /// If this is true the login is valid forever, otherwise it expires after one week.
+  pub stay_logged_in: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
@@ -412,6 +420,8 @@ pub struct Login {
   pub password: SensitiveString,
   /// May be required, if totp is enabled for their account.
   pub totp_2fa_token: Option<String>,
+  /// If this is true the login is valid forever, otherwise it expires after one week.
+  pub stay_logged_in: Option<bool>,
 }
 
 #[skip_serializing_none]
@@ -437,6 +447,7 @@ pub struct MyUserInfo {
   pub local_user_view: LocalUserView,
   pub follows: Vec<CommunityFollowerView>,
   pub moderates: Vec<CommunityModeratorView>,
+  pub multi_community_follows: Vec<MultiCommunityView>,
   pub community_blocks: Vec<Community>,
   pub instance_communities_blocks: Vec<Instance>,
   pub instance_persons_blocks: Vec<Instance>,
@@ -523,8 +534,6 @@ pub struct SaveUserSettings {
   pub open_links_in_new_tab: Option<bool>,
   /// Enable infinite scroll
   pub infinite_scroll_enabled: Option<bool>,
-  /// Whether to allow keyboard navigation (for browsing and interacting with posts and comments).
-  pub enable_keyboard_navigation: Option<bool>,
   /// Whether user avatars or inline images in the UI that are gifs should be allowed to play or
   /// should be paused
   pub enable_animated_images: Option<bool>,
@@ -533,7 +542,7 @@ pub struct SaveUserSettings {
   /// Whether to auto-collapse bot comments.
   pub collapse_bot_comments: Option<bool>,
   /// Some vote display mode settings
-  pub show_scores: Option<bool>,
+  pub show_score: Option<bool>,
   pub show_upvotes: Option<bool>,
   pub show_downvotes: Option<VoteShow>,
   pub show_upvote_percentage: Option<bool>,
@@ -586,52 +595,6 @@ pub struct VerifyEmail {
   pub token: String,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// Gets your hidden posts.
-pub struct ListPersonHidden {
-  pub page_cursor: Option<PaginationCursor>,
-  pub page_back: Option<bool>,
-  pub limit: Option<i64>,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// You hidden posts response.
-pub struct ListPersonHiddenResponse {
-  pub hidden: Vec<PostView>,
-  /// the pagination cursor to use to fetch the next page
-  pub next_page: Option<PaginationCursor>,
-  pub prev_page: Option<PaginationCursor>,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// Gets your read posts.
-pub struct ListPersonRead {
-  pub page_cursor: Option<PaginationCursor>,
-  pub page_back: Option<bool>,
-  pub limit: Option<i64>,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// You read posts response.
-pub struct ListPersonReadResponse {
-  pub read: Vec<PostView>,
-  /// the pagination cursor to use to fetch the next page
-  pub next_page: Option<PaginationCursor>,
-  pub prev_page: Option<PaginationCursor>,
-}
-
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
@@ -655,19 +618,7 @@ pub struct DeleteTagline {
 /// Fetches a list of taglines.
 pub struct ListTaglines {
   pub page_cursor: Option<PaginationCursor>,
-  pub page_back: Option<bool>,
   pub limit: Option<i64>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// A response for taglines.
-pub struct ListTaglinesResponse {
-  pub taglines: Vec<Tagline>,
-  /// the pagination cursor to use to fetch the next page
-  pub next_page: Option<PaginationCursor>,
-  pub prev_page: Option<PaginationCursor>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -692,9 +643,19 @@ pub struct UpdateTagline {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct PluginMetadata {
-  name: String,
-  url: Url,
-  description: String,
+  pub name: String,
+  pub url: Option<Url>,
+  pub description: Option<String>,
+}
+
+impl PluginMetadata {
+  pub fn new(name: &'static str, url: &'static str, description: &'static str) -> Self {
+    Self {
+      name: name.to_string(),
+      url: url.parse().ok(),
+      description: Some(description.to_string()),
+    }
+  }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
@@ -709,7 +670,7 @@ pub struct ResolveObject {
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
-#[serde(tag = "type_")]
+#[serde(tag = "type_", rename_all = "snake_case")]
 pub enum PostOrCommentOrPrivateMessage {
   Post(Post),
   Comment(Comment),
@@ -753,6 +714,10 @@ pub struct UserSettingsBackup {
   pub blocked_instances_communities: Vec<String>,
   #[serde(default)]
   pub blocked_instances_persons: Vec<String>,
+  #[serde(default)]
+  pub blocking_keywords: Vec<String>,
+  #[serde(default)]
+  pub discussion_languages: Vec<String>,
 }
 
 #[skip_serializing_none]
@@ -781,4 +746,18 @@ impl Default for SuccessResponse {
   fn default() -> Self {
     SuccessResponse { success: true }
   }
+}
+
+/// Contains the amount of unread items of various types. For normal users this means the number of
+/// unread notifications, mods and admins get additional unread counts for reports, registration
+/// applications and pending follows to private communities.
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+pub struct UnreadCountsResponse {
+  pub notification_count: i64,
+  pub report_count: Option<i64>,
+  pub pending_follow_count: Option<i64>,
+  pub registration_application_count: Option<i64>,
 }

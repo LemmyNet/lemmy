@@ -5,19 +5,25 @@ use lemmy_api_utils::{
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_bot_account, check_community_user_action, check_local_vote_mode},
+  utils::{
+    check_bot_account,
+    check_community_user_action,
+    check_local_user_valid,
+    check_local_vote_mode,
+  },
 };
 use lemmy_db_schema::{
   newtypes::PostOrCommentId,
   source::{
     comment::{CommentActions, CommentLikeForm},
+    notification::Notification,
     person::PersonActions,
   },
   traits::Likeable,
 };
 use lemmy_db_views_comment::{
-  api::{CommentResponse, CreateCommentLike},
   CommentView,
+  api::{CommentResponse, CreateCommentLike},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
@@ -25,17 +31,18 @@ use lemmy_utils::error::LemmyResult;
 use std::ops::Deref;
 
 pub async fn like_comment(
-  data: Json<CreateCommentLike>,
+  Json(data): Json<CreateCommentLike>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponse>> {
+  check_local_user_valid(&local_user_view)?;
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   let local_instance_id = local_user_view.person.instance_id;
   let comment_id = data.comment_id;
   let my_person_id = local_user_view.person.id;
 
   check_local_vote_mode(
-    data.score,
+    data.is_upvote,
     PostOrCommentId::Comment(comment_id),
     &local_site,
     my_person_id,
@@ -51,7 +58,7 @@ pub async fn like_comment(
     local_instance_id,
   )
   .await?;
-  let previous_score = orig_comment.comment_actions.and_then(|p| p.like_score);
+  let previous_is_upvote = orig_comment.comment_actions.and_then(|p| p.vote_is_upvote);
 
   check_community_user_action(
     &local_user_view,
@@ -60,43 +67,37 @@ pub async fn like_comment(
   )
   .await?;
 
-  let mut like_form = CommentLikeForm::new(my_person_id, data.comment_id, data.score);
+  let mut like_form = CommentLikeForm::new(data.comment_id, my_person_id, data.is_upvote);
+  like_form = plugin_hook_before("comment_before_vote", like_form).await?;
+  let like = CommentActions::like(&mut context.pool(), &like_form).await?;
+  PersonActions::like(
+    &mut context.pool(),
+    my_person_id,
+    orig_comment.creator.id,
+    previous_is_upvote,
+    data.is_upvote,
+  )
+  .await?;
 
-  // Remove any likes first
-  CommentActions::remove_like(&mut context.pool(), my_person_id, comment_id).await?;
-  if let Some(previous_score) = previous_score {
-    PersonActions::remove_like(
-      &mut context.pool(),
-      my_person_id,
-      orig_comment.creator.id,
-      previous_score,
-    )
-    .await
-    // Ignore errors, since a previous_like of zero throws an error
-    .ok();
-  }
+  plugin_hook_after("comment_after_vote", &like);
 
-  if like_form.like_score != 0 {
-    like_form = plugin_hook_before("before_comment_vote", like_form).await?;
-    let like = CommentActions::like(&mut context.pool(), &like_form).await?;
-    PersonActions::like(
-      &mut context.pool(),
-      my_person_id,
-      orig_comment.creator.id,
-      like_form.like_score,
-    )
-    .await?;
-
-    plugin_hook_after("after_comment_vote", &like)?;
-  }
+  // Mark any notification as read
+  Notification::mark_read_by_comment_and_recipient(
+    &mut context.pool(),
+    comment_id,
+    my_person_id,
+    true,
+  )
+  .await
+  .ok();
 
   ActivityChannel::submit_activity(
     SendActivityData::LikePostOrComment {
       object_id: orig_comment.comment.ap_id,
       actor: local_user_view.person.clone(),
       community: orig_comment.community,
-      previous_score,
-      new_score: data.score,
+      previous_is_upvote,
+      new_is_upvote: data.is_upvote,
     },
     &context,
   )?;

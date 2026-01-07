@@ -20,13 +20,13 @@ SELECT
     votes.person_id,
     votes.creator_id,
     now(),
-    count(*) FILTER (WHERE votes.like_score = 1) AS upvotes,
-    count(*) FILTER (WHERE votes.like_score != 1) AS downvotes
+    count(*) FILTER (WHERE votes.vote_is_upvote) AS upvotes,
+    count(*) FILTER (WHERE NOT votes.vote_is_upvote) AS downvotes
 FROM (
     SELECT
         pa.person_id,
         p.creator_id,
-        like_score
+        vote_is_upvote
     FROM
         post_actions pa
         INNER JOIN post p ON pa.post_id = p.id
@@ -35,7 +35,7 @@ FROM (
         SELECT
             ca.person_id,
             c.creator_id,
-            like_score
+            vote_is_upvote
         FROM
             comment_actions ca
         INNER JOIN comment c ON ca.comment_id = c.id

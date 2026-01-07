@@ -1,0 +1,7 @@
+{
+  "actor": "http://enterprise.lemmy.ml/u/lemmy_beta",
+  "object": "http://ds9.lemmy.ml/post/1",
+  "audience": "https://enterprise.lemmy.ml/c/tenforward",
+  "type": "Dislike",
+  "id": "http://enterprise.lemmy.ml/activities/dislike/64d40d40-a829-43a5-8247-1fb595b3ca1c"
+}

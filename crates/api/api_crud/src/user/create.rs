@@ -1,6 +1,10 @@
-use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
-use actix_web::{web::Json, HttpRequest};
-use diesel_async::{scoped_futures::ScopedFutureExt, AsyncPgConnection};
+use activitypub_federation::{
+  config::Data,
+  fetch::object_id::ObjectId,
+  http_signatures::generate_actor_keypair,
+};
+use actix_web::{HttpRequest, web::Json};
+use diesel_async::{AsyncPgConnection, scoped_futures::ScopedFutureExt};
 use lemmy_api_utils::{
   claims::Claims,
   context::LemmyContext,
@@ -8,41 +12,50 @@ use lemmy_api_utils::{
     check_email_verified,
     check_local_user_valid,
     check_registration_application,
+    generate_featured_url,
+    generate_followers_url,
     generate_inbox_url,
+    generate_moderators_url,
     honeypot_check,
     password_length_check,
     slur_regex,
   },
 };
+use lemmy_apub_objects::objects::community::ApubCommunity;
 use lemmy_db_schema::{
   newtypes::OAuthProviderId,
   source::{
     actor_language::SiteLanguage,
     captcha_answer::{CaptchaAnswer, CheckCaptchaAnswer},
+    community::{Community, CommunityActions, CommunityInsertForm, CommunityModeratorForm},
     language::Language,
     local_site::LocalSite,
     local_user::{LocalUser, LocalUserInsertForm},
     oauth_account::{OAuthAccount, OAuthAccountInsertForm},
-    oauth_provider::OAuthProvider,
+    oauth_provider::AdminOAuthProvider,
     person::{Person, PersonInsertForm},
+    post::{Post, PostActions, PostInsertForm, PostLikeForm},
     registration_application::{RegistrationApplication, RegistrationApplicationInsertForm},
   },
-  traits::{ApubActor, Crud},
-  utils::get_conn,
+  traits::{ApubActor, Likeable},
 };
 use lemmy_db_schema_file::enums::RegistrationMode;
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_person::impls::PersonQuery;
 use lemmy_db_views_registration_applications::api::Register;
 use lemmy_db_views_site::{
-  api::{AuthenticateWithOauth, LoginResponse},
   SiteView,
+  api::{AuthenticateWithOauth, LoginResponse},
 };
+use lemmy_diesel_utils::{connection::get_conn, traits::Crud};
 use lemmy_email::{
   account::send_verification_email_if_required,
   admin::send_new_applicant_email_to_admins,
+  user_language,
 };
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
+  spawn_try_task,
   utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::is_valid_actor_name,
@@ -65,7 +78,7 @@ struct TokenResponse {
 }
 
 pub async fn register(
-  data: Json<Register>,
+  Json(data): Json<Register>,
   req: HttpRequest,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<LoginResponse>> {
@@ -148,19 +161,26 @@ pub async fn register(
           ..LocalUserInsertForm::new(person.id, Some(tx_data.password.to_string()))
         };
 
-        let local_user =
-          create_local_user(conn, language_tags, local_user_form, &site_view.local_site).await?;
+        let local_user = create_local_user(
+          conn,
+          language_tags,
+          local_user_form,
+          &site_view.local_site,
+          &tx_context,
+        )
+        .await?;
 
-        if site_view.local_site.site_setup && require_registration_application {
-          if let Some(answer) = tx_data.answer.clone() {
-            // Create the registration application
-            let form = RegistrationApplicationInsertForm {
-              local_user_id: local_user.id,
-              answer,
-            };
+        if site_view.local_site.site_setup
+          && require_registration_application
+          && let Some(answer) = tx_data.answer.clone()
+        {
+          // Create the registration application
+          let form = RegistrationApplicationInsertForm {
+            local_user_id: local_user.id,
+            answer,
+          };
 
-            RegistrationApplication::create(&mut conn.into(), &form).await?;
-          }
+          RegistrationApplication::create(&mut conn.into(), &form).await?;
         }
 
         Ok(LocalUserView {
@@ -190,7 +210,7 @@ pub async fn register(
   if !local_site.site_setup
     || (!require_registration_application && !local_site.require_email_verification)
   {
-    let jwt = Claims::generate(user.local_user.id, req, &context).await?;
+    let jwt = Claims::generate(user.local_user.id, data.stay_logged_in, req, &context).await?;
     login_response.jwt = Some(jwt);
   } else {
     login_response.verify_email_sent = send_verification_email_if_required(
@@ -210,7 +230,7 @@ pub async fn register(
 }
 
 pub async fn authenticate_with_oauth(
-  data: Json<AuthenticateWithOauth>,
+  Json(data): Json<AuthenticateWithOauth>,
   req: HttpRequest,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<LoginResponse>> {
@@ -246,7 +266,7 @@ pub async fn authenticate_with_oauth(
 
   // Fetch the OAUTH provider and make sure it's enabled
   let oauth_provider_id = data.oauth_provider_id;
-  let oauth_provider = OAuthProvider::read(pool, oauth_provider_id)
+  let oauth_provider = AdminOAuthProvider::read(pool, oauth_provider_id)
     .await
     .ok()
     .ok_or(LemmyErrorType::OauthAuthorizationInvalid)?;
@@ -361,7 +381,7 @@ pub async fn authenticate_with_oauth(
               .ok_or(LemmyErrorType::RegistrationUsernameRequired)?;
 
             check_slurs(username, &slur_regex)?;
-            check_slurs_opt(&data.answer, &slur_regex)?;
+            check_slurs_opt(&tx_data.answer, &slur_regex)?;
 
             Person::check_username_taken(&mut conn.into(), username).await?;
 
@@ -377,9 +397,14 @@ pub async fn authenticate_with_oauth(
               ..LocalUserInsertForm::new(person.id, None)
             };
 
-            let local_user =
-              create_local_user(conn, language_tags, local_user_form, &site_view.local_site)
-                .await?;
+            let local_user = create_local_user(
+              conn,
+              language_tags,
+              local_user_form,
+              &site_view.local_site,
+              &tx_context,
+            )
+            .await?;
 
             // Create the oauth account
             let oauth_account_form =
@@ -392,20 +417,19 @@ pub async fn authenticate_with_oauth(
               && require_registration_application
               && !local_user.accepted_application
               && !local_user.admin
+              && let Some(answer) = tx_data.answer.clone()
             {
-              if let Some(answer) = data.answer.clone() {
-                // Create the registration application
-                RegistrationApplication::create(
-                  &mut conn.into(),
-                  &RegistrationApplicationInsertForm {
-                    local_user_id: local_user.id,
-                    answer,
-                  },
-                )
-                .await?;
+              // Create the registration application
+              RegistrationApplication::create(
+                &mut conn.into(),
+                &RegistrationApplicationInsertForm {
+                  local_user_id: local_user.id,
+                  answer,
+                },
+              )
+              .await?;
 
-                login_response.registration_created = true;
-              }
+              login_response.registration_created = true;
             }
             Ok(LocalUserView {
               person,
@@ -431,7 +455,7 @@ pub async fn authenticate_with_oauth(
   };
 
   if !login_response.registration_created && !login_response.verify_email_sent {
-    let jwt = Claims::generate(local_user.id, req, &context).await?;
+    let jwt = Claims::generate(local_user.id, data.stay_logged_in, req, &context).await?;
     login_response.jwt = Some(jwt);
   }
 
@@ -483,6 +507,7 @@ async fn create_local_user(
   language_tags: Vec<String>,
   mut local_user_form: LocalUserInsertForm,
   local_site: &LocalSite,
+  context: &Data<LemmyContext>,
 ) -> Result<LocalUser, LemmyError> {
   let conn_ = &mut conn.into();
   let all_languages = Language::read_all(conn_).await?;
@@ -513,6 +538,20 @@ async fn create_local_user(
   local_user_form.interface_language = language_tags.first().cloned();
   let inserted_local_user = LocalUser::create(conn_, &local_user_form, language_ids).await?;
 
+  // If we are setting up a new site, fetch initial communities and create welcome post.
+  if !local_site.site_setup {
+    local_user_form.admin = Some(true);
+    let no_default_data = context
+      .settings()
+      .setup
+      .as_ref()
+      .and_then(|s| s.no_default_data);
+    if !no_default_data.unwrap_or_default() {
+      create_welcome_post(inserted_local_user.clone(), context);
+      fetch_community_list(context.clone());
+    }
+  }
+
   Ok(inserted_local_user)
 }
 
@@ -529,7 +568,7 @@ fn validate_registration_answer(
 
 async fn oauth_request_access_token(
   context: &Data<LemmyContext>,
-  oauth_provider: &OAuthProvider,
+  oauth_provider: &AdminOAuthProvider,
   code: &str,
   pkce_code_verifier: Option<&str>,
   redirect_uri: &str,
@@ -569,7 +608,7 @@ async fn oauth_request_access_token(
 
 async fn oidc_get_user_info(
   context: &Data<LemmyContext>,
-  oauth_provider: &OAuthProvider,
+  oauth_provider: &AdminOAuthProvider,
   access_token: &str,
 ) -> LemmyResult<serde_json::Value> {
   // Request the user info from the OAUTH provider
@@ -614,4 +653,90 @@ fn check_code_verifier(code_verifier: &str) -> LemmyResult<()> {
   } else {
     Err(LemmyErrorType::InvalidCodeVerifier.into())
   }
+}
+
+/// Fetch list of communities from lemmyverse.net and then fetch the top communities.
+fn fetch_community_list(context: Data<LemmyContext>) {
+  spawn_try_task(async move {
+    let communities_json = include_str!(concat!(env!("OUT_DIR"), "/communities.json"));
+    let communities: Vec<ObjectId<ApubCommunity>> = serde_json::from_str(communities_json)?;
+
+    // Fetch communities themselves
+    let tasks = communities.iter().map(|c| async {
+      let context = context.reset_request_count();
+      c.dereference(&context).await.ok();
+    });
+
+    // This could be made faster by running tasks in parallel with try_join_all or
+    // FuturesUnordered. However that causes massive slowdown as each community fetch
+    // starts additional background tasks to fetch moderators, recent posts etc. So we
+    // need to run it one by one.
+    for t in tasks {
+      t.await;
+    }
+
+    Ok(())
+  })
+}
+
+fn create_welcome_post(local_user: LocalUser, context: &LemmyContext) {
+  let context = context.clone();
+
+  spawn_try_task(async move {
+    let pool = &mut context.pool();
+    let site = SiteView::read_local(pool).await?;
+    let mut admins = PersonQuery {
+      admins_only: Some(true),
+      ..Default::default()
+    }
+    .list(None, site.instance.id, &mut context.pool())
+    .await?
+    .items;
+    let initial_user = admins.pop();
+
+    let person = SiteView::read_system_account(&mut context.pool()).await?;
+
+    // Create main community
+    let community_name = "main".to_string();
+    let community_ap_id = Community::generate_local_actor_url(&community_name, context.settings())?;
+    let keypair = generate_actor_keypair()?;
+    let community_form = CommunityInsertForm {
+      ap_id: Some(community_ap_id.clone()),
+      private_key: Some(keypair.private_key),
+      followers_url: Some(generate_followers_url(&community_ap_id)?),
+      inbox_url: Some(generate_inbox_url()?),
+      moderators_url: Some(generate_moderators_url(&community_ap_id)?),
+      featured_url: Some(generate_featured_url(&community_ap_id)?),
+      ..CommunityInsertForm::new(
+        site.site.instance_id,
+        community_name,
+        "Main".to_string(),
+        keypair.public_key,
+      )
+    };
+    let community = Community::create(pool, &community_form).await?;
+
+    // Add initial admin user as community mod (not necessary but looks cleaner)
+    if let Some(initial_user) = initial_user {
+      let mod_form = CommunityModeratorForm::new(community.id, initial_user.person.id);
+      CommunityActions::join(pool, &mod_form).await?;
+    }
+
+    // Create post in this community with getting started info
+    let lang = user_language(&local_user);
+    let title = lang.welcome_post_title().to_string();
+    let body = lang.welcome_post_body().to_string();
+    let post_form = PostInsertForm {
+      body: Some(body),
+      featured_local: Some(true),
+      ..PostInsertForm::new(title, person.id, community.id)
+    };
+    let post = Post::create(pool, &post_form).await?;
+
+    // Own upvote for post
+    let like_form = PostLikeForm::new(post.id, person.id, Some(true));
+    PostActions::like(&mut context.pool(), &like_form).await?;
+
+    Ok(())
+  })
 }

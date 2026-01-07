@@ -6,19 +6,17 @@ use lemmy_api_utils::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_community_user_action,
 };
-use lemmy_db_schema::{
-  source::{
-    community::Community,
-    post::{Post, PostUpdateForm},
-  },
-  traits::Crud,
+use lemmy_db_schema::source::{
+  community::Community,
+  post::{Post, PostUpdateForm},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::api::{DeletePost, PostResponse};
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn delete_post(
-  data: Json<DeletePost>,
+  Json(data): Json<DeletePost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
@@ -50,7 +48,7 @@ pub async fn delete_post(
   .await?;
 
   ActivityChannel::submit_activity(
-    SendActivityData::DeletePost(post, local_user_view.person.clone(), data.0),
+    SendActivityData::DeletePost(post, local_user_view.person.clone(), community),
     &context,
   )?;
 

@@ -1,13 +1,13 @@
 use super::link_rule::Link;
 use crate::{settings::SETTINGS, utils::markdown::link_rule};
 use markdown_it::{
+  MarkdownIt,
+  NodeValue,
   parser::linkfmt::LinkFormatter,
   plugins::cmark::{
     block::fence,
     inline::{image, image::Image},
   },
-  MarkdownIt,
-  NodeValue,
 };
 use std::sync::LazyLock;
 use url::Url;
@@ -78,14 +78,14 @@ fn find_urls<T: NodeValue + UrlAndTitle>(src: &str) -> Vec<(usize, usize)> {
   let ast = PARSER.parse(src);
   let mut links_offsets = vec![];
   ast.walk(|node, _depth| {
-    if let Some(image) = node.cast::<T>() {
-      if let Some(srcmap) = node.srcmap {
-        let (_, node_offset) = srcmap.get_byte_offsets();
-        let start_offset = node_offset - image.url_len() - 1 - image.title_len();
-        let end_offset = node_offset - 1;
+    if let Some(image) = node.cast::<T>()
+      && let Some(srcmap) = node.srcmap
+    {
+      let (_, node_offset) = srcmap.get_byte_offsets();
+      let start_offset = node_offset - image.url_len() - 1 - image.title_len();
+      let end_offset = node_offset - 1;
 
-        links_offsets.push((start_offset, end_offset));
-      }
+      links_offsets.push((start_offset, end_offset));
     }
   });
   links_offsets
@@ -156,54 +156,49 @@ mod tests {
 
   #[test]
   fn test_markdown_proxy_images() {
-    let tests: Vec<_> =
-      vec![
-        (
-          "remote image proxied",
-          "![link](http://example.com/image.jpg)",
-          "![link](https://lemmy-alpha/api/v4/image/proxy?url=http%3A%2F%2Fexample.com%2Fimage.jpg)",
-        ),
-        (
-          "local image unproxied",
-          "![link](http://lemmy-alpha/image.jpg)",
-          "![link](http://lemmy-alpha/image.jpg)",
-        ),
-        (
-          "multiple image links",
-          "![link](http://example.com/image1.jpg) ![link](http://example.com/image2.jpg)",
-          "![link](https://lemmy-alpha/api/v4/image/proxy?url=http%3A%2F%2Fexample.com%2Fimage1.jpg) ![link](https://lemmy-alpha/api/v4/image/proxy?url=http%3A%2F%2Fexample.com%2Fimage2.jpg)",
-        ),
-        (
-          "empty link handled",
-          "![image]()",
-          "![image]()"
-        ),
-        (
-          "empty label handled",
-          "![](http://example.com/image.jpg)",
-          "![](https://lemmy-alpha/api/v4/image/proxy?url=http%3A%2F%2Fexample.com%2Fimage.jpg)"
-        ),
-        (
-          "invalid image link removed",
-          "![image](http-not-a-link)",
-          "![image]()"
-        ),
-        (
-          "label with nested markdown handled",
-          "![a *b* c](http://example.com/image.jpg)",
-          "![a *b* c](https://lemmy-alpha/api/v4/image/proxy?url=http%3A%2F%2Fexample.com%2Fimage.jpg)"
-        ),
-        (
-          "custom emoji support",
-          r#"![party-blob](https://www.hexbear.net/pictrs/image/83405746-0620-4728-9358-5f51b040ffee.gif "emoji party-blob")"#,
-          r#"![party-blob](https://lemmy-alpha/api/v4/image/proxy?url=https%3A%2F%2Fwww.hexbear.net%2Fpictrs%2Fimage%2F83405746-0620-4728-9358-5f51b040ffee.gif "emoji party-blob")"#
-        ),
-        (
-          "image with special chars",
-          "ითხოვს ![ითხოვს](http://example.com/ითხოვს%C3%A4.jpg)",
-          "ითხოვს ![ითხოვს](https://lemmy-alpha/api/v4/image/proxy?url=http%3A%2F%2Fexample.com%2F%E1%83%98%E1%83%97%E1%83%AE%E1%83%9D%E1%83%95%E1%83%A1%25C3%25A4.jpg)",
-        ),
-      ];
+    let tests: Vec<_> = vec![
+      (
+        "remote image proxied",
+        "![link](http://example.com/image.jpg)",
+        "![link](https://lemmy-alpha/api/v4/image/proxy?url=http%3A%2F%2Fexample.com%2Fimage.jpg)",
+      ),
+      (
+        "local image unproxied",
+        "![link](http://lemmy-alpha/image.jpg)",
+        "![link](http://lemmy-alpha/image.jpg)",
+      ),
+      (
+        "multiple image links",
+        "![link](http://example.com/image1.jpg) ![link](http://example.com/image2.jpg)",
+        "![link](https://lemmy-alpha/api/v4/image/proxy?url=http%3A%2F%2Fexample.com%2Fimage1.jpg) ![link](https://lemmy-alpha/api/v4/image/proxy?url=http%3A%2F%2Fexample.com%2Fimage2.jpg)",
+      ),
+      ("empty link handled", "![image]()", "![image]()"),
+      (
+        "empty label handled",
+        "![](http://example.com/image.jpg)",
+        "![](https://lemmy-alpha/api/v4/image/proxy?url=http%3A%2F%2Fexample.com%2Fimage.jpg)",
+      ),
+      (
+        "invalid image link removed",
+        "![image](http-not-a-link)",
+        "![image]()",
+      ),
+      (
+        "label with nested markdown handled",
+        "![a *b* c](http://example.com/image.jpg)",
+        "![a *b* c](https://lemmy-alpha/api/v4/image/proxy?url=http%3A%2F%2Fexample.com%2Fimage.jpg)",
+      ),
+      (
+        "custom emoji support",
+        r#"![party-blob](https://www.hexbear.net/pictrs/image/83405746-0620-4728-9358-5f51b040ffee.gif "emoji party-blob")"#,
+        r#"![party-blob](https://lemmy-alpha/api/v4/image/proxy?url=https%3A%2F%2Fwww.hexbear.net%2Fpictrs%2Fimage%2F83405746-0620-4728-9358-5f51b040ffee.gif "emoji party-blob")"#,
+      ),
+      (
+        "image with special chars",
+        "ითხოვს ![ითხოვს](http://example.com/ითხოვს%C3%A4.jpg)",
+        "ითხოვს ![ითხოვს](https://lemmy-alpha/api/v4/image/proxy?url=http%3A%2F%2Fexample.com%2F%E1%83%98%E1%83%97%E1%83%AE%E1%83%9D%E1%83%95%E1%83%A1%25C3%25A4.jpg)",
+      ),
+    ];
 
     tests.iter().for_each(|&(msg, input, expected)| {
       let result = markdown_rewrite_image_links(input.to_string());

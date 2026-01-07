@@ -1,6 +1,6 @@
 use actix_web::{
-  web::{Data, Json},
   HttpRequest,
+  web::{Data, Json},
 };
 use lemmy_api_utils::{
   context::LemmyContext,

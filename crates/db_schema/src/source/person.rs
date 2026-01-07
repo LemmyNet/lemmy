@@ -1,13 +1,11 @@
-use crate::{
-  newtypes::{DbUrl, InstanceId, PersonId},
-  sensitive::SensitiveString,
-  source::placeholder_apub_url,
-};
+use crate::source::placeholder_apub_url;
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::{person, person_actions};
+use lemmy_db_schema_file::{InstanceId, PersonId};
+use lemmy_diesel_utils::{dburl::DbUrl, sensitive::SensitiveString};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -135,15 +133,15 @@ pub struct PersonUpdateForm {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct PersonActions {
   #[serde(skip)]
+  pub followed_at: Option<DateTime<Utc>>,
+  /// When the person was blocked.
+  pub blocked_at: Option<DateTime<Utc>>,
+  #[serde(skip)]
   pub person_id: PersonId,
   #[serde(skip)]
   pub target_id: PersonId,
   #[serde(skip)]
-  pub followed_at: Option<DateTime<Utc>>,
-  #[serde(skip)]
   pub follow_pending: Option<bool>,
-  /// When the person was blocked.
-  pub blocked_at: Option<DateTime<Utc>>,
   /// When the person was noted.
   pub noted_at: Option<DateTime<Utc>>,
   /// A note about the person.

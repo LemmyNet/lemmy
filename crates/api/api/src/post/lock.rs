@@ -3,25 +3,24 @@ use actix_web::web::Json;
 use lemmy_api_utils::{
   build_response::build_post_response,
   context::LemmyContext,
+  notify::notify_mod_action,
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_community_mod_action,
 };
-use lemmy_db_schema::{
-  source::{
-    mod_log::moderator::{ModLockPost, ModLockPostForm},
-    post::{Post, PostUpdateForm},
-  },
-  traits::Crud,
+use lemmy_db_schema::source::{
+  modlog::{Modlog, ModlogInsertForm},
+  post::{Post, PostUpdateForm},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::{
-  api::{LockPost, PostResponse},
   PostView,
+  api::{LockPost, PostResponse},
 };
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn lock_post(
-  data: Json<LockPost>,
+  Json(data): Json<LockPost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
@@ -59,13 +58,14 @@ pub async fn lock_post(
   .await?;
 
   // Mod tables
-  let form = ModLockPostForm {
-    mod_person_id: local_user_view.person.id,
-    post_id: data.post_id,
-    locked: Some(locked),
-    reason: data.reason.clone(),
-  };
-  ModLockPost::create(&mut context.pool(), &form).await?;
+  let form = ModlogInsertForm::mod_lock_post(
+    local_user_view.person.id,
+    &orig_post.post,
+    locked,
+    &data.reason,
+  );
+  let action = Modlog::create(&mut context.pool(), &[form]).await?;
+  notify_mod_action(action.clone(), &context);
 
   ActivityChannel::submit_activity(
     SendActivityData::LockPost(

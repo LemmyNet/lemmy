@@ -8,29 +8,16 @@ extern crate diesel_derive_newtype;
 #[cfg(feature = "full")]
 pub mod impls;
 pub mod newtypes;
-pub mod sensitive;
+pub mod source;
 #[cfg(feature = "full")]
 pub mod test_data;
-#[cfg(feature = "full")]
-pub mod aliases {
-  use lemmy_db_schema_file::schema::{community_actions, instance_actions, local_user, person};
-  diesel::alias!(
-    community_actions as creator_community_actions: CreatorCommunityActions,
-    instance_actions as creator_home_instance_actions: CreatorHomeInstanceActions,
-    instance_actions as creator_community_instance_actions: CreatorCommunityInstanceActions,
-    instance_actions as creator_local_instance_actions: CreatorLocalInstanceActions,
-    instance_actions as my_instance_persons_actions: MyInstancePersonsActions,
-    local_user as creator_local_user: CreatorLocalUser,
-    person as person1: Person1,
-    person as person2: Person2,
-  );
-}
-pub mod source;
 #[cfg(feature = "full")]
 pub mod traits;
 #[cfg(feature = "full")]
 pub mod utils;
 
+#[cfg(feature = "full")]
+use lemmy_db_schema_file::aliases;
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
 #[cfg(feature = "full")]
@@ -42,6 +29,7 @@ use {
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
 )]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// The search sort types.
@@ -54,6 +42,7 @@ pub enum SearchSortType {
 
 /// The community sort types. See here for descriptions: https://join-lemmy.org/docs/en/users/03-votes-and-ranking.html
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 pub enum CommunitySortType {
@@ -73,9 +62,40 @@ pub enum CommunitySortType {
   SubscribersLocal,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
+pub enum MultiCommunitySortType {
+  New,
+  Old,
+  NameAsc,
+  NameDesc,
+  Communities,
+  #[default]
+  Subscribers,
+  SubscribersLocal,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
+/// A listing type for multi-community fetches.
+pub enum MultiCommunityListingType {
+  /// Content from your own site, as well as all connected / federated sites.
+  All,
+  /// Content from your site only.
+  #[default]
+  Local,
+  /// Content only from communities you've subscribed to.
+  Subscribed,
+}
+
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash,
 )]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// The type of content returned from a search.
@@ -90,32 +110,7 @@ pub enum SearchType {
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
-/// A list of possible types for the various modlog actions.
-pub enum ModlogActionType {
-  All,
-  ModRemovePost,
-  ModLockPost,
-  ModFeaturePost,
-  ModRemoveComment,
-  ModLockComment,
-  AdminRemoveCommunity,
-  ModBanFromCommunity,
-  ModAddToCommunity,
-  ModTransferCommunity,
-  AdminAdd,
-  AdminBan,
-  ModChangeCommunityVisibility,
-  AdminPurgePerson,
-  AdminPurgeCommunity,
-  AdminPurgePost,
-  AdminPurgeComment,
-  AdminBlockInstance,
-  AdminAllowInstance,
-}
-
-#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// A list of possible types for the inbox.
@@ -125,9 +120,11 @@ pub enum NotificationDataType {
   Mention,
   PrivateMessage,
   Subscribed,
+  ModAction,
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// A list of possible types for a person's content.
@@ -138,6 +135,7 @@ pub enum PersonContentType {
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// A list of possible types for reports.
@@ -152,6 +150,7 @@ pub enum ReportType {
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash,
 )]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// The feature type for a post.
@@ -166,6 +165,7 @@ pub enum PostFeatureType {
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash,
 )]
+#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// The like_type for a persons liked content.
@@ -180,9 +180,7 @@ pub enum LikeType {
 /// vec on failure.
 #[macro_export]
 macro_rules! assert_length {
-  ($len:expr, $vec:expr) => {{
-    assert_eq!($len, $vec.len(), "Vec has wrong length: {:?}", $vec)
-  }};
+  ($len:expr, $vec:expr) => {{ assert_eq!($len, $vec.len(), "Vec has wrong length: {:?}", $vec) }};
 }
 
 #[cfg(feature = "full")]
@@ -242,9 +240,9 @@ pub type Person2AliasAllColumnsTuple = (
 #[cfg(feature = "full")]
 /// A helper tuple for more my instance persons actions
 pub type MyInstancePersonsActionsAllColumnsTuple = (
+  AliasedField<aliases::MyInstancePersonsActions, instance_actions::blocked_communities_at>,
   AliasedField<aliases::MyInstancePersonsActions, instance_actions::person_id>,
   AliasedField<aliases::MyInstancePersonsActions, instance_actions::instance_id>,
-  AliasedField<aliases::MyInstancePersonsActions, instance_actions::blocked_communities_at>,
   AliasedField<aliases::MyInstancePersonsActions, instance_actions::received_ban_at>,
   AliasedField<aliases::MyInstancePersonsActions, instance_actions::ban_expires_at>,
   AliasedField<aliases::MyInstancePersonsActions, instance_actions::blocked_persons_at>,

@@ -1,9 +1,8 @@
 use crate::context::LemmyContext;
 use activitypub_federation::config::Data;
 use either::Either;
-use futures::future::BoxFuture;
 use lemmy_db_schema::{
-  newtypes::{CommunityId, DbUrl, PersonId},
+  newtypes::CommunityId,
   source::{
     comment::Comment,
     community::Community,
@@ -14,39 +13,34 @@ use lemmy_db_schema::{
     site::Site,
   },
 };
+use lemmy_db_schema_file::PersonId;
 use lemmy_db_views_community::api::BanFromCommunity;
-use lemmy_db_views_post::api::DeletePost;
 use lemmy_db_views_private_message::PrivateMessageView;
+use lemmy_diesel_utils::dburl::DbUrl;
 use lemmy_utils::error::LemmyResult;
-use std::sync::{LazyLock, OnceLock};
+use std::sync::LazyLock;
 use tokio::{
   sync::{
+    Mutex,
     mpsc,
     mpsc::{UnboundedReceiver, UnboundedSender, WeakUnboundedSender},
-    Mutex,
   },
   task::JoinHandle,
 };
 use url::Url;
 
-type MatchOutgoingActivitiesBoxed =
-  Box<for<'a> fn(SendActivityData, &'a Data<LemmyContext>) -> BoxFuture<'a, LemmyResult<()>>>;
-
-/// This static is necessary so that the api_common crates don't need to depend on lemmy_apub
-pub static MATCH_OUTGOING_ACTIVITIES: OnceLock<MatchOutgoingActivitiesBoxed> = OnceLock::new();
-
 #[derive(Debug)]
 pub enum SendActivityData {
   CreatePost(Post),
   UpdatePost(Post),
-  DeletePost(Post, Person, DeletePost),
+  DeletePost(Post, Person, Community),
   RemovePost {
     post: Post,
     moderator: Person,
-    reason: Option<String>,
+    reason: String,
     removed: bool,
   },
-  LockPost(Post, Person, bool, Option<String>),
+  LockPost(Post, Person, bool, String),
   FeaturePost(Post, Person, bool),
   CreateComment(Comment),
   UpdateComment(Comment),
@@ -55,15 +49,15 @@ pub enum SendActivityData {
     comment: Comment,
     moderator: Person,
     community: Community,
-    reason: Option<String>,
+    reason: String,
   },
-  LockComment(Comment, Person, bool, Option<String>),
+  LockComment(Comment, Person, bool, String),
   LikePostOrComment {
     object_id: DbUrl,
     actor: Person,
     community: Community,
-    previous_score: Option<i16>,
-    new_score: i16,
+    previous_is_upvote: Option<bool>,
+    new_is_upvote: Option<bool>,
   },
   FollowCommunity(Community, Person, bool),
   FollowMultiCommunity(MultiCommunity, Person, bool),
@@ -74,7 +68,7 @@ pub enum SendActivityData {
   RemoveCommunity {
     moderator: Person,
     community: Community,
-    reason: Option<String>,
+    reason: String,
     removed: bool,
   },
   AddModToCommunity {
@@ -92,7 +86,7 @@ pub enum SendActivityData {
   BanFromSite {
     moderator: Person,
     banned_user: Person,
-    reason: Option<String>,
+    reason: String,
     remove_or_restore_data: Option<bool>,
     ban: bool,
     expires_at: Option<i64>,

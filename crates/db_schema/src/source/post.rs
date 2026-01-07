@@ -1,6 +1,7 @@
-use crate::newtypes::{CommunityId, DbUrl, LanguageId, PersonId, PostId};
+use crate::newtypes::{CommunityId, LanguageId, PostId};
 use chrono::{DateTime, Utc};
-use lemmy_db_schema_file::enums::PostNotificationsMode;
+use lemmy_db_schema_file::{PersonId, enums::PostNotificationsMode};
+use lemmy_diesel_utils::dburl::DbUrl;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
@@ -62,24 +63,24 @@ pub struct Post {
   pub alt_text: Option<String>,
   /// Time at which the post will be published. None means publish immediately.
   pub scheduled_publish_time_at: Option<DateTime<Utc>>,
+  #[serde(skip)]
+  /// A newest comment time, limited to 2 days, to prevent necrobumping
+  pub newest_comment_time_necro_at: Option<DateTime<Utc>>,
+  /// The time of the newest comment in the post, if the post has any comments.
+  pub newest_comment_time_at: Option<DateTime<Utc>>,
   pub comments: i32,
   pub score: i32,
   pub upvotes: i32,
   pub downvotes: i32,
   #[serde(skip)]
-  /// A newest comment time, limited to 2 days, to prevent necrobumping
-  pub newest_comment_time_necro_at: DateTime<Utc>,
-  /// The time of the newest comment in the post.
-  pub newest_comment_time_at: DateTime<Utc>,
+  pub hot_rank: f32,
   #[serde(skip)]
-  pub hot_rank: f64,
+  pub hot_rank_active: f32,
   #[serde(skip)]
-  pub hot_rank_active: f64,
-  #[serde(skip)]
-  pub controversy_rank: f64,
+  pub controversy_rank: f32,
   /// A rank that amplifies smaller communities
   #[serde(skip)]
-  pub scaled_rank: f64,
+  pub scaled_rank: f32,
   pub report_count: i16,
   pub unresolved_report_count: i16,
   /// If a local user posts in a remote community, the comment is hidden until it is confirmed
@@ -90,11 +91,8 @@ pub struct Post {
 }
 
 // TODO: FromBytes, ToBytes are only needed to develop wasm plugin, could be behind feature flag
-#[derive(Debug, Clone, derive_new::new)]
-#[cfg_attr(
-  feature = "full",
-  derive(Insertable, AsChangeset, Serialize, Deserialize)
-)]
+#[derive(Debug, Clone, derive_new::new, Serialize, Deserialize)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset,))]
 #[cfg_attr(feature = "full", diesel(table_name = post))]
 pub struct PostInsertForm {
   pub name: String,
@@ -191,40 +189,54 @@ pub struct PostUpdateForm {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct PostActions {
-  #[serde(skip)]
-  pub person_id: PersonId,
-  #[serde(skip)]
-  pub post_id: PostId,
   /// When the post was read.
   pub read_at: Option<DateTime<Utc>>,
   /// When was the last time you read the comments.
   pub read_comments_at: Option<DateTime<Utc>>,
+  /// When the post was saved.
+  pub saved_at: Option<DateTime<Utc>>,
+  /// When the post was upvoted or downvoted.
+  pub voted_at: Option<DateTime<Utc>>,
+  /// When the post was hidden.
+  pub hidden_at: Option<DateTime<Utc>>,
+  #[serde(skip)]
+  pub person_id: PersonId,
+  #[serde(skip)]
+  pub post_id: PostId,
   /// The number of comments you read last. Subtract this from total comments to get an unread
   /// count.
   pub read_comments_amount: Option<i32>,
-  /// When the post was saved.
-  pub saved_at: Option<DateTime<Utc>>,
-  /// When the post was liked.
-  pub liked_at: Option<DateTime<Utc>>,
-  /// The like / score of the post.
-  pub like_score: Option<i16>,
-  /// When the post was hidden.
-  pub hidden_at: Option<DateTime<Utc>>,
+  /// True if upvoted, false if downvoted. Upvote is greater than downvote.
+  pub vote_is_upvote: Option<bool>,
   pub notifications: Option<PostNotificationsMode>,
 }
 
-#[derive(Clone, derive_new::new)]
-#[cfg_attr(
-  feature = "full",
-  derive(Insertable, AsChangeset, Serialize, Deserialize)
-)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = post_actions))]
 pub struct PostLikeForm {
-  pub post_id: PostId,
-  pub person_id: PersonId,
-  pub like_score: i16,
-  #[new(value = "Utc::now()")]
-  pub liked_at: DateTime<Utc>,
+  post_id: PostId,
+  person_id: PersonId,
+  vote_is_upvote: Option<Option<bool>>,
+  voted_at: Option<Option<DateTime<Utc>>>,
+}
+
+impl PostLikeForm {
+  /// Pass `is_upvote: None` to remove an existing vote for this post
+  pub fn new(post_id: PostId, person_id: PersonId, is_upvote: Option<bool>) -> Self {
+    let voted_at = if is_upvote.is_some() {
+      Some(Some(Utc::now()))
+    } else {
+      Some(None)
+    };
+
+    Self {
+      post_id,
+      person_id,
+      vote_is_upvote: Some(is_upvote),
+      voted_at,
+    }
+  }
 }
 
 #[derive(derive_new::new)]
@@ -240,7 +252,7 @@ pub struct PostSavedForm {
 #[derive(derive_new::new, Clone)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = post_actions))]
-pub struct PostReadForm {
+pub(crate) struct PostReadForm {
   pub post_id: PostId,
   pub person_id: PersonId,
   #[new(value = "Utc::now()")]

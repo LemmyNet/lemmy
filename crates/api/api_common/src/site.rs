@@ -9,18 +9,16 @@ pub use lemmy_db_schema::{
 };
 pub use lemmy_db_schema_file::enums::RegistrationMode;
 pub use lemmy_db_views_site::{
-  api::{GetSiteResponse, PostOrCommentOrPrivateMessage, SiteResponse},
   SiteView,
+  api::{GetSiteResponse, PostOrCommentOrPrivateMessage, SiteResponse, UnreadCountsResponse},
 };
 
 pub mod administration {
-  pub use lemmy_db_views_local_user::api::{AdminListUsers, AdminListUsersResponse};
-  pub use lemmy_db_views_notification::api::GetUnreadRegistrationApplicationCountResponse;
+  pub use lemmy_db_views_local_user::api::AdminListUsers;
   pub use lemmy_db_views_person::api::{AddAdmin, AddAdminResponse};
   pub use lemmy_db_views_registration_applications::api::{
     ApproveRegistrationApplication,
     ListRegistrationApplications,
-    ListRegistrationApplicationsResponse,
   };
   pub use lemmy_db_views_site::api::{CreateSite, EditSite};
 }

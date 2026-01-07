@@ -9,14 +9,14 @@ use lemmy_api_utils::{
 use lemmy_db_schema::{source::comment_report::CommentReport, traits::Reportable};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_report_combined::{
-  api::{CommentReportResponse, ResolveCommentReport},
   ReportCombinedViewInternal,
+  api::{CommentReportResponse, ResolveCommentReport},
 };
 use lemmy_utils::error::LemmyResult;
 
 /// Resolves or unresolves a comment report and notifies the moderators of the community
 pub async fn resolve_comment_report(
-  data: Json<ResolveCommentReport>,
+  Json(data): Json<ResolveCommentReport>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentReportResponse>> {

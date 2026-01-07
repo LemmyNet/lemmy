@@ -21,40 +21,39 @@ workspace = true
 full = [
   "lemmy_db_schema/full",
   "lemmy_db_views_community/full",
-  "lemmy_db_views_community_follower/full",
+  "lemmy_db_views_community_follower_approval/full",
   "lemmy_db_views_community_moderator/full",
-  "lemmy_db_views_community_person_ban/full",
   "lemmy_db_views_local_image/full",
   "lemmy_db_views_local_user/full",
   "lemmy_db_views_site/full",
   "lemmy_db_views_private_message/full",
   "lemmy_db_views_comment/full",
   "lemmy_db_views_post/full",
+  "lemmy_db_views_notification/full",
 ]
 
 [dependencies]
 lemmy_db_schema = { workspace = true }
 lemmy_db_schema_file = { workspace = true }
 lemmy_db_views_community = { workspace = true }
-lemmy_db_views_community_follower = { workspace = true }
+lemmy_db_views_community_follower_approval = { workspace = true }
 lemmy_db_views_community_moderator = { workspace = true }
-lemmy_db_views_community_person_ban = { workspace = true }
 lemmy_db_views_local_image = { workspace = true }
 lemmy_db_views_local_user = { workspace = true }
 lemmy_db_views_site = { workspace = true }
 lemmy_db_views_private_message = { workspace = true }
 lemmy_db_views_comment = { workspace = true }
 lemmy_db_views_post = { workspace = true }
+lemmy_db_views_notification = { workspace = true }
 lemmy_email = { workspace = true }
 anyhow = { workspace = true }
 serde = { workspace = true }
-serde_json = { workspace = true }
-once_cell = { version = "1.21.3" }
 tokio = { workspace = true }
 tracing = { workspace = true }
 lemmy_utils = { workspace = true }
 extism = { workspace = true }
 extism-convert = { workspace = true }
+extism-manifest = "1.13.0"
 reqwest-middleware = { workspace = true }
 activitypub_federation = { workspace = true }
 mime = { version = "0.3.17" }
@@ -73,9 +72,10 @@ webmention = { version = "0.6.0" }
 urlencoding = { workspace = true }
 webpage = { version = "2.0", default-features = false, features = ["serde"] }
 regex = { workspace = true }
-jsonwebtoken = { version = "9.3.1" }
+jsonwebtoken = { version = "10.2.0", features = ["rust_crypto"] }
 either.workspace = true
 derive-new.workspace = true
+lemmy_diesel_utils = { workspace = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

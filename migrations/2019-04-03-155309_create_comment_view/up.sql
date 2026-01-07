@@ -34,38 +34,38 @@ with all_comment AS (
                         WHERE
                             c.creator_id = user_.id) AS creator_name,
                         coalesce(sum(cl.score), 0) AS score,
-                    count(
-                        CASE WHEN cl.score = 1 THEN
-                            1
-                        ELSE
-                            NULL
-                        END) AS upvotes,
-                    count(
-                        CASE WHEN cl.score = -1 THEN
-                            1
-                        ELSE
-                            NULL
-                        END) AS downvotes
-                FROM
-                    comment c
-                LEFT JOIN comment_like cl ON c.id = cl.comment_id
-            GROUP BY
-                c.id
+                        count(
+                            CASE WHEN cl.score = 1 THEN
+                                1
+                            ELSE
+                                NULL
+                            END) AS upvotes,
+                        count(
+                            CASE WHEN cl.score = -1 THEN
+                                1
+                            ELSE
+                                NULL
+                            END) AS downvotes
+                    FROM
+                        comment c
+                    LEFT JOIN comment_like cl ON c.id = cl.comment_id
+                GROUP BY
+                    c.id
 )
-    SELECT
-        ac.*,
-        u.id AS user_id,
-        coalesce(cl.score, 0) AS my_vote,
-    (
         SELECT
-            cs.id::bool
-        FROM
-            comment_saved cs
-        WHERE
-            u.id = cs.user_id
-            AND cs.comment_id = ac.id) AS saved
-FROM
-    user_ u
+            ac.*,
+            u.id AS user_id,
+            coalesce(cl.score, 0) AS my_vote,
+        (
+            SELECT
+                cs.id::bool
+            FROM
+                comment_saved cs
+            WHERE
+                u.id = cs.user_id
+                AND cs.comment_id = ac.id) AS saved
+    FROM
+        user_ u
     CROSS JOIN all_comment ac
     LEFT JOIN comment_like cl ON u.id = cl.user_id
         AND ac.id = cl.comment_id

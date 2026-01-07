@@ -10,8 +10,8 @@ import {
   betaUrl,
   registerUser,
   unfollows,
-  delay,
   getMyUser,
+  alphaUrl,
 } from "./shared";
 
 beforeAll(setupLogins);
@@ -27,7 +27,7 @@ test("Follow local community", async () => {
   // Make sure the follow response went through
   expect(follow.community_view.community.local).toBe(true);
   expect(follow.community_view.community_actions?.follow_state).toBe(
-    "Accepted",
+    "accepted",
   );
   expect(follow.community_view.community.subscribers).toBe(
     community!.community.subscribers + 1,
@@ -50,30 +50,31 @@ test("Follow local community", async () => {
 });
 
 test("Follow federated community", async () => {
-  // It takes about 1 second for the community aggregates to federate
-  await delay(2000); // if this is the second test run, we don't have a way to wait for the correct number of subscribers
+  let user = await registerUser(alpha, alphaUrl);
+
   const betaCommunityInitial = await waitUntil(
-    () => resolveBetaCommunity(alpha),
+    () => resolveBetaCommunity(user),
     c => !!c?.community && c.community.subscribers >= 1,
   );
   if (!betaCommunityInitial) {
     throw "Missing beta community";
   }
+
   let follow = await followCommunity(
-    alpha,
+    user,
     true,
     betaCommunityInitial.community.id,
   );
-  expect(follow.community_view.community_actions?.follow_state).toBe("Pending");
+  expect(follow.community_view.community_actions?.follow_state).toBe("pending");
   const betaCommunity = await waitUntil(
-    () => resolveBetaCommunity(alpha),
-    c => c?.community_actions?.follow_state === "Accepted",
+    () => resolveBetaCommunity(user),
+    c => c?.community_actions?.follow_state === "accepted",
   );
 
   // Make sure the follow response went through
   expect(betaCommunity?.community.local).toBe(false);
   expect(betaCommunity?.community.name).toBe("main");
-  expect(betaCommunity?.community_actions?.follow_state).toBe("Accepted");
+  expect(betaCommunity?.community_actions?.follow_state).toBe("accepted");
   expect(betaCommunity?.community.subscribers_local).toBe(
     betaCommunityInitial.community.subscribers_local + 1,
   );
@@ -85,7 +86,7 @@ test("Follow federated community", async () => {
   );
 
   // Check it from local
-  let my_user = await getMyUser(alpha);
+  let my_user = await getMyUser(user);
   let remoteCommunityId = my_user?.follows.find(
     c =>
       c.community.local == false &&
@@ -98,13 +99,13 @@ test("Follow federated community", async () => {
   }
 
   // Test an unfollow
-  let unfollow = await followCommunity(alpha, false, remoteCommunityId);
+  let unfollow = await followCommunity(user, false, remoteCommunityId);
   expect(
     unfollow.community_view.community_actions?.follow_state,
   ).toBeUndefined();
 
   // Make sure you are unsubbed locally
-  let siteUnfollowCheck = await getMyUser(alpha);
+  let siteUnfollowCheck = await getMyUser(user);
   expect(
     siteUnfollowCheck.follows.find(
       c => c.community.id === betaCommunityInitial.community.id,
