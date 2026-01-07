@@ -241,6 +241,7 @@ steps:
     image: woodpeckerci/plugin-docker-buildx
     settings:
       dockerfile: docker/Dockerfile
+      tag: ${CI_COMMIT_TAG=nightly}
       logins:
         - registry: https://index.docker.io/v1/
           repo: dessalines/lemmy
@@ -259,7 +260,6 @@ steps:
         RUST_RELEASE_MODE: release
       daemon:
         debug: true
-      tags: ${CI_COMMIT_TAG=nightly}
     when:
       - event: tag
       - event: cron
