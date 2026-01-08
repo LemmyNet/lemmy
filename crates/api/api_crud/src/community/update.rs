@@ -80,8 +80,8 @@ pub async fn update_community(
 
   let community_form = CommunityUpdateForm {
     title: data.title.clone(),
-    sidebar,
-    description,
+    description: sidebar,
+    summary: description,
     nsfw: data.nsfw,
     posting_restricted_to_mods: data.posting_restricted_to_mods,
     visibility: data.visibility,

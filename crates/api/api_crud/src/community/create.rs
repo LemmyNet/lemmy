@@ -95,8 +95,8 @@ pub async fn create_community(
 
   let keypair = generate_actor_keypair()?;
   let community_form = CommunityInsertForm {
-    sidebar,
-    description,
+    description: sidebar,
+    summary: description,
     nsfw: data.nsfw,
     ap_id: Some(community_ap_id.clone()),
     private_key: Some(keypair.private_key),

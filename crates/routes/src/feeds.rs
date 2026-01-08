@@ -226,7 +226,7 @@ async fn get_feed_community(
   Ok(send_feed_response(
     title,
     link,
-    community.description,
+    community.summary,
     items,
     site_view,
   ))

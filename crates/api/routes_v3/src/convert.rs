@@ -427,7 +427,7 @@ pub(crate) fn convert_community(community: Community) -> CommunityV3 {
     banner,
     posting_restricted_to_mods,
     instance_id,
-    description,
+    summary: description,
     ..
   } = community;
   CommunityV3 {
