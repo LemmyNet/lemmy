@@ -637,7 +637,7 @@ test("Remote mods can edit communities", async () => {
 
   let form2: EditCommunity = {
     community_id: betaCommunity.community.id as number,
-    sidebar: "Example sidebar",
+    description: "Example sidebar",
   };
 
   await editCommunity(beta, form2);
@@ -645,7 +645,7 @@ test("Remote mods can edit communities", async () => {
   const communityId = communityRes.community_view.community.id;
   await waitUntil(
     () => getCommunity(alpha, communityId),
-    c => c.community_view.community.sidebar == "Example sidebar",
+    c => c.community_view.community.description == "Example sidebar",
   );
 });
 
