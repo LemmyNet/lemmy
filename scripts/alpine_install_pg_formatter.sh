@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-version=5.8
+version=5.9
 wget https://github.com/darold/pgFormatter/archive/refs/tags/v${version}.tar.gz -q
 tar xzf v${version}.tar.gz
 cd pgFormatter-${version}/
