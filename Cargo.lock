@@ -3428,10 +3428,10 @@ dependencies = [
  "lemmy_email",
  "lemmy_utils 1.0.0-alpha.12",
  "regex",
- "reqwest 0.12.25",
  "serde",
  "serde_json",
  "serde_with",
+ "tracing",
  "url",
  "uuid",
 ]
