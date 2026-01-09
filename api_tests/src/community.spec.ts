@@ -219,8 +219,8 @@ test("Report a community", async () => {
   expect(alphaReport.original_community_icon).toBe(
     betaReport.original_community_icon,
   );
-  expect(alphaReport.original_community_sidebar).toBe(
-    betaReport.original_community_sidebar,
+  expect(alphaReport.original_community_description).toBe(
+    betaReport.original_community_description,
   );
   expect(alphaReport.reason).toBe(betaReport.reason);
 

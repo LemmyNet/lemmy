@@ -601,11 +601,11 @@ export async function createCommunity(
   name_: string = randomString(10),
   visibility: CommunityVisibility = "public",
 ): Promise<CommunityResponse> {
-  let sidebar = "a sample sidebar";
+  let description = "a sample sidebar";
   let form: CreateCommunity = {
     name: name_,
     title: name_,
-    sidebar,
+    description,
     visibility,
   };
   return api.createCommunity(form);
