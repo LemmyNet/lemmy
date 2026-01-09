@@ -78,12 +78,14 @@ pub async fn update_comment(
   plugin_hook_after("local_comment_after_update", &updated_comment);
 
   // Do the mentions / recipients
-  NotifyData::new(
-    orig_comment.post,
-    local_user_view.person.clone(),
-    orig_comment.community,
-  )
-  .comment(updated_comment.clone())
+  NotifyData {
+    comment: Some(updated_comment.clone()),
+    ..NotifyData::new(
+      orig_comment.post,
+      local_user_view.person.clone(),
+      orig_comment.community,
+    )
+  }
   .send(&context);
 
   ActivityChannel::submit_activity(

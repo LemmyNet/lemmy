@@ -33,13 +33,13 @@ use url::Url;
 
 #[derive(derive_new::new, Debug, Clone)]
 pub struct NotifyData {
-  post: Post,
-  creator: Person,
-  community: Community,
+  pub post: Post,
+  pub creator: Person,
+  pub community: Community,
   #[new(value = "None")]
-  comment_opt: Option<Comment>,
+  pub comment: Option<Comment>,
   #[new(value = "false")]
-  do_send_email: bool,
+  pub do_send_email: bool,
   #[new(value = "None")]
   pub apub_mentions: Option<Vec<Person>>,
 }
@@ -68,19 +68,6 @@ impl<'a> Hash for CollectedNotifyData<'a> {
 impl<'a> Eq for CollectedNotifyData<'a> {}
 
 impl NotifyData {
-  pub fn comment(mut self, comment: Comment) -> Self {
-    self.comment_opt = Some(comment);
-    self
-  }
-  pub fn do_send_email(mut self, do_send_email: bool) -> Self {
-    self.do_send_email = do_send_email;
-    self
-  }
-  pub fn apub_mentions(mut self, apub_mentions: Vec<Person>) -> Self {
-    self.apub_mentions = Some(apub_mentions);
-    self
-  }
-
   /// Scans the post/comment content for mentions, then sends notifications via db and email
   /// to mentioned users and parent creator. Spawns a task for background processing.
   pub fn send(self, context: &LemmyContext) {
@@ -115,7 +102,7 @@ impl NotifyData {
         continue;
       };
 
-      forms.push(if let Some(comment) = &self.comment_opt {
+      forms.push(if let Some(comment) = &self.comment {
         NotificationInsertForm::new_comment(comment.id, c.person_id, c.kind)
       } else {
         NotificationInsertForm::new_post(self.post.id, c.person_id, c.kind)
@@ -173,7 +160,7 @@ impl NotifyData {
   }
 
   fn content(&self) -> String {
-    if let Some(comment) = self.comment_opt.as_ref() {
+    if let Some(comment) = self.comment.as_ref() {
       comment.content.clone()
     } else {
       self.post.body.clone().unwrap_or_default()
@@ -181,7 +168,7 @@ impl NotifyData {
   }
 
   fn link(&self, context: &LemmyContext) -> LemmyResult<Url> {
-    if let Some(comment) = self.comment_opt.as_ref() {
+    if let Some(comment) = self.comment.as_ref() {
       Ok(comment.local_url(context.settings())?)
     } else {
       Ok(self.post.local_url(context.settings())?)
@@ -192,7 +179,7 @@ impl NotifyData {
     &'a self,
     context: &LemmyContext,
   ) -> LemmyResult<Vec<CollectedNotifyData<'a>>> {
-    let Some(comment) = self.comment_opt.as_ref() else {
+    let Some(comment) = self.comment.as_ref() else {
       return Ok(vec![]);
     };
 
@@ -259,7 +246,7 @@ impl NotifyData {
     &'a self,
     context: &LemmyContext,
   ) -> LemmyResult<Vec<CollectedNotifyData<'a>>> {
-    let is_post = self.comment_opt.is_none();
+    let is_post = self.comment.is_none();
     let subscribers = vec![
       PostActions::list_subscribers(self.post.id, &mut context.pool()).await?,
       CommunityActions::list_subscribers(self.post.community_id, is_post, &mut context.pool())
@@ -271,7 +258,7 @@ impl NotifyData {
 
     let mut res = vec![];
     for person_id in subscribers {
-      let d = if let Some(comment) = &self.comment_opt {
+      let d = if let Some(comment) = &self.comment {
         NotificationEmailData::PostSubscribed {
           post: &self.post,
           comment,
@@ -536,7 +523,7 @@ mod tests {
       Comment::create(pool, &sara_comment_form, Some(&data.timmy_comment.path)).await?;
     NotifyData {
       post: data.timmy_post.clone(),
-      comment_opt: Some(sara_comment.clone()),
+      comment: Some(sara_comment.clone()),
       creator: data.sara.person.clone(),
       community: data.community.clone(),
       do_send_email: false,

@@ -151,10 +151,12 @@ impl Activity for CreateOrUpdatePage {
 
     let community = Community::read(&mut context.pool(), post.community_id).await?;
 
-    NotifyData::new(post.0, actor.0, community)
-      .apub_mentions(parse_apub_mentions(&self.object.tag, context).await?)
-      .do_send_email(do_send_email)
-      .send(context);
+    NotifyData {
+      apub_mentions: Some(parse_apub_mentions(&self.object.tag, context).await?),
+      do_send_email: do_send_email,
+      ..NotifyData::new(post.0, actor.0, community)
+    }
+    .send(context);
 
     Ok(())
   }
