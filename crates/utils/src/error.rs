@@ -126,16 +126,12 @@ pub enum LemmyErrorType {
   TooManyRequests,
   ResolveObjectFailed(String),
   #[serde(untagged)]
-  UntranslatedError {
-    #[cfg_attr(feature = "ts-rs", ts(optional))]
-    error: Option<UntranslatedError>,
-  },
+  #[cfg_attr(feature = "ts-rs", ts(skip))]
+  UntranslatedError(Option<UntranslatedError>),
 }
 
 /// These errors are only used for federation or internally and dont need to be translated.
 #[derive(Display, Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
 #[serde(tag = "error", content = "message", rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum UntranslatedError {
@@ -252,7 +248,7 @@ cfg_if! {
       fn from(error_type: UntranslatedError) -> Self {
         let inner = anyhow::anyhow!("{}", error_type);
         LemmyError {
-          error_type: LemmyErrorType::UntranslatedError {error: Some(error_type) },
+          error_type: LemmyErrorType::UntranslatedError( Some(error_type) ),
           inner,
           caller: *Location::caller(),
         }
@@ -261,7 +257,7 @@ cfg_if! {
 
     impl From<UntranslatedError> for LemmyErrorType {
       fn from(error: UntranslatedError) -> Self {
-        LemmyErrorType::UntranslatedError {error:Some(error) }
+        LemmyErrorType::UntranslatedError (Some(error) )
       }
     }
 
