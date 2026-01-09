@@ -71,7 +71,7 @@ pub struct Community {
   #[serde(skip)]
   pub featured_url: Option<DbUrl>,
   pub visibility: CommunityVisibility,
-  /// A shorter, one-line description of the site.
+  /// A shorter, one-line summary of the site.
   pub summary: Option<String>,
   #[serde(skip)]
   pub random_number: i16,

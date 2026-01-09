@@ -31,7 +31,7 @@ use lemmy_utils::{
     slurs::check_slurs,
     validation::{
       build_and_check_regex,
-      description_length_check,
+      summary_length_check,
       is_valid_body_field,
       site_name_length_check,
     },
@@ -158,7 +158,7 @@ fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> 
   check_slurs(&create_site.name, &slur_regex)?;
 
   if let Some(desc) = &create_site.description {
-    description_length_check(desc)?;
+    summary_length_check(desc)?;
     check_slurs(desc, &slur_regex)?;
   }
 
