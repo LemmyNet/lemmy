@@ -906,13 +906,13 @@ diesel::table! {
         id -> Int4,
         #[max_length = 20]
         name -> Varchar,
-        sidebar -> Nullable<Text>,
+        description -> Nullable<Text>,
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
         icon -> Nullable<Text>,
         banner -> Nullable<Text>,
         #[max_length = 150]
-        description -> Nullable<Varchar>,
+        summary -> Nullable<Varchar>,
         #[max_length = 255]
         ap_id -> Varchar,
         last_refreshed_at -> Timestamptz,

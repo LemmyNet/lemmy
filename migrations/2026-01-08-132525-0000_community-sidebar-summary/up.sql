@@ -2,6 +2,11 @@ ALTER TABLE community RENAME description TO summary;
 
 ALTER TABLE community RENAME COLUMN sidebar TO description;
 
-alter table community_report rename original_community_description to original_community_summary;
+ALTER TABLE community_report RENAME original_community_description TO original_community_summary;
 
-alter table community_report rename original_community_sidebar to original_community_description;
+ALTER TABLE community_report RENAME original_community_sidebar TO original_community_description;
+
+ALTER TABLE site RENAME description TO summary;
+
+ALTER TABLE site RENAME COLUMN sidebar TO description;
+

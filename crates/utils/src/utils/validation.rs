@@ -367,8 +367,8 @@ mod tests {
     error::{LemmyErrorType, LemmyResult},
     utils::validation::{
       BIO_MAX_LENGTH,
-      SITE_SUMMARY_MAX_LENGTH,
       SITE_NAME_MAX_LENGTH,
+      SITE_SUMMARY_MAX_LENGTH,
       URL_MAX_LENGTH,
       build_and_check_regex,
       check_urls_are_valid,

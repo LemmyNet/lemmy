@@ -20,7 +20,7 @@ use lemmy_utils::{
   error::LemmyResult,
   utils::{
     slurs::check_slurs,
-    validation::{check_api_elements_count, summary_length_check, is_valid_actor_name},
+    validation::{check_api_elements_count, is_valid_actor_name, summary_length_check},
   },
 };
 use url::Url;

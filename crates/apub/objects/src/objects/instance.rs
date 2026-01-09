@@ -95,10 +95,10 @@ impl Object for ApubSite {
       id: self.id().clone().into(),
       name: self.name.clone(),
       preferred_username: Some(data.domain().to_string()),
-      content: self.sidebar.as_ref().map(|d| markdown_to_html(d)),
-      source: self.sidebar.clone().map(Source::new),
-      summary: self.description.clone(),
-      media_type: self.sidebar.as_ref().map(|_| MediaTypeHtml::Html),
+      content: self.description.as_ref().map(|d| markdown_to_html(d)),
+      source: self.description.clone().map(Source::new),
+      summary: self.summary.clone(),
+      media_type: self.description.as_ref().map(|_| MediaTypeHtml::Html),
       icon: self.icon.clone().map(ImageObject::new),
       image: self.banner.clone().map(ImageObject::new),
       inbox: self.inbox_url.clone().into(),
@@ -138,19 +138,20 @@ impl Object for ApubSite {
 
     let slur_regex = slur_regex(context).await?;
     let url_blocklist = get_url_blocklist(context).await?;
-    let sidebar = read_from_string_or_source_opt(&apub.content, &None, &apub.source);
-    let sidebar = process_markdown_opt(&sidebar, &slur_regex, &url_blocklist, context).await?;
-    let sidebar = markdown_rewrite_remote_links_opt(sidebar, context).await;
+    let description = read_from_string_or_source_opt(&apub.content, &None, &apub.source);
+    let description =
+      process_markdown_opt(&description, &slur_regex, &url_blocklist, context).await?;
+    let description = markdown_rewrite_remote_links_opt(description, context).await;
     let icon = proxy_image_link_opt_apub(apub.icon.map(|i| i.url), context).await?;
     let banner = proxy_image_link_opt_apub(apub.image.map(|i| i.url), context).await?;
 
     let site_form = SiteInsertForm {
       name: apub.name.clone(),
-      sidebar,
+      description,
       updated_at: apub.updated,
       icon,
       banner,
-      description: apub.summary,
+      summary: apub.summary,
       ap_id: Some(apub.id.clone().into()),
       last_refreshed_at: Some(Utc::now()),
       inbox_url: Some(apub.inbox.clone().into()),
@@ -230,7 +231,7 @@ pub(crate) mod tests {
 
     assert_eq!(site.name, "Enterprise");
     assert_eq!(
-      site.description.as_ref().map(std::string::String::len),
+      site.summary.as_ref().map(std::string::String::len),
       Some(15)
     );
 
