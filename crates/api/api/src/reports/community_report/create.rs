@@ -45,10 +45,10 @@ pub async fn create_community_report(
     creator_id: person.id,
     community_id,
     original_community_banner: community.banner,
-    original_community_description: community.description,
+    original_community_summary: community.summary,
     original_community_icon: community.icon,
     original_community_name: community.name,
-    original_community_sidebar: community.sidebar,
+    original_community_description: community.description,
     original_community_title: community.title,
     reason,
   };

@@ -286,7 +286,7 @@ impl SearchCombinedQuery {
         } else {
           let body_or_description_filter = is_post
             .and(post::body.ilike(searcher.clone()))
-            .or(is_community.and(community::description.ilike(searcher.clone())))
+            .or(is_community.and(community::summary.ilike(searcher.clone())))
             .or(is_multi_community.and(multi_community::description.ilike(searcher.clone())))
             .or(is_person.and(person::bio.ilike(searcher.clone())));
           query.filter(name_or_title_filter.or(body_or_description_filter))
@@ -575,7 +575,7 @@ mod tests {
     };
 
     let community_form = CommunityInsertForm {
-      description: Some("ask lemmy things".into()),
+      summary: Some("ask lemmy things".into()),
       ..CommunityInsertForm::new(
         instance.id,
         "asklemmy".to_string(),

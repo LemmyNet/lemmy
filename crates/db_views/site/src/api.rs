@@ -38,10 +38,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
 #[cfg(feature = "full")]
-use {
-  extism::FromBytes,
-  extism_convert::{Json, encoding},
-};
+use {extism::FromBytes, extism_convert::Json};
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
@@ -112,8 +109,8 @@ pub struct CreateOAuthProvider {
 /// Creates a site. Should be done after first running lemmy.
 pub struct CreateSite {
   pub name: String,
-  pub sidebar: Option<String>,
   pub description: Option<String>,
+  pub summary: Option<String>,
   pub community_creation_admin_only: Option<bool>,
   pub require_email_verification: Option<bool>,
   pub application_question: Option<String>,
@@ -193,9 +190,9 @@ pub struct EditOAuthProvider {
 pub struct EditSite {
   pub name: Option<String>,
   /// A sidebar for the site, in markdown.
-  pub sidebar: Option<String>,
-  /// A shorter, one line description of your site.
   pub description: Option<String>,
+  /// A shorter, one line description of your site.
+  pub summary: Option<String>,
   /// Limits community creation to admins only.
   pub community_creation_admin_only: Option<bool>,
   /// Whether to require email verification.
