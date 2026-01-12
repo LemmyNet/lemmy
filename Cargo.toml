@@ -160,7 +160,6 @@ tracing-actix-web = { version = "0.7.19", default-features = false }
 tracing-subscriber = { version = "0.3.22", features = ["env-filter", "json"] }
 url = { version = "2.5.7", features = ["serde"] }
 reqwest = { version = "0.12.24", default-features = false, features = [
-  "blocking",
   "gzip",
   "json",
   "rustls-tls",
