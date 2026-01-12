@@ -226,7 +226,7 @@ async fn get_feed_community(
   Ok(send_feed_response(
     title,
     link,
-    community.description,
+    community.summary,
     items,
     site_view,
   ))
@@ -310,7 +310,7 @@ fn send_feed_response(
     ..Default::default()
   };
 
-  let description = description.or(site_view.site.description);
+  let description = description.or(site_view.site.summary);
   if let Some(desc) = description {
     channel.set_description(markdown_to_html(&desc));
   }

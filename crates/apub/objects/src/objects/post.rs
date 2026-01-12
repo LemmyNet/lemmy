@@ -1,14 +1,7 @@
 use crate::{
   protocol::{
-    page::{
-      Attachment,
-      Hashtag,
-      HashtagOrLemmyTag,
-      HashtagType::{self},
-      Page,
-      PageType,
-    },
-    tags::CommunityTag,
+    page::{Attachment, Page, PageType},
+    tags::{ApubTag, CommunityTag, Hashtag, HashtagType},
   },
   utils::{
     functions::{
@@ -20,6 +13,7 @@ use crate::{
       verify_visibility,
     },
     markdown_links::{markdown_rewrite_remote_links_opt, to_local_url},
+    mentions::collect_non_local_mentions,
     protocol::{AttributedTo, ImageObject, InCommunity, LanguageTag, Source},
   },
 };
@@ -143,10 +137,10 @@ impl Object for ApubPost {
       .collect();
 
     // Add tags defined by community and applied to this post
-    let mut tags: Vec<HashtagOrLemmyTag> = Tag::read_for_post(&mut context.pool(), self.id)
+    let mut tags: Vec<ApubTag> = Tag::read_for_post(&mut context.pool(), self.id)
       .await?
       .into_iter()
-      .map(|tag| HashtagOrLemmyTag::CommunityTag(CommunityTag::to_json(tag)))
+      .map(|tag| ApubTag::CommunityTag(CommunityTag::to_json(tag)))
       .collect();
 
     // Add automatic hashtag based on community name
@@ -155,14 +149,17 @@ impl Object for ApubPost {
       name: format!("#{}", &community.name),
       kind: HashtagType::Hashtag,
     };
-    tags.push(HashtagOrLemmyTag::Hashtag(hashtag));
+    tags.push(ApubTag::Hashtag(hashtag));
+
+    let maa = collect_non_local_mentions(self.body.as_deref(), None, context).await?;
+    tags.extend(maa.mentions);
 
     let page = Page {
       kind: PageType::Page,
       id: self.ap_id.clone().into(),
       attributed_to: AttributedTo::Lemmy(creator.ap_id.into()),
       to: generate_to(&community)?,
-      cc: vec![],
+      cc: maa.ccs,
       name: Some(self.name.clone()),
       content: self.body.as_ref().map(|b| markdown_to_html(b)),
       media_type: Some(MediaTypeMarkdownOrHtml::Html),
@@ -334,12 +331,12 @@ pub async fn update_apub_post_tags(
   let post_tag_ap_ids = page
     .tag
     .iter()
-    .filter_map(HashtagOrLemmyTag::community_tag_url)
+    .filter_map(ApubTag::community_tag_id)
     .collect::<HashSet<_>>();
   let community_tags = Tag::read_for_community(&mut context.pool(), post.community_id).await?;
   let post_tags = community_tags
     .into_iter()
-    .filter(|t| post_tag_ap_ids.contains(&t.ap_id))
+    .filter(|t| post_tag_ap_ids.contains(&*t.ap_id.0))
     .map(|t| t.id)
     .collect::<Vec<_>>();
   update_post_tags(post, &post_tags, context).await?;

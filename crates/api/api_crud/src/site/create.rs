@@ -31,9 +31,9 @@ use lemmy_utils::{
     slurs::check_slurs,
     validation::{
       build_and_check_regex,
-      description_length_check,
       is_valid_body_field,
       site_name_length_check,
+      summary_length_check,
     },
   },
 };
@@ -57,12 +57,13 @@ pub async fn create_site(
 
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
-  let sidebar = process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context).await?;
+  let description =
+    process_markdown_opt(&data.description, &slur_regex, &url_blocklist, &context).await?;
 
   let site_form = SiteUpdateForm {
     name: Some(data.name.clone()),
-    sidebar: diesel_string_update(sidebar.as_deref()),
-    description: diesel_string_update(data.description.as_deref()),
+    description: diesel_string_update(description.as_deref()),
+    summary: diesel_string_update(data.summary.as_deref()),
     ap_id: Some(ap_id),
     last_refreshed_at: Some(Utc::now()),
     inbox_url,
@@ -157,15 +158,15 @@ fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> 
   site_name_length_check(&create_site.name)?;
   check_slurs(&create_site.name, &slur_regex)?;
 
-  if let Some(desc) = &create_site.description {
-    description_length_check(desc)?;
+  if let Some(desc) = &create_site.summary {
+    summary_length_check(desc)?;
     check_slurs(desc, &slur_regex)?;
   }
 
   site_default_post_listing_type_check(&create_site.default_post_listing_type)?;
 
   // Ensure that the sidebar has fewer than the max num characters...
-  if let Some(body) = &create_site.sidebar {
+  if let Some(body) = &create_site.description {
     is_valid_body_field(body, false)?;
   }
 
@@ -329,8 +330,8 @@ mod tests {
         },
         &CreateSite {
           name: String::from("site_name"),
-          sidebar: Some(String::new()),
           description: Some(String::new()),
+          summary: Some(String::new()),
           application_question: Some(String::new()),
           private_instance: Some(false),
           default_post_listing_type: Some(ListingType::All),

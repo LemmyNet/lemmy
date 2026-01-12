@@ -26,7 +26,7 @@ const URL_MAX_LENGTH: usize = 2000;
 const ALT_TEXT_MAX_LENGTH: usize = 1500;
 const SITE_NAME_MAX_LENGTH: usize = 20;
 const SITE_NAME_MIN_LENGTH: usize = 1;
-const SITE_DESCRIPTION_MAX_LENGTH: usize = 150;
+const SITE_SUMMARY_MAX_LENGTH: usize = 150;
 const MIN_LENGTH_BLOCKING_KEYWORD: usize = 3;
 const MAX_LENGTH_BLOCKING_KEYWORD: usize = 50;
 const ACTOR_NAME_MAX_LENGTH: usize = 20;
@@ -139,10 +139,10 @@ pub fn site_name_length_check(name: &str) -> LemmyResult<()> {
 }
 
 /// Checks the site / community description length, the limit as defined in the DB.
-pub fn description_length_check(description: &str) -> LemmyResult<()> {
+pub fn summary_length_check(description: &str) -> LemmyResult<()> {
   max_length_check(
     description,
-    SITE_DESCRIPTION_MAX_LENGTH,
+    SITE_SUMMARY_MAX_LENGTH,
     LemmyErrorType::SiteDescriptionLengthOverflow,
   )
 }
@@ -351,7 +351,7 @@ fn truncate_for_db(text: &str, len: usize) -> String {
 }
 
 pub fn truncate_description(text: &str) -> String {
-  truncate_for_db(text, SITE_DESCRIPTION_MAX_LENGTH)
+  truncate_for_db(text, SITE_SUMMARY_MAX_LENGTH)
 }
 
 pub fn check_api_elements_count(len: usize) -> LemmyResult<()> {
@@ -367,14 +367,13 @@ mod tests {
     error::{LemmyErrorType, LemmyResult},
     utils::validation::{
       BIO_MAX_LENGTH,
-      SITE_DESCRIPTION_MAX_LENGTH,
       SITE_NAME_MAX_LENGTH,
+      SITE_SUMMARY_MAX_LENGTH,
       URL_MAX_LENGTH,
       build_and_check_regex,
       check_urls_are_valid,
       clean_url,
       clean_urls_in_text,
-      description_length_check,
       is_url_blocked,
       is_valid_actor_name,
       is_valid_bio_field,
@@ -383,6 +382,7 @@ mod tests {
       is_valid_post_title,
       is_valid_url,
       site_name_length_check,
+      summary_length_check,
       truncate_for_db,
     },
   };
@@ -557,16 +557,16 @@ Line3",
   #[test]
   fn test_valid_site_description() {
     assert!(
-      description_length_check(
-        &(0..SITE_DESCRIPTION_MAX_LENGTH)
+      summary_length_check(
+        &(0..SITE_SUMMARY_MAX_LENGTH)
           .map(|_| 'A')
           .collect::<String>()
       )
       .is_ok()
     );
 
-    let invalid_result = description_length_check(
-      &(0..SITE_DESCRIPTION_MAX_LENGTH + 1)
+    let invalid_result = summary_length_check(
+      &(0..SITE_SUMMARY_MAX_LENGTH + 1)
         .map(|_| 'A')
         .collect::<String>(),
     );

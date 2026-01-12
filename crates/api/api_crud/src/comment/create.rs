@@ -110,13 +110,15 @@ pub async fn create_comment(
     Comment::create(&mut context.pool(), &comment_form, parent_path.as_ref()).await?;
   plugin_hook_after("local_comment_after_create", &inserted_comment);
 
-  NotifyData::new(
-    post.clone(),
-    Some(inserted_comment.clone()),
-    local_user_view.person.clone(),
-    post_view.community,
-    !local_site.disable_email_notifications,
-  )
+  NotifyData {
+    comment: Some(inserted_comment.clone()),
+    do_send_email: !local_site.disable_email_notifications,
+    ..NotifyData::new(
+      post.clone(),
+      local_user_view.person.clone(),
+      post_view.community,
+    )
+  }
   .send(&context);
 
   // You like your own comment by default
