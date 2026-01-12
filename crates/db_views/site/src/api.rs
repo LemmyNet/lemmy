@@ -40,7 +40,7 @@ use url::Url;
 #[cfg(feature = "full")]
 use {
   extism::FromBytes,
-  extism_convert::{Json, encoding},
+  extism_convert::Json,
 };
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]

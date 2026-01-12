@@ -153,7 +153,7 @@ impl Activity for CreateOrUpdatePage {
 
     NotifyData {
       apub_mentions: Some(parse_apub_mentions(&self.object.tag, context).await?),
-      do_send_email: do_send_email,
+      do_send_email,
       ..NotifyData::new(post.0, actor.0, community)
     }
     .send(context);
