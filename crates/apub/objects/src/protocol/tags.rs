@@ -1,9 +1,60 @@
+use crate::objects::person::ApubPerson;
+use activitypub_federation::{fetch::object_id::ObjectId, kinds::link::MentionType};
 use lemmy_db_schema::{
   newtypes::CommunityId,
   source::tag::{Tag, TagInsertForm},
 };
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use url::Url;
+
+/// Possible values in the `tag` field of a federated post or comment. Note that we don't support
+/// hashtags or community tags in comments, but its easier to use the same struct for both
+/// (anyway unsupported values are ignored).
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum ApubTag {
+  Hashtag(Hashtag),
+  CommunityTag(CommunityTag),
+  Mention(Mention),
+  Unknown(Value),
+}
+
+impl ApubTag {
+  pub(crate) fn community_tag_id(&self) -> Option<&Url> {
+    match self {
+      ApubTag::CommunityTag(t) => Some(&t.id),
+      _ => None,
+    }
+  }
+  pub fn mention_id(&self) -> Option<&ObjectId<ApubPerson>> {
+    match self {
+      ApubTag::Mention(m) => Some(&m.href),
+      _ => None,
+    }
+  }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Mention {
+  pub href: ObjectId<ApubPerson>,
+  pub(crate) name: Option<String>,
+  #[serde(rename = "type")]
+  pub kind: MentionType,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Hashtag {
+  pub(crate) href: Url,
+  pub(crate) name: String,
+  #[serde(rename = "type")]
+  pub(crate) kind: HashtagType,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum HashtagType {
+  Hashtag,
+}
 
 /// The [ActivityStreams vocabulary](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-tag)
 /// defines that any object can have a list of tags associated with it.

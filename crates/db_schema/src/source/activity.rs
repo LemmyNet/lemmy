@@ -10,7 +10,7 @@ use serde_json::Value;
 use std::{collections::HashSet, fmt::Debug};
 use url::Url;
 
-#[derive(FromSqlRow, PartialEq, Eq, Debug, Default, Clone)]
+#[derive(Debug, Default, Clone)]
 /// describes where an activity should be sent
 pub struct ActivitySendTargets {
   /// send to these inboxes explicitly

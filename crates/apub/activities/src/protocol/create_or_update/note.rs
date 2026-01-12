@@ -7,8 +7,8 @@ use activitypub_federation::{
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
   objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::note::Note,
-  utils::{mentions::MentionOrValue, protocol::InCommunity},
+  protocol::{note::Note, tags::ApubTag},
+  utils::protocol::InCommunity,
 };
 use lemmy_db_schema::source::community::Community;
 use lemmy_diesel_utils::traits::Crud;
@@ -26,7 +26,7 @@ pub struct CreateOrUpdateNote {
   #[serde(deserialize_with = "deserialize_one_or_many")]
   pub(crate) cc: Vec<Url>,
   #[serde(default)]
-  pub(crate) tag: Vec<MentionOrValue>,
+  pub(crate) tag: Vec<ApubTag>,
   #[serde(rename = "type")]
   pub(crate) kind: CreateOrUpdateType,
   pub(crate) id: Url,

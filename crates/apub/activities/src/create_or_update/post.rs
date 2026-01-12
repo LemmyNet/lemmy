@@ -2,6 +2,7 @@ use crate::{
   activity_lists::AnnouncableActivities,
   check_community_deleted_or_removed,
   community::send_activity_in_community,
+  create_or_update::{parse_apub_mentions, tagged_user_inboxes},
   generate_activity_id,
   protocol::{CreateOrUpdateType, create_or_update::page::CreateOrUpdatePage},
 };
@@ -25,7 +26,6 @@ use lemmy_apub_objects::{
 };
 use lemmy_db_schema::{
   source::{
-    activity::ActivitySendTargets,
     community::Community,
     person::Person,
     post::{Post, PostActions, PostLikeForm, PostUpdateForm},
@@ -72,16 +72,9 @@ impl CreateOrUpdatePage {
 
     let create_or_update =
       CreateOrUpdatePage::new(post.into(), &person, &community, kind, &context).await?;
+    let inboxes = tagged_user_inboxes(&create_or_update.object.tag, &context).await?;
     let activity = AnnouncableActivities::CreateOrUpdatePost(create_or_update);
-    send_activity_in_community(
-      activity,
-      &person,
-      &community,
-      ActivitySendTargets::empty(),
-      false,
-      &context,
-    )
-    .await?;
+    send_activity_in_community(activity, &person, &community, inboxes, false, &context).await?;
     Ok(())
   }
 }
@@ -143,7 +136,7 @@ impl Activity for CreateOrUpdatePage {
     verify_urls_match(self.actor.inner(), self.object.creator()?.inner())?;
     let site_view = SiteView::read_local(&mut context.pool()).await?;
 
-    let post = ApubPost::from_json(self.object, context).await?;
+    let post = ApubPost::from_json(self.object.clone(), context).await?;
 
     // author likes their own post by default
     let like_form = PostLikeForm::new(post.id, post.creator_id, Some(true));
@@ -157,7 +150,13 @@ impl Activity for CreateOrUpdatePage {
     let actor = self.actor.dereference(context).await?;
 
     let community = Community::read(&mut context.pool(), post.community_id).await?;
-    NotifyData::new(post.0, None, actor.0, community, do_send_email).send(context);
+
+    NotifyData {
+      apub_mentions: Some(parse_apub_mentions(&self.object.tag, context).await?),
+      do_send_email,
+      ..NotifyData::new(post.0, actor.0, community)
+    }
+    .send(context);
 
     Ok(())
   }
