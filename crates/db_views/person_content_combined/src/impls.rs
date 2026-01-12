@@ -12,6 +12,7 @@ use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   self,
   PersonContentType,
+  impls::local_user::LocalUserOptionHelper,
   source::combined::person_content::{PersonContentCombined, person_content_combined_keys as key},
   traits::InternalToCombinedView,
   utils::limit_fetch,
@@ -19,6 +20,7 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
+  enums::{CommunityFollowerState, CommunityVisibility},
   joins::{
     community_join,
     creator_community_actions_join,
@@ -33,7 +35,7 @@ use lemmy_db_schema_file::{
     my_person_actions_join,
     my_post_actions_join,
   },
-  schema::{comment, person, person_content_combined, post},
+  schema::{comment, community, community_actions, person, person_content_combined, post},
 };
 use lemmy_db_views_post_comment_combined::{
   PostCommentCombinedView,
@@ -160,7 +162,8 @@ impl PersonContentCombinedQuery {
     user: Option<&LocalUserView>,
     local_instance_id: InstanceId,
   ) -> LemmyResult<PagedResponse<PostCommentCombinedView>> {
-    let my_person_id = user.as_ref().map(|u| u.local_user.person_id);
+    let my_local_user = user.as_ref().map(|u| &u.local_user);
+    let my_person_id = my_local_user.person_id();
     let item_creator = person::id;
 
     // Notes: since the post_id and comment_id are optional columns,
@@ -185,6 +188,18 @@ impl PersonContentCombinedQuery {
         }
         PersonContentType::Posts => query.filter(person_content_combined::post_id.is_not_null()),
       }
+    }
+
+    // Check permissions to view private community content.
+    // Specifically, if the community is private then only accepted followers may view its
+    // content, otherwise it is filtered out. Admins can view private community content
+    // without restriction.
+    if !my_local_user.is_admin() {
+      query = query.filter(
+        community::visibility
+          .ne(CommunityVisibility::Private)
+          .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
+      );
     }
 
     // Sorting by published
@@ -226,13 +241,19 @@ impl PersonContentCombinedQuery {
 mod tests {
 
   use crate::impls::PersonContentCombinedQuery;
-  use lemmy_db_schema::source::{
-    comment::{Comment, CommentInsertForm},
-    community::{Community, CommunityInsertForm},
-    instance::Instance,
-    person::{Person, PersonInsertForm},
-    post::{Post, PostInsertForm},
+  use lemmy_db_schema::{
+    source::{
+      comment::{Comment, CommentInsertForm},
+      community::{Community, CommunityActions, CommunityFollowerForm, CommunityInsertForm},
+      instance::Instance,
+      local_user::{LocalUser, LocalUserInsertForm},
+      person::{Person, PersonInsertForm},
+      post::{Post, PostInsertForm},
+    },
+    traits::Followable,
   };
+  use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility};
+  use lemmy_db_views_local_user::LocalUserView;
   use lemmy_db_views_post_comment_combined::PostCommentCombinedView;
   use lemmy_diesel_utils::{
     connection::{DbPool, build_db_pool_for_tests},
@@ -244,7 +265,9 @@ mod tests {
 
   struct Data {
     instance: Instance,
+    private_community: Community,
     timmy: Person,
+    timmy_view: LocalUserView,
     sara: Person,
     timmy_post: Post,
     timmy_post_2: Post,
@@ -259,6 +282,14 @@ mod tests {
 
     let timmy_form = PersonInsertForm::test_form(instance.id, "timmy_pcv");
     let timmy = Person::create(pool, &timmy_form).await?;
+    let timmy_local_user_form = LocalUserInsertForm::test_form(timmy.id);
+    let timmy_local_user = LocalUser::create(pool, &timmy_local_user_form, vec![]).await?;
+    let timmy_view = LocalUserView {
+      local_user: timmy_local_user,
+      person: timmy.clone(),
+      banned: false,
+      ban_expires_at: None,
+    };
 
     let sara_form = PersonInsertForm::test_form(instance.id, "sara_pcv");
     let sara = Person::create(pool, &sara_form).await?;
@@ -271,6 +302,17 @@ mod tests {
     );
     let community = Community::create(pool, &community_form).await?;
 
+    let private_community_form = CommunityInsertForm {
+      visibility: Some(CommunityVisibility::Private),
+      ..CommunityInsertForm::new(
+        instance.id,
+        "private community pcv".to_string(),
+        "nada".to_owned(),
+        "pubkey".to_string(),
+      )
+    };
+    let private_community = Community::create(pool, &private_community_form).await?;
+
     let timmy_post_form = PostInsertForm::new("timmy post prv".into(), timmy.id, community.id);
     let timmy_post = Post::create(pool, &timmy_post_form).await?;
 
@@ -279,6 +321,13 @@ mod tests {
 
     let sara_post_form = PostInsertForm::new("sara post prv".into(), sara.id, community.id);
     let sara_post = Post::create(pool, &sara_post_form).await?;
+
+    let timmy_private_comm_post_form = PostInsertForm::new(
+      "timmy private post prv 2".into(),
+      timmy.id,
+      private_community.id,
+    );
+    let timmy_private_comm_post = Post::create(pool, &timmy_private_comm_post_form).await?;
 
     let timmy_comment_form =
       CommentInsertForm::new(timmy.id, timmy_post.id, "timmy comment prv".into());
@@ -292,9 +341,19 @@ mod tests {
       CommentInsertForm::new(sara.id, timmy_post_2.id, "sara comment prv 2".into());
     let sara_comment_2 = Comment::create(pool, &sara_comment_form_2, None).await?;
 
+    let timmy_private_comm_comment_form = CommentInsertForm::new(
+      timmy.id,
+      timmy_private_comm_post.id,
+      "timmy private comment prv".into(),
+    );
+    let _timmy_private_comm_comment =
+      Comment::create(pool, &timmy_private_comm_comment_form, None).await?;
+
     Ok(Data {
       instance,
+      private_community,
       timmy,
+      timmy_view,
       sara,
       timmy_post,
       timmy_post_2,
@@ -313,7 +372,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_combined() -> LemmyResult<()> {
+  async fn combined() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
@@ -374,6 +433,47 @@ mod tests {
     } else {
       panic!("wrong type");
     }
+
+    cleanup(data, pool).await?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn private_community() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // Make sure timmy can't see private content
+    let timmy_content = PersonContentCombinedQuery::new(data.timmy.id)
+      .list(pool, Some(&data.timmy_view), data.instance.id)
+      .await?;
+    assert_eq!(3, timmy_content.len());
+
+    // Approve timmy to the community
+    let follow_form = CommunityFollowerForm::new(
+      data.private_community.id,
+      data.timmy.id,
+      CommunityFollowerState::ApprovalRequired,
+    );
+
+    CommunityActions::follow(pool, &follow_form).await?;
+    CommunityActions::approve_private_community_follower(
+      pool,
+      data.private_community.id,
+      data.timmy.id,
+      data.sara.id,
+      CommunityFollowerState::Accepted,
+    )
+    .await?;
+
+    // Make sure timmy can now see the content
+    let timmy_content_after_approved = PersonContentCombinedQuery::new(data.timmy.id)
+      .list(pool, Some(&data.timmy_view), data.instance.id)
+      .await?;
+    assert_eq!(5, timmy_content_after_approved.len());
 
     cleanup(data, pool).await?;
 

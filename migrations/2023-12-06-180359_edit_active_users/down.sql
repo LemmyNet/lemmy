@@ -5,7 +5,7 @@ CREATE OR REPLACE FUNCTION community_aggregates_activity (i text)
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    RETURN query
+    RETURN QUERY
     SELECT
         count(*),
         community_id
@@ -20,12 +20,12 @@ BEGIN
         WHERE
             c.published > ('now'::timestamp - i::interval)
             AND pe.bot_account = FALSE
-        UNION
-        SELECT
-            p.creator_id,
-            p.community_id
-        FROM
-            post p
+    UNION
+    SELECT
+        p.creator_id,
+        p.community_id
+    FROM
+        post p
             INNER JOIN person pe ON p.creator_id = pe.id
         WHERE
             p.published > ('now'::timestamp - i::interval)

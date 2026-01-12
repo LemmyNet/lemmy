@@ -293,6 +293,9 @@ pub async fn authenticate_with_oauth(
 
   let oauth_user_id = read_user_info(&user_info, oauth_provider.id_claim.as_str())?;
 
+  let require_registration_application =
+    local_site.registration_mode == RegistrationMode::RequireApplication;
+
   let mut login_response = LoginResponse {
     jwt: None,
     registration_created: false,
@@ -306,6 +309,12 @@ pub async fn authenticate_with_oauth(
   let local_user = if let Ok(user_view) = local_user_view {
     // user found by oauth_user_id => Login user
     let local_user = user_view.clone().local_user;
+
+    login_response.registration_created = local_site.site_setup
+      && require_registration_application
+      && !local_user.accepted_application
+      && !local_user.admin
+      && data.answer.is_some();
 
     check_local_user_valid(&user_view)?;
     check_email_verified(&user_view, &site_view)?;
@@ -326,9 +335,6 @@ pub async fn authenticate_with_oauth(
 
     // Extract the OAUTH email claim from the returned user_info
     let email = read_user_info(&user_info, "email")?;
-
-    let require_registration_application =
-      local_site.registration_mode == RegistrationMode::RequireApplication;
 
     // Lookup user by OAUTH email and link accounts
     local_user_view = LocalUserView::find_by_email(pool, &email).await;
@@ -413,23 +419,20 @@ pub async fn authenticate_with_oauth(
             OAuthAccount::create(&mut conn.into(), &oauth_account_form).await?;
 
             // prevent sign in until application is accepted
-            if local_site.site_setup
-              && require_registration_application
-              && !local_user.accepted_application
-              && !local_user.admin
-              && let Some(answer) = tx_data.answer.clone()
-            {
+            if login_response.registration_created {
               // Create the registration application
               RegistrationApplication::create(
                 &mut conn.into(),
                 &RegistrationApplicationInsertForm {
                   local_user_id: local_user.id,
-                  answer,
+                  // We already check earlier that this Some, however using `ok_or` is cleaner
+                  // than unwrap or expect (which also requires clippy allow).
+                  answer: data
+                    .answer
+                    .ok_or(LemmyErrorType::RegistrationApplicationAnswerRequired)?,
                 },
               )
               .await?;
-
-              login_response.registration_created = true;
             }
             Ok(LocalUserView {
               person,

@@ -34,8 +34,8 @@ import {
   randomString,
   assertCommunityFederation,
   listReports,
-  statusNotFound,
   statusBadRequest,
+  jestLemmyError,
 } from "./shared";
 import { AdminAllowInstanceParams } from "lemmy-js-client/dist/types/AdminAllowInstanceParams";
 import {
@@ -60,7 +60,8 @@ test("Create community", async () => {
 
   // A dupe check
   let prevName = communityRes.community_view.community.name;
-  await expect(createCommunity(alpha, prevName)).rejects.toStrictEqual(
+  await jestLemmyError(
+    () => createCommunity(alpha, prevName),
     new LemmyError("already_exists", statusBadRequest),
   );
 
@@ -218,8 +219,8 @@ test("Report a community", async () => {
   expect(alphaReport.original_community_icon).toBe(
     betaReport.original_community_icon,
   );
-  expect(alphaReport.original_community_sidebar).toBe(
-    betaReport.original_community_sidebar,
+  expect(alphaReport.original_community_description).toBe(
+    betaReport.original_community_description,
   );
   expect(alphaReport.reason).toBe(betaReport.reason);
 
@@ -399,7 +400,8 @@ test("Get community for different casing on domain", async () => {
 
   // A dupe check
   let prevName = communityRes.community_view.community.name;
-  await expect(createCommunity(alpha, prevName)).rejects.toStrictEqual(
+  await jestLemmyError(
+    () => createCommunity(alpha, prevName),
     new LemmyError("already_exists", statusBadRequest),
   );
 
@@ -599,14 +601,18 @@ test("Content in local-only community doesn't federate", async () => {
   await editCommunity(alpha, form);
 
   // cant resolve the community from another instance
-  await expect(
-    resolveCommunity(beta, communityRes.ap_id),
-  ).rejects.toStrictEqual(new LemmyError("not_found", statusNotFound));
+  await jestLemmyError(
+    () => resolveCommunity(beta, communityRes.ap_id),
+    new LemmyError("resolve_object_failed", statusBadRequest),
+    false,
+  );
 
   // create a post, also cant resolve it
   let postRes = await createPost(alpha, communityRes.id);
-  await expect(resolvePost(beta, postRes.post_view.post)).rejects.toStrictEqual(
-    new LemmyError("not_found", statusNotFound),
+  await jestLemmyError(
+    () => resolvePost(beta, postRes.post_view.post),
+    new LemmyError("resolve_object_failed", statusBadRequest),
+    false,
   );
 });
 
@@ -631,7 +637,7 @@ test("Remote mods can edit communities", async () => {
 
   let form2: EditCommunity = {
     community_id: betaCommunity.community.id as number,
-    sidebar: "Example sidebar",
+    description: "Example sidebar",
   };
 
   await editCommunity(beta, form2);
@@ -639,7 +645,7 @@ test("Remote mods can edit communities", async () => {
   const communityId = communityRes.community_view.community.id;
   await waitUntil(
     () => getCommunity(alpha, communityId),
-    c => c.community_view.community.sidebar == "Example sidebar",
+    c => c.community_view.community.description == "Example sidebar",
   );
 });
 

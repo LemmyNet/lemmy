@@ -38,9 +38,9 @@ use lemmy_utils::{
     validation::{
       build_and_check_regex,
       check_urls_are_valid,
-      description_length_check,
       is_valid_body_field,
       site_name_length_check,
+      summary_length_check,
     },
   },
 };
@@ -65,8 +65,8 @@ pub async fn update_site(
 
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
-  let sidebar = diesel_string_update(
-    process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context)
+  let description = diesel_string_update(
+    process_markdown_opt(&data.description, &slur_regex, &url_blocklist, &context)
       .await?
       .as_deref(),
   );
@@ -76,8 +76,8 @@ pub async fn update_site(
 
   let site_form = SiteUpdateForm {
     name: data.name.clone(),
-    sidebar,
-    description: diesel_string_update(data.description.as_deref()),
+    description,
+    summary: diesel_string_update(data.summary.as_deref()),
     content_warning: diesel_string_update(data.content_warning.as_deref()),
     updated_at: Some(Some(Utc::now())),
     ..Default::default()
@@ -205,15 +205,15 @@ fn validate_update_payload(local_site: &LocalSite, edit_site: &EditSite) -> Lemm
     check_slurs_opt(&edit_site.name, &slur_regex)?;
   }
 
-  if let Some(desc) = &edit_site.description {
-    description_length_check(desc)?;
-    check_slurs_opt(&edit_site.description, &slur_regex)?;
+  if let Some(summary) = &edit_site.summary {
+    summary_length_check(summary)?;
+    check_slurs_opt(&edit_site.summary, &slur_regex)?;
   }
 
   site_default_post_listing_type_check(&edit_site.default_post_listing_type)?;
 
   // Ensure that the sidebar has fewer than the max num characters...
-  if let Some(body) = &edit_site.sidebar {
+  if let Some(body) = &edit_site.description {
     is_valid_body_field(body, false)?;
   }
 
@@ -351,8 +351,8 @@ mod tests {
         },
         &EditSite {
           name: Some(String::from("site_name")),
-          sidebar: Some(String::new()),
           description: Some(String::new()),
+          summary: Some(String::new()),
           application_question: Some(String::new()),
           private_instance: Some(false),
           default_post_listing_type: Some(ListingType::All),
