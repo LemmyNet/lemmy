@@ -427,7 +427,7 @@ pub(crate) fn convert_community(community: Community) -> CommunityV3 {
     banner,
     posting_restricted_to_mods,
     instance_id,
-    description,
+    summary: description,
     ..
   } = community;
   CommunityV3 {
@@ -572,12 +572,12 @@ pub(crate) fn convert_site(site: Site) -> SiteV3 {
   let Site {
     id,
     name,
-    sidebar,
+    description: sidebar,
     published_at,
     updated_at,
     icon,
     banner,
-    description,
+    summary: description,
     ap_id,
     last_refreshed_at,
     public_key,

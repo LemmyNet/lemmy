@@ -139,8 +139,8 @@ impl Activity for Report {
           original_community_title: community.title.clone(),
           original_community_banner: community.banner.clone(),
           original_community_icon: community.icon.clone(),
+          original_community_summary: community.summary.clone(),
           original_community_description: community.description.clone(),
-          original_community_sidebar: community.sidebar.clone(),
         };
         CommunityReport::report(&mut context.pool(), &report_form).await?;
       }
