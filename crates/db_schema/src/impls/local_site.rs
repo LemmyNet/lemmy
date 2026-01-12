@@ -83,7 +83,7 @@ mod tests {
     Ok((data, inserted_person, inserted_community))
   }
 
-  #[tokio_shared_rt::test(shared = true)]
+  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
   async fn test_aggregates() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();

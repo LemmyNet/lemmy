@@ -54,3 +54,4 @@ tracing-test = "0.2.5"
 uuid.workspace = true
 test-context = "0.5.4"
 mockall = "0.14.0"
+tokio-shared-rt = { workspace = true }

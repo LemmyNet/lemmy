@@ -219,7 +219,7 @@ pub(crate) mod tests {
   use lemmy_db_schema::source::instance::Instance;
   use pretty_assertions::assert_eq;
 
-  #[tokio_shared_rt::test(shared = true)]
+  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
   async fn test_parse_lemmy_person() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let (person, _) = parse_lemmy_person(&context).await?;

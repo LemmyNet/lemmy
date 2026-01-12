@@ -369,7 +369,7 @@ pub(crate) mod tests {
     Ok(())
   }
 
-  #[tokio_shared_rt::test(shared = true)]
+  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
   async fn test_outbox_deleted_user() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let (data, community, path) = init(false, CommunityVisibility::Public, &context).await?;
