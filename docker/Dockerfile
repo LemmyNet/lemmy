@@ -36,8 +36,6 @@ RUN --mount=type=cache,target=/lemmy/target set -ex; \
 # Release build
 RUN --mount=type=cache,target=/lemmy/target set -ex; \
     if [ "${RUST_RELEASE_MODE}" = "release" ]; then \
-        # install git for detailed version name
-        apt update && apt install -y git; \
         cargo clean --release; \
         cargo build --features "${CARGO_BUILD_FEATURES}" --release; \
         mv target/"${RUST_RELEASE_MODE}"/lemmy_server ./lemmy_server; \
@@ -71,8 +69,6 @@ RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
 # Release build
 RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
     if [ "${RUST_RELEASE_MODE}" = "release" ]; then \
-        # install git for detailed version name
-        apt update && apt install -y git; \
         cargo clean --release; \
         cargo build --features "${CARGO_BUILD_FEATURES}" --release; \
         mv "./target/$CARGO_BUILD_TARGET/$RUST_RELEASE_MODE/lemmy_server" /home/lemmy/lemmy_server; \
@@ -82,14 +78,14 @@ RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
 FROM ${AMD_RUNNER_IMAGE} AS runner-linux-amd64
 
 # Add system packages that are needed: federation needs CA certificates, curl can be used for healthchecks
-RUN apt update && apt install -y libssl-dev libpq-dev ca-certificates curl
+RUN apt update && apt install -y libssl-dev libpq-dev ca-certificates curl git
 
 COPY --from=build-amd64 --chmod=0755 /lemmy/lemmy_server /usr/local/bin
 
 # arm base runner
 FROM ${ARM_RUNNER_IMAGE} AS runner-linux-arm64
 
-RUN apt update && apt install -y libssl-dev libpq-dev ca-certificates curl
+RUN apt update && apt install -y libssl-dev libpq-dev ca-certificates curl git
 
 COPY --from=build-arm64 --chmod=0755 /home/lemmy/lemmy_server /usr/local/bin
 
