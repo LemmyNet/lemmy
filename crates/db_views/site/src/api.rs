@@ -38,10 +38,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
 #[cfg(feature = "full")]
-use {
-  extism::FromBytes,
-  extism_convert::{Json, encoding},
-};
+use {extism::FromBytes, extism_convert::Json};
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
