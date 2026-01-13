@@ -3,7 +3,7 @@ use activitypub_federation::{
   fetch::object_id::ObjectId,
   http_signatures::generate_actor_keypair,
 };
-use actix_web::{HttpRequest, web::Json};
+use actix_web::{HttpRequest, rt::time::sleep, web::Json};
 use diesel_async::{AsyncPgConnection, scoped_futures::ScopedFutureExt};
 use lemmy_api_utils::{
   claims::Claims,
@@ -40,6 +40,7 @@ use lemmy_db_schema::{
   traits::{ApubActor, Likeable},
 };
 use lemmy_db_schema_file::enums::RegistrationMode;
+use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::impls::PersonQuery;
 use lemmy_db_views_registration_applications::api::Register;
@@ -47,7 +48,7 @@ use lemmy_db_views_site::{
   SiteView,
   api::{AuthenticateWithOauth, LoginResponse},
 };
-use lemmy_diesel_utils::{connection::get_conn, traits::Crud};
+use lemmy_diesel_utils::{connection::get_conn, pagination::PagedResponse, traits::Crud};
 use lemmy_email::{
   account::send_verification_email_if_required,
   admin::send_new_applicant_email_to_admins,
@@ -64,7 +65,8 @@ use lemmy_utils::{
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-use std::{collections::HashSet, sync::LazyLock};
+use std::{collections::HashSet, sync::LazyLock, time::Duration};
+use tracing::info;
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -544,15 +546,8 @@ async fn create_local_user(
   // If we are setting up a new site, fetch initial communities and create welcome post.
   if !local_site.site_setup {
     local_user_form.admin = Some(true);
-    let no_default_data = context
-      .settings()
-      .setup
-      .as_ref()
-      .and_then(|s| s.no_default_data);
-    if !no_default_data.unwrap_or_default() {
-      create_welcome_post(inserted_local_user.clone(), context);
-      fetch_community_list(context.clone());
-    }
+    create_welcome_post(inserted_local_user.clone(), context);
+    fetch_community_list(context.clone());
   }
 
   Ok(inserted_local_user)
@@ -658,11 +653,47 @@ fn check_code_verifier(code_verifier: &str) -> LemmyResult<()> {
   }
 }
 
-/// Fetch list of communities from lemmyverse.net and then fetch the top communities.
 fn fetch_community_list(context: Data<LemmyContext>) {
+  // Only do this in release mode.
+  if cfg!(debug_assertions) {
+    //return;
+  }
+
   spawn_try_task(async move {
-    let communities_json = include_str!(concat!(env!("OUT_DIR"), "/communities.json"));
-    let communities: Vec<ObjectId<ApubCommunity>> = serde_json::from_str(communities_json)?;
+    let instances = context
+      .settings()
+      .setup
+      .clone()
+      .unwrap_or_default()
+      .bootstrap_instances;
+    let mut communities: Vec<ObjectId<ApubCommunity>> = vec![];
+    for i in instances {
+      info!("Trying to fetch community list from {i}");
+      let res = context
+        .client()
+        .get(format!(
+          "https://{i}/api/v4/community/list?type_=all&sort=active_monthly&limit=50"
+        ))
+        .send()
+        .await;
+      if let Ok(res) = res
+        && let Ok(json) = res.json::<PagedResponse<CommunityView>>().await
+      {
+        communities = json
+          .items
+          .into_iter()
+          // exclude nsfw
+          .filter(|c| !c.community.nsfw)
+          .map(|c| c.community.ap_id.into())
+          .collect();
+        info!("Successfully fetched community list from {i}");
+        break;
+      }
+      info!("Failed to fetch community list from {i}");
+    }
+    // also prefetch these two communities as they are linked in the welcome post
+    communities.insert(0, "https://lemmy.ml/c/announcements".parse()?);
+    communities.insert(0, "https://lemmy.ml/c/lemmy".parse()?);
 
     // Fetch communities themselves
     let tasks = communities.iter().map(|c| async {
@@ -673,9 +704,10 @@ fn fetch_community_list(context: Data<LemmyContext>) {
     // This could be made faster by running tasks in parallel with try_join_all or
     // FuturesUnordered. However that causes massive slowdown as each community fetch
     // starts additional background tasks to fetch moderators, recent posts etc. So we
-    // need to run it one by one.
+    // need to run it one by one and sleep in between.
     for t in tasks {
       t.await;
+      sleep(Duration::from_secs(1)).await;
     }
 
     Ok(())

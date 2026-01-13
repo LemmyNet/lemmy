@@ -41,6 +41,7 @@ activitypub_federation = { workspace = true }
 bcrypt = { workspace = true }
 actix-web = { workspace = true }
 url = { workspace = true }
+tracing = { workspace = true }
 futures = { workspace = true }
 futures-util = { workspace = true }
 uuid = { workspace = true }
@@ -60,6 +61,5 @@ ignored = ["futures", "futures-util"]
 [dev-dependencies]
 
 [build-dependencies]
-reqwest = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
