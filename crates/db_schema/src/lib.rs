@@ -247,3 +247,11 @@ pub type MyInstancePersonsActionsAllColumnsTuple = (
   AliasedField<aliases::MyInstancePersonsActions, instance_actions::ban_expires_at>,
   AliasedField<aliases::MyInstancePersonsActions, instance_actions::blocked_persons_at>,
 );
+
+mod derive_alias {
+  // Define the aliases
+  derive_aliases::define! {
+      ApiStruct = ::std::clone::Clone, ::std::cmp::PartialEq, ::std::cmp::Eq, ::std::fmt::Debug, ::serde::Serialize, ::serde::Deserialize;
+      SqlStruct = ::diesel::deserialize::Queryable, ::diesel::expression::Selectable, ::diesel::associations::Identifiable;
+  }
+}

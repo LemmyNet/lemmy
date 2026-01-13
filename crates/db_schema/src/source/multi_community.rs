@@ -20,7 +20,7 @@ use serde_with::skip_serializing_none;
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 #[cfg_attr(
   feature = "full",
-  derive(Queryable, Selectable, Identifiable, CursorKeysModule)
+  derive(..SqlStruct, CursorKeysModule)
 )]
 #[cfg_attr(feature = "full", diesel(table_name = multi_community))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
@@ -113,7 +113,7 @@ pub struct MultiCommunityFollowForm {
 
 #[skip_serializing_none]
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
+#[cfg_attr(feature = "full", derive(..SqlStruct))]
 #[cfg_attr(feature = "full", diesel(table_name = multi_community_entry))]
 #[cfg_attr(
   feature = "full",

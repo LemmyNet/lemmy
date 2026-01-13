@@ -58,6 +58,7 @@ uuid.workspace = true
 i-love-jesus = { workspace = true, optional = true }
 derive-new.workspace = true
 moka = { workspace = true, optional = true }
+derive_aliases = "0.4"
 
 
 [dev-dependencies]

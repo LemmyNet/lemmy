@@ -8,8 +8,8 @@ use serde_with::skip_serializing_none;
 
 /// Stores data related to a specific user login session.
 #[skip_serializing_none]
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
+#[derive(..ApiStruct)]
+#[cfg_attr(feature = "full", derive(..SqlStruct))]
 #[cfg_attr(feature = "full", diesel(table_name = login_token))]
 #[cfg_attr(feature = "full", diesel(primary_key(token)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]

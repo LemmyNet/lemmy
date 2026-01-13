@@ -1,5 +1,6 @@
 use crate::newtypes::LocalUserId;
 use chrono::{DateTime, Utc};
+use derive_aliases::derive;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::local_user;
 use lemmy_db_schema_file::{
@@ -11,8 +12,8 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
 #[skip_serializing_none]
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, Default)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
+#[derive(#[derive(..ApiStruct)], Default)]
+#[cfg_attr(feature = "full", derive(..SqlStruct))]
 #[cfg_attr(feature = "full", diesel(table_name = local_user))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]

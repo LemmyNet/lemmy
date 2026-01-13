@@ -1,5 +1,6 @@
 use crate::source::placeholder_apub_url;
 use chrono::{DateTime, Utc};
+use derive_aliases::derive;
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;
 #[cfg(feature = "full")]
@@ -10,10 +11,10 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
 #[skip_serializing_none]
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(..ApiStruct)]
 #[cfg_attr(
   feature = "full",
-  derive(Queryable, Selectable, Identifiable, CursorKeysModule)
+  derive(..DbStruct, CursorKeysModule)
 )]
 #[cfg_attr(feature = "full", diesel(table_name = person))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
@@ -120,7 +121,7 @@ pub struct PersonUpdateForm {
 }
 
 #[skip_serializing_none]
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(..ApiStruct)]
 #[cfg_attr(
   feature = "full",
   derive(Identifiable, Queryable, Selectable, Associations)

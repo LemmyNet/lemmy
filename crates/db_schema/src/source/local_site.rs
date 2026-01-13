@@ -1,5 +1,6 @@
 use crate::newtypes::{LocalSiteId, MultiCommunityId, SiteId};
 use chrono::{DateTime, Utc};
+use derive_aliases::derive;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::local_site;
 use lemmy_db_schema_file::{
@@ -18,7 +19,7 @@ use serde_with::skip_serializing_none;
 
 #[skip_serializing_none]
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize, Default)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
+#[cfg_attr(feature = "full", derive(..SqlStruct))]
 #[cfg_attr(feature = "full", diesel(table_name = local_site))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::site::Site)))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]

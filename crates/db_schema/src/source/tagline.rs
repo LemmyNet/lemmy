@@ -1,15 +1,16 @@
 use crate::newtypes::TaglineId;
 use chrono::{DateTime, Utc};
+use derive_aliases::derive;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {i_love_jesus::CursorKeysModule, lemmy_db_schema_file::schema::tagline};
 
 #[skip_serializing_none]
-#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
+#[derive(..ApiStruct)]
 #[cfg_attr(
   feature = "full",
-  derive(Queryable, Selectable, Identifiable, CursorKeysModule)
+  derive(..SqlStruct, CursorKeysModule)
 )]
 #[cfg_attr(feature = "full", diesel(table_name = tagline))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]

@@ -1,5 +1,6 @@
 use crate::newtypes::LocalSiteId;
 use chrono::{DateTime, Utc};
+use derive_aliases::derive;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::local_site_rate_limit;
 use serde::{Deserialize, Serialize};
@@ -7,7 +8,7 @@ use serde_with::skip_serializing_none;
 
 #[skip_serializing_none]
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
+#[cfg_attr(feature = "full", derive(..SqlStruct))]
 #[cfg_attr(feature = "full", diesel(table_name = local_site_rate_limit))]
 #[cfg_attr(feature = "full", diesel(primary_key(local_site_id)))]
 #[cfg_attr(

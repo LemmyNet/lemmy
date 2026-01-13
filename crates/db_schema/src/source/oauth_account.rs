@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
 #[skip_serializing_none]
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(..ApiStruct)]
 #[cfg_attr(feature = "full", derive(Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(table_name = oauth_account))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]

@@ -1,10 +1,11 @@
 use crate::newtypes::LocalUserId;
 use chrono::{DateTime, Utc};
+use derive_aliases::derive;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::email_verification;
 
 #[derive(Clone)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
+#[cfg_attr(feature = "full", derive(..SqlStruct))]
 #[cfg_attr(feature = "full", diesel(table_name = email_verification))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 pub struct EmailVerification {

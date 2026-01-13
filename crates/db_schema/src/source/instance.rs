@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use derive_aliases::derive;
 use lemmy_db_schema_file::{InstanceId, PersonId};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -10,10 +11,10 @@ use {
 };
 
 #[skip_serializing_none]
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(..ApiStruct)]
 #[cfg_attr(
   feature = "full",
-  derive(Queryable, Selectable, Identifiable, CursorKeysModule)
+  derive(..SqlStruct, CursorKeysModule)
 )]
 #[cfg_attr(feature = "full", diesel(table_name = instance))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
@@ -47,7 +48,7 @@ pub struct InstanceForm {
   pub updated_at: Option<DateTime<Utc>>,
 }
 
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(..ApiStruct)]
 #[cfg_attr(
   feature = "full",
   derive(Queryable, Selectable, Associations, Identifiable)

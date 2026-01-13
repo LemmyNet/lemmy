@@ -11,10 +11,10 @@ use {
 };
 
 #[skip_serializing_none]
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[derive(..ApiStruct)]
 #[cfg_attr(
   feature = "full",
-  derive(Queryable, Selectable, Identifiable, CursorKeysModule)
+  derive(..SqlStruct, CursorKeysModule)
 )]
 #[cfg_attr(feature = "full", diesel(table_name = post))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
@@ -176,10 +176,10 @@ pub struct PostUpdateForm {
   pub federation_pending: Option<bool>,
 }
 
-#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
+#[derive(..ApiStruct)]
 #[cfg_attr(
   feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations, CursorKeysModule)
+  derive(..SqlStruct, Associations, CursorKeysModule)
 )]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
 #[cfg_attr(feature = "full", diesel(table_name = post_actions))]

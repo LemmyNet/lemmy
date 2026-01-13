@@ -11,8 +11,8 @@ use serde_with::skip_serializing_none;
 /// A tag that is created by community moderators, and assigned to posts by the creator
 /// or by mods.
 #[skip_serializing_none]
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
+#[derive(..ApiStruct)]
+#[cfg_attr(feature = "full", derive(..SqlStruct))]
 #[cfg_attr(feature = "full", diesel(table_name = tag))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
@@ -55,7 +55,7 @@ pub struct TagUpdateForm {
 }
 
 /// We wrap this in a struct so we can implement FromSqlRow<Json> for it
-#[derive(Clone, serde::Serialize, serde::Deserialize, Debug, PartialEq, Default)]
+#[derive(..ApiStruct)]
 #[serde(transparent)]
 #[cfg_attr(feature = "full", derive(FromSqlRow, AsExpression))]
 #[cfg_attr(feature = "full", diesel(sql_type = Nullable<diesel::sql_types::Json>))]
@@ -63,10 +63,10 @@ pub struct TagUpdateForm {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct TagsView(pub Vec<Tag>);
 
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(..ApiStruct)]
 #[cfg_attr(
   feature = "full",
-  derive(Queryable, Selectable, Associations, Identifiable)
+  derive(..SqlStruct, Associations)
 )]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::tag::Tag)))]

@@ -1,5 +1,6 @@
 use crate::newtypes::PostId;
 use chrono::{DateTime, Utc};
+use derive_aliases::derive;
 use lemmy_db_schema_file::PersonId;
 use lemmy_diesel_utils::dburl::DbUrl;
 use serde::{Deserialize, Serialize};
@@ -12,10 +13,10 @@ use {
 };
 
 #[skip_serializing_none]
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(..ApiStruct)]
 #[cfg_attr(
   feature = "full",
-  derive(Queryable, Selectable, Identifiable, Associations, CursorKeysModule,)
+  derive(..SqlStruct, Associations, CursorKeysModule,)
 )]
 #[cfg_attr(feature = "full", diesel(table_name = local_image))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::person::Person)))]
@@ -44,8 +45,8 @@ pub struct LocalImageForm {
 /// Stores all images which are hosted on remote domains. When attempting to proxy an image, it
 /// is checked against this table to avoid Lemmy being used as a general purpose proxy.
 #[skip_serializing_none]
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
+#[derive(..ApiStruct)]
+#[cfg_attr(feature = "full", derive(..SqlStruct))]
 #[cfg_attr(feature = "full", diesel(table_name = remote_image))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", diesel(primary_key(link)))]
@@ -55,8 +56,8 @@ pub struct RemoteImage {
 }
 
 #[skip_serializing_none]
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
+#[derive(..ApiStruct)]
+#[cfg_attr(feature = "full", derive(..SqlStruct))]
 #[cfg_attr(feature = "full", diesel(table_name = image_details))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "full", diesel(primary_key(link)))]

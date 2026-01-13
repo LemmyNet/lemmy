@@ -1,5 +1,6 @@
 use crate::{newtypes::CommunityId, source::placeholder_apub_url};
 use chrono::{DateTime, Utc};
+use derive_aliases::derive;
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
@@ -18,7 +19,7 @@ use {
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 #[cfg_attr(
   feature = "full",
-  derive(Queryable, Selectable, Identifiable, CursorKeysModule)
+  derive(..SqlStruct, CursorKeysModule)
 )]
 #[cfg_attr(feature = "full", diesel(table_name = community))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]

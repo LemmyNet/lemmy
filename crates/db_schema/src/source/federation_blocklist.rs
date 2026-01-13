@@ -1,11 +1,12 @@
 use chrono::{DateTime, Utc};
+use derive_aliases::derive;
 use lemmy_db_schema_file::InstanceId;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::federation_blocklist;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(..ApiStruct)]
 #[cfg_attr(
   feature = "full",
   derive(Queryable, Selectable, Associations, Identifiable)

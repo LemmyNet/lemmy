@@ -7,10 +7,10 @@ use serde_with::skip_serializing_none;
 use {i_love_jesus::CursorKeysModule, lemmy_db_schema_file::schema::registration_application};
 
 #[skip_serializing_none]
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(..ApiStruct)]
 #[cfg_attr(
   feature = "full",
-  derive(Queryable, Selectable, Identifiable, CursorKeysModule)
+  derive(..SqlStruct, CursorKeysModule)
 )]
 #[cfg_attr(feature = "full", diesel(table_name = registration_application))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]

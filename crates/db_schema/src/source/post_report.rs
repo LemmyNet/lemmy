@@ -8,10 +8,10 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
 #[skip_serializing_none]
-#[derive(PartialEq, Eq, Serialize, Deserialize, Debug, Clone)]
+#[derive(..ApiStruct)]
 #[cfg_attr(
   feature = "full",
-  derive(Identifiable, Queryable, Selectable, Associations)
+  derive(..SqlStruct, Associations)
 )]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::post::Post)))] // Is this the right assoc?
 #[cfg_attr(feature = "full", diesel(table_name = post_report))]
