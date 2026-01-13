@@ -676,18 +676,18 @@ fn fetch_community_list(context: Data<LemmyContext>) {
         ))
         .send()
         .await;
-      if let Ok(res) = res {
-        if let Ok(json) = res.json::<PagedResponse<CommunityView>>().await {
-          communities = json
-            .items
-            .into_iter()
-            // exclude nsfw
-            .filter(|c| !c.community.nsfw)
-            .map(|c| c.community.ap_id.into())
-            .collect();
-          info!("Successfully fetched community list from {i}");
-          break;
-        }
+      if let Ok(res) = res
+        && let Ok(json) = res.json::<PagedResponse<CommunityView>>().await
+      {
+        communities = json
+          .items
+          .into_iter()
+          // exclude nsfw
+          .filter(|c| !c.community.nsfw)
+          .map(|c| c.community.ap_id.into())
+          .collect();
+        info!("Successfully fetched community list from {i}");
+        break;
       }
       info!("Failed to fetch community list from {i}");
     }
