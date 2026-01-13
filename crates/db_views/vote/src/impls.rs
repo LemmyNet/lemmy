@@ -1,37 +1,41 @@
-use crate::VoteView;
-use diesel::{
-  BoolExpressionMethods,
-  ExpressionMethods,
-  JoinOnDsl,
-  NullableExpressionMethods,
-  QueryDsl,
-};
+use crate::{VoteView, VoteViewComment, VoteViewPost};
+use diesel::{BoolExpressionMethods, ExpressionMethods, JoinOnDsl, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
+use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   newtypes::{CommentId, PostId},
-  utils::{limit_fetch, queries::selects::creator_local_home_banned},
+  source::{comment::CommentActions, post::PostActions},
+  utils::limit_fetch,
 };
 use lemmy_db_schema_file::{
   InstanceId,
+  PersonId,
   aliases::creator_community_actions,
   joins::{creator_home_instance_actions_join, creator_local_instance_actions_join},
   schema::{comment, comment_actions, community_actions, person, post, post_actions},
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
-  pagination::{PagedResponse, PaginationCursor},
+  pagination::{
+    CursorData,
+    PagedResponse,
+    PaginationCursor,
+    PaginationCursorConversion,
+    paginate_response,
+  },
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use serde::{Deserialize, Serialize};
 
 impl VoteView {
   pub async fn list_for_post(
     pool: &mut DbPool<'_>,
     post_id: PostId,
-    _page_cursor: Option<PaginationCursor>,
+    page_cursor: Option<PaginationCursor>,
     limit: Option<i64>,
     local_instance_id: InstanceId,
   ) -> LemmyResult<PagedResponse<Self>> {
-    let conn = &mut get_conn(pool).await?;
+    use lemmy_db_schema::source::post::post_actions_keys as key;
     let limit = limit_fetch(limit, None)?;
 
     let creator_community_actions_join = creator_community_actions.on(
@@ -48,7 +52,7 @@ impl VoteView {
     let creator_local_instance_actions_join: creator_local_instance_actions_join =
       creator_local_instance_actions_join(local_instance_id);
 
-    let mut query = post_actions::table
+    let query = post_actions::table
       .inner_join(person::table)
       .inner_join(post::table)
       .left_join(creator_community_actions_join)
@@ -56,52 +60,33 @@ impl VoteView {
       .left_join(creator_local_instance_actions_join)
       .filter(post_actions::post_id.eq(post_id))
       .filter(post_actions::vote_is_upvote.is_not_null())
-      .select((
-        person::all_columns,
-        creator_local_home_banned(),
-        creator_community_actions
-          .field(community_actions::received_ban_at)
-          .nullable()
-          .is_not_null(),
-        post_actions::vote_is_upvote.assume_not_null(),
-      ))
+      .select(VoteViewPost::as_select())
       .limit(limit)
       .into_boxed();
 
     // Sorting by like score
-    /*
-    TODO: broken https://github.com/LemmyNet/lemmy/issues/6162
-    use lemmy_db_schema::source::post::post_actions_keys as key;
-    let paginated_query = paginate(query, page_cursor, SortDirection::Asc, pool, None)
+    let query = VoteViewPost::paginate(query, &page_cursor, SortDirection::Asc, pool, None)
       .await?
       .then_order_by(key::vote_is_upvote)
       // Tie breaker
       .then_order_by(key::voted_at);
-    */
-    query = query.order((
-      post_actions::vote_is_upvote.asc(),
-      post_actions::voted_at.asc(),
-    ));
 
+    let conn = &mut get_conn(pool).await?;
     let res = query
-      .load::<Self>(conn)
+      .load::<VoteViewPost>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)?;
-    Ok(PagedResponse {
-      items: res,
-      prev_page: None,
-      next_page: None,
-    })
+    paginate_vote_response(res, limit, page_cursor)
   }
 
   pub async fn list_for_comment(
     pool: &mut DbPool<'_>,
     comment_id: CommentId,
-    _page_cursor: Option<PaginationCursor>,
+    page_cursor: Option<PaginationCursor>,
     limit: Option<i64>,
     local_instance_id: InstanceId,
   ) -> LemmyResult<PagedResponse<Self>> {
-    let conn = &mut get_conn(pool).await?;
+    use lemmy_db_schema::source::comment::comment_actions_keys as key;
     let limit = limit_fetch(limit, None)?;
 
     let creator_community_actions_join = creator_community_actions.on(
@@ -118,7 +103,7 @@ impl VoteView {
     let creator_local_instance_actions_join: creator_local_instance_actions_join =
       creator_local_instance_actions_join(local_instance_id);
 
-    let mut query = comment_actions::table
+    let query = comment_actions::table
       .inner_join(person::table)
       .inner_join(comment::table.inner_join(post::table))
       .left_join(creator_community_actions_join)
@@ -126,41 +111,75 @@ impl VoteView {
       .left_join(creator_local_instance_actions_join)
       .filter(comment_actions::comment_id.eq(comment_id))
       .filter(comment_actions::vote_is_upvote.is_not_null())
-      .select((
-        person::all_columns,
-        creator_local_home_banned(),
-        creator_community_actions
-          .field(community_actions::received_ban_at)
-          .nullable()
-          .is_not_null(),
-        comment_actions::vote_is_upvote.assume_not_null(),
-      ))
+      .select(VoteViewComment::as_select())
       .limit(limit)
       .into_boxed();
 
     // Sorting by like score
-    /*
-    TODO: broken https://github.com/LemmyNet/lemmy/issues/6162
-    use lemmy_db_schema::source::comment::comment_actions_keys as key;
-    let paginated_query = paginate(query, SortDirection::Asc, cursor_data, None, page_back)
+    let query = VoteViewComment::paginate(query, &page_cursor, SortDirection::Asc, pool, None)
+      .await?
       .then_order_by(key::vote_is_upvote)
       // Tie breaker
       .then_order_by(key::voted_at);
-    */
-    query = query.order((
-      comment_actions::vote_is_upvote.asc(),
-      comment_actions::voted_at.asc(),
-    ));
 
+    let conn = &mut get_conn(pool).await?;
     let res = query
-      .load::<Self>(conn)
+      .load::<VoteViewComment>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)?;
-    Ok(PagedResponse {
-      items: res,
-      prev_page: None,
-      next_page: None,
-    })
+    paginate_vote_response(res, limit, page_cursor)
+  }
+}
+
+// https://github.com/rust-lang/rust/issues/115590
+#[allow(clippy::multiple_bound_locations)]
+fn paginate_vote_response<
+  #[cfg(feature = "ts-rs")] T: ts_rs::TS,
+  #[cfg(not(feature = "ts-rs"))] T,
+>(
+  data: Vec<T>,
+  limit: i64,
+  page_cursor: Option<PaginationCursor>,
+) -> LemmyResult<PagedResponse<VoteView>>
+where
+  T: PaginationCursorConversion + Serialize + for<'a> Deserialize<'a>,
+  VoteView: From<T>,
+{
+  let res = paginate_response(data, limit, page_cursor)?;
+  Ok(PagedResponse {
+    items: res.items.into_iter().map(Into::into).collect(),
+    next_page: res.next_page,
+    prev_page: res.prev_page,
+  })
+}
+
+impl PaginationCursorConversion for VoteViewPost {
+  type PaginatedType = PostActions;
+  fn to_cursor(&self) -> CursorData {
+    CursorData::new_multi([self.creator.id.0, self.post_id.0])
+  }
+
+  async fn from_cursor(
+    cursor: CursorData,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Self::PaginatedType> {
+    let [creator_id, post_id] = cursor.multi()?;
+    PostActions::read(pool, PostId(post_id), PersonId(creator_id)).await
+  }
+}
+
+impl PaginationCursorConversion for VoteViewComment {
+  type PaginatedType = CommentActions;
+  fn to_cursor(&self) -> CursorData {
+    CursorData::new_multi([self.creator.id.0, self.comment_id.0])
+  }
+
+  async fn from_cursor(
+    cursor: CursorData,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Self::PaginatedType> {
+    let [creator_id, comment_id] = cursor.multi()?;
+    CommentActions::read(pool, CommentId(comment_id), PersonId(creator_id)).await
   }
 }
 
