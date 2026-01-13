@@ -35,6 +35,7 @@ impl VoteView {
     limit: Option<i64>,
     local_instance_id: InstanceId,
   ) -> LemmyResult<PagedResponse<Self>> {
+    use lemmy_db_schema::source::post::post_actions_keys as key;
     let limit = limit_fetch(limit, None)?;
 
     let creator_community_actions_join = creator_community_actions.on(
@@ -64,7 +65,6 @@ impl VoteView {
       .into_boxed();
 
     // Sorting by like score
-    use lemmy_db_schema::source::post::post_actions_keys as key;
     let query = VoteViewPost::paginate(query, &page_cursor, SortDirection::Asc, pool, None)
       .await?
       .then_order_by(key::vote_is_upvote)
@@ -86,6 +86,7 @@ impl VoteView {
     limit: Option<i64>,
     local_instance_id: InstanceId,
   ) -> LemmyResult<PagedResponse<Self>> {
+    use lemmy_db_schema::source::comment::comment_actions_keys as key;
     let limit = limit_fetch(limit, None)?;
 
     let creator_community_actions_join = creator_community_actions.on(
@@ -115,7 +116,6 @@ impl VoteView {
       .into_boxed();
 
     // Sorting by like score
-    use lemmy_db_schema::source::comment::comment_actions_keys as key;
     let query = VoteViewComment::paginate(query, &page_cursor, SortDirection::Asc, pool, None)
       .await?
       .then_order_by(key::vote_is_upvote)
@@ -131,7 +131,12 @@ impl VoteView {
   }
 }
 
-fn paginate_vote_response<T>(
+// https://github.com/rust-lang/rust/issues/115590
+#[allow(clippy::multiple_bound_locations)]
+fn paginate_vote_response<
+  #[cfg(feature = "ts-rs")] T: ts_rs::TS,
+  #[cfg(not(feature = "ts-rs"))] T,
+>(
   data: Vec<T>,
   limit: i64,
   page_cursor: Option<PaginationCursor>,
@@ -140,11 +145,11 @@ where
   T: PaginationCursorConversion + Serialize + for<'a> Deserialize<'a>,
   VoteView: From<T>,
 {
-  let res2 = paginate_response(data, limit, page_cursor)?;
+  let res = paginate_response(data, limit, page_cursor)?;
   Ok(PagedResponse {
-    items: res2.items.into_iter().map(Into::into).collect(),
-    next_page: res2.next_page,
-    prev_page: res2.prev_page,
+    items: res.items.into_iter().map(Into::into).collect(),
+    next_page: res.next_page,
+    prev_page: res.prev_page,
   })
 }
 
