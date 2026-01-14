@@ -78,7 +78,10 @@ use lemmy_diesel_utils::{
   },
   utils::{fuzzy_search, now, seconds_to_pg_interval},
 };
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::{
+  error::{LemmyErrorType, LemmyResult},
+  utils::validation::clean_url,
+};
 use url::Url;
 
 impl SearchCombinedViewInternal {
@@ -261,14 +264,17 @@ impl SearchCombinedQuery {
     let is_multi_community = search_combined::multi_community_id.is_not_null();
 
     // The search term
-    if let Some(search_term) = &self.search_term {
+    if let Some(search_term) = self.search_term {
       if self.post_url_only.unwrap_or_default() {
-        // Needs to be parsed to a rusts common url format before searching, since those are whats
-        // inserted as the post url
-        let search_url: String = Url::parse(search_term)?.into();
-        query = query.filter(is_post.and(post::url.eq(search_url)));
+        // Parse and normalize the url, removing tracking parameters (same logic which is used
+        // when creating a new post).
+        let normalized_url = Url::parse(&search_term).map(|u| clean_url(&u).to_string());
+        // If any of the normalization steps above failed, use the search term directly
+        // (this can happen when searching part of an url).
+        let url_searcher = fuzzy_search(&normalized_url.unwrap_or(search_term));
+        query = query.filter(is_post.and(post::url.ilike(url_searcher)));
       } else {
-        let searcher = fuzzy_search(search_term);
+        let searcher = fuzzy_search(&search_term);
 
         // These need to also filter by the type, otherwise they may return children
         let name_or_title_filter = is_post
@@ -1116,14 +1122,21 @@ mod tests {
     // Using a term
     let post_search_url_only = SearchCombinedQuery {
       search_term: data.timmy_post.url.as_ref().map(ToString::to_string),
-      type_: Some(SearchType::Posts),
       post_url_only: Some(true),
       ..Default::default()
     }
     .list(pool, &None, &data.site)
     .await?;
-
     assert_length!(1, post_search_url_only);
+
+    let post_search_partial_url = SearchCombinedQuery {
+      search_term: Some("google.c".to_string()),
+      post_url_only: Some(true),
+      ..Default::default()
+    }
+    .list(pool, &None, &data.site)
+    .await?;
+    assert_length!(1, post_search_partial_url);
 
     // Liked / disliked only
     let post_search_liked_only = SearchCombinedQuery {
