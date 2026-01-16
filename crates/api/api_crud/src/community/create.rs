@@ -1,3 +1,4 @@
+use crate::check_user_or_community_name_taken;
 use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
 use actix_web::web::Json;
 use lemmy_api_utils::{
@@ -82,13 +83,10 @@ pub async fn create_community(
   }
 
   is_valid_actor_name(&data.name)?;
+  check_user_or_community_name_taken(&data.name, &context).await?;
 
   // Double check for duplicate community actor_ids
   let community_ap_id = Community::generate_local_actor_url(&data.name, context.settings())?;
-  let community_dupe = Community::read_from_apub_id(&mut context.pool(), &community_ap_id).await?;
-  if community_dupe.is_some() {
-    Err(LemmyErrorType::AlreadyExists)?
-  }
 
   let keypair = generate_actor_keypair()?;
   let community_form = CommunityInsertForm {

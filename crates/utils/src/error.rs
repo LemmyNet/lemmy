@@ -64,7 +64,7 @@ pub enum LemmyErrorType {
   RegistrationApplicationAnswerRequired,
   RegistrationUsernameRequired,
   EmailAlreadyTaken,
-  UsernameAlreadyTaken,
+  NameAlreadyTaken,
   PersonIsBannedFromCommunity,
   NoIdGiven,
   IncorrectLogin,

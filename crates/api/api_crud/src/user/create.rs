@@ -1,3 +1,4 @@
+use crate::check_user_or_community_name_taken;
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
@@ -127,7 +128,7 @@ pub async fn register(
   check_slurs(&data.username, &slur_regex)?;
   check_slurs_opt(&data.answer, &slur_regex)?;
 
-  Person::check_username_taken(pool, &data.username).await?;
+  check_user_or_community_name_taken(&data.username, &context).await?;
 
   if let Some(email) = &data.email {
     LocalUser::check_is_email_taken(pool, email).await?;
@@ -391,7 +392,7 @@ pub async fn authenticate_with_oauth(
             check_slurs(username, &slur_regex)?;
             check_slurs_opt(&tx_data.answer, &slur_regex)?;
 
-            Person::check_username_taken(&mut conn.into(), username).await?;
+            check_user_or_community_name_taken(&username, &tx_context).await?;
 
             // We have to create a person, a local_user, and an oauth_account
             let person = create_person(username.clone(), &site_view, &tx_context, conn).await?;
