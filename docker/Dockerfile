@@ -62,7 +62,7 @@ ENV RUST_RELEASE_MODE=${RUST_RELEASE_MODE} \
 # Debug build
 RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
     if [ "${RUST_RELEASE_MODE}" = "debug" ]; then \
-        cargo build --features "${CARGO_BUILD_FEATURES}"; \
+        cargo build --features "${CARGO_BUILD_FEATURES}" --target "aarch64-unknown-linux-gnu"; \
         mv "./target/$CARGO_BUILD_TARGET/$RUST_RELEASE_MODE/lemmy_server" /home/lemmy/lemmy_server; \
     fi
 
@@ -70,7 +70,7 @@ RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
 RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
     if [ "${RUST_RELEASE_MODE}" = "release" ]; then \
         cargo clean --release; \
-        cargo build --features "${CARGO_BUILD_FEATURES}" --release; \
+        cargo build --features "${CARGO_BUILD_FEATURES}" --target "aarch64-unknown-linux-gnu" --release; \
         mv "./target/$CARGO_BUILD_TARGET/$RUST_RELEASE_MODE/lemmy_server" /home/lemmy/lemmy_server; \
     fi
 
