@@ -281,6 +281,18 @@ impl Community {
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
+  pub async fn check_name_taken(pool: &mut DbPool<'_>, username: &str) -> LemmyResult<()> {
+    let conn = &mut get_conn(pool).await?;
+    select(not(exists(
+      community::table
+        .filter(lower(community::name).eq(username.to_lowercase()))
+        .filter(community::local.eq(true)),
+    )))
+    .get_result::<bool>(conn)
+    .await?
+    .then_some(())
+    .ok_or(LemmyErrorType::NameAlreadyTaken.into())
+  }
 }
 
 impl CommunityActions {
