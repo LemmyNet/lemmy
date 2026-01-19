@@ -53,8 +53,8 @@ assert-json-diff = "2.0.2"
 lemmy_diesel_utils = { workspace = true }
 
 [dev-dependencies]
-serial_test = { workspace = true }
 pretty_assertions = { workspace = true }
+tokio-shared-rt = { workspace = true }
 
 [package.metadata.cargo-shear]
 ignored = ["futures", "futures-util"]

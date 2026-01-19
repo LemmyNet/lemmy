@@ -294,10 +294,8 @@ pub(crate) mod tests {
   use crate::utils::test::{parse_lemmy_community, parse_lemmy_instance};
   use lemmy_db_schema::source::instance::Instance;
   use pretty_assertions::assert_eq;
-  use serial_test::serial;
 
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn test_parse_lemmy_community() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     parse_lemmy_instance(&context).await?;

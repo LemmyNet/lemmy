@@ -25,7 +25,7 @@ use lemmy_apub_objects::objects::{community::FETCH_COMMUNITY_COLLECTIONS, instan
 use lemmy_apub_send::{Opts, SendManager};
 use lemmy_db_schema::source::secret::Secret;
 use lemmy_db_views_site::SiteView;
-use lemmy_diesel_utils::connection::build_db_pool;
+use lemmy_diesel_utils::connection::{GenericDbPool, build_db_pool};
 use lemmy_routes::{
   feeds,
   middleware::{
@@ -206,7 +206,7 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
     .with(TracingMiddleware::default())
     .build();
   let context = LemmyContext::create(
-    pool.clone(),
+    GenericDbPool::Actual(pool.clone()),
     client.clone(),
     pictrs_client,
     secret.clone(),

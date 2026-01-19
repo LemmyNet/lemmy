@@ -253,7 +253,6 @@ pub(crate) mod tests {
   use html2md::parse_html;
   use lemmy_db_schema::{source::instance::Instance, test_data::TestData};
   use pretty_assertions::assert_eq;
-  use serial_test::serial;
 
   async fn prepare_comment_test(
     url: &Url,
@@ -269,8 +268,7 @@ pub(crate) mod tests {
     Ok((person, community, post, site))
   }
 
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   pub(crate) async fn test_parse_lemmy_comment() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let test_data = TestData::create(&mut context.pool()).await?;
@@ -294,8 +292,7 @@ pub(crate) mod tests {
     Ok(())
   }
 
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn test_parse_pleroma_comment() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let test_data = TestData::create(&mut context.pool()).await?;
@@ -321,8 +318,7 @@ pub(crate) mod tests {
     Ok(())
   }
 
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn test_html_to_markdown_sanitize() {
     let parsed = parse_html("<script></script><b>hello</b>");
     assert_eq!(parsed, "**hello**");

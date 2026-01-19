@@ -27,7 +27,6 @@ use lemmy_db_views_registration_applications::{
 use lemmy_db_views_site::api::EditSite;
 use lemmy_diesel_utils::{connection::DbPool, traits::Crud};
 use lemmy_utils::{CACHE_DURATION_API, error::LemmyResult};
-use serial_test::serial;
 
 async fn create_test_site(context: &Data<LemmyContext>) -> LemmyResult<(TestData, LocalUserView)> {
   let pool = &mut context.pool();
@@ -122,8 +121,7 @@ async fn get_application_statuses(
   ))
 }
 
-#[serial]
-#[tokio::test]
+#[tokio_shared_rt::test(shared = true)]
 #[expect(clippy::indexing_slicing)]
 async fn test_application_approval() -> LemmyResult<()> {
   let context = LemmyContext::init_test_context().await;

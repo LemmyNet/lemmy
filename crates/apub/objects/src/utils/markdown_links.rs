@@ -79,10 +79,8 @@ mod tests {
   use lemmy_diesel_utils::traits::Crud;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
-  use serial_test::serial;
 
-  #[serial]
-  #[tokio::test]
+  #[tokio_shared_rt::test(shared = true)]
   async fn test_markdown_rewrite_remote_links() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let data = TestData::create(&mut context.pool()).await?;
@@ -140,7 +138,6 @@ mod tests {
       ),
     ];
 
-    let context = LemmyContext::init_test_context().await;
     for (msg, input, expected) in &tests {
       let result = markdown_rewrite_remote_links(input.clone(), &context).await;
 

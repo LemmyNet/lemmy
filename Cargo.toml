@@ -179,8 +179,8 @@ uuid = { version = "1.19.0", features = ["serde"] }
 captcha = "1.0.0"
 anyhow = { version = "1.0.100", features = ["backtrace"] }
 diesel_ltree = "0.4.0"
-serial_test = "3.2.0"
 tokio = { version = "1.48.0", features = ["full"] }
+tokio-shared-rt = "0.1.0"
 regex = "1.12.2"
 diesel-derive-newtype = "2.1.2"
 diesel-derive-enum = { version = "2.1.0", features = ["postgres"] }

@@ -50,6 +50,9 @@ i-love-jesus = { workspace = true, optional = true }
 chrono = { workspace = true }
 
 [dev-dependencies]
-serial_test = { workspace = true }
 tokio = { workspace = true }
+tokio-shared-rt = { workspace = true }
 pretty_assertions = { workspace = true }
+
+[package.metadata.cargo-shear]
+ignored = ["tokio"]

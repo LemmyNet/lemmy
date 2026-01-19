@@ -130,10 +130,8 @@ mod tests {
   };
   use lemmy_diesel_utils::traits::Crud;
   use lemmy_utils::error::LemmyErrorType;
-  use serial_test::serial;
 
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn test_object_visibility() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();

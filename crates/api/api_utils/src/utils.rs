@@ -980,7 +980,6 @@ mod tests {
   use diesel_ltree::Ltree;
   use lemmy_db_schema::newtypes::{CommentId, LanguageId};
   use pretty_assertions::assert_eq;
-  use serial_test::serial;
 
   #[test]
   #[rustfmt::skip]
@@ -1016,8 +1015,7 @@ mod tests {
     Ok(())
   }
 
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true)]
   async fn test_proxy_image_link() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
 

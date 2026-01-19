@@ -19,6 +19,7 @@ workspace = true
 
 [features]
 default = []
+full = []
 
 [dependencies]
 lemmy_api = { workspace = true }

@@ -19,7 +19,6 @@ use lemmy_diesel_utils::{
 };
 use lemmy_utils::error::LemmyResult;
 use pretty_assertions::assert_eq;
-use serial_test::serial;
 
 struct Data {
   alice: Person,
@@ -43,10 +42,9 @@ async fn cleanup(data: Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
   Ok(())
 }
 
-#[tokio::test]
-#[serial]
+#[tokio_shared_rt::test(shared = true)]
 async fn test_private_message() -> LemmyResult<()> {
-  let pool = &build_db_pool_for_tests();
+  let pool = &build_db_pool_for_tests().await;
   let pool = &mut pool.into();
   let data = init_data(pool).await?;
 
@@ -75,10 +73,9 @@ async fn test_private_message() -> LemmyResult<()> {
   cleanup(data, pool).await
 }
 
-#[tokio::test]
-#[serial]
+#[tokio_shared_rt::test(shared = true)]
 async fn test_post() -> LemmyResult<()> {
-  let pool = &build_db_pool_for_tests();
+  let pool = &build_db_pool_for_tests().await;
   let pool = &mut pool.into();
   let data = init_data(pool).await?;
 
@@ -147,10 +144,9 @@ async fn test_post() -> LemmyResult<()> {
   cleanup(data, pool).await
 }
 
-#[tokio::test]
-#[serial]
+#[tokio_shared_rt::test(shared = true)]
 async fn test_modlog() -> LemmyResult<()> {
-  let pool = &build_db_pool_for_tests();
+  let pool = &build_db_pool_for_tests().await;
   let pool = &mut pool.into();
   let data = init_data(pool).await?;
 

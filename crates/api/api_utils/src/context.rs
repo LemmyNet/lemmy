@@ -1,7 +1,7 @@
 use crate::request::client_builder;
 use activitypub_federation::config::{Data, FederationConfig};
 use lemmy_db_schema::source::secret::Secret;
-use lemmy_diesel_utils::connection::{ActualDbPool, DbPool, build_db_pool_for_tests};
+use lemmy_diesel_utils::connection::{DbPool, GenericDbPool, build_db_pool_for_tests};
 use lemmy_utils::{
   rate_limit::RateLimit,
   settings::{SETTINGS, structs::Settings},
@@ -11,7 +11,7 @@ use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct LemmyContext {
-  pool: ActualDbPool,
+  pool: GenericDbPool,
   client: Arc<ClientWithMiddleware>,
   /// Pictrs requests must bypass proxy. Unfortunately no_proxy can only be set on ClientBuilder
   /// and not on RequestBuilder, so we need a separate client here.
@@ -22,7 +22,7 @@ pub struct LemmyContext {
 
 impl LemmyContext {
   pub fn create(
-    pool: ActualDbPool,
+    pool: GenericDbPool,
     client: ClientWithMiddleware,
     pictrs_client: ClientWithMiddleware,
     secret: Secret,
@@ -37,9 +37,12 @@ impl LemmyContext {
     }
   }
   pub fn pool(&self) -> DbPool<'_> {
-    DbPool::Pool(&self.pool)
+    match &self.pool {
+      GenericDbPool::Actual(pool) => DbPool::Pool(pool),
+      GenericDbPool::Reusable(pool) => DbPool::ReusablePool(pool),
+    }
   }
-  pub fn inner_pool(&self) -> &ActualDbPool {
+  pub fn inner_pool(&self) -> &GenericDbPool {
     &self.pool
   }
   pub fn client(&self) -> &ClientWithMiddleware {
@@ -64,7 +67,7 @@ impl LemmyContext {
   #[allow(clippy::expect_used)]
   pub async fn init_test_federation_config() -> FederationConfig<LemmyContext> {
     // call this to run migrations
-    let pool = build_db_pool_for_tests();
+    let pool = build_db_pool_for_tests().await;
 
     let client = client_builder(&SETTINGS).build().expect("build client");
 
@@ -77,7 +80,7 @@ impl LemmyContext {
     let rate_limit_cell = RateLimit::with_debug_config();
 
     let context = LemmyContext::create(
-      pool,
+      GenericDbPool::Reusable(Arc::new(pool)),
       client.clone(),
       client,
       secret,

@@ -49,7 +49,11 @@ lemmy_diesel_utils = { workspace = true }
 bcrypt = { workspace = true, optional = true }
 diesel = { workspace = true, optional = true }
 diesel-derive-newtype = { workspace = true, optional = true }
-diesel-async = { workspace = true, optional = true }
+diesel-async = { workspace = true, features = [
+  "deadpool",
+  "postgres",
+  "async-connection-wrapper",
+], optional = true }
 diesel-uplete = { workspace = true, optional = true }
 diesel_ltree = { workspace = true, optional = true }
 ts-rs = { workspace = true, optional = true }
@@ -61,5 +65,5 @@ moka = { workspace = true, optional = true }
 
 
 [dev-dependencies]
-serial_test = { workspace = true }
 pretty_assertions = { workspace = true }
+tokio-shared-rt = { workspace = true }

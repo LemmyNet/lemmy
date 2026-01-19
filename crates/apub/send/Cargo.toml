@@ -48,10 +48,10 @@ tokio-util = "0.7.17"
 lemmy_diesel_utils = { workspace = true }
 
 [dev-dependencies]
-serial_test = { workspace = true }
 url.workspace = true
 actix-web.workspace = true
 tracing-test = "0.2.5"
 uuid.workspace = true
 test-context = "0.5.4"
 mockall = "0.14.0"
+tokio-shared-rt = { workspace = true }
