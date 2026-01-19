@@ -29,7 +29,7 @@ async fn community_use_pending(community: &Community, context: &LemmyContext) ->
 
 async fn check_user_or_community_name_taken(name: &str, context: &LemmyContext) -> LemmyResult<()> {
   // TODO: better to make only a single sql query
-  Person::check_name_taken(&mut context.pool(), &name).await?;
-  Community::check_name_taken(&mut context.pool(), &name).await?;
+  Person::check_name_taken(&mut context.pool(), name).await?;
+  Community::check_name_taken(&mut context.pool(), name).await?;
   Ok(())
 }
