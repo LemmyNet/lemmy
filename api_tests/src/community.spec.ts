@@ -62,7 +62,7 @@ test("Create community", async () => {
   let prevName = communityRes.community_view.community.name;
   await jestLemmyError(
     () => createCommunity(alpha, prevName),
-    new LemmyError("already_exists", statusBadRequest),
+    new LemmyError("name_already_taken", statusBadRequest),
   );
 
   // Cache the community on beta, make sure it has the other fields
@@ -402,7 +402,7 @@ test("Get community for different casing on domain", async () => {
   let prevName = communityRes.community_view.community.name;
   await jestLemmyError(
     () => createCommunity(alpha, prevName),
-    new LemmyError("already_exists", statusBadRequest),
+    new LemmyError("name_already_taken", statusBadRequest),
   );
 
   // Cache the community on beta, make sure it has the other fields
