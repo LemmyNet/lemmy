@@ -62,7 +62,7 @@ pub enum CommunitySortType {
   SubscribersLocal,
 }
 
-/// The local user sort type.
+/// The person sort type.
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
@@ -73,7 +73,7 @@ pub enum PersonSortType {
   Old,
 }
 
-/// The person sort type.
+/// The local user sort type.
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
