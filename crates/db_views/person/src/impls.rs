@@ -1,8 +1,9 @@
 use crate::PersonView;
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
-use i_love_jesus::SortDirection;
+use i_love_jesus::asc_if;
 use lemmy_db_schema::{
+  PersonSortType,
   source::person::{Person, person_keys as key},
   utils::limit_fetch,
 };
@@ -87,6 +88,7 @@ pub struct PersonQuery {
   pub admins_only: Option<bool>,
   pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
+  pub sort: Option<PersonSortType>,
 }
 
 impl PersonQuery {
@@ -102,7 +104,6 @@ impl PersonQuery {
       .into_boxed();
 
     // Filters
-
     let limit = if self.admins_only.unwrap_or_default() {
       query = query.filter(local_user::admin);
       i64::MAX
@@ -112,8 +113,12 @@ impl PersonQuery {
     };
     query = query.limit(limit);
 
+    // Only sort by ascending for Old
+    let sort = self.sort.unwrap_or_default();
+    let sort_direction = asc_if(sort == PersonSortType::Old);
+
     let paginated_query =
-      PersonView::paginate(query, &self.page_cursor, SortDirection::Desc, pool, None)
+      PersonView::paginate(query, &self.page_cursor, sort_direction, pool, None)
         .await?
         .then_order_by(key::published_at)
         // Tie breaker

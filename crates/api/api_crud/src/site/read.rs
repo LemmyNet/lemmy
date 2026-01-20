@@ -1,12 +1,15 @@
 use actix_web::web::{Data, Json};
 use lemmy_api_utils::{context::LemmyContext, plugins::plugin_metadata};
-use lemmy_db_schema::source::{
-  actor_language::SiteLanguage,
-  language::Language,
-  local_site_url_blocklist::LocalSiteUrlBlocklist,
-  oauth_provider::AdminOAuthProvider,
-  registration_application::RegistrationApplication,
-  tagline::Tagline,
+use lemmy_db_schema::{
+  PersonSortType,
+  source::{
+    actor_language::SiteLanguage,
+    language::Language,
+    local_site_url_blocklist::LocalSiteUrlBlocklist,
+    oauth_provider::AdminOAuthProvider,
+    registration_application::RegistrationApplication,
+    tagline::Tagline,
+  },
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::impls::PersonQuery;
@@ -39,6 +42,7 @@ async fn read_site(context: &LemmyContext) -> LemmyResult<GetSiteResponse> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
   let admins = PersonQuery {
     admins_only: Some(true),
+    sort: Some(PersonSortType::Old),
     ..Default::default()
   }
   .list(None, site_view.instance.id, &mut context.pool())

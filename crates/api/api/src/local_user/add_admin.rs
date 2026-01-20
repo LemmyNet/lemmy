@@ -1,8 +1,11 @@
 use actix_web::web::{Data, Json};
 use lemmy_api_utils::{context::LemmyContext, notify::notify_mod_action, utils::is_admin};
-use lemmy_db_schema::source::{
-  local_user::{LocalUser, LocalUserUpdateForm},
-  modlog::{Modlog, ModlogInsertForm},
+use lemmy_db_schema::{
+  PersonSortType,
+  source::{
+    local_user::{LocalUser, LocalUserUpdateForm},
+    modlog::{Modlog, ModlogInsertForm},
+  },
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::{
@@ -66,6 +69,7 @@ pub async fn add_admin(
 
   let admins = PersonQuery {
     admins_only: Some(true),
+    sort: Some(PersonSortType::Old),
     ..Default::default()
   }
   .list(
