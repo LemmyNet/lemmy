@@ -8,7 +8,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::{
   PersonId,
-  enums::{CommunityNotificationsMode, CommunityVisibility, ListingType},
+  enums::{CommunityNotificationsMode, CommunityVisibility, ListingType, TagColour},
 };
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_diesel_utils::pagination::PaginationCursor;
@@ -336,6 +336,7 @@ pub struct CreateCommunityTag {
   pub name: String,
   pub display_name: Option<String>,
   pub description: Option<String>,
+  pub colour: Option<TagColour>,
 }
 
 #[skip_serializing_none]
@@ -347,6 +348,7 @@ pub struct UpdateCommunityTag {
   pub tag_id: TagId,
   pub display_name: Option<String>,
   pub description: Option<String>,
+  pub colour: Option<TagColour>,
 }
 
 #[skip_serializing_none]
