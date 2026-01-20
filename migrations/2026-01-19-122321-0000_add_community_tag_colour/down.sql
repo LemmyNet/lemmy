@@ -1,5 +1,5 @@
 ALTER TABLE tag
-    DROP COLUMN colour;
+    DROP COLUMN color;
 
-DROP TYPE tag_colour_enum;
+DROP TYPE tag_color_enum;
 

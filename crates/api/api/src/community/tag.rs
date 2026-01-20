@@ -57,7 +57,7 @@ pub async fn create_community_tag(
       description: diesel_string_update(data.description.as_deref()),
       updated_at: Some(Some(Utc::now())),
       deleted: Some(false),
-      colour: Some(data.colour),
+      color: Some(data.color),
       ..Default::default()
     };
 
@@ -73,7 +73,7 @@ pub async fn create_community_tag(
     community_id: data.community_id,
     ap_id: ap_id.into(),
     deleted: Some(false),
-    colour: data.colour,
+    color: data.color,
   };
 
   let tag = Tag::create(&mut context.pool(), &tag_form).await?;
@@ -107,7 +107,7 @@ pub async fn update_community_tag(
     display_name: diesel_string_update(data.display_name.as_deref()),
     description: diesel_string_update(data.description.as_deref()),
     updated_at: Some(Some(Utc::now())),
-    colour: Some(data.colour),
+    color: Some(data.color),
     ..Default::default()
   };
 

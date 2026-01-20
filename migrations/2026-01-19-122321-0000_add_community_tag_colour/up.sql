@@ -1,6 +1,6 @@
--- creates a new tag colour enum for each of the base 16 CSS colours
+-- creates a new tag color enum for each of the base 16 CSS colors
 -- https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/named-color#standard_colors
-CREATE TYPE tag_colour_enum AS ENUM (
+CREATE TYPE tag_color_enum AS ENUM (
     'Black',
     'Silver',
     'Gray',
@@ -20,5 +20,5 @@ CREATE TYPE tag_colour_enum AS ENUM (
 );
 
 ALTER TABLE tag
-    ADD COLUMN colour tag_colour_enum DEFAULT 'Silver';
+    ADD COLUMN color tag_color_enum DEFAULT 'Silver';
 

@@ -97,7 +97,7 @@ impl CommunityTag {
       description: self.content.clone(),
       community_id,
       deleted: Some(false),
-      colour: Some(TagColour::Silver),
+      color: Some(TagColour::Silver),
     }
   }
 }
