@@ -177,7 +177,7 @@ impl Data {
         description: None,
         community_id: community.id,
         deleted: Some(false),
-        color: Some(TagColor::Maroon),
+        color: Some(TagColor::Color01),
       },
     )
     .await?;
@@ -190,7 +190,7 @@ impl Data {
         description: None,
         community_id: community.id,
         deleted: Some(false),
-        color: Some(TagColor::Red),
+        color: Some(TagColor::Color02),
       },
     )
     .await?;

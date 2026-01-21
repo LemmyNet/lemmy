@@ -215,16 +215,26 @@ pub enum CommunityFollowerState {
 /// Color of community tag.
 pub enum TagColor {
   #[default]
-  Green,
-  Gray,
-  Maroon,
-  Red,
-  Purple,
-  Fuchsia,
-  Lime,
-  Yellow,
-  Navy,
-  Aqua,
+  Color01,
+  Color02,
+  Color03,
+  Color04,
+  Color05,
+  Color06,
+  Color07,
+  Color08,
+  Color09,
+  Color10,
+  Color11,
+  Color12,
+  Color13,
+  Color14,
+  Color15,
+  Color16,
+  Color17,
+  Color18,
+  Color19,
+  Color20,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash)]
