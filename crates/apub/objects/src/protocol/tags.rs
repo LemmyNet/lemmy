@@ -4,7 +4,7 @@ use lemmy_db_schema::{
   newtypes::CommunityId,
   source::tag::{Tag, TagInsertForm},
 };
-use lemmy_db_schema_file::enums::TagColour;
+use lemmy_db_schema_file::enums::TagColor;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use url::Url;
@@ -97,7 +97,7 @@ impl CommunityTag {
       description: self.content.clone(),
       community_id,
       deleted: Some(false),
-      color: Some(TagColour::Silver),
+      color: TagColor::Green,
     }
   }
 }

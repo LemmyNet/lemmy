@@ -59,7 +59,7 @@ pub mod sql_types {
 
   #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
   #[diesel(postgres_type(name = "tag_color_enum"))]
-  pub struct TagColourEnum;
+  pub struct TagColorEnum;
 
   #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
   #[diesel(postgres_type(name = "vote_show_enum"))]
@@ -938,7 +938,7 @@ diesel::table! {
 
 diesel::table! {
     use diesel::sql_types::*;
-    use super::sql_types::TagColourEnum;
+    use super::sql_types::TagColorEnum;
 
     tag (id) {
         id -> Int4,
@@ -952,7 +952,7 @@ diesel::table! {
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
         deleted -> Bool,
-        color -> Nullable<TagColourEnum>,
+        color -> TagColorEnum,
     }
 }
 

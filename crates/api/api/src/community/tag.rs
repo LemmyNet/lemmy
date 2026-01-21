@@ -57,7 +57,7 @@ pub async fn create_community_tag(
       description: diesel_string_update(data.description.as_deref()),
       updated_at: Some(Some(Utc::now())),
       deleted: Some(false),
-      color: Some(data.color),
+      color: data.color,
       ..Default::default()
     };
 
@@ -107,7 +107,7 @@ pub async fn update_community_tag(
     display_name: diesel_string_update(data.display_name.as_deref()),
     description: diesel_string_update(data.description.as_deref()),
     updated_at: Some(Some(Utc::now())),
-    color: Some(data.color),
+    color: data.color,
     ..Default::default()
   };
 

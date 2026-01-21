@@ -208,29 +208,22 @@ pub enum CommunityFollowerState {
 #[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
   feature = "full",
-  ExistingTypePath = "crate::schema::sql_types::TagColourEnum"
+  ExistingTypePath = "crate::schema::sql_types::TagColorEnum"
 )]
-#[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
-/// Colour of community tag.
-pub enum TagColour {
+/// Color of community tag.
+pub enum TagColor {
   #[default]
-  Silver,
-  Black,
+  Green,
   Gray,
-  White,
   Maroon,
   Red,
   Purple,
   Fuchsia,
-  Green,
   Lime,
-  Olive,
   Yellow,
   Navy,
-  Blue,
-  Teal,
   Aqua,
 }
 

@@ -2,7 +2,7 @@ use crate::newtypes::{CommunityId, PostId, TagId};
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use diesel::{AsExpression, FromSqlRow, sql_types::Nullable};
-use lemmy_db_schema_file::enums::TagColour;
+use lemmy_db_schema_file::enums::TagColor;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::{post_tag, tag};
 use lemmy_diesel_utils::dburl::DbUrl;
@@ -29,7 +29,7 @@ pub struct Tag {
   pub published_at: DateTime<Utc>,
   pub updated_at: Option<DateTime<Utc>>,
   pub deleted: bool,
-  pub color: Option<TagColour>,
+  pub color: TagColor,
 }
 
 #[derive(Debug, Clone)]
@@ -42,7 +42,7 @@ pub struct TagInsertForm {
   pub description: Option<String>,
   pub community_id: CommunityId,
   pub deleted: Option<bool>,
-  pub color: Option<TagColour>,
+  pub color: TagColor,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -55,7 +55,7 @@ pub struct TagUpdateForm {
   pub published_at: Option<DateTime<Utc>>,
   pub updated_at: Option<Option<DateTime<Utc>>>,
   pub deleted: Option<bool>,
-  pub color: Option<Option<TagColour>>,
+  pub color: TagColor,
 }
 
 /// We wrap this in a struct so we can implement FromSqlRow<Json> for it

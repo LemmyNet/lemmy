@@ -176,7 +176,7 @@ impl Data {
         description: None,
         community_id: community.id,
         deleted: Some(false),
-        color: Some(lemmy_db_schema_file::enums::TagColour::Maroon),
+        color: lemmy_db_schema_file::enums::TagColor::Maroon,
       },
     )
     .await?;
@@ -189,7 +189,7 @@ impl Data {
         description: None,
         community_id: community.id,
         deleted: Some(false),
-        color: Some(lemmy_db_schema_file::enums::TagColour::Red),
+        color: lemmy_db_schema_file::enums::TagColor::Red,
       },
     )
     .await?;
