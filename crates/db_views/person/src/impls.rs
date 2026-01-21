@@ -80,6 +80,7 @@ impl PersonView {
 
     Self::joins(my_person_id, local_instance_id)
       .filter(person::deleted.eq(false))
+      .filter(local_user::admin)
       // Order by admin created date (ie old)
       .then_order_by(person::published_at.asc())
       // Tie breaker
