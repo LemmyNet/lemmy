@@ -42,7 +42,7 @@ pub struct TagInsertForm {
   pub description: Option<String>,
   pub community_id: CommunityId,
   pub deleted: Option<bool>,
-  pub color: TagColor,
+  pub color: Option<TagColor>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -55,7 +55,7 @@ pub struct TagUpdateForm {
   pub published_at: Option<DateTime<Utc>>,
   pub updated_at: Option<Option<DateTime<Utc>>>,
   pub deleted: Option<bool>,
-  pub color: TagColor,
+  pub color: Option<TagColor>,
 }
 
 /// We wrap this in a struct so we can implement FromSqlRow<Json> for it

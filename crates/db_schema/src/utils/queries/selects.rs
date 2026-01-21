@@ -343,18 +343,7 @@ pub fn post_select_remove_deletes() -> _ {
 #[diesel::dsl::auto_type]
 // Gets the post tags set on a specific post
 pub fn post_tags_fragment() -> _ {
-  // The color is converted to lowercase to match the enum's snake case
-  let sel: SqlLiteral<Json> = diesel::dsl::sql::<diesel::sql_types::Json>(
-    "
-    json_agg(
-      jsonb_set(
-        to_jsonb(tag.*),
-        '{color}',
-        to_jsonb(lower(color::text))
-      )
-    )
-  ",
-  );
+  let sel: SqlLiteral<Json> = diesel::dsl::sql::<diesel::sql_types::Json>("json_agg(tag.*)");
   post_tag::table
     .inner_join(tag::table)
     .select(sel)
@@ -366,18 +355,7 @@ pub fn post_tags_fragment() -> _ {
 #[diesel::dsl::auto_type]
 /// Gets the post tags available within a specific community
 pub fn community_post_tags_fragment() -> _ {
-  // The color is converted to lowercase to match the enum's snake case
-  let sel: SqlLiteral<Json> = diesel::dsl::sql::<diesel::sql_types::Json>(
-    "
-    json_agg(
-      jsonb_set(
-        to_jsonb(tag.*),
-        '{color}',
-        to_jsonb(lower(color::text))
-      )
-    )
-  ",
-  );
+  let sel: SqlLiteral<Json> = diesel::dsl::sql::<diesel::sql_types::Json>("json_agg(tag.*)");
   tag::table
     .select(sel)
     .filter(tag::community_id.eq(community::id))

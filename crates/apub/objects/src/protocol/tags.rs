@@ -76,6 +76,7 @@ pub struct CommunityTag {
   pub name: Option<String>,
   pub preferred_username: String,
   pub content: Option<String>,
+  pub color: Option<TagColor>,
 }
 
 impl CommunityTag {
@@ -86,6 +87,7 @@ impl CommunityTag {
       name: tag.display_name,
       preferred_username: tag.name,
       content: tag.description,
+      color: Some(tag.color),
     }
   }
 
@@ -97,7 +99,7 @@ impl CommunityTag {
       description: self.content.clone(),
       community_id,
       deleted: Some(false),
-      color: TagColor::Green,
+      color: self.color,
     }
   }
 }
