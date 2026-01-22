@@ -257,7 +257,7 @@ pub struct CreateMultiCommunity {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-pub struct UpdateMultiCommunity {
+pub struct EditMultiCommunity {
   pub id: MultiCommunityId,
   pub title: Option<String>,
   pub description: Option<String>,
@@ -321,7 +321,7 @@ pub struct FollowMultiCommunity {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Change notification settings for a community
-pub struct UpdateCommunityNotifications {
+pub struct EditCommunityNotifications {
   pub community_id: CommunityId,
   pub mode: CommunityNotificationsMode,
 }
@@ -343,7 +343,7 @@ pub struct CreateCommunityTag {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Make changes to a community tag
-pub struct UpdateCommunityTag {
+pub struct EditCommunityTag {
   pub tag_id: TagId,
   pub display_name: Option<String>,
   pub description: Option<String>,
