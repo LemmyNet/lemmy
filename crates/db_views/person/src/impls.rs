@@ -1,11 +1,7 @@
 use crate::PersonView;
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
-use i_love_jesus::SortDirection;
-use lemmy_db_schema::{
-  source::person::{Person, person_keys as key},
-  utils::limit_fetch,
-};
+use lemmy_db_schema::source::person::Person;
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
@@ -18,13 +14,7 @@ use lemmy_db_schema_file::{
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
-  pagination::{
-    CursorData,
-    PagedResponse,
-    PaginationCursor,
-    PaginationCursorConversion,
-    paginate_response,
-  },
+  pagination::{CursorData, PaginationCursorConversion},
   traits::Crud,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
@@ -80,48 +70,25 @@ impl PersonView {
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
-}
 
-#[derive(Default)]
-pub struct PersonQuery {
-  pub admins_only: Option<bool>,
-  pub page_cursor: Option<PaginationCursor>,
-  pub limit: Option<i64>,
-}
-
-impl PersonQuery {
-  pub async fn list(
-    self,
+  pub async fn list_admins(
     my_person_id: Option<PersonId>,
     local_instance_id: InstanceId,
     pool: &mut DbPool<'_>,
-  ) -> LemmyResult<PagedResponse<PersonView>> {
-    let mut query = PersonView::joins(my_person_id, local_instance_id)
-      .filter(person::deleted.eq(false))
-      .select(PersonView::as_select())
-      .into_boxed();
-
-    // Filters
-
-    let limit = if self.admins_only.unwrap_or_default() {
-      query = query.filter(local_user::admin);
-      i64::MAX
-    } else {
-      // Only use page limits if its not an admin fetch
-      limit_fetch(self.limit, None)?
-    };
-    query = query.limit(limit);
-
-    let paginated_query =
-      PersonView::paginate(query, &self.page_cursor, SortDirection::Desc, pool, None)
-        .await?
-        .then_order_by(key::published_at)
-        // Tie breaker
-        .then_order_by(key::id);
-
+  ) -> LemmyResult<Vec<PersonView>> {
     let conn = &mut get_conn(pool).await?;
-    let res = paginated_query.load::<PersonView>(conn).await?;
-    paginate_response(res, limit, self.page_cursor)
+
+    Self::joins(my_person_id, local_instance_id)
+      .filter(person::deleted.eq(false))
+      .filter(local_user::admin)
+      // Order by admin created date (ie old)
+      .then_order_by(person::published_at.asc())
+      // Tie breaker
+      .then_order_by(person::id)
+      .select(Self::as_select())
+      .load::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }
 
@@ -226,12 +193,7 @@ mod tests {
     )
     .await?;
 
-    let list = PersonQuery {
-      admins_only: Some(true),
-      ..Default::default()
-    }
-    .list(None, data.alice.instance_id, pool)
-    .await?;
+    let list = PersonView::list_admins(None, data.alice.instance_id, pool).await?;
     assert_length!(1, list);
     assert_eq!(list[0].person.id, data.alice.id);
 

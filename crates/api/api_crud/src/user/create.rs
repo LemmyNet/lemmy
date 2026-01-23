@@ -42,7 +42,7 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::enums::RegistrationMode;
 use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_person::impls::PersonQuery;
+use lemmy_db_views_person::PersonView;
 use lemmy_db_views_registration_applications::api::Register;
 use lemmy_db_views_site::{
   SiteView,
@@ -720,14 +720,8 @@ fn create_welcome_post(local_user: LocalUser, context: &LemmyContext) {
   spawn_try_task(async move {
     let pool = &mut context.pool();
     let site = SiteView::read_local(pool).await?;
-    let mut admins = PersonQuery {
-      admins_only: Some(true),
-      ..Default::default()
-    }
-    .list(None, site.instance.id, &mut context.pool())
-    .await?
-    .items;
-    let initial_user = admins.pop();
+    let admins = PersonView::list_admins(None, site.instance.id, &mut context.pool()).await?;
+    let initial_user = admins.first();
 
     let person = SiteView::read_system_account(&mut context.pool()).await?;
 
