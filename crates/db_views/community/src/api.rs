@@ -358,4 +358,5 @@ pub struct UpdateCommunityTag {
 /// Delete a community tag.
 pub struct DeleteCommunityTag {
   pub tag_id: TagId,
+  pub delete: bool,
 }

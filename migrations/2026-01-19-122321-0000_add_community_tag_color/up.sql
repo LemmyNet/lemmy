@@ -1,5 +1,4 @@
--- creates a new tag color enum for each of the base 16 CSS colors
--- https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/named-color#standard_colors
+-- creates a new tag color enum
 CREATE TYPE tag_color_enum AS ENUM (
     'color01',
     'color02',

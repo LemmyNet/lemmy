@@ -15,7 +15,7 @@ use lemmy_db_views_community::{
   api::{CreateCommunityTag, DeleteCommunityTag, UpdateCommunityTag},
 };
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_diesel_utils::{dburl::DbUrl, traits::Crud, utils::diesel_string_update};
+use lemmy_diesel_utils::{traits::Crud, utils::diesel_string_update};
 use lemmy_utils::{
   error::LemmyResult,
   utils::{
@@ -46,24 +46,6 @@ pub async fn create_community_tag(
   }
 
   let ap_id = Url::parse(&format!("{}/tag/{}", community.ap_id, &data.name))?;
-
-  // In case tag with same ap_id exists but has been soft-deleted,
-  // update existing and set deleted to false instead of creating new entry
-  if let Some(deleted_tag) =
-    Tag::read_apub_deleted(&mut context.pool(), &DbUrl(Box::new(ap_id.clone()))).await?
-  {
-    let tag_form = TagUpdateForm {
-      display_name: diesel_string_update(data.display_name.as_deref()),
-      description: diesel_string_update(data.description.as_deref()),
-      updated_at: Some(Some(Utc::now())),
-      deleted: Some(false),
-      color: data.color,
-      ..Default::default()
-    };
-
-    let tag = Tag::update(&mut context.pool(), deleted_tag.id, &tag_form).await?;
-    return Ok(Json(tag));
-  }
 
   // Create the tag
   let tag_form = TagInsertForm {
@@ -129,7 +111,7 @@ pub async fn delete_community_tag(
   // Soft delete the tag
   let tag_form = TagUpdateForm {
     updated_at: Some(Some(Utc::now())),
-    deleted: Some(true),
+    deleted: Some(data.delete),
     ..Default::default()
   };
 

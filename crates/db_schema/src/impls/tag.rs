@@ -8,7 +8,6 @@ use crate::{
 };
 use diesel::{
   ExpressionMethods,
-  OptionalExtension,
   QueryDsl,
   delete,
   deserialize::FromSql,
@@ -135,19 +134,6 @@ impl Tag {
       .get_result(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
-  }
-
-  pub async fn read_apub_deleted(pool: &mut DbPool<'_>, ap_id: &DbUrl) -> LemmyResult<Option<Tag>> {
-    let conn = &mut get_conn(pool).await?;
-    let tag = tag::table
-      .filter(tag::ap_id.eq(ap_id))
-      .filter(tag::deleted.eq(true))
-      .select(tag::all_columns)
-      .first::<Tag>(conn)
-      .await
-      .optional()?;
-
-    Ok(tag)
   }
 }
 
