@@ -99,12 +99,12 @@ test("Create, delete and restore a community tag", async () => {
   assertCommunityFederation(alphaCommunity, betaCommunity);
 
   // Restore the tag
-  let deleteForm: DeleteCommunityTag = {
+  let deleteFormRestoration: DeleteCommunityTag = {
     tag_id: createRes.id,
     delete: false,
   };
-  let deleteRes = await alpha.deleteCommunityTag(deleteForm);
-  expect(deleteRes.id).toBe(createRes.id);
+  let deleteRestorationRes = await alpha.deleteCommunityTag(deleteFormRestoration);
+  expect(deleteRestorationRes.id).toBe(createRes.id);
 
   // Verify tag is restored
   alphaCommunity = (await alpha.getCommunity({ id: communityId }))
