@@ -3,7 +3,7 @@ use lemmy_db_schema::{
   CommunitySortType,
   MultiCommunityListingType,
   MultiCommunitySortType,
-  newtypes::{CommunityId, LanguageId, MultiCommunityId, CommunityTagId},
+  newtypes::{CommunityId, CommunityTagId, LanguageId, MultiCommunityId},
   source::site::Site,
 };
 use lemmy_db_schema_file::{

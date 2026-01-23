@@ -1,7 +1,7 @@
 use crate::PostView;
 use lemmy_db_schema::{
   PostFeatureType,
-  newtypes::{CommunityId, LanguageId, MultiCommunityId, PostId, CommunityTagId},
+  newtypes::{CommunityId, CommunityTagId, LanguageId, MultiCommunityId, PostId},
 };
 use lemmy_db_schema_file::enums::{ListingType, PostNotificationsMode, PostSortType};
 use lemmy_diesel_utils::{dburl::DbUrl, pagination::PaginationCursor};
