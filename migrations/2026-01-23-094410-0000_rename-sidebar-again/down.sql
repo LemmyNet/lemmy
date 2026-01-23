@@ -6,4 +6,6 @@ ALTER TABLE site RENAME sidebar TO description;
 
 ALTER TABLE tag RENAME summary TO description;
 
-ALTER TABLE tag ALTER description TYPE text;
+ALTER TABLE tag
+    ALTER description TYPE text;
+

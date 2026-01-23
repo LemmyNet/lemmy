@@ -6,5 +6,7 @@ ALTER TABLE site RENAME description TO sidebar;
 ALTER TABLE multi_community RENAME description TO summary;
 
 ALTER TABLE tag RENAME description TO summary;
-ALTER TABLE tag ALTER summary TYPE varchar (150);
+
+ALTER TABLE tag
+    ALTER summary TYPE varchar(150);
 
