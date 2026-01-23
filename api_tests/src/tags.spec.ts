@@ -103,7 +103,9 @@ test("Create, delete and restore a community tag", async () => {
     tag_id: createRes.id,
     delete: false,
   };
-  let deleteRestorationRes = await alpha.deleteCommunityTag(deleteFormRestoration);
+  let deleteRestorationRes = await alpha.deleteCommunityTag(
+    deleteFormRestoration,
+  );
   expect(deleteRestorationRes.id).toBe(createRes.id);
 
   // Verify tag is restored
