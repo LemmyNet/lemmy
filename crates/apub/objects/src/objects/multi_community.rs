@@ -90,7 +90,7 @@ impl Object for ApubMultiCommunity {
       following: self.following_url.clone().into(),
       name: self.name.clone(),
       summary: self.title.clone(),
-      content: self.description.clone(),
+      content: self.summary.clone(),
       attributed_to: creator.ap_id.into(),
     })
   }
@@ -120,7 +120,7 @@ impl Object for ApubMultiCommunity {
       ap_id: Some(json.id.into()),
       local: Some(false),
       title: json.summary,
-      description: json.content,
+      summary: json.content,
       public_key: json.public_key.public_key_pem,
       private_key: None,
       inbox_url: Some(json.inbox.into()),

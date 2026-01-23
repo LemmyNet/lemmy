@@ -48,7 +48,7 @@ use lemmy_utils::{
   utils::{
     markdown::markdown_to_html,
     slurs::{check_slurs, check_slurs_opt},
-    validation::truncate_description,
+    validation::truncate_summary,
   },
 };
 use std::{ops::Deref, sync::OnceLock};
@@ -123,10 +123,10 @@ impl Object for ApubCommunity {
       id: self.id().clone().into(),
       preferred_username: self.name.clone(),
       name: Some(self.title.clone()),
-      content: self.summary.as_ref().map(|d| markdown_to_html(d)),
-      source: self.summary.clone().map(Source::new),
-      summary: self.description.clone(),
-      media_type: self.summary.as_ref().map(|_| MediaTypeHtml::Html),
+      summary: self.sidebar.as_ref().map(|d| markdown_to_html(d)),
+      source: self.sidebar.clone().map(Source::new),
+      content: self.summary.clone(),
+      media_type: self.sidebar.as_ref().map(|_| MediaTypeHtml::Html),
       icon: self.icon.clone().map(ImageObject::new),
       image: self.banner.clone().map(ImageObject::new),
       sensitive: Some(self.nsfw),
@@ -179,10 +179,9 @@ impl Object for ApubCommunity {
 
     let slur_regex = slur_regex(context).await?;
     let url_blocklist = get_url_blocklist(context).await?;
-    let description = read_from_string_or_source_opt(&group.summary, &None, &group.source);
-    let description =
-      process_markdown_opt(&description, &slur_regex, &url_blocklist, context).await?;
-    let description = markdown_rewrite_remote_links_opt(description, context).await;
+    let sidebar = read_from_string_or_source_opt(&group.summary, &None, &group.source);
+    let sidebar = process_markdown_opt(&sidebar, &slur_regex, &url_blocklist, context).await?;
+    let sidebar = markdown_rewrite_remote_links_opt(sidebar, context).await;
     let icon = proxy_image_link_opt_apub(group.icon.clone().map(|i| i.url), context).await?;
     let banner = proxy_image_link_opt_apub(group.image.clone().map(|i| i.url), context).await?;
     let visibility = Some(community_visibility(&group));
@@ -203,9 +202,9 @@ impl Object for ApubCommunity {
       last_refreshed_at: Some(Utc::now()),
       icon,
       banner,
-      description,
+      sidebar,
       removed,
-      summary: group.content.clone().as_deref().map(truncate_description),
+      summary: group.content.clone().as_deref().map(truncate_summary),
       followers_url: group.followers.clone().clone().map(Into::into),
       inbox_url: Some(
         group
@@ -308,7 +307,7 @@ pub(crate) mod tests {
 
     // Test the sidebar and description
     assert_eq!(
-      community.description.as_ref().map(std::string::String::len),
+      community.sidebar.as_ref().map(std::string::String::len),
       Some(63)
     );
     assert_eq!(

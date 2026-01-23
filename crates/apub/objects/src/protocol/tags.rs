@@ -84,7 +84,7 @@ impl CommunityTag {
       id: tag.ap_id.into(),
       name: tag.display_name,
       preferred_username: tag.name,
-      content: tag.description,
+      content: tag.summary,
     }
   }
 
@@ -93,7 +93,7 @@ impl CommunityTag {
       ap_id: self.id.clone().into(),
       name: self.preferred_username.clone(),
       display_name: self.name.clone(),
-      description: self.content.clone(),
+      summary: self.content.clone(),
       community_id,
       deleted: Some(false),
     }

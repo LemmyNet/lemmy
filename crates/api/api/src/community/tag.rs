@@ -40,9 +40,9 @@ pub async fn create_community_tag(
   check_community_mod_action(&local_user_view, &community, false, &mut context.pool()).await?;
 
   check_api_elements_count(community_view.post_tags.0.len())?;
-  if let Some(desc) = &data.description {
-    summary_length_check(desc)?;
-    check_slurs(desc, &slur_regex(&context).await?)?;
+  if let Some(summary) = &data.summary {
+    summary_length_check(summary)?;
+    check_slurs(summary, &slur_regex(&context).await?)?;
   }
 
   let ap_id = Url::parse(&format!("{}/tag/{}", community.ap_id, &data.name))?;
@@ -51,7 +51,7 @@ pub async fn create_community_tag(
   let tag_form = TagInsertForm {
     name: data.name.clone(),
     display_name: data.display_name.clone(),
-    description: data.description.clone(),
+    summary: data.summary.clone(),
     community_id: data.community_id,
     ap_id: ap_id.into(),
     deleted: Some(false),
@@ -78,15 +78,15 @@ pub async fn update_community_tag(
   // Verify that only mods can update tags
   check_community_mod_action(&local_user_view, &community, false, &mut context.pool()).await?;
 
-  if let Some(desc) = &data.description {
-    summary_length_check(desc)?;
-    check_slurs(desc, &slur_regex(&context).await?)?;
+  if let Some(summary) = &data.summary {
+    summary_length_check(summary)?;
+    check_slurs(summary, &slur_regex(&context).await?)?;
   }
 
   // Update the tag
   let tag_form = TagUpdateForm {
     display_name: diesel_string_update(data.display_name.as_deref()),
-    description: diesel_string_update(data.description.as_deref()),
+    summary: diesel_string_update(data.summary.as_deref()),
     updated_at: Some(Some(Utc::now())),
     ..Default::default()
   };
