@@ -12,6 +12,7 @@ pub mod community;
 #[cfg(feature = "full")]
 pub mod community_community_follow;
 pub mod community_report;
+pub mod community_tag;
 pub mod custom_emoji;
 pub mod custom_emoji_keyword;
 pub mod email_verification;
@@ -41,7 +42,6 @@ pub mod private_message_report;
 pub mod registration_application;
 pub mod secret;
 pub mod site;
-pub mod tag;
 pub mod tagline;
 
 /// Default value for columns like [community::Community.inbox_url] which are marked as serde(skip).

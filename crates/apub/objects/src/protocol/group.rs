@@ -1,6 +1,6 @@
 use crate::{
   objects::community::ApubCommunity,
-  protocol::tags::CommunityTag,
+  protocol::tags::ApubCommunityTag,
   utils::protocol::{AttributedTo, Endpoints, ImageObject, LanguageTag, Source},
 };
 use activitypub_federation::{
@@ -63,5 +63,5 @@ pub struct Group {
   /// https://docs.joinmastodon.org/spec/activitypub/#discoverable
   pub(crate) discoverable: Option<bool>,
   #[serde(deserialize_with = "deserialize_skip_error", default)]
-  pub(crate) tag: Vec<CommunityTag>,
+  pub(crate) tag: Vec<ApubCommunityTag>,
 }
