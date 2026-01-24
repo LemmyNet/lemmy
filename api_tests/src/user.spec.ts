@@ -29,6 +29,9 @@ import {
   statusUnauthorized,
   listPersonContent,
   waitUntil,
+  password,
+  jestLemmyError,
+  statusBadRequest,
 } from "./shared";
 import {
   EditSite,
@@ -110,10 +113,13 @@ test("Delete user", async () => {
   await deleteUser(user);
 
   // Wait, in order to make sure it federates
-  await expect(getMyUser(user)).rejects.toStrictEqual(
+  await jestLemmyError(
+    () => getMyUser(user),
     new LemmyError("incorrect_login", statusUnauthorized),
   );
-  await expect(getPersonDetails(user, person_id)).rejects.toStrictEqual(
+
+  await jestLemmyError(
+    () => getPersonDetails(user, person_id),
     new LemmyError("not_found", statusNotFound),
   );
 
@@ -137,9 +143,10 @@ test("Delete user", async () => {
     () => alpha.getComment({ id: remoteComment.id }),
     c => c.comment_view.comment.deleted,
   );
-  await expect(
-    getPersonDetails(user, remoteComment.creator_id),
-  ).rejects.toStrictEqual(new LemmyError("not_found", statusNotFound));
+  await jestLemmyError(
+    () => getPersonDetails(user, remoteComment.creator_id),
+    new LemmyError("not_found", statusNotFound),
+  );
 });
 
 test("Requests with invalid auth should be treated as unauthenticated", async () => {
@@ -147,7 +154,8 @@ test("Requests with invalid auth should be treated as unauthenticated", async ()
     headers: { Authorization: "Bearer foobar" },
     fetchFunction,
   });
-  await expect(getMyUser(invalid_auth)).rejects.toStrictEqual(
+  await jestLemmyError(
+    () => getMyUser(invalid_auth),
     new LemmyError("incorrect_login", statusUnauthorized),
   );
   let site = await getSite(invalid_auth);
@@ -332,4 +340,59 @@ test("Admins can view and ban deleted accounts", async () => {
     "posts",
   );
   expect(userContent.items[0].post.removed).toBe(true);
+});
+
+test("Make sure a denied user is given denial reason", async () => {
+  const username = "denied_user";
+  const appAnswer = "My application answer";
+  const denyReason = "Bad application given";
+
+  // Make registrations approval only
+  await alpha.editSite({ registration_mode: "require_application" });
+
+  // Create an account with an answer
+  const login = await alpha.register({
+    username,
+    password,
+    password_verify: password,
+    show_nsfw: true,
+    answer: appAnswer,
+  });
+  expect(login.registration_created).toBeTruthy();
+  expect(login.jwt).toBeUndefined();
+
+  // Try to login with a bad password first
+  await jestLemmyError(
+    () =>
+      alpha.login({ username_or_email: username, password: "wrong_password" }),
+    new LemmyError("incorrect_login", statusUnauthorized),
+  );
+
+  // Try to login without approval yet, should return is pending
+  await jestLemmyError(
+    () => alpha.login({ username_or_email: username, password }),
+    new LemmyError("registration_application_is_pending", statusBadRequest),
+  );
+
+  // Fetch the applications
+  const apps = await alpha.listRegistrationApplications({});
+  const app = apps.items[0];
+  expect(apps.items.length).toBe(1);
+  expect(app.registration_application.answer).toBe(appAnswer);
+
+  // Deny the application
+  await alpha.approveRegistrationApplication({
+    id: app.registration_application.id,
+    approve: false,
+    deny_reason: denyReason,
+  });
+
+  // Should give the denial reason in the error.
+  await jestLemmyError(
+    () => alpha.login({ username_or_email: username, password }),
+    new LemmyError("registration_denied", statusBadRequest, denyReason),
+  );
+
+  // Re-open alpha
+  await alpha.editSite({ registration_mode: "open" });
 });

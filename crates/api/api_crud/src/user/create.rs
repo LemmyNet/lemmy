@@ -3,7 +3,7 @@ use activitypub_federation::{
   fetch::object_id::ObjectId,
   http_signatures::generate_actor_keypair,
 };
-use actix_web::{HttpRequest, web::Json};
+use actix_web::{HttpRequest, rt::time::sleep, web::Json};
 use diesel_async::{AsyncPgConnection, scoped_futures::ScopedFutureExt};
 use lemmy_api_utils::{
   claims::Claims,
@@ -40,14 +40,15 @@ use lemmy_db_schema::{
   traits::{ApubActor, Likeable},
 };
 use lemmy_db_schema_file::enums::RegistrationMode;
+use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_person::impls::PersonQuery;
+use lemmy_db_views_person::PersonView;
 use lemmy_db_views_registration_applications::api::Register;
 use lemmy_db_views_site::{
   SiteView,
   api::{AuthenticateWithOauth, LoginResponse},
 };
-use lemmy_diesel_utils::{connection::get_conn, traits::Crud};
+use lemmy_diesel_utils::{connection::get_conn, pagination::PagedResponse, traits::Crud};
 use lemmy_email::{
   account::send_verification_email_if_required,
   admin::send_new_applicant_email_to_admins,
@@ -64,7 +65,8 @@ use lemmy_utils::{
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-use std::{collections::HashSet, sync::LazyLock};
+use std::{collections::HashSet, sync::LazyLock, time::Duration};
+use tracing::info;
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -293,6 +295,9 @@ pub async fn authenticate_with_oauth(
 
   let oauth_user_id = read_user_info(&user_info, oauth_provider.id_claim.as_str())?;
 
+  let require_registration_application =
+    local_site.registration_mode == RegistrationMode::RequireApplication;
+
   let mut login_response = LoginResponse {
     jwt: None,
     registration_created: false,
@@ -306,6 +311,12 @@ pub async fn authenticate_with_oauth(
   let local_user = if let Ok(user_view) = local_user_view {
     // user found by oauth_user_id => Login user
     let local_user = user_view.clone().local_user;
+
+    login_response.registration_created = local_site.site_setup
+      && require_registration_application
+      && !local_user.accepted_application
+      && !local_user.admin
+      && data.answer.is_some();
 
     check_local_user_valid(&user_view)?;
     check_email_verified(&user_view, &site_view)?;
@@ -326,9 +337,6 @@ pub async fn authenticate_with_oauth(
 
     // Extract the OAUTH email claim from the returned user_info
     let email = read_user_info(&user_info, "email")?;
-
-    let require_registration_application =
-      local_site.registration_mode == RegistrationMode::RequireApplication;
 
     // Lookup user by OAUTH email and link accounts
     local_user_view = LocalUserView::find_by_email(pool, &email).await;
@@ -413,23 +421,20 @@ pub async fn authenticate_with_oauth(
             OAuthAccount::create(&mut conn.into(), &oauth_account_form).await?;
 
             // prevent sign in until application is accepted
-            if local_site.site_setup
-              && require_registration_application
-              && !local_user.accepted_application
-              && !local_user.admin
-              && let Some(answer) = tx_data.answer.clone()
-            {
+            if login_response.registration_created {
               // Create the registration application
               RegistrationApplication::create(
                 &mut conn.into(),
                 &RegistrationApplicationInsertForm {
                   local_user_id: local_user.id,
-                  answer,
+                  // We already check earlier that this Some, however using `ok_or` is cleaner
+                  // than unwrap or expect (which also requires clippy allow).
+                  answer: data
+                    .answer
+                    .ok_or(LemmyErrorType::RegistrationApplicationAnswerRequired)?,
                 },
               )
               .await?;
-
-              login_response.registration_created = true;
             }
             Ok(LocalUserView {
               person,
@@ -541,15 +546,8 @@ async fn create_local_user(
   // If we are setting up a new site, fetch initial communities and create welcome post.
   if !local_site.site_setup {
     local_user_form.admin = Some(true);
-    let no_default_data = context
-      .settings()
-      .setup
-      .as_ref()
-      .and_then(|s| s.no_default_data);
-    if !no_default_data.unwrap_or_default() {
-      create_welcome_post(inserted_local_user.clone(), context);
-      fetch_community_list(context.clone());
-    }
+    create_welcome_post(inserted_local_user.clone(), context);
+    fetch_community_list(context.clone());
   }
 
   Ok(inserted_local_user)
@@ -655,11 +653,47 @@ fn check_code_verifier(code_verifier: &str) -> LemmyResult<()> {
   }
 }
 
-/// Fetch list of communities from lemmyverse.net and then fetch the top communities.
 fn fetch_community_list(context: Data<LemmyContext>) {
+  // Only do this in release mode.
+  if cfg!(debug_assertions) {
+    //return;
+  }
+
   spawn_try_task(async move {
-    let communities_json = include_str!(concat!(env!("OUT_DIR"), "/communities.json"));
-    let communities: Vec<ObjectId<ApubCommunity>> = serde_json::from_str(communities_json)?;
+    let instances = context
+      .settings()
+      .setup
+      .clone()
+      .unwrap_or_default()
+      .bootstrap_instances;
+    let mut communities: Vec<ObjectId<ApubCommunity>> = vec![];
+    for i in instances {
+      info!("Trying to fetch community list from {i}");
+      let res = context
+        .client()
+        .get(format!(
+          "https://{i}/api/v4/community/list?type_=all&sort=active_monthly&limit=50"
+        ))
+        .send()
+        .await;
+      if let Ok(res) = res
+        && let Ok(json) = res.json::<PagedResponse<CommunityView>>().await
+      {
+        communities = json
+          .items
+          .into_iter()
+          // exclude nsfw
+          .filter(|c| !c.community.nsfw)
+          .map(|c| c.community.ap_id.into())
+          .collect();
+        info!("Successfully fetched community list from {i}");
+        break;
+      }
+      info!("Failed to fetch community list from {i}");
+    }
+    // also prefetch these two communities as they are linked in the welcome post
+    communities.insert(0, "https://lemmy.ml/c/announcements".parse()?);
+    communities.insert(0, "https://lemmy.ml/c/lemmy".parse()?);
 
     // Fetch communities themselves
     let tasks = communities.iter().map(|c| async {
@@ -670,9 +704,10 @@ fn fetch_community_list(context: Data<LemmyContext>) {
     // This could be made faster by running tasks in parallel with try_join_all or
     // FuturesUnordered. However that causes massive slowdown as each community fetch
     // starts additional background tasks to fetch moderators, recent posts etc. So we
-    // need to run it one by one.
+    // need to run it one by one and sleep in between.
     for t in tasks {
       t.await;
+      sleep(Duration::from_secs(1)).await;
     }
 
     Ok(())
@@ -685,14 +720,8 @@ fn create_welcome_post(local_user: LocalUser, context: &LemmyContext) {
   spawn_try_task(async move {
     let pool = &mut context.pool();
     let site = SiteView::read_local(pool).await?;
-    let mut admins = PersonQuery {
-      admins_only: Some(true),
-      ..Default::default()
-    }
-    .list(None, site.instance.id, &mut context.pool())
-    .await?
-    .items;
-    let initial_user = admins.pop();
+    let admins = PersonView::list_admins(None, site.instance.id, &mut context.pool()).await?;
+    let initial_user = admins.first();
 
     let person = SiteView::read_system_account(&mut context.pool()).await?;
 

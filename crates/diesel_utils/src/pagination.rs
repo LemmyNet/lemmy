@@ -223,6 +223,8 @@ impl<#[cfg(feature = "ts-rs")] T: ts_rs::TS, #[cfg(not(feature = "ts-rs"))] T> I
 
 /// Add prev/next cursors to query result.
 #[cfg(feature = "full")]
+// https://github.com/rust-lang/rust/issues/115590
+#[allow(clippy::multiple_bound_locations)]
 pub fn paginate_response<#[cfg(feature = "ts-rs")] T: ts_rs::TS, #[cfg(not(feature = "ts-rs"))] T>(
   data: Vec<T>,
   limit: i64,

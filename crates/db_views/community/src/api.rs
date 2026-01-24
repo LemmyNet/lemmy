@@ -99,9 +99,9 @@ pub struct CreateCommunity {
   /// A longer title.
   pub title: String,
   /// A sidebar for the community in markdown.
-  pub sidebar: Option<String>,
-  /// A shorter, one line description of your community.
   pub description: Option<String>,
+  /// A shorter, one line summary of your community.
+  pub summary: Option<String>,
   /// An icon URL.
   pub icon: Option<String>,
   /// A banner URL.
@@ -134,9 +134,9 @@ pub struct EditCommunity {
   /// A longer title.
   pub title: Option<String>,
   /// A sidebar for the community in markdown.
-  pub sidebar: Option<String>,
-  /// A shorter, one line description of your community.
   pub description: Option<String>,
+  /// A shorter, one line summary of your community.
+  pub summary: Option<String>,
   /// Whether its an NSFW community.
   pub nsfw: Option<bool>,
   /// Whether to restrict posting only to moderators.

@@ -98,7 +98,7 @@ CREATE OR REPLACE FUNCTION community_aggregates_activity (i text)
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    RETURN query
+    RETURN QUERY
     SELECT
         count(*),
         community_id
@@ -111,14 +111,14 @@ BEGIN
             INNER JOIN post p ON c.post_id = p.id
         WHERE
             c.published > ('now'::timestamp - i::interval)
-        UNION
-        SELECT
-            p.creator_id,
-            p.community_id
-        FROM
-            post p
-        WHERE
-            p.published > ('now'::timestamp - i::interval)) a
+    UNION
+    SELECT
+        p.creator_id,
+        p.community_id
+    FROM
+        post p
+    WHERE
+        p.published > ('now'::timestamp - i::interval)) a
 GROUP BY
     community_id;
 END;

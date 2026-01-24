@@ -137,7 +137,7 @@ diesel::table! {
         name -> Varchar,
         #[max_length = 50]
         title -> Varchar,
-        sidebar -> Nullable<Text>,
+        description -> Nullable<Text>,
         removed -> Bool,
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
@@ -163,7 +163,7 @@ diesel::table! {
         featured_url -> Nullable<Varchar>,
         visibility -> CommunityVisibility,
         #[max_length = 150]
-        description -> Nullable<Varchar>,
+        summary -> Nullable<Varchar>,
         random_number -> Int2,
         subscribers -> Int4,
         posts -> Int4,
@@ -222,8 +222,8 @@ diesel::table! {
         community_id -> Int4,
         original_community_name -> Text,
         original_community_title -> Text,
+        original_community_summary -> Nullable<Text>,
         original_community_description -> Nullable<Text>,
-        original_community_sidebar -> Nullable<Text>,
         original_community_icon -> Nullable<Text>,
         original_community_banner -> Nullable<Text>,
         reason -> Text,
@@ -906,13 +906,13 @@ diesel::table! {
         id -> Int4,
         #[max_length = 20]
         name -> Varchar,
-        sidebar -> Nullable<Text>,
+        description -> Nullable<Text>,
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
         icon -> Nullable<Text>,
         banner -> Nullable<Text>,
         #[max_length = 150]
-        description -> Nullable<Varchar>,
+        summary -> Nullable<Varchar>,
         #[max_length = 255]
         ap_id -> Varchar,
         last_refreshed_at -> Timestamptz,

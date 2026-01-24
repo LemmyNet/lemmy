@@ -11,7 +11,7 @@ use crate::{
       verify_visibility,
     },
     markdown_links::markdown_rewrite_remote_links,
-    mentions::collect_non_local_mentions,
+    mentions::{collect_non_local_mentions, get_comment_parent_creator},
     protocol::{InCommunity, LanguageTag, Source},
   },
 };
@@ -118,7 +118,9 @@ impl Object for ApubComment {
       post.ap_id.clone().into()
     };
     let language = Some(LanguageTag::new_single(self.language_id, &mut context.pool()).await?);
-    let maa = collect_non_local_mentions(&self, context).await?;
+    let parent_creator = get_comment_parent_creator(&mut context.pool(), &self).await?;
+    let maa =
+      collect_non_local_mentions(Some(&self.content), Some(parent_creator), context).await?;
 
     let note = Note {
       r#type: NoteType::Note,
@@ -132,7 +134,7 @@ impl Object for ApubComment {
       in_reply_to,
       published: Some(self.published_at),
       updated: self.updated_at,
-      tag: maa.tags,
+      tag: maa.mentions,
       distinguished: Some(self.distinguished),
       language,
       audience: Some(community.ap_id.into()),

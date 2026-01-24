@@ -2,14 +2,14 @@ use crate::{
   activity_lists::AnnouncableActivities,
   check_community_deleted_or_removed,
   community::send_activity_in_community,
+  create_or_update::{parse_apub_mentions, tagged_user_inboxes},
   generate_activity_id,
   protocol::{CreateOrUpdateType, create_or_update::note::CreateOrUpdateNote},
 };
 use activitypub_federation::{
   config::Data,
-  fetch::object_id::ObjectId,
   protocol::verification::{verify_domains_match, verify_urls_match},
-  traits::{Activity, Actor, Object},
+  traits::{Activity, Object},
 };
 use lemmy_api_utils::{
   context::LemmyContext,
@@ -20,13 +20,11 @@ use lemmy_apub_objects::{
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
   utils::{
     functions::{generate_to, verify_person_in_community, verify_visibility},
-    mentions::MentionOrValue,
     protocol::InCommunity,
   },
 };
 use lemmy_db_schema::{
   source::{
-    activity::ActivitySendTargets,
     comment::{Comment, CommentActions, CommentLikeForm},
     community::Community,
     person::Person,
@@ -71,24 +69,7 @@ impl CreateOrUpdateNote {
       audience: Some(community.ap_id.clone().into()),
     };
 
-    let tagged_users: Vec<ObjectId<ApubPerson>> = create_or_update
-      .tag
-      .iter()
-      .filter_map(|t| {
-        if let MentionOrValue::Mention(t) = t {
-          Some(t)
-        } else {
-          None
-        }
-      })
-      .map(|t| t.href.clone())
-      .map(ObjectId::from)
-      .collect();
-    let mut inboxes = ActivitySendTargets::empty();
-    for t in tagged_users {
-      let person = t.dereference(&context).await?;
-      inboxes.add_inbox(person.shared_inbox_or_inbox());
-    }
+    let inboxes = tagged_user_inboxes(&create_or_update.tag, &context).await?;
 
     // AnnouncableActivities doesnt contain Comment activity but only NoteWrapper,
     // to be able to handle both comment and private message. So to send this out we need
@@ -155,14 +136,14 @@ impl Activity for CreateOrUpdateNote {
       self.kind == CreateOrUpdateType::Create && !site_view.local_site.disable_email_notifications;
     let actor = self.actor.dereference(context).await?;
 
-    // Note:
-    // Although mentions could be gotten from the post tags (they are included there), or the ccs,
-    // Its much easier to scrape them from the comment body, since the API has to do that
-    // anyway.
-    // TODO: for compatibility with other projects, it would be much better to read this from cc or
-    // tags
     let community = Community::read(&mut context.pool(), post.community_id).await?;
-    NotifyData::new(post.0, Some(comment.0), actor.0, community, do_send_email).send(context);
+    NotifyData {
+      comment: Some(comment.0),
+      do_send_email,
+      apub_mentions: Some(parse_apub_mentions(&self.tag, context).await?),
+      ..NotifyData::new(post.0, actor.0, community)
+    }
+    .send(context);
     Ok(())
   }
 }

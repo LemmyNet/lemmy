@@ -455,13 +455,13 @@ FROM
             user_ u
             LEFT JOIN community_follower cf ON u.id = cf.user_id
                 AND cf.community_id = cv.id) AS us
-UNION ALL
-SELECT
-    cv.*,
-    NULL AS user_id,
-    NULL AS subscribed
-FROM
-    community_aggregates_view cv;
+    UNION ALL
+    SELECT
+        cv.*,
+        NULL AS user_id,
+        NULL AS subscribed
+    FROM
+        community_aggregates_view cv;
 
 CREATE VIEW community_moderator_view AS
 SELECT

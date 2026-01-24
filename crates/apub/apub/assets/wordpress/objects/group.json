@@ -6,8 +6,8 @@
     {
       "schema": "http://schema.org#",
       "toot": "http://joinmastodon.org/ns#",
-      "webfinger": "https://webfinger.net/#",
       "lemmy": "https://join-lemmy.org/ns#",
+      "litepub": "http://litepub.social/ns#",
       "manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
       "PropertyValue": "schema:PropertyValue",
       "value": "schema:value",
@@ -24,43 +24,140 @@
         "@id": "lemmy:moderators",
         "@type": "@id"
       },
+      "alsoKnownAs": {
+        "@id": "as:alsoKnownAs",
+        "@type": "@id"
+      },
+      "movedTo": {
+        "@id": "as:movedTo",
+        "@type": "@id"
+      },
+      "attributionDomains": {
+        "@id": "toot:attributionDomains",
+        "@type": "@id"
+      },
+      "implements": {
+        "@id": "https://w3id.org/fep/844e/implements",
+        "@type": "@id",
+        "@container": "@list"
+      },
       "postingRestrictedToMods": "lemmy:postingRestrictedToMods",
       "discoverable": "toot:discoverable",
       "indexable": "toot:indexable",
-      "resource": "webfinger:resource"
+      "invisible": "litepub:invisible"
     }
   ],
-  "id": "https://pfefferle.org/@pfefferle.org",
-  "type": "Group",
-  "attachment": [],
-  "attributedTo": "https://pfefferle.org/wp-json/activitypub/1.0/collections/moderators",
-  "name": "Matthias Pfefferle",
-  "icon": {
-    "type": "Image",
-    "url": "https://pfefferle.org/wp-content/uploads/2023/06/cropped-BeLItBV-_400x400.jpg"
+  "generator": {
+    "type": "Application",
+    "implements": [
+      {
+        "href": "https://datatracker.ietf.org/doc/html/rfc9421",
+        "name": "RFC-9421: HTTP Message Signatures"
+      }
+    ]
   },
-  "published": "2024-04-03T16:58:22Z",
-  "summary": "<p>Webworker, blogger und podcaster</p>\n",
-  "tag": [],
-  "url": "https://pfefferle.org/@pfefferle.org",
-  "inbox": "https://pfefferle.org/wp-json/activitypub/1.0/users/0/inbox",
-  "outbox": "https://pfefferle.org/wp-json/activitypub/1.0/users/0/outbox",
-  "following": "https://pfefferle.org/wp-json/activitypub/1.0/users/0/following",
-  "followers": "https://pfefferle.org/wp-json/activitypub/1.0/users/0/followers",
-  "preferredUsername": "pfefferle.org",
+  "type": "Group",
+  "inbox": "https://dbzer0.com/wp-json/activitypub/1.0/actors/0/inbox",
+  "outbox": "https://dbzer0.com/wp-json/activitypub/1.0/actors/0/outbox",
+  "following": "https://dbzer0.com/wp-json/activitypub/1.0/actors/0/following",
+  "followers": "https://dbzer0.com/wp-json/activitypub/1.0/actors/0/followers",
+  "streams": [],
+  "preferredUsername": "dbzer0.com",
   "endpoints": {
-    "sharedInbox": "https://pfefferle.org/wp-json/activitypub/1.0/inbox"
+    "sharedInbox": "https://dbzer0.com/wp-json/activitypub/1.0/inbox"
   },
   "publicKey": {
-    "id": "https://pfefferle.org/@pfefferle.org#main-key",
-    "owner": "https://pfefferle.org/@pfefferle.org",
-    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuq8xeLMFcaCwPFBhgMRE\n/dDh2XKoNXFXnixctmK8BXSuuLMxucm3I/8NyhIvb3LqU+uP1fO8F0ecUbk2sN+x\nKag5vIV6yKXzJ8ILMWQ9AaELpXDmMZqL0zal0LUJRAOkDgPDovDAoq6tx++yDoV0\njdVbf9CoZKit1cz2ZrEuE5dswq3J/z9+c6POkhCkWEX5TPJzkOrmnjkvrXxGHUJ2\nA3+P+VaZhd5cmvqYosSpYNJshxCdev12pIF78OnYLiYiyXlgGHU+7uQR0M4tTcij\n6cUdLkms9m+b6H3ctXntPn410e5YLFPldjAYzQB5wHVdFZsWtyrbqfYdCa+KkKpA\nvwIDAQAB\n-----END PUBLIC KEY-----\n"
+    "id": "https://dbzer0.com/?author=0#main-key",
+    "owner": "https://dbzer0.com/?author=0",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuEI3WTumR109MNB4O/YJ\nyUQO5i1+dlftm9TmRFkgH+3cTQ1yR4Xhp/V6XFq4P+y/s8HUhFWlckr2BWY15qHJ\nnlzSWY2wtivhl/vQ6ZqlngGwS9uhsai+a090eGNrrwSB/jIKp4N7JPe8n06SVDfQ\nmu9BNyWrhqvHIkQsC4fgSHQrwEfH1hQx2KdE4J0hMJSPkLm1m2Pd5FRZVdxLZqMU\nWGCWn/wB5fTRb/2PpnxMrSETxEHL7hoI5HqPGaEGPvJUFLLKOPfYLlTJ/d5E0W3T\n5EThDUH811JWBvFhYNHltPu7J7FhrqAClxDXJsFyrxwDIN1YYEqI9P33z6KedgJi\nVQIDAQAB\n-----END PUBLIC KEY-----\n"
   },
   "manuallyApprovesFollowers": false,
-  "featured": "https://pfefferle.org/wp-json/activitypub/1.0/users/0/collections/featured",
-  "moderators": "https://pfefferle.org/wp-json/activitypub/1.0/collections/moderators",
+  "attributionDomains": ["dbzer0.com"],
+  "alsoKnownAs": [
+    "https://dbzer0.com/?author=0",
+    "https://dbzer0.com",
+    "https://dbzer0.com/"
+  ],
+  "featured": "https://dbzer0.com/wp-json/activitypub/1.0/actors/0/collections/featured",
+  "featuredTags": "https://dbzer0.com/wp-json/activitypub/1.0/actors/0/collections/tags",
   "discoverable": true,
   "indexable": true,
-  "webfinger": "pfefferle.org@pfefferle.org",
-  "postingRestrictedToMods": true
+  "webfinger": "dbzer0.com@dbzer0.com",
+  "moderators": "https://dbzer0.com/wp-json/activitypub/1.0/collections/moderators",
+  "postingRestrictedToMods": true,
+  "attachment": [
+    {
+      "type": "PropertyValue",
+      "name": "Blog",
+      "value": "<p><a href=\"https://dbzer0.com/\" target=\"_blank\" rel=\"nofollow noopener noreferrer me\"><span class=\"invisible\">https://</span><span class=\"\">dbzer0.com/</span><span class=\"invisible\"></span></a></p>"
+    },
+    {
+      "type": "Link",
+      "name": "Blog",
+      "href": "https://dbzer0.com/",
+      "rel": ["nofollow", "noopener", "noreferrer", "me"]
+    }
+  ],
+  "attributedTo": "https://dbzer0.com/wp-json/activitypub/1.0/collections/moderators",
+  "name": "A Division by Zer0",
+  "icon": {
+    "type": "Image",
+    "url": "https://i0.wp.com/dbzer0.com/wp-content/uploads/2024/12/cropped-8b790ffc-2b23-461a-ae98-1bd743cf66bc.webp?fit=512%2C512&#038;ssl=1"
+  },
+  "published": "2005-02-11T23:20:15Z",
+  "summary": "<p>A bug in the code of the universe</p>\n",
+  "tag": [
+    {
+      "type": "Hashtag",
+      "href": "https://dbzer0.com/blog/tag/quote-of-the-day/",
+      "name": "#QuoteOfTheDay"
+    },
+    {
+      "type": "Hashtag",
+      "href": "https://dbzer0.com/blog/tag/anarchism/",
+      "name": "#anarchism"
+    },
+    {
+      "type": "Hashtag",
+      "href": "https://dbzer0.com/blog/tag/reddit/",
+      "name": "#reddit"
+    },
+    {
+      "type": "Hashtag",
+      "href": "https://dbzer0.com/blog/tag/site-updates/",
+      "name": "#SiteUpdates"
+    },
+    {
+      "type": "Hashtag",
+      "href": "https://dbzer0.com/blog/tag/aihorde/",
+      "name": "#aiHorde"
+    },
+    {
+      "type": "Hashtag",
+      "href": "https://dbzer0.com/blog/tag/capitalism/",
+      "name": "#Capitalism"
+    },
+    {
+      "type": "Hashtag",
+      "href": "https://dbzer0.com/blog/tag/wordpress/",
+      "name": "#Wordpress"
+    },
+    {
+      "type": "Hashtag",
+      "href": "https://dbzer0.com/blog/tag/libertarianism/",
+      "name": "#Libertarianism"
+    },
+    {
+      "type": "Hashtag",
+      "href": "https://dbzer0.com/blog/tag/rant/",
+      "name": "#Rant"
+    },
+    {
+      "type": "Hashtag",
+      "href": "https://dbzer0.com/blog/tag/linux/",
+      "name": "#Linux"
+    }
+  ],
+  "url": "https://dbzer0.com",
+  "id": "https://dbzer0.com/?author=0"
 }

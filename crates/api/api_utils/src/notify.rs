@@ -33,11 +33,15 @@ use url::Url;
 
 #[derive(derive_new::new, Debug, Clone)]
 pub struct NotifyData {
-  post: Post,
-  comment_opt: Option<Comment>,
-  creator: Person,
-  community: Community,
-  do_send_email: bool,
+  pub post: Post,
+  pub creator: Person,
+  pub community: Community,
+  #[new(value = "None")]
+  pub comment: Option<Comment>,
+  #[new(value = "false")]
+  pub do_send_email: bool,
+  #[new(value = "None")]
+  pub apub_mentions: Option<Vec<Person>>,
 }
 
 struct CollectedNotifyData<'a> {
@@ -98,7 +102,7 @@ impl NotifyData {
         continue;
       };
 
-      forms.push(if let Some(comment) = &self.comment_opt {
+      forms.push(if let Some(comment) = &self.comment {
         NotificationInsertForm::new_comment(comment.id, c.person_id, c.kind)
       } else {
         NotificationInsertForm::new_post(self.post.id, c.person_id, c.kind)
@@ -156,7 +160,7 @@ impl NotifyData {
   }
 
   fn content(&self) -> String {
-    if let Some(comment) = self.comment_opt.as_ref() {
+    if let Some(comment) = self.comment.as_ref() {
       comment.content.clone()
     } else {
       self.post.body.clone().unwrap_or_default()
@@ -164,7 +168,7 @@ impl NotifyData {
   }
 
   fn link(&self, context: &LemmyContext) -> LemmyResult<Url> {
-    if let Some(comment) = self.comment_opt.as_ref() {
+    if let Some(comment) = self.comment.as_ref() {
       Ok(comment.local_url(context.settings())?)
     } else {
       Ok(self.post.local_url(context.settings())?)
@@ -175,7 +179,7 @@ impl NotifyData {
     &'a self,
     context: &LemmyContext,
   ) -> LemmyResult<Vec<CollectedNotifyData<'a>>> {
-    let Some(comment) = self.comment_opt.as_ref() else {
+    let Some(comment) = self.comment.as_ref() else {
       return Ok(vec![]);
     };
 
@@ -205,20 +209,28 @@ impl NotifyData {
     &'a self,
     context: &LemmyContext,
   ) -> LemmyResult<Vec<CollectedNotifyData<'a>>> {
-    let mentions = scrape_text_for_mentions(&self.content())
-      .into_iter()
-      .filter(|m| m.is_local(&context.settings().hostname) && m.name.ne(&self.creator.name));
+    let mentions = if let Some(apub_mentions) = self.apub_mentions.clone() {
+      apub_mentions
+    } else {
+      let scraped = scrape_text_for_mentions(&self.content())
+        .into_iter()
+        .filter(|m| m.is_local(&context.settings().hostname) && m.name.ne(&self.creator.name));
+      let mut persons = vec![];
+      for m in scraped {
+        let Ok(Some(p)) = Person::read_from_name(&mut context.pool(), &m.name, None, false).await
+        else {
+          // Ignore error if user is remote
+          continue;
+        };
+        persons.push(p);
+      }
+      persons
+    };
+
     let mut res = vec![];
     for mention in mentions {
-      let Ok(Some(person)) =
-        Person::read_from_name(&mut context.pool(), &mention.name, None, false).await
-      else {
-        // Ignore error if user is remote
-        continue;
-      };
-
       res.push(CollectedNotifyData {
-        person_id: person.id,
+        person_id: mention.id,
         local_url: self.link(context)?.into(),
         data: NotificationEmailData::Mention {
           content: self.content().clone(),
@@ -234,7 +246,7 @@ impl NotifyData {
     &'a self,
     context: &LemmyContext,
   ) -> LemmyResult<Vec<CollectedNotifyData<'a>>> {
-    let is_post = self.comment_opt.is_none();
+    let is_post = self.comment.is_none();
     let subscribers = vec![
       PostActions::list_subscribers(self.post.id, &mut context.pool()).await?,
       CommunityActions::list_subscribers(self.post.community_id, is_post, &mut context.pool())
@@ -246,7 +258,7 @@ impl NotifyData {
 
     let mut res = vec![];
     for person_id in subscribers {
-      let d = if let Some(comment) = &self.comment_opt {
+      let d = if let Some(comment) = &self.comment {
         NotificationEmailData::PostSubscribed {
           post: &self.post,
           comment,
@@ -511,10 +523,11 @@ mod tests {
       Comment::create(pool, &sara_comment_form, Some(&data.timmy_comment.path)).await?;
     NotifyData {
       post: data.timmy_post.clone(),
-      comment_opt: Some(sara_comment.clone()),
+      comment: Some(sara_comment.clone()),
       creator: data.sara.person.clone(),
       community: data.community.clone(),
       do_send_email: false,
+      apub_mentions: None,
     }
     .send_internal(context.app_data().clone())
     .await?;

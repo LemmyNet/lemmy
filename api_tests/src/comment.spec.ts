@@ -39,6 +39,7 @@ import {
   lockComment,
   statusNotFound,
   statusBadRequest,
+  jestLemmyError,
   getUnreadCounts,
 } from "./shared";
 import {
@@ -101,7 +102,8 @@ test("Create a comment", async () => {
 });
 
 test("Create a comment in a non-existent post", async () => {
-  await expect(createComment(alpha, -1)).rejects.toStrictEqual(
+  await jestLemmyError(
+    () => createComment(alpha, -1),
     new LemmyError("not_found", statusNotFound),
   );
 });
@@ -963,13 +965,15 @@ test("Lock comment", async () => {
   );
 
   // Make sure newBeta can't respond to comment3
-  await expect(
-    createComment(
-      newBetaApi,
-      betaPost.post.id,
-      comment3.comment_view.comment.id,
-    ),
-  ).rejects.toStrictEqual(new LemmyError("locked", statusBadRequest));
+  await jestLemmyError(
+    () =>
+      createComment(
+        newBetaApi,
+        betaPost.post.id,
+        comment3.comment_view.comment.id,
+      ),
+    new LemmyError("locked", statusBadRequest),
+  );
 
   // newBeta should still be able to respond to comment1
   expect(

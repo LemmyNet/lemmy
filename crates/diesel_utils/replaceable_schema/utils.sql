@@ -159,7 +159,7 @@ CREATE OR REPLACE FUNCTION r.community_aggregates_activity (i text)
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    RETURN query
+    RETURN QUERY
     SELECT
         count(*)::integer,
         community_id
@@ -174,33 +174,33 @@ BEGIN
         WHERE
             c.published_at > ('now'::timestamp - i::interval)
             AND pe.bot_account = FALSE
-        UNION
-        SELECT
-            p.creator_id,
-            p.community_id
-        FROM
-            post p
+    UNION
+    SELECT
+        p.creator_id,
+        p.community_id
+    FROM
+        post p
             INNER JOIN person pe ON p.creator_id = pe.id
         WHERE
             p.published_at > ('now'::timestamp - i::interval)
             AND pe.bot_account = FALSE
-        UNION
-        SELECT
-            pa.person_id,
-            p.community_id
-        FROM
-            post_actions pa
+    UNION
+    SELECT
+        pa.person_id,
+        p.community_id
+    FROM
+        post_actions pa
             INNER JOIN post p ON pa.post_id = p.id
             INNER JOIN person pe ON pa.person_id = pe.id
         WHERE
             pa.voted_at > ('now'::timestamp - i::interval)
             AND pe.bot_account = FALSE
-        UNION
-        SELECT
-            ca.person_id,
-            p.community_id
-        FROM
-            comment_actions ca
+    UNION
+    SELECT
+        ca.person_id,
+        p.community_id
+    FROM
+        comment_actions ca
             INNER JOIN comment c ON ca.comment_id = c.id
             INNER JOIN post p ON c.post_id = p.id
             INNER JOIN person pe ON ca.person_id = pe.id
@@ -220,7 +220,7 @@ CREATE OR REPLACE FUNCTION r.community_aggregates_interactions (i text)
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    RETURN query
+    RETURN QUERY
     SELECT
         COALESCE(sum(comments + upvotes + downvotes)::integer, 0) AS count_,
         community_id AS community_id_

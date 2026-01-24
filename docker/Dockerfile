@@ -20,6 +20,7 @@ FROM --platform=${BUILDPLATFORM} ${AMD_BUILDER_IMAGE} AS build-amd64
 ARG CARGO_BUILD_FEATURES
 ARG RUST_RELEASE_MODE
 ARG RUSTFLAGS
+ARG CI_PIPELINE_EVENT
 
 WORKDIR /lemmy
 
@@ -77,7 +78,7 @@ RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
 FROM ${AMD_RUNNER_IMAGE} AS runner-linux-amd64
 
 # Add system packages that are needed: federation needs CA certificates, curl can be used for healthchecks
-RUN apt update && apt install -y libssl-dev libpq-dev ca-certificates curl
+RUN apt update && apt install -y libssl-dev libpq-dev ca-certificates curl git
 
 COPY --from=build-amd64 --chmod=0755 /lemmy/lemmy_server /usr/local/bin
 

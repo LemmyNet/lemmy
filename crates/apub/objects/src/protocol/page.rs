@@ -1,6 +1,6 @@
 use crate::{
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
-  protocol::tags::CommunityTag,
+  protocol::tags::ApubTag,
   utils::protocol::{
     AttributedTo,
     ImageObject,
@@ -74,7 +74,7 @@ pub struct Page {
   /// Contains hashtags and post tags.
   /// https://www.w3.org/TR/activitystreams-vocabulary/#dfn-tag
   #[serde(deserialize_with = "deserialize_skip_error", default)]
-  pub(crate) tag: Vec<HashtagOrLemmyTag>,
+  pub tag: Vec<ApubTag>,
   pub(crate) context: Option<String>,
 }
 
@@ -153,35 +153,6 @@ impl Attachment {
       Ok(format!("![{}]({url})", name.unwrap_or_default()))
     } else {
       Ok(format!("[{url}]({url})"))
-    }
-  }
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct Hashtag {
-  pub(crate) href: Url,
-  pub(crate) name: String,
-  #[serde(rename = "type")]
-  pub(crate) kind: HashtagType,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum HashtagType {
-  Hashtag,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(untagged)]
-pub enum HashtagOrLemmyTag {
-  Hashtag(Hashtag),
-  CommunityTag(CommunityTag),
-}
-
-impl HashtagOrLemmyTag {
-  pub fn community_tag_url(&self) -> Option<Url> {
-    match self {
-      HashtagOrLemmyTag::CommunityTag(t) => Some(t.id.clone()),
-      _ => None,
     }
   }
 }

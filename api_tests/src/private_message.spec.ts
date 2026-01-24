@@ -13,6 +13,7 @@ import {
   listNotifications,
   resolvePerson,
   statusBadRequest,
+  jestLemmyError,
 } from "./shared";
 
 let recipient_id: number;
@@ -130,14 +131,14 @@ test("Create a private message report", async () => {
   expect(betaPm).toBeDefined();
 
   // Make sure that only the recipient can report it, so this should fail
-  await expect(
-    reportPrivateMessage(
-      alpha,
-      pmRes.private_message_view.private_message.id,
-      "a reason",
-    ),
-  ).rejects.toStrictEqual(
-    new LemmyError("couldnt_create_report", statusBadRequest),
+  await jestLemmyError(
+    () =>
+      reportPrivateMessage(
+        alpha,
+        pmRes.private_message_view.private_message.id,
+        "a reason",
+      ),
+    new LemmyError("couldnt_create", statusBadRequest),
   );
 
   // This one should pass

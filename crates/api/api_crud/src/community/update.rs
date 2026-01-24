@@ -49,17 +49,17 @@ pub async fn update_community(
     is_valid_display_name(title)?;
   }
 
-  let sidebar = diesel_string_update(
-    process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context)
+  let description = diesel_string_update(
+    process_markdown_opt(&data.description, &slur_regex, &url_blocklist, &context)
       .await?
       .as_deref(),
   );
 
-  if let Some(Some(sidebar)) = &sidebar {
-    is_valid_body_field(sidebar, false)?;
+  if let Some(Some(description)) = &description {
+    is_valid_body_field(description, false)?;
   }
 
-  let description = diesel_string_update(data.description.as_deref());
+  let summary = diesel_string_update(data.summary.as_deref());
 
   let old_community = Community::read(&mut context.pool(), data.community_id).await?;
 
@@ -80,8 +80,8 @@ pub async fn update_community(
 
   let community_form = CommunityUpdateForm {
     title: data.title.clone(),
-    sidebar,
     description,
+    summary,
     nsfw: data.nsfw,
     posting_restricted_to_mods: data.posting_restricted_to_mods,
     visibility: data.visibility,

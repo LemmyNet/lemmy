@@ -20,7 +20,7 @@ use lemmy_utils::{
   error::LemmyResult,
   utils::{
     slurs::check_slurs,
-    validation::{check_api_elements_count, description_length_check, is_valid_actor_name},
+    validation::{check_api_elements_count, is_valid_actor_name, summary_length_check},
   },
 };
 use url::Url;
@@ -41,7 +41,7 @@ pub async fn create_community_tag(
 
   check_api_elements_count(community_view.post_tags.0.len())?;
   if let Some(desc) = &data.description {
-    description_length_check(desc)?;
+    summary_length_check(desc)?;
     check_slurs(desc, &slur_regex(&context).await?)?;
   }
 
@@ -79,7 +79,7 @@ pub async fn update_community_tag(
   check_community_mod_action(&local_user_view, &community, false, &mut context.pool()).await?;
 
   if let Some(desc) = &data.description {
-    description_length_check(desc)?;
+    summary_length_check(desc)?;
     check_slurs(desc, &slur_regex(&context).await?)?;
   }
 

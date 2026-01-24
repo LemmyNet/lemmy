@@ -20,15 +20,15 @@ pub struct Site {
   pub id: SiteId,
   pub name: String,
   /// A sidebar for the site in markdown.
-  pub sidebar: Option<String>,
+  pub description: Option<String>,
   pub published_at: DateTime<Utc>,
   pub updated_at: Option<DateTime<Utc>>,
   /// An icon URL.
   pub icon: Option<DbUrl>,
   /// A banner url.
   pub banner: Option<DbUrl>,
-  /// A shorter, one-line description of the site.
-  pub description: Option<String>,
+  /// A shorter, one-line summary of the site.
+  pub summary: Option<String>,
   /// The federated ap_id.
   pub ap_id: DbUrl,
   /// The time the site was last refreshed.
@@ -52,7 +52,7 @@ pub struct SiteInsertForm {
   pub name: String,
   pub instance_id: InstanceId,
   #[new(default)]
-  pub sidebar: Option<String>,
+  pub description: Option<String>,
   #[new(default)]
   pub updated_at: Option<DateTime<Utc>>,
   #[new(default)]
@@ -60,7 +60,7 @@ pub struct SiteInsertForm {
   #[new(default)]
   pub banner: Option<DbUrl>,
   #[new(default)]
-  pub description: Option<String>,
+  pub summary: Option<String>,
   #[new(default)]
   pub ap_id: Option<DbUrl>,
   #[new(default)]
@@ -80,13 +80,13 @@ pub struct SiteInsertForm {
 #[cfg_attr(feature = "full", diesel(table_name = site))]
 pub struct SiteUpdateForm {
   pub name: Option<String>,
-  pub sidebar: Option<Option<String>>,
+  pub description: Option<Option<String>>,
   pub updated_at: Option<Option<DateTime<Utc>>>,
   // when you want to null out a column, you have to send Some(None)), since sending None means you
   // just don't want to update that column.
   pub icon: Option<Option<DbUrl>>,
   pub banner: Option<Option<DbUrl>>,
-  pub description: Option<Option<String>>,
+  pub summary: Option<Option<String>>,
   pub ap_id: Option<DbUrl>,
   pub last_refreshed_at: Option<DateTime<Utc>>,
   pub inbox_url: Option<DbUrl>,

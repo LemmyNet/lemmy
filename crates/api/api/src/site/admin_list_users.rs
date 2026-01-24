@@ -16,6 +16,7 @@ pub async fn admin_list_users(
     banned_only: data.banned_only,
     page_cursor: data.page_cursor,
     limit: data.limit,
+    sort: data.sort,
   }
   .list(&mut context.pool())
   .await?;

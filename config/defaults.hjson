@@ -88,9 +88,16 @@
     site_name: "My Lemmy Instance"
     # Email for the admin user (optional, can be omitted and set later through the website)
     admin_email: "user@example.com"
-    # By default a new Lemmy instance gets populated with data from the most popular communities.
-    # Set this to true to start with an empty instance instead.
-    no_default_data: true
+    # On first start Lemmy fetches the 50 most active communities from one of these instances,
+    # to provide some initial data. It tries the first list entry, and if it fails uses subsequent
+    # instances as fallback.
+    # Leave this empty to disable community bootstrap.
+    # TODO: remove voyager.lemmy.ml from defaults once Lemmy 1.0 is deployed to production
+    # instances.
+    bootstrap_instances: [
+      "string"
+      /* ... */
+    ]
   }
   # the domain name of your instance (mandatory)
   hostname: "unset"

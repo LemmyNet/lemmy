@@ -17,7 +17,7 @@ use lemmy_db_views_person::PersonView;
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_search_combined::{SearchCombinedView, SearchResponse};
 use lemmy_db_views_site::{SiteView, api::ResolveObject};
-use lemmy_utils::error::{LemmyErrorExt2, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use url::Url;
 
 pub async fn resolve_object(
@@ -51,7 +51,7 @@ pub(super) async fn resolve_object_internal(
     // user isn't authenticated only allow a local search.
     search_query_to_object_id_local(query, context).await
   }
-  .with_lemmy_type(LemmyErrorType::NotFound)?;
+  .map_err(|e| LemmyErrorType::ResolveObjectFailed(e.inner.to_string()))?;
 
   let my_person_id_opt = local_user_view.as_ref().map(|l| l.person.id);
   let my_person_id = my_person_id_opt.unwrap_or(PersonId(-1));
@@ -129,6 +129,7 @@ mod tests {
     test_data::TestData,
   };
   use lemmy_diesel_utils::traits::Crud;
+  use lemmy_utils::error::LemmyErrorType;
   use serial_test::serial;
 
   #[tokio::test]

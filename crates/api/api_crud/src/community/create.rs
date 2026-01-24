@@ -39,10 +39,10 @@ use lemmy_utils::{
   utils::{
     slurs::check_slurs,
     validation::{
-      description_length_check,
       is_valid_actor_name,
       is_valid_body_field,
       is_valid_display_name,
+      summary_length_check,
     },
   },
 };
@@ -65,26 +65,23 @@ pub async fn create_community(
   let url_blocklist = get_url_blocklist(&context).await?;
   check_slurs(&data.name, &slur_regex)?;
   check_slurs(&data.title, &slur_regex)?;
-  let sidebar = process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context).await?;
+  let description =
+    process_markdown_opt(&data.description, &slur_regex, &url_blocklist, &context).await?;
   let title = data.title.trim();
   is_valid_display_name(title)?;
 
   // Ensure that the sidebar has fewer than the max num characters...
-  if let Some(sidebar) = &sidebar {
-    is_valid_body_field(sidebar, false)?;
+  if let Some(description) = &description {
+    is_valid_body_field(description, false)?;
   }
 
-  let description = data.description.clone();
-  if let Some(desc) = &description {
-    description_length_check(desc)?;
-    check_slurs(desc, &slur_regex)?;
+  let summary = data.summary.clone();
+  if let Some(summary) = &summary {
+    summary_length_check(summary)?;
+    check_slurs(summary, &slur_regex)?;
   }
 
   is_valid_actor_name(&data.name)?;
-
-  if let Some(desc) = &data.description {
-    is_valid_body_field(desc, false)?;
-  }
 
   // Double check for duplicate community actor_ids
   let community_ap_id = Community::generate_local_actor_url(&data.name, context.settings())?;
@@ -95,8 +92,8 @@ pub async fn create_community(
 
   let keypair = generate_actor_keypair()?;
   let community_form = CommunityInsertForm {
-    sidebar,
     description,
+    summary,
     nsfw: data.nsfw,
     ap_id: Some(community_ap_id.clone()),
     private_key: Some(keypair.private_key),
