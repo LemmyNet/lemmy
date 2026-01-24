@@ -3457,10 +3457,10 @@ dependencies = [
  "lemmy_email",
  "lemmy_utils 1.0.0-alpha.12",
  "regex",
- "reqwest 0.12.25",
  "serde",
  "serde_json",
  "serde_with",
+ "tracing",
  "url",
  "uuid",
 ]
@@ -4234,6 +4234,7 @@ version = "1.0.0-alpha.12"
 dependencies = [
  "diesel",
  "diesel-async",
+ "i-love-jesus",
  "lemmy_db_schema 1.0.0-alpha.12",
  "lemmy_db_schema_file",
  "lemmy_diesel_utils",
@@ -5967,7 +5968,6 @@ checksum = "b6eff9328d40131d43bd911d42d79eb6a47312002a4daefc9e37f17e74a7701a"
 dependencies = [
  "base64 0.22.1",
  "bytes",
- "futures-channel",
  "futures-core",
  "futures-util",
  "http 1.4.0",

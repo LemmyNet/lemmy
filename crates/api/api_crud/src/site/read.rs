@@ -9,7 +9,7 @@ use lemmy_db_schema::source::{
   tagline::Tagline,
 };
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_person::impls::PersonQuery;
+use lemmy_db_views_person::PersonView;
 use lemmy_db_views_site::{SiteView, api::GetSiteResponse};
 use lemmy_utils::{CacheLock, VERSION, build_cache, error::LemmyResult};
 use std::sync::LazyLock;
@@ -37,13 +37,7 @@ pub async fn get_site(
 
 async fn read_site(context: &LemmyContext) -> LemmyResult<GetSiteResponse> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
-  let admins = PersonQuery {
-    admins_only: Some(true),
-    ..Default::default()
-  }
-  .list(None, site_view.instance.id, &mut context.pool())
-  .await?
-  .items;
+  let admins = PersonView::list_admins(None, site_view.instance.id, &mut context.pool()).await?;
   let all_languages = Language::read_all(&mut context.pool()).await?;
   let discussion_languages = SiteLanguage::read_local_raw(&mut context.pool()).await?;
   let blocked_urls = LocalSiteUrlBlocklist::get_all(&mut context.pool()).await?;

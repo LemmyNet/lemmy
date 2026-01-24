@@ -175,7 +175,7 @@ pub struct EmailConfig {
   pub smtp_from_address: String,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, Default, Document)]
+#[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]
 #[serde(default, deny_unknown_fields)]
 pub struct SetupConfig {
   /// Username for the admin user
@@ -190,9 +190,14 @@ pub struct SetupConfig {
   /// Email for the admin user (optional, can be omitted and set later through the website)
   #[doku(example = "user@example.com")]
   pub admin_email: Option<String>,
-  /// By default a new Lemmy instance gets populated with data from the most popular communities.
-  /// Set this to true to start with an empty instance instead.
-  pub no_default_data: Option<bool>,
+  /// On first start Lemmy fetches the 50 most active communities from one of these instances,
+  /// to provide some initial data. It tries the first list entry, and if it fails uses subsequent
+  /// instances as fallback.
+  /// Leave this empty to disable community bootstrap.
+  /// TODO: remove voyager.lemmy.ml from defaults once Lemmy 1.0 is deployed to production
+  /// instances.
+  #[default(vec!["lemmy.ml".to_string(),"lemmy.world".to_string(),"lemmy.zip".to_string(),"voyager.lemmy.ml".to_string()])]
+  pub bootstrap_instances: Vec<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, SmartDefault, Document)]

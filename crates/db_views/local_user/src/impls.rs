@@ -8,8 +8,9 @@ use diesel::{
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
-use i_love_jesus::SortDirection;
+use i_love_jesus::asc_if;
 use lemmy_db_schema::{
+  LocalUserSortType,
   newtypes::{LocalUserId, OAuthProviderId},
   source::{
     instance::Instance,
@@ -162,6 +163,7 @@ pub struct LocalUserQuery {
   pub banned_only: Option<bool>,
   pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
+  pub sort: Option<LocalUserSortType>,
 }
 
 impl LocalUserQuery {
@@ -194,8 +196,12 @@ impl LocalUserQuery {
       );
     }
 
+    // Only sort by ascending for Old
+    let sort = self.sort.unwrap_or_default();
+    let sort_direction = asc_if(sort == LocalUserSortType::Old);
+
     let paginated_query =
-      LocalUserView::paginate(query, &self.page_cursor, SortDirection::Desc, pool, None)
+      LocalUserView::paginate(query, &self.page_cursor, sort_direction, pool, None)
         .await?
         .then_order_by(person_keys::published_at)
         // Tie breaker

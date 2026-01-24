@@ -6,8 +6,8 @@ use lemmy_db_schema::source::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::{
+  PersonView,
   api::{AddAdmin, AddAdminResponse},
-  impls::PersonQuery,
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
@@ -27,11 +27,7 @@ pub async fn add_admin(
       .await?;
 
     // Dont allow removing the last admin
-    let admins = PersonQuery {
-      admins_only: Some(true),
-      ..Default::default()
-    }
-    .list(
+    let admins = PersonView::list_admins(
       None,
       local_user_view.person.instance_id,
       &mut context.pool(),
@@ -64,18 +60,12 @@ pub async fn add_admin(
   let action = Modlog::create(&mut context.pool(), &[form]).await?;
   notify_mod_action(action.clone(), &context);
 
-  let admins = PersonQuery {
-    admins_only: Some(true),
-    ..Default::default()
-  }
-  .list(
+  let admins = PersonView::list_admins(
     Some(my_person_id),
     local_user_view.person.instance_id,
     &mut context.pool(),
   )
   .await?;
 
-  Ok(Json(AddAdminResponse {
-    admins: admins.items,
-  }))
+  Ok(Json(AddAdminResponse { admins }))
 }
