@@ -50,6 +50,7 @@ pub enum SendActivityData {
     moderator: Person,
     community: Community,
     reason: String,
+    with_replies: Option<bool>,
   },
   LockComment(Comment, Person, bool, String),
   LikePostOrComment {

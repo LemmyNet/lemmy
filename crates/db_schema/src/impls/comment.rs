@@ -254,6 +254,19 @@ impl Comment {
     Self::update_comment_and_children(pool, comment_path, &form).await
   }
 
+  /// Updates the removed field for a comment and all its children.
+  pub async fn update_removed_for_comment_and_children(
+    pool: &mut DbPool<'_>,
+    comment_path: &Ltree,
+    removed: bool,
+  ) -> LemmyResult<Vec<Self>> {
+    let form = CommentUpdateForm {
+      removed: Some(removed),
+      ..Default::default()
+    };
+    Self::update_comment_and_children(pool, comment_path, &form).await
+  }
+
   /// A helper function to update comment and all its children.
   ///
   /// Don't expose so as to make sure you aren't overwriting data.

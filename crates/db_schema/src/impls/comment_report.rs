@@ -96,3 +96,27 @@ impl Reportable for CommentReport {
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
+
+impl CommentReport {
+  pub async fn resolve_all_for_thread(
+    pool: &mut DbPool<'_>,
+    comment_path: &Ltree,
+    by_resolver_id: PersonId,
+  ) -> LemmyResult<usize> {
+    let conn = &mut get_conn(pool).await?;
+    let report_alias = diesel::alias!(comment_report as cr);
+    let report_subquery = report_alias
+      .inner_join(comment::table.on(comment::id.eq(report_alias.field(comment_report::comment_id))))
+      .filter(comment::path.contained_by(comment_path));
+    update(comment_report::table.filter(
+      comment_report::id.eq_any(report_subquery.select(report_alias.field(comment_report::id))),
+    ))
+    .set((
+      comment_report::resolved.eq(true),
+      comment_report::resolver_id.eq(by_resolver_id),
+      comment_report::updated_at.eq(Utc::now()),
+    ))
+    .execute(conn)
+    .await
+    .with_lemmy_type(LemmyErrorType::CouldntUpdate)
+  }

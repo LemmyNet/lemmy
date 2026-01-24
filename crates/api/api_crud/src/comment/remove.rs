@@ -5,7 +5,7 @@ use lemmy_api_utils::{
   context::LemmyContext,
   notify::notify_mod_action,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::check_community_mod_action,
+  utils::{check_community_mod_action, remove_or_restore_comment_thread},
 };
 use lemmy_db_schema::{
   source::{
@@ -22,7 +22,7 @@ use lemmy_db_views_comment::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_diesel_utils::traits::Crud;
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
 
 pub async fn remove_comment(
   Json(data): Json<RemoveComment>,
@@ -61,50 +61,99 @@ pub async fn remove_comment(
     return Err(LemmyErrorType::CouldntUpdate.into());
   }
 
-  // Do the remove
-  let removed = data.removed;
-  let updated_comment = Comment::update(
-    &mut context.pool(),
-    comment_id,
-    &CommentUpdateForm {
-      removed: Some(removed),
-      ..Default::default()
-    },
-  )
-  .await?;
-
-  CommentReport::resolve_all_for_object(&mut context.pool(), comment_id, local_user_view.person.id)
+  if let Some(remove_children) = data.remove_children {
+    let updated_comments = remove_or_restore_comment_thread(
+      &orig_comment.comment,
+      local_user_view.person.id,
+      remove_children,
+      &data.reason,
+      &context,
+    )
     .await?;
 
-  // Mod tables
-  let form = ModlogInsertForm::mod_remove_comment(
-    local_user_view.person.id,
-    &orig_comment.comment,
-    removed,
-    &data.reason,
-  );
-  let actions = Modlog::create(&mut context.pool(), &[form]).await?;
-  notify_mod_action(actions, context.app_data());
+    let orig_comment_id = orig_comment.comment.id;
+    let updated_comment = updated_comments
+      .iter()
+      .find(|c| c.id == orig_comment_id)
+      .ok_or(LemmyErrorType::CouldntUpdate)?;
 
-  let updated_comment_id = updated_comment.id;
-
-  ActivityChannel::submit_activity(
-    SendActivityData::RemoveComment {
-      comment: updated_comment,
-      moderator: local_user_view.person.clone(),
-      community: orig_comment.community,
-      reason: data.reason.clone(),
-    },
-    &context,
-  )?;
-
-  Ok(Json(
-    build_comment_response(
-      &context,
-      updated_comment_id,
-      Some(local_user_view),
-      local_instance_id,
+    CommentReport::resolve_all_for_thread(
+      &mut context.pool(),
+      &orig_comment.comment.path,
+      local_user_view.person.id,
     )
-    .await?,
-  ))
+    .await?;
+
+    ActivityChannel::submit_activity(
+      SendActivityData::RemoveComment {
+        comment: updated_comment.clone(),
+        moderator: local_user_view.person.clone(),
+        community: orig_comment.community.clone(),
+        reason: data.reason.clone(),
+        with_replies: Some(remove_children),
+      },
+      &context,
+    )?;
+    Ok(Json(
+      build_comment_response(
+        &context,
+        orig_comment_id,
+        Some(local_user_view),
+        local_instance_id,
+      )
+      .await?,
+    ))
+  } else {
+    // Do the remove
+    let removed = data.removed;
+    let updated_comment = Comment::update(
+      &mut context.pool(),
+      comment_id,
+      &CommentUpdateForm {
+        removed: Some(removed),
+        ..Default::default()
+      },
+    )
+    .await?;
+
+    CommentReport::resolve_all_for_object(
+      &mut context.pool(),
+      comment_id,
+      local_user_view.person.id,
+    )
+    .await?;
+
+    // Mod tables
+    let form = ModlogInsertForm::mod_remove_comment(
+      local_user_view.person.id,
+      &orig_comment.comment,
+      removed,
+      &data.reason,
+    );
+    let actions = Modlog::create(&mut context.pool(), &[form]).await?;
+    notify_mod_action(actions, context.app_data());
+
+    let updated_comment_id = updated_comment.id;
+
+    ActivityChannel::submit_activity(
+      SendActivityData::RemoveComment {
+        comment: updated_comment,
+        moderator: local_user_view.person.clone(),
+        community: orig_comment.community,
+        reason: data.reason.clone(),
+        with_replies: None,
+      },
+      &context,
+    )?;
+
+    Ok(Json(
+      build_comment_response(
+        &context,
+        updated_comment_id,
+        Some(local_user_view),
+        local_instance_id,
+      )
+      .await?,
+    ))
+  }
 }
