@@ -5,7 +5,11 @@ use crate::{
   protocol::{IdOrNestedObject, deletion::delete::Delete},
 };
 use activitypub_federation::{config::Data, kinds::activity::DeleteType, traits::Activity};
-use lemmy_api_utils::{context::LemmyContext, notify::notify_mod_action};
+use lemmy_api_utils::{
+  context::LemmyContext,
+  notify::notify_mod_action,
+  utils::{remove_or_restore_comment_thread, remove_or_restore_post_comments},
+};
 use lemmy_apub_objects::objects::person::ApubPerson;
 use lemmy_db_schema::{
   source::{
@@ -55,6 +59,7 @@ impl Activity for Delete {
         &self.actor.dereference(context).await?,
         self.object.id(),
         reason,
+        self.with_replies,
         context,
       )
       .await
@@ -78,6 +83,7 @@ impl Delete {
     to: Vec<Url>,
     community: Option<&Community>,
     summary: Option<String>,
+    with_replies: Option<bool>,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<Delete> {
     let id = generate_activity_id(DeleteType::Delete, context)?;
@@ -92,6 +98,7 @@ impl Delete {
       id,
       audience: community.map(|c| c.ap_id.clone().into()),
       remove_data: None,
+      with_replies,
     })
   }
 }
@@ -100,6 +107,7 @@ pub(crate) async fn receive_remove_action(
   actor: &ApubPerson,
   object: &Url,
   reason: Option<String>,
+  with_replies: Option<bool>,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let reason = reason.unwrap_or_else(|| MOD_ACTION_DEFAULT_REASON.to_string());
@@ -147,19 +155,25 @@ pub(crate) async fn receive_remove_action(
       .await?;
     }
     DeletableObjects::Comment(comment) => {
-      CommentReport::resolve_all_for_object(&mut context.pool(), comment.id, actor.id).await?;
-      let form = ModlogInsertForm::mod_remove_comment(actor.id, &comment, true, &reason);
-      let action = Modlog::create(&mut context.pool(), &[form]).await?;
-      notify_mod_action(action, context.app_data());
-      Comment::update(
-        &mut context.pool(),
-        comment.id,
-        &CommentUpdateForm {
-          removed: Some(true),
-          ..Default::default()
-        },
-      )
-      .await?;
+      let remove_children = with_replies.unwrap_or_default();
+      if remove_children {
+        CommentReport::resolve_all_for_thread(&mut context.pool(), &comment.path, actor.id).await?;
+        remove_or_restore_comment_thread(&comment, actor.id, true, &reason, context).await?;
+      } else {
+        CommentReport::resolve_all_for_object(&mut context.pool(), comment.id, actor.id).await?;
+        let form = ModlogInsertForm::mod_remove_comment(actor.id, &comment, true, &reason);
+        let action = Modlog::create(&mut context.pool(), &[form]).await?;
+        notify_mod_action(action, context.app_data());
+        Comment::update(
+          &mut context.pool(),
+          comment.id,
+          &CommentUpdateForm {
+            removed: Some(true),
+            ..Default::default()
+          },
+        )
+        .await?;
+      }
     }
     // TODO these need to be implemented yet, for now, return errors
     DeletableObjects::PrivateMessage(_) => Err(LemmyErrorType::NotFound)?,
