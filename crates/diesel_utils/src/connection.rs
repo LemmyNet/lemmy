@@ -51,7 +51,6 @@ use std::{
 };
 use tokio::sync::OnceCell;
 use tracing::error;
-use url::Url;
 
 pub type ActualDbPool = Pool<AsyncPgConnection>;
 pub type ReusableDbPool =
@@ -248,16 +247,8 @@ pub async fn build_db_pool_for_tests()
     OnceCell::const_new();
   let db_pool = POOL
     .get_or_init(|| async {
-      let conn_string = SETTINGS.get_database_url_with_options().unwrap();
-
-      let db_url = Url::parse(conn_string.as_str()).expect("db url");
-
       let config = PrivilegedPostgresConfig::new()
-        .host(db_url.host().expect("db host").to_string())
-        .port(db_url.port().expect("db port"))
-        .username(db_url.username().to_string())
-        .password(Some(db_url.password().expect("db password").to_string()))
-        .options(SETTINGS.get_lemmy_connection_options());
+        .database_url(SETTINGS.get_database_url_with_options().unwrap());
 
       let backend = DieselAsyncPostgresBackend::new(
         config,
