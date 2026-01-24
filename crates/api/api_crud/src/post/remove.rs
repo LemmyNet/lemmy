@@ -5,10 +5,12 @@ use lemmy_api_utils::{
   context::LemmyContext,
   notify::notify_mod_action,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::check_community_mod_action,
+  utils::{check_community_mod_action, remove_or_restore_post_comments},
 };
 use lemmy_db_schema::{
   source::{
+    comment::Comment,
+    comment_report::CommentReport,
     community::Community,
     local_user::LocalUser,
     modlog::{Modlog, ModlogInsertForm},
@@ -47,7 +49,7 @@ pub async fn remove_post(
 
   // Update the post
   let post_id = data.post_id;
-  let removed = data.removed;
+  let removed = data.remove_children.unwrap_or(data.removed);
   let post = Post::update(
     &mut context.pool(),
     post_id,
@@ -67,12 +69,27 @@ pub async fn remove_post(
   let action = Modlog::create(&mut context.pool(), &[form]).await?;
   notify_mod_action(action, context.app_data());
 
+  if let Some(remove_children) = data.remove_children {
+    remove_or_restore_post_comments(
+      &post,
+      local_user_view.person.id,
+      remove_children,
+      &data.reason,
+      &context,
+    )
+    .await?;
+
+    CommentReport::resolve_all_for_post(&mut context.pool(), post.id, local_user_view.person.id)
+      .await?;
+  }
+
   ActivityChannel::submit_activity(
     SendActivityData::RemovePost {
       post,
       moderator: local_user_view.person.clone(),
       reason: data.reason.clone(),
-      removed: data.removed,
+      removed,
+      with_replies: data.remove_children,
     },
     &context,
   )?;

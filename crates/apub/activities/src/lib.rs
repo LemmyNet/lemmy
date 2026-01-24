@@ -184,6 +184,7 @@ pub async fn match_outgoing_activities(
         moderator,
         reason,
         removed,
+        with_replies,
       } => {
         let community = Community::read(&mut context.pool(), post.community_id).await?;
         send_apub_delete_in_community(
@@ -192,6 +193,7 @@ pub async fn match_outgoing_activities(
           DeletableObjects::Post(post.into()),
           Some(reason),
           removed,
+          with_replies,
           &context,
         )
         .await

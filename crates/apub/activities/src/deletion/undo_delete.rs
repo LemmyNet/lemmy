@@ -4,7 +4,11 @@ use crate::{
   protocol::deletion::{delete::Delete, undo_delete::UndoDelete},
 };
 use activitypub_federation::{config::Data, kinds::activity::UndoType, traits::Activity};
-use lemmy_api_utils::{context::LemmyContext, notify::notify_mod_action};
+use lemmy_api_utils::{
+  context::LemmyContext,
+  notify::notify_mod_action,
+  utils::{remove_or_restore_comment_thread, remove_or_restore_post_comments},
+};
 use lemmy_apub_objects::objects::person::ApubPerson;
 use lemmy_db_schema::source::{
   comment::{Comment, CommentUpdateForm},
@@ -42,6 +46,7 @@ impl Activity for UndoDelete {
         &self.actor.dereference(context).await?,
         self.object.object.id(),
         reason,
+        self.object.with_replies,
         context,
       )
       .await
@@ -58,9 +63,18 @@ impl UndoDelete {
     to: Vec<Url>,
     community: Option<&Community>,
     summary: Option<String>,
+    with_replies: Option<bool>,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<UndoDelete> {
-    let object = Delete::new(actor, object, to.clone(), community, summary, context)?;
+    let object = Delete::new(
+      actor,
+      object,
+      to.clone(),
+      community,
+      summary,
+      with_replies,
+      context,
+    )?;
 
     let id = generate_activity_id(UndoType::Undo, context)?;
     let cc: Option<Url> = community.map(|c| c.ap_id.clone().into());
@@ -79,6 +93,7 @@ impl UndoDelete {
     actor: &ApubPerson,
     object: &Url,
     reason: String,
+    with_replies: Option<bool>,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
     match DeletableObjects::read_from_db(object, context).await? {
@@ -121,20 +136,30 @@ impl UndoDelete {
           },
         )
         .await?;
+
+        let restore_children = with_replies.unwrap_or_default();
+        if restore_children {
+          remove_or_restore_post_comments(&post, actor.id, false, &reason, context).await?;
+        }
       }
       DeletableObjects::Comment(comment) => {
-        let form = ModlogInsertForm::mod_remove_comment(actor.id, &comment, false, &reason);
-        let action = Modlog::create(&mut context.pool(), &[form]).await?;
-        notify_mod_action(action, context.app_data());
-        Comment::update(
-          &mut context.pool(),
-          comment.id,
-          &CommentUpdateForm {
-            removed: Some(false),
-            ..Default::default()
-          },
-        )
-        .await?;
+        let restore_children = with_replies.unwrap_or_default();
+        if restore_children {
+          remove_or_restore_comment_thread(&comment, actor.id, false, &reason, context).await?;
+        } else {
+          let form = ModlogInsertForm::mod_remove_comment(actor.id, &comment, false, &reason);
+          let action = Modlog::create(&mut context.pool(), &[form]).await?;
+          notify_mod_action(action, context.app_data());
+          Comment::update(
+            &mut context.pool(),
+            comment.id,
+            &CommentUpdateForm {
+              removed: Some(false),
+              ..Default::default()
+            },
+          )
+          .await?;
+        }
       }
       // TODO these need to be implemented yet, for now, return errors
       DeletableObjects::PrivateMessage(_) => Err(LemmyErrorType::NotFound)?,

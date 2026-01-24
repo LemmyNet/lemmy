@@ -735,6 +735,31 @@ pub async fn remove_or_restore_comment_thread(
 
   Ok(removed_comments)
 }
+
+pub async fn remove_or_restore_post_comments(
+  post: &Post,
+  mod_person_id: PersonId,
+  removed: bool,
+  reason: &str,
+  context: &LemmyContext,
+) -> LemmyResult<Vec<Comment>> {
+  let removed_comments =
+    Comment::update_removed_for_post(&mut context.pool(), post.id, removed).await?;
+
+  let actions = create_modlog_entries_for_removed_or_restored_comments(
+    &mut context.pool(),
+    mod_person_id,
+    &removed_comments,
+    removed,
+    reason,
+  )
+  .await?;
+
+  notify_mod_action(actions, context);
+
+  Ok(removed_comments)
+}
+
 pub fn generate_followers_url(ap_id: &DbUrl) -> Result<DbUrl, ParseError> {
   Ok(Url::parse(&format!("{ap_id}/followers"))?.into())
 }

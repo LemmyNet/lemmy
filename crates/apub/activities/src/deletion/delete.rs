@@ -153,6 +153,12 @@ pub(crate) async fn receive_remove_action(
         },
       )
       .await?;
+
+      let remove_children = with_replies.unwrap_or_default();
+      if remove_children {
+        CommentReport::resolve_all_for_post(&mut context.pool(), post.id, actor.id).await?;
+        remove_or_restore_post_comments(&post, actor.id, true, &reason, context).await?;
+      }
     }
     DeletableObjects::Comment(comment) => {
       let remove_children = with_replies.unwrap_or_default();
