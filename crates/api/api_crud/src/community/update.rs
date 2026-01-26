@@ -31,7 +31,7 @@ use lemmy_utils::{
   },
 };
 
-pub async fn update_community(
+pub async fn edit_community(
   Json(data): Json<EditCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,

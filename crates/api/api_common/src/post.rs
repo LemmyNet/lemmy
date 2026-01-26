@@ -22,11 +22,11 @@ pub mod actions {
     CreatePostLike,
     DeletePost,
     EditPost,
+    EditPostNotifications,
     HidePost,
     MarkManyPostsAsRead,
     MarkPostAsRead,
     SavePost,
-    UpdatePostNotifications,
   };
 
   pub mod moderation {

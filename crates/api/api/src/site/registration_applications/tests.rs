@@ -7,7 +7,7 @@ use crate::{
 };
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
-use lemmy_api_crud::site::update::update_site;
+use lemmy_api_crud::site::update::edit_site;
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::{
   source::{
@@ -228,7 +228,7 @@ async fn test_application_approval() -> LemmyResult<()> {
   );
   assert_eq!(all_applications.len(), expected_total_applications,);
 
-  Box::pin(update_site(
+  Box::pin(edit_site(
     Json(EditSite {
       require_email_verification: Some(false),
       ..Default::default()
@@ -311,7 +311,7 @@ async fn test_application_approval() -> LemmyResult<()> {
   );
   assert_eq!(all_applications.len(), expected_total_applications,);
 
-  Box::pin(update_site(
+  Box::pin(edit_site(
     Json(EditSite {
       registration_mode: Some(RegistrationMode::Open),
       ..Default::default()

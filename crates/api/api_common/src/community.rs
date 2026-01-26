@@ -14,6 +14,8 @@ pub use lemmy_db_views_community::{
     CommunityResponse,
     CreateMultiCommunity,
     CreateOrDeleteMultiCommunityEntry,
+    EditCommunityNotifications,
+    EditMultiCommunity,
     FollowMultiCommunity,
     GetCommunity,
     GetCommunityResponse,
@@ -22,8 +24,6 @@ pub use lemmy_db_views_community::{
     GetRandomCommunity,
     ListCommunities,
     ListMultiCommunities,
-    UpdateCommunityNotifications,
-    UpdateMultiCommunity,
   },
 };
 pub use lemmy_db_views_community_follower_approval::PendingFollowerView;
@@ -49,10 +49,10 @@ pub mod actions {
       DeleteCommunity,
       DeleteCommunityTag,
       EditCommunity,
+      EditCommunityTag,
       PurgeCommunity,
       RemoveCommunity,
       TransferCommunity,
-      UpdateCommunityTag,
     };
     pub use lemmy_db_views_community_follower::CommunityFollowerView;
     pub use lemmy_db_views_community_follower_approval::{

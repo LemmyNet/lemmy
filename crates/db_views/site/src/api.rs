@@ -554,7 +554,7 @@ pub struct SaveUserSettings {
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-pub struct UpdateTotp {
+pub struct EditTotp {
   pub totp_token: String,
   pub enabled: bool,
 }
@@ -562,7 +562,7 @@ pub struct UpdateTotp {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-pub struct UpdateTotpResponse {
+pub struct EditTotpResponse {
   pub enabled: bool,
 }
 
@@ -629,7 +629,7 @@ pub struct TaglineResponse {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Update a tagline
-pub struct UpdateTagline {
+pub struct EditTagline {
   pub id: TaglineId,
   pub content: String,
 }

@@ -98,7 +98,7 @@ pub struct FeaturePost {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Change notification settings for a post
-pub struct UpdatePostNotifications {
+pub struct EditPostNotifications {
   pub post_id: PostId,
   pub mode: PostNotificationsMode,
 }

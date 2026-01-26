@@ -20,7 +20,7 @@ use lemmy_utils::{
   utils::validation::is_valid_body_field,
 };
 
-pub async fn update_private_message(
+pub async fn edit_private_message(
   Json(data): Json<EditPrivateMessage>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
