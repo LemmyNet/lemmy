@@ -1,5 +1,7 @@
 ALTER TABLE community RENAME description TO sidebar;
 
+ALTER TABLE community_report RENAME original_community_description TO original_community_sidebar;
+
 ALTER TABLE site RENAME description TO sidebar;
 
 -- using summary for this because it has 150 char limit
