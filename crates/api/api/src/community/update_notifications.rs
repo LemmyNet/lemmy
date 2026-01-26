@@ -10,7 +10,7 @@ use lemmy_db_views_site::api::SuccessResponse;
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 
-pub async fn update_community_notifications(
+pub async fn edit_community_notifications(
   Json(data): Json<EditCommunityNotifications>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,

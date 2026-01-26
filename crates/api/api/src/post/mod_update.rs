@@ -24,7 +24,7 @@ use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 use std::ops::Deref;
 
-pub async fn mod_update_post(
+pub async fn mod_edit_post(
   Json(data): Json<ModEditPost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,

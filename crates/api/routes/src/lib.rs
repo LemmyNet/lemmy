@@ -15,9 +15,9 @@ use lemmy_api::{
     multi_community_follow::follow_multi_community,
     pending_follows::{approve::post_pending_follows_approve, list::get_pending_follows_list},
     random::get_random_community,
-    tag::{create_community_tag, delete_community_tag, update_community_tag},
+    tag::{create_community_tag, delete_community_tag, edit_community_tag},
     transfer::transfer_community,
-    update_notifications::update_community_notifications,
+    update_notifications::edit_community_notifications,
   },
   federation::{
     list_comments::{list_comments, list_comments_slim},
@@ -58,7 +58,7 @@ use lemmy_api::{
     reset_password::reset_password,
     save_settings::save_user_settings,
     unread_counts::get_unread_counts,
-    update_totp::update_totp,
+    update_totp::edit_totp,
     user_block_instance::{user_block_instance_communities, user_block_instance_persons},
     validate_auth::validate_auth,
     verify_email::verify_email,
@@ -72,9 +72,9 @@ use lemmy_api::{
     lock::lock_post,
     mark_many_read::mark_posts_as_read,
     mark_read::mark_post_as_read,
-    mod_update::mod_update_post,
+    mod_update::mod_edit_post,
     save::save_post,
-    update_notifications::update_post_notifications,
+    update_notifications::edit_post_notifications,
   },
   reports::{
     comment_report::{create::create_comment_report, resolve::resolve_comment_report},
@@ -109,51 +109,51 @@ use lemmy_api_crud::{
     delete::delete_comment,
     read::get_comment,
     remove::remove_comment,
-    update::update_comment,
+    update::edit_comment,
   },
   community::{
     create::create_community,
     delete::delete_community,
     list::list_communities,
     remove::remove_community,
-    update::update_community,
+    update::edit_community,
   },
   custom_emoji::{
     create::create_custom_emoji,
     delete::delete_custom_emoji,
     list::list_custom_emojis,
-    update::update_custom_emoji,
+    update::edit_custom_emoji,
   },
   multi_community::{
     create::create_multi_community,
     create_entry::create_multi_community_entry,
     delete_entry::delete_multi_community_entry,
     list::list_multi_communities,
-    update::update_multi_community,
+    update::edit_multi_community,
   },
   oauth_provider::{
     create::create_oauth_provider,
     delete::delete_oauth_provider,
-    update::update_oauth_provider,
+    update::edit_oauth_provider,
   },
   post::{
     create::create_post,
     delete::delete_post,
     read::get_post,
     remove::remove_post,
-    update::update_post,
+    update::edit_post,
   },
   private_message::{
     create::create_private_message,
     delete::delete_private_message,
-    update::update_private_message,
+    update::edit_private_message,
   },
-  site::{create::create_site, read::get_site, update::update_site},
+  site::{create::create_site, read::get_site, update::edit_site},
   tagline::{
     create::create_tagline,
     delete::delete_tagline,
     list::list_taglines,
-    update::update_tagline,
+    update::edit_tagline,
   },
   user::{
     create::{authenticate_with_oauth, register},
@@ -195,7 +195,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
         scope("/site")
           .route("", get().to(get_site))
           .route("", post().to(create_site))
-          .route("", put().to(update_site))
+          .route("", put().to(edit_site))
           .route("/icon", post().to(upload_site_icon))
           .route("/icon", delete().to(delete_site_icon))
           .route("/banner", post().to(upload_site_banner))
@@ -222,7 +222,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
       .service(
         scope("/community")
           .route("", get().to(get_community))
-          .route("", put().to(update_community))
+          .route("", put().to(edit_community))
           .route("", delete().to(delete_community))
           .route("/random", get().to(get_random_community))
           .route("/list", get().to(list_communities))
@@ -239,9 +239,9 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("/banner", post().to(upload_community_banner))
           .route("/banner", delete().to(delete_community_banner))
           .route("/tag", post().to(create_community_tag))
-          .route("/tag", put().to(update_community_tag))
+          .route("/tag", put().to(edit_community_tag))
           .route("/tag", delete().to(delete_community_tag))
-          .route("/notifications", post().to(update_community_notifications))
+          .route("/notifications", post().to(edit_community_notifications))
           .service(
             scope("/pending_follows")
               .route("/list", get().to(get_pending_follows_list))
@@ -251,7 +251,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
       .service(
         scope("/multi_community")
           .route("", post().to(create_multi_community))
-          .route("", put().to(update_multi_community))
+          .route("", put().to(edit_multi_community))
           .route("", get().to(read_multi_community))
           .route("/entry", post().to(create_multi_community_entry))
           .route("/entry", delete().to(delete_multi_community_entry))
@@ -275,7 +275,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
       .service(
         scope("/post")
           .route("", get().to(get_post))
-          .route("", put().to(update_post))
+          .route("", put().to(edit_post))
           .route("", delete().to(delete_post))
           .route("/remove", post().to(remove_post))
           .route("/mark_as_read", post().to(mark_post_as_read))
@@ -289,8 +289,8 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("/save", put().to(save_post))
           .route("/report", post().to(create_post_report))
           .route("/report/resolve", put().to(resolve_post_report))
-          .route("/notifications", post().to(update_post_notifications))
-          .route("/mod_update", put().to(mod_update_post)),
+          .route("/notifications", post().to(edit_post_notifications))
+          .route("/mod_edit", put().to(mod_edit_post)),
       )
       // Comment
       .service(
@@ -303,7 +303,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
       .service(
         scope("/comment")
           .route("", get().to(get_comment))
-          .route("", put().to(update_comment))
+          .route("", put().to(edit_comment))
           .route("", delete().to(delete_comment))
           .route("/remove", post().to(remove_comment))
           .route("/distinguish", post().to(distinguish_comment))
@@ -320,7 +320,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
       .service(
         scope("/private_message")
           .route("", post().to(create_private_message))
-          .route("", put().to(update_private_message))
+          .route("", put().to(edit_private_message))
           .route("", delete().to(delete_private_message))
           .route("/report", post().to(create_pm_report))
           .route("/report/resolve", put().to(resolve_pm_report)),
@@ -344,7 +344,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("/password_change", post().to(change_password_after_reset))
           .route("/change_password", put().to(change_password))
           .route("/totp/generate", post().to(generate_totp_secret))
-          .route("/totp/update", post().to(update_totp))
+          .route("/totp/edit", post().to(edit_totp))
           .route("/verify_email", post().to(verify_email))
           .route(
             "/resend_verification_email",
@@ -429,7 +429,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .service(
             scope("/tagline")
               .route("", post().to(create_tagline))
-              .route("", put().to(update_tagline))
+              .route("", put().to(edit_tagline))
               .route("", delete().to(delete_tagline))
               .route("/list", get().to(list_taglines)),
           )
@@ -444,14 +444,14 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
       .service(
         scope("/custom_emoji")
           .route("", post().to(create_custom_emoji))
-          .route("", put().to(update_custom_emoji))
+          .route("", put().to(edit_custom_emoji))
           .route("", delete().to(delete_custom_emoji))
           .route("/list", get().to(list_custom_emojis)),
       )
       .service(
         scope("/oauth_provider")
           .route("", post().to(create_oauth_provider))
-          .route("", put().to(update_oauth_provider))
+          .route("", put().to(edit_oauth_provider))
           .route("", delete().to(delete_oauth_provider)),
       )
       .service(

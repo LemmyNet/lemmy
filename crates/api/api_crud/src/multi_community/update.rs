@@ -12,7 +12,7 @@ use lemmy_db_views_local_user::LocalUserView;
 use lemmy_diesel_utils::{traits::Crud, utils::diesel_string_update};
 use lemmy_utils::error::LemmyResult;
 
-pub async fn update_multi_community(
+pub async fn edit_multi_community(
   Json(data): Json<EditMultiCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,

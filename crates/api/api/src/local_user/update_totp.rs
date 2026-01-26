@@ -14,7 +14,7 @@ use lemmy_utils::error::LemmyResult;
 ///
 /// Disabling is only possible if 2FA was previously enabled. Again it is necessary to pass a valid
 /// token.
-pub async fn update_totp(
+pub async fn edit_totp(
   Json(data): Json<EditTotp>,
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,

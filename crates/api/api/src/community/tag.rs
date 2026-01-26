@@ -67,7 +67,7 @@ pub async fn create_community_tag(
   Ok(Json(tag))
 }
 
-pub async fn update_community_tag(
+pub async fn edit_community_tag(
   Json(data): Json<EditCommunityTag>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,

@@ -51,7 +51,7 @@ use lemmy_utils::{
 };
 use std::ops::Deref;
 
-pub async fn update_post(
+pub async fn edit_post(
   Json(data): Json<EditPost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,

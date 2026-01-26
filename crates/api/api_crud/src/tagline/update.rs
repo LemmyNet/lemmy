@@ -11,7 +11,7 @@ use lemmy_db_views_site::api::{EditTagline, TaglineResponse};
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyError;
 
-pub async fn update_tagline(
+pub async fn edit_tagline(
   Json(data): Json<EditTagline>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,

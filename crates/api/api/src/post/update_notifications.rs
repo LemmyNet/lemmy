@@ -13,7 +13,7 @@ use lemmy_db_views_site::api::SuccessResponse;
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 
-pub async fn update_post_notifications(
+pub async fn edit_post_notifications(
   Json(data): Json<EditPostNotifications>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
