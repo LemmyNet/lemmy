@@ -4,14 +4,14 @@ use actix_web::web::Json;
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::source::community::{Community, CommunityActions};
 use lemmy_db_schema_file::enums::CommunityNotificationsMode;
-use lemmy_db_views_community::api::UpdateCommunityNotifications;
+use lemmy_db_views_community::api::EditCommunityNotifications;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::api::SuccessResponse;
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 
-pub async fn update_community_notifications(
-  Json(data): Json<UpdateCommunityNotifications>,
+pub async fn edit_community_notifications(
+  Json(data): Json<EditCommunityNotifications>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {

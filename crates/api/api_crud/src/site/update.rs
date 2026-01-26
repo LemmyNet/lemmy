@@ -45,7 +45,7 @@ use lemmy_utils::{
   },
 };
 
-pub async fn update_site(
+pub async fn edit_site(
   Json(data): Json<EditSite>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,

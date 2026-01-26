@@ -7,12 +7,12 @@ use lemmy_api_utils::{
 };
 use lemmy_db_schema::source::tagline::{Tagline, TaglineUpdateForm};
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_site::api::{TaglineResponse, UpdateTagline};
+use lemmy_db_views_site::api::{EditTagline, TaglineResponse};
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyError;
 
-pub async fn update_tagline(
-  Json(data): Json<UpdateTagline>,
+pub async fn edit_tagline(
+  Json(data): Json<EditTagline>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> Result<Json<TaglineResponse>, LemmyError> {

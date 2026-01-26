@@ -12,7 +12,7 @@ use lemmy_db_schema::source::{
 };
 use lemmy_db_views_community::{
   CommunityView,
-  api::{CreateCommunityTag, DeleteCommunityTag, UpdateCommunityTag},
+  api::{CreateCommunityTag, DeleteCommunityTag, EditCommunityTag},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_diesel_utils::{traits::Crud, utils::diesel_string_update};
@@ -67,8 +67,8 @@ pub async fn create_community_tag(
   Ok(Json(tag))
 }
 
-pub async fn update_community_tag(
-  Json(data): Json<UpdateCommunityTag>,
+pub async fn edit_community_tag(
+  Json(data): Json<EditCommunityTag>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<Tag>> {
