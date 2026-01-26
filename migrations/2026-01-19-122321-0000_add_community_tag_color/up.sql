@@ -9,17 +9,7 @@ CREATE TYPE tag_color_enum AS ENUM (
     'color07',
     'color08',
     'color09',
-    'color10',
-    'color11',
-    'color12',
-    'color13',
-    'color14',
-    'color15',
-    'color16',
-    'color17',
-    'color18',
-    'color19',
-    'color20'
+    'color10'
 );
 
 ALTER TABLE tag

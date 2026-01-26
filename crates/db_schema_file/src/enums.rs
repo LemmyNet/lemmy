@@ -225,16 +225,6 @@ pub enum TagColor {
   Color08,
   Color09,
   Color10,
-  Color11,
-  Color12,
-  Color13,
-  Color14,
-  Color15,
-  Color16,
-  Color17,
-  Color18,
-  Color19,
-  Color20,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash)]
