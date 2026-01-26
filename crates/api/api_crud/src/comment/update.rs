@@ -24,7 +24,7 @@ use lemmy_utils::{
   utils::validation::is_valid_body_field,
 };
 
-pub async fn update_comment(
+pub async fn edit_comment(
   Json(data): Json<EditComment>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,

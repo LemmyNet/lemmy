@@ -8,13 +8,13 @@ use lemmy_db_schema::source::{
 };
 use lemmy_db_schema_file::enums::PostNotificationsMode;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_post::api::UpdatePostNotifications;
+use lemmy_db_views_post::api::EditPostNotifications;
 use lemmy_db_views_site::api::SuccessResponse;
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 
-pub async fn update_post_notifications(
-  Json(data): Json<UpdatePostNotifications>,
+pub async fn edit_post_notifications(
+  Json(data): Json<EditPostNotifications>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {

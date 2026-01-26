@@ -3,7 +3,7 @@ use actix_web::web::{Data, Json};
 use lemmy_api_utils::{context::LemmyContext, utils::check_local_user_valid};
 use lemmy_db_schema::source::local_user::{LocalUser, LocalUserUpdateForm};
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_site::api::{UpdateTotp, UpdateTotpResponse};
+use lemmy_db_views_site::api::{EditTotp, EditTotpResponse};
 use lemmy_utils::error::LemmyResult;
 
 /// Enable or disable two-factor-authentication. The current setting is determined from
@@ -14,11 +14,11 @@ use lemmy_utils::error::LemmyResult;
 ///
 /// Disabling is only possible if 2FA was previously enabled. Again it is necessary to pass a valid
 /// token.
-pub async fn update_totp(
-  Json(data): Json<UpdateTotp>,
+pub async fn edit_totp(
+  Json(data): Json<EditTotp>,
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
-) -> LemmyResult<Json<UpdateTotpResponse>> {
+) -> LemmyResult<Json<EditTotpResponse>> {
   check_local_user_valid(&local_user_view)?;
   check_totp_2fa_valid(
     &local_user_view,
@@ -41,7 +41,7 @@ pub async fn update_totp(
   )
   .await?;
 
-  Ok(Json(UpdateTotpResponse {
+  Ok(Json(EditTotpResponse {
     enabled: data.enabled,
   }))
 }
