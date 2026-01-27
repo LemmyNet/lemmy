@@ -16,17 +16,16 @@ pub mod traits;
 #[cfg(feature = "full")]
 pub mod utils;
 
-#[cfg(feature = "full")]
-use lemmy_db_schema_file::{
-  aliases,
-  enums::{ModlogKind, NotificationType},
-};
+use lemmy_db_schema_file::enums::{ModlogKind, NotificationType};
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
 #[cfg(feature = "full")]
 use {
   diesel::query_source::AliasedField,
-  lemmy_db_schema_file::schema::{instance_actions, person},
+  lemmy_db_schema_file::{
+    aliases,
+    schema::{instance_actions, person},
+  },
 };
 
 #[derive(
