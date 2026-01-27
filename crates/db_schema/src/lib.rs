@@ -138,6 +138,34 @@ pub enum NotificationDataType {
 #[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
+/// A list of possible types for the various modlog actions.
+pub enum ModlogKindDataType {
+  All,
+  AdminAdd,
+  AdminBan,
+  AdminAllowInstance,
+  AdminBlockInstance,
+  AdminPurgeComment,
+  AdminPurgeCommunity,
+  AdminPurgePerson,
+  AdminPurgePost,
+  ModAddToCommunity,
+  ModBanFromCommunity,
+  AdminFeaturePostSite,
+  ModFeaturePostCommunity,
+  ModChangeCommunityVisibility,
+  ModLockPost,
+  ModRemoveComment,
+  AdminRemoveCommunity,
+  ModRemovePost,
+  ModTransferCommunity,
+  ModLockComment,
+}
+
+#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
 /// A list of possible types for a person's content.
 pub enum PersonContentType {
   All,
