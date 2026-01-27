@@ -4,6 +4,7 @@ use lemmy_db_schema::{
   newtypes::CommunityId,
   source::tag::{Tag, TagInsertForm},
 };
+use lemmy_db_schema_file::enums::TagColor;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use url::Url;
@@ -75,6 +76,7 @@ pub struct CommunityTag {
   pub name: Option<String>,
   pub preferred_username: String,
   pub content: Option<String>,
+  pub color: Option<TagColor>,
 }
 
 impl CommunityTag {
@@ -85,6 +87,7 @@ impl CommunityTag {
       name: tag.display_name,
       preferred_username: tag.name,
       content: tag.description,
+      color: Some(tag.color),
     }
   }
 
@@ -96,6 +99,7 @@ impl CommunityTag {
       description: self.content.clone(),
       community_id,
       deleted: Some(false),
+      color: self.color,
     }
   }
 }

@@ -23,7 +23,7 @@ import { AddModToCommunity } from "lemmy-js-client";
 beforeAll(setupLogins);
 afterAll(unfollows);
 
-test("Create, and delete a community tag", async () => {
+test("Create, delete and restore a community tag", async () => {
   // Create a community first
   const communityRes = await createCommunity(alpha);
   let alphaCommunity = communityRes.community_view;
@@ -78,6 +78,7 @@ test("Create, and delete a community tag", async () => {
   // Delete the tag
   let deleteForm: DeleteCommunityTag = {
     tag_id: createRes.id,
+    delete: true,
   };
   let deleteRes = await alpha.deleteCommunityTag(deleteForm);
   expect(deleteRes.id).toBe(createRes.id);
@@ -96,6 +97,36 @@ test("Create, and delete a community tag", async () => {
     g => g!.post_tags.length === 0,
   ))!;
   assertCommunityFederation(alphaCommunity, betaCommunity);
+
+  // Restore the tag
+  let deleteFormRestoration: DeleteCommunityTag = {
+    tag_id: createRes.id,
+    delete: false,
+  };
+  let deleteRestorationRes = await alpha.deleteCommunityTag(
+    deleteFormRestoration,
+  );
+  expect(deleteRestorationRes.id).toBe(createRes.id);
+
+  // Verify tag is restored
+  alphaCommunity = (await alpha.getCommunity({ id: communityId }))
+    .community_view;
+  expect(alphaCommunity.post_tags.length).toBe(1);
+  // verify tag federated
+
+  betaCommunity = (await waitUntil(
+    () => resolveCommunity(beta, alphaCommunity.community.ap_id),
+    g => g!.post_tags.length === 1,
+  ))!;
+  assertCommunityFederation(alphaCommunity, betaCommunity);
+
+  // List tags
+  alphaCommunity = (await alpha.getCommunity({ id: communityId }))
+    .community_view;
+  expect(alphaCommunity.post_tags.length).toBe(1);
+  expect(alphaCommunity.post_tags.find(t => t.id === createRes.id)?.name).toBe(
+    tagName,
+  );
 });
 
 test("Create and update post tags", async () => {

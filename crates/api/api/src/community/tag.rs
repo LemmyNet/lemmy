@@ -55,6 +55,7 @@ pub async fn create_community_tag(
     community_id: data.community_id,
     ap_id: ap_id.into(),
     deleted: Some(false),
+    color: data.color,
   };
 
   let tag = Tag::create(&mut context.pool(), &tag_form).await?;
@@ -88,6 +89,7 @@ pub async fn edit_community_tag(
     display_name: diesel_string_update(data.display_name.as_deref()),
     description: diesel_string_update(data.description.as_deref()),
     updated_at: Some(Some(Utc::now())),
+    color: data.color,
     ..Default::default()
   };
 
@@ -109,7 +111,7 @@ pub async fn delete_community_tag(
   // Soft delete the tag
   let tag_form = TagUpdateForm {
     updated_at: Some(Some(Utc::now())),
-    deleted: Some(true),
+    deleted: Some(data.delete),
     ..Default::default()
   };
 
