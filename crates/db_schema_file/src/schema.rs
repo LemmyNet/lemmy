@@ -239,6 +239,9 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::TagColorEnum;
+
     community_tag (id) {
         id -> Int4,
         ap_id -> Text,
