@@ -17,7 +17,10 @@ pub mod traits;
 pub mod utils;
 
 #[cfg(feature = "full")]
-use lemmy_db_schema_file::aliases;
+use lemmy_db_schema_file::{
+  aliases,
+  enums::{ModlogKind, NotificationType},
+};
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumString};
 #[cfg(feature = "full")]
@@ -120,46 +123,32 @@ pub enum SearchType {
   MultiCommunities,
 }
 
-#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(
+  EnumString, Display, Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash,
+)]
 #[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// A list of possible types for the inbox.
-pub enum NotificationDataType {
+pub enum NotificationTypeFilter {
+  #[default]
   All,
-  Reply,
-  Mention,
-  PrivateMessage,
-  Subscribed,
-  ModAction,
+  #[serde(untagged)]
+  Other(NotificationType),
 }
 
-#[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(
+  EnumString, Display, Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash,
+)]
 #[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// A list of possible types for the various modlog actions.
-pub enum ModlogKindDataType {
+pub enum ModlogKindFilter {
+  #[default]
   All,
-  AdminAdd,
-  AdminBan,
-  AdminAllowInstance,
-  AdminBlockInstance,
-  AdminPurgeComment,
-  AdminPurgeCommunity,
-  AdminPurgePerson,
-  AdminPurgePost,
-  ModAddToCommunity,
-  ModBanFromCommunity,
-  AdminFeaturePostSite,
-  ModFeaturePostCommunity,
-  ModChangeCommunityVisibility,
-  ModLockPost,
-  ModRemoveComment,
-  AdminRemoveCommunity,
-  ModRemovePost,
-  ModTransferCommunity,
-  ModLockComment,
+  #[serde(untagged)]
+  Other(ModlogKind),
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]

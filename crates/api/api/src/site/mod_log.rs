@@ -49,7 +49,7 @@ mod tests {
   use super::*;
   use lemmy_api_utils::utils::remove_or_restore_user_data;
   use lemmy_db_schema::{
-    ModlogKindDataType,
+    ModlogKindFilter,
     source::{
       comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm},
       community::{Community, CommunityInsertForm},
@@ -141,7 +141,7 @@ mod tests {
     // Verify that their posts and comments are removed.
     // Posts
     let post_modlog = ModlogQuery {
-      type_: Some(ModlogKindDataType::ModRemovePost),
+      type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemovePost)),
       ..Default::default()
     }
     .list(pool)
@@ -175,7 +175,7 @@ mod tests {
 
     // Comments
     let comment_modlog = ModlogQuery {
-      type_: Some(ModlogKindDataType::ModRemoveComment),
+      type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemoveComment)),
       ..Default::default()
     }
     .list(pool)
@@ -233,7 +233,7 @@ mod tests {
 
     // Posts
     let post_modlog = ModlogQuery {
-      type_: Some(ModlogKindDataType::ModRemovePost),
+      type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemovePost)),
       ..Default::default()
     }
     .list(pool)
@@ -285,7 +285,7 @@ mod tests {
 
     // Comments
     let comment_modlog = ModlogQuery {
-      type_: Some(ModlogKindDataType::ModRemoveComment),
+      type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemoveComment)),
       ..Default::default()
     }
     .list(pool)

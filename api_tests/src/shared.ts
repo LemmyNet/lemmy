@@ -24,7 +24,7 @@ import {
   PersonView,
   UserBlockInstanceCommunitiesParams,
   ListNotifications,
-  NotificationDataType,
+  NotificationTypeFilter,
   PersonResponse,
   AdminAllowInstanceParams,
   BanFromCommunity,
@@ -403,7 +403,7 @@ export async function getUnreadCounts(
 
 export async function listNotifications(
   api: LemmyHttp,
-  type_?: NotificationDataType,
+  type_?: NotificationTypeFilter,
   unread_only: boolean = false,
 ): Promise<PagedResponse<NotificationView>> {
   let form: ListNotifications = {

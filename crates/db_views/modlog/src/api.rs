@@ -1,5 +1,5 @@
 use lemmy_db_schema::{
-  ModlogKindDataType,
+  ModlogKindFilter,
   newtypes::{CommentId, CommunityId, PostId},
 };
 use lemmy_db_schema_file::{PersonId, enums::ListingType};
@@ -18,7 +18,7 @@ pub struct GetModlog {
   /// Filter by the community.
   pub community_id: Option<CommunityId>,
   /// Filter by the modlog action type.
-  pub type_: Option<ModlogKindDataType>,
+  pub type_: Option<ModlogKindFilter>,
   /// Filter by listing type. When not using All, it will remove the non-community modlog entries,
   /// such as site bans, instance blocks, adding an admin, etc.
   pub listing_type: Option<ListingType>,

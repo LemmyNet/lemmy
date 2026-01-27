@@ -10,7 +10,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  ModlogKindDataType,
+  ModlogKindFilter,
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommentId, CommunityId, PostId},
   source::{
@@ -29,7 +29,7 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::{
   PersonId,
   aliases,
-  enums::{ListingType, ModlogKind},
+  enums::ListingType,
   schema::{comment, community, community_actions, instance, modlog, person, post},
 };
 use lemmy_diesel_utils::{
@@ -94,7 +94,7 @@ impl PaginationCursorConversion for ModlogView {
 #[derive(Default)]
 /// Querying / filtering the modlog.
 pub struct ModlogQuery<'a> {
-  pub type_: Option<ModlogKindDataType>,
+  pub type_: Option<ModlogKindFilter>,
   pub listing_type: Option<ListingType>,
   pub comment_id: Option<CommentId>,
   pub post_id: Option<PostId>,
@@ -141,58 +141,8 @@ impl ModlogQuery<'_> {
 
     if let Some(type_) = self.type_ {
       query = match type_ {
-        ModlogKindDataType::All => query,
-        ModlogKindDataType::AdminAdd => query.filter(modlog::kind.eq(ModlogKind::AdminAdd)),
-        ModlogKindDataType::AdminBan => query.filter(modlog::kind.eq(ModlogKind::AdminBan)),
-        ModlogKindDataType::AdminAllowInstance => {
-          query.filter(modlog::kind.eq(ModlogKind::AdminAllowInstance))
-        }
-        ModlogKindDataType::AdminBlockInstance => {
-          query.filter(modlog::kind.eq(ModlogKind::AdminBlockInstance))
-        }
-        ModlogKindDataType::AdminPurgeComment => {
-          query.filter(modlog::kind.eq(ModlogKind::AdminPurgeComment))
-        }
-        ModlogKindDataType::AdminPurgeCommunity => {
-          query.filter(modlog::kind.eq(ModlogKind::AdminPurgeCommunity))
-        }
-        ModlogKindDataType::AdminPurgePerson => {
-          query.filter(modlog::kind.eq(ModlogKind::AdminPurgePerson))
-        }
-        ModlogKindDataType::AdminPurgePost => {
-          query.filter(modlog::kind.eq(ModlogKind::AdminPurgePost))
-        }
-        ModlogKindDataType::ModAddToCommunity => {
-          query.filter(modlog::kind.eq(ModlogKind::ModAddToCommunity))
-        }
-        ModlogKindDataType::ModBanFromCommunity => {
-          query.filter(modlog::kind.eq(ModlogKind::ModBanFromCommunity))
-        }
-        ModlogKindDataType::AdminFeaturePostSite => {
-          query.filter(modlog::kind.eq(ModlogKind::AdminFeaturePostSite))
-        }
-        ModlogKindDataType::ModFeaturePostCommunity => {
-          query.filter(modlog::kind.eq(ModlogKind::ModFeaturePostCommunity))
-        }
-        ModlogKindDataType::ModChangeCommunityVisibility => {
-          query.filter(modlog::kind.eq(ModlogKind::ModChangeCommunityVisibility))
-        }
-        ModlogKindDataType::ModLockPost => query.filter(modlog::kind.eq(ModlogKind::ModLockPost)),
-        ModlogKindDataType::ModRemoveComment => {
-          query.filter(modlog::kind.eq(ModlogKind::ModRemoveComment))
-        }
-        ModlogKindDataType::AdminRemoveCommunity => {
-          query.filter(modlog::kind.eq(ModlogKind::AdminRemoveCommunity))
-        }
-        ModlogKindDataType::ModRemovePost => {
-          query.filter(modlog::kind.eq(ModlogKind::ModRemovePost))
-        }
-        ModlogKindDataType::ModTransferCommunity => {
-          query.filter(modlog::kind.eq(ModlogKind::ModTransferCommunity))
-        }
-        ModlogKindDataType::ModLockComment => {
-          query.filter(modlog::kind.eq(ModlogKind::ModLockComment))
-        }
+        ModlogKindFilter::All => query,
+        ModlogKindFilter::Other(kind) => query.filter(modlog::kind.eq(kind)),
       };
     }
 
@@ -256,6 +206,7 @@ mod tests {
     person::{Person, PersonInsertForm},
     post::{Post, PostInsertForm},
   };
+  use lemmy_db_schema_file::enums::ModlogKind;
   use lemmy_diesel_utils::{
     connection::{DbPool, build_db_pool_for_tests},
     traits::Crud,
@@ -461,7 +412,9 @@ mod tests {
 
     // Filter by type
     let modlog_type_filter = ModlogQuery {
-      type_: Some(ModlogKindDataType::ModChangeCommunityVisibility),
+      type_: Some(ModlogKindFilter::Other(
+        ModlogKind::ModChangeCommunityVisibility,
+      )),
       ..Default::default()
     }
     .list(pool)
@@ -800,7 +753,7 @@ mod tests {
 
     // Filter by type
     let modlog_type_filter = ModlogQuery {
-      type_: Some(ModlogKindDataType::ModRemoveComment),
+      type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemoveComment)),
       ..Default::default()
     }
     .list(pool)

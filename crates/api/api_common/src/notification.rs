@@ -1,5 +1,5 @@
 pub use lemmy_db_schema::{
-  NotificationDataType,
+  NotificationTypeFilter,
   newtypes::NotificationId,
   source::notification::Notification,
 };
