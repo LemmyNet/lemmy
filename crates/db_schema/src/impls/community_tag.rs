@@ -96,6 +96,7 @@ impl CommunityTag {
         community_id: t.community_id,
         deleted: Some(true),
         description: None,
+        color: Some(t.color),
       });
     forms.extend(delete_forms);
 

@@ -45,6 +45,7 @@ use lemmy_db_schema_file::enums::{
   CommunityVisibility,
   ListingType,
   PostSortType,
+  TagColor,
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_diesel_utils::{
@@ -176,6 +177,7 @@ impl Data {
         description: None,
         community_id: community.id,
         deleted: Some(false),
+        color: Some(TagColor::Color01),
       },
     )
     .await?;
@@ -188,6 +190,7 @@ impl Data {
         description: None,
         community_id: community.id,
         deleted: Some(false),
+        color: Some(TagColor::Color02),
       },
     )
     .await?;
@@ -2226,6 +2229,8 @@ async fn post_tags_present(data: &mut Data) -> LemmyResult<()> {
   assert_eq!(2, post_view.tags.0.len());
   assert_eq!(data.tag_1.name, post_view.tags.0[0].name);
   assert_eq!(data.tag_2.name, post_view.tags.0[1].name);
+  assert_eq!(data.tag_1.color, post_view.tags.0[0].color);
+  assert_eq!(data.tag_2.color, post_view.tags.0[1].color);
 
   let all_posts = data.default_post_query().list(&data.site, pool).await?;
   assert_eq!(2, all_posts[0].tags.0.len()); // post with tags
