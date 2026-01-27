@@ -76,7 +76,7 @@ diesel::table! {
 
 diesel::table! {
     use diesel::sql_types::*;
-    use super::sql_types::Ltree;
+    use diesel_ltree::sql_types::Ltree;
 
     comment (id) {
         id -> Int4,
@@ -1088,5 +1088,7 @@ diesel::allow_tables_to_appear_in_same_query!(
   search_combined,
   site,
   site_language,
+  person_actions,
+  image_details,
 );
 diesel::allow_tables_to_appear_in_same_query!(custom_emoji, custom_emoji_keyword,);
