@@ -1,11 +1,11 @@
 use crate::context::LemmyContext;
 use anyhow::anyhow;
-use extism::{Manifest, PluginBuilder, Pool, PoolPlugin, Wasm, WasmMetadata};
+use extism::{Manifest, PluginBuilder, Pool, PoolPlugin, ToBytes, Wasm, WasmMetadata};
 use extism_convert::Json;
 use extism_manifest::HttpRequest;
 use lemmy_db_schema::source::{notification::Notification, person::Person};
 use lemmy_db_views_notification::NotificationView;
-use lemmy_db_views_site::api::PluginMetadata;
+use lemmy_db_views_site::api::{CaptchaResponse, PluginMetadata};
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::{
   VERSION,
@@ -57,6 +57,55 @@ pub async fn plugin_hook_notification(
     spawn_blocking(move || run_plugin_hook_after(name, view));
   }
   Ok(())
+}
+
+pub async fn plugin_get_captcha() -> LemmyResult<CaptchaResponse> {
+  let name = "get_captcha";
+  let plugins = LemmyPlugins::get_or_init();
+  if !plugins.function_exists(name) {
+    return Err(LemmyErrorType::PluginError("plugin not active".to_string()).into());
+  }
+
+  spawn_blocking(move || {
+    for p in plugins.0 {
+      if let Some(plugin) = p.get(name)? {
+        let x: CaptchaResponse = plugin
+          .call(name, ())
+          .map_err(|e| LemmyErrorType::PluginError(e.to_string()))?;
+        return Ok(x);
+      }
+    }
+    return Err(LemmyErrorType::PluginError("".to_string()).into());
+  })
+  .await?
+}
+
+#[derive(ToBytes, Serialize)]
+#[encoding(Json)]
+struct CaptchaAnswer {
+  answer: String,
+  uuid: String,
+}
+
+pub async fn plugin_validate_captcha(answer: String, uuid: String) -> LemmyResult<CaptchaResponse> {
+  let name = "validate_captcha";
+  let plugins = LemmyPlugins::get_or_init();
+  if !plugins.function_exists(name) {
+    return Err(LemmyErrorType::PluginError("plugin not active".to_string()).into());
+  }
+
+  spawn_blocking(move || {
+    for p in plugins.0 {
+      if let Some(plugin) = p.get(name)? {
+        let x: CaptchaResponse = plugin
+          .call(name, CaptchaAnswer { answer, uuid })
+          .map_err(|e| LemmyErrorType::PluginError(e.to_string()))?;
+        return Ok(x);
+      }
+    }
+    return Err(LemmyErrorType::PluginError("".to_string()).into());
+  })
+  .await?
 }
 
 fn run_plugin_hook_after<T>(name: &'static str, data: T) -> LemmyResult<()>

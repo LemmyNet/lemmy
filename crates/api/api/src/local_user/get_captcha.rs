@@ -9,7 +9,7 @@ use actix_web::{
   web::{Data, Json},
 };
 use captcha::{Difficulty, generate};
-use lemmy_api_utils::context::LemmyContext;
+use lemmy_api_utils::{context::LemmyContext, plugins::plugin_get_captcha};
 use lemmy_db_schema::source::captcha_answer::{CaptchaAnswer, CaptchaAnswerForm};
 use lemmy_db_views_site::{
   SiteView,
@@ -26,30 +26,6 @@ pub async fn get_captcha(context: Data<LemmyContext>) -> LemmyResult<HttpRespons
     return Ok(res.json(Json(GetCaptchaResponse { ok: None })));
   }
 
-  let captcha = generate(match local_site.captcha_difficulty.as_str() {
-    "easy" => Difficulty::Easy,
-    "hard" => Difficulty::Hard,
-    _ => Difficulty::Medium,
-  });
-
-  let answer = captcha.chars_as_string();
-
-  let png = captcha
-    .as_base64()
-    .ok_or(LemmyErrorType::CouldntCreateImageCaptcha)?;
-
-  let wav = captcha_as_wav_base64(&captcha)?;
-
-  let captcha_form: CaptchaAnswerForm = CaptchaAnswerForm { answer };
-  // Stores the captcha item in the db
-  let captcha = CaptchaAnswer::insert(&mut context.pool(), &captcha_form).await?;
-
-  let json = Json(GetCaptchaResponse {
-    ok: Some(CaptchaResponse {
-      png,
-      wav,
-      uuid: captcha.uuid.to_string(),
-    }),
-  });
-  Ok(res.json(json))
+  let captcha = plugin_get_captcha().await?;
+  Ok(res.json(Json(captcha)))
 }

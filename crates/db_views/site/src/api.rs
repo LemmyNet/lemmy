@@ -346,7 +346,8 @@ pub struct SiteResponse {
   pub site_view: SiteView,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, FromBytes)]
+#[encoding(Json)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A captcha response.
@@ -354,7 +355,7 @@ pub struct CaptchaResponse {
   /// A Base64 encoded png
   pub png: String,
   /// A Base64 encoded wav audio
-  pub wav: String,
+  pub wav: Option<String>,
   /// The UUID for the captcha item.
   pub uuid: String,
 }

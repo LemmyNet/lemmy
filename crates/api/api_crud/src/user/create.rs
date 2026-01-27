@@ -8,6 +8,7 @@ use diesel_async::{AsyncPgConnection, scoped_futures::ScopedFutureExt};
 use lemmy_api_utils::{
   claims::Claims,
   context::LemmyContext,
+  plugins::plugin_validate_captcha,
   utils::{
     check_email_verified,
     check_local_user_valid,
@@ -112,15 +113,9 @@ pub async fn register(
   }
 
   if local_site.site_setup && local_site.captcha_enabled {
-    let uuid = uuid::Uuid::parse_str(&data.captcha_uuid.clone().unwrap_or_default())?;
-    CaptchaAnswer::check_captcha(
-      pool,
-      CheckCaptchaAnswer {
-        uuid,
-        answer: data.captcha_answer.clone().unwrap_or_default(),
-      },
-    )
-    .await?;
+    let answer = data.captcha_answer.clone().unwrap_or_default();
+    let uuid = data.captcha_uuid.clone().unwrap_or_default();
+    plugin_validate_captcha(answer, uuid).await?;
   }
 
   let slur_regex = slur_regex(&context).await?;
