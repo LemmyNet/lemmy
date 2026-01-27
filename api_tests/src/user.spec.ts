@@ -32,6 +32,7 @@ import {
   password,
   jestLemmyError,
   statusBadRequest,
+  randomString,
 } from "./shared";
 import {
   EditSite,
@@ -343,7 +344,7 @@ test("Admins can view and ban deleted accounts", async () => {
 });
 
 test("Make sure a denied user is given denial reason", async () => {
-  const username = "denied_user";
+  const username = randomString(10);
   const appAnswer = "My application answer";
   const denyReason = "Bad application given";
 
