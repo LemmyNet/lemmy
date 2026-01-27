@@ -88,9 +88,9 @@ impl Object for ApubMultiCommunity {
       // reusing pubkey from site instead of generating new one
       public_key: site.public_key(),
       following: self.following_url.clone().into(),
-      name: self.name.clone(),
-      summary: self.title.clone(),
-      content: self.summary.clone(),
+      preferred_username: self.name.clone(),
+      name: self.title.clone(),
+      summary: self.summary.clone(),
       attributed_to: creator.ap_id.into(),
     })
   }
@@ -106,7 +106,7 @@ impl Object for ApubMultiCommunity {
 
     let slur_regex = slur_regex(context).await?;
 
-    check_slurs(&json.name, &slur_regex)?;
+    check_slurs(&json.preferred_username, &slur_regex)?;
     check_slurs_opt(&json.summary, &slur_regex)?;
     Ok(())
   }
@@ -116,11 +116,11 @@ impl Object for ApubMultiCommunity {
     let form = MultiCommunityInsertForm {
       creator_id: creator.id,
       instance_id: creator.instance_id,
-      name: json.name,
+      name: json.preferred_username,
       ap_id: Some(json.id.into()),
       local: Some(false),
-      title: json.summary,
-      summary: json.content,
+      title: json.name,
+      summary: json.summary,
       public_key: json.public_key.public_key_pem,
       private_key: None,
       inbox_url: Some(json.inbox.into()),

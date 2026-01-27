@@ -18,12 +18,12 @@ pub struct Feed {
   pub r#type: FeedType,
   pub id: ObjectId<ApubMultiCommunity>,
   pub inbox: Url,
+  pub name: Option<String>,
+  pub preferred_username: String,
   pub public_key: PublicKey,
 
   pub following: CollectionId<ApubFeedCollection>,
-  pub name: String,
   pub summary: Option<String>,
-  pub content: Option<String>,
   pub attributed_to: ObjectId<ApubPerson>,
 }
 

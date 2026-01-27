@@ -123,9 +123,9 @@ impl Object for ApubCommunity {
       id: self.id().clone().into(),
       preferred_username: self.name.clone(),
       name: Some(self.title.clone()),
-      summary: self.sidebar.as_ref().map(|d| markdown_to_html(d)),
+      content: self.sidebar.as_ref().map(|d| markdown_to_html(d)),
       source: self.sidebar.clone().map(Source::new),
-      content: self.summary.clone(),
+      summary: self.summary.clone(),
       media_type: self.sidebar.as_ref().map(|_| MediaTypeHtml::Html),
       icon: self.icon.clone().map(ImageObject::new),
       image: self.banner.clone().map(ImageObject::new),
@@ -166,6 +166,7 @@ impl Object for ApubCommunity {
     check_slurs(&group.preferred_username, &slur_regex)?;
     check_slurs_opt(&group.name, &slur_regex)?;
     check_slurs_opt(&group.summary, &slur_regex)?;
+    check_slurs_opt(&group.content, &slur_regex)?;
     Ok(())
   }
 
@@ -179,7 +180,7 @@ impl Object for ApubCommunity {
 
     let slur_regex = slur_regex(context).await?;
     let url_blocklist = get_url_blocklist(context).await?;
-    let sidebar = read_from_string_or_source_opt(&group.summary, &None, &group.source);
+    let sidebar = read_from_string_or_source_opt(&group.content, &None, &group.source);
     let sidebar = process_markdown_opt(&sidebar, &slur_regex, &url_blocklist, context).await?;
     let sidebar = markdown_rewrite_remote_links_opt(sidebar, context).await;
     let icon = proxy_image_link_opt_apub(group.icon.clone().map(|i| i.url), context).await?;
@@ -204,7 +205,7 @@ impl Object for ApubCommunity {
       banner,
       sidebar,
       removed,
-      summary: group.content.clone().as_deref().map(truncate_summary),
+      summary: group.summary.clone().as_deref().map(truncate_summary),
       followers_url: group.followers.clone().clone().map(Into::into),
       inbox_url: Some(
         group
