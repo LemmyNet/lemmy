@@ -140,8 +140,6 @@ pub struct CreateSite {
   pub rate_limit_import_user_settings_max_requests: Option<i32>,
   pub rate_limit_import_user_settings_interval_seconds: Option<i32>,
   pub federation_enabled: Option<bool>,
-  pub captcha_enabled: Option<bool>,
-  pub captcha_difficulty: Option<String>,
   pub registration_mode: Option<RegistrationMode>,
   pub oauth_registration: Option<bool>,
   pub content_warning: Option<String>,
@@ -246,10 +244,6 @@ pub struct EditSite {
   pub rate_limit_import_user_settings_interval_seconds: Option<i32>,
   /// Whether to enable federation.
   pub federation_enabled: Option<bool>,
-  /// Whether to enable captchas for signups.
-  pub captcha_enabled: Option<bool>,
-  /// The captcha difficulty. Can be easy, medium, or hard
-  pub captcha_difficulty: Option<String>,
   /// A list of blocked URLs
   pub blocked_urls: Option<Vec<String>>,
   pub registration_mode: Option<RegistrationMode>,

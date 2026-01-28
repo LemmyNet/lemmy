@@ -94,9 +94,6 @@ pub enum LemmyErrorType {
   SiteNameLengthOverflow,
   PermissiveRegex,
   InvalidRegex,
-  CaptchaIncorrect,
-  CouldntCreateAudioCaptcha,
-  CouldntCreateImageCaptcha,
   InvalidUrlScheme,
   ContradictingFilters,
   /// Thrown when an API call is submitted with more than 1000 array elements, see

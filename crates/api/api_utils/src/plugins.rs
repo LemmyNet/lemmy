@@ -108,6 +108,10 @@ pub async fn plugin_validate_captcha(answer: String, uuid: String) -> LemmyResul
   .await?
 }
 
+pub fn is_captcha_plugin_loaded() -> bool {
+  todo!()
+}
+
 fn run_plugin_hook_after<T>(name: &'static str, data: T) -> LemmyResult<()>
 where
   T: Clone + Serialize + for<'b> Deserialize<'b>,
