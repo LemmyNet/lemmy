@@ -1,4 +1,7 @@
 use crate::{ReadableFederationState, SiteView};
+#[cfg(feature = "full")]
+use extism::FromBytes;
+use extism_convert::Json;
 use lemmy_db_schema::{
   newtypes::{LanguageId, MultiCommunityId, OAuthProviderId, TaglineId},
   source::{
@@ -37,8 +40,6 @@ use lemmy_diesel_utils::{pagination::PaginationCursor, sensitive::SensitiveStrin
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
-#[cfg(feature = "full")]
-use {extism::FromBytes, extism_convert::Json};
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
@@ -340,8 +341,9 @@ pub struct SiteResponse {
   pub site_view: SiteView,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default, FromBytes)]
-#[encoding(Json)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(FromBytes))]
+#[cfg_attr(feature = "full", encoding(Json))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A captcha response.
@@ -349,7 +351,7 @@ pub struct CaptchaResponse {
   /// A Base64 encoded png
   pub png: String,
   /// A Base64 encoded wav audio
-  pub wav: Option<String>,
+  pub wav: String,
   /// The UUID for the captcha item.
   pub uuid: String,
 }
