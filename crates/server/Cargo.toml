@@ -42,7 +42,6 @@ tracing-subscriber = { workspace = true }
 reqwest-middleware = { workspace = true }
 reqwest-tracing = { workspace = true }
 serde_json = { workspace = true }
-rustls = { workspace = true }
 tokio.workspace = true
 clap = { workspace = true }
 

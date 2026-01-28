@@ -95,7 +95,7 @@ impl CommunityTag {
         display_name: None,
         community_id: t.community_id,
         deleted: Some(true),
-        description: None,
+        summary: None,
         color: Some(t.color),
       });
     forms.extend(delete_forms);
@@ -109,7 +109,7 @@ impl CommunityTag {
             .do_update()
             .set((
               community_tag::display_name.eq(excluded(community_tag::display_name)),
-              community_tag::description.eq(excluded(community_tag::description)),
+              community_tag::summary.eq(excluded(community_tag::summary)),
               community_tag::deleted.eq(excluded(community_tag::deleted)),
             ))
             .execute(conn)

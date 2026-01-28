@@ -99,7 +99,7 @@ pub struct CreateCommunity {
   /// A longer title.
   pub title: String,
   /// A sidebar for the community in markdown.
-  pub description: Option<String>,
+  pub sidebar: Option<String>,
   /// A shorter, one line summary of your community.
   pub summary: Option<String>,
   /// An icon URL.
@@ -134,7 +134,7 @@ pub struct EditCommunity {
   /// A longer title.
   pub title: Option<String>,
   /// A sidebar for the community in markdown.
-  pub description: Option<String>,
+  pub sidebar: Option<String>,
   /// A shorter, one line summary of your community.
   pub summary: Option<String>,
   /// Whether its an NSFW community.
@@ -251,7 +251,7 @@ pub struct TransferCommunity {
 pub struct CreateMultiCommunity {
   pub name: String,
   pub title: Option<String>,
-  pub description: Option<String>,
+  pub summary: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -260,7 +260,7 @@ pub struct CreateMultiCommunity {
 pub struct EditMultiCommunity {
   pub id: MultiCommunityId,
   pub title: Option<String>,
-  pub description: Option<String>,
+  pub summary: Option<String>,
   pub deleted: Option<bool>,
 }
 
@@ -335,7 +335,7 @@ pub struct CreateCommunityTag {
   pub community_id: CommunityId,
   pub name: String,
   pub display_name: Option<String>,
-  pub description: Option<String>,
+  pub summary: Option<String>,
   pub color: Option<TagColor>,
 }
 
@@ -347,7 +347,7 @@ pub struct CreateCommunityTag {
 pub struct EditCommunityTag {
   pub tag_id: CommunityTagId,
   pub display_name: Option<String>,
-  pub description: Option<String>,
+  pub summary: Option<String>,
   pub color: Option<TagColor>,
 }
 

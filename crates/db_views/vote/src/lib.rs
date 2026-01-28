@@ -17,11 +17,11 @@ use {
 #[cfg(feature = "full")]
 pub mod impls;
 
+/// Only used internally so no ts(export)
 #[derive(Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 struct VoteViewPost {
   #[cfg_attr(feature = "full", diesel(embed))]
   pub creator: Person,
@@ -38,11 +38,11 @@ struct VoteViewPost {
   post_id: PostId,
 }
 
+/// Only used internally so no ts(export)
 #[derive(Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 struct VoteViewComment {
   #[cfg_attr(feature = "full", diesel(embed))]
   pub creator: Person,

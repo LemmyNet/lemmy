@@ -141,7 +141,7 @@ diesel::table! {
         name -> Varchar,
         #[max_length = 50]
         title -> Varchar,
-        description -> Nullable<Text>,
+        sidebar -> Nullable<Text>,
         removed -> Bool,
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
@@ -227,7 +227,7 @@ diesel::table! {
         original_community_name -> Text,
         original_community_title -> Text,
         original_community_summary -> Nullable<Text>,
-        original_community_description -> Nullable<Text>,
+        original_community_sidebar -> Nullable<Text>,
         original_community_icon -> Nullable<Text>,
         original_community_banner -> Nullable<Text>,
         reason -> Text,
@@ -249,7 +249,8 @@ diesel::table! {
         name -> Varchar,
         #[max_length = 255]
         display_name -> Nullable<Varchar>,
-        description -> Nullable<Text>,
+        #[max_length = 150]
+        summary -> Nullable<Varchar>,
         community_id -> Int4,
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
@@ -561,7 +562,7 @@ diesel::table! {
         #[max_length = 255]
         title -> Nullable<Varchar>,
         #[max_length = 255]
-        description -> Nullable<Varchar>,
+        summary -> Nullable<Varchar>,
         local -> Bool,
         deleted -> Bool,
         ap_id -> Text,
@@ -930,7 +931,7 @@ diesel::table! {
         id -> Int4,
         #[max_length = 20]
         name -> Varchar,
-        description -> Nullable<Text>,
+        sidebar -> Nullable<Text>,
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
         icon -> Nullable<Text>,

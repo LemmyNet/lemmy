@@ -76,6 +76,7 @@ jsonwebtoken = { version = "10.2.0", features = ["rust_crypto"] }
 either.workspace = true
 derive-new.workspace = true
 lemmy_diesel_utils = { workspace = true }
+rustls = { workspace = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }
