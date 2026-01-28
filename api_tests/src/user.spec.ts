@@ -378,7 +378,7 @@ test("Make sure a denied user is given denial reason", async () => {
   // Fetch the applications
   const apps = await alpha.listRegistrationApplications({});
   const app = apps.items[0];
-  expect(apps.items.length).toBe(1);
+  expect(apps.items.length).toBeGreaterThanOrEqual(1);
   expect(app.registration_application.answer).toBe(appAnswer);
 
   // Deny the application

@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
-  NotificationDataType,
+  NotificationTypeFilter,
   source::{
     comment::{Comment, CommentActions},
     community::{Community, CommunityActions},
@@ -131,7 +131,7 @@ pub enum NotificationData {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Get your inbox (replies, comment mentions, post mentions, and messages)
 pub struct ListNotifications {
-  pub type_: Option<NotificationDataType>,
+  pub type_: Option<NotificationTypeFilter>,
   pub unread_only: Option<bool>,
   pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,

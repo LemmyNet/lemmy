@@ -94,6 +94,15 @@ steps:
     when:
       - event: pull_request
 
+  api_tests_lint:
+    image: node:24-trixie-slim
+    commands:
+      - *install_pnpm
+      - cd api_tests/
+      - pnpm i
+      - pnpm lint
+    when: *slow_check_paths
+
   ignored_files:
     image: alpine:3
     commands:
