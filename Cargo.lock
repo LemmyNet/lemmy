@@ -3846,7 +3846,6 @@ dependencies = [
  "chrono",
  "diesel",
  "diesel-async",
- "i-love-jesus",
  "lemmy_db_schema 1.0.0-alpha.12",
  "lemmy_db_schema_file",
  "lemmy_db_views_community",
