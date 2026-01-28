@@ -7,8 +7,6 @@ use lemmy_utils::{
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 
-pub extern crate rustls;
-
 #[tokio::main]
 pub async fn main() -> LemmyResult<()> {
   let filter = EnvFilter::builder()
