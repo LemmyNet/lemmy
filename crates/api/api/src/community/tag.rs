@@ -43,7 +43,7 @@ pub async fn create_community_tag(
   if let Some(summary) = &data.summary {
     summary_length_check(summary)?;
     check_slurs(summary, &slur_regex(&context).await?)?;
-}
+  }
 
   let ap_id = Url::parse(&format!("{}/tag/{}", community.ap_id, &data.name))?;
 
