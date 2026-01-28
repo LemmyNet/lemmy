@@ -8,11 +8,8 @@ documentation = "https://join-lemmy.org/docs/en/index.html"
 repository = "https://github.com/LemmyNet/lemmy"
 rust-version = "1.91"
 
-# See https://github.com/johnthagen/min-sized-rust for additional optimizations
 [profile.release]
 lto = "fat"
-opt-level = 3     # Optimize for speed, not size.
-codegen-units = 1 # Reduce parallel code generation.
 
 # This profile significantly speeds up build time. If debug info is needed you can comment the line
 # out temporarily, but make sure to leave this in the main branch.
@@ -176,7 +173,6 @@ chrono = { version = "0.4.42", features = [
 serde_json = { version = "1.0.145", features = ["preserve_order"] }
 base64 = "0.22.1"
 uuid = { version = "1.19.0", features = ["serde"] }
-captcha = "1.0.0"
 anyhow = { version = "1.0.100", features = ["backtrace"] }
 diesel_ltree = "0.4.0"
 serial_test = "3.2.0"

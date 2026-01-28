@@ -27,7 +27,6 @@ use lemmy_db_schema::{
   newtypes::OAuthProviderId,
   source::{
     actor_language::SiteLanguage,
-    captcha_answer::{CaptchaAnswer, CheckCaptchaAnswer},
     community::{Community, CommunityActions, CommunityInsertForm, CommunityModeratorForm},
     language::Language,
     local_site::LocalSite,

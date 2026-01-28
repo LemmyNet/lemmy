@@ -1,4 +1,3 @@
-use crate::captcha_as_wav_base64;
 use actix_web::{
   HttpResponse,
   HttpResponseBuilder,
@@ -8,14 +7,9 @@ use actix_web::{
   },
   web::{Data, Json},
 };
-use captcha::{Difficulty, generate};
 use lemmy_api_utils::{context::LemmyContext, plugins::plugin_get_captcha};
-use lemmy_db_schema::source::captcha_answer::{CaptchaAnswer, CaptchaAnswerForm};
-use lemmy_db_views_site::{
-  SiteView,
-  api::{CaptchaResponse, GetCaptchaResponse},
-};
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_db_views_site::{SiteView, api::GetCaptchaResponse};
+use lemmy_utils::error::LemmyResult;
 
 pub async fn get_captcha(context: Data<LemmyContext>) -> LemmyResult<HttpResponse> {
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
@@ -26,6 +20,8 @@ pub async fn get_captcha(context: Data<LemmyContext>) -> LemmyResult<HttpRespons
     return Ok(res.json(Json(GetCaptchaResponse { ok: None })));
   }
 
-  let captcha = plugin_get_captcha().await?;
+  let captcha = GetCaptchaResponse {
+    ok: Some(plugin_get_captcha().await?),
+  };
   Ok(res.json(Json(captcha)))
 }

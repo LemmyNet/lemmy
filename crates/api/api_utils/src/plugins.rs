@@ -198,8 +198,12 @@ struct LemmyPlugin {
 
 impl LemmyPlugin {
   fn init(settings: PluginSettings) -> LemmyResult<Self> {
-    // if no hash was provided in config, set a dummy value here to enforce hash check
-    let hash = Some(settings.hash.unwrap_or_else(|| "dummy".to_string()));
+    let hash = if cfg!(debug_assertions) {
+      None
+    } else {
+      // if no hash was provided in config, set a dummy value here to enforce hash check
+      Some(settings.hash.unwrap_or_else(|| "dummy".to_string()))
+    };
     let meta = WasmMetadata { hash, name: None };
     let (wasm, filename) = if settings.file.starts_with("http") {
       let name: Option<String> = Url::parse(&settings.file)?
