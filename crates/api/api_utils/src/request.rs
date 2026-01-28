@@ -38,6 +38,9 @@ use urlencoding::encode;
 use webpage::{HTML, OpengraphObject};
 
 pub fn client_builder(settings: &Settings) -> ClientBuilder {
+  // https://github.com/seanmonstar/reqwest/issues/2924
+  let _ = rustls::crypto::ring::default_provider().install_default();
+
   let user_agent = format!(
     "Lemmy/{}; +{}",
     *VERSION,
