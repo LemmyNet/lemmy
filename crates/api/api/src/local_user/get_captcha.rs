@@ -15,7 +15,7 @@ pub async fn get_captcha() -> LemmyResult<HttpResponse> {
   let mut res = HttpResponseBuilder::new(StatusCode::OK);
   res.insert_header(CacheControl(vec![CacheDirective::NoStore]));
 
-  if is_captcha_plugin_loaded() {
+  if !is_captcha_plugin_loaded() {
     return Ok(res.json(Json(GetCaptchaResponse { ok: None })));
   }
 

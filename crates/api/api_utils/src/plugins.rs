@@ -87,7 +87,7 @@ struct CaptchaAnswer {
   uuid: String,
 }
 
-pub async fn plugin_validate_captcha(answer: String, uuid: String) -> LemmyResult<CaptchaResponse> {
+pub async fn plugin_validate_captcha(answer: String, uuid: String) -> LemmyResult<()> {
   let name = "validate_captcha";
   let plugins = LemmyPlugins::get_or_init();
   if !plugins.function_exists(name) {
@@ -97,7 +97,7 @@ pub async fn plugin_validate_captcha(answer: String, uuid: String) -> LemmyResul
   spawn_blocking(move || {
     for p in plugins.0 {
       if let Some(plugin) = p.get(name)? {
-        let x: CaptchaResponse = plugin
+        let x = plugin
           .call(name, CaptchaAnswer { answer, uuid })
           .map_err(|e| LemmyErrorType::PluginError(e.to_string()))?;
         return Ok(x);
@@ -109,7 +109,8 @@ pub async fn plugin_validate_captcha(answer: String, uuid: String) -> LemmyResul
 }
 
 pub fn is_captcha_plugin_loaded() -> bool {
-  todo!()
+  // TODO
+  true
 }
 
 fn run_plugin_hook_after<T>(name: &'static str, data: T) -> LemmyResult<()>
