@@ -86,13 +86,16 @@ test("Create, delete and restore a community tag", async () => {
   // Verify tag is deleted
   alphaCommunity = (await alpha.getCommunity({ id: communityId }))
     .community_view;
-  expect(alphaCommunity.tags.find(t => t.id === createRes.id)).toBeUndefined();
-  expect(alphaCommunity.tags.length).toBe(0);
+  expect(
+    alphaCommunity.tags.find(t => t.id === createRes.id)!.deleted,
+  ).toBeTruthy();
+  // It should still list one tag
+  expect(alphaCommunity.tags.length).toBe(1);
 
   // Verify tag deletion federated
   betaCommunity = (await waitUntil(
     () => resolveCommunity(beta, alphaCommunity.community.ap_id),
-    g => g!.tags.length === 0,
+    g => g!.tags.at(0)?.deleted === true,
   ))!;
   assertCommunityFederation(alphaCommunity, betaCommunity);
 
