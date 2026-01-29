@@ -353,15 +353,18 @@ pub fn post_community_tags_fragment() -> _ {
     .single_value()
 }
 
+/// Gets the tags available within a specific community.
+///
+/// This doesn't hide the deleted tags, so that mods can restore them.
+/// Hiding must be done in the front end.
 #[diesel::dsl::auto_type]
-/// Gets the tags available within a specific community
 pub fn community_tags_fragment() -> _ {
   let sel: SqlLiteral<Json> =
     diesel::dsl::sql::<diesel::sql_types::Json>("json_agg(community_tag.*)");
+
   community_tag::table
     .select(sel)
     .filter(community_tag::community_id.eq(community::id))
-    .filter(community_tag::deleted.eq(false))
     .single_value()
 }
 

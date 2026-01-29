@@ -44,6 +44,8 @@ pub struct CommunityView {
       select_expression = community_tags_fragment()
     )
   )]
+  /// This shows deleted tags (so that admins / mods can restore them), so you should filter for
+  /// deleted = false in the tag selection.
   pub tags: CommunityTagsView,
 }
 
