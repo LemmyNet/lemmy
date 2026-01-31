@@ -961,12 +961,11 @@ pub async fn update_post_tags(
   context: &LemmyContext,
 ) -> LemmyResult<()> {
   // validate tags
-  let community_tags =
-    CommunityTag::list(&mut context.pool(), post.community_id, false)
-      .await?
-      .into_iter()
-      .map(|t| t.id)
-      .collect::<HashSet<_>>();
+  let community_tags = CommunityTag::list(&mut context.pool(), post.community_id, false)
+    .await?
+    .into_iter()
+    .map(|t| t.id)
+    .collect::<HashSet<_>>();
   if !community_tags.is_superset(&community_tag_ids.iter().copied().collect()) {
     return Err(LemmyErrorType::TagNotInCommunity.into());
   }
