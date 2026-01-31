@@ -15,7 +15,7 @@ use lemmy_api::{
     multi_community_follow::follow_multi_community,
     pending_follows::{approve::post_pending_follows_approve, list::get_pending_follows_list},
     random::get_random_community,
-    tag::{create_community_tag, delete_community_tag, edit_community_tag},
+    tag::{create_community_tag, delete_community_tag, edit_community_tag, list_community_tags},
     transfer::transfer_community,
     update_notifications::edit_community_notifications,
   },
@@ -238,10 +238,14 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("/icon", delete().to(delete_community_icon))
           .route("/banner", post().to(upload_community_banner))
           .route("/banner", delete().to(delete_community_banner))
-          .route("/tag", post().to(create_community_tag))
-          .route("/tag", put().to(edit_community_tag))
-          .route("/tag", delete().to(delete_community_tag))
           .route("/notifications", post().to(edit_community_notifications))
+          .service(
+            scope("/tag")
+              .route("", post().to(create_community_tag))
+              .route("", put().to(edit_community_tag))
+              .route("", delete().to(delete_community_tag))
+              .route("/list", get().to(list_community_tags)),
+          )
           .service(
             scope("/pending_follows")
               .route("/list", get().to(get_pending_follows_list))

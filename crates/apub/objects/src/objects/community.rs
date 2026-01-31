@@ -117,7 +117,7 @@ impl Object for ApubCommunity {
     let community_id = self.id;
     let langs = CommunityLanguage::read(&mut data.pool(), community_id).await?;
     let language = LanguageTag::new_multiple(langs, &mut data.pool()).await?;
-    let community_tags = CommunityTag::read_for_community(&mut data.pool(), community_id).await?;
+    let community_tags = CommunityTag::list_apub(&mut data.pool(), community_id).await?;
     let group = Group {
       kind: GroupType::Group,
       id: self.id().clone().into(),
@@ -247,7 +247,8 @@ impl Object for ApubCommunity {
       .iter()
       .map(|t| t.to_insert_form(community.id))
       .collect();
-    let existing_tags = CommunityTag::read_for_community(&mut context.pool(), community.id).await?;
+
+    let existing_tags = CommunityTag::list_apub(&mut context.pool(), community.id).await?;
     CommunityTag::update_many(&mut context.pool(), new_tags, existing_tags).await?;
 
     let community: ApubCommunity = community.into();

@@ -1,10 +1,10 @@
 use activitypub_federation::config::Data;
-use actix_web::web::Json;
+use actix_web::web::{Json, Query};
 use chrono::Utc;
 use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_mod_action, slur_regex},
+  utils::{is_mod_or_admin, is_mod_or_admin_opt, slur_regex},
 };
 use lemmy_db_schema::source::{
   community::Community,
@@ -12,7 +12,7 @@ use lemmy_db_schema::source::{
 };
 use lemmy_db_views_community::{
   CommunityView,
-  api::{CreateCommunityTag, DeleteCommunityTag, EditCommunityTag},
+  api::{CreateCommunityTag, DeleteCommunityTag, EditCommunityTag, ListCommunityTags},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_diesel_utils::{traits::Crud, utils::diesel_string_update};
@@ -20,26 +20,49 @@ use lemmy_utils::{
   error::LemmyResult,
   utils::{
     slurs::check_slurs,
-    validation::{check_api_elements_count, is_valid_actor_name, summary_length_check},
+    validation::{check_max_tags_count, is_valid_actor_name, summary_length_check},
   },
 };
 use url::Url;
+
+pub async fn list_community_tags(
+  Query(data): Query<ListCommunityTags>,
+  context: Data<LemmyContext>,
+  local_user_view: Option<LocalUserView>,
+) -> LemmyResult<Json<Vec<CommunityTag>>> {
+  let community_id = data.community_id;
+  let is_mod_or_admin = is_mod_or_admin_opt(
+    &mut context.pool(),
+    local_user_view.as_ref(),
+    Some(community_id),
+  )
+  .await
+  .is_ok();
+
+  let tags = CommunityTag::list(&mut context.pool(), community_id, is_mod_or_admin).await?;
+
+  Ok(Json(tags))
+}
 
 pub async fn create_community_tag(
   Json(data): Json<CreateCommunityTag>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityTag>> {
+  let community_id = data.community_id;
+
   is_valid_actor_name(&data.name)?;
 
-  let community_view =
-    CommunityView::read(&mut context.pool(), data.community_id, None, false).await?;
+  let community_view = CommunityView::read(&mut context.pool(), community_id, None, false).await?;
   let community = community_view.community;
 
-  // Verify that only mods can create tags
-  check_community_mod_action(&local_user_view, &community, false, &mut context.pool()).await?;
+  // Verify that only mods or admins can create tags
+  is_mod_or_admin(&mut context.pool(), &local_user_view, community_id).await?;
 
-  check_api_elements_count(community_view.tags.0.len())?;
+  // Check to make sure there aren't too many tags
+  let tags_count = CommunityTag::count(&mut context.pool(), community_id).await?;
+  check_max_tags_count(tags_count)?;
+
   if let Some(summary) = &data.summary {
     summary_length_check(summary)?;
     check_slurs(summary, &slur_regex(&context).await?)?;
@@ -74,10 +97,9 @@ pub async fn edit_community_tag(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityTag>> {
   let tag = CommunityTag::read(&mut context.pool(), data.tag_id).await?;
-  let community = Community::read(&mut context.pool(), tag.community_id).await?;
 
   // Verify that only mods can update tags
-  check_community_mod_action(&local_user_view, &community, false, &mut context.pool()).await?;
+  is_mod_or_admin(&mut context.pool(), &local_user_view, tag.community_id).await?;
 
   if let Some(summary) = &data.summary {
     summary_length_check(summary)?;
@@ -106,7 +128,7 @@ pub async fn delete_community_tag(
   let community = Community::read(&mut context.pool(), tag.community_id).await?;
 
   // Verify that only mods can delete tags
-  check_community_mod_action(&local_user_view, &community, false, &mut context.pool()).await?;
+  is_mod_or_admin(&mut context.pool(), &local_user_view, tag.community_id).await?;
 
   // Soft delete the tag
   let tag_form = CommunityTagUpdateForm {

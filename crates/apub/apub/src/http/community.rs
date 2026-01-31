@@ -216,7 +216,7 @@ pub(crate) async fn get_apub_community_tag_http(
 
   check_community_fetchable(&community)?;
 
-  let tag = CommunityTag::read_for_community(&mut context.pool(), community.id)
+  let tag = CommunityTag::list_apub(&mut context.pool(), community.id)
     .await?
     .into_iter()
     .map(ApubCommunityTag::to_json)

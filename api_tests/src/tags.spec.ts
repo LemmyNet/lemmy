@@ -10,7 +10,6 @@ import {
   followCommunity,
   resolveCommunity,
   waitUntil,
-  assertCommunityFederation,
   waitForPost,
   gamma,
   resolvePerson,
@@ -49,31 +48,22 @@ test("Create, delete and restore a community tag", async () => {
   expect(createRes.name).toBe(tagName);
   expect(createRes.community_id).toBe(communityId);
 
-  alphaCommunity = (await alpha.getCommunity({ id: communityId }))
-    .community_view;
-  expect(alphaCommunity.tags.length).toBe(1);
-  // verify tag federated
-
-  betaCommunity = (await waitUntil(
-    () => resolveCommunity(beta, alphaCommunity.community.ap_id),
-    g => g!.tags.length === 1,
-  ))!;
-  assertCommunityFederation(alphaCommunity, betaCommunity);
-
   // List tags
-  alphaCommunity = (await alpha.getCommunity({ id: communityId }))
-    .community_view;
-  expect(alphaCommunity.tags.length).toBe(1);
-  expect(alphaCommunity.tags.find(t => t.id === createRes.id)?.name).toBe(
+  let alphaCommunityTags = await alpha.listCommunityTags({
+    community_id: communityId,
+  });
+  expect(alphaCommunityTags.length).toBe(1);
+  expect(alphaCommunityTags.find(t => t.id === createRes.id)?.name).toBe(
     tagName,
   );
 
-  // Verify tag update federated
-  betaCommunity = (await waitUntil(
-    () => resolveCommunity(beta, alphaCommunity.community.ap_id),
-    g => g!.tags.find(t => t.ap_id === createRes.ap_id)?.name === tagName,
-  ))!;
-  assertCommunityFederation(alphaCommunity, betaCommunity);
+  // verify tag federated
+  await waitUntil(
+    () => beta.listCommunityTags({ community_id: betaCommunity.community.id }),
+    g =>
+      g!.length === 1 &&
+      g!.find(t => t.ap_id === createRes.ap_id)?.name === tagName,
+  );
 
   // Delete the tag
   let deleteForm: DeleteCommunityTag = {
@@ -84,20 +74,21 @@ test("Create, delete and restore a community tag", async () => {
   expect(deleteRes.id).toBe(createRes.id);
 
   // Verify tag is deleted
-  alphaCommunity = (await alpha.getCommunity({ id: communityId }))
-    .community_view;
+  alphaCommunityTags = await alpha.listCommunityTags({
+    community_id: communityId,
+  });
   expect(
-    alphaCommunity.tags.find(t => t.id === createRes.id)!.deleted,
+    alphaCommunityTags.find(t => t.id === createRes.id)!.deleted,
   ).toBeTruthy();
-  // It should still list one tag
-  expect(alphaCommunity.tags.length).toBe(1);
+
+  // It should still list one tag (because its an admin fetch)
+  expect(alphaCommunityTags.length).toBe(1);
 
   // Verify tag deletion federated
-  betaCommunity = (await waitUntil(
-    () => resolveCommunity(beta, alphaCommunity.community.ap_id),
-    g => g!.tags.at(0)?.deleted === true,
-  ))!;
-  assertCommunityFederation(alphaCommunity, betaCommunity);
+  await waitUntil(
+    () => beta.listCommunityTags({ community_id: betaCommunity.community.id }),
+    g => g!.at(0)?.deleted === true,
+  );
 
   // Restore the tag
   let deleteFormRestoration: DeleteCommunityTag = {
@@ -110,23 +101,17 @@ test("Create, delete and restore a community tag", async () => {
   expect(deleteRestorationRes.id).toBe(createRes.id);
 
   // Verify tag is restored
-  alphaCommunity = (await alpha.getCommunity({ id: communityId }))
-    .community_view;
-  expect(alphaCommunity.tags.length).toBe(1);
-  // verify tag federated
+  alphaCommunityTags = await alpha.listCommunityTags({
+    community_id: communityId,
+  });
+  expect(
+    alphaCommunityTags.find(t => t.id === createRes.id)!.deleted,
+  ).toBeFalsy();
 
-  betaCommunity = (await waitUntil(
-    () => resolveCommunity(beta, alphaCommunity.community.ap_id),
-    g => g!.tags.length === 1,
-  ))!;
-  assertCommunityFederation(alphaCommunity, betaCommunity);
-
-  // List tags
-  alphaCommunity = (await alpha.getCommunity({ id: communityId }))
-    .community_view;
-  expect(alphaCommunity.tags.length).toBe(1);
-  expect(alphaCommunity.tags.find(t => t.id === createRes.id)?.name).toBe(
-    tagName,
+  // verify restore tag federated
+  await waitUntil(
+    () => beta.listCommunityTags({ community_id: betaCommunity.community.id }),
+    g => g!.at(0)?.deleted === false,
   );
 });
 
@@ -167,9 +152,13 @@ test("Create and update post tags", async () => {
   let tag2Res = await gamma.createCommunityTag(createForm2);
   expect(tag2Res.id).toBeDefined();
 
-  await waitUntil(
-    () => getCommunity(alpha, communityRes.community_view.community.id),
-    c => c.community_view.tags.length > 0,
+  // Make sure both federate
+  const alphaCommunityTags = await waitUntil(
+    () =>
+      alpha.listCommunityTags({
+        community_id: communityRes.community_view.community.id,
+      }),
+    c => c.length === 2,
   );
 
   let betaCommunity = await resolveCommunity(
@@ -184,17 +173,22 @@ test("Create and update post tags", async () => {
     g => g!.community_actions?.follow_state == "accepted",
   );
 
+  // List the tags on beta
+  const betaCommunityTags = await beta.listCommunityTags({
+    community_id: betaCommunity!.community.id,
+  });
+
   // Create a post with tags
   let postRes = await beta.createPost({
     name: randomString(10),
     community_id: betaCommunity!.community.id,
-    tags: [betaCommunity!.tags[0].id, betaCommunity!.tags[1].id],
+    tags: [betaCommunityTags[0].id, betaCommunityTags[1].id],
   });
   expect(postRes.post_view.post.id).toBeDefined();
   expect(postRes.post_view.post.id).toBe(postRes.post_view.post.id);
   expect(postRes.post_view.tags?.length).toBe(2);
   expect(postRes.post_view.tags?.map(t => t.id).sort()).toEqual(
-    [betaCommunity!.tags[0].id, betaCommunity!.tags[1].id].sort(),
+    [betaCommunityTags[0].id, betaCommunityTags[1].id].sort(),
   );
 
   // wait post tags federated
@@ -216,11 +210,11 @@ test("Create and update post tags", async () => {
   alphaCommunity = communityRes.community_view;
   let updateRes = await alpha.modEditPost({
     post_id: alphaPost.post.id,
-    tags: [alphaCommunity!.tags[0].id],
+    tags: [alphaCommunityTags[0].id],
   });
   expect(updateRes.post_view.post.ap_id).toBe(postRes.post_view.post.ap_id);
   expect(updateRes.post_view.tags?.length).toBe(1);
-  expect(updateRes.post_view.tags?.[0].id).toBe(alphaCommunity!.tags[0].id);
+  expect(updateRes.post_view.tags?.[0].id).toBe(alphaCommunityTags[0].id);
 
   // wait post tags federated
   let betaPost = await waitForPost(beta, postRes.post_view.post, p => {

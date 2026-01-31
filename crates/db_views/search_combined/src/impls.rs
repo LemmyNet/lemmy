@@ -488,7 +488,6 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         community,
         community_actions: v.community_actions,
         can_mod: v.can_mod,
-        tags: v.tags,
       }))
     } else if let (Some(multi), Some(creator)) = (v.multi_community, &v.item_creator) {
       Some(SearchCombinedView::MultiCommunity(MultiCommunityView {

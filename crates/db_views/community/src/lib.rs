@@ -1,6 +1,5 @@
 use lemmy_db_schema::source::{
   community::{Community, CommunityActions},
-  community_tag::CommunityTagsView,
   multi_community::MultiCommunity,
   person::Person,
 };
@@ -10,10 +9,7 @@ use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
   diesel::{NullableExpressionMethods, Queryable, Selectable},
-  lemmy_db_schema::utils::queries::selects::{
-    community_tags_fragment,
-    local_user_community_can_mod,
-  },
+  lemmy_db_schema::utils::queries::selects::local_user_community_can_mod,
   lemmy_db_schema_file::schema::multi_community_follow,
 };
 
@@ -39,14 +35,6 @@ pub struct CommunityView {
     )
   )]
   pub can_mod: bool,
-  #[cfg_attr(feature = "full",
-    diesel(
-      select_expression = community_tags_fragment()
-    )
-  )]
-  /// This shows deleted tags (so that admins / mods can restore them), so you should filter for
-  /// deleted = false in the tag selection.
-  pub tags: CommunityTagsView,
 }
 
 #[skip_serializing_none]

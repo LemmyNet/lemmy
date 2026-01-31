@@ -27,7 +27,6 @@ use {
   diesel::{Queryable, Selectable},
   lemmy_db_schema::utils::queries::selects::{
     CreatorLocalHomeBanExpiresType,
-    community_tags_fragment,
     creator_ban_expires_from_community,
     creator_banned_from_community,
     creator_is_admin,
@@ -76,9 +75,6 @@ pub(crate) struct SearchCombinedViewInternal {
   #[diesel(select_expression = post_community_tags_fragment())]
   /// tags for this post
   pub tags: CommunityTagsView,
-  #[diesel(select_expression = community_tags_fragment())]
-  /// available tags in this community
-  pub community_tags: CommunityTagsView,
   #[diesel(select_expression = local_user_can_mod())]
   pub can_mod: bool,
   #[diesel(select_expression = creator_local_home_banned())]

@@ -18,6 +18,7 @@ use diesel::{
   QueryDsl,
   delete,
   deserialize::FromSql,
+  dsl::count_star,
   insert_into,
   pg::{Pg, PgValue},
   serialize::ToSql,
@@ -63,16 +64,47 @@ impl Crud for CommunityTag {
 }
 
 impl CommunityTag {
-  pub async fn read_for_community(
+  pub async fn list(
+    pool: &mut DbPool<'_>,
+    community_id: CommunityId,
+    is_mod_or_admin: bool,
+  ) -> LemmyResult<Vec<Self>> {
+    let conn = &mut get_conn(pool).await?;
+
+    let mut query = community_tag::table
+      .filter(community_tag::community_id.eq(community_id))
+      .into_boxed();
+
+    // Hide deleted  for non-admins or mods
+    if !is_mod_or_admin {
+      query = query.filter(community_tag::deleted.eq(false))
+    }
+
+    query
+      .load::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  /// List the tags for apub (hides deleted)
+  pub async fn list_apub(
     pool: &mut DbPool<'_>,
     community_id: CommunityId,
   ) -> LemmyResult<Vec<Self>> {
+    Self::list(pool, community_id, false).await
+  }
+
+  pub async fn count(pool: &mut DbPool<'_>, community_id: CommunityId) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
+
     community_tag::table
       .filter(community_tag::community_id.eq(community_id))
+      // Don't count the deleted ones
       .filter(community_tag::deleted.eq(false))
-      .load::<Self>(conn)
+      .select(count_star())
+      .first::<i64>(conn)
       .await
+      .map(usize::try_from)?
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
 

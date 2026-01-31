@@ -333,8 +333,7 @@ pub async fn update_apub_post_tags(
     .iter()
     .filter_map(ApubTag::community_tag_id)
     .collect::<HashSet<_>>();
-  let community_tags =
-    CommunityTag::read_for_community(&mut context.pool(), post.community_id).await?;
+  let community_tags = CommunityTag::list_apub(&mut context.pool(), post.community_id).await?;
   let post_tags = community_tags
     .into_iter()
     .filter(|t| post_tag_ap_ids.contains(&*t.ap_id.0))

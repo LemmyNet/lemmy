@@ -31,6 +31,7 @@ const MIN_LENGTH_BLOCKING_KEYWORD: usize = 3;
 const MAX_LENGTH_BLOCKING_KEYWORD: usize = 50;
 const ACTOR_NAME_MAX_LENGTH: usize = 20;
 const DISPLAY_NAME_MAX_LENGTH: usize = 50;
+const MAX_TAGS_COUNT: usize = 50;
 
 fn has_newline(name: &str) -> bool {
   name.contains('\n')
@@ -360,6 +361,14 @@ pub fn check_api_elements_count(len: usize) -> LemmyResult<()> {
   }
   Ok(())
 }
+
+pub fn check_max_tags_count(len: usize) -> LemmyResult<()> {
+  if len >= MAX_TAGS_COUNT {
+    Err(LemmyErrorType::TooManyItems)?
+  }
+  Ok(())
+}
+
 #[cfg(test)]
 mod tests {
 
