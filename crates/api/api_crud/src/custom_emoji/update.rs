@@ -13,7 +13,7 @@ use lemmy_db_views_local_user::LocalUserView;
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 
-pub async fn update_custom_emoji(
+pub async fn edit_custom_emoji(
   Json(data): Json<EditCustomEmoji>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,

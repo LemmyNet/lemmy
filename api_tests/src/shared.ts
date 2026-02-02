@@ -24,7 +24,7 @@ import {
   PersonView,
   UserBlockInstanceCommunitiesParams,
   ListNotifications,
-  NotificationDataType,
+  NotificationTypeFilter,
   PersonResponse,
   AdminAllowInstanceParams,
   BanFromCommunity,
@@ -403,7 +403,7 @@ export async function getUnreadCounts(
 
 export async function listNotifications(
   api: LemmyHttp,
-  type_?: NotificationDataType,
+  type_?: NotificationTypeFilter,
   unread_only: boolean = false,
 ): Promise<PagedResponse<NotificationView>> {
   let form: ListNotifications = {
@@ -601,11 +601,11 @@ export async function createCommunity(
   name_: string = randomString(10),
   visibility: CommunityVisibility = "public",
 ): Promise<CommunityResponse> {
-  let description = "a sample sidebar";
+  let sidebar = "a sample sidebar";
   let form: CreateCommunity = {
     name: name_,
     title: name_,
-    description,
+    sidebar,
     visibility,
   };
   return api.createCommunity(form);
@@ -1064,9 +1064,7 @@ export function assertCommunityFederation(
   expect(communityOne?.community.ap_id).toBe(communityTwo?.community.ap_id);
   expect(communityOne?.community.name).toBe(communityTwo?.community.name);
   expect(communityOne?.community.title).toBe(communityTwo?.community.title);
-  expect(communityOne?.community.description).toBe(
-    communityTwo?.community.description,
-  );
+  expect(communityOne?.community.sidebar).toBe(communityTwo?.community.sidebar);
   expect(communityOne?.community.icon).toBe(communityTwo?.community.icon);
   expect(communityOne?.community.banner).toBe(communityTwo?.community.banner);
   expect(communityOne?.community.published_at).toBe(

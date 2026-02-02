@@ -1,9 +1,9 @@
 pub use lemmy_db_schema::{
-  newtypes::{CommunityId, MultiCommunityId, TagId},
+  newtypes::{CommunityId, CommunityTagId, MultiCommunityId},
   source::{
     community::{Community, CommunityActions},
+    community_tag::{CommunityTag, CommunityTagsView},
     multi_community::{MultiCommunity, MultiCommunityFollow},
-    tag::{Tag, TagsView},
   },
 };
 pub use lemmy_db_schema_file::enums::CommunityVisibility;
@@ -14,6 +14,8 @@ pub use lemmy_db_views_community::{
     CommunityResponse,
     CreateMultiCommunity,
     CreateOrDeleteMultiCommunityEntry,
+    EditCommunityNotifications,
+    EditMultiCommunity,
     FollowMultiCommunity,
     GetCommunity,
     GetCommunityResponse,
@@ -22,8 +24,6 @@ pub use lemmy_db_views_community::{
     GetRandomCommunity,
     ListCommunities,
     ListMultiCommunities,
-    UpdateCommunityNotifications,
-    UpdateMultiCommunity,
   },
 };
 pub use lemmy_db_views_community_follower_approval::PendingFollowerView;
@@ -49,10 +49,10 @@ pub mod actions {
       DeleteCommunity,
       DeleteCommunityTag,
       EditCommunity,
+      EditCommunityTag,
       PurgeCommunity,
       RemoveCommunity,
       TransferCommunity,
-      UpdateCommunityTag,
     };
     pub use lemmy_db_views_community_follower::CommunityFollowerView;
     pub use lemmy_db_views_community_follower_approval::{

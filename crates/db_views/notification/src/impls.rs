@@ -9,7 +9,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  NotificationDataType,
+  NotificationTypeFilter,
   newtypes::NotificationId,
   source::{
     notification::{Notification, notification_keys},
@@ -17,10 +17,7 @@ use lemmy_db_schema::{
   },
   utils::{limit_fetch, queries::filters::filter_blocked},
 };
-use lemmy_db_schema_file::{
-  enums::NotificationType,
-  schema::{notification, person},
-};
+use lemmy_db_schema_file::schema::{notification, person};
 use lemmy_db_views_modlog::ModlogView;
 use lemmy_db_views_notification_sql::notification_joins;
 use lemmy_db_views_post::PostView;
@@ -112,7 +109,7 @@ impl PaginationCursorConversion for NotificationView {
 
 #[derive(Default)]
 pub struct NotificationQuery {
-  pub type_: Option<NotificationDataType>,
+  pub type_: Option<NotificationTypeFilter>,
   pub unread_only: Option<bool>,
   pub show_bot_accounts: Option<bool>,
   pub hide_modlog_names: Option<bool>,
@@ -162,20 +159,8 @@ impl NotificationQuery {
 
     if let Some(type_) = self.type_ {
       query = match type_ {
-        NotificationDataType::All => query,
-        NotificationDataType::Reply => query.filter(notification::kind.eq(NotificationType::Reply)),
-        NotificationDataType::Mention => {
-          query.filter(notification::kind.eq(NotificationType::Mention))
-        }
-        NotificationDataType::PrivateMessage => {
-          query.filter(notification::kind.eq(NotificationType::PrivateMessage))
-        }
-        NotificationDataType::Subscribed => {
-          query.filter(notification::kind.eq(NotificationType::Subscribed))
-        }
-        NotificationDataType::ModAction => {
-          query.filter(notification::kind.eq(NotificationType::ModAction))
-        }
+        NotificationTypeFilter::All => query,
+        NotificationTypeFilter::Other(kind) => query.filter(notification::kind.eq(kind)),
       }
     }
 
@@ -228,7 +213,7 @@ fn map_to_enum(v: NotificationViewInternal, hide_modlog_name: bool) -> Option<No
       community_actions: v.community_actions,
       person_actions: v.person_actions,
       comment_actions: v.comment_actions,
-      post_tags: v.post_tags,
+      tags: v.tags,
       creator_banned_from_community: v.creator_banned_from_community,
       creator_community_ban_expires_at: v.creator_community_ban_expires_at,
       creator_is_admin: v.creator_is_admin,
@@ -248,7 +233,7 @@ fn map_to_enum(v: NotificationViewInternal, hide_modlog_name: bool) -> Option<No
       community_actions: v.community_actions,
       post_actions: v.post_actions,
       person_actions: v.person_actions,
-      tags: v.post_tags,
+      tags: v.tags,
       creator_banned_from_community: v.creator_banned_from_community,
       creator_community_ban_expires_at: v.creator_community_ban_expires_at,
       creator_is_admin: v.creator_is_admin,

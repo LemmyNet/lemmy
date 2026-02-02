@@ -1,7 +1,7 @@
 use crate::PostView;
 use lemmy_db_schema::{
   PostFeatureType,
-  newtypes::{CommunityId, LanguageId, MultiCommunityId, PostId, TagId},
+  newtypes::{CommunityId, CommunityTagId, LanguageId, MultiCommunityId, PostId},
 };
 use lemmy_db_schema_file::enums::{ListingType, PostNotificationsMode, PostSortType};
 use lemmy_diesel_utils::{dburl::DbUrl, pagination::PaginationCursor};
@@ -27,7 +27,7 @@ pub struct CreatePost {
   pub language_id: Option<LanguageId>,
   /// Instead of fetching a thumbnail, use a custom one.
   pub custom_thumbnail: Option<String>,
-  pub tags: Option<Vec<TagId>>,
+  pub tags: Option<Vec<CommunityTagId>>,
   /// Time when this post should be scheduled. Null means publish immediately.
   pub scheduled_publish_time_at: Option<i64>,
 }
@@ -70,7 +70,7 @@ pub struct EditPost {
   pub custom_thumbnail: Option<String>,
   /// Time when this post should be scheduled. Null means publish immediately.
   pub scheduled_publish_time_at: Option<i64>,
-  pub tags: Option<Vec<TagId>>,
+  pub tags: Option<Vec<CommunityTagId>>,
 }
 
 #[skip_serializing_none]
@@ -81,7 +81,7 @@ pub struct EditPost {
 pub struct ModEditPost {
   pub post_id: PostId,
   pub nsfw: Option<bool>,
-  pub tags: Option<Vec<TagId>>,
+  pub tags: Option<Vec<CommunityTagId>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
@@ -98,7 +98,7 @@ pub struct FeaturePost {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Change notification settings for a post
-pub struct UpdatePostNotifications {
+pub struct EditPostNotifications {
   pub post_id: PostId,
   pub mode: PostNotificationsMode,
 }

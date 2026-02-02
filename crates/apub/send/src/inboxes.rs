@@ -280,7 +280,7 @@ mod tests {
     let site = Site {
       id: SiteId(1),
       name: "Test Site".to_string(),
-      description: None,
+      sidebar: None,
       published_at: Utc::now(),
       updated_at: None,
       icon: None,
@@ -403,7 +403,7 @@ mod tests {
     let site = Site {
       id: SiteId(1),
       name: "Test Site".to_string(),
-      description: None,
+      sidebar: None,
       published_at: Utc::now(),
       updated_at: None,
       icon: None,
@@ -520,7 +520,7 @@ mod tests {
     let site = Site {
       id: SiteId(1),
       name: "Test Site".to_string(),
-      description: None,
+      sidebar: None,
       published_at: Utc::now(),
       updated_at: None,
       icon: None,

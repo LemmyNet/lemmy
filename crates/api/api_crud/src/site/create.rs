@@ -57,12 +57,11 @@ pub async fn create_site(
 
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
-  let description =
-    process_markdown_opt(&data.description, &slur_regex, &url_blocklist, &context).await?;
+  let sidebar = process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context).await?;
 
   let site_form = SiteUpdateForm {
     name: Some(data.name.clone()),
-    description: diesel_string_update(description.as_deref()),
+    sidebar: diesel_string_update(sidebar.as_deref()),
     summary: diesel_string_update(data.summary.as_deref()),
     ap_id: Some(ap_id),
     last_refreshed_at: Some(Utc::now()),
@@ -166,8 +165,8 @@ fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> 
   site_default_post_listing_type_check(&create_site.default_post_listing_type)?;
 
   // Ensure that the sidebar has fewer than the max num characters...
-  if let Some(body) = &create_site.description {
-    is_valid_body_field(body, false)?;
+  if let Some(sidebar) = &create_site.sidebar {
+    is_valid_body_field(sidebar, false)?;
   }
 
   application_question_check(
@@ -330,7 +329,7 @@ mod tests {
         },
         &CreateSite {
           name: String::from("site_name"),
-          description: Some(String::new()),
+          sidebar: Some(String::new()),
           summary: Some(String::new()),
           application_question: Some(String::new()),
           private_instance: Some(false),

@@ -45,7 +45,7 @@ use lemmy_utils::{
   },
 };
 
-pub async fn update_site(
+pub async fn edit_site(
   Json(data): Json<EditSite>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
@@ -65,8 +65,8 @@ pub async fn update_site(
 
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
-  let description = diesel_string_update(
-    process_markdown_opt(&data.description, &slur_regex, &url_blocklist, &context)
+  let sidebar = diesel_string_update(
+    process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context)
       .await?
       .as_deref(),
   );
@@ -76,7 +76,7 @@ pub async fn update_site(
 
   let site_form = SiteUpdateForm {
     name: data.name.clone(),
-    description,
+    sidebar,
     summary: diesel_string_update(data.summary.as_deref()),
     content_warning: diesel_string_update(data.content_warning.as_deref()),
     updated_at: Some(Some(Utc::now())),
@@ -213,8 +213,8 @@ fn validate_update_payload(local_site: &LocalSite, edit_site: &EditSite) -> Lemm
   site_default_post_listing_type_check(&edit_site.default_post_listing_type)?;
 
   // Ensure that the sidebar has fewer than the max num characters...
-  if let Some(body) = &edit_site.description {
-    is_valid_body_field(body, false)?;
+  if let Some(sidebar) = &edit_site.sidebar {
+    is_valid_body_field(sidebar, false)?;
   }
 
   application_question_check(
@@ -351,7 +351,7 @@ mod tests {
         },
         &EditSite {
           name: Some(String::from("site_name")),
-          description: Some(String::new()),
+          sidebar: Some(String::new()),
           summary: Some(String::new()),
           application_question: Some(String::new()),
           private_instance: Some(false),

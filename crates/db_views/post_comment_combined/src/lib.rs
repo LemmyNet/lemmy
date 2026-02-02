@@ -2,10 +2,10 @@ use chrono::{DateTime, Utc};
 use lemmy_db_schema::source::{
   comment::{Comment, CommentActions},
   community::{Community, CommunityActions},
+  community_tag::CommunityTagsView,
   images::ImageDetails,
   person::{Person, PersonActions},
   post::{Post, PostActions},
-  tag::TagsView,
 };
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_post::PostView;
@@ -23,7 +23,7 @@ use {
     creator_local_home_community_ban_expires,
     creator_local_home_community_banned,
     local_user_can_mod,
-    post_tags_fragment,
+    post_community_tags_fragment,
   },
 };
 
@@ -52,8 +52,8 @@ pub struct PostCommentCombinedViewInternal {
   pub image_details: Option<ImageDetails>,
   #[diesel(select_expression = creator_is_admin())]
   pub item_creator_is_admin: bool,
-  #[diesel(select_expression = post_tags_fragment())]
-  pub post_tags: TagsView,
+  #[diesel(select_expression = post_community_tags_fragment())]
+  pub tags: CommunityTagsView,
   #[diesel(select_expression = local_user_can_mod())]
   pub can_mod: bool,
   #[diesel(select_expression = creator_local_home_community_banned())]
@@ -98,7 +98,7 @@ impl InternalToCombinedView for PostCommentCombinedViewInternal {
         comment_actions: v.comment_actions,
         person_actions: v.person_actions,
         creator_is_admin: v.item_creator_is_admin,
-        post_tags: v.post_tags,
+        tags: v.tags,
         can_mod: v.can_mod,
         creator_banned: v.creator_banned,
         creator_ban_expires_at: v.creator_ban_expires_at,
@@ -116,7 +116,7 @@ impl InternalToCombinedView for PostCommentCombinedViewInternal {
         post_actions: v.post_actions,
         person_actions: v.person_actions,
         creator_is_admin: v.item_creator_is_admin,
-        tags: v.post_tags,
+        tags: v.tags,
         can_mod: v.can_mod,
         creator_banned: v.creator_banned,
         creator_ban_expires_at: v.creator_ban_expires_at,

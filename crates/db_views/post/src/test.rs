@@ -20,6 +20,7 @@ use lemmy_db_schema::{
       CommunityPersonBanForm,
       CommunityUpdateForm,
     },
+    community_tag::{CommunityTag, CommunityTagInsertForm, PostCommunityTag},
     instance::{
       Instance,
       InstanceActions,
@@ -35,7 +36,6 @@ use lemmy_db_schema::{
     person::{Person, PersonActions, PersonBlockForm, PersonInsertForm, PersonNoteForm},
     post::{Post, PostActions, PostHideForm, PostInsertForm, PostLikeForm, PostUpdateForm},
     site::Site,
-    tag::{PostTag, Tag, TagInsertForm},
   },
   test_data::TestData,
   traits::{Bannable, Blockable, Followable, Likeable},
@@ -45,6 +45,7 @@ use lemmy_db_schema_file::enums::{
   CommunityVisibility,
   ListingType,
   PostSortType,
+  TagColor,
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_diesel_utils::{
@@ -82,8 +83,8 @@ struct Data {
   post: Post,
   bot_post: Post,
   post_with_tags: Post,
-  tag_1: Tag,
-  tag_2: Tag,
+  tag_1: CommunityTag,
+  tag_2: CommunityTag,
   site: Site,
 }
 
@@ -167,27 +168,29 @@ impl Data {
     .await?;
 
     // Two community post tags
-    let tag_1 = Tag::create(
+    let tag_1 = CommunityTag::create(
       pool,
-      &TagInsertForm {
+      &CommunityTagInsertForm {
         ap_id: Url::parse(&format!("{}/tags/test_tag1", community.ap_id))?.into(),
         name: "Test Tag 1".into(),
         display_name: None,
-        description: None,
+        summary: None,
         community_id: community.id,
         deleted: Some(false),
+        color: Some(TagColor::Color01),
       },
     )
     .await?;
-    let tag_2 = Tag::create(
+    let tag_2 = CommunityTag::create(
       pool,
-      &TagInsertForm {
+      &CommunityTagInsertForm {
         ap_id: Url::parse(&format!("{}/tags/test_tag2", community.ap_id))?.into(),
         name: "Test Tag 2".into(),
         display_name: None,
-        description: None,
+        summary: None,
         community_id: community.id,
         deleted: Some(false),
+        color: Some(TagColor::Color02),
       },
     )
     .await?;
@@ -218,7 +221,7 @@ impl Data {
     };
 
     let post_with_tags = Post::create(pool, &new_post).await?;
-    PostTag::update(pool, &post_with_tags, &[tag_1.id, tag_2.id]).await?;
+    PostCommunityTag::update(pool, &post_with_tags, &[tag_1.id, tag_2.id]).await?;
 
     let tegan = LocalUserView {
       local_user: inserted_tegan_local_user,
@@ -2226,6 +2229,8 @@ async fn post_tags_present(data: &mut Data) -> LemmyResult<()> {
   assert_eq!(2, post_view.tags.0.len());
   assert_eq!(data.tag_1.name, post_view.tags.0[0].name);
   assert_eq!(data.tag_2.name, post_view.tags.0[1].name);
+  assert_eq!(data.tag_1.color, post_view.tags.0[0].color);
+  assert_eq!(data.tag_2.color, post_view.tags.0[1].color);
 
   let all_posts = data.default_post_query().list(&data.site, pool).await?;
   assert_eq!(2, all_posts[0].tags.0.len()); // post with tags

@@ -33,7 +33,7 @@
     "eslint-plugin-prettier": "^5.5.0",
     "jest": "^30.0.0",
     "joi": "^18.0.0",
-    "lemmy-js-client": "1.0.0-community-sidebar-summary.1",
+    "lemmy-js-client": "1.0.0-rename-community-tag.0",
     "lemmy-js-client-019": "npm:lemmy-js-client@0.19.9",
     "prettier": "^3.5.3",
     "ts-jest": "^29.4.0",

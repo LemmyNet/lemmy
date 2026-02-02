@@ -1,10 +1,10 @@
 use chrono::{DateTime, Utc};
 use lemmy_db_schema::source::{
   community::{Community, CommunityActions},
+  community_tag::CommunityTagsView,
   images::ImageDetails,
   person::{Person, PersonActions},
   post::{Post, PostActions},
-  tag::TagsView,
 };
 use serde::{Deserialize, Serialize};
 #[cfg(test)]
@@ -24,8 +24,8 @@ use {
     creator_local_home_ban_expires,
     creator_local_home_community_banned,
     local_user_can_mod_post,
+    post_community_tags_fragment,
     post_creator_is_admin,
-    post_tags_fragment,
   },
 };
 
@@ -66,10 +66,10 @@ pub struct PostView {
   pub creator_is_admin: bool,
   #[cfg_attr(feature = "full",
     diesel(
-      select_expression = post_tags_fragment()
+      select_expression = post_community_tags_fragment()
     )
   )]
-  pub tags: TagsView,
+  pub tags: CommunityTagsView,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = local_user_can_mod_post()
