@@ -629,6 +629,15 @@ fn create_modlog_items(modlog: Vec<ModlogView>, settings: &Settings) -> LemmyRes
           ),
           settings,
         ),
+        ModlogKind::ModWarn => build_modlog_item(
+          r,
+          &modlog_url,
+          format!(
+            "Warned user {} about comment {}",
+            &&target_person_name, &&target_comment_content
+          ),
+          settings,
+        ),
       }
     })
     .collect::<LemmyResult<Vec<Item>>>()?;

@@ -6,6 +6,7 @@ use lemmy_api::{
     list_comment_likes::list_comment_likes,
     lock::lock_comment,
     save::save_comment,
+    warning::create_warning,
   },
   community::{
     add_mod::add_mod_to_community,
@@ -313,6 +314,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("/lock", post().to(lock_comment))
           .route("/list", get().to(list_comments))
           .route("/list/slim", get().to(list_comments_slim))
+          .route("/warning", post().to(create_warning))
           .route("/report", post().to(create_comment_report))
           .route("/report/resolve", put().to(resolve_comment_report)),
       )
