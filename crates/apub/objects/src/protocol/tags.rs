@@ -2,7 +2,7 @@ use crate::objects::person::ApubPerson;
 use activitypub_federation::{fetch::object_id::ObjectId, kinds::link::MentionType};
 use lemmy_db_schema::{
   newtypes::CommunityId,
-  source::tag::{Tag, TagInsertForm},
+  source::community_tag::{CommunityTag, CommunityTagInsertForm},
 };
 use lemmy_db_schema_file::enums::TagColor;
 use serde::{Deserialize, Serialize};
@@ -16,7 +16,7 @@ use url::Url;
 #[serde(untagged)]
 pub enum ApubTag {
   Hashtag(Hashtag),
-  CommunityTag(CommunityTag),
+  CommunityTag(ApubCommunityTag),
   Mention(Mention),
   Unknown(Value),
 }
@@ -69,7 +69,7 @@ enum CommunityTagType {
 /// A tag that a community owns, that is added to a post.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
-pub struct CommunityTag {
+pub struct ApubCommunityTag {
   #[serde(rename = "type")]
   kind: CommunityTagType,
   pub id: Url,
@@ -79,9 +79,9 @@ pub struct CommunityTag {
   pub color: Option<TagColor>,
 }
 
-impl CommunityTag {
-  pub fn to_json(tag: Tag) -> Self {
-    CommunityTag {
+impl ApubCommunityTag {
+  pub fn to_json(tag: CommunityTag) -> Self {
+    ApubCommunityTag {
       kind: Default::default(),
       id: tag.ap_id.into(),
       name: tag.display_name,
@@ -91,8 +91,8 @@ impl CommunityTag {
     }
   }
 
-  pub fn to_insert_form(&self, community_id: CommunityId) -> TagInsertForm {
-    TagInsertForm {
+  pub fn to_insert_form(&self, community_id: CommunityId) -> CommunityTagInsertForm {
+    CommunityTagInsertForm {
       ap_id: self.id.clone().into(),
       name: self.preferred_username.clone(),
       display_name: self.name.clone(),

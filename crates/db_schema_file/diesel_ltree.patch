@@ -1,11 +1,8 @@
 diff --git a/crates/db_schema_file/src/schema.rs b/crates/db_schema_file/src/schema.rs
-index 6ad3e103b..2ce0b554f 100644
+index 2a2664846..31e493f2d 100644
 --- a/crates/db_schema_file/src/schema.rs
 +++ b/crates/db_schema_file/src/schema.rs
-@@ -160,13 +160,13 @@ diesel::table! {
-         published_at -> Timestamptz,
-     }
- }
+@@ -76,7 +76,7 @@ diesel::table! {
  
  diesel::table! {
      use diesel::sql_types::*;
@@ -14,16 +11,10 @@ index 6ad3e103b..2ce0b554f 100644
  
      comment (id) {
          id -> Int4,
-         creator_id -> Int4,
-         post_id -> Int4,
-         content -> Text,
-@@ -1333,8 +1333,10 @@ diesel::allow_tables_to_appear_in_same_query!(
-   registration_application,
-   report_combined,
+@@ -1088,5 +1088,7 @@ diesel::allow_tables_to_appear_in_same_query!(
    search_combined,
    site,
    site_language,
-   tag,
 +  person_actions,
 +  image_details,
  );

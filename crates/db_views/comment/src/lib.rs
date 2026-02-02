@@ -2,9 +2,9 @@ use chrono::{DateTime, Utc};
 use lemmy_db_schema::source::{
   comment::{Comment, CommentActions},
   community::{Community, CommunityActions},
+  community_tag::CommunityTagsView,
   person::{Person, PersonActions},
   post::Post,
-  tag::TagsView,
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -21,7 +21,7 @@ use {
     creator_local_home_community_ban_expires,
     creator_local_home_community_banned,
     local_user_can_mod_comment,
-    post_tags_fragment,
+    post_community_tags_fragment,
   },
 };
 
@@ -63,10 +63,10 @@ pub struct CommentView {
   pub creator_is_admin: bool,
   #[cfg_attr(feature = "full",
     diesel(
-      select_expression = post_tags_fragment()
+      select_expression = post_community_tags_fragment()
     )
   )]
-  pub post_tags: TagsView,
+  pub tags: CommunityTagsView,
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = local_user_can_mod_comment()

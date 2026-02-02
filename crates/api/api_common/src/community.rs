@@ -1,9 +1,9 @@
 pub use lemmy_db_schema::{
-  newtypes::{CommunityId, MultiCommunityId, TagId},
+  newtypes::{CommunityId, CommunityTagId, MultiCommunityId},
   source::{
     community::{Community, CommunityActions},
+    community_tag::{CommunityTag, CommunityTagsView},
     multi_community::{MultiCommunity, MultiCommunityFollow},
-    tag::{Tag, TagsView},
   },
 };
 pub use lemmy_db_schema_file::enums::CommunityVisibility;

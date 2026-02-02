@@ -1,8 +1,8 @@
 use lemmy_db_schema::source::{
   community::{Community, CommunityActions},
+  community_tag::CommunityTagsView,
   multi_community::MultiCommunity,
   person::Person,
-  tag::TagsView,
 };
 use lemmy_db_schema_file::enums::CommunityFollowerState;
 use serde::{Deserialize, Serialize};
@@ -11,7 +11,7 @@ use serde_with::skip_serializing_none;
 use {
   diesel::{NullableExpressionMethods, Queryable, Selectable},
   lemmy_db_schema::utils::queries::selects::{
-    community_post_tags_fragment,
+    community_tags_fragment,
     local_user_community_can_mod,
   },
   lemmy_db_schema_file::schema::multi_community_follow,
@@ -41,10 +41,10 @@ pub struct CommunityView {
   pub can_mod: bool,
   #[cfg_attr(feature = "full",
     diesel(
-      select_expression = community_post_tags_fragment()
+      select_expression = community_tags_fragment()
     )
   )]
-  pub post_tags: TagsView,
+  pub tags: CommunityTagsView,
 }
 
 #[skip_serializing_none]

@@ -3,7 +3,7 @@ use lemmy_db_schema::{
   CommunitySortType,
   MultiCommunityListingType,
   MultiCommunitySortType,
-  newtypes::{CommunityId, LanguageId, MultiCommunityId, TagId},
+  newtypes::{CommunityId, CommunityTagId, LanguageId, MultiCommunityId},
   source::site::Site,
 };
 use lemmy_db_schema_file::{
@@ -345,7 +345,7 @@ pub struct CreateCommunityTag {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Make changes to a community tag
 pub struct EditCommunityTag {
-  pub tag_id: TagId,
+  pub tag_id: CommunityTagId,
   pub display_name: Option<String>,
   pub summary: Option<String>,
   pub color: Option<TagColor>,
@@ -357,6 +357,6 @@ pub struct EditCommunityTag {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Delete a community tag.
 pub struct DeleteCommunityTag {
-  pub tag_id: TagId,
+  pub tag_id: CommunityTagId,
   pub delete: bool,
 }
