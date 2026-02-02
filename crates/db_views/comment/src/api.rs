@@ -126,9 +126,17 @@ pub struct RemoveComment {
   pub comment_id: CommentId,
   pub removed: bool,
   pub reason: String,
-  /// Setting this will override whatever `removed` was set to,
-  /// leave as null to act just on the comment itself.
-  pub remove_children: Option<bool>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+/// Remove a comment and all its children (only doable by mods).
+pub struct RemoveCommentWithChildren {
+  pub comment_id: CommentId,
+  pub removed: bool,
+  pub reason: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]

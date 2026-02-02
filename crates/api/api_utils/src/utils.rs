@@ -30,8 +30,7 @@ use lemmy_db_schema::{
   traits::Likeable,
 };
 use lemmy_db_schema_file::{
-  InstanceId,
-  PersonId,
+  InstanceId, PersonId,
   enums::{FederationMode, RegistrationMode},
 };
 use lemmy_db_views_community_follower_approval::PendingFollowerView;
@@ -41,16 +40,9 @@ use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::{connection::DbPool, dburl::DbUrl, traits::Crud};
 use lemmy_utils::{
-  CACHE_DURATION_FEDERATION,
-  CacheLock,
-  MAX_COMMENT_DEPTH_LIMIT,
+  CACHE_DURATION_FEDERATION, CacheLock, MAX_COMMENT_DEPTH_LIMIT,
   error::{
-    LemmyError,
-    LemmyErrorExt,
-    LemmyErrorExt2,
-    LemmyErrorType,
-    LemmyResult,
-    UntranslatedError,
+    LemmyError, LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult, UntranslatedError,
   },
   rate_limit::{ActionType, BucketConfig},
   settings::{SETTINGS, structs::PictrsImageMode},
@@ -718,9 +710,13 @@ pub async fn remove_or_restore_comment_thread(
   reason: &str,
   context: &LemmyContext,
 ) -> LemmyResult<Vec<Comment>> {
-  let removed_comments =
+  let removed_comments: Vec<Comment> =
     Comment::update_removed_for_comment_and_children(&mut context.pool(), &comment.path, removed)
-      .await?;
+      .await?
+      // Filter out deleted comments here so their content doesn't show up in the modlog.
+      .into_iter()
+      .filter(|c| !c.deleted)
+      .collect();
 
   let actions = create_modlog_entries_for_removed_or_restored_comments(
     &mut context.pool(),
@@ -743,8 +739,13 @@ pub async fn remove_or_restore_post_comments(
   reason: &str,
   context: &LemmyContext,
 ) -> LemmyResult<Vec<Comment>> {
-  let removed_comments =
-    Comment::update_removed_for_post(&mut context.pool(), post.id, removed).await?;
+  let removed_comments: Vec<Comment> =
+    Comment::update_removed_for_post(&mut context.pool(), post.id, removed)
+      .await?
+      // Filter out deleted comments here so their content doesn't show up in the modlog.
+      .into_iter()
+      .filter(|c| !c.deleted)
+      .collect();
 
   let actions = create_modlog_entries_for_removed_or_restored_comments(
     &mut context.pool(),

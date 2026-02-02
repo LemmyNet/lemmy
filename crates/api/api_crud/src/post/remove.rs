@@ -8,8 +8,8 @@ use lemmy_api_utils::{
   utils::{check_community_mod_action, remove_or_restore_post_comments},
 };
 use lemmy_db_schema::{
+  newtypes::PostId,
   source::{
-    comment::Comment,
     comment_report::CommentReport,
     community::Community,
     local_user::LocalUser,
@@ -20,17 +20,16 @@ use lemmy_db_schema::{
   traits::Reportable,
 };
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_post::api::{PostResponse, RemovePost};
+use lemmy_db_views_post::api::{PostResponse, RemovePost, RemovePostWithChildren};
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 
-pub async fn remove_post(
-  Json(data): Json<RemovePost>,
-  context: Data<LemmyContext>,
-  local_user_view: LocalUserView,
-) -> LemmyResult<Json<PostResponse>> {
-  let post_id = data.post_id;
-
+async fn do_remove(
+  context: &Data<LemmyContext>,
+  post_id: PostId,
+  removed: bool,
+  local_user_view: &LocalUserView,
+) -> LemmyResult<(Post, Community)> {
   // We cannot use PostView to avoid a database read here, as it doesn't return removed items
   // by default. So we would have to pass in `is_mod_or_admin`, but that is impossible without
   // knowing which community the post belongs to.
@@ -48,8 +47,7 @@ pub async fn remove_post(
   .await?;
 
   // Update the post
-  let post_id = data.post_id;
-  let removed = data.remove_children.unwrap_or(data.removed);
+  let post_id = post_id;
   let post = Post::update(
     &mut context.pool(),
     post_id,
@@ -69,30 +67,63 @@ pub async fn remove_post(
   let action = Modlog::create(&mut context.pool(), &[form]).await?;
   notify_mod_action(action, context.app_data());
 
-  if let Some(remove_children) = data.remove_children {
-    remove_or_restore_post_comments(
-      &post,
-      local_user_view.person.id,
-      remove_children,
-      &data.reason,
-      &context,
-    )
-    .await?;
+  Ok((post, community))
+}
 
-    CommentReport::resolve_all_for_post(&mut context.pool(), post.id, local_user_view.person.id)
-      .await?;
-  }
+pub async fn remove_post(
+  Json(data): Json<RemovePost>,
+  context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
+) -> LemmyResult<Json<PostResponse>> {
+  let post_id = data.post_id;
+
+  let (post, community) = do_remove(&context, post_id, data.removed, &local_user_view).await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::RemovePost {
       post,
       moderator: local_user_view.person.clone(),
       reason: data.reason.clone(),
-      removed,
-      with_replies: data.remove_children,
+      removed: data.removed,
+      with_replies: None,
     },
     &context,
   )?;
 
-  build_post_response(&context, orig_post.community_id, local_user_view, post_id).await
+  build_post_response(&context, community.id, local_user_view, post_id).await
+}
+
+pub async fn remove_post_with_children(
+  Json(data): Json<RemovePostWithChildren>,
+  context: Data<LemmyContext>,
+  local_user_view: LocalUserView,
+) -> LemmyResult<Json<PostResponse>> {
+  let post_id = data.post_id;
+
+  let (post, community) = do_remove(&context, post_id, data.removed, &local_user_view).await?;
+
+  remove_or_restore_post_comments(
+    &post,
+    local_user_view.person.id,
+    data.removed,
+    &data.reason,
+    &context,
+  )
+  .await?;
+
+  CommentReport::resolve_all_for_post(&mut context.pool(), post.id, local_user_view.person.id)
+    .await?;
+
+  ActivityChannel::submit_activity(
+    SendActivityData::RemovePost {
+      post,
+      moderator: local_user_view.person.clone(),
+      reason: data.reason.clone(),
+      removed: data.removed,
+      with_replies: Some(removed),
+    },
+    &context,
+  )?;
+
+  build_post_response(&context, community.id, local_user_view, post_id).await
 }
