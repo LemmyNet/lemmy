@@ -26,7 +26,7 @@ pub async fn edit_multi_community(
 
   let form = MultiCommunityUpdateForm {
     title: diesel_string_update(data.title.as_deref()),
-    description: diesel_string_update(data.description.as_deref()),
+    summary: diesel_string_update(data.summary.as_deref()),
     deleted: data.deleted,
     updated_at: Some(Utc::now()),
   };

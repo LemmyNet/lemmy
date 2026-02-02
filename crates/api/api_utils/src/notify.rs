@@ -379,7 +379,7 @@ mod tests {
     notify::{NotifyData, notify_private_message_internal},
   };
   use lemmy_db_schema::{
-    NotificationDataType,
+    NotificationTypeFilter,
     assert_length,
     source::{
       comment::{Comment, CommentInsertForm},
@@ -678,7 +678,7 @@ mod tests {
 
     // Test the type filter
     let sara_inbox_mentions_only = NotificationQuery {
-      type_: Some(NotificationDataType::Mention),
+      type_: Some(NotificationTypeFilter::Other(NotificationType::Mention)),
       ..Default::default()
     }
     .list(pool, &data.sara.person)

@@ -199,5 +199,5 @@ pub struct MultiCommunityId(pub i32);
 #[cfg_attr(feature = "full", derive(DieselNewType))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// The internal tag id.
-pub struct TagId(pub i32);
+/// The community tag id
+pub struct CommunityTagId(pub i32);

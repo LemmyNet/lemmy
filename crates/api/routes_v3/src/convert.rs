@@ -573,7 +573,7 @@ pub(crate) fn convert_site(site: Site) -> SiteV3 {
   let Site {
     id,
     name,
-    description: sidebar,
+    sidebar,
     published_at,
     updated_at,
     icon,

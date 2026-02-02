@@ -732,7 +732,7 @@ mod tests {
       id: inserted_community.id,
       name: "TIL".into(),
       title: "nada".to_owned(),
-      description: None,
+      sidebar: None,
       summary: None,
       nsfw: false,
       removed: false,

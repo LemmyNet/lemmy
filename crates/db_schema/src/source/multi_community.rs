@@ -33,7 +33,7 @@ pub struct MultiCommunity {
   pub instance_id: InstanceId,
   pub name: String,
   pub title: Option<String>,
-  pub description: Option<String>,
+  pub summary: Option<String>,
   pub local: bool,
   pub deleted: bool,
   pub ap_id: DbUrl,
@@ -69,7 +69,7 @@ pub struct MultiCommunityInsertForm {
   #[new(default)]
   pub title: Option<String>,
   #[new(default)]
-  pub description: Option<String>,
+  pub summary: Option<String>,
   #[new(default)]
   pub last_refreshed_at: Option<DateTime<Utc>>,
   #[new(default)]
@@ -85,7 +85,7 @@ pub struct MultiCommunityInsertForm {
 #[cfg_attr(feature = "full", diesel(table_name = multi_community))]
 pub struct MultiCommunityUpdateForm {
   pub title: Option<Option<String>>,
-  pub description: Option<Option<String>>,
+  pub summary: Option<Option<String>>,
   pub deleted: Option<bool>,
   pub updated_at: Option<DateTime<Utc>>,
 }

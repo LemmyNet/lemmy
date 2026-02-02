@@ -1,9 +1,10 @@
 use chrono::{DateTime, Utc};
 use lemmy_db_schema::{
-  NotificationDataType,
+  NotificationTypeFilter,
   source::{
     comment::{Comment, CommentActions},
     community::{Community, CommunityActions},
+    community_tag::CommunityTagsView,
     images::ImageDetails,
     instance::Instance,
     modlog::Modlog,
@@ -11,7 +12,6 @@ use lemmy_db_schema::{
     person::{Person, PersonActions},
     post::{Post, PostActions},
     private_message::PrivateMessage,
-    tag::TagsView,
   },
 };
 use lemmy_db_views_comment::CommentView;
@@ -38,7 +38,7 @@ use {
       creator_ban_expires_from_community,
       creator_banned_from_community,
       person1_select,
-      post_tags_fragment,
+      post_community_tags_fragment,
     },
   },
 };
@@ -85,8 +85,8 @@ struct NotificationViewInternal {
   comment_actions: Option<CommentActions>,
   #[diesel(embed)]
   modlog: Option<Modlog>,
-  #[diesel(select_expression = post_tags_fragment())]
-  post_tags: TagsView,
+  #[diesel(select_expression = post_community_tags_fragment())]
+  tags: CommunityTagsView,
   #[diesel(select_expression = creator_is_admin())]
   creator_is_admin: bool,
   #[diesel(select_expression = local_user_can_mod())]
@@ -131,7 +131,7 @@ pub enum NotificationData {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Get your inbox (replies, comment mentions, post mentions, and messages)
 pub struct ListNotifications {
-  pub type_: Option<NotificationDataType>,
+  pub type_: Option<NotificationTypeFilter>,
   pub unread_only: Option<bool>,
   pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,

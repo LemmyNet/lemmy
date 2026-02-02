@@ -20,7 +20,7 @@ pub struct Site {
   pub id: SiteId,
   pub name: String,
   /// A sidebar for the site in markdown.
-  pub description: Option<String>,
+  pub sidebar: Option<String>,
   pub published_at: DateTime<Utc>,
   pub updated_at: Option<DateTime<Utc>>,
   /// An icon URL.
@@ -52,7 +52,7 @@ pub struct SiteInsertForm {
   pub name: String,
   pub instance_id: InstanceId,
   #[new(default)]
-  pub description: Option<String>,
+  pub sidebar: Option<String>,
   #[new(default)]
   pub updated_at: Option<DateTime<Utc>>,
   #[new(default)]
@@ -80,7 +80,7 @@ pub struct SiteInsertForm {
 #[cfg_attr(feature = "full", diesel(table_name = site))]
 pub struct SiteUpdateForm {
   pub name: Option<String>,
-  pub description: Option<Option<String>>,
+  pub sidebar: Option<Option<String>>,
   pub updated_at: Option<Option<DateTime<Utc>>>,
   // when you want to null out a column, you have to send Some(None)), since sending None means you
   // just don't want to update that column.

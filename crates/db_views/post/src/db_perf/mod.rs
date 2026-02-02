@@ -183,7 +183,7 @@ fn site() -> LemmyResult<Site> {
   Ok(Site {
     id: Default::default(),
     name: String::new(),
-    description: None,
+    sidebar: None,
     published_at: Default::default(),
     updated_at: None,
     icon: None,

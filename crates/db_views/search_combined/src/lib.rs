@@ -7,11 +7,11 @@ use lemmy_db_schema::{
     combined::search::SearchCombined,
     comment::{Comment, CommentActions},
     community::{Community, CommunityActions},
+    community_tag::CommunityTagsView,
     images::ImageDetails,
     multi_community::MultiCommunity,
     person::{Person, PersonActions},
     post::{Post, PostActions},
-    tag::TagsView,
   },
 };
 use lemmy_db_schema_file::{PersonId, enums::ListingType};
@@ -27,7 +27,7 @@ use {
   diesel::{Queryable, Selectable},
   lemmy_db_schema::utils::queries::selects::{
     CreatorLocalHomeBanExpiresType,
-    community_post_tags_fragment,
+    community_tags_fragment,
     creator_ban_expires_from_community,
     creator_banned_from_community,
     creator_is_admin,
@@ -35,7 +35,7 @@ use {
     creator_local_home_ban_expires,
     creator_local_home_banned,
     local_user_can_mod,
-    post_tags_fragment,
+    post_community_tags_fragment,
   },
   lemmy_db_views_local_user::LocalUserView,
 };
@@ -73,12 +73,12 @@ pub(crate) struct SearchCombinedViewInternal {
   pub image_details: Option<ImageDetails>,
   #[diesel(select_expression = creator_is_admin())]
   pub item_creator_is_admin: bool,
-  #[diesel(select_expression = post_tags_fragment())]
-  /// tags of this post
-  pub post_tags: TagsView,
-  #[diesel(select_expression = community_post_tags_fragment())]
+  #[diesel(select_expression = post_community_tags_fragment())]
+  /// tags for this post
+  pub tags: CommunityTagsView,
+  #[diesel(select_expression = community_tags_fragment())]
   /// available tags in this community
-  pub community_post_tags: TagsView,
+  pub community_tags: CommunityTagsView,
   #[diesel(select_expression = local_user_can_mod())]
   pub can_mod: bool,
   #[diesel(select_expression = creator_local_home_banned())]
