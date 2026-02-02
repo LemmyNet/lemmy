@@ -28,6 +28,7 @@ async fn do_remove(
   context: &Data<LemmyContext>,
   post_id: PostId,
   removed: bool,
+  reason: &str,
   local_user_view: &LocalUserView,
 ) -> LemmyResult<(Post, Community)> {
   // We cannot use PostView to avoid a database read here, as it doesn't return removed items
@@ -62,8 +63,7 @@ async fn do_remove(
     .await?;
 
   // Mod tables
-  let form =
-    ModlogInsertForm::mod_remove_post(local_user_view.person.id, &post, removed, &data.reason);
+  let form = ModlogInsertForm::mod_remove_post(local_user_view.person.id, &post, removed, reason);
   let action = Modlog::create(&mut context.pool(), &[form]).await?;
   notify_mod_action(action, context.app_data());
 
@@ -77,7 +77,14 @@ pub async fn remove_post(
 ) -> LemmyResult<Json<PostResponse>> {
   let post_id = data.post_id;
 
-  let (post, community) = do_remove(&context, post_id, data.removed, &local_user_view).await?;
+  let (post, community) = do_remove(
+    &context,
+    post_id,
+    data.removed,
+    &data.reason,
+    &local_user_view,
+  )
+  .await?;
 
   ActivityChannel::submit_activity(
     SendActivityData::RemovePost {
@@ -100,7 +107,14 @@ pub async fn remove_post_with_children(
 ) -> LemmyResult<Json<PostResponse>> {
   let post_id = data.post_id;
 
-  let (post, community) = do_remove(&context, post_id, data.removed, &local_user_view).await?;
+  let (post, community) = do_remove(
+    &context,
+    post_id,
+    data.removed,
+    &data.reason,
+    &local_user_view,
+  )
+  .await?;
 
   remove_or_restore_post_comments(
     &post,
@@ -120,7 +134,7 @@ pub async fn remove_post_with_children(
       moderator: local_user_view.person.clone(),
       reason: data.reason.clone(),
       removed: data.removed,
-      with_replies: Some(removed),
+      with_replies: Some(data.removed),
     },
     &context,
   )?;
