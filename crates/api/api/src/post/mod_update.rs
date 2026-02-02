@@ -53,7 +53,7 @@ pub async fn mod_edit_post(
     updated_at: Some(Some(Utc::now())),
     ..Default::default()
   };
-  post_form = plugin_hook_before("local_post_after_vote", post_form).await?;
+  post_form = plugin_hook_before("local_post_before_vote", post_form).await?;
 
   let post_id = data.post_id;
   let updated_post = Post::update(&mut context.pool(), post_id, &post_form).await?;
