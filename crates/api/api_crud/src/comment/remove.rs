@@ -62,7 +62,7 @@ pub async fn remove_comment(
   }
 
   // Do the remove
-    let removed = data.removed;
+  let removed = data.removed;
   let updated_comment = Comment::update(
     &mut context.pool(),
     comment_id,
@@ -71,13 +71,9 @@ pub async fn remove_comment(
       ..Default::default()
     },
   )
-    .await?;
+  .await?;
 
-  CommentReport::resolve_all_for_object(
-    &mut context.pool(),
-    comment_id,
-    local_user_view.person.id,
-  )
+  CommentReport::resolve_all_for_object(&mut context.pool(), comment_id, local_user_view.person.id)
     .await?;
 
   // Mod tables
@@ -110,6 +106,6 @@ pub async fn remove_comment(
       Some(local_user_view),
       local_instance_id,
     )
-      .await?,
+    .await?,
   ))
 }

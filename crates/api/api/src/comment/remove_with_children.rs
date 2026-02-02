@@ -6,10 +6,7 @@ use lemmy_api_utils::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::{check_community_mod_action, remove_or_restore_comment_thread},
 };
-use lemmy_db_schema::source::{
-    comment_report::CommentReport,
-    local_user::LocalUser,
-  };
+use lemmy_db_schema::source::{comment_report::CommentReport, local_user::LocalUser};
 use lemmy_db_views_comment::{
   CommentView,
   api::{CommentResponse, RemoveCommentWithChildren},

@@ -30,7 +30,8 @@ use lemmy_db_schema::{
   traits::Likeable,
 };
 use lemmy_db_schema_file::{
-  InstanceId, PersonId,
+  InstanceId,
+  PersonId,
   enums::{FederationMode, RegistrationMode},
 };
 use lemmy_db_views_community_follower_approval::PendingFollowerView;
@@ -40,9 +41,16 @@ use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::{connection::DbPool, dburl::DbUrl, traits::Crud};
 use lemmy_utils::{
-  CACHE_DURATION_FEDERATION, CacheLock, MAX_COMMENT_DEPTH_LIMIT,
+  CACHE_DURATION_FEDERATION,
+  CacheLock,
+  MAX_COMMENT_DEPTH_LIMIT,
   error::{
-    LemmyError, LemmyErrorExt, LemmyErrorExt2, LemmyErrorType, LemmyResult, UntranslatedError,
+    LemmyError,
+    LemmyErrorExt,
+    LemmyErrorExt2,
+    LemmyErrorType,
+    LemmyResult,
+    UntranslatedError,
   },
   rate_limit::{ActionType, BucketConfig},
   settings::{SETTINGS, structs::PictrsImageMode},

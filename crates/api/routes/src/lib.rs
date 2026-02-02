@@ -5,8 +5,8 @@ use lemmy_api::{
     like::like_comment,
     list_comment_likes::list_comment_likes,
     lock::lock_comment,
-    save::save_comment,
     remove_with_children::remove_comment_with_children,
+    save::save_comment,
   },
   community::{
     add_mod::add_mod_to_community,
@@ -279,7 +279,10 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("", put().to(update_post))
           .route("", delete().to(delete_post))
           .route("/remove", post().to(remove_post))
-          .route("/remove_with_children", post().to(remove_post_with_children))
+          .route(
+            "/remove_with_children",
+            post().to(remove_post_with_children),
+          )
           .route("/mark_as_read", post().to(mark_post_as_read))
           .route("/mark_as_read/many", post().to(mark_posts_as_read))
           .route("/hide", post().to(hide_post))
@@ -308,7 +311,10 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("", put().to(update_comment))
           .route("", delete().to(delete_comment))
           .route("/remove", post().to(remove_comment))
-          .route("/remove_with_children", post().to(remove_comment_with_children))
+          .route(
+            "/remove_with_children",
+            post().to(remove_comment_with_children),
+          )
           .route("/distinguish", post().to(distinguish_comment))
           .route("/like", post().to(like_comment))
           .route("/like/list", get().to(list_comment_likes))

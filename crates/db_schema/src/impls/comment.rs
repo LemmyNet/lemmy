@@ -787,7 +787,7 @@ mod tests {
     let updated_comments_num = updated_comments.iter().filter(|c| c.removed).count();
 
     assert_eq!(updated_comments_num, 3);
-    
+
     Ok(())
   }
 }
