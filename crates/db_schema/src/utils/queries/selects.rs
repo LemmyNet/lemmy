@@ -364,6 +364,7 @@ pub fn community_tags_fragment() -> _ {
     .filter(
       community_tag::deleted
         .eq(false)
+        // Show deleted tags for admins and mods
         .or(local_user_community_can_mod()),
     )
     .single_value()
