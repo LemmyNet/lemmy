@@ -153,7 +153,7 @@ pub struct EditComment {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Creates a warning against a comment and notifies the user.
-pub struct CreateWarning {
+pub struct CreateCommentWarning {
   pub comment_id: CommentId,
   pub reason: String,
 }

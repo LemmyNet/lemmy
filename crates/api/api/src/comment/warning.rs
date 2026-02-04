@@ -8,14 +8,14 @@ use lemmy_api_utils::{
 use lemmy_db_schema::source::modlog::{Modlog, ModlogInsertForm};
 use lemmy_db_views_comment::{
   CommentView,
-  api::{CommentResponse, CreateWarning},
+  api::{CommentResponse, CreateCommentWarning},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
 
 /// Creates a warning against a comment and notifies the user
-pub async fn create_warning(
-  Json(data): Json<CreateWarning>,
+pub async fn create_comment_warning(
+  Json(data): Json<CreateCommentWarning>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponse>> {
@@ -36,7 +36,7 @@ pub async fn create_warning(
   // Don't allow creating warnings for removed / deleted comments
   check_comment_deleted_or_removed(&orig_comment.comment)?;
 
-  let form = ModlogInsertForm::mod_create_warning(
+  let form = ModlogInsertForm::mod_create_comment_warning(
     local_user_view.person.id,
     &orig_comment.comment,
     &data.reason,
@@ -44,7 +44,7 @@ pub async fn create_warning(
 
   let action = Modlog::create(&mut context.pool(), &[form]).await?;
 
-  notify_mod_action(action.clone(), &context);
+  notify_mod_action(action, &context);
 
   // TODO federate activity
 

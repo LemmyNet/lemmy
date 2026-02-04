@@ -2,6 +2,7 @@ use cfg_if::cfg_if;
 use serde::{Deserialize, Serialize};
 use std::{fmt::Debug, panic::Location};
 use strum::{Display, EnumIter};
+use tracing::info;
 
 /// Errors used in the API, all of these are translated in lemmy-ui.
 #[derive(Display, Debug, Serialize, Deserialize, Clone, PartialEq, EnumIter, Eq, Hash)]
@@ -218,6 +219,7 @@ cfg_if! {
 
     impl actix_web::error::ResponseError for LemmyError {
       fn status_code(&self) -> actix_web::http::StatusCode {
+        info!("Error: {:#?}", self);
         match self.error_type {
           LemmyErrorType::IncorrectLogin => actix_web::http::StatusCode::UNAUTHORIZED,
           LemmyErrorType::NotFound => actix_web::http::StatusCode::NOT_FOUND,

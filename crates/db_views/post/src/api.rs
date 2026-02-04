@@ -267,3 +267,12 @@ pub struct MarkManyPostsAsRead {
   pub post_ids: Vec<PostId>,
   pub read: bool,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+/// Creates a warning against a post and notifies the user.
+pub struct CreatePostWarning {
+  pub post_id: PostId,
+  pub reason: String,
+}

@@ -18,10 +18,13 @@ ALTER TABLE modlog
         OR (kind = 'ModLockComment'
         AND num_nonnulls (target_comment_id, target_person_id) = 2
         AND num_nonnulls (target_community_id, target_instance_id, target_post_id) = 0)
-        OR (kind = 'ModWarn'
+        OR (kind = 'ModWarnComment'
         AND num_nonnulls (target_comment_id, target_person_id) = 2
         AND num_nonnulls (target_community_id, target_instance_id, target_post_id) = 0)
         OR (kind = 'ModLockPost'
+        AND num_nonnulls (target_post_id, target_person_id, target_community_id) = 3
+        AND num_nonnulls (target_instance_id, target_comment_id) = 0)
+        OR (kind = 'ModWarnPost'
         AND num_nonnulls (target_post_id, target_person_id, target_community_id) = 3
         AND num_nonnulls (target_instance_id, target_comment_id) = 0)
         OR (kind = 'AdminRemoveCommunity'
