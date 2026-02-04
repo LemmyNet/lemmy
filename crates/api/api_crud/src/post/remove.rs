@@ -37,7 +37,7 @@ async fn do_remove(
   let orig_post = Post::read(&mut context.pool(), post_id).await?;
   let community = Community::read(&mut context.pool(), orig_post.community_id).await?;
 
-  check_community_mod_action(&local_user_view, &community, false, &mut context.pool()).await?;
+  check_community_mod_action(local_user_view, &community, false, &mut context.pool()).await?;
 
   LocalUser::is_higher_mod_or_admin_check(
     &mut context.pool(),
@@ -48,7 +48,6 @@ async fn do_remove(
   .await?;
 
   // Update the post
-  let post_id = post_id;
   let post = Post::update(
     &mut context.pool(),
     post_id,
