@@ -38,7 +38,7 @@ pub struct Modlog {
   pub published_at: DateTime<Utc>,
 }
 
-#[derive(derive_new::new)]
+#[derive(derive_new::new, Debug)]
 #[cfg_attr(feature = "full", derive(Insertable))]
 #[cfg_attr(feature = "full", diesel(table_name = modlog))]
 pub struct ModlogInsertForm<'a> {

@@ -8,11 +8,10 @@ use lemmy_api_utils::{
 use lemmy_db_schema::source::modlog::{Modlog, ModlogInsertForm};
 use lemmy_db_views_comment::{
   CommentView,
-  api::{CommentResponse, CreateComment, CreateWarning},
+  api::{CommentResponse, CreateWarning},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::LemmyResult;
-use tracing::info;
 
 /// Creates a warning against a comment and notifies the user
 pub async fn create_warning(
@@ -46,18 +45,6 @@ pub async fn create_warning(
   let action = Modlog::create(&mut context.pool(), &[form]).await?;
 
   notify_mod_action(action.clone(), &context);
-
-  if let Some(reply) = data.reply {
-    let reply_comment = CreateComment {
-      content: reply,
-      post_id: orig_comment.post.id,
-      parent_id: Some(comment_id),
-      language_id: data.language_id,
-    };
-
-    info!("Reply comment should be created: {:#?}", reply_comment);
-    //create_comment(reply_comment, context, local_user_view);
-  }
 
   // TODO federate activity
 
