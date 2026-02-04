@@ -520,8 +520,6 @@ mod tests {
 
     let form = ModlogInsertForm::mod_create_warning(data.jessica.id, &data.comment, "reason");
 
-    println!("warn form: {:#?}", form);
-
     Modlog::create(pool, &[form]).await?;
 
     // The all view
