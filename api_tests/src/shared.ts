@@ -53,6 +53,7 @@ import {
   EditSite,
   FeaturePost,
   FollowCommunity,
+  GetComment,
   GetComments,
   GetCommunity,
   GetCommunityResponse,
@@ -73,6 +74,7 @@ import {
   PrivateMessageResponse,
   Register,
   RemoveComment,
+  RemoveCommentWithChildren,
   RemoveCommunity,
   RemovePost,
   ResolveObject,
@@ -381,6 +383,16 @@ export async function lockComment(
   return api.lockComment(form);
 }
 
+export async function getComment(
+  api: LemmyHttp,
+  comment_id: number,
+): Promise<CommentResponse> {
+  let form: GetComment = {
+    id: comment_id,
+  };
+  return api.getComment(form);
+}
+
 export async function getComments(
   api: LemmyHttp,
   post_id?: number,
@@ -594,6 +606,19 @@ export async function likeComment(
     is_upvote,
   };
   return api.likeComment(form);
+}
+
+export async function removeCommentWithChildren(
+  api: LemmyHttp,
+  removed: boolean,
+  comment_id: number,
+): Promise<CommentResponse> {
+  let form: RemoveCommentWithChildren = {
+    comment_id,
+    removed,
+    reason: "reason",
+  };
+  return api.removeCommentWithChildren(form);
 }
 
 export async function createCommunity(
