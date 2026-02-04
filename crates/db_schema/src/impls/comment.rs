@@ -743,7 +743,7 @@ mod tests {
     let pool = &mut pool.into();
 
     let inserted_instance = Instance::read_or_create(pool, "mydomain.tld").await?;
-    let new_person = PersonInsertForm::test_form(inserted_instance.id, "john");
+    let new_person = PersonInsertForm::test_form(inserted_instance.id, "sharah");
     let inserted_person = Person::create(pool, &new_person).await?;
     let new_community = CommunityInsertForm::new(
       inserted_instance.id,
