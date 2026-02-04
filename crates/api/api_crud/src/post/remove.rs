@@ -20,7 +20,7 @@ use lemmy_db_schema::{
   traits::Reportable,
 };
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_post::api::{PostResponse, RemovePost, RemovePostWithChildren};
+use lemmy_db_views_post::api::{PostResponse, RemovePost};
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 
@@ -100,7 +100,7 @@ pub async fn remove_post(
 }
 
 pub async fn remove_post_with_children(
-  Json(data): Json<RemovePostWithChildren>,
+  Json(data): Json<RemovePost>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {

@@ -9,13 +9,13 @@ use lemmy_api_utils::{
 use lemmy_db_schema::source::{comment_report::CommentReport, local_user::LocalUser};
 use lemmy_db_views_comment::{
   CommentView,
-  api::{CommentResponse, RemoveCommentWithChildren},
+  api::{CommentResponse, RemoveComment},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn remove_comment_with_children(
-  Json(data): Json<RemoveCommentWithChildren>,
+  Json(data): Json<RemoveComment>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponse>> {

@@ -249,17 +249,6 @@ pub struct RemovePost {
   pub reason: String,
 }
 
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// Remove a post and all its children (only doable by mods).
-pub struct RemovePostWithChildren {
-  pub post_id: PostId,
-  pub removed: bool,
-  pub reason: String,
-}
-
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
