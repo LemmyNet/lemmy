@@ -25,7 +25,7 @@ full = [
   "lemmy_db_views_person/full",
   "lemmy_db_views_community/full",
   "anyhow",
-"extism",
+  "extism",
   "i-love-jesus",
 ]
 ts-rs = [
@@ -55,7 +55,7 @@ serde = { workspace = true }
 serde_with = { workspace = true }
 ts-rs = { workspace = true, optional = true }
 url = { workspace = true }
-extism = { workspace = true,optional = true }
+extism = { workspace = true, optional = true }
 extism-convert = { workspace = true }
 anyhow = { workspace = true, optional = true }
 i-love-jesus = { workspace = true, optional = true }

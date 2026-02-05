@@ -8,9 +8,11 @@ documentation = "https://join-lemmy.org/docs/en/index.html"
 repository = "https://github.com/LemmyNet/lemmy"
 rust-version = "1.91"
 
+# See https://github.com/johnthagen/min-sized-rust for additional optimizations
 [profile.release]
-lto = "thin"
-opt-level = "s"
+lto = "fat"
+opt-level = 3     # Optimize for speed, not size.
+codegen-units = 1 # Reduce parallel code generation.
 
 # This profile significantly speeds up build time. If debug info is needed you can comment the line
 # out temporarily, but make sure to leave this in the main branch.
