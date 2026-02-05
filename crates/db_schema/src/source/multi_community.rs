@@ -43,7 +43,6 @@ pub struct MultiCommunity {
   pub private_key: Option<SensitiveString>,
   #[serde(skip, default = "placeholder_apub_url")]
   pub inbox_url: DbUrl,
-  #[serde(skip)]
   pub last_refreshed_at: DateTime<Utc>,
   #[serde(skip, default = "placeholder_apub_url")]
   pub following_url: DbUrl,

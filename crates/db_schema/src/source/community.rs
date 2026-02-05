@@ -49,7 +49,6 @@ pub struct Community {
   pub private_key: Option<SensitiveString>,
   #[serde(skip)]
   pub public_key: String,
-  #[serde(skip)]
   pub last_refreshed_at: DateTime<Utc>,
   /// A URL for an icon.
   pub icon: Option<DbUrl>,
