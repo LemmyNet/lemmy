@@ -298,7 +298,7 @@ impl Object for ApubPost {
       language_id,
       ..PostInsertForm::new(name, creator.id, community.id)
     };
-    form = plugin_hook_before("federated_post_after_receive", form).await?;
+    form = plugin_hook_before("federated_post_before_receive", form).await?;
 
     let timestamp = page.updated.or(page.published).unwrap_or_else(Utc::now);
     let post = Post::insert_apub(&mut context.pool(), timestamp, &form).await?;

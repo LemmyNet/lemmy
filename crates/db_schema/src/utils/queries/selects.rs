@@ -361,7 +361,12 @@ pub fn community_tags_fragment() -> _ {
   community_tag::table
     .select(sel)
     .filter(community_tag::community_id.eq(community::id))
-    .filter(community_tag::deleted.eq(false))
+    .filter(
+      community_tag::deleted
+        .eq(false)
+        // Show deleted tags for admins and mods
+        .or(local_user_community_can_mod()),
+    )
     .single_value()
 }
 
