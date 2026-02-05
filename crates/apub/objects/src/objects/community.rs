@@ -26,7 +26,6 @@ use lemmy_api_utils::{
     generate_featured_url,
     generate_moderators_url,
     generate_outbox_url,
-    get_url_blocklist,
     process_markdown_opt,
     proxy_image_link_opt_apub,
     slur_regex,
@@ -51,6 +50,7 @@ use lemmy_utils::{
     validation::truncate_summary,
   },
 };
+use regex::RegexSet;
 use std::{ops::Deref, sync::OnceLock};
 use url::Url;
 
@@ -181,8 +181,9 @@ impl Object for ApubCommunity {
     let instance_id = fetch_instance_actor_for_object(&group.id, context).await?;
 
     let slur_regex = slur_regex(context).await?;
-    let url_blocklist = get_url_blocklist(context).await?;
     let sidebar = read_from_string_or_source_opt(&group.summary, &None, &group.source);
+    // Use empty regex so that url blocklist doesnt prevent community federation.
+    let url_blocklist = RegexSet::empty();
     let sidebar = process_markdown_opt(&sidebar, &slur_regex, &url_blocklist, context).await?;
     let sidebar = markdown_rewrite_remote_links_opt(sidebar, context).await;
     let icon = proxy_image_link_opt_apub(group.icon.clone().map(|i| i.url), context).await?;
