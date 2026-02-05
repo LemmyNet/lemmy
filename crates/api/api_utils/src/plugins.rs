@@ -23,6 +23,7 @@ use lemmy_utils::{
 };
 use serde::{Deserialize, Serialize};
 use std::{
+  env::var,
   ops::Deref,
   path::PathBuf,
   sync::{LazyLock, OnceLock},
@@ -205,7 +206,7 @@ struct LemmyPlugin {
 
 impl LemmyPlugin {
   fn init(settings: PluginSettings) -> LemmyResult<Self> {
-    let hash = if cfg!(debug_assertions) {
+    let hash = if cfg!(debug_assertions) || var("DANGER_PLUGIN_SKIP_HASH_CHECK").is_ok() {
       None
     } else {
       // if no hash was provided in config, set a dummy value here to enforce hash check
