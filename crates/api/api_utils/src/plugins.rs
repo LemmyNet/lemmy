@@ -88,7 +88,7 @@ async fn call_captcha_plugin<
 ) -> LemmyResult<R> {
   let plugins = LemmyPlugins::get_or_init();
   let Some(captcha_plugin) = plugins.captcha_plugin else {
-    return Err(LemmyErrorType::PluginError("plugin not active".to_string()).into());
+    return Err(LemmyErrorType::PluginError("plugin not loaded".to_string()).into());
   };
 
   spawn_blocking(move || {
@@ -98,7 +98,7 @@ async fn call_captcha_plugin<
         .map_err(|e| LemmyErrorType::PluginError(e.to_string()))?;
       return Ok(res);
     }
-    return Err(LemmyErrorType::PluginError("".to_string()).into());
+    Err(LemmyErrorType::PluginError("plugin not loaded".to_string()).into())
   })
   .await?
 }
