@@ -1,11 +1,11 @@
 use crate::RegistrationApplicationView;
-use extism::ToBytes;
-use extism_convert::Json;
 use lemmy_db_schema::newtypes::RegistrationApplicationId;
 use lemmy_db_schema_file::PersonId;
 use lemmy_diesel_utils::{pagination::PaginationCursor, sensitive::SensitiveString};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
+#[cfg(feature = "full")]
+use {extism::ToBytes, extism_convert::Json};
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
@@ -63,8 +63,9 @@ pub struct Register {
   pub stay_logged_in: Option<bool>,
 }
 
-#[derive(ToBytes, Serialize, Deserialize)]
-#[encoding(Json)]
+#[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "full", derive(ToBytes,))]
+#[cfg_attr(feature = "full", encoding(Json))]
 pub struct CaptchaAnswer {
   pub answer: String,
   pub uuid: String,
