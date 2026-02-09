@@ -7,8 +7,8 @@ CREATE TABLE captcha_answer (
 ALTER TABLE captcha_answer RENAME COLUMN published TO published_at;
 
 ALTER TABLE local_site
-    ADD COLUMN captcha_enabled boolean;
+    ADD COLUMN captcha_enabled boolean DEFAULT FALSE NOT NULL;
 
 ALTER TABLE local_site
-    ADD COLUMN captcha_difficulty varchar;
+    ADD COLUMN captcha_difficulty varchar(255) DEFAULT 'medium'::character varying NOT NULL;
 
