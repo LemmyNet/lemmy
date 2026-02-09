@@ -5,7 +5,7 @@ use lemmy_api_utils::{
   context::LemmyContext,
   notify::notify_mod_action,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::check_community_mod_action,
+  utils::{check_community_mod_action, remove_or_restore_comment_thread},
 };
 use lemmy_db_schema::{
   source::{
@@ -55,36 +55,68 @@ pub async fn remove_comment(
   )
   .await?;
 
-  // Don't allow removing or restoring comment which was deleted by user, as it would reveal
-  // the comment text in mod log.
-  if orig_comment.comment.deleted {
-    return Err(LemmyErrorType::CouldntUpdate.into());
-  }
-
-  // Do the remove
-  let removed = data.removed;
-  let updated_comment = Comment::update(
-    &mut context.pool(),
-    comment_id,
-    &CommentUpdateForm {
-      removed: Some(removed),
-      ..Default::default()
-    },
-  )
-  .await?;
-
-  CommentReport::resolve_all_for_object(&mut context.pool(), comment_id, local_user_view.person.id)
+  let updated_comment = if let Some(remove_children) = data.remove_children {
+    let updated_comments = remove_or_restore_comment_thread(
+      &orig_comment.comment,
+      local_user_view.person.id,
+      remove_children,
+      &data.reason,
+      &context,
+    )
     .await?;
 
-  // Mod tables
-  let form = ModlogInsertForm::mod_remove_comment(
-    local_user_view.person.id,
-    &orig_comment.comment,
-    removed,
-    &data.reason,
-  );
-  let actions = Modlog::create(&mut context.pool(), &[form]).await?;
-  notify_mod_action(actions, context.app_data());
+    let orig_comment_id = orig_comment.comment.id;
+    let updated_comment = updated_comments
+      .iter()
+      .find(|c| c.id == orig_comment_id)
+      .ok_or(LemmyErrorType::CouldntUpdate)?;
+
+    CommentReport::resolve_all_for_thread(
+      &mut context.pool(),
+      &orig_comment.comment.path,
+      local_user_view.person.id,
+    )
+    .await?;
+
+    updated_comment.clone()
+  } else {
+    // Don't allow removing or restoring comment which was deleted by user, as it would reveal
+    // the comment text in mod log.
+    if orig_comment.comment.deleted {
+      return Err(LemmyErrorType::CouldntUpdate.into());
+    }
+
+    // Do the remove
+    let removed = data.removed;
+    let updated_comment = Comment::update(
+      &mut context.pool(),
+      comment_id,
+      &CommentUpdateForm {
+        removed: Some(removed),
+        ..Default::default()
+      },
+    )
+    .await?;
+
+    CommentReport::resolve_all_for_object(
+      &mut context.pool(),
+      comment_id,
+      local_user_view.person.id,
+    )
+    .await?;
+
+    // Mod tables
+    let form = ModlogInsertForm::mod_remove_comment(
+      local_user_view.person.id,
+      &orig_comment.comment,
+      removed,
+      &data.reason,
+    );
+    let actions = Modlog::create(&mut context.pool(), &[form]).await?;
+    notify_mod_action(actions, context.app_data());
+
+    updated_comment
+  };
 
   let updated_comment_id = updated_comment.id;
 
@@ -94,7 +126,7 @@ pub async fn remove_comment(
       moderator: local_user_view.person.clone(),
       community: orig_comment.community,
       reason: data.reason.clone(),
-      with_replies: None,
+      with_replies: data.remove_children.unwrap_or_default(),
     },
     &context,
   )?;

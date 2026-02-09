@@ -193,7 +193,7 @@ pub async fn match_outgoing_activities(
           DeletableObjects::Post(post.into()),
           Some(reason),
           removed,
-          with_replies,
+          Some(with_replies),
           &context,
         )
         .await
@@ -240,7 +240,7 @@ pub async fn match_outgoing_activities(
           deletable,
           Some(reason),
           is_removed,
-          with_replies,
+          Some(with_replies),
           &context,
         )
         .await

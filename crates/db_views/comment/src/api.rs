@@ -126,6 +126,9 @@ pub struct RemoveComment {
   pub comment_id: CommentId,
   pub removed: bool,
   pub reason: String,
+  /// Setting this will override whatever `removed` was set to,
+  /// leave as null or unset to act just on the comment itself.
+  pub remove_children: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
