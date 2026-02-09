@@ -86,7 +86,7 @@ pub async fn remove_post(
       post,
       moderator: local_user_view.person.clone(),
       reason: data.reason.clone(),
-      removed: removed,
+      removed,
       with_replies: data.remove_children.unwrap_or_default(),
     },
     &context,
