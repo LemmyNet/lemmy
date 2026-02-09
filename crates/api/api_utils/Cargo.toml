@@ -45,6 +45,7 @@ lemmy_db_views_private_message = { workspace = true }
 lemmy_db_views_comment = { workspace = true }
 lemmy_db_views_post = { workspace = true }
 lemmy_db_views_notification = { workspace = true }
+lemmy_db_views_registration_applications = { workspace = true }
 lemmy_email = { workspace = true }
 anyhow = { workspace = true }
 serde = { workspace = true }

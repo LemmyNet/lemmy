@@ -3369,6 +3369,7 @@ dependencies = [
  "lemmy_db_views_notification",
  "lemmy_db_views_post",
  "lemmy_db_views_private_message",
+ "lemmy_db_views_registration_applications",
  "lemmy_db_views_site",
  "lemmy_diesel_utils",
  "lemmy_email",
@@ -3965,6 +3966,8 @@ version = "1.0.0-alpha.12"
 dependencies = [
  "diesel",
  "diesel-async",
+ "extism",
+ "extism-convert",
  "i-love-jesus",
  "lemmy_db_schema 1.0.0-alpha.12",
  "lemmy_db_schema_file",

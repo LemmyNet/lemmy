@@ -1,4 +1,6 @@
 use crate::RegistrationApplicationView;
+use extism::ToBytes;
+use extism_convert::Json;
 use lemmy_db_schema::newtypes::RegistrationApplicationId;
 use lemmy_db_schema_file::PersonId;
 use lemmy_diesel_utils::{pagination::PaginationCursor, sensitive::SensitiveString};
@@ -59,6 +61,13 @@ pub struct Register {
   pub answer: Option<String>,
   /// If this is true the login is valid forever, otherwise it expires after one week.
   pub stay_logged_in: Option<bool>,
+}
+
+#[derive(ToBytes, Serialize, Deserialize)]
+#[encoding(Json)]
+pub struct CaptchaAnswer {
+  pub answer: String,
+  pub uuid: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

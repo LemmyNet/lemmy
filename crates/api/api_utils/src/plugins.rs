@@ -14,6 +14,7 @@ use extism_convert::Json;
 use extism_manifest::HttpRequest;
 use lemmy_db_schema::source::{notification::Notification, person::Person};
 use lemmy_db_views_notification::NotificationView;
+use lemmy_db_views_registration_applications::api::CaptchaAnswer;
 use lemmy_db_views_site::api::{CaptchaResponse, PluginMetadata};
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::{
@@ -71,13 +72,6 @@ pub async fn plugin_hook_notification(
 
 pub async fn plugin_get_captcha() -> LemmyResult<CaptchaResponse> {
   call_captcha_plugin("get_captcha", ()).await
-}
-
-#[derive(ToBytes, Serialize)]
-#[encoding(Json)]
-struct CaptchaAnswer {
-  answer: String,
-  uuid: String,
 }
 
 pub async fn plugin_validate_captcha(answer: String, uuid: String) -> LemmyResult<()> {

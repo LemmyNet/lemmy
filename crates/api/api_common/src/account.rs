@@ -5,7 +5,7 @@ pub use lemmy_db_views_post_comment_combined::PostCommentCombinedView;
 pub use lemmy_db_views_site::api::{DeleteAccount, MyUserInfo, SaveUserSettings};
 pub mod auth {
   pub use lemmy_db_schema::source::login_token::LoginToken;
-  pub use lemmy_db_views_registration_applications::api::Register;
+  pub use lemmy_db_views_registration_applications::api::{CaptchaAnswer, Register};
   pub use lemmy_db_views_site::api::{
     CaptchaResponse,
     ChangePassword,
