@@ -16,7 +16,6 @@ import {
   editComment,
   deleteComment,
   removeComment,
-  removeCommentWithChildren,
   resolvePost,
   unfollowRemotes,
   createCommunity,
@@ -1023,7 +1022,7 @@ test("Remove children", async () => {
     throw "unable to locate comment on alpha";
   }
 
-  await removeCommentWithChildren(alpha, true, commentOnAlpha.comment.id);
+  await removeComment(alpha, true, commentOnAlpha.comment.id, true);
 
   let post2 = await getPost(alpha, post.post_view.post.id);
   expect(post2.post_view.post.comments).toBe(0);

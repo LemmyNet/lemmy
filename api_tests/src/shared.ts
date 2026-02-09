@@ -74,7 +74,6 @@ import {
   PrivateMessageResponse,
   Register,
   RemoveComment,
-  RemoveCommentWithChildren,
   RemoveCommunity,
   RemovePost,
   ResolveObject,
@@ -587,11 +586,13 @@ export async function removeComment(
   api: LemmyHttp,
   removed: boolean,
   comment_id: number,
+  remove_children?: boolean,
 ): Promise<CommentResponse> {
   let form: RemoveComment = {
     comment_id,
     removed,
     reason: "remove",
+    remove_children,
   };
   return api.removeComment(form);
 }
@@ -606,19 +607,6 @@ export async function likeComment(
     is_upvote,
   };
   return api.likeComment(form);
-}
-
-export async function removeCommentWithChildren(
-  api: LemmyHttp,
-  removed: boolean,
-  comment_id: number,
-): Promise<CommentResponse> {
-  let form: RemoveCommentWithChildren = {
-    comment_id,
-    removed,
-    reason: "reason",
-  };
-  return api.removeCommentWithChildren(form);
 }
 
 export async function createCommunity(
