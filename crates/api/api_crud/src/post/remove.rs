@@ -5,10 +5,11 @@ use lemmy_api_utils::{
   context::LemmyContext,
   notify::notify_mod_action,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_mod_action, remove_or_restore_post_comments},
+  utils::check_community_mod_action,
 };
 use lemmy_db_schema::{
   source::{
+    comment::Comment,
     comment_report::CommentReport,
     community::Community,
     local_user::LocalUser,
@@ -68,14 +69,25 @@ pub async fn remove_post(
   notify_mod_action(action, context.app_data());
 
   if data.remove_children.is_some() {
-    remove_or_restore_post_comments(
-      &post,
-      local_user_view.person.id,
-      removed,
-      &data.reason,
-      &context,
-    )
-    .await?;
+    let updated_comments: Vec<Comment> =
+      Comment::update_removed_for_post(&mut context.pool(), post_id, removed).await?;
+
+    let forms: Vec<_> = updated_comments
+      .iter()
+      // Filter out deleted comments here so their content doesn't show up in the modlog.
+      .filter(|c| !c.deleted)
+      .map(|comment| {
+        ModlogInsertForm::mod_remove_comment(
+          local_user_view.person.id,
+          comment,
+          removed,
+          &data.reason,
+        )
+      })
+      .collect();
+
+    let actions = Modlog::create(&mut context.pool(), &forms).await?;
+    notify_mod_action(actions, &context);
 
     CommentReport::resolve_all_for_post(&mut context.pool(), post.id, local_user_view.person.id)
       .await?;

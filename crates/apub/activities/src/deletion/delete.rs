@@ -5,11 +5,7 @@ use crate::{
   protocol::{IdOrNestedObject, deletion::delete::Delete},
 };
 use activitypub_federation::{config::Data, kinds::activity::DeleteType, traits::Activity};
-use lemmy_api_utils::{
-  context::LemmyContext,
-  notify::notify_mod_action,
-  utils::{remove_or_restore_comment_thread, remove_or_restore_post_comments},
-};
+use lemmy_api_utils::{context::LemmyContext, notify::notify_mod_action};
 use lemmy_apub_objects::objects::person::ApubPerson;
 use lemmy_db_schema::{
   source::{
@@ -157,14 +153,54 @@ pub(crate) async fn receive_remove_action(
       let remove_children = with_replies.unwrap_or_default();
       if remove_children {
         CommentReport::resolve_all_for_post(&mut context.pool(), post.id, actor.id).await?;
-        remove_or_restore_post_comments(&post, actor.id, true, &reason, context).await?;
+        let updated_comments: Vec<Comment> =
+          Comment::update_removed_for_post(&mut context.pool(), post.id, true).await?;
+
+        let forms: Vec<_> = updated_comments
+          .iter()
+          // Filter out deleted comments here so their content doesn't show up in the modlog.
+          .filter(|c| !c.deleted)
+          .map(|comment| {
+            ModlogInsertForm::mod_remove_comment(
+              actor.id,
+              comment,
+              true,
+              &reason,
+            )
+          })
+          .collect();
+
+        let actions = Modlog::create(&mut context.pool(), &forms).await?;
+        notify_mod_action(actions, context);
       }
     }
     DeletableObjects::Comment(comment) => {
       let remove_children = with_replies.unwrap_or_default();
       if remove_children {
         CommentReport::resolve_all_for_thread(&mut context.pool(), &comment.path, actor.id).await?;
-        remove_or_restore_comment_thread(&comment, actor.id, true, &reason, context).await?;
+        let updated_comments: Vec<Comment> = Comment::update_removed_for_comment_and_children(
+          &mut context.pool(),
+          &comment.path,
+          true,
+        )
+        .await?;
+
+        let forms: Vec<_> = updated_comments
+          .iter()
+          // Filter out deleted comments here so their content doesn't show up in the modlog.
+          .filter(|c| !c.deleted)
+          .map(|comment| {
+            ModlogInsertForm::mod_remove_comment(
+              actor.id,
+              comment,
+              true,
+              &reason,
+            )
+          })
+          .collect();
+
+        let actions = Modlog::create(&mut context.pool(), &forms).await?;
+        notify_mod_action(actions, context);
       } else {
         CommentReport::resolve_all_for_object(&mut context.pool(), comment.id, actor.id).await?;
         let form = ModlogInsertForm::mod_remove_comment(actor.id, &comment, true, &reason);

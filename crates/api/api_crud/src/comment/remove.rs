@@ -5,7 +5,7 @@ use lemmy_api_utils::{
   context::LemmyContext,
   notify::notify_mod_action,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_mod_action, remove_or_restore_comment_thread},
+  utils::check_community_mod_action,
 };
 use lemmy_db_schema::{
   source::{
@@ -56,20 +56,35 @@ pub async fn remove_comment(
   .await?;
 
   let updated_comment = if let Some(remove_children) = data.remove_children {
-    let updated_comments = remove_or_restore_comment_thread(
-      &orig_comment.comment,
-      local_user_view.person.id,
+    let updated_comments: Vec<Comment> = Comment::update_removed_for_comment_and_children(
+      &mut context.pool(),
+      &orig_comment.comment.path,
       remove_children,
-      &data.reason,
-      &context,
     )
     .await?;
 
-    let orig_comment_id = orig_comment.comment.id;
     let updated_comment = updated_comments
       .iter()
-      .find(|c| c.id == orig_comment_id)
-      .ok_or(LemmyErrorType::CouldntUpdate)?;
+      .find(|c| c.id == comment_id)
+      .ok_or(LemmyErrorType::CouldntUpdate)?
+      .clone();
+
+    let forms: Vec<_> = updated_comments
+      .iter()
+      // Filter out deleted comments here so their content doesn't show up in the modlog.
+      .filter(|c| !c.deleted)
+      .map(|comment| {
+        ModlogInsertForm::mod_remove_comment(
+          local_user_view.person.id,
+          comment,
+          remove_children,
+          &data.reason,
+        )
+      })
+      .collect();
+
+    let actions = Modlog::create(&mut context.pool(), &forms).await?;
+    notify_mod_action(actions, &context);
 
     CommentReport::resolve_all_for_thread(
       &mut context.pool(),
@@ -78,7 +93,7 @@ pub async fn remove_comment(
     )
     .await?;
 
-    updated_comment.clone()
+    updated_comment
   } else {
     // Don't allow removing or restoring comment which was deleted by user, as it would reveal
     // the comment text in mod log.

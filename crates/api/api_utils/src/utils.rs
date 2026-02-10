@@ -1,7 +1,6 @@
 use crate::{
   claims::Claims,
   context::LemmyContext,
-  notify::notify_mod_action,
   request::{delete_image_alias, fetch_pictrs_proxied_image_details, purge_image_from_pictrs_url},
 };
 use actix_web::{HttpRequest, http::header::Header};
@@ -626,14 +625,16 @@ async fn create_modlog_entries_for_removed_or_restored_comments(
   comments: &[Comment],
   removed: bool,
   reason: &str,
-) -> LemmyResult<Vec<Modlog>> {
+) -> LemmyResult<()> {
   // Build the forms
   let forms: Vec<_> = comments
     .iter()
     .map(|comment| ModlogInsertForm::mod_remove_comment(mod_person_id, comment, removed, reason))
     .collect();
 
-  Modlog::create(pool, &forms).await
+  Modlog::create(pool, &forms).await?;
+
+  Ok(())
 }
 
 pub async fn remove_or_restore_user_data_in_community(
@@ -708,64 +709,6 @@ pub async fn purge_user_account(
   Person::delete_account(pool, person_id, local_instance_id).await?;
 
   Ok(())
-}
-
-pub async fn remove_or_restore_comment_thread(
-  comment: &Comment,
-  mod_person_id: PersonId,
-  removed: bool,
-  reason: &str,
-  context: &LemmyContext,
-) -> LemmyResult<Vec<Comment>> {
-  let removed_comments: Vec<Comment> =
-    Comment::update_removed_for_comment_and_children(&mut context.pool(), &comment.path, removed)
-      .await?
-      // Filter out deleted comments here so their content doesn't show up in the modlog.
-      .into_iter()
-      .filter(|c| !c.deleted)
-      .collect();
-
-  let actions = create_modlog_entries_for_removed_or_restored_comments(
-    &mut context.pool(),
-    mod_person_id,
-    &removed_comments,
-    removed,
-    reason,
-  )
-  .await?;
-
-  notify_mod_action(actions, context);
-
-  Ok(removed_comments)
-}
-
-pub async fn remove_or_restore_post_comments(
-  post: &Post,
-  mod_person_id: PersonId,
-  removed: bool,
-  reason: &str,
-  context: &LemmyContext,
-) -> LemmyResult<Vec<Comment>> {
-  let removed_comments: Vec<Comment> =
-    Comment::update_removed_for_post(&mut context.pool(), post.id, removed)
-      .await?
-      // Filter out deleted comments here so their content doesn't show up in the modlog.
-      .into_iter()
-      .filter(|c| !c.deleted)
-      .collect();
-
-  let actions = create_modlog_entries_for_removed_or_restored_comments(
-    &mut context.pool(),
-    mod_person_id,
-    &removed_comments,
-    removed,
-    reason,
-  )
-  .await?;
-
-  notify_mod_action(actions, context);
-
-  Ok(removed_comments)
 }
 
 pub fn generate_followers_url(ap_id: &DbUrl) -> Result<DbUrl, ParseError> {
