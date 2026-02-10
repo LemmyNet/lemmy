@@ -336,4 +336,6 @@ pub enum ModlogKind {
   ModRemovePost,
   ModTransferCommunity,
   ModLockComment,
+  ModWarnComment,
+  ModWarnPost,
 }

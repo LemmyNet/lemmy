@@ -51,6 +51,7 @@ semver = "1.0.27"
 either = "1.15.0"
 assert-json-diff = "2.0.2"
 lemmy_diesel_utils = { workspace = true }
+regex = { workspace = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }

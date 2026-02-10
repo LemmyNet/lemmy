@@ -6,6 +6,7 @@ use lemmy_api::{
     list_comment_likes::list_comment_likes,
     lock::lock_comment,
     save::save_comment,
+    warning::create_comment_warning,
   },
   community::{
     add_mod::add_mod_to_community,
@@ -75,6 +76,7 @@ use lemmy_api::{
     mod_update::mod_edit_post,
     save::save_post,
     update_notifications::edit_post_notifications,
+    warning::create_post_warning,
   },
   reports::{
     comment_report::{create::create_comment_report, resolve::resolve_comment_report},
@@ -290,7 +292,8 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("/report", post().to(create_post_report))
           .route("/report/resolve", put().to(resolve_post_report))
           .route("/notifications", post().to(edit_post_notifications))
-          .route("/mod_edit", put().to(mod_edit_post)),
+          .route("/mod_edit", put().to(mod_edit_post))
+          .route("/warn", post().to(create_post_warning)),
       )
       // Comment
       .service(
@@ -313,6 +316,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("/lock", post().to(lock_comment))
           .route("/list", get().to(list_comments))
           .route("/list/slim", get().to(list_comments_slim))
+          .route("/warn", post().to(create_comment_warning))
           .route("/report", post().to(create_comment_report))
           .route("/report/resolve", put().to(resolve_comment_report)),
       )
