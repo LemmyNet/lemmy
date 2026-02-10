@@ -160,14 +160,7 @@ pub(crate) async fn receive_remove_action(
           .iter()
           // Filter out deleted comments here so their content doesn't show up in the modlog.
           .filter(|c| !c.deleted)
-          .map(|comment| {
-            ModlogInsertForm::mod_remove_comment(
-              actor.id,
-              comment,
-              true,
-              &reason,
-            )
-          })
+          .map(|comment| ModlogInsertForm::mod_remove_comment(actor.id, comment, true, &reason))
           .collect();
 
         let actions = Modlog::create(&mut context.pool(), &forms).await?;
@@ -189,14 +182,7 @@ pub(crate) async fn receive_remove_action(
           .iter()
           // Filter out deleted comments here so their content doesn't show up in the modlog.
           .filter(|c| !c.deleted)
-          .map(|comment| {
-            ModlogInsertForm::mod_remove_comment(
-              actor.id,
-              comment,
-              true,
-              &reason,
-            )
-          })
+          .map(|comment| ModlogInsertForm::mod_remove_comment(actor.id, comment, true, &reason))
           .collect();
 
         let actions = Modlog::create(&mut context.pool(), &forms).await?;
