@@ -264,24 +264,32 @@ impl LemmyPlugins {
   /// Load and initialize all plugins
   fn get_or_init() -> Self {
     static PLUGINS: LazyLock<LemmyPlugins> = LazyLock::new(|| {
-      let mut plugins = SETTINGS.plugins.iter().flat_map(|p| {
-        LemmyPlugin::init(p.clone())
-          .inspect_err(|e| warn!("Failed to load plugin {}: {e}", p.file))
-          .ok()
-      });
-      let captcha_plugin = plugins.find(|p| {
-        p.pool
+      let mut plugins: Vec<_> = SETTINGS
+        .plugins
+        .iter()
+        .flat_map(|p| {
+          LemmyPlugin::init(p.clone())
+            .inspect_err(|e| warn!("Failed to load plugin {}: {e}", p.file))
+            .ok()
+        })
+        .collect();
+
+      let mut captcha_plugin = None;
+      for i in 0..plugins.len() {
+        let pool = &plugins[i].pool;
+        let is_captcha = pool
           .function_exists("validate_captcha", GET_PLUGIN_TIMEOUT)
           .unwrap_or_default()
-          && p
-            .pool
+          && pool
             .function_exists("validate_captcha", GET_PLUGIN_TIMEOUT)
-            .unwrap_or_default()
-      });
-      let mut plugins: Vec<_> = plugins.collect();
+            .unwrap_or_default();
+        if is_captcha {
+          captcha_plugin = Some(plugins.remove(i));
+          break;
+        }
+      }
 
-      // `.find()` removes captcha plugin, need to put it back in so it can be shown in the active
-      // plugins list.
+      // Need to put captcha plugin back in so it can be shown in the active plugins list.
       if let Some(captcha_plugin) = &captcha_plugin {
         plugins.push(captcha_plugin.clone());
       }
