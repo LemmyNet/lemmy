@@ -275,12 +275,13 @@ impl LemmyPlugins {
         .collect();
 
       let mut captcha_plugin = None;
-      for i in 0..plugins.len() {
-        let pool = &plugins[i].pool;
-        let is_captcha = pool
+      for (i, p) in plugins.iter().enumerate() {
+        let is_captcha = p
+          .pool
           .function_exists("validate_captcha", GET_PLUGIN_TIMEOUT)
           .unwrap_or_default()
-          && pool
+          && p
+            .pool
             .function_exists("validate_captcha", GET_PLUGIN_TIMEOUT)
             .unwrap_or_default();
         if is_captcha {
