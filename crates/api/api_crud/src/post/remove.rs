@@ -30,7 +30,7 @@ pub async fn remove_post(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
   let post_id = data.post_id;
-  let removed = data.remove_children.unwrap_or(data.removed);
+  let remove_post = data.remove_children.unwrap_or(data.removed);
 
   // We cannot use PostView to avoid a database read here, as it doesn't return removed items
   // by default. So we would have to pass in `is_mod_or_admin`, but that is impossible without
@@ -53,7 +53,7 @@ pub async fn remove_post(
     &mut context.pool(),
     post_id,
     &PostUpdateForm {
-      removed: Some(removed),
+      removed: Some(remove_post),
       ..Default::default()
     },
   )
@@ -64,13 +64,13 @@ pub async fn remove_post(
 
   // Mod tables
   let form =
-    ModlogInsertForm::mod_remove_post(local_user_view.person.id, &post, removed, &data.reason);
+    ModlogInsertForm::mod_remove_post(local_user_view.person.id, &post, remove_post, &data.reason);
   let action = Modlog::create(&mut context.pool(), &[form]).await?;
   notify_mod_action(action, context.app_data());
 
-  if data.remove_children.is_some() {
+  if let Some(remove_children) = data.remove_children {
     let updated_comments: Vec<Comment> =
-      Comment::update_removed_for_post(&mut context.pool(), post_id, removed).await?;
+      Comment::update_removed_for_post(&mut context.pool(), post_id, remove_children).await?;
 
     let forms: Vec<_> = updated_comments
       .iter()
@@ -80,7 +80,7 @@ pub async fn remove_post(
         ModlogInsertForm::mod_remove_comment(
           local_user_view.person.id,
           comment,
-          removed,
+          remove_children,
           &data.reason,
         )
       })
@@ -98,7 +98,7 @@ pub async fn remove_post(
       post,
       moderator: local_user_view.person.clone(),
       reason: data.reason.clone(),
-      removed,
+      removed: remove_post,
       with_replies: data.remove_children.unwrap_or_default(),
     },
     &context,
