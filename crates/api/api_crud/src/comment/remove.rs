@@ -55,7 +55,7 @@ pub async fn remove_comment(
   )
   .await?;
 
-  let updated_comment = if let Some(remove_children) = data.remove_children {
+  let (updated_comment, forms) = if let Some(remove_children) = data.remove_children {
     let updated_comments: Vec<Comment> = Comment::update_removed_for_comment_and_children(
       &mut context.pool(),
       &orig_comment.comment.path,
@@ -83,9 +83,6 @@ pub async fn remove_comment(
       })
       .collect();
 
-    let actions = Modlog::create(&mut context.pool(), &forms).await?;
-    notify_mod_action(actions, &context);
-
     CommentReport::resolve_all_for_thread(
       &mut context.pool(),
       &orig_comment.comment.path,
@@ -93,7 +90,7 @@ pub async fn remove_comment(
     )
     .await?;
 
-    updated_comment
+    (updated_comment, forms)
   } else {
     // Don't allow removing or restoring comment which was deleted by user, as it would reveal
     // the comment text in mod log.
@@ -127,11 +124,12 @@ pub async fn remove_comment(
       removed,
       &data.reason,
     );
-    let actions = Modlog::create(&mut context.pool(), &[form]).await?;
-    notify_mod_action(actions, context.app_data());
 
-    updated_comment
+    (updated_comment, vec![form])
   };
+
+  let actions = Modlog::create(&mut context.pool(), &forms).await?;
+  notify_mod_action(actions, &context);
 
   let updated_comment_id = updated_comment.id;
 
