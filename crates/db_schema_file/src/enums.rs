@@ -208,6 +208,30 @@ pub enum CommunityFollowerState {
 #[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
   feature = "full",
+  ExistingTypePath = "crate::schema::sql_types::TagColorEnum"
+)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
+/// Color of community tag.
+pub enum TagColor {
+  #[default]
+  Color01,
+  Color02,
+  Color03,
+  Color04,
+  Color05,
+  Color06,
+  Color07,
+  Color08,
+  Color09,
+  Color10,
+}
+
+#[derive(Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "full", derive(DbEnum))]
+#[cfg_attr(
+  feature = "full",
   ExistingTypePath = "crate::schema::sql_types::VoteShowEnum"
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
@@ -258,7 +282,7 @@ pub enum CommunityNotificationsMode {
   Mute,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash)]
 #[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
@@ -270,6 +294,8 @@ pub enum CommunityNotificationsMode {
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// Types of notifications which can be received in inbox
 pub enum NotificationType {
+  // Necessary for enumstring
+  #[default]
   Mention,
   Reply,
   Subscribed,
@@ -277,7 +303,7 @@ pub enum NotificationType {
   ModAction,
 }
 
-#[derive(Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash)]
 #[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
@@ -289,6 +315,8 @@ pub enum NotificationType {
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// A list of possible types for the various modlog actions.
 pub enum ModlogKind {
+  // Necessary for enumstring
+  #[default]
   AdminAdd,
   AdminBan,
   AdminAllowInstance,
@@ -308,4 +336,6 @@ pub enum ModlogKind {
   ModRemovePost,
   ModTransferCommunity,
   ModLockComment,
+  ModWarnComment,
+  ModWarnPost,
 }

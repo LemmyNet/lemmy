@@ -213,14 +213,14 @@ test("Report a community", async () => {
   expect(alphaReport.original_community_banner).toBe(
     betaReport.original_community_banner,
   );
-  expect(alphaReport.original_community_description).toBe(
-    betaReport.original_community_description,
+  expect(alphaReport.original_community_sidebar).toBe(
+    betaReport.original_community_sidebar,
   );
   expect(alphaReport.original_community_icon).toBe(
     betaReport.original_community_icon,
   );
-  expect(alphaReport.original_community_description).toBe(
-    betaReport.original_community_description,
+  expect(alphaReport.original_community_sidebar).toBe(
+    betaReport.original_community_sidebar,
   );
   expect(alphaReport.reason).toBe(betaReport.reason);
 
@@ -637,7 +637,7 @@ test("Remote mods can edit communities", async () => {
 
   let form2: EditCommunity = {
     community_id: betaCommunity.community.id as number,
-    description: "Example sidebar",
+    sidebar: "Example sidebar",
   };
 
   await editCommunity(beta, form2);
@@ -645,7 +645,7 @@ test("Remote mods can edit communities", async () => {
   const communityId = communityRes.community_view.community.id;
   await waitUntil(
     () => getCommunity(alpha, communityId),
-    c => c.community_view.community.description == "Example sidebar",
+    c => c.community_view.community.sidebar == "Example sidebar",
   );
 });
 

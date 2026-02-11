@@ -40,7 +40,7 @@ pub async fn create_multi_community(
 
   let form = MultiCommunityInsertForm {
     title: data.title.clone(),
-    description: data.description.clone(),
+    summary: data.summary.clone(),
     ap_id: Some(ap_id),
     private_key: site_view.site.private_key,
     inbox_url: Some(site_view.site.inbox_url),

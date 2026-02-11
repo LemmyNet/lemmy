@@ -261,7 +261,7 @@ async fn get_feed_multi_community(
   Ok(send_feed_response(
     title,
     link,
-    multi_community.description,
+    multi_community.summary,
     items,
     site_view,
   ))
@@ -626,6 +626,24 @@ fn create_modlog_items(modlog: Vec<ModlogView>, settings: &Settings) -> LemmyRes
               "Locked"
             },
             &&target_comment_content
+          ),
+          settings,
+        ),
+        ModlogKind::ModWarnComment => build_modlog_item(
+          r,
+          &modlog_url,
+          format!(
+            "Warned user {} about comment {}",
+            &&target_person_name, &&target_comment_content
+          ),
+          settings,
+        ),
+        ModlogKind::ModWarnPost => build_modlog_item(
+          r,
+          &modlog_url,
+          format!(
+            "Warned user {} about post {}",
+            &&target_person_name, &&target_post_name
           ),
           settings,
         ),

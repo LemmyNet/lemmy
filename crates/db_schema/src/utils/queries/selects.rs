@@ -28,12 +28,12 @@ use lemmy_db_schema_file::{
     comment,
     community,
     community_actions,
+    community_tag,
     instance_actions,
     local_user,
     person,
     post,
-    post_tag,
-    tag,
+    post_community_tag,
   },
 };
 use lemmy_diesel_utils::utils::functions::{coalesce_2_nullable, coalesce_3_nullable};
@@ -341,25 +341,32 @@ pub fn post_select_remove_deletes() -> _ {
 }
 
 #[diesel::dsl::auto_type]
-// Gets the post tags set on a specific post
-pub fn post_tags_fragment() -> _ {
-  let sel: SqlLiteral<Json> = diesel::dsl::sql::<diesel::sql_types::Json>("json_agg(tag.*)");
-  post_tag::table
-    .inner_join(tag::table)
+// Gets the post community tags set on a specific post.
+pub fn post_community_tags_fragment() -> _ {
+  let sel: SqlLiteral<Json> =
+    diesel::dsl::sql::<diesel::sql_types::Json>("json_agg(community_tag.*)");
+  post_community_tag::table
+    .inner_join(community_tag::table)
     .select(sel)
-    .filter(post_tag::post_id.eq(post::id))
-    .filter(tag::deleted.eq(false))
+    .filter(post_community_tag::post_id.eq(post::id))
+    .filter(community_tag::deleted.eq(false))
     .single_value()
 }
 
 #[diesel::dsl::auto_type]
-/// Gets the post tags available within a specific community
-pub fn community_post_tags_fragment() -> _ {
-  let sel: SqlLiteral<Json> = diesel::dsl::sql::<diesel::sql_types::Json>("json_agg(tag.*)");
-  tag::table
+/// Gets the tags available within a specific community
+pub fn community_tags_fragment() -> _ {
+  let sel: SqlLiteral<Json> =
+    diesel::dsl::sql::<diesel::sql_types::Json>("json_agg(community_tag.*)");
+  community_tag::table
     .select(sel)
-    .filter(tag::community_id.eq(community::id))
-    .filter(tag::deleted.eq(false))
+    .filter(community_tag::community_id.eq(community::id))
+    .filter(
+      community_tag::deleted
+        .eq(false)
+        // Show deleted tags for admins and mods
+        .or(local_user_community_can_mod()),
+    )
     .single_value()
 }
 

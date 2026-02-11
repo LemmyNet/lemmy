@@ -65,14 +65,13 @@ pub async fn create_community(
   let url_blocklist = get_url_blocklist(&context).await?;
   check_slurs(&data.name, &slur_regex)?;
   check_slurs(&data.title, &slur_regex)?;
-  let description =
-    process_markdown_opt(&data.description, &slur_regex, &url_blocklist, &context).await?;
+  let sidebar = process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context).await?;
   let title = data.title.trim();
   is_valid_display_name(title)?;
 
   // Ensure that the sidebar has fewer than the max num characters...
-  if let Some(description) = &description {
-    is_valid_body_field(description, false)?;
+  if let Some(sidebar) = &sidebar {
+    is_valid_body_field(sidebar, false)?;
   }
 
   let summary = data.summary.clone();
@@ -92,7 +91,7 @@ pub async fn create_community(
 
   let keypair = generate_actor_keypair()?;
   let community_form = CommunityInsertForm {
-    description,
+    sidebar,
     summary,
     nsfw: data.nsfw,
     ap_id: Some(community_ap_id.clone()),

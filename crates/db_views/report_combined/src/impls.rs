@@ -588,7 +588,7 @@ mod tests {
       original_community_title: data.community.title.clone(),
       original_community_banner: None,
       original_community_summary: None,
-      original_community_description: None,
+      original_community_sidebar: None,
       original_community_icon: None,
       reason: "from sara".into(),
     };
@@ -1076,7 +1076,7 @@ mod tests {
       original_community_title: data.community.title.clone(),
       original_community_banner: None,
       original_community_summary: None,
-      original_community_description: None,
+      original_community_sidebar: None,
       original_community_icon: None,
       reason: "the ice cream incident".into(),
     };

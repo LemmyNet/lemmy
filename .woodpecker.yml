@@ -94,6 +94,15 @@ steps:
     when:
       - event: pull_request
 
+  api_tests_lint:
+    image: node:24-trixie-slim
+    commands:
+      - *install_pnpm
+      - cd api_tests/
+      - pnpm i
+      - pnpm lint
+    when: *slow_check_paths
+
   ignored_files:
     image: alpine:3
     commands:
@@ -174,13 +183,14 @@ steps:
       - cargo check --package lemmy_api_common
     when: *slow_check_paths
 
-  lemmy_api_common_doesnt_depend_on_diesel:
+  check_disallowed_dependencies:
     image: *rust_image
     environment:
       CARGO_HOME: .cargo_home
       RUSTUP_HOME: .rustup_home
     commands:
       - "! cargo tree -p lemmy_api_common --no-default-features -i diesel"
+      - "! cargo tree -i aws-lc-sys"
     when: *slow_check_paths
 
   lemmy_api_common_works_with_wasm:

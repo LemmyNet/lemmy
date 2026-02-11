@@ -1,7 +1,7 @@
 use crate::{
   protocol::{
     page::{Attachment, Page, PageType},
-    tags::{ApubTag, CommunityTag, Hashtag, HashtagType},
+    tags::{ApubCommunityTag, ApubTag, Hashtag, HashtagType},
   },
   utils::{
     functions::{
@@ -39,10 +39,10 @@ use lemmy_api_utils::{
 };
 use lemmy_db_schema::source::{
   community::Community,
+  community_tag::CommunityTag,
   local_site::LocalSite,
   person::Person,
   post::{Post, PostInsertForm, PostUpdateForm},
-  tag::Tag,
 };
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_site::SiteView;
@@ -137,10 +137,10 @@ impl Object for ApubPost {
       .collect();
 
     // Add tags defined by community and applied to this post
-    let mut tags: Vec<ApubTag> = Tag::read_for_post(&mut context.pool(), self.id)
+    let mut tags: Vec<ApubTag> = CommunityTag::read_for_post(&mut context.pool(), self.id)
       .await?
       .into_iter()
-      .map(|tag| ApubTag::CommunityTag(CommunityTag::to_json(tag)))
+      .map(|tag| ApubTag::CommunityTag(ApubCommunityTag::to_json(tag)))
       .collect();
 
     // Add automatic hashtag based on community name
@@ -298,7 +298,7 @@ impl Object for ApubPost {
       language_id,
       ..PostInsertForm::new(name, creator.id, community.id)
     };
-    form = plugin_hook_before("federated_post_after_receive", form).await?;
+    form = plugin_hook_before("federated_post_before_receive", form).await?;
 
     let timestamp = page.updated.or(page.published).unwrap_or_else(Utc::now);
     let post = Post::insert_apub(&mut context.pool(), timestamp, &form).await?;
@@ -333,7 +333,8 @@ pub async fn update_apub_post_tags(
     .iter()
     .filter_map(ApubTag::community_tag_id)
     .collect::<HashSet<_>>();
-  let community_tags = Tag::read_for_community(&mut context.pool(), post.community_id).await?;
+  let community_tags =
+    CommunityTag::read_for_community(&mut context.pool(), post.community_id).await?;
   let post_tags = community_tags
     .into_iter()
     .filter(|t| post_tag_ap_ids.contains(&*t.ap_id.0))

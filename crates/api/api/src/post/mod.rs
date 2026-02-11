@@ -9,3 +9,4 @@ pub mod mark_read;
 pub mod mod_update;
 pub mod save;
 pub mod update_notifications;
+pub mod warning;

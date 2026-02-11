@@ -3,8 +3,9 @@ use actix_web::{
   http::header::{self, CacheDirective},
   web::Data,
 };
-use lemmy_api_utils::context::LemmyContext;
+use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
 use lemmy_db_schema::source::post::Post;
+use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::dburl::DbUrl;
 use lemmy_utils::error::LemmyResult;
 use sitemap_rs::{url::Url, url_set::UrlSet};
@@ -25,6 +26,9 @@ fn generate_urlset(posts: Vec<(DbUrl, chrono::DateTime<chrono::Utc>)>) -> LemmyR
 }
 
 pub async fn get_sitemap(context: Data<LemmyContext>) -> LemmyResult<HttpResponse> {
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
+  check_private_instance(&None, &local_site)?;
+
   info!("Generating sitemap...",);
   let posts = Post::list_for_sitemap(&mut context.pool()).await?;
   info!("Loaded latest {} posts", posts.len());

@@ -32,7 +32,7 @@ pub struct Community {
   /// A longer title, that can contain other characters, and doesn't have to be unique.
   pub title: String,
   /// A sidebar for the community in markdown.
-  pub description: Option<String>,
+  pub sidebar: Option<String>,
   /// Whether the community is removed by a mod.
   pub removed: bool,
   pub published_at: DateTime<Utc>,
@@ -49,7 +49,6 @@ pub struct Community {
   pub private_key: Option<SensitiveString>,
   #[serde(skip)]
   pub public_key: String,
-  #[serde(skip)]
   pub last_refreshed_at: DateTime<Utc>,
   /// A URL for an icon.
   pub icon: Option<DbUrl>,
@@ -106,7 +105,7 @@ pub struct CommunityInsertForm {
   pub title: String,
   pub public_key: String,
   #[new(default)]
-  pub description: Option<String>,
+  pub sidebar: Option<String>,
   #[new(default)]
   pub removed: Option<bool>,
   #[new(default)]
@@ -152,7 +151,7 @@ pub struct CommunityInsertForm {
 #[cfg_attr(feature = "full", diesel(table_name = community))]
 pub struct CommunityUpdateForm {
   pub title: Option<String>,
-  pub description: Option<Option<String>>,
+  pub sidebar: Option<Option<String>>,
   pub removed: Option<bool>,
   pub published_at: Option<DateTime<Utc>>,
   pub updated_at: Option<Option<DateTime<Utc>>>,

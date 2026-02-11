@@ -159,13 +159,13 @@ tracing = { version = "0.1.43", default-features = false }
 tracing-actix-web = { version = "0.7.19", default-features = false }
 tracing-subscriber = { version = "0.3.22", features = ["env-filter", "json"] }
 url = { version = "2.5.7", features = ["serde"] }
-reqwest = { version = "0.12.24", default-features = false, features = [
+reqwest = { version = "0.13.1", default-features = false, features = [
   "gzip",
   "json",
-  "rustls-tls",
+  "rustls-no-provider",
 ] }
-reqwest-middleware = "0.4.2"
-reqwest-tracing = "0.5.8"
+reqwest-middleware = "0.5.0"
+reqwest-tracing = "0.6.0"
 clokwerk = "0.4.0"
 doku = { version = "0.21.1", features = ["url-2"] }
 bcrypt = "0.17.1"
@@ -196,7 +196,7 @@ ts-rs = { version = "11.1.0", features = [
   "no-serde-warnings",
   "url-impl",
 ] }
-rustls = { version = "0.23.35", features = ["ring"] }
+rustls = { version = "0.23.35", features = ["ring"], default-features = false }
 tokio-postgres = "0.7.15"
 tokio-postgres-rustls = "0.13.0"
 urlencoding = "2.1.3"

@@ -106,6 +106,27 @@ impl<'a> ModlogInsertForm<'a> {
       ..ModlogInsertForm::new(ModlogKind::ModLockPost, !locked, mod_person_id)
     }
   }
+  pub fn mod_create_comment_warning(
+    mod_person_id: PersonId,
+    comment: &Comment,
+    reason: &'a str,
+  ) -> Self {
+    Self {
+      reason: Some(reason),
+      target_comment_id: Some(comment.id),
+      target_person_id: Some(comment.creator_id),
+      ..ModlogInsertForm::new(ModlogKind::ModWarnComment, false, mod_person_id)
+    }
+  }
+  pub fn mod_create_post_warning(mod_person_id: PersonId, post: &Post, reason: &'a str) -> Self {
+    Self {
+      reason: Some(reason),
+      target_post_id: Some(post.id),
+      target_community_id: Some(post.community_id),
+      target_person_id: Some(post.creator_id),
+      ..ModlogInsertForm::new(ModlogKind::ModWarnPost, false, mod_person_id)
+    }
+  }
   pub fn admin_remove_community(
     mod_person_id: PersonId,
     community_id: CommunityId,

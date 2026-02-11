@@ -6,14 +6,14 @@ use lemmy_api_utils::{context::LemmyContext, utils::check_local_user_valid};
 use lemmy_db_schema::source::multi_community::{MultiCommunity, MultiCommunityUpdateForm};
 use lemmy_db_views_community::{
   MultiCommunityView,
-  api::{MultiCommunityResponse, UpdateMultiCommunity},
+  api::{EditMultiCommunity, MultiCommunityResponse},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_diesel_utils::{traits::Crud, utils::diesel_string_update};
 use lemmy_utils::error::LemmyResult;
 
-pub async fn update_multi_community(
-  Json(data): Json<UpdateMultiCommunity>,
+pub async fn edit_multi_community(
+  Json(data): Json<EditMultiCommunity>,
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<MultiCommunityResponse>> {
@@ -26,7 +26,7 @@ pub async fn update_multi_community(
 
   let form = MultiCommunityUpdateForm {
     title: diesel_string_update(data.title.as_deref()),
-    description: diesel_string_update(data.description.as_deref()),
+    summary: diesel_string_update(data.summary.as_deref()),
     deleted: data.deleted,
     updated_at: Some(Utc::now()),
   };

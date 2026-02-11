@@ -58,6 +58,10 @@ pub mod sql_types {
   pub struct RegistrationModeEnum;
 
   #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+  #[diesel(postgres_type(name = "tag_color_enum"))]
+  pub struct TagColorEnum;
+
+  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
   #[diesel(postgres_type(name = "vote_show_enum"))]
   pub struct VoteShowEnum;
 }
@@ -137,7 +141,7 @@ diesel::table! {
         name -> Varchar,
         #[max_length = 50]
         title -> Varchar,
-        description -> Nullable<Text>,
+        sidebar -> Nullable<Text>,
         removed -> Bool,
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
@@ -223,7 +227,7 @@ diesel::table! {
         original_community_name -> Text,
         original_community_title -> Text,
         original_community_summary -> Nullable<Text>,
-        original_community_description -> Nullable<Text>,
+        original_community_sidebar -> Nullable<Text>,
         original_community_icon -> Nullable<Text>,
         original_community_banner -> Nullable<Text>,
         reason -> Text,
@@ -231,6 +235,27 @@ diesel::table! {
         resolver_id -> Nullable<Int4>,
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::TagColorEnum;
+
+    community_tag (id) {
+        id -> Int4,
+        ap_id -> Text,
+        #[max_length = 255]
+        name -> Varchar,
+        #[max_length = 255]
+        display_name -> Nullable<Varchar>,
+        #[max_length = 150]
+        summary -> Nullable<Varchar>,
+        community_id -> Int4,
+        published_at -> Timestamptz,
+        updated_at -> Nullable<Timestamptz>,
+        deleted -> Bool,
+        color -> TagColorEnum,
     }
 }
 
@@ -537,7 +562,7 @@ diesel::table! {
         #[max_length = 255]
         title -> Nullable<Varchar>,
         #[max_length = 255]
-        description -> Nullable<Varchar>,
+        summary -> Nullable<Varchar>,
         local -> Bool,
         deleted -> Bool,
         ap_id -> Text,
@@ -771,6 +796,14 @@ diesel::table! {
 }
 
 diesel::table! {
+    post_community_tag (post_id, community_tag_id) {
+        post_id -> Int4,
+        community_tag_id -> Int4,
+        published_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     post_report (id) {
         id -> Int4,
         creator_id -> Int4,
@@ -785,14 +818,6 @@ diesel::table! {
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
         violates_instance_rules -> Bool,
-    }
-}
-
-diesel::table! {
-    post_tag (post_id, tag_id) {
-        post_id -> Int4,
-        tag_id -> Int4,
-        published_at -> Timestamptz,
     }
 }
 
@@ -906,7 +931,7 @@ diesel::table! {
         id -> Int4,
         #[max_length = 20]
         name -> Varchar,
-        description -> Nullable<Text>,
+        sidebar -> Nullable<Text>,
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
         icon -> Nullable<Text>,
@@ -933,22 +958,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    tag (id) {
-        id -> Int4,
-        ap_id -> Text,
-        #[max_length = 255]
-        name -> Varchar,
-        #[max_length = 255]
-        display_name -> Nullable<Varchar>,
-        description -> Nullable<Text>,
-        community_id -> Int4,
-        published_at -> Timestamptz,
-        updated_at -> Nullable<Timestamptz>,
-        deleted -> Bool,
-    }
-}
-
-diesel::table! {
     tagline (id) {
         id -> Int4,
         content -> Text,
@@ -968,6 +977,7 @@ diesel::joinable!(community_actions -> community (community_id));
 diesel::joinable!(community_language -> community (community_id));
 diesel::joinable!(community_language -> language (language_id));
 diesel::joinable!(community_report -> community (community_id));
+diesel::joinable!(community_tag -> community (community_id));
 diesel::joinable!(custom_emoji_keyword -> custom_emoji (custom_emoji_id));
 diesel::joinable!(email_verification -> local_user (local_user_id));
 diesel::joinable!(federation_allowlist -> instance (instance_id));
@@ -1014,9 +1024,9 @@ diesel::joinable!(post -> language (language_id));
 diesel::joinable!(post -> person (creator_id));
 diesel::joinable!(post_actions -> person (person_id));
 diesel::joinable!(post_actions -> post (post_id));
+diesel::joinable!(post_community_tag -> community_tag (community_tag_id));
+diesel::joinable!(post_community_tag -> post (post_id));
 diesel::joinable!(post_report -> post (post_id));
-diesel::joinable!(post_tag -> post (post_id));
-diesel::joinable!(post_tag -> tag (tag_id));
 diesel::joinable!(private_message_report -> private_message (private_message_id));
 diesel::joinable!(registration_application -> local_user (local_user_id));
 diesel::joinable!(registration_application -> person (admin_id));
@@ -1032,7 +1042,6 @@ diesel::joinable!(search_combined -> post (post_id));
 diesel::joinable!(site -> instance (instance_id));
 diesel::joinable!(site_language -> language (language_id));
 diesel::joinable!(site_language -> site (site_id));
-diesel::joinable!(tag -> community (community_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
   comment,
@@ -1042,6 +1051,7 @@ diesel::allow_tables_to_appear_in_same_query!(
   community_actions,
   community_language,
   community_report,
+  community_tag,
   email_verification,
   federation_allowlist,
   federation_blocklist,
@@ -1070,8 +1080,8 @@ diesel::allow_tables_to_appear_in_same_query!(
   person_saved_combined,
   post,
   post_actions,
+  post_community_tag,
   post_report,
-  post_tag,
   private_message,
   private_message_report,
   registration_application,
@@ -1079,7 +1089,6 @@ diesel::allow_tables_to_appear_in_same_query!(
   search_combined,
   site,
   site_language,
-  tag,
   person_actions,
   image_details,
 );

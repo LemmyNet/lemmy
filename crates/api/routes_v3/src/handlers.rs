@@ -99,9 +99,9 @@ use lemmy_api_019::{
   },
 };
 use lemmy_api_crud::{
-  comment::{create::create_comment, delete::delete_comment, update::update_comment},
+  comment::{create::create_comment, delete::delete_comment, update::edit_comment},
   community::list::list_communities,
-  post::{create::create_post, delete::delete_post, read::get_post, update::update_post},
+  post::{create::create_post, delete::delete_post, read::get_post, update::edit_post},
   site::read::get_site,
   user::{create::register, my_user::get_my_user},
 };
@@ -602,7 +602,7 @@ pub(crate) async fn update_post_v3(
   context: ApubData<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponseV3>> {
-  let res = Box::pin(update_post(data, context, local_user_view)).await?;
+  let res = Box::pin(edit_post(data, context, local_user_view)).await?;
   convert_post_response(res)
 }
 pub(crate) async fn delete_comment_v3(
@@ -618,7 +618,7 @@ pub(crate) async fn update_comment_v3(
   context: ApubData<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponseV3>> {
-  let res = Box::pin(update_comment(data, context, local_user_view)).await?;
+  let res = Box::pin(edit_comment(data, context, local_user_view)).await?;
   convert_comment_response(res)
 }
 pub(crate) async fn list_communities_v3(

@@ -147,3 +147,13 @@ pub struct EditComment {
   pub content: Option<String>,
   pub language_id: Option<LanguageId>,
 }
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+/// Creates a warning against a comment and notifies the user.
+pub struct CreateCommentWarning {
+  pub comment_id: CommentId,
+  pub reason: String,
+}

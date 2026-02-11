@@ -3,12 +3,12 @@ use lemmy_db_schema::{
   CommunitySortType,
   MultiCommunityListingType,
   MultiCommunitySortType,
-  newtypes::{CommunityId, LanguageId, MultiCommunityId, TagId},
+  newtypes::{CommunityId, CommunityTagId, LanguageId, MultiCommunityId},
   source::site::Site,
 };
 use lemmy_db_schema_file::{
   PersonId,
-  enums::{CommunityNotificationsMode, CommunityVisibility, ListingType},
+  enums::{CommunityNotificationsMode, CommunityVisibility, ListingType, TagColor},
 };
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_diesel_utils::pagination::PaginationCursor;
@@ -99,7 +99,7 @@ pub struct CreateCommunity {
   /// A longer title.
   pub title: String,
   /// A sidebar for the community in markdown.
-  pub description: Option<String>,
+  pub sidebar: Option<String>,
   /// A shorter, one line summary of your community.
   pub summary: Option<String>,
   /// An icon URL.
@@ -134,7 +134,7 @@ pub struct EditCommunity {
   /// A longer title.
   pub title: Option<String>,
   /// A sidebar for the community in markdown.
-  pub description: Option<String>,
+  pub sidebar: Option<String>,
   /// A shorter, one line summary of your community.
   pub summary: Option<String>,
   /// Whether its an NSFW community.
@@ -251,16 +251,16 @@ pub struct TransferCommunity {
 pub struct CreateMultiCommunity {
   pub name: String,
   pub title: Option<String>,
-  pub description: Option<String>,
+  pub summary: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-pub struct UpdateMultiCommunity {
+pub struct EditMultiCommunity {
   pub id: MultiCommunityId,
   pub title: Option<String>,
-  pub description: Option<String>,
+  pub summary: Option<String>,
   pub deleted: Option<bool>,
 }
 
@@ -321,7 +321,7 @@ pub struct FollowMultiCommunity {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Change notification settings for a community
-pub struct UpdateCommunityNotifications {
+pub struct EditCommunityNotifications {
   pub community_id: CommunityId,
   pub mode: CommunityNotificationsMode,
 }
@@ -335,7 +335,8 @@ pub struct CreateCommunityTag {
   pub community_id: CommunityId,
   pub name: String,
   pub display_name: Option<String>,
-  pub description: Option<String>,
+  pub summary: Option<String>,
+  pub color: Option<TagColor>,
 }
 
 #[skip_serializing_none]
@@ -343,10 +344,11 @@ pub struct CreateCommunityTag {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Make changes to a community tag
-pub struct UpdateCommunityTag {
-  pub tag_id: TagId,
+pub struct EditCommunityTag {
+  pub tag_id: CommunityTagId,
   pub display_name: Option<String>,
-  pub description: Option<String>,
+  pub summary: Option<String>,
+  pub color: Option<TagColor>,
 }
 
 #[skip_serializing_none]
@@ -355,5 +357,6 @@ pub struct UpdateCommunityTag {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Delete a community tag.
 pub struct DeleteCommunityTag {
-  pub tag_id: TagId,
+  pub tag_id: CommunityTagId,
+  pub delete: bool,
 }

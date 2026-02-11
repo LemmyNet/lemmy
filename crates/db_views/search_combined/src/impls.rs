@@ -293,7 +293,7 @@ impl SearchCombinedQuery {
           let body_or_description_filter = is_post
             .and(post::body.ilike(searcher.clone()))
             .or(is_community.and(community::summary.ilike(searcher.clone())))
-            .or(is_multi_community.and(multi_community::description.ilike(searcher.clone())))
+            .or(is_multi_community.and(multi_community::summary.ilike(searcher.clone())))
             .or(is_person.and(person::bio.ilike(searcher.clone())));
           query.filter(name_or_title_filter.or(body_or_description_filter))
         }
@@ -455,7 +455,7 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         person_actions: v.person_actions,
         comment_actions: v.comment_actions,
         creator_is_admin: v.item_creator_is_admin,
-        post_tags: v.post_tags,
+        tags: v.tags,
         can_mod: v.can_mod,
         creator_banned: v.creator_banned,
         creator_ban_expires_at: v.creator_ban_expires_at,
@@ -475,7 +475,7 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         community_actions: v.community_actions,
         person_actions: v.person_actions,
         post_actions: v.post_actions,
-        tags: v.post_tags,
+        tags: v.tags,
         can_mod: v.can_mod,
         creator_banned: v.creator_banned,
         creator_ban_expires_at: v.creator_ban_expires_at,
@@ -488,7 +488,7 @@ impl InternalToCombinedView for SearchCombinedViewInternal {
         community,
         community_actions: v.community_actions,
         can_mod: v.can_mod,
-        post_tags: v.community_post_tags,
+        tags: v.tags,
       }))
     } else if let (Some(multi), Some(creator)) = (v.multi_community, &v.item_creator) {
       Some(SearchCombinedView::MultiCommunity(MultiCommunityView {

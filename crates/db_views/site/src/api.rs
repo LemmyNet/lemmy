@@ -109,7 +109,7 @@ pub struct CreateOAuthProvider {
 /// Creates a site. Should be done after first running lemmy.
 pub struct CreateSite {
   pub name: String,
-  pub description: Option<String>,
+  pub sidebar: Option<String>,
   pub summary: Option<String>,
   pub community_creation_admin_only: Option<bool>,
   pub require_email_verification: Option<bool>,
@@ -190,7 +190,7 @@ pub struct EditOAuthProvider {
 pub struct EditSite {
   pub name: Option<String>,
   /// A sidebar for the site, in markdown.
-  pub description: Option<String>,
+  pub sidebar: Option<String>,
   /// A shorter, one line description of your site.
   pub summary: Option<String>,
   /// Limits community creation to admins only.
@@ -554,7 +554,7 @@ pub struct SaveUserSettings {
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-pub struct UpdateTotp {
+pub struct EditTotp {
   pub totp_token: String,
   pub enabled: bool,
 }
@@ -562,7 +562,7 @@ pub struct UpdateTotp {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-pub struct UpdateTotpResponse {
+pub struct EditTotpResponse {
   pub enabled: bool,
 }
 
@@ -629,7 +629,7 @@ pub struct TaglineResponse {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Update a tagline
-pub struct UpdateTagline {
+pub struct EditTagline {
   pub id: TaglineId,
   pub content: String,
 }

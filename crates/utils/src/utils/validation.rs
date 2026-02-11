@@ -350,7 +350,7 @@ fn truncate_for_db(text: &str, len: usize) -> String {
   }
 }
 
-pub fn truncate_description(text: &str) -> String {
+pub fn truncate_summary(text: &str) -> String {
   truncate_for_db(text, SITE_SUMMARY_MAX_LENGTH)
 }
 

@@ -8,10 +8,11 @@ use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
 use enum_map::{EnumMap, enum_map};
 use lemmy_db_schema::{
-  newtypes::{CommunityId, PostId, PostOrCommentId, TagId},
+  newtypes::{CommunityId, CommunityTagId, PostId, PostOrCommentId},
   source::{
     comment::{Comment, CommentActions, CommentLikeForm},
     community::{Community, CommunityActions, CommunityUpdateForm},
+    community_tag::{CommunityTag, PostCommunityTag},
     images::{ImageDetails, RemoteImage},
     instance::InstanceActions,
     local_site::LocalSite,
@@ -24,7 +25,6 @@ use lemmy_db_schema::{
     private_message::PrivateMessage,
     registration_application::RegistrationApplication,
     site::Site,
-    tag::{PostTag, Tag},
   },
   traits::Likeable,
 };
@@ -277,7 +277,6 @@ pub async fn check_community_mod_action(
   allow_deleted: bool,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
-  check_local_user_valid(local_user_view)?;
   is_mod_or_admin(pool, local_user_view, community.id).await?;
   CommunityPersonBanView::check(pool, local_user_view.person.id, community.id).await?;
 
@@ -958,19 +957,19 @@ pub fn check_comment_depth(comment: &Comment) -> LemmyResult<()> {
 
 pub async fn update_post_tags(
   post: &Post,
-  tag_ids: &[TagId],
+  community_tag_ids: &[CommunityTagId],
   context: &LemmyContext,
 ) -> LemmyResult<()> {
   // validate tags
-  let community_tags = Tag::read_for_community(&mut context.pool(), post.community_id)
+  let community_tags = CommunityTag::read_for_community(&mut context.pool(), post.community_id)
     .await?
     .into_iter()
     .map(|t| t.id)
     .collect::<HashSet<_>>();
-  if !community_tags.is_superset(&tag_ids.iter().copied().collect()) {
+  if !community_tags.is_superset(&community_tag_ids.iter().copied().collect()) {
     return Err(LemmyErrorType::TagNotInCommunity.into());
   }
-  PostTag::update(&mut context.pool(), post, tag_ids).await?;
+  PostCommunityTag::update(&mut context.pool(), post, community_tag_ids).await?;
   Ok(())
 }
 

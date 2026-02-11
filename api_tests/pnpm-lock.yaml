@@ -36,8 +36,8 @@ importers:
         specifier: ^18.0.0
         version: 18.0.2
       lemmy-js-client:
-        specifier: 1.0.0-community-sidebar-summary.1
-        version: 1.0.0-community-sidebar-summary.1
+        specifier: 1.0.0-rename-community-tag.0
+        version: 1.0.0-rename-community-tag.0
       lemmy-js-client-019:
         specifier: npm:lemmy-js-client@0.19.9
         version: lemmy-js-client@0.19.9
@@ -1648,8 +1648,8 @@ packages:
   lemmy-js-client@0.19.9:
     resolution: {integrity: sha512-MjeKtmtO8M9wHiKtm60LpZVd7ieI+4yctwwRhZTaxv6yUDI38bhltq8jFYaMDNQ3PKVHUhn33oDuGVnvV1sxKw==}
 
-  lemmy-js-client@1.0.0-community-sidebar-summary.1:
-    resolution: {integrity: sha512-B+jLGeaNxP3Wwo9hDG0FP3fUblK7iLYXr5hNB8MoV+4ZbZHpBOGHWVXC0Xa2nv3r1hxV9D81E/37BQM6WSpQ8w==}
+  lemmy-js-client@1.0.0-rename-community-tag.0:
+    resolution: {integrity: sha512-3ZtoMPFWH/7HKhr795XHqvJkJuDyenxtx32niNs4lTAjHWa18tpBJqFbC1cRyh5RvYIuZQIdqWI2e7VXw7AHQQ==}
 
   leven@3.1.0:
     resolution: {integrity: sha512-qsda+H8jTaUaN/x5vzW2rzc+8Rw4TAQ/4KjB46IwK5VH+IlVeeeje/EoZRpiXvIqjFgK84QffqPztGI3VBLG1A==}
@@ -4356,7 +4356,7 @@ snapshots:
 
   lemmy-js-client@0.19.9: {}
 
-  lemmy-js-client@1.0.0-community-sidebar-summary.1:
+  lemmy-js-client@1.0.0-rename-community-tag.0:
     dependencies:
       '@tsoa/runtime': 6.6.0
     transitivePeerDependencies:

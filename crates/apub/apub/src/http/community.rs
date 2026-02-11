@@ -27,10 +27,10 @@ use lemmy_apub_objects::{
     multi_community::ApubMultiCommunity,
     multi_community_collection::ApubFeedCollection,
   },
-  protocol::tags::CommunityTag,
+  protocol::tags::ApubCommunityTag,
 };
 use lemmy_db_schema::{
-  source::{community::Community, multi_community::MultiCommunity, tag::Tag},
+  source::{community::Community, community_tag::CommunityTag, multi_community::MultiCommunity},
   traits::ApubActor,
 };
 use lemmy_db_schema_file::enums::CommunityVisibility;
@@ -216,10 +216,10 @@ pub(crate) async fn get_apub_community_tag_http(
 
   check_community_fetchable(&community)?;
 
-  let tag = Tag::read_for_community(&mut context.pool(), community.id)
+  let tag = CommunityTag::read_for_community(&mut context.pool(), community.id)
     .await?
     .into_iter()
-    .map(CommunityTag::to_json)
+    .map(ApubCommunityTag::to_json)
     .find(|t| t.preferred_username == info.tag_name)
     .ok_or(LemmyErrorType::NotFound)?;
 
