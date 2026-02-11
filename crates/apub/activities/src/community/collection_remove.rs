@@ -18,7 +18,7 @@ use lemmy_api_utils::{
 use lemmy_apub_objects::{
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
   utils::{
-    functions::{generate_to, verify_mod_action, verify_person_in_community, verify_visibility},
+    functions::{generate_to, verify_mod_action, verify_visibility},
     protocol::InCommunity,
   },
 };
@@ -105,7 +105,6 @@ impl Activity for CollectionRemove {
   async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     let community = self.community(context).await?;
     verify_visibility(&self.to, &self.cc, &community)?;
-    verify_person_in_community(&self.actor, &community, context).await?;
     verify_mod_action(&self.actor, &community, context).await?;
     Ok(())
   }

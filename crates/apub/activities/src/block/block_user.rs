@@ -21,12 +21,7 @@ use lemmy_api_utils::{
 };
 use lemmy_apub_objects::{
   objects::person::ApubPerson,
-  utils::functions::{
-    verify_is_public,
-    verify_mod_action,
-    verify_person_in_community,
-    verify_visibility,
-  },
+  utils::functions::{verify_is_public, verify_mod_action, verify_visibility},
 };
 use lemmy_db_schema::{
   source::{
@@ -120,7 +115,6 @@ impl Activity for BlockUser {
       }
       SiteOrCommunity::Right(community) => {
         verify_visibility(&self.to, &self.cc, &community)?;
-        verify_person_in_community(&self.actor, &community, context).await?;
         verify_mod_action(&self.actor, &community, context).await?;
       }
     }
