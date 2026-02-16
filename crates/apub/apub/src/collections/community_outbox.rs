@@ -35,7 +35,7 @@ impl Collection for ApubCommunityOutbox {
   async fn read_local(owner: &Self::Owner, data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
     let site = Site::read_local(&mut data.pool()).await?;
 
-    let post_views = Box::pin(
+    let mut post_views = Box::pin(
       PostQuery {
         community_id: Some(owner.id),
         sort: Some(PostSortType::New),
@@ -46,6 +46,9 @@ impl Collection for ApubCommunityOutbox {
     )
     .await?
     .items;
+
+    // Outbox most be sorted reverse chronological (newest items first)
+    post_views.sort_unstable_by(|p1, p2| p2.post.published_at.cmp(&p1.post.published_at));
 
     let mut ordered_items = vec![];
     for post_view in post_views {
