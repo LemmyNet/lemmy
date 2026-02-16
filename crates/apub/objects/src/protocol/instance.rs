@@ -43,6 +43,6 @@ pub struct Instance {
   pub(crate) language: Vec<LanguageTag>,
   /// nonstandard field
   pub(crate) content_warning: Option<String>,
-  pub(crate) published: DateTime<Utc>,
+  pub(crate) published: Option<DateTime<Utc>>,
   pub(crate) updated: Option<DateTime<Utc>>,
 }
