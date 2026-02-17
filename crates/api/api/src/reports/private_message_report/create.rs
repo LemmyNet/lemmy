@@ -9,6 +9,7 @@ use lemmy_db_schema::{
   source::{
     private_message::PrivateMessage,
     private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
+    site::Site,
   },
   traits::Reportable,
 };
@@ -41,8 +42,10 @@ pub async fn create_pm_report(
     Err(LemmyErrorType::CouldntCreate)?
   }
 
+  let site = Site::read_local(&mut context.pool()).await?;
   let report_form = PrivateMessageReportForm {
-    creator_id: person.id,
+    creator_id: Some(local_user_view.person.id),
+    creator_site_id: site.id,
     private_message_id,
     original_pm_text: private_message.content,
     reason,
@@ -62,7 +65,7 @@ pub async fn create_pm_report(
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   if local_site.reports_email_admins {
     send_new_report_email_to_admins(
-      &private_message_report_view.creator.name,
+      &local_user_view.person.name,
       &private_message_report_view.private_message_creator.name,
       &mut context.pool(),
       context.settings(),

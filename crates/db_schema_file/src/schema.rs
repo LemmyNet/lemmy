@@ -119,7 +119,7 @@ diesel::table! {
 diesel::table! {
     comment_report (id) {
         id -> Int4,
-        creator_id -> Int4,
+        creator_id -> Nullable<Int4>,
         comment_id -> Int4,
         original_comment_text -> Text,
         reason -> Text,
@@ -128,6 +128,7 @@ diesel::table! {
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
         violates_instance_rules -> Bool,
+        creator_site_id -> Int4,
     }
 }
 
@@ -222,7 +223,7 @@ diesel::table! {
 diesel::table! {
     community_report (id) {
         id -> Int4,
-        creator_id -> Int4,
+        creator_id -> Nullable<Int4>,
         community_id -> Int4,
         original_community_name -> Text,
         original_community_title -> Text,
@@ -235,6 +236,7 @@ diesel::table! {
         resolver_id -> Nullable<Int4>,
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
+        creator_site_id -> Int4,
     }
 }
 
@@ -806,7 +808,7 @@ diesel::table! {
 diesel::table! {
     post_report (id) {
         id -> Int4,
-        creator_id -> Int4,
+        creator_id -> Nullable<Int4>,
         post_id -> Int4,
         #[max_length = 200]
         original_post_name -> Varchar,
@@ -818,6 +820,7 @@ diesel::table! {
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
         violates_instance_rules -> Bool,
+        creator_site_id -> Int4,
     }
 }
 
@@ -840,7 +843,7 @@ diesel::table! {
 diesel::table! {
     private_message_report (id) {
         id -> Int4,
-        creator_id -> Int4,
+        creator_id -> Nullable<Int4>,
         private_message_id -> Int4,
         original_pm_text -> Text,
         reason -> Text,
@@ -848,6 +851,7 @@ diesel::table! {
         resolver_id -> Nullable<Int4>,
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
+        creator_site_id -> Int4,
     }
 }
 
@@ -972,11 +976,13 @@ diesel::joinable!(comment -> post (post_id));
 diesel::joinable!(comment_actions -> comment (comment_id));
 diesel::joinable!(comment_actions -> person (person_id));
 diesel::joinable!(comment_report -> comment (comment_id));
+diesel::joinable!(comment_report -> site (creator_site_id));
 diesel::joinable!(community -> instance (instance_id));
 diesel::joinable!(community_actions -> community (community_id));
 diesel::joinable!(community_language -> community (community_id));
 diesel::joinable!(community_language -> language (language_id));
 diesel::joinable!(community_report -> community (community_id));
+diesel::joinable!(community_report -> site (creator_site_id));
 diesel::joinable!(community_tag -> community (community_id));
 diesel::joinable!(custom_emoji_keyword -> custom_emoji (custom_emoji_id));
 diesel::joinable!(email_verification -> local_user (local_user_id));
@@ -1027,7 +1033,9 @@ diesel::joinable!(post_actions -> post (post_id));
 diesel::joinable!(post_community_tag -> community_tag (community_tag_id));
 diesel::joinable!(post_community_tag -> post (post_id));
 diesel::joinable!(post_report -> post (post_id));
+diesel::joinable!(post_report -> site (creator_site_id));
 diesel::joinable!(private_message_report -> private_message (private_message_id));
+diesel::joinable!(private_message_report -> site (creator_site_id));
 diesel::joinable!(registration_application -> local_user (local_user_id));
 diesel::joinable!(registration_application -> person (admin_id));
 diesel::joinable!(report_combined -> comment_report (comment_report_id));

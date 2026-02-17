@@ -1,5 +1,5 @@
 use crate::{
-  newtypes::{CommentId, CommentReportId},
+  newtypes::{CommentId, CommentReportId, SiteId},
   source::comment_report::{CommentReport, CommentReportForm},
   traits::Reportable,
 };
@@ -58,7 +58,7 @@ impl Reportable for CommentReport {
   async fn resolve_apub(
     pool: &mut DbPool<'_>,
     object_id: Self::ObjectIdType,
-    report_creator_id: PersonId,
+    report_creator_id: SiteId,
     resolver_id: PersonId,
   ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;

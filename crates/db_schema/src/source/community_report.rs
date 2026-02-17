@@ -1,4 +1,4 @@
-use crate::newtypes::{CommunityId, CommunityReportId};
+use crate::newtypes::{CommunityId, CommunityReportId, SiteId};
 use chrono::{DateTime, Utc};
 use lemmy_db_schema_file::PersonId;
 #[cfg(feature = "full")]
@@ -24,7 +24,7 @@ use serde_with::skip_serializing_none;
 /// A comment report.
 pub struct CommunityReport {
   pub id: CommunityReportId,
-  pub creator_id: PersonId,
+  pub creator_id: Option<PersonId>,
   pub community_id: CommunityId,
   pub original_community_name: String,
   pub original_community_title: String,
@@ -37,13 +37,15 @@ pub struct CommunityReport {
   pub resolver_id: Option<PersonId>,
   pub published_at: DateTime<Utc>,
   pub updated_at: Option<DateTime<Utc>>,
+  pub creator_site_id: SiteId,
 }
 
 #[derive(Clone)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = community_report))]
 pub struct CommunityReportForm {
-  pub creator_id: PersonId,
+  pub creator_id: Option<PersonId>,
+  pub creator_site_id: SiteId,
   pub community_id: CommunityId,
   pub original_community_name: String,
   pub original_community_title: String,

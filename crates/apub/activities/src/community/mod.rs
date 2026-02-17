@@ -84,7 +84,7 @@ pub(crate) async fn send_activity_in_community(
 async fn report_inboxes(
   object_id: ObjectId<ReportableObjects>,
   receiver: &Either<ApubSite, ApubCommunity>,
-  report_creator: &ApubPerson,
+  report_creator: &ApubSite,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<ActivitySendTargets> {
   // send report to the community where object was posted

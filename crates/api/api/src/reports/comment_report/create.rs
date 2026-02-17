@@ -14,7 +14,10 @@ use lemmy_api_utils::{
   },
 };
 use lemmy_db_schema::{
-  source::comment_report::{CommentReport, CommentReportForm},
+  source::{
+    comment_report::{CommentReport, CommentReportForm},
+    site::Site,
+  },
   traits::Reportable,
 };
 use lemmy_db_views_comment::CommentView;
@@ -59,8 +62,10 @@ pub async fn create_comment_report(
   // Don't allow creating reports for removed / deleted comments
   check_comment_deleted_or_removed(&comment_view.comment)?;
 
+  let site = Site::read_local(&mut context.pool()).await?;
   let report_form = CommentReportForm {
-    creator_id: person.id,
+    creator_id: Some(local_user_view.person.id),
+    creator_site_id: site.id,
     comment_id,
     original_comment_text: comment_view.comment.content,
     reason,
@@ -77,7 +82,7 @@ pub async fn create_comment_report(
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   if local_site.reports_email_admins {
     send_new_report_email_to_admins(
-      &comment_report_view.creator.name,
+      &local_user_view.person.name,
       &comment_report_view.comment_creator.name,
       &mut context.pool(),
       context.settings(),

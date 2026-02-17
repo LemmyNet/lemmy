@@ -1,4 +1,4 @@
-use crate::newtypes::{PostId, PostReportId};
+use crate::newtypes::{PostId, PostReportId, SiteId};
 use chrono::{DateTime, Utc};
 use lemmy_db_schema_file::PersonId;
 #[cfg(feature = "full")]
@@ -21,7 +21,7 @@ use serde_with::skip_serializing_none;
 /// A post report.
 pub struct PostReport {
   pub id: PostReportId,
-  pub creator_id: PersonId,
+  pub creator_id: Option<PersonId>,
   pub post_id: PostId,
   /// The original post title.
   pub original_post_name: String,
@@ -35,13 +35,15 @@ pub struct PostReport {
   pub published_at: DateTime<Utc>,
   pub updated_at: Option<DateTime<Utc>>,
   pub violates_instance_rules: bool,
+  pub creator_site_id: SiteId,
 }
 
 #[derive(Clone, Default)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = post_report))]
 pub struct PostReportForm {
-  pub creator_id: PersonId,
+  pub creator_id: Option<PersonId>,
+  pub creator_site_id: SiteId,
   pub post_id: PostId,
   pub original_post_name: String,
   pub original_post_url: Option<DbUrl>,

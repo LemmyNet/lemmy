@@ -42,7 +42,7 @@ impl ResolveReport {
   pub(crate) async fn send(
     object_id: ObjectId<ReportableObjects>,
     actor: &ApubPerson,
-    report_creator: &ApubPerson,
+    report_creator: &ApubSite,
     receiver: &Either<ApubSite, ApubCommunity>,
     context: Data<LemmyContext>,
   ) -> LemmyResult<()> {

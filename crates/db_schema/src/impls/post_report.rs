@@ -1,5 +1,5 @@
 use crate::{
-  newtypes::{PostId, PostReportId},
+  newtypes::{PostId, PostReportId, SiteId},
   source::post_report::{PostReport, PostReportForm},
   traits::Reportable,
 };
@@ -50,7 +50,7 @@ impl Reportable for PostReport {
   async fn resolve_apub(
     pool: &mut DbPool<'_>,
     object_id: Self::ObjectIdType,
-    report_creator_id: PersonId,
+    report_creator_id: SiteId,
     resolver_id: PersonId,
   ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
@@ -98,6 +98,7 @@ mod tests {
     instance::Instance,
     person::{Person, PersonInsertForm},
     post::{Post, PostInsertForm},
+    site::{Site, SiteInsertForm},
   };
   use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use serial_test::serial;
@@ -106,6 +107,8 @@ mod tests {
     let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
     let person_form = PersonInsertForm::test_form(inserted_instance.id, "jim");
     let person = Person::create(pool, &person_form).await?;
+    let site_form = SiteInsertForm::new("test".to_string(), inserted_instance.id);
+    let site = Site::create(pool, &site_form).await?;
 
     let community_form = CommunityInsertForm::new(
       inserted_instance.id,
@@ -120,7 +123,7 @@ mod tests {
 
     let report_form = PostReportForm {
       post_id: post.id,
-      creator_id: person.id,
+      creator_site_id: site.id,
       reason: "my reason".to_string(),
       ..Default::default()
     };

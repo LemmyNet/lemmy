@@ -42,7 +42,7 @@ pub async fn resolve_community_report(
     SendActivityData::SendResolveReport {
       object_id: community_report_view.community.ap_id.inner().clone(),
       actor: local_user_view.person,
-      report_creator: community_report_view.creator.clone(),
+      report_creator_site: community_report_view.creator_site.clone(),
       receiver: Either::Left(site),
     },
     &context,

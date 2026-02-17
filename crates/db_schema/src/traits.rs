@@ -1,4 +1,4 @@
-use crate::newtypes::CommunityId;
+use crate::newtypes::{CommunityId, SiteId};
 use diesel_uplete::UpleteCount;
 use lemmy_db_schema_file::PersonId;
 use lemmy_diesel_utils::{connection::DbPool, dburl::DbUrl};
@@ -111,7 +111,7 @@ pub trait Reportable: Sized {
   fn resolve_apub(
     pool: &mut DbPool<'_>,
     object_id: Self::ObjectIdType,
-    report_creator_id: PersonId,
+    report_creator_id: SiteId,
     resolver_id: PersonId,
   ) -> impl Future<Output = LemmyResult<usize>> + Send;
   fn resolve_all_for_object(

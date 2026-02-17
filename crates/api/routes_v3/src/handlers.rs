@@ -136,7 +136,7 @@ use lemmy_db_views_registration_applications::api::Register;
 use lemmy_db_views_report_combined::api::{CreateCommentReport, CreatePostReport};
 use lemmy_db_views_search_combined::{Search, api::GetPost};
 use lemmy_db_views_site::api::{GetSiteResponse, Login, ResolveObject};
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::error::{LemmyResult, UntranslatedError};
 
 pub(crate) async fn get_post_v3(
   data: Query<GetPost>,
@@ -481,7 +481,7 @@ pub async fn create_post_report_v3(
       post_report,
       post,
       community: convert_community(res.community),
-      creator: convert_person(res.creator).0,
+      creator: convert_person(res.creator.ok_or(UntranslatedError::Unreachable)?).0,
       post_creator: convert_person(res.post_creator).0,
       creator_banned_from_community: false,
       creator_is_moderator: false,
@@ -526,7 +526,7 @@ pub async fn create_comment_report_v3(
       comment,
       post: convert_post(res.post).0,
       community: convert_community(res.community),
-      creator: convert_person(res.creator).0,
+      creator: convert_person(res.creator.ok_or(UntranslatedError::Unreachable)?).0,
       comment_creator: convert_person(res.comment_creator).0,
       creator_banned_from_community: false,
       creator_is_moderator: false,

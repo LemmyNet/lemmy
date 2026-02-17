@@ -10,6 +10,7 @@ use lemmy_db_schema::source::{
   post_report::PostReport,
   private_message::PrivateMessage,
   private_message_report::PrivateMessageReport,
+  site::Site,
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -51,10 +52,10 @@ pub struct ReportCombinedViewInternal {
   #[diesel(embed)]
   pub community_report: Option<CommunityReport>,
   #[diesel(
-    select_expression_type = Person1AliasAllColumnsTuple,
-    select_expression = person1_select()
+    select_expression_type = Nullable<Person1AliasAllColumnsTuple>,
+    select_expression = person1_select().nullable()
   )]
-  pub report_creator: Person,
+  pub report_creator: Option<Person>,
   #[diesel(embed)]
   pub comment: Option<Comment>,
   #[diesel(embed)]
@@ -93,6 +94,8 @@ pub struct ReportCombinedViewInternal {
   pub person_actions: Option<PersonActions>,
   #[diesel(embed)]
   pub comment_actions: Option<CommentActions>,
+  #[diesel(embed)]
+  pub report_creator_site: Site,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -114,7 +117,8 @@ pub enum ReportCombinedView {
 pub struct PrivateMessageReportView {
   pub private_message_report: PrivateMessageReport,
   pub private_message: PrivateMessage,
-  pub creator: Person,
+  pub creator: Option<Person>,
+  pub creator_site: Site,
   pub private_message_creator: Person,
   pub resolver: Option<Person>,
   pub creator_is_admin: bool,
@@ -132,7 +136,8 @@ pub struct CommentReportView {
   pub comment: Comment,
   pub post: Post,
   pub community: Community,
-  pub creator: Person,
+  pub creator: Option<Person>,
+  pub creator_site: Site,
   pub comment_creator: Person,
   pub comment_actions: Option<CommentActions>,
   pub resolver: Option<Person>,
@@ -154,7 +159,8 @@ pub struct CommentReportView {
 pub struct CommunityReportView {
   pub community_report: CommunityReport,
   pub community: Community,
-  pub creator: Person,
+  pub creator: Option<Person>,
+  pub creator_site: Site,
   pub resolver: Option<Person>,
   pub creator_is_admin: bool,
   pub creator_is_moderator: bool,
@@ -173,7 +179,8 @@ pub struct PostReportView {
   pub post_report: PostReport,
   pub post: Post,
   pub community: Community,
-  pub creator: Person,
+  pub creator: Option<Person>,
+  pub creator_site: Site,
   pub post_creator: Person,
   pub community_actions: Option<CommunityActions>,
   pub post_actions: Option<PostActions>,

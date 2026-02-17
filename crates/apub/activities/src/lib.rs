@@ -351,13 +351,13 @@ pub async fn match_outgoing_activities(
       SendResolveReport {
         object_id,
         actor,
-        report_creator,
+        report_creator_site,
         receiver,
       } => {
         ResolveReport::send(
           ObjectId::from(object_id),
           &actor.into(),
-          &report_creator.into(),
+          &report_creator_site.into(),
           &receiver.map_either(Into::into, Into::into),
           context,
         )

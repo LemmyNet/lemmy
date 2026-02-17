@@ -1,5 +1,5 @@
 use crate::{
-  newtypes::{PrivateMessageId, PrivateMessageReportId},
+  newtypes::{PrivateMessageId, PrivateMessageReportId, SiteId},
   source::private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
   traits::Reportable,
 };
@@ -48,7 +48,7 @@ impl Reportable for PrivateMessageReport {
   async fn resolve_apub(
     _pool: &mut DbPool<'_>,
     _object_id: Self::ObjectIdType,
-    _report_creator_id: PersonId,
+    _report_creator_id: SiteId,
     _resolver_id: PersonId,
   ) -> LemmyResult<usize> {
     Err(UntranslatedError::Unreachable.into())

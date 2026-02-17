@@ -14,7 +14,10 @@ use lemmy_api_utils::{
   },
 };
 use lemmy_db_schema::{
-  source::post_report::{PostReport, PostReportForm},
+  source::{
+    post_report::{PostReport, PostReportForm},
+    site::Site,
+  },
   traits::Reportable,
 };
 use lemmy_db_views_local_user::LocalUserView;
@@ -54,8 +57,10 @@ pub async fn create_post_report(
 
   check_post_deleted_or_removed(&orig_post.post)?;
 
+  let site = Site::read_local(&mut context.pool()).await?;
   let report_form = PostReportForm {
-    creator_id: person.id,
+    creator_id: Some(local_user_view.person.id),
+    creator_site_id: site.id,
     post_id,
     original_post_name: orig_post.post.name,
     original_post_url: orig_post.post.url,
@@ -74,7 +79,7 @@ pub async fn create_post_report(
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   if local_site.reports_email_admins {
     send_new_report_email_to_admins(
-      &post_report_view.creator.name,
+      &local_user_view.person.name,
       &post_report_view.post_creator.name,
       &mut context.pool(),
       context.settings(),

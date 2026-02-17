@@ -44,7 +44,7 @@ pub async fn resolve_comment_report(
     SendActivityData::SendResolveReport {
       object_id: comment_report_view.comment.ap_id.inner().clone(),
       actor: local_user_view.person,
-      report_creator: report.creator,
+      report_creator_site: report.creator_site,
       receiver: Either::Right(comment_report_view.community.clone()),
     },
     &context,

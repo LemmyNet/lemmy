@@ -39,10 +39,11 @@ pub async fn create_community_report(
   let person = &local_user_view.person;
   let community_id = data.community_id;
   let community = Community::read(&mut context.pool(), community_id).await?;
-  let site = Site::read_from_instance_id(&mut context.pool(), community.instance_id).await?;
 
+  let site = Site::read_local(&mut context.pool()).await?;
   let report_form = CommunityReportForm {
-    creator_id: person.id,
+    creator_id: Some(local_user_view.person.id),
+    creator_site_id: site.id,
     community_id,
     original_community_banner: community.banner,
     original_community_summary: community.summary,
@@ -64,7 +65,7 @@ pub async fn create_community_report(
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   if local_site.reports_email_admins {
     send_new_report_email_to_admins(
-      &community_report_view.creator.name,
+      &local_user_view.person.name,
       // The argument here is normally the reported content's creator, but a community doesn't have
       // a single person to be considered the creator or the person responsible for the bad thing,
       // so the community name is used instead
@@ -75,11 +76,12 @@ pub async fn create_community_report(
     .await?;
   }
 
+  let receiver = Site::read_from_instance_id(&mut context.pool(), community.instance_id).await?;
   ActivityChannel::submit_activity(
     SendActivityData::CreateReport {
       object_id: community.ap_id.inner().clone(),
       actor: local_user_view.person,
-      receiver: Either::Left(site),
+      receiver: Either::Left(receiver),
       reason: data.reason.clone(),
     },
     &context,

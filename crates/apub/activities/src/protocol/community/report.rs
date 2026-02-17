@@ -7,7 +7,7 @@ use activitypub_federation::{
 use either::Either;
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
-  objects::{ReportableObjects, community::ApubCommunity, instance::ApubSite, person::ApubPerson},
+  objects::{ReportableObjects, community::ApubCommunity, instance::ApubSite},
   utils::protocol::InCommunity,
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
@@ -17,7 +17,7 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Report {
-  pub(crate) actor: ObjectId<ApubPerson>,
+  pub(crate) actor: ObjectId<ApubSite>,
   #[serde(deserialize_with = "deserialize_one")]
   pub(crate) to: [ObjectId<Either<ApubSite, ApubCommunity>>; 1],
   pub(crate) object: ReportObject,

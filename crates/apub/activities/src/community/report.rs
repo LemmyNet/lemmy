@@ -23,21 +23,19 @@ use lemmy_api_utils::{
     check_post_deleted_or_removed,
   },
 };
-use lemmy_apub_objects::{
-  objects::{
-    PostOrComment,
-    ReportableObjects,
-    community::ApubCommunity,
-    instance::ApubSite,
-    person::ApubPerson,
-  },
-  utils::functions::verify_person_in_site_or_community,
+use lemmy_apub_objects::objects::{
+  PostOrComment,
+  ReportableObjects,
+  community::ApubCommunity,
+  instance::ApubSite,
+  person::ApubPerson,
 };
 use lemmy_db_schema::{
   source::{
     comment_report::{CommentReport, CommentReportForm},
     community_report::{CommunityReport, CommunityReportForm},
     post_report::{PostReport, PostReportForm},
+    site::Site,
   },
   traits::Reportable,
 };
@@ -47,7 +45,7 @@ use url::Url;
 impl Report {
   pub(crate) fn new(
     object_id: &ObjectId<ReportableObjects>,
-    actor: &ApubPerson,
+    actor: &ApubSite,
     receiver: &Either<ApubSite, ApubCommunity>,
     reason: Option<String>,
     context: &Data<LemmyContext>,
@@ -73,8 +71,9 @@ impl Report {
     reason: String,
     context: Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    let report = Self::new(&object_id, actor, receiver, Some(reason), &context)?;
-    let inboxes = report_inboxes(object_id, receiver, actor, &context).await?;
+    let site: ApubSite = Site::read_local(&mut context.pool()).await?.into();
+    let report = Self::new(&object_id, &site, receiver, Some(reason), &context)?;
+    let inboxes = report_inboxes(object_id, receiver, &site, &context).await?;
 
     send_lemmy_activity(&context, report, actor, inboxes, false).await
   }
@@ -93,9 +92,7 @@ impl Activity for Report {
     self.actor.inner()
   }
 
-  async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    let receiver = self.to[0].dereference(context).await?;
-    verify_person_in_site_or_community(&self.actor, &receiver, context).await?;
+  async fn verify(&self, _context: &Data<Self::DataType>) -> LemmyResult<()> {
     Ok(())
   }
 
@@ -107,7 +104,8 @@ impl Activity for Report {
         check_post_deleted_or_removed(&post)?;
 
         let report_form = PostReportForm {
-          creator_id: actor.id,
+          creator_id: None,
+          creator_site_id: actor.id,
           post_id: post.id,
           original_post_name: post.name.clone(),
           original_post_url: post.url.clone(),
@@ -121,7 +119,8 @@ impl Activity for Report {
         check_comment_deleted_or_removed(&comment)?;
 
         let report_form = CommentReportForm {
-          creator_id: actor.id,
+          creator_id: None,
+          creator_site_id: actor.id,
           comment_id: comment.id,
           original_comment_text: comment.content.clone(),
           reason,
@@ -132,7 +131,8 @@ impl Activity for Report {
       ReportableObjects::Right(community) => {
         check_community_deleted_removed(&community)?;
         let report_form = CommunityReportForm {
-          creator_id: actor.id,
+          creator_id: None,
+          creator_site_id: actor.id,
           community_id: community.id,
           reason,
           original_community_name: community.name.clone(),

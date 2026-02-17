@@ -8,8 +8,7 @@ use diesel::{
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
-  aliases,
-  aliases::creator_community_actions,
+  aliases::{self, creator_community_actions},
   joins::{
     creator_community_instance_actions_join,
     creator_home_instance_actions_join,
@@ -31,6 +30,7 @@ use lemmy_db_schema_file::{
     private_message,
     private_message_report,
     report_combined,
+    site,
   },
 };
 
@@ -39,7 +39,8 @@ pub fn report_combined_joins(my_person_id: PersonId, local_instance_id: Instance
   // The item creator needs to be person::id, otherwise all the creator actions like
   // creator_banned will be wrong.
   let item_creator = person::id;
-  let report_creator = aliases::person1.field(person::id);
+  let report_creator = aliases::person1.field(person::id).nullable();
+  let report_creator_site = site::id;
 
   let resolver = aliases::person2.field(person::id).nullable();
 
@@ -65,6 +66,14 @@ pub fn report_combined_joins(my_person_id: PersonId, local_instance_id: Instance
       .or(comment_report::creator_id.eq(report_creator))
       .or(private_message_report::creator_id.eq(report_creator))
       .or(community_report::creator_id.eq(report_creator)),
+  );
+
+  let report_creator_site_join = site::table.on(
+    post_report::creator_site_id
+      .eq(report_creator_site)
+      .or(comment_report::creator_site_id.eq(report_creator_site))
+      .or(private_message_report::creator_site_id.eq(report_creator_site))
+      .or(community_report::creator_site_id.eq(report_creator_site)),
   );
 
   let item_creator_join = person::table.on(
@@ -130,7 +139,7 @@ pub fn report_combined_joins(my_person_id: PersonId, local_instance_id: Instance
     .left_join(comment_report::table)
     .left_join(private_message_report::table)
     .left_join(community_report::table)
-    .inner_join(report_creator_join)
+    .left_join(report_creator_join)
     .left_join(comment_join)
     .left_join(private_message_join)
     .left_join(post_join)
@@ -146,4 +155,5 @@ pub fn report_combined_joins(my_person_id: PersonId, local_instance_id: Instance
     .left_join(post_actions_join)
     .left_join(person_actions_join)
     .left_join(comment_actions_join)
+    .inner_join(report_creator_site_join)
 }

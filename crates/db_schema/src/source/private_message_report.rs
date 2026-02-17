@@ -1,4 +1,4 @@
-use crate::newtypes::{PrivateMessageId, PrivateMessageReportId};
+use crate::newtypes::{PrivateMessageId, PrivateMessageReportId, SiteId};
 use chrono::{DateTime, Utc};
 use lemmy_db_schema_file::PersonId;
 #[cfg(feature = "full")]
@@ -23,7 +23,7 @@ use serde_with::skip_serializing_none;
 /// The private message report.
 pub struct PrivateMessageReport {
   pub id: PrivateMessageReportId,
-  pub creator_id: PersonId,
+  pub creator_id: Option<PersonId>,
   pub private_message_id: PrivateMessageId,
   /// The original text.
   pub original_pm_text: String,
@@ -32,13 +32,15 @@ pub struct PrivateMessageReport {
   pub resolver_id: Option<PersonId>,
   pub published_at: DateTime<Utc>,
   pub updated_at: Option<DateTime<Utc>>,
+  pub creator_site_id: SiteId,
 }
 
 #[derive(Clone)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = private_message_report))]
 pub struct PrivateMessageReportForm {
-  pub creator_id: PersonId,
+  pub creator_id: Option<PersonId>,
+  pub creator_site_id: SiteId,
   pub private_message_id: PrivateMessageId,
   pub original_pm_text: String,
   pub reason: String,
