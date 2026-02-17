@@ -167,8 +167,8 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
     .runtime(Runtime::Tokio1)
     .timeouts(Timeouts {
       wait: Some(Duration::from_secs(2)),
-      create: Some(Duration::from_secs(5)),
-      recycle: Some(Duration::from_secs(5)),
+      create: Some(Duration::from_secs(10)),
+      recycle: Some(Duration::from_secs(10)),
     })
     // Limit connection age to prevent use of prepared statements that have query plans based on
     // very old statistics
