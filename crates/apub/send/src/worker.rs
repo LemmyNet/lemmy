@@ -624,9 +624,10 @@ mod test {
     assert_eq!(data.instance.id, rcv.state.instance_id);
     // assert_eq!(Some(ActivityId(0)), rcv.state.last_successful_id);
     // let last_id_before = rcv.state.last_successful_id.unwrap();
-    let sent =
-      try_join_all((0..40).map(|_| send_activity(data.person.ap_id.clone(), &data.context, false)))
-        .await?;
+    let mut sent = vec![];
+    for _ in 0..40 {
+      sent.push(send_activity(data.person.ap_id.clone(), &data.context, false).await?);
+    }
     sleep(2 * *WORK_FINISHED_RECHECK_DELAY).await;
     tracing::debug!("sent activity");
     compare_sent_with_receive(data, sent).await?;
