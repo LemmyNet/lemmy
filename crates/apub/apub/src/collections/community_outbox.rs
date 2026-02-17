@@ -47,7 +47,8 @@ impl Collection for ApubCommunityOutbox {
     .await?
     .items;
 
-    // Outbox most be sorted reverse chronological (newest items first)
+    // Outbox must be sorted reverse chronological (newest items first). This is already done
+    // via SQL, but featured posts are always at the top so we need to manually sort it here.
     post_views.sort_unstable_by(|p1, p2| p2.post.published_at.cmp(&p1.post.published_at));
 
     let mut ordered_items = vec![];
