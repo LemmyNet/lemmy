@@ -210,7 +210,8 @@ impl Comment {
     ltree_split.remove(0); // The first is always 0
     if ltree_split.len() > 1 {
       let parent_comment_id = ltree_split.get(ltree_split.len() - 2);
-      parent_comment_id.and_then(|p| p.parse::<i32>().map(CommentId).ok())
+      let p = parent_comment_id?;
+      p.parse::<i32>().map(CommentId).ok()
     } else {
       None
     }

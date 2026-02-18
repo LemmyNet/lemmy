@@ -92,17 +92,15 @@ fn scan_for_identifier(
   }
 
   // check if we found a valid, nonempty identifier
-  if !name.is_empty() && !domain.is_empty() {
+  (!name.is_empty() && !domain.is_empty()).then(|| {
     let len = name.len() + domain.len() + 2;
     let identifier = Identifier {
       is_community,
       name,
       domain,
     };
-    Some((Node::new(identifier), len))
-  } else {
-    None
-  }
+    (Node::new(identifier), len)
+  })
 }
 pub fn add(md: &mut MarkdownIt) {
   md.inline.add_rule::<CommunityIdentifierScanner>();

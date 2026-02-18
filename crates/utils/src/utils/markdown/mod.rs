@@ -28,7 +28,7 @@ pub fn markdown_to_html(text: &str) -> String {
 
 pub fn markdown_check_for_blocked_urls(text: &str, blocklist: &RegexSet) -> LemmyResult<()> {
   if blocklist.is_match(text) {
-    Err(LemmyErrorType::BlockedUrl)?
+    return Err(LemmyErrorType::BlockedUrl.into());
   }
   Ok(())
 }

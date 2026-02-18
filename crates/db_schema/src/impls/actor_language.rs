@@ -201,7 +201,7 @@ impl CommunityLanguage {
     if is_allowed {
       Ok(())
     } else {
-      Err(LemmyErrorType::LanguageNotAllowed)?
+      Err(LemmyErrorType::LanguageNotAllowed.into())
     }
   }
 

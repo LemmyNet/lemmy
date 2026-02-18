@@ -249,7 +249,7 @@ where
   let mut prev_page = make_cursor(data.first(), true)?;
   let mut next_page = make_cursor(data.last(), false)?;
 
-  if let Ok(ref request_cursor) = request_cursor
+  if let Ok(request_cursor) = &request_cursor
     .map(PaginationCursor::into_internal)
     .transpose()
   {

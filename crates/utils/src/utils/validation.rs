@@ -182,21 +182,15 @@ pub fn build_and_check_regex(regex_str_opt: Option<&str>) -> LemmyResult<Regex> 
     if regex.is_empty() {
       match_nothing
     } else {
-      RegexBuilder::new(regex)
+      let regex = RegexBuilder::new(regex)
         .case_insensitive(true)
         .build()
-        .with_lemmy_type(LemmyErrorType::InvalidRegex)
-        .and_then(|regex| {
-          // NOTE: It is difficult to know, in the universe of user-crafted regex, which ones
-          // may match against any string text. To keep it simple, we'll match the regex
-          // against an innocuous string - a single number - which should help catch a regex
-          // that accidentally matches against all strings.
-          if regex.is_match("1") {
-            Err(LemmyErrorType::PermissiveRegex.into())
-          } else {
-            Ok(regex)
-          }
-        })
+        .with_lemmy_type(LemmyErrorType::InvalidRegex)?;
+      if regex.is_match("1") {
+        Err(LemmyErrorType::PermissiveRegex.into())
+      } else {
+        Ok(regex)
+      }
     }
   } else {
     match_nothing
@@ -223,7 +217,7 @@ pub fn clean_urls_in_text(text: &str) -> String {
 
 pub fn is_valid_url(url: &Url) -> LemmyResult<()> {
   if !ALLOWED_POST_URL_SCHEMES.contains(&url.scheme()) {
-    Err(LemmyErrorType::InvalidUrlScheme)?
+    return Err(LemmyErrorType::InvalidUrlScheme.into());
   }
 
   max_length_check(
@@ -237,7 +231,7 @@ pub fn is_valid_url(url: &Url) -> LemmyResult<()> {
 
 pub fn is_url_blocked(url: &Url, blocklist: &RegexSet) -> LemmyResult<()> {
   if blocklist.is_match(url.as_str()) {
-    Err(LemmyErrorType::BlockedUrl)?
+    return Err(LemmyErrorType::BlockedUrl.into());
   }
 
   Ok(())
@@ -356,7 +350,7 @@ pub fn truncate_summary(text: &str) -> String {
 
 pub fn check_api_elements_count(len: usize) -> LemmyResult<()> {
   if len >= MAX_API_PARAM_ELEMENTS {
-    Err(LemmyErrorType::TooManyItems)?
+    return Err(LemmyErrorType::TooManyItems.into());
   }
   Ok(())
 }
