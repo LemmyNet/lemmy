@@ -53,6 +53,7 @@ mod tests {
     test_json::<Note>("../apub/assets/mastodon/objects/note_1.json")?;
     test_json::<Note>("../apub/assets/mastodon/objects/note_2.json")?;
     test_json::<Page>("../apub/assets/mastodon/objects/page.json")?;
+    test_json::<Instance>("../apub/assets/mastodon/objects/instance.json")?;
     Ok(())
   }
 

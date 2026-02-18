@@ -34,10 +34,7 @@ use lemmy_db_schema_file::{InstanceId, enums::ActorType};
 use lemmy_diesel_utils::{sensitive::SensitiveString, traits::Crud};
 use lemmy_utils::{
   error::{LemmyError, LemmyResult, UntranslatedError},
-  utils::{
-    markdown::markdown_to_html,
-    slurs::{check_slurs, check_slurs_opt},
-  },
+  utils::{markdown::markdown_to_html, slurs::check_slurs_opt},
 };
 use std::ops::Deref;
 use tracing::debug;
@@ -93,8 +90,8 @@ impl Object for ApubSite {
     let instance = Instance {
       kind: ApplicationType::Application,
       id: self.id().clone().into(),
-      name: self.name.clone(),
-      preferred_username: Some(data.domain().to_string()),
+      name: Some(self.name.clone()),
+      preferred_username: data.domain().to_string(),
       summary: self.sidebar.as_ref().map(|d| markdown_to_html(d)),
       source: self.sidebar.clone().map(Source::new),
       content: self.summary.clone(),
@@ -122,7 +119,7 @@ impl Object for ApubSite {
     verify_is_remote_object(&apub.id, data)?;
 
     let slur_regex = &slur_regex(data).await?;
-    check_slurs(&apub.name, slur_regex)?;
+    check_slurs_opt(&apub.name, slur_regex)?;
     check_slurs_opt(&apub.summary, slur_regex)?;
 
     Ok(())
@@ -145,7 +142,7 @@ impl Object for ApubSite {
     let banner = proxy_image_link_opt_apub(apub.image.map(|i| i.url), context).await?;
 
     let site_form = SiteInsertForm {
-      name: apub.name.clone(),
+      name: apub.name.unwrap_or(domain.to_string()),
       sidebar,
       published_at: apub.published,
       updated_at: apub.updated,

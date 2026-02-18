@@ -1,0 +1,72 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/v1",
+    {
+      "manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+      "toot": "http://joinmastodon.org/ns#",
+      "featured": {
+        "@id": "toot:featured",
+        "@type": "@id"
+      },
+      "featuredTags": {
+        "@id": "toot:featuredTags",
+        "@type": "@id"
+      },
+      "alsoKnownAs": {
+        "@id": "as:alsoKnownAs",
+        "@type": "@id"
+      },
+      "movedTo": {
+        "@id": "as:movedTo",
+        "@type": "@id"
+      },
+      "schema": "http://schema.org#",
+      "PropertyValue": "schema:PropertyValue",
+      "value": "schema:value",
+      "discoverable": "toot:discoverable",
+      "Device": "toot:Device",
+      "Ed25519Signature": "toot:Ed25519Signature",
+      "Ed25519Key": "toot:Ed25519Key",
+      "Curve25519Key": "toot:Curve25519Key",
+      "EncryptedMessage": "toot:EncryptedMessage",
+      "publicKeyBase64": "toot:publicKeyBase64",
+      "deviceId": "toot:deviceId",
+      "claim": {
+        "@type": "@id",
+        "@id": "toot:claim"
+      },
+      "fingerprintKey": {
+        "@type": "@id",
+        "@id": "toot:fingerprintKey"
+      },
+      "identityKey": {
+        "@type": "@id",
+        "@id": "toot:identityKey"
+      },
+      "devices": {
+        "@type": "@id",
+        "@id": "toot:devices"
+      },
+      "messageFranking": "toot:messageFranking",
+      "messageType": "toot:messageType",
+      "cipherText": "toot:cipherText",
+      "suspended": "toot:suspended"
+    }
+  ],
+  "id": "https://activitypub.academy/actor",
+  "type": "Application",
+  "inbox": "https://activitypub.academy/actor/inbox",
+  "outbox": "https://activitypub.academy/actor/outbox",
+  "preferredUsername": "mastodon.internal",
+  "url": "https://activitypub.academy/about/more?instance_actor=true",
+  "manuallyApprovesFollowers": true,
+  "publicKey": {
+    "id": "https://activitypub.academy/actor#main-key",
+    "owner": "https://activitypub.academy/actor",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzwoPFcLZoZVezYViCY/f\nY90Ppr3pjcNLbXa3AfSFMPW5t5UNOHCDKwzaYV4/B9Jt+Ot9oPFSEDpQg4J2ZHEW\nsd39z5Y8GXaUmydWOUFoXT0e7eSs7763+dVBeiPeZlpOxvFm/CETdQxf/8LrSAqe\np2pShynpV8jEmKFy1QMZzftSEIZyiI0IWw3fA6W4do6eqf+T8kQ1szkb1Z/wYKxu\nov3EZaudF7ujBdpZbjdDs9oK893zahGJv3/vaetm5IIST8jgJe+/mlmcArrIsE+S\nT0zC+iIwAhGGeuIypX5PC274f+Zi429oWimBB/hv2+dNCuobqn1snkolNiZFrPiL\n3wIDAQAB\n-----END PUBLIC KEY-----\n"
+  },
+  "endpoints": {
+    "sharedInbox": "https://activitypub.academy/inbox"
+  }
+}
