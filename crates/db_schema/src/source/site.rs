@@ -54,6 +54,8 @@ pub struct SiteInsertForm {
   #[new(default)]
   pub sidebar: Option<String>,
   #[new(default)]
+  pub published_at: Option<DateTime<Utc>>,
+  #[new(default)]
   pub updated_at: Option<DateTime<Utc>>,
   #[new(default)]
   pub icon: Option<DbUrl>,

@@ -106,7 +106,7 @@ impl Object for ApubSite {
       public_key: self.public_key(),
       language,
       content_warning: self.content_warning.clone(),
-      published: self.published_at,
+      published: Some(self.published_at),
       updated: self.updated_at,
     };
     Ok(instance)
@@ -147,6 +147,7 @@ impl Object for ApubSite {
     let site_form = SiteInsertForm {
       name: apub.name.clone(),
       sidebar,
+      published_at: apub.published,
       updated_at: apub.updated,
       icon,
       banner,

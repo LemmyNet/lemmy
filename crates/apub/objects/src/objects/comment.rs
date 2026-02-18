@@ -118,9 +118,11 @@ impl Object for ApubComment {
       post.ap_id.clone().into()
     };
     let language = Some(LanguageTag::new_single(self.language_id, &mut context.pool()).await?);
-    let parent_creator = get_comment_parent_creator(&mut context.pool(), &self).await?;
-    let maa =
-      collect_non_local_mentions(Some(&self.content), Some(parent_creator), context).await?;
+    // Make this call optional in case the account was deleted.
+    let parent_creator = get_comment_parent_creator(&mut context.pool(), &self)
+      .await
+      .ok();
+    let maa = collect_non_local_mentions(Some(&self.content), parent_creator, context).await?;
 
     let note = Note {
       r#type: NoteType::Note,
