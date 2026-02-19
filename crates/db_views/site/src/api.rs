@@ -272,7 +272,8 @@ pub struct EditSite {
   pub disallow_nsfw_content: Option<bool>,
   /// Dont send email notifications to users for new replies, mentions etc
   pub disable_email_notifications: Option<bool>,
-  /// A multicommunity with suggested communities which is shown on the homepage
+  /// A multicommunity with suggested communities which is shown on the homepage. Sending a zero
+  /// erases this field.
   pub suggested_multi_community_id: Option<MultiCommunityId>,
 }
 
