@@ -43,7 +43,7 @@ pub async fn get_post(
       .await?
       .post_id
   } else {
-    Err(LemmyErrorType::NotFound)?
+    return Err(LemmyErrorType::NotFound.into());
   };
 
   // Check to see if the person is a mod or admin, to show deleted / removed

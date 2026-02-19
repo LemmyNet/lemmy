@@ -226,18 +226,16 @@ impl Object for ApubPost {
         // Posts coming from Mastodon or similar platforms don't have a title. Instead we take the
         // first line of the content and convert it from HTML to plaintext. We also remove mentions
         // of the community name.
-        page
+        let c = page
           .content
           .as_deref()
           .map(StringReader::new)
-          .map(|c| from_read_with_decorator(c, MAX_TITLE_LENGTH, TrivialDecorator::new()))
-          .and_then(|c| {
-            c.unwrap_or_default().lines().next().map(|s| {
-              s.replace(&format!("@{}", community.name), "")
-                .trim()
-                .to_string()
-            })
-          })
+          .map(|c| from_read_with_decorator(c, MAX_TITLE_LENGTH, TrivialDecorator::new()))?;
+        c.unwrap_or_default().lines().next().map(|s| {
+          s.replace(&format!("@{}", community.name), "")
+            .trim()
+            .to_string()
+        })
       })
       .ok_or_else(|| anyhow!("Object must have name or content"))?;
     if name.chars().count() > MAX_TITLE_LENGTH {
@@ -365,7 +363,7 @@ pub async fn post_nsfw(
     //       https://github.com/LemmyNet/lemmy/issues/5564 to be implemented to be able to
     //       safely do this.
     Post::delete_from_apub_id(&mut context.pool(), page.id.inner().clone()).await?;
-    Err(e)?
+    return Err(e);
   }
   Ok(nsfw)
 }

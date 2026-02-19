@@ -110,8 +110,8 @@ impl Activity for Update {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    match self.object {
-      Either::Left(ref c) => {
+    match &self.object {
+      Either::Left(c) => {
         let old_community = self.community(context).await?;
 
         let community = ApubCommunity::from_json(c.clone(), context).await?;
@@ -123,7 +123,7 @@ impl Activity for Update {
         }
       }
       Either::Right(m) => {
-        ApubMultiCommunity::from_json(m, context).await?;
+        ApubMultiCommunity::from_json(m.clone(), context).await?;
       }
     }
     Ok(())

@@ -4,7 +4,7 @@ use lemmy_db_schema::source::post::Post;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::api::ListPostLikes;
 use lemmy_db_views_vote::VoteView;
-use lemmy_diesel_utils::pagination::PagedResponse;
+use lemmy_diesel_utils::{pagination::PagedResponse, traits::Crud};
 use lemmy_utils::error::LemmyResult;
 
 /// Lists likes for a post

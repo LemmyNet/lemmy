@@ -81,7 +81,7 @@ impl Note {
     // recursion, there must be the beginning of at least one `async` block or `async fn`,
     // otherwise there might be multiple levels of recursion before the first poll.
     if context.request_count() > MAX_COMMENT_DEPTH_LIMIT.try_into()? {
-      Err(LemmyErrorType::MaxCommentDepthReached)?;
+      return Err(LemmyErrorType::MaxCommentDepthReached.into());
     }
     let parent = tokio::spawn({
       let in_reply_to = self.in_reply_to.clone();

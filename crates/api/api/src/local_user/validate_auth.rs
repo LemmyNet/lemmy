@@ -19,7 +19,7 @@ pub async fn validate_auth(
   if let Some(jwt) = jwt {
     local_user_view_from_jwt(&jwt, &context).await?;
   } else {
-    Err(LemmyErrorType::NotLoggedIn)?;
+    return Err(LemmyErrorType::NotLoggedIn.into());
   }
   Ok(Json(SuccessResponse::default()))
 }

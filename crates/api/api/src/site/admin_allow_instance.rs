@@ -19,7 +19,7 @@ pub async fn admin_allow_instance(
 
   let blocklist = Instance::blocklist(&mut context.pool()).await?;
   if !blocklist.is_empty() {
-    Err(LemmyErrorType::CannotCombineFederationBlocklistAndAllowlist)?;
+    return Err(LemmyErrorType::CannotCombineFederationBlocklistAndAllowlist.into());
   }
 
   let instance_id = Instance::read_or_create(&mut context.pool(), &data.instance)

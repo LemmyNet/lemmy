@@ -57,7 +57,7 @@ pub async fn create_community(
   let local_site = site_view.local_site;
 
   if local_site.community_creation_admin_only && is_admin(&local_user_view).is_err() {
-    Err(LemmyErrorType::OnlyAdminsCanCreateCommunities)?
+    return Err(LemmyErrorType::OnlyAdminsCanCreateCommunities.into());
   }
 
   check_nsfw_allowed(data.nsfw, Some(&local_site))?;
@@ -86,7 +86,7 @@ pub async fn create_community(
   let community_ap_id = Community::generate_local_actor_url(&data.name, context.settings())?;
   let community_dupe = Community::read_from_apub_id(&mut context.pool(), &community_ap_id).await?;
   if community_dupe.is_some() {
-    Err(LemmyErrorType::AlreadyExists)?
+    return Err(LemmyErrorType::AlreadyExists.into());
   }
 
   let keypair = generate_actor_keypair()?;
@@ -135,7 +135,7 @@ pub async fn create_community(
     // https://stackoverflow.com/a/64227550
     let is_subset = languages.iter().all(|item| site_languages.contains(item));
     if !is_subset {
-      Err(LemmyErrorType::LanguageNotAllowed)?
+      return Err(LemmyErrorType::LanguageNotAllowed.into());
     }
     languages
   } else {

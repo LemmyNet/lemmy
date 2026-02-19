@@ -48,7 +48,7 @@ impl Activity for RawAnnouncableActivities {
 
     // This is only for sending, not receiving so we reject it.
     if let AnnouncableActivities::Page(_) = activity {
-      Err(UntranslatedError::CannotReceivePage)?
+      return Err(UntranslatedError::CannotReceivePage.into());
     }
 
     // Need to treat community as optional here because `Delete/PrivateMessage` gets routed through
@@ -158,7 +158,7 @@ impl Activity for AnnounceActivity {
 
     // This is only for sending, not receiving so we reject it.
     if let AnnouncableActivities::Page(_) = object {
-      Err(UntranslatedError::CannotReceivePage)?
+      return Err(UntranslatedError::CannotReceivePage.into());
     }
 
     let community = object.community(context).await?;

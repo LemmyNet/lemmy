@@ -106,7 +106,7 @@ pub(crate) async fn receive_remove_action(
   match DeletableObjects::read_from_db(object, context).await? {
     DeletableObjects::Community(community) => {
       if community.local {
-        Err(UntranslatedError::OnlyLocalAdminCanRemoveCommunity)?
+        return Err(UntranslatedError::OnlyLocalAdminCanRemoveCommunity.into());
       }
       CommunityReport::resolve_all_for_object(&mut context.pool(), community.id, actor.id).await?;
       let community_owner =
@@ -162,8 +162,8 @@ pub(crate) async fn receive_remove_action(
       .await?;
     }
     // TODO these need to be implemented yet, for now, return errors
-    DeletableObjects::PrivateMessage(_) => Err(LemmyErrorType::NotFound)?,
-    DeletableObjects::Person(_) => Err(LemmyErrorType::NotFound)?,
+    DeletableObjects::PrivateMessage(_) => return Err(LemmyErrorType::NotFound.into()),
+    DeletableObjects::Person(_) => return Err(LemmyErrorType::NotFound.into()),
   }
   Ok(())
 }

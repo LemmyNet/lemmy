@@ -101,7 +101,6 @@ same_name_method = "deny"
 return_and_then = "deny"
 ref_patterns = "deny"
 redundant_type_annotations = "deny"
-if_then_some_else_none = "deny"
 
 [workspace.dependencies]
 lemmy_api = { version = "=1.0.0-alpha.12", path = "./crates/api/api" }

@@ -74,7 +74,7 @@ async fn verify_person(
 
 pub(crate) fn check_community_deleted_or_removed(community: &Community) -> LemmyResult<()> {
   if community.deleted || community.removed {
-    Err(UntranslatedError::CannotCreatePostOrCommentInDeletedOrRemovedCommunity)?
+    Err(UntranslatedError::CannotCreatePostOrCommentInDeletedOrRemovedCommunity.into())
   } else {
     Ok(())
   }

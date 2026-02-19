@@ -59,7 +59,9 @@ fn scan_for_identifier(
     return None;
   }
 
-  let input = &state.src[state.pos..state.pos_max];
+  let Some(input) = &state.src.get(state.pos..state.pos_max) else {
+    return None;
+  };
   // wrong start character
   if !input.starts_with(marker) {
     return None;

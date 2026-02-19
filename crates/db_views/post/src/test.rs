@@ -1,4 +1,4 @@
-#![expect(clippy::indexing_slicing, clippy::expect_used)]
+#![expect(clippy::indexing_slicing, clippy::expect_used, clippy::unreachable)]
 
 use crate::{PostView, impls::PostQuery};
 use chrono::{DateTime, Days, Utc};
@@ -103,7 +103,7 @@ impl Data {
     }
   }
 
-  async fn setup() -> LemmyResult<Data> {
+  async fn setup_inner() -> LemmyResult<Data> {
     let actual_pool = build_db_pool()?;
     let pool = &mut (&actual_pool).into();
     let data = TestData::create(pool).await?;
@@ -258,7 +258,7 @@ impl Data {
       site: data.site,
     })
   }
-  async fn teardown(data: Data) -> LemmyResult<()> {
+  async fn teardown_inner(data: Data) -> LemmyResult<()> {
     let pool = &mut data.pool2();
     let num_deleted = Post::delete(pool, data.post.id).await?;
     Community::delete(pool, data.community.id).await?;
@@ -274,10 +274,10 @@ impl Data {
 }
 impl AsyncTestContext for Data {
   async fn setup() -> Self {
-    Data::setup().await.expect("setup failed")
+    Data::setup_inner().await.expect("setup failed")
   }
   async fn teardown(self) {
-    Data::teardown(self).await.expect("teardown failed")
+    Data::teardown_inner(self).await.expect("teardown failed")
   }
 }
 

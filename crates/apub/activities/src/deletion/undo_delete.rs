@@ -84,7 +84,7 @@ impl UndoDelete {
     match DeletableObjects::read_from_db(object, context).await? {
       DeletableObjects::Community(community) => {
         if community.local {
-          Err(UntranslatedError::OnlyLocalAdminCanRestoreCommunity)?
+          return Err(UntranslatedError::OnlyLocalAdminCanRestoreCommunity.into());
         }
         let community_owner =
           CommunityModeratorView::top_mod_for_community(&mut context.pool(), community.id).await?;
@@ -137,8 +137,8 @@ impl UndoDelete {
         .await?;
       }
       // TODO these need to be implemented yet, for now, return errors
-      DeletableObjects::PrivateMessage(_) => Err(LemmyErrorType::NotFound)?,
-      DeletableObjects::Person(_) => Err(LemmyErrorType::NotFound)?,
+      DeletableObjects::PrivateMessage(_) => return Err(LemmyErrorType::NotFound.into()),
+      DeletableObjects::Person(_) => return Err(LemmyErrorType::NotFound.into()),
     }
     Ok(())
   }

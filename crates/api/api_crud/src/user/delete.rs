@@ -31,7 +31,7 @@ pub async fn delete_account(
     .and_then(|password_encrypted| verify(&data.password, password_encrypted).ok())
     .unwrap_or(false);
   if !valid {
-    Err(LemmyErrorType::IncorrectLogin)?
+    return Err(LemmyErrorType::IncorrectLogin.into());
   }
 
   if data.delete_content {
