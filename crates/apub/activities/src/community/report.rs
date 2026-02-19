@@ -1,6 +1,7 @@
 use super::{local_community, report_inboxes};
 use crate::{
   activity_lists::AnnouncableActivities,
+  check_community_deleted_or_removed,
   generate_activity_id,
   protocol::community::{
     announce::AnnounceActivity,
@@ -31,16 +32,19 @@ use lemmy_apub_objects::{
     instance::ApubSite,
     person::ApubPerson,
   },
-  utils::functions::verify_person_in_site_or_community,
+  utils::functions::{verify_mod_action, verify_person_in_site_or_community},
 };
 use lemmy_db_schema::{
   source::{
     comment_report::{CommentReport, CommentReportForm},
+    community::Community,
     community_report::{CommunityReport, CommunityReportForm},
+    post::Post,
     post_report::{PostReport, PostReportForm},
   },
   traits::Reportable,
 };
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
@@ -104,6 +108,9 @@ impl Activity for Report {
     let reason = self.reason()?;
     match self.object.dereference(context).await? {
       ReportableObjects::Left(PostOrComment::Left(post)) => {
+        let community = Community::read(&mut context.pool(), post.community_id).await?;
+        verify_mod_action(&self.actor, &community, context).await?;
+        check_community_deleted_or_removed(&community)?;
         check_post_deleted_or_removed(&post)?;
 
         let report_form = PostReportForm {
@@ -118,6 +125,10 @@ impl Activity for Report {
         PostReport::report(&mut context.pool(), &report_form).await?;
       }
       ReportableObjects::Left(PostOrComment::Right(comment)) => {
+        let post = Post::read(&mut context.pool(), comment.post_id).await?;
+        let community = Community::read(&mut context.pool(), post.community_id).await?;
+        verify_mod_action(&self.actor, &community, context).await?;
+        check_community_deleted_or_removed(&community)?;
         check_comment_deleted_or_removed(&comment)?;
 
         let report_form = CommentReportForm {

@@ -1,5 +1,6 @@
 use crate::{
   activity_lists::AnnouncableActivities,
+  check_community_deleted_or_removed,
   community::send_activity_in_community,
   protocol::deletion::{delete::Delete, undo_delete::UndoDelete},
   send_lemmy_activity,
@@ -237,6 +238,7 @@ async fn verify_delete_post_or_comment(
   is_mod_action: bool,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
+  check_community_deleted_or_removed(&community)?;
   if is_mod_action {
     verify_mod_action(actor, community, context).await?;
   } else {

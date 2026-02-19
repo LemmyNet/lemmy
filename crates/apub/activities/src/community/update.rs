@@ -1,4 +1,5 @@
 use crate::{
+  check_community_deleted_or_removed,
   community::{AnnouncableActivities, send_activity_in_community},
   generate_activity_id,
   protocol::community::update::Update,
@@ -101,6 +102,7 @@ impl Activity for Update {
         let community = self.community(context).await?;
         verify_visibility(&self.to, &self.cc, &community)?;
         verify_mod_action(&self.actor, &community, context).await?;
+        check_community_deleted_or_removed(&community)?;
         ApubCommunity::verify(c, &community.ap_id.clone().into(), context).await?;
       }
       Either::Right(m) => ApubMultiCommunity::verify(m, &self.id, context).await?,

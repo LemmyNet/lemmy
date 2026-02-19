@@ -1,5 +1,6 @@
 use crate::{
   activity_lists::AnnouncableActivities,
+  check_community_deleted_or_removed,
   community::send_activity_in_community,
   generate_activity_id,
   protocol::community::{collection_add::CollectionAdd, collection_remove::CollectionRemove},
@@ -109,6 +110,7 @@ impl Activity for CollectionAdd {
     let community = self.community(context).await?;
     verify_visibility(&self.to, &self.cc, &community)?;
     verify_mod_action(&self.actor, &community, context).await?;
+    check_community_deleted_or_removed(&community)?;
     Ok(())
   }
 

@@ -1,4 +1,5 @@
 use crate::{
+  check_community_deleted_or_removed,
   generate_activity_id,
   protocol::following::{accept::AcceptFollow, follow::Follow},
   send_lemmy_activity,
@@ -92,6 +93,7 @@ impl Activity for Follow {
     if let (Right(community), Right(Left(follower))) = (&actor, &object)
       && (community.visibility == Public || community.visibility == Unlisted)
     {
+      check_community_deleted_or_removed(&community)?;
       CommunityCommunityFollow::follow(&mut context.pool(), community.id, follower.id).await?;
       AcceptFollow::send(self, context).await?;
       return Ok(());
@@ -109,6 +111,7 @@ impl Activity for Follow {
         AcceptFollow::send(self, context).await?;
       }
       Right(Left(c)) => {
+        check_community_deleted_or_removed(&c)?;
         CommunityPersonBanView::check(&mut context.pool(), person.id, c.id).await?;
         if c.visibility == CommunityVisibility::Private {
           let instance = Instance::read(&mut context.pool(), person.instance_id).await?;
