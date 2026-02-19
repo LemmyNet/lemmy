@@ -68,7 +68,7 @@ pub async fn create_site(
 
   let suggested_multi_community_id =
     diesel_opt_number_update(data.suggested_multi_community_id.map(|id| id.0))
-      .map(|id| id.map(|id| T(id)));
+      .map(|id| id.map(|id| MultiCommunityId(id)));
 
   let site_form = SiteUpdateForm {
     name: Some(data.name.clone()),
