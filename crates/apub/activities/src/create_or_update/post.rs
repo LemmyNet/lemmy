@@ -111,7 +111,7 @@ impl Activity for CreateOrUpdatePage {
       .await
       .is_ok();
     // allow mods to edit the post
-    if is_same_actor && let Ok(Some(post)) = original_post {
+    if !is_same_actor && let Ok(Some(post)) = original_post {
       if is_mod_action {
         let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
         let form = PostUpdateForm {
