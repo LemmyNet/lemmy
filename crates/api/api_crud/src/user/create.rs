@@ -639,7 +639,7 @@ fn read_user_info(user_info: &serde_json::Value, key: &str) -> LemmyResult<Strin
   Err(LemmyErrorType::OauthLoginFailed.into())
 }
 
-#[allow(clippy::expect_used)]
+#[expect(clippy::expect_used)]
 fn check_code_verifier(code_verifier: &str) -> LemmyResult<()> {
   static VALID_CODE_VERIFIER_REGEX: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^[a-zA-Z0-9\-._~]{43,128}$").expect("compile regex"));

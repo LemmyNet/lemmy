@@ -8,13 +8,13 @@ use unicode_segmentation::UnicodeSegmentation;
 use url::{ParseError, Url};
 
 // From here: https://github.com/vector-im/element-android/blob/develop/matrix-sdk-android/src/main/java/org/matrix/android/sdk/api/MatrixPatterns.kt#L35
-#[allow(clippy::expect_used)]
+#[expect(clippy::expect_used)]
 static VALID_MATRIX_ID_REGEX: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"^@[A-Za-z0-9\x21-\x39\x3B-\x7F]+:[A-Za-z0-9.-]+(:[0-9]{2,5})?$")
     .expect("compile regex")
 });
 // taken from https://en.wikipedia.org/wiki/UTM_parameters
-#[allow(clippy::expect_used)]
+#[expect(clippy::expect_used)]
 static URL_CLEANER: LazyLock<UrlCleaner> =
   LazyLock::new(|| UrlCleaner::from_embedded_rules().expect("compile clearurls"));
 const ALLOWED_POST_URL_SCHEMES: [&str; 3] = ["http", "https", "magnet"];
@@ -40,7 +40,7 @@ pub fn is_valid_actor_name(name: &str) -> LemmyResult<()> {
   // Only allow characters from a single alphabet per username. This avoids problems with lookalike
   // characters like `o` which looks identical in Latin and Cyrillic, and can be used to imitate
   // other users. Checks for additional alphabets can be added in the same way.
-  #[allow(clippy::expect_used)]
+  #[expect(clippy::expect_used)]
   static VALID_ACTOR_NAME_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"^(?:[a-zA-Z0-9_]+|[0-9_\p{Arabic}]+|[0-9_\p{Cyrillic}]+)$").expect("compile regex")
   });

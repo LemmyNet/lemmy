@@ -338,7 +338,7 @@ async fn convert_update_languages(
 }
 
 /// If all languages are returned, return empty vec instead
-#[allow(clippy::expect_used)]
+#[expect(clippy::expect_used)]
 async fn convert_read_languages(
   conn: &mut AsyncPgConnection,
   language_ids: Vec<LanguageId>,

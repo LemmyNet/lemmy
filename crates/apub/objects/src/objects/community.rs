@@ -54,7 +54,7 @@ use regex::RegexSet;
 use std::{ops::Deref, sync::OnceLock};
 use url::Url;
 
-#[allow(clippy::type_complexity)]
+#[expect(clippy::type_complexity)]
 pub static FETCH_COMMUNITY_COLLECTIONS: OnceLock<
   fn(ApubCommunity, Group, Data<LemmyContext>) -> (),
 > = OnceLock::new();

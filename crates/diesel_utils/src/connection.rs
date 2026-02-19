@@ -193,7 +193,7 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
   Ok(pool)
 }
 
-#[allow(clippy::expect_used)]
+#[expect(clippy::expect_used)]
 pub fn build_db_pool_for_tests() -> ActualDbPool {
   build_db_pool().expect("db pool missing")
 }

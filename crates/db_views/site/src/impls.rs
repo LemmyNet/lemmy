@@ -206,7 +206,7 @@ impl PaginationCursorConversion for FederatedInstanceView {
   }
 }
 
-#[allow(clippy::expect_used)]
+#[expect(clippy::expect_used)]
 impl From<FederationQueueState> for ReadableFederationState {
   fn from(internal_state: FederationQueueState) -> Self {
     ReadableFederationState {
