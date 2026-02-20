@@ -15,7 +15,7 @@ mod send;
 
 /// Avoid warnings for unused 0.19 translations
 #[allow(dead_code, mismatched_lifetime_syntaxes)]
-mod translations {
+pub mod translations {
   rosetta_i18n::include_translations!();
 }
 

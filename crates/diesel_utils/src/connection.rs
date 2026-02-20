@@ -1,4 +1,4 @@
-use deadpool::Runtime;
+use deadpool::{Runtime, managed::Timeouts};
 use diesel::result::{
   ConnectionError,
   ConnectionResult,
@@ -162,9 +162,18 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
   let mut config = ManagerConfig::default();
   config.custom_setup = Box::new(establish_connection);
   let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new_with_config(&db_url, config);
+
+  // Don't allow pool sizes below 2. See https://github.com/LemmyNet/lemmy/issues/5112
+  let pool_size = std::cmp::max(SETTINGS.database.pool_size, 2);
+
   let pool = Pool::builder(manager)
-    .max_size(SETTINGS.database.pool_size)
+    .max_size(pool_size)
     .runtime(Runtime::Tokio1)
+    .timeouts(Timeouts {
+      wait: Some(Duration::from_secs(1)),
+      create: Some(Duration::from_secs(5)),
+      recycle: Some(Duration::from_secs(5)),
+    })
     // Limit connection age to prevent use of prepared statements that have query plans based on
     // very old statistics
     .pre_recycle(Hook::sync_fn(|_conn, metrics| {

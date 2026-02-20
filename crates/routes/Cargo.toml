@@ -36,6 +36,7 @@ lemmy_db_schema = { workspace = true, features = ["full"] }
 lemmy_api_utils = { workspace = true, features = ["full"] }
 lemmy_db_schema_file = { workspace = true }
 activitypub_federation = { workspace = true }
+lemmy_email = { workspace = true }
 actix-web = { workspace = true, features = ["cookies"] }
 chrono = { workspace = true }
 futures = { workspace = true }
@@ -60,6 +61,7 @@ rand = "0.9.2"
 percent-encoding = "2.3.2"
 diesel-uplete.workspace = true
 lemmy_diesel_utils = { workspace = true }
+rosetta-i18n = { workspace = true }
 
 [dev-dependencies]
 pretty_assertions.workspace = true
