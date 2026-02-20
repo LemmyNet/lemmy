@@ -55,6 +55,12 @@ pub async fn remove_comment(
   )
   .await?;
 
+  // Don't allow removing or restoring comment which was deleted by user, as it would reveal
+  // the comment text in mod log.
+  if orig_comment.comment.deleted {
+    return Err(LemmyErrorType::CouldntUpdate.into());
+  }
+
   let (updated_comment, forms) = if let Some(remove_children) = data.remove_children {
     let updated_comments: Vec<Comment> = Comment::update_removed_for_comment_and_children(
       &mut context.pool(),
@@ -92,12 +98,6 @@ pub async fn remove_comment(
 
     (updated_comment, forms)
   } else {
-    // Don't allow removing or restoring comment which was deleted by user, as it would reveal
-    // the comment text in mod log.
-    if orig_comment.comment.deleted {
-      return Err(LemmyErrorType::CouldntUpdate.into());
-    }
-
     // Do the remove
     let removed = data.removed;
     let updated_comment = Comment::update(
