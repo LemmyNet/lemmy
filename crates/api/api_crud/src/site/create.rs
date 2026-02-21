@@ -14,17 +14,24 @@ use lemmy_api_utils::{
     slur_regex,
   },
 };
-use lemmy_db_schema::source::{
-  local_site::{LocalSite, LocalSiteUpdateForm},
-  local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitUpdateForm},
-  site::{Site, SiteUpdateForm},
+use lemmy_db_schema::{
+  newtypes::MultiCommunityId,
+  source::{
+    local_site::{LocalSite, LocalSiteUpdateForm},
+    local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitUpdateForm},
+    site::{Site, SiteUpdateForm},
+  },
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::{
   SiteView,
   api::{CreateSite, SiteResponse},
 };
-use lemmy_diesel_utils::{dburl::DbUrl, traits::Crud, utils::diesel_string_update};
+use lemmy_diesel_utils::{
+  dburl::DbUrl,
+  traits::Crud,
+  utils::{diesel_opt_number_update, diesel_string_update},
+};
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::{
@@ -58,6 +65,10 @@ pub async fn create_site(
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
   let sidebar = process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context).await?;
+
+  let suggested_multi_community_id =
+    diesel_opt_number_update(data.suggested_multi_community_id.map(|id| id.0))
+      .map(|id| id.map(MultiCommunityId));
 
   let site_form = SiteUpdateForm {
     name: Some(data.name.clone()),
@@ -102,7 +113,7 @@ pub async fn create_site(
     comment_downvotes: data.comment_downvotes,
     disallow_nsfw_content: data.disallow_nsfw_content,
     disable_email_notifications: data.disable_email_notifications,
-    suggested_communities: data.suggested_communities,
+    suggested_multi_community_id,
     ..Default::default()
   };
 

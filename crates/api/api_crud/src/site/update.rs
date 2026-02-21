@@ -13,13 +13,16 @@ use lemmy_api_utils::{
     slur_regex,
   },
 };
-use lemmy_db_schema::source::{
-  actor_language::SiteLanguage,
-  local_site::{LocalSite, LocalSiteUpdateForm},
-  local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitUpdateForm},
-  local_site_url_blocklist::LocalSiteUrlBlocklist,
-  local_user::LocalUser,
-  site::{Site, SiteUpdateForm},
+use lemmy_db_schema::{
+  newtypes::MultiCommunityId,
+  source::{
+    actor_language::SiteLanguage,
+    local_site::{LocalSite, LocalSiteUpdateForm},
+    local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitUpdateForm},
+    local_site_url_blocklist::LocalSiteUrlBlocklist,
+    local_user::LocalUser,
+    site::{Site, SiteUpdateForm},
+  },
 };
 use lemmy_db_schema_file::enums::RegistrationMode;
 use lemmy_db_views_local_user::LocalUserView;
@@ -74,6 +77,10 @@ pub async fn edit_site(
     diesel_opt_number_update(data.default_post_time_range_seconds);
   let default_items_per_page = data.default_items_per_page;
 
+  let suggested_multi_community_id =
+    diesel_opt_number_update(data.suggested_multi_community_id.map(|id| id.0))
+      .map(|id| id.map(MultiCommunityId));
+
   let site_form = SiteUpdateForm {
     name: data.name.clone(),
     sidebar,
@@ -117,7 +124,7 @@ pub async fn edit_site(
     comment_downvotes: data.comment_downvotes,
     disallow_nsfw_content: data.disallow_nsfw_content,
     disable_email_notifications: data.disable_email_notifications,
-    suggested_communities: data.suggested_communities,
+    suggested_multi_community_id,
     ..Default::default()
   };
 

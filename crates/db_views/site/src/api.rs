@@ -151,7 +151,7 @@ pub struct CreateSite {
   pub comment_downvotes: Option<FederationMode>,
   pub disallow_nsfw_content: Option<bool>,
   pub disable_email_notifications: Option<bool>,
-  pub suggested_communities: Option<MultiCommunityId>,
+  pub suggested_multi_community_id: Option<MultiCommunityId>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -272,8 +272,9 @@ pub struct EditSite {
   pub disallow_nsfw_content: Option<bool>,
   /// Dont send email notifications to users for new replies, mentions etc
   pub disable_email_notifications: Option<bool>,
-  /// A multicommunity with suggested communities which is shown on the homepage
-  pub suggested_communities: Option<MultiCommunityId>,
+  /// A multicommunity with suggested communities which is shown on the homepage. Sending a zero
+  /// erases this field.
+  pub suggested_multi_community_id: Option<MultiCommunityId>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
