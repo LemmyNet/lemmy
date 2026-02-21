@@ -611,7 +611,11 @@ async fn create_modlog_entries_for_removed_or_restored_posts(
   // Build the forms
   let forms: Vec<_> = posts
     .iter()
-    .map(|post| ModlogInsertForm::mod_remove_post(mod_person_id, post, removed, reason))
+    .map(|post| {
+      let mut form = ModlogInsertForm::mod_remove_post(mod_person_id, post, removed, reason);
+      form.bulk = true;
+      form
+    })
     .collect();
 
   Modlog::create(pool, &forms).await?;
@@ -629,7 +633,11 @@ async fn create_modlog_entries_for_removed_or_restored_comments(
   // Build the forms
   let forms: Vec<_> = comments
     .iter()
-    .map(|comment| ModlogInsertForm::mod_remove_comment(mod_person_id, comment, removed, reason))
+    .map(|comment| {
+      let mut form = ModlogInsertForm::mod_remove_comment(mod_person_id, comment, removed, reason);
+      form.bulk = true;
+      form
+    })
     .collect();
 
   Modlog::create(pool, &forms).await?;

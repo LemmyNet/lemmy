@@ -155,6 +155,7 @@ mod tests {
         ModlogView {
           modlog: Modlog {
             is_revert: false,
+            bulk: true,
             kind: ModlogKind::ModRemovePost,
             ..
           },
@@ -164,6 +165,7 @@ mod tests {
         ModlogView {
           modlog: Modlog {
             is_revert: false,
+            bulk: true,
             kind: ModlogKind::ModRemovePost,
             ..
           },
@@ -189,6 +191,7 @@ mod tests {
         ModlogView {
           modlog: Modlog {
             is_revert: false,
+            bulk: true,
             kind: ModlogKind::ModRemoveComment,
             ..
           },
@@ -198,6 +201,7 @@ mod tests {
         ModlogView {
           modlog: Modlog {
             is_revert: false,
+            bulk: true,
             kind: ModlogKind::ModRemoveComment,
             ..
           },
@@ -247,6 +251,7 @@ mod tests {
         ModlogView {
           modlog: Modlog {
             is_revert: true,
+            bulk: true,
             kind: ModlogKind::ModRemovePost,
             ..
           },
@@ -256,6 +261,7 @@ mod tests {
         ModlogView {
           modlog: Modlog {
             is_revert: true,
+            bulk: true,
             kind: ModlogKind::ModRemovePost,
             ..
           },
@@ -265,6 +271,7 @@ mod tests {
         ModlogView {
           modlog: Modlog {
             is_revert: false,
+            bulk: true,
             kind: ModlogKind::ModRemovePost,
             ..
           },
@@ -274,6 +281,7 @@ mod tests {
         ModlogView {
           modlog: Modlog {
             is_revert: false,
+            bulk: true,
             kind: ModlogKind::ModRemovePost,
             ..
           },
@@ -299,6 +307,7 @@ mod tests {
         ModlogView {
           modlog: Modlog {
             is_revert: true,
+            bulk: true,
             kind: ModlogKind::ModRemoveComment,
             ..
           },
@@ -308,6 +317,7 @@ mod tests {
         ModlogView {
           modlog: Modlog {
             is_revert: true,
+            bulk: true,
             kind: ModlogKind::ModRemoveComment,
             ..
           },
@@ -317,6 +327,7 @@ mod tests {
         ModlogView {
           modlog: Modlog {
             is_revert: false,
+            bulk: true,
             kind: ModlogKind::ModRemoveComment,
             ..
           },
@@ -326,6 +337,7 @@ mod tests {
         ModlogView {
           modlog: Modlog {
             is_revert: false,
+            bulk: true,
             kind: ModlogKind::ModRemoveComment,
             ..
           },

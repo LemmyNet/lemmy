@@ -21,6 +21,7 @@ pub struct Modlog {
   pub id: ModlogId,
   pub kind: ModlogKind,
   pub is_revert: bool,
+  pub bulk: bool,
   #[serde(skip)]
   pub mod_id: PersonId,
   pub reason: Option<String>,
@@ -44,6 +45,8 @@ pub struct Modlog {
 pub struct ModlogInsertForm<'a> {
   pub(crate) kind: ModlogKind,
   pub(crate) is_revert: bool,
+  #[new(default)]
+  pub bulk: bool,
   pub(crate) mod_id: PersonId,
   #[new(default)]
   pub(crate) reason: Option<&'a str>,
