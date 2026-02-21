@@ -1,2 +1,3 @@
 ALTER TABLE modlog
-    ADD COLUMN bulk boolean NOT NULL DEFAULT false;
+    ADD COLUMN is_bulk boolean NOT NULL DEFAULT FALSE;
+

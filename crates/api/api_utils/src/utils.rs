@@ -613,7 +613,7 @@ async fn create_modlog_entries_for_removed_or_restored_posts(
     .iter()
     .map(|post| {
       let mut form = ModlogInsertForm::mod_remove_post(mod_person_id, post, removed, reason);
-      form.bulk = true;
+      form.is_bulk = true;
       form
     })
     .collect();
@@ -635,7 +635,7 @@ async fn create_modlog_entries_for_removed_or_restored_comments(
     .iter()
     .map(|comment| {
       let mut form = ModlogInsertForm::mod_remove_comment(mod_person_id, comment, removed, reason);
-      form.bulk = true;
+      form.is_bulk = true;
       form
     })
     .collect();

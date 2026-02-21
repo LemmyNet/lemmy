@@ -846,4 +846,30 @@ mod tests {
 
     Ok(())
   }
+
+  /// Verifies that a single (non-bulk) modlog entry has is_bulk == false by default.
+  #[tokio::test]
+  #[serial]
+  async fn individual_modlog_is_not_bulk() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    let form = ModlogInsertForm::mod_remove_post(data.timmy.id, &data.post, true, "reason");
+    Modlog::create(pool, &[form]).await?;
+
+    let modlog = ModlogQuery {
+      type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemovePost)),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?
+    .items;
+    assert_eq!(1, modlog.len());
+    assert!(!modlog[0].modlog.is_bulk);
+
+    cleanup(data, pool).await?;
+
+    Ok(())
+  }
 }

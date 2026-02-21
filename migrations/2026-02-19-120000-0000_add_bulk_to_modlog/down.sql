@@ -1,2 +1,3 @@
 ALTER TABLE modlog
-    DROP COLUMN bulk;
+    DROP COLUMN is_bulk;
+
