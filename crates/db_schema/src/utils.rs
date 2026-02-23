@@ -1,6 +1,6 @@
 use crate::{newtypes::DbUrl, CommentSortType, SortType};
 use chrono::{DateTime, TimeDelta, Utc};
-use deadpool::Runtime;
+use deadpool::{managed::Timeouts, Runtime};
 use diesel::{
   helper_types::AsExprOf,
   pg::Pg,
@@ -433,6 +433,11 @@ pub async fn build_db_pool() -> LemmyResult<ActualDbPool> {
   let pool = Pool::builder(manager)
     .max_size(SETTINGS.database.pool_size)
     .runtime(Runtime::Tokio1)
+    .timeouts(Timeouts {
+      wait: Some(Duration::from_secs(1)),
+      create: Some(Duration::from_secs(5)),
+      recycle: Some(Duration::from_secs(5)),
+    })
     // Limit connection age to prevent use of prepared statements that have query plans based on
     // very old statistics
     .pre_recycle(Hook::sync_fn(|_conn, metrics| {
