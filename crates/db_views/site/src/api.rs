@@ -319,6 +319,7 @@ pub struct GetSiteResponse {
   ///
   /// Useful for estimating when your application will be approved.
   pub last_application_duration_seconds: Option<i64>,
+  pub captcha_enabled: bool,
 }
 
 #[skip_serializing_none]
