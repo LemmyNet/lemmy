@@ -33,5 +33,6 @@ serde = { workspace = true }
 url = { workspace = true }
 tracing = { workspace = true }
 tokio = { workspace = true }
+strum = { workspace = true }
 http.workspace = true
 rss = "2.0.10"

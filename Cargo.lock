@@ -3452,6 +3452,7 @@ dependencies = [
  "reqwest-middleware 0.2.5",
  "rss",
  "serde",
+ "strum",
  "tokio",
  "tracing",
  "url",
