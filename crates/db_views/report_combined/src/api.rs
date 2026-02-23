@@ -61,6 +61,8 @@ pub struct CommunityReportResponse {
 pub struct CreateCommentReport {
   pub comment_id: CommentId,
   pub reason: String,
+  /// The comment violates rules of the local instance. This report will only be shown to local
+  /// admins, not to community mods and will not be federated.
   pub violates_instance_rules: Option<bool>,
 }
 
@@ -80,6 +82,8 @@ pub struct CreateCommunityReport {
 pub struct CreatePostReport {
   pub post_id: PostId,
   pub reason: String,
+  /// The post violates rules of the local instance. This report will only be shown to local
+  /// admins, not to community mods and will not be federated.
   pub violates_instance_rules: Option<bool>,
 }
 
