@@ -52,7 +52,7 @@ use lemmy_utils::{
   spawn_try_task,
   utils::{
     markdown::markdown_to_html,
-    slurs::check_slurs_opt,
+    slurs::remove_slurs,
     validation::{is_url_blocked, is_valid_url},
   },
 };
@@ -192,9 +192,6 @@ impl Object for ApubPost {
     check_apub_id_valid_with_strictness(page.id.inner(), community.local, context).await?;
     verify_person_in_community(&page.creator()?, &community, context).await?;
 
-    let slur_regex = slur_regex(context).await?;
-    check_slurs_opt(&page.name, &slur_regex)?;
-
     verify_domains_match(page.creator()?.inner(), page.id.inner())?;
     verify_visibility(&page.to, &page.cc, &community)?;
     Ok(())
@@ -207,6 +204,8 @@ impl Object for ApubPost {
       .map(|s| s.local_site);
     let creator = page.creator()?.dereference(context).await?;
     let community = page.community(context).await?;
+
+    let slur_regex = slur_regex(context).await?;
 
     // Prevent posts from non-mod users in local, restricted community. If its a remote community
     // then its possible that the restricted setting was enabled recently, so existing user posts
@@ -222,6 +221,7 @@ impl Object for ApubPost {
     let mut name = page
       .name
       .clone()
+      .map(|s| remove_slurs(&s, &slur_regex))
       .or_else(|| {
         // Posts coming from Mastodon or similar platforms don't have a title. Instead we take the
         // first line of the content and convert it from HTML to plaintext. We also remove mentions
@@ -269,8 +269,6 @@ impl Object for ApubPost {
     };
 
     let alt_text = first_attachment.cloned().and_then(Attachment::alt_text);
-
-    let slur_regex = slur_regex(context).await?;
 
     let body = read_from_string_or_source_opt(&page.content, &page.media_type, &page.source);
     let body = process_markdown_opt(&body, &slur_regex, &url_blocklist, context).await?;

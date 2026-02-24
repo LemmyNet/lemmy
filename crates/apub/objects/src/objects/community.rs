@@ -44,11 +44,7 @@ use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::{sensitive::SensitiveString, traits::Crud};
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
-  utils::{
-    markdown::markdown_to_html,
-    slurs::{check_slurs, check_slurs_opt},
-    validation::truncate_summary,
-  },
+  utils::{markdown::markdown_to_html, slurs::remove_slurs, validation::truncate_summary},
 };
 use regex::RegexSet;
 use std::{ops::Deref, sync::OnceLock};
@@ -163,12 +159,6 @@ impl Object for ApubCommunity {
 
     // Doesnt call verify_is_remote_object() because the community might be edited by a
     // remote mod. This is safe as we validate `expected_domain`.
-
-    let slur_regex = slur_regex(context).await?;
-
-    check_slurs(&group.preferred_username, &slur_regex)?;
-    check_slurs_opt(&group.name, &slur_regex)?;
-    check_slurs_opt(&group.summary, &slur_regex)?;
     Ok(())
   }
 
@@ -189,6 +179,15 @@ impl Object for ApubCommunity {
     let icon = proxy_image_link_opt_apub(group.icon.clone().map(|i| i.url), context).await?;
     let banner = proxy_image_link_opt_apub(group.image.clone().map(|i| i.url), context).await?;
     let visibility = Some(community_visibility(&group));
+    let summary = group
+      .content
+      .clone()
+      .as_deref()
+      .map(truncate_summary)
+      .map(|s| remove_slurs(&s, &slur_regex));
+
+    let name = group.preferred_username.clone();
+    let title = remove_slurs(&group.name.clone().unwrap_or(name.clone()), &slur_regex);
 
     // If NSFW is not allowed, then remove NSFW communities
     let removed = check_nsfw_allowed(group.sensitive, local_site.as_ref())
@@ -208,7 +207,7 @@ impl Object for ApubCommunity {
       banner,
       sidebar,
       removed,
-      summary: group.content.clone().as_deref().map(truncate_summary),
+      summary,
       followers_url: group.followers.clone().clone().map(Into::into),
       inbox_url: Some(
         group
@@ -228,11 +227,8 @@ impl Object for ApubCommunity {
       visibility,
       ..CommunityInsertForm::new(
         instance_id,
-        group.preferred_username.clone(),
-        group
-          .name
-          .clone()
-          .unwrap_or(group.preferred_username.clone()),
+        name,
+        title,
         group.public_key.public_key_pem.clone(),
       )
     };
