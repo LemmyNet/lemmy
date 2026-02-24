@@ -14,6 +14,7 @@ use lemmy_db_schema::{
     private_message::PrivateMessage,
   },
 };
+use lemmy_db_schema_file::PersonId;
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_modlog::ModlogView;
 use lemmy_db_views_post::PostView;
@@ -133,6 +134,7 @@ pub enum NotificationData {
 pub struct ListNotifications {
   pub type_: Option<NotificationTypeFilter>,
   pub unread_only: Option<bool>,
+  pub creator_id: Option<PersonId>,
   pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }
