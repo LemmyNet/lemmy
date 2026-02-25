@@ -226,7 +226,18 @@ cfg_if! {
       }
 
       fn error_response(&self) -> actix_web::HttpResponse {
-        actix_web::HttpResponse::build(self.status_code()).json(&self.error_type)
+        // Extra response struct needed because `anyhow::Error` doesnt implement Serialize
+        #[derive(Serialize,Debug)]
+        struct Res<'a> {
+          #[serde(flatten)]
+          error: &'a LemmyErrorType,
+          cause: String
+        }
+        let res = Res {
+          error: &self.error_type,
+          cause: self.inner.to_string()
+        };
+        actix_web::HttpResponse::build(self.status_code()).json(&res)
       }
     }
 
