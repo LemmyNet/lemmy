@@ -540,7 +540,6 @@ diesel::table! {
         id -> Int4,
         kind -> ModlogKind,
         is_revert -> Bool,
-        is_bulk -> Bool,
         mod_id -> Int4,
         reason -> Nullable<Text>,
         target_person_id -> Nullable<Int4>,
@@ -550,6 +549,7 @@ diesel::table! {
         target_instance_id -> Nullable<Int4>,
         expires_at -> Nullable<Timestamptz>,
         published_at -> Timestamptz,
+        bulk_action_parent_id -> Nullable<Int4>,
     }
 }
 

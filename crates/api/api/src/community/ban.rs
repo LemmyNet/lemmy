@@ -71,6 +71,17 @@ pub async fn ban_from_community(
           CommunityActions::unban(&mut conn.into(), &community_user_ban_form).await?;
         }
 
+        // Mod tables - create ban entry first so bulk actions can reference it as parent
+        let form = ModlogInsertForm::mod_ban_from_community(
+          my_person_id,
+          tx_data.community_id,
+          tx_data.person_id,
+          tx_data.ban,
+          expires_at,
+          &tx_data.reason,
+        );
+        let action = Modlog::create(&mut conn.into(), &[form]).await?;
+
         // Remove/Restore their data if that's desired
         if tx_data.remove_or_restore_data.unwrap_or(false) {
           let remove_data = tx_data.ban;
@@ -80,21 +91,13 @@ pub async fn ban_from_community(
             banned_person_id,
             remove_data,
             &tx_data.reason,
+            Some(action[0].id),
             &mut conn.into(),
           )
           .await?;
         };
 
-        // Mod tables
-        let form = ModlogInsertForm::mod_ban_from_community(
-          my_person_id,
-          tx_data.community_id,
-          tx_data.person_id,
-          tx_data.ban,
-          expires_at,
-          &tx_data.reason,
-        );
-        Modlog::create(&mut conn.into(), &[form]).await
+        Ok(action)
       }
       .scope_boxed()
     })

@@ -21,7 +21,6 @@ pub struct Modlog {
   pub id: ModlogId,
   pub kind: ModlogKind,
   pub is_revert: bool,
-  pub is_bulk: bool,
   #[serde(skip)]
   pub mod_id: PersonId,
   pub reason: Option<String>,
@@ -37,6 +36,7 @@ pub struct Modlog {
   pub target_instance_id: Option<InstanceId>,
   pub expires_at: Option<DateTime<Utc>>,
   pub published_at: DateTime<Utc>,
+  pub bulk_action_parent_id: Option<ModlogId>,
 }
 
 #[derive(derive_new::new)]
@@ -46,7 +46,7 @@ pub struct ModlogInsertForm<'a> {
   pub(crate) kind: ModlogKind,
   pub(crate) is_revert: bool,
   #[new(default)]
-  pub is_bulk: bool,
+  pub bulk_action_parent_id: Option<ModlogId>,
   pub(crate) mod_id: PersonId,
   #[new(default)]
   pub(crate) reason: Option<&'a str>,

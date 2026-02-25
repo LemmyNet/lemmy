@@ -50,20 +50,7 @@ pub async fn ban_from_site(
     InstanceActions::unban(&mut context.pool(), &form).await?;
   }
 
-  // Remove their data if that's desired
-  if data.remove_or_restore_data.unwrap_or(false) {
-    let removed = data.ban;
-    remove_or_restore_user_data(
-      my_person_id,
-      data.person_id,
-      removed,
-      &data.reason,
-      &context,
-    )
-    .await?;
-  };
-
-  // Mod tables
+  // Mod tables - create ban entry first so bulk actions can reference it as parent
   let form = ModlogInsertForm::admin_ban(
     &local_user_view.person,
     data.person_id,
@@ -73,6 +60,20 @@ pub async fn ban_from_site(
   );
   let action = Modlog::create(&mut context.pool(), &[form]).await?;
   notify_mod_action(action.clone(), &context);
+
+  // Remove their data if that's desired
+  if data.remove_or_restore_data.unwrap_or(false) {
+    let removed = data.ban;
+    remove_or_restore_user_data(
+      my_person_id,
+      data.person_id,
+      removed,
+      &data.reason,
+      Some(action[0].id),
+      &context,
+    )
+    .await?;
+  };
 
   let person_view = PersonView::read(
     &mut context.pool(),

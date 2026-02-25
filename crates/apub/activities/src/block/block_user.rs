@@ -145,8 +145,15 @@ impl Activity for BlockUser {
         if self.remove_data.unwrap_or(false) {
           if blocked_person.instance_id == site.instance_id {
             // user banned from home instance, remove all content
-            remove_or_restore_user_data(mod_person.id, blocked_person.id, true, &reason, context)
-              .await?;
+            remove_or_restore_user_data(
+              mod_person.id,
+              blocked_person.id,
+              true,
+              &reason,
+              None,
+              context,
+            )
+            .await?;
           } else {
             update_removed_for_instance(&blocked_person, &site, true, pool).await?;
           }
@@ -176,6 +183,7 @@ impl Activity for BlockUser {
             blocked_person.id,
             true,
             &reason,
+            None,
             &mut context.pool(),
           )
           .await?;
