@@ -75,7 +75,7 @@ enum-map = { version = "2.7", optional = true }
 chrono = { workspace = true }
 cfg-if = { workspace = true }
 clearurls = { version = "0.0.4", features = ["linkify"] }
-markdown-it-block-spoiler = "1.0.2"
+markdown-it-block-spoiler = "1.0.3"
 markdown-it-sub = "1.0.2"
 markdown-it-sup = "1.0.2"
 markdown-it-ruby = "1.0.2"
