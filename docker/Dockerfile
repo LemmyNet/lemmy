@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.20
-ARG RUST_VERSION=1.91
+ARG RUST_VERSION=1.92
 ARG CARGO_BUILD_FEATURES=default
 ARG RUST_RELEASE_MODE=debug
 
