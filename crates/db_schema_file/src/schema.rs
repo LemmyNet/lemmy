@@ -611,7 +611,7 @@ diesel::table! {
         post_id -> Nullable<Int4>,
         private_message_id -> Nullable<Int4>,
         modlog_id -> Nullable<Int4>,
-        creator_id -> Nullable<Int4>,
+        creator_id -> Int4,
     }
 }
 

@@ -30,7 +30,7 @@ pub struct Notification {
   pub post_id: Option<PostId>,
   pub private_message_id: Option<PrivateMessageId>,
   pub modlog_id: Option<ModlogId>,
-  pub creator_id: Option<PersonId>,
+  pub creator_id: PersonId,
 }
 
 #[derive(derive_new::new)]
@@ -38,9 +38,8 @@ pub struct Notification {
 #[cfg_attr(feature = "full", diesel(table_name = notification))]
 pub struct NotificationInsertForm {
   pub recipient_id: PersonId,
+  pub creator_id: PersonId,
   pub kind: NotificationType,
-  #[new(default)]
-  pub creator_id: Option<PersonId>,
   #[new(default)]
   pub comment_id: Option<CommentId>,
   #[new(default)]
@@ -60,8 +59,7 @@ impl NotificationInsertForm {
   ) -> Self {
     Self {
       post_id: Some(post_id),
-      creator_id: Some(creator_id),
-      ..Self::new(recipient_id, kind)
+      ..Self::new(recipient_id, creator_id, kind)
     }
   }
   pub fn new_comment(
@@ -72,24 +70,23 @@ impl NotificationInsertForm {
   ) -> Self {
     Self {
       comment_id: Some(comment_id),
-      creator_id: Some(creator_id),
-      ..Self::new(recipient_id, kind)
+      ..Self::new(recipient_id, creator_id, kind)
     }
   }
   pub fn new_private_message(private_message: &PrivateMessage) -> Self {
     Self {
       private_message_id: Some(private_message.id),
-      creator_id: Some(private_message.creator_id),
       ..Self::new(
         private_message.recipient_id,
+        private_message.creator_id,
         NotificationType::PrivateMessage,
       )
     }
   }
-  pub fn new_mod_action(modlog_id: ModlogId, recipient_id: PersonId) -> Self {
+  pub fn new_mod_action(modlog_id: ModlogId, recipient_id: PersonId, creator_id: PersonId) -> Self {
     Self {
       modlog_id: Some(modlog_id),
-      ..Self::new(recipient_id, NotificationType::ModAction)
+      ..Self::new(recipient_id, creator_id, NotificationType::ModAction)
     }
   }
 }

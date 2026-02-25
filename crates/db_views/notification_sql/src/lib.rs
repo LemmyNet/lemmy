@@ -29,7 +29,7 @@ use lemmy_db_schema_file::{
 
 #[diesel::dsl::auto_type(no_type_alias)]
 pub fn notification_joins(person_id: PersonId, instance_id: InstanceId) -> _ {
-  let item_creator_join = person::table.on(notification::creator_id.eq(person::id.nullable()));
+  let item_creator_join = person::table.on(notification::creator_id.eq(person::id));
 
   // No need to join on `modlog::target_person_id` as it is identical to
   // `notification::recipient_id`.
@@ -92,7 +92,7 @@ pub fn notification_joins(person_id: PersonId, instance_id: InstanceId) -> _ {
     .left_join(comment_join)
     .left_join(post_join)
     .left_join(community_join)
-    .left_join(item_creator_join)
+    .inner_join(item_creator_join)
     .inner_join(recipient_join)
     .left_join(image_details_join())
     .left_join(creator_community_actions_join())
