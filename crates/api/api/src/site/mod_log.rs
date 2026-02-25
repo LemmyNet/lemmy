@@ -68,6 +68,7 @@ mod tests {
   use lemmy_db_views_modlog::ModlogView;
   use lemmy_db_views_post::PostView;
   use lemmy_diesel_utils::traits::Crud;
+  use lemmy_utils::error::LemmyErrorType;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -231,7 +232,8 @@ mod tests {
     );
 
     // Now restore the content, and make sure it got appended
-    remove_or_restore_user_data(john.id, sara.id, false, "a restore reason", None, &context).await?;
+    remove_or_restore_user_data(john.id, sara.id, false, "a restore reason", None, &context)
+      .await?;
 
     // Posts
     let post_modlog = ModlogQuery {
@@ -376,13 +378,21 @@ mod tests {
     Comment::create(pool, &comment_form, None).await?;
 
     // Create the ban entry first and capture its ID as the expected parent
-    let ban_form = ModlogInsertForm::admin_ban(&person_a, person_b.id, true, None, "banning for bulk test");
+    let ban_form =
+      ModlogInsertForm::admin_ban(&person_a, person_b.id, true, None, "banning for bulk test");
     let ban_action = Modlog::create(pool, &[ban_form]).await?;
-    let ban_id = ban_action[0].id;
+    let ban_id = ban_action.first().ok_or(LemmyErrorType::NotFound)?.id;
 
     // Remove person_b's content as a bulk action triggered by the ban
-    remove_or_restore_user_data(person_a.id, person_b.id, true, "bulk remove reason", Some(ban_id), &context).await?;
-
+    remove_or_restore_user_data(
+      person_a.id,
+      person_b.id,
+      true,
+      "bulk remove reason",
+      Some(ban_id),
+      &context,
+    )
+    .await?;
 
     let post_modlog = ModlogQuery {
       type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemovePost)),
@@ -407,9 +417,10 @@ mod tests {
     .await?
     .items;
     assert_eq!(1, comment_modlog.len());
+    let first_comment = comment_modlog.first().ok_or(LemmyErrorType::NotFound)?;
     assert_eq!(
       Some(ban_id),
-      comment_modlog[0].modlog.bulk_action_parent_id,
+      first_comment.modlog.bulk_action_parent_id,
       "comment removal entry should reference the ban as its parent"
     );
 

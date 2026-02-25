@@ -91,7 +91,7 @@ pub async fn ban_from_community(
             banned_person_id,
             remove_data,
             &tx_data.reason,
-            Some(action[0].id),
+            action.first().map(|a| a.id),
             &mut conn.into(),
           )
           .await?;

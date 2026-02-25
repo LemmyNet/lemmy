@@ -883,7 +883,7 @@ mod tests {
     cleanup(data, pool).await?;
 
     Ok(())
-}
+  }
 
   /// Verifies bulk entries are linked to their parent and can be queried by parent ID or show_bulk.
   #[tokio::test]
@@ -894,7 +894,8 @@ mod tests {
     let data = init_data(pool).await?;
 
     // Create a ban entry to serve as the parent
-    let ban_form = ModlogInsertForm::admin_ban(&data.timmy, data.sara.id, true, None, "banning sara");
+    let ban_form =
+      ModlogInsertForm::admin_ban(&data.timmy, data.sara.id, true, None, "banning sara");
     let ban_action = Modlog::create(pool, &[ban_form]).await?;
     let parent_id = ban_action[0].id;
 
@@ -922,9 +923,11 @@ mod tests {
     .await?
     .items;
     assert_eq!(2, bulk_entries.len());
-    assert!(bulk_entries
-      .iter()
-      .all(|e| e.modlog.bulk_action_parent_id == Some(parent_id)));
+    assert!(
+      bulk_entries
+        .iter()
+        .all(|e| e.modlog.bulk_action_parent_id == Some(parent_id))
+    );
 
     // bulk_action_parent_id filter returns only children of that ban
     let children = ModlogQuery {
@@ -972,8 +975,7 @@ mod tests {
     let data = init_data(pool).await?;
 
     // Two separate ban entries as independent parents
-    let ban_form_a =
-      ModlogInsertForm::admin_ban(&data.timmy, data.sara.id, true, None, "ban sara");
+    let ban_form_a = ModlogInsertForm::admin_ban(&data.timmy, data.sara.id, true, None, "ban sara");
     let ban_a = Modlog::create(pool, &[ban_form_a]).await?;
     let parent_a_id = ban_a[0].id;
 
@@ -1009,9 +1011,11 @@ mod tests {
     .await?
     .items;
     assert_eq!(2, children_of_a.len());
-    assert!(children_of_a
-      .iter()
-      .all(|e| e.modlog.bulk_action_parent_id == Some(parent_a_id)));
+    assert!(
+      children_of_a
+        .iter()
+        .all(|e| e.modlog.bulk_action_parent_id == Some(parent_a_id))
+    );
 
     // Filter by parent B
     let children_of_b = ModlogQuery {
@@ -1022,9 +1026,11 @@ mod tests {
     .await?
     .items;
     assert_eq!(2, children_of_b.len());
-    assert!(children_of_b
-      .iter()
-      .all(|e| e.modlog.bulk_action_parent_id == Some(parent_b_id)));
+    assert!(
+      children_of_b
+        .iter()
+        .all(|e| e.modlog.bulk_action_parent_id == Some(parent_b_id))
+    );
 
     cleanup(data, pool).await?;
 

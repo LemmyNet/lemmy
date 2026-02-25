@@ -69,7 +69,7 @@ pub async fn ban_from_site(
       data.person_id,
       removed,
       &data.reason,
-      Some(action[0].id),
+      action.first().map(|a| a.id),
       &context,
     )
     .await?;
