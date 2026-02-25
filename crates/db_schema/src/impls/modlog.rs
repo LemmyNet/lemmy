@@ -49,6 +49,7 @@ impl<'a> ModlogInsertForm<'a> {
   pub fn admin_add(mod_person: &Person, target_person_id: PersonId, added: bool) -> Self {
     Self {
       target_person_id: Some(target_person_id),
+      target_instance_id: Some(mod_person.instance_id),
       ..ModlogInsertForm::new(ModlogKind::AdminAdd, !added, mod_person.id)
     }
   }
@@ -61,6 +62,7 @@ impl<'a> ModlogInsertForm<'a> {
     Self {
       reason: Some(reason),
       target_post_id: Some(post.id),
+      target_community_id: Some(post.community_id),
       target_person_id: Some(post.creator_id),
       ..ModlogInsertForm::new(ModlogKind::ModRemovePost, !removed, mod_person_id)
     }
@@ -68,6 +70,7 @@ impl<'a> ModlogInsertForm<'a> {
   pub fn mod_remove_comment(
     mod_person_id: PersonId,
     comment: &Comment,
+    community_id: CommunityId,
     removed: bool,
     reason: &'a str,
   ) -> Self {
@@ -75,6 +78,7 @@ impl<'a> ModlogInsertForm<'a> {
       reason: Some(reason),
       target_comment_id: Some(comment.id),
       target_post_id: Some(comment.post_id),
+      target_community_id: Some(community_id),
       target_person_id: Some(comment.creator_id),
       ..ModlogInsertForm::new(ModlogKind::ModRemoveComment, !removed, mod_person_id)
     }
@@ -82,12 +86,15 @@ impl<'a> ModlogInsertForm<'a> {
   pub fn mod_lock_comment(
     mod_person_id: PersonId,
     comment: &Comment,
+    community_id: CommunityId,
     removed: bool,
     reason: &'a str,
   ) -> Self {
     Self {
       reason: Some(reason),
       target_comment_id: Some(comment.id),
+      target_post_id: Some(comment.post_id),
+      target_community_id: Some(community_id),
       target_person_id: Some(comment.creator_id),
       ..ModlogInsertForm::new(ModlogKind::ModLockComment, !removed, mod_person_id)
     }
@@ -109,11 +116,14 @@ impl<'a> ModlogInsertForm<'a> {
   pub fn mod_create_comment_warning(
     mod_person_id: PersonId,
     comment: &Comment,
+    community_id: CommunityId,
     reason: &'a str,
   ) -> Self {
     Self {
       reason: Some(reason),
       target_comment_id: Some(comment.id),
+      target_post_id: Some(comment.post_id),
+      target_community_id: Some(community_id),
       target_person_id: Some(comment.creator_id),
       ..ModlogInsertForm::new(ModlogKind::ModWarnComment, false, mod_person_id)
     }
@@ -128,7 +138,7 @@ impl<'a> ModlogInsertForm<'a> {
     }
   }
   pub fn admin_remove_community(
-    mod_person_id: PersonId,
+    mod_person: &Person,
     community_id: CommunityId,
     community_owner_id: Option<PersonId>,
     removed: bool,
@@ -138,7 +148,8 @@ impl<'a> ModlogInsertForm<'a> {
       reason: Some(reason),
       target_community_id: Some(community_id),
       target_person_id: community_owner_id,
-      ..ModlogInsertForm::new(ModlogKind::AdminRemoveCommunity, !removed, mod_person_id)
+      target_instance_id: Some(mod_person.instance_id),
+      ..ModlogInsertForm::new(ModlogKind::AdminRemoveCommunity, !removed, mod_person.id)
     }
   }
 
@@ -266,10 +277,12 @@ impl<'a> ModlogInsertForm<'a> {
       )
     }
   }
-  pub fn admin_feature_post_site(mod_person_id: PersonId, post: &Post, featured: bool) -> Self {
+  pub fn admin_feature_post_site(mod_person: &Person, post: &Post, featured: bool) -> Self {
     Self {
       target_post_id: Some(post.id),
-      ..ModlogInsertForm::new(ModlogKind::AdminFeaturePostSite, !featured, mod_person_id)
+      target_community_id: Some(post.community_id),
+      target_instance_id: Some(mod_person.instance_id),
+      ..ModlogInsertForm::new(ModlogKind::AdminFeaturePostSite, !featured, mod_person.id)
     }
   }
 }

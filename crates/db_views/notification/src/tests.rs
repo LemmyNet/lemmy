@@ -175,7 +175,8 @@ async fn test_modlog() -> LemmyResult<()> {
   let comment = Comment::create(pool, &form, None).await?;
 
   // remove the comment and check notifs
-  let form = ModlogInsertForm::mod_remove_comment(data.alice.id, &comment, true, "rule 1");
+  let form =
+    ModlogInsertForm::mod_remove_comment(data.alice.id, &comment, community.id, true, "rule 1");
   let modlog = &Modlog::create(pool, &[form]).await?[0];
 
   let form = NotificationInsertForm {

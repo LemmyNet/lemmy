@@ -626,10 +626,36 @@ async fn create_modlog_entries_for_removed_or_restored_comments(
   removed: bool,
   reason: &str,
 ) -> LemmyResult<()> {
+  let mut forms: Vec<ModlogInsertForm> = Vec::new();
+
+  for comment in comments {
+    // This is extremely unfortunate, but since the comment table doesn't have community id,
+    // you need to query the post table to get each of them, as they could be in any community
+    let community_id = Post::read(pool, comment.post_id).await?.community_id;
+    let form =
+      ModlogInsertForm::mod_remove_comment(mod_person_id, comment, community_id, removed, reason);
+    forms.push(form);
+  }
+
+  Modlog::create(pool, &forms).await?;
+
+  Ok(())
+}
+
+async fn create_modlog_entries_for_removed_or_restored_comments_in_community(
+  pool: &mut DbPool<'_>,
+  mod_person_id: PersonId,
+  comments: &[Comment],
+  community_id: CommunityId,
+  removed: bool,
+  reason: &str,
+) -> LemmyResult<()> {
   // Build the forms
   let forms: Vec<_> = comments
     .iter()
-    .map(|comment| ModlogInsertForm::mod_remove_comment(mod_person_id, comment, removed, reason))
+    .map(|comment| {
+      ModlogInsertForm::mod_remove_comment(mod_person_id, comment, community_id, removed, reason)
+    })
     .collect();
 
   Modlog::create(pool, &forms).await?;
@@ -665,10 +691,11 @@ pub async fn remove_or_restore_user_data_in_community(
     Comment::update_removed_for_creator_and_community(pool, banned_person_id, community_id, remove)
       .await?;
 
-  create_modlog_entries_for_removed_or_restored_comments(
+  create_modlog_entries_for_removed_or_restored_comments_in_community(
     pool,
     mod_person_id,
     &removed_comments,
+    community_id,
     remove,
     reason,
   )
