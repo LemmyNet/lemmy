@@ -82,7 +82,7 @@ pub async fn create_post_report(
     .await?;
   }
 
-  if report.violates_instance_rules {
+  if !report.violates_instance_rules {
     ActivityChannel::submit_activity(
       SendActivityData::CreateReport {
         object_id: orig_post.post.ap_id.inner().clone(),

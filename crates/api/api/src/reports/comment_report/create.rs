@@ -85,7 +85,7 @@ pub async fn create_comment_report(
     .await?;
   }
 
-  if report.violates_instance_rules {
+  if !report.violates_instance_rules {
     ActivityChannel::submit_activity(
       SendActivityData::CreateReport {
         object_id: comment_view.comment.ap_id.inner().clone(),
