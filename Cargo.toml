@@ -147,11 +147,11 @@ activitypub_federation = { git = "https://github.com/LemmyNet/activitypub-federa
   "actix-web",
 ] }
 diesel = { version = "2.3.4", features = [
+  "64-column-tables",
   "chrono",
   "postgres",
   "serde_json",
   "uuid",
-  "64-column-tables",
 ] }
 diesel_migrations = "2.3.1"
 diesel-async = "0.7.4"
@@ -219,8 +219,8 @@ async-trait = "0.1.89"
 either = { version = "1.15.0", features = ["serde"] }
 extism = { version = "1.13.0", default-features = false, features = [
   "http",
-  "register-http",
   "register-filesystem",
+  "register-http",
 ] }
 extism-convert = "1.13.0"
 unified-diff = "0.2.1"

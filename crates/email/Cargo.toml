@@ -31,9 +31,9 @@ rosetta-i18n = { workspace = true }
 html2text = { workspace = true }
 lettre = { version = "0.11.19", default-features = false, features = [
   "builder",
+  "pool",
   "smtp-transport",
   "tokio1-rustls-tls",
-  "pool",
 ] }
 lemmy_diesel_utils = { workspace = true }
 

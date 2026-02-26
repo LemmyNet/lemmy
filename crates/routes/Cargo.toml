@@ -41,7 +41,7 @@ actix-web = { workspace = true, features = ["cookies"] }
 chrono = { workspace = true }
 futures = { workspace = true }
 reqwest = { workspace = true, features = ["stream"] }
-reqwest-middleware = { workspace = true, features = ["query", "form"] }
+reqwest-middleware = { workspace = true, features = ["form", "query"] }
 serde = { workspace = true }
 url = { workspace = true }
 tracing = { workspace = true }
