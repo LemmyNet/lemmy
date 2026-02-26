@@ -19,6 +19,10 @@ codegen-units = 1 # Reduce parallel code generation.
 [profile.dev]
 debug = 0
 
+# Optimize procedural macros
+[profile.dev.build-override]
+opt-level = 3
+
 [workspace]
 members = [
   "crates/utils",
