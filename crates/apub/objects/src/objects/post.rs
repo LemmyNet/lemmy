@@ -221,7 +221,6 @@ impl Object for ApubPost {
     let mut name = page
       .name
       .clone()
-      .map(|s| remove_slurs(&s, &slur_regex))
       .or_else(|| {
         // Posts coming from Mastodon or similar platforms don't have a title. Instead we take the
         // first line of the content and convert it from HTML to plaintext. We also remove mentions
@@ -239,7 +238,9 @@ impl Object for ApubPost {
             })
           })
       })
+      .map(|s| remove_slurs(&s, &slur_regex))
       .ok_or_else(|| anyhow!("Object must have name or content"))?;
+
     if name.chars().count() > MAX_TITLE_LENGTH {
       name = name.chars().take(MAX_TITLE_LENGTH).collect();
     }
