@@ -103,7 +103,7 @@ impl NotifyData {
       };
 
       forms.push(if let Some(comment) = &self.comment {
-        NotificationInsertForm::new_comment(&comment, c.recipient_id, c.kind)
+        NotificationInsertForm::new_comment(comment, c.recipient_id, c.kind)
       } else {
         NotificationInsertForm::new_post(&self.post, c.recipient_id, c.kind)
       });
