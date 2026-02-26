@@ -100,7 +100,7 @@ impl UndoDelete {
         let community_owner =
           CommunityModeratorView::top_mod_for_community(&mut context.pool(), community.id).await?;
         let form = ModlogInsertForm::admin_remove_community(
-          &actor,
+          actor,
           community.id,
           community_owner,
           false,
