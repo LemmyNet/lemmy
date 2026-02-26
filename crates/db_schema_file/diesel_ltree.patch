@@ -1,8 +1,8 @@
 diff --git a/crates/db_schema_file/src/schema.rs b/crates/db_schema_file/src/schema.rs
-index 2a2664846..31e493f2d 100644
+index 8bc07d2c3..3b95487ec 100644
 --- a/crates/db_schema_file/src/schema.rs
 +++ b/crates/db_schema_file/src/schema.rs
-@@ -76,7 +76,7 @@ diesel::table! {
+@@ -68,7 +68,7 @@ pub mod sql_types {
  
  diesel::table! {
      use diesel::sql_types::*;
@@ -11,7 +11,7 @@ index 2a2664846..31e493f2d 100644
  
      comment (id) {
          id -> Int4,
-@@ -1088,5 +1088,7 @@ diesel::allow_tables_to_appear_in_same_query!(
+@@ -1078,5 +1078,7 @@ diesel::allow_tables_to_appear_in_same_query!(
    search_combined,
    site,
    site_language,

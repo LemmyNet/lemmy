@@ -174,6 +174,7 @@ pub async fn match_outgoing_activities(
           DeletableObjects::Post(post.into()),
           None,
           is_deleted,
+          None,
           &context,
         )
         .await
@@ -183,6 +184,7 @@ pub async fn match_outgoing_activities(
         moderator,
         reason,
         removed,
+        with_replies,
       } => {
         let community = Community::read(&mut context.pool(), post.community_id).await?;
         send_apub_delete_in_community(
@@ -191,6 +193,7 @@ pub async fn match_outgoing_activities(
           DeletableObjects::Post(post.into()),
           Some(reason),
           removed,
+          Some(with_replies),
           &context,
         )
         .await
@@ -217,13 +220,17 @@ pub async fn match_outgoing_activities(
       DeleteComment(comment, actor, community) => {
         let is_deleted = comment.deleted;
         let deletable = DeletableObjects::Comment(comment.into());
-        send_apub_delete_in_community(actor, community, deletable, None, is_deleted, &context).await
+        send_apub_delete_in_community(
+          actor, community, deletable, None, is_deleted, None, &context,
+        )
+        .await
       }
       RemoveComment {
         comment,
         moderator,
         community,
         reason,
+        with_replies,
       } => {
         let is_removed = comment.removed;
         let deletable = DeletableObjects::Comment(comment.into());
@@ -233,6 +240,7 @@ pub async fn match_outgoing_activities(
           deletable,
           Some(reason),
           is_removed,
+          Some(with_replies),
           &context,
         )
         .await
@@ -273,7 +281,8 @@ pub async fn match_outgoing_activities(
       UpdateCommunity(actor, community) => send_update_community(community, actor, context).await,
       DeleteCommunity(actor, community, removed) => {
         let deletable = DeletableObjects::Community(community.clone().into());
-        send_apub_delete_in_community(actor, community, deletable, None, removed, &context).await
+        send_apub_delete_in_community(actor, community, deletable, None, removed, None, &context)
+          .await
       }
       RemoveCommunity {
         moderator,
@@ -288,6 +297,7 @@ pub async fn match_outgoing_activities(
           deletable,
           Some(reason),
           removed,
+          None,
           &context,
         )
         .await

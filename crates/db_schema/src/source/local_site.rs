@@ -49,10 +49,6 @@ pub struct LocalSite {
   pub slur_filter_regex: Option<String>,
   /// Whether federation is enabled.
   pub federation_enabled: bool,
-  /// Whether captcha is enabled.
-  pub captcha_enabled: bool,
-  /// The captcha difficulty.
-  pub captcha_difficulty: String,
   pub published_at: DateTime<Utc>,
   pub updated_at: Option<DateTime<Utc>>,
   pub registration_mode: RegistrationMode,
@@ -95,7 +91,7 @@ pub struct LocalSite {
   pub users_active_half_year: i32,
   /// Dont send email notifications to users for new replies, mentions etc
   pub disable_email_notifications: bool,
-  pub suggested_communities: Option<MultiCommunityId>,
+  pub suggested_multi_community_id: Option<MultiCommunityId>,
   #[serde(skip)]
   pub system_account: PersonId,
   pub default_items_per_page: i32,
@@ -129,10 +125,6 @@ pub struct LocalSiteInsertForm {
   #[new(default)]
   pub federation_enabled: Option<bool>,
   #[new(default)]
-  pub captcha_enabled: Option<bool>,
-  #[new(default)]
-  pub captcha_difficulty: Option<String>,
-  #[new(default)]
   pub registration_mode: Option<RegistrationMode>,
   #[new(default)]
   pub reports_email_admins: Option<bool>,
@@ -161,7 +153,7 @@ pub struct LocalSiteInsertForm {
   #[new(default)]
   pub disable_email_notifications: bool,
   #[new(default)]
-  pub suggested_communities: Option<MultiCommunityId>,
+  pub suggested_multi_community_id: Option<MultiCommunityId>,
   #[new(default)]
   pub system_account: Option<PersonId>,
 }
@@ -181,8 +173,6 @@ pub struct LocalSiteUpdateForm {
   pub application_email_admins: Option<bool>,
   pub slur_filter_regex: Option<Option<String>>,
   pub federation_enabled: Option<bool>,
-  pub captcha_enabled: Option<bool>,
-  pub captcha_difficulty: Option<String>,
   pub registration_mode: Option<RegistrationMode>,
   pub reports_email_admins: Option<bool>,
   pub updated_at: Option<Option<DateTime<Utc>>>,
@@ -198,6 +188,6 @@ pub struct LocalSiteUpdateForm {
   pub default_post_time_range_seconds: Option<Option<i32>>,
   pub disallow_nsfw_content: Option<bool>,
   pub disable_email_notifications: Option<bool>,
-  pub suggested_communities: Option<MultiCommunityId>,
+  pub suggested_multi_community_id: Option<Option<MultiCommunityId>>,
   pub default_items_per_page: Option<i32>,
 }

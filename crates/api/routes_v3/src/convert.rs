@@ -51,6 +51,7 @@ use lemmy_api_019::{
   post::PostResponse as PostResponseV3,
   site::{MyUserInfo as MyUserInfoV3, SearchResponse as SearchResponseV3},
 };
+use lemmy_api_utils::plugins::is_captcha_plugin_loaded;
 use lemmy_db_schema::{
   CommunitySortType,
   newtypes::LanguageId,
@@ -621,8 +622,6 @@ pub(crate) fn convert_local_site(local_site: LocalSite) -> LocalSiteV3 {
     application_email_admins,
     slur_filter_regex,
     federation_enabled,
-    captcha_enabled,
-    captcha_difficulty,
     published_at,
     updated_at,
     reports_email_admins,
@@ -653,8 +652,8 @@ pub(crate) fn convert_local_site(local_site: LocalSite) -> LocalSiteV3 {
     slur_filter_regex,
     actor_name_max_length: 20,
     federation_enabled,
-    captcha_enabled,
-    captcha_difficulty,
+    captcha_enabled: is_captcha_plugin_loaded(),
+    captcha_difficulty: String::new(),
     published: published_at,
     updated: updated_at,
     registration_mode,

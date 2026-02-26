@@ -22,7 +22,7 @@ use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::{sensitive::SensitiveString, traits::Crud};
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType, LemmyResult},
-  utils::slurs::{check_slurs, check_slurs_opt},
+  utils::slurs::remove_slurs,
 };
 use std::ops::Deref;
 use url::Url;
@@ -104,23 +104,25 @@ impl Object for ApubMultiCommunity {
     verify_domains_match(expected_domain, json.id.inner())?;
     verify_is_remote_object(&json.id, context)?;
 
-    let slur_regex = slur_regex(context).await?;
-
-    check_slurs(&json.name, &slur_regex)?;
-    check_slurs_opt(&json.summary, &slur_regex)?;
     Ok(())
   }
 
   async fn from_json(json: Self::Kind, context: &Data<LemmyContext>) -> LemmyResult<Self> {
     let creator = json.attributed_to.dereference(context).await?;
+
+    // Remove slurs from title / summary
+    let slur_regex = slur_regex(context).await?;
+    let title = json.summary.map(|s| remove_slurs(&s, &slur_regex));
+    let summary = json.content.map(|s| remove_slurs(&s, &slur_regex));
+
     let form = MultiCommunityInsertForm {
       creator_id: creator.id,
       instance_id: creator.instance_id,
       name: json.name,
       ap_id: Some(json.id.into()),
       local: Some(false),
-      title: json.summary,
-      summary: json.content,
+      title,
+      summary,
       public_key: json.public_key.public_key_pem,
       private_key: None,
       inbox_url: Some(json.inbox.into()),

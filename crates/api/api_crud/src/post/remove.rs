@@ -9,6 +9,8 @@ use lemmy_api_utils::{
 };
 use lemmy_db_schema::{
   source::{
+    comment::Comment,
+    comment_report::CommentReport,
     community::Community,
     local_user::LocalUser,
     modlog::{Modlog, ModlogInsertForm},
@@ -28,6 +30,7 @@ pub async fn remove_post(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
   let post_id = data.post_id;
+  let remove_post = data.remove_children.unwrap_or(data.removed);
 
   // We cannot use PostView to avoid a database read here, as it doesn't return removed items
   // by default. So we would have to pass in `is_mod_or_admin`, but that is impossible without
@@ -46,13 +49,11 @@ pub async fn remove_post(
   .await?;
 
   // Update the post
-  let post_id = data.post_id;
-  let removed = data.removed;
   let post = Post::update(
     &mut context.pool(),
     post_id,
     &PostUpdateForm {
-      removed: Some(removed),
+      removed: Some(remove_post),
       ..Default::default()
     },
   )
@@ -63,19 +64,45 @@ pub async fn remove_post(
 
   // Mod tables
   let form =
-    ModlogInsertForm::mod_remove_post(local_user_view.person.id, &post, removed, &data.reason);
+    ModlogInsertForm::mod_remove_post(local_user_view.person.id, &post, remove_post, &data.reason);
   let action = Modlog::create(&mut context.pool(), &[form]).await?;
   notify_mod_action(action, context.app_data());
+
+  if let Some(remove_children) = data.remove_children {
+    let updated_comments: Vec<Comment> =
+      Comment::update_removed_for_post(&mut context.pool(), post_id, remove_children).await?;
+
+    let forms: Vec<_> = updated_comments
+      .iter()
+      // Filter out deleted comments here so their content doesn't show up in the modlog.
+      .filter(|c| !c.deleted)
+      .map(|comment| {
+        ModlogInsertForm::mod_remove_comment(
+          local_user_view.person.id,
+          comment,
+          remove_children,
+          &data.reason,
+        )
+      })
+      .collect();
+
+    let actions = Modlog::create(&mut context.pool(), &forms).await?;
+    notify_mod_action(actions, &context);
+
+    CommentReport::resolve_all_for_post(&mut context.pool(), post.id, local_user_view.person.id)
+      .await?;
+  }
 
   ActivityChannel::submit_activity(
     SendActivityData::RemovePost {
       post,
       moderator: local_user_view.person.clone(),
       reason: data.reason.clone(),
-      removed: data.removed,
+      removed: remove_post,
+      with_replies: data.remove_children.unwrap_or_default(),
     },
     &context,
   )?;
 
-  build_post_response(&context, orig_post.community_id, local_user_view, post_id).await
+  build_post_response(&context, community.id, local_user_view, post_id).await
 }

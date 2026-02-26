@@ -2307,7 +2307,7 @@ async fn post_listing_multi_community(data: &mut Data) -> LemmyResult<()> {
   assert!(suggested.is_empty());
 
   let form = LocalSiteUpdateForm {
-    suggested_communities: Some(multi.id),
+    suggested_multi_community_id: Some(Some(multi.id)),
     ..Default::default()
   };
   LocalSite::update(pool, &form).await?;

@@ -344,7 +344,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("/login", post().to(login))
           .route("/logout", post().to(logout))
           .route("/password_reset", post().to(reset_password))
-          .route("/get_captcha", get().to(get_captcha))
           .route("/password_change", post().to(change_password_after_reset))
           .route("/change_password", put().to(change_password))
           .route("/totp/generate", post().to(generate_totp_secret))
@@ -357,6 +356,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
       )
       .service(
         scope("/account")
+          .route("/auth/get_captcha", get().to(get_captcha))
           .route("", get().to(get_my_user))
           .route("/unread_counts", get().to(get_unread_counts))
           .service(

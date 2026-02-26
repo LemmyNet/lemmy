@@ -63,6 +63,7 @@ pub async fn purge_comment(
       moderator: local_user_view.person.clone(),
       community: comment_view.community,
       reason: data.reason.clone(),
+      with_replies: false,
     },
     &context,
   )?;

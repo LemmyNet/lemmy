@@ -256,6 +256,19 @@ impl Comment {
     Self::update_comment_and_children(pool, comment_path, &form).await
   }
 
+  /// Updates the removed field for a comment and all its children.
+  pub async fn update_removed_for_comment_and_children(
+    pool: &mut DbPool<'_>,
+    comment_path: &Ltree,
+    removed: bool,
+  ) -> LemmyResult<Vec<Self>> {
+    let form = CommentUpdateForm {
+      removed: Some(removed),
+      ..Default::default()
+    };
+    Self::update_comment_and_children(pool, comment_path, &form).await
+  }
+
   /// A helper function to update comment and all its children.
   ///
   /// Don't expose so as to make sure you aren't overwriting data.
@@ -268,6 +281,24 @@ impl Comment {
     diesel::update(comment::table)
       .filter(comment::path.contained_by(comment_path))
       .set(form)
+      .get_results(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
+  }
+
+  /// Update the remove field for all the comments under a post.
+  pub async fn update_removed_for_post(
+    pool: &mut DbPool<'_>,
+    post_id: PostId,
+    removed: bool,
+  ) -> LemmyResult<Vec<Self>> {
+    let conn = &mut get_conn(pool).await?;
+    diesel::update(comment::table)
+      .filter(comment::post_id.eq(post_id))
+      .set((
+        comment::removed.eq(removed),
+        comment::updated_at.eq(Utc::now()),
+      ))
       .get_results(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -702,6 +733,61 @@ mod tests {
     let locked_comments_num = updated_comments.iter().filter(|c| c.locked).count();
 
     assert_eq!(3, locked_comments_num);
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_remove_post_children() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+
+    let inserted_instance = Instance::read_or_create(pool, "mydomain.tld").await?;
+    let new_person = PersonInsertForm::test_form(inserted_instance.id, "sharah");
+    let inserted_person = Person::create(pool, &new_person).await?;
+    let new_community = CommunityInsertForm::new(
+      inserted_instance.id,
+      "test".into(),
+      "test".to_owned(),
+      "pubkey".to_string(),
+    );
+    let inserted_community = Community::create(pool, &new_community).await?;
+    let new_post = PostInsertForm::new(
+      "Post Title".to_string(),
+      inserted_person.id,
+      inserted_community.id,
+    );
+    let inserted_post = Post::create(pool, &new_post).await?;
+
+    let comment_toplevel1_form = CommentInsertForm::new(
+      inserted_person.id,
+      inserted_post.id,
+      "Top level".to_string(),
+    );
+    let inserted_comment_toplevel1 = Comment::create(pool, &comment_toplevel1_form, None).await?;
+
+    let child_comment_form =
+      CommentInsertForm::new(inserted_person.id, inserted_post.id, "Child".to_string());
+    let _inserted_child_comment = Comment::create(
+      pool,
+      &child_comment_form,
+      Some(&inserted_comment_toplevel1.path),
+    )
+    .await?;
+
+    let comment_toplevel2_form = CommentInsertForm::new(
+      inserted_person.id,
+      inserted_post.id,
+      "Top level 2".to_string(),
+    );
+    let _inserted_comment_toplevel2 = Comment::create(pool, &comment_toplevel2_form, None).await?;
+
+    let updated_comments = Comment::update_removed_for_post(pool, inserted_post.id, true).await?;
+
+    let updated_comments_num = updated_comments.iter().filter(|c| c.removed).count();
+
+    assert_eq!(updated_comments_num, 3);
 
     Ok(())
   }

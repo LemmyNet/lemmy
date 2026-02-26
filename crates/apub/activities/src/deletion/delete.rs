@@ -55,6 +55,7 @@ impl Activity for Delete {
         &self.actor.dereference(context).await?,
         self.object.id(),
         reason,
+        self.with_replies,
         context,
       )
       .await
@@ -78,6 +79,7 @@ impl Delete {
     to: Vec<Url>,
     community: Option<&Community>,
     summary: Option<String>,
+    with_replies: Option<bool>,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<Delete> {
     let id = generate_activity_id(DeleteType::Delete, context)?;
@@ -92,6 +94,7 @@ impl Delete {
       id,
       audience: community.map(|c| c.ap_id.clone().into()),
       remove_data: None,
+      with_replies,
     })
   }
 }
@@ -100,6 +103,7 @@ pub(crate) async fn receive_remove_action(
   actor: &ApubPerson,
   object: &Url,
   reason: Option<String>,
+  with_replies: Option<bool>,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let reason = reason.unwrap_or_else(|| MOD_ACTION_DEFAULT_REASON.to_string());
@@ -145,21 +149,59 @@ pub(crate) async fn receive_remove_action(
         },
       )
       .await?;
+
+      let remove_children = with_replies.unwrap_or_default();
+      if remove_children {
+        CommentReport::resolve_all_for_post(&mut context.pool(), post.id, actor.id).await?;
+        let updated_comments: Vec<Comment> =
+          Comment::update_removed_for_post(&mut context.pool(), post.id, true).await?;
+
+        let forms: Vec<_> = updated_comments
+          .iter()
+          // Filter out deleted comments here so their content doesn't show up in the modlog.
+          .filter(|c| !c.deleted)
+          .map(|comment| ModlogInsertForm::mod_remove_comment(actor.id, comment, true, &reason))
+          .collect();
+
+        let actions = Modlog::create(&mut context.pool(), &forms).await?;
+        notify_mod_action(actions, context);
+      }
     }
     DeletableObjects::Comment(comment) => {
-      CommentReport::resolve_all_for_object(&mut context.pool(), comment.id, actor.id).await?;
-      let form = ModlogInsertForm::mod_remove_comment(actor.id, &comment, true, &reason);
-      let action = Modlog::create(&mut context.pool(), &[form]).await?;
-      notify_mod_action(action, context.app_data());
-      Comment::update(
-        &mut context.pool(),
-        comment.id,
-        &CommentUpdateForm {
-          removed: Some(true),
-          ..Default::default()
-        },
-      )
-      .await?;
+      let remove_children = with_replies.unwrap_or_default();
+      if remove_children {
+        CommentReport::resolve_all_for_thread(&mut context.pool(), &comment.path, actor.id).await?;
+        let updated_comments: Vec<Comment> = Comment::update_removed_for_comment_and_children(
+          &mut context.pool(),
+          &comment.path,
+          true,
+        )
+        .await?;
+
+        let forms: Vec<_> = updated_comments
+          .iter()
+          // Filter out deleted comments here so their content doesn't show up in the modlog.
+          .filter(|c| !c.deleted)
+          .map(|comment| ModlogInsertForm::mod_remove_comment(actor.id, comment, true, &reason))
+          .collect();
+
+        let actions = Modlog::create(&mut context.pool(), &forms).await?;
+        notify_mod_action(actions, context);
+      } else {
+        CommentReport::resolve_all_for_object(&mut context.pool(), comment.id, actor.id).await?;
+        let form = ModlogInsertForm::mod_remove_comment(actor.id, &comment, true, &reason);
+        let action = Modlog::create(&mut context.pool(), &[form]).await?;
+        notify_mod_action(action, context.app_data());
+        Comment::update(
+          &mut context.pool(),
+          comment.id,
+          &CommentUpdateForm {
+            removed: Some(true),
+            ..Default::default()
+          },
+        )
+        .await?;
+      }
     }
     // TODO these need to be implemented yet, for now, return errors
     DeletableObjects::PrivateMessage(_) => return Err(LemmyErrorType::NotFound.into()),

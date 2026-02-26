@@ -62,6 +62,7 @@ percent-encoding = "2.3.2"
 diesel-uplete.workspace = true
 lemmy_diesel_utils = { workspace = true }
 rosetta-i18n = { workspace = true }
+strum = { workspace = true }
 
 [dev-dependencies]
 pretty_assertions.workspace = true
