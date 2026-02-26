@@ -82,15 +82,17 @@ pub async fn create_post_report(
     .await?;
   }
 
-  ActivityChannel::submit_activity(
-    SendActivityData::CreateReport {
-      object_id: orig_post.post.ap_id.inner().clone(),
-      actor: local_user_view.person,
-      receiver: Either::Right(orig_post.community),
-      reason: data.reason.clone(),
-    },
-    &context,
-  )?;
+  if !report.violates_instance_rules {
+    ActivityChannel::submit_activity(
+      SendActivityData::CreateReport {
+        object_id: orig_post.post.ap_id.inner().clone(),
+        actor: local_user_view.person,
+        receiver: Either::Right(orig_post.community),
+        reason: data.reason.clone(),
+      },
+      &context,
+    )?;
+  }
 
   Ok(Json(PostReportResponse { post_report_view }))
 }

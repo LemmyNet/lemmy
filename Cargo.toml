@@ -176,7 +176,6 @@ chrono = { version = "0.4.42", features = [
 serde_json = { version = "1.0.145", features = ["preserve_order"] }
 base64 = "0.22.1"
 uuid = { version = "1.19.0", features = ["serde"] }
-captcha = "1.0.0"
 anyhow = { version = "1.0.100", features = ["backtrace"] }
 diesel_ltree = "0.4.0"
 serial_test = "3.2.0"

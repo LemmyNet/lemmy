@@ -215,10 +215,10 @@ pub struct PostActions {
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = post_actions))]
 pub struct PostLikeForm {
-  post_id: PostId,
-  person_id: PersonId,
-  vote_is_upvote: Option<Option<bool>>,
-  voted_at: Option<Option<DateTime<Utc>>>,
+  pub post_id: PostId,
+  pub person_id: PersonId,
+  pub vote_is_upvote: Option<Option<bool>>,
+  pub voted_at: Option<Option<DateTime<Utc>>>,
 }
 
 impl PostLikeForm {

@@ -113,8 +113,6 @@ pub async fn edit_site(
     updated_at: Some(Some(Utc::now())),
     slur_filter_regex: diesel_string_update(data.slur_filter_regex.as_deref()),
     federation_enabled: data.federation_enabled,
-    captcha_enabled: data.captcha_enabled,
-    captcha_difficulty: data.captcha_difficulty.clone(),
     reports_email_admins: data.reports_email_admins,
     default_post_listing_mode: data.default_post_listing_mode,
     oauth_registration: data.oauth_registration,

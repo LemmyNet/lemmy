@@ -54,7 +54,6 @@ diesel-uplete = { workspace = true, optional = true }
 diesel_ltree = { workspace = true, optional = true }
 ts-rs = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
-uuid.workspace = true
 i-love-jesus = { workspace = true, optional = true }
 derive-new.workspace = true
 moka = { workspace = true, optional = true }

@@ -31,7 +31,6 @@ use lemmy_db_schema::{
   utils::DELETED_REPLACEMENT_TEXT,
 };
 use lemmy_db_schema_file::schema::{
-  captcha_answer,
   comment,
   community,
   community_actions,
@@ -74,10 +73,6 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
       update_hot_ranks(&mut context.pool())
         .await
         .inspect_err(|e| warn!("Failed to update hot ranks: {e}"))
-        .ok();
-      delete_expired_captcha_answers(&mut context.pool())
-        .await
-        .inspect_err(|e| warn!("Failed to delete expired captcha answers: {e}"))
         .ok();
       publish_scheduled_posts(&context)
         .await
@@ -278,19 +273,6 @@ async fn process_post_aggregates_ranks_in_batches(conn: &mut AsyncPgConnection) 
     "Finished process_hot_ranks_in_batches execution for {} (processed {} rows)",
     "post_aggregates", processed_rows_count
   );
-  Ok(())
-}
-
-async fn delete_expired_captcha_answers(pool: &mut DbPool<'_>) -> LemmyResult<()> {
-  let conn = &mut get_conn(pool).await?;
-
-  diesel::delete(
-    captcha_answer::table.filter(captcha_answer::published_at.lt(now() - IntervalDsl::minutes(10))),
-  )
-  .execute(conn)
-  .await?;
-  info!("Done.");
-
   Ok(())
 }
 
@@ -789,7 +771,6 @@ mod tests {
     overwrite_deleted_posts_and_comments(pool).await?;
     delete_old_denied_users(pool).await?;
     update_instance_software(pool, context.client()).await?;
-    delete_expired_captcha_answers(pool).await?;
     publish_scheduled_posts(&context).await?;
 
     let community_after = Community::read(pool, community.id).await?;
