@@ -110,13 +110,13 @@ pub(crate) async fn receive_remove_action(
   match DeletableObjects::read_from_db(object, context).await? {
     DeletableObjects::Community(community) => {
       if community.local {
-        Err(UntranslatedError::OnlyLocalAdminCanRemoveCommunity)?
+        return Err(UntranslatedError::OnlyLocalAdminCanRemoveCommunity.into());
       }
       CommunityReport::resolve_all_for_object(&mut context.pool(), community.id, actor.id).await?;
       let community_owner =
         CommunityModeratorView::top_mod_for_community(&mut context.pool(), community.id).await?;
       let form = ModlogInsertForm::admin_remove_community(
-        actor.id,
+        actor,
         community.id,
         community_owner,
         true,
@@ -140,7 +140,7 @@ pub(crate) async fn receive_remove_action(
       let form = ModlogInsertForm::mod_remove_post(actor.id, &post, true, &reason);
       let action = Modlog::create(&mut context.pool(), &[form]).await?;
       notify_mod_action(action, context.app_data());
-      Post::update(
+      let post = Post::update(
         &mut context.pool(),
         post.id,
         &PostUpdateForm {
@@ -160,7 +160,15 @@ pub(crate) async fn receive_remove_action(
           .iter()
           // Filter out deleted comments here so their content doesn't show up in the modlog.
           .filter(|c| !c.deleted)
-          .map(|comment| ModlogInsertForm::mod_remove_comment(actor.id, comment, true, &reason))
+          .map(|comment| {
+            ModlogInsertForm::mod_remove_comment(
+              actor.id,
+              comment,
+              post.community_id,
+              true,
+              &reason,
+            )
+          })
           .collect();
 
         let actions = Modlog::create(&mut context.pool(), &forms).await?;
@@ -169,6 +177,12 @@ pub(crate) async fn receive_remove_action(
     }
     DeletableObjects::Comment(comment) => {
       let remove_children = with_replies.unwrap_or_default();
+
+      // Read the post to get the community_id
+      let community_id = Post::read(&mut context.pool(), comment.post_id)
+        .await?
+        .community_id;
+
       if remove_children {
         CommentReport::resolve_all_for_thread(&mut context.pool(), &comment.path, actor.id).await?;
         let updated_comments: Vec<Comment> = Comment::update_removed_for_comment_and_children(
@@ -182,14 +196,17 @@ pub(crate) async fn receive_remove_action(
           .iter()
           // Filter out deleted comments here so their content doesn't show up in the modlog.
           .filter(|c| !c.deleted)
-          .map(|comment| ModlogInsertForm::mod_remove_comment(actor.id, comment, true, &reason))
+          .map(|comment| {
+            ModlogInsertForm::mod_remove_comment(actor.id, comment, community_id, true, &reason)
+          })
           .collect();
 
         let actions = Modlog::create(&mut context.pool(), &forms).await?;
         notify_mod_action(actions, context);
       } else {
         CommentReport::resolve_all_for_object(&mut context.pool(), comment.id, actor.id).await?;
-        let form = ModlogInsertForm::mod_remove_comment(actor.id, &comment, true, &reason);
+        let form =
+          ModlogInsertForm::mod_remove_comment(actor.id, &comment, community_id, true, &reason);
         let action = Modlog::create(&mut context.pool(), &[form]).await?;
         notify_mod_action(action, context.app_data());
         Comment::update(
@@ -204,8 +221,8 @@ pub(crate) async fn receive_remove_action(
       }
     }
     // TODO these need to be implemented yet, for now, return errors
-    DeletableObjects::PrivateMessage(_) => Err(LemmyErrorType::NotFound)?,
-    DeletableObjects::Person(_) => Err(LemmyErrorType::NotFound)?,
+    DeletableObjects::PrivateMessage(_) => return Err(LemmyErrorType::NotFound.into()),
+    DeletableObjects::Person(_) => return Err(LemmyErrorType::NotFound.into()),
   }
   Ok(())
 }

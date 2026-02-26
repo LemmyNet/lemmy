@@ -25,7 +25,7 @@ pub async fn delete_post(
 
   // Dont delete it if its already been deleted.
   if orig_post.deleted == data.deleted {
-    Err(LemmyErrorType::CouldntUpdate)?
+    return Err(LemmyErrorType::CouldntUpdate.into());
   }
 
   let community = Community::read(&mut context.pool(), orig_post.community_id).await?;
@@ -33,7 +33,7 @@ pub async fn delete_post(
 
   // Verify that only the creator can delete
   if !Post::is_post_creator(local_user_view.person.id, orig_post.creator_id) {
-    Err(LemmyErrorType::NoPostEditAllowed)?
+    return Err(LemmyErrorType::NoPostEditAllowed.into());
   }
 
   // Update the post

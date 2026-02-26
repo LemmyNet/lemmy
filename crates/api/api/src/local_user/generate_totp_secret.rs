@@ -20,7 +20,7 @@ pub async fn generate_totp_secret(
   let site = Site::read_local(&mut context.pool()).await?;
 
   if local_user_view.local_user.totp_2fa_enabled {
-    return Err(LemmyErrorType::TotpAlreadyEnabled)?;
+    return Err(LemmyErrorType::TotpAlreadyEnabled.into());
   }
 
   let secret = generate_totp_2fa_secret();

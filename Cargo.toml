@@ -6,7 +6,7 @@ license = "AGPL-3.0"
 homepage = "https://join-lemmy.org/"
 documentation = "https://join-lemmy.org/docs/en/index.html"
 repository = "https://github.com/LemmyNet/lemmy"
-rust-version = "1.91"
+rust-version = "1.92"
 
 # See https://github.com/johnthagen/min-sized-rust for additional optimizations
 [profile.release]
@@ -92,6 +92,16 @@ map_err_ignore = "deny"
 expect_used = "deny"
 as_conversions = "deny"
 large_futures = "deny"
+tests_outside_test_module = "deny"
+try_err = "deny"
+unreachable = "deny"
+string_slice = "deny"
+same_name_method = "deny"
+return_and_then = "deny"
+ref_patterns = "deny"
+redundant_type_annotations = "deny"
+if_then_some_else_none = "deny"
+allow_attributes = "deny"
 
 [workspace.dependencies]
 lemmy_api = { version = "=1.0.0-alpha.12", path = "./crates/api/api" }

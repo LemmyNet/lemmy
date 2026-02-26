@@ -95,12 +95,12 @@ impl UndoDelete {
     match DeletableObjects::read_from_db(object, context).await? {
       DeletableObjects::Community(community) => {
         if community.local {
-          Err(UntranslatedError::OnlyLocalAdminCanRestoreCommunity)?
+          return Err(UntranslatedError::OnlyLocalAdminCanRestoreCommunity.into());
         }
         let community_owner =
           CommunityModeratorView::top_mod_for_community(&mut context.pool(), community.id).await?;
         let form = ModlogInsertForm::admin_remove_community(
-          actor.id,
+          actor,
           community.id,
           community_owner,
           false,
@@ -142,7 +142,15 @@ impl UndoDelete {
             .iter()
             // Filter out deleted comments here so their content doesn't show up in the modlog.
             .filter(|c| !c.deleted)
-            .map(|comment| ModlogInsertForm::mod_remove_comment(actor.id, comment, false, &reason))
+            .map(|comment| {
+              ModlogInsertForm::mod_remove_comment(
+                actor.id,
+                comment,
+                post.community_id,
+                false,
+                &reason,
+              )
+            })
             .collect();
 
           let actions = Modlog::create(&mut context.pool(), &forms).await?;
@@ -159,17 +167,25 @@ impl UndoDelete {
           )
           .await?;
 
-          let forms: Vec<_> = updated_comments
-            .iter()
-            // Filter out deleted comments here so their content doesn't show up in the modlog.
-            .filter(|c| !c.deleted)
-            .map(|comment| ModlogInsertForm::mod_remove_comment(actor.id, comment, false, &reason))
-            .collect();
-
+          let mut forms: Vec<ModlogInsertForm> = Vec::new();
+          // Filter out deleted comments here so their content doesn't show up in the modlog.
+          // Unfortunate, but you need to loop over these to get the community_id for the modlog.
+          for comment in updated_comments.iter().filter(|c| !c.deleted) {
+            let community_id = Post::read(&mut context.pool(), comment.post_id)
+              .await?
+              .community_id;
+            let form =
+              ModlogInsertForm::mod_remove_comment(actor.id, comment, community_id, false, &reason);
+            forms.push(form);
+          }
           let actions = Modlog::create(&mut context.pool(), &forms).await?;
           notify_mod_action(actions, context);
         } else {
-          let form = ModlogInsertForm::mod_remove_comment(actor.id, &comment, false, &reason);
+          let community_id = Post::read(&mut context.pool(), comment.post_id)
+            .await?
+            .community_id;
+          let form =
+            ModlogInsertForm::mod_remove_comment(actor.id, &comment, community_id, false, &reason);
           let action = Modlog::create(&mut context.pool(), &[form]).await?;
           notify_mod_action(action, context.app_data());
           Comment::update(
@@ -184,8 +200,8 @@ impl UndoDelete {
         }
       }
       // TODO these need to be implemented yet, for now, return errors
-      DeletableObjects::PrivateMessage(_) => Err(LemmyErrorType::NotFound)?,
-      DeletableObjects::Person(_) => Err(LemmyErrorType::NotFound)?,
+      DeletableObjects::PrivateMessage(_) => return Err(LemmyErrorType::NotFound.into()),
+      DeletableObjects::Person(_) => return Err(LemmyErrorType::NotFound.into()),
     }
     Ok(())
   }

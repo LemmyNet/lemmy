@@ -339,10 +339,8 @@ fn extract_opengraph_width_and_height(ogo: Option<&OpengraphObject>) -> (Option<
 }
 
 fn extract_opengraph_int_field(ogo: &OpengraphObject, field: &str) -> Option<u16> {
-  ogo
-    .properties
-    .get(field)
-    .and_then(|w| w.parse::<u16>().ok())
+  let w = ogo.properties.get(field)?;
+  w.parse::<u16>().ok()
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -447,7 +445,7 @@ pub async fn purge_image_from_pictrs(alias: &str, context: &LemmyContext) -> Lem
 
   match response.msg.as_str() {
     "ok" => Ok(()),
-    _ => Err(LemmyErrorType::PictrsPurgeResponseError(response.msg))?,
+    _ => Err(LemmyErrorType::PictrsPurgeResponseError(response.msg).into()),
   }
 }
 
@@ -588,7 +586,7 @@ async fn is_image_content_type(client: &ClientWithMiddleware, url: &Url) -> Lemm
   {
     Ok(())
   } else {
-    Err(LemmyErrorType::NotAnImageType)?
+    Err(LemmyErrorType::NotAnImageType.into())
   }
 }
 

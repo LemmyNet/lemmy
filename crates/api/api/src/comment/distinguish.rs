@@ -38,7 +38,7 @@ pub async fn distinguish_comment(
 
   // Verify that only the creator can distinguish
   if local_user_view.person.id != orig_comment.creator.id {
-    Err(LemmyErrorType::NoCommentEditAllowed)?
+    return Err(LemmyErrorType::NoCommentEditAllowed.into());
   }
 
   // Verify that only a mod or admin can distinguish a comment

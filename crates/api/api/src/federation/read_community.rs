@@ -23,7 +23,7 @@ pub async fn get_community(
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
 
   if data.name.is_none() && data.id.is_none() {
-    Err(LemmyErrorType::NoIdGiven)?
+    return Err(LemmyErrorType::NoIdGiven.into());
   }
 
   check_private_instance(&local_user_view, &local_site)?;

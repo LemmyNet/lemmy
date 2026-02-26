@@ -87,7 +87,7 @@ use lemmy_utils::error::LemmyResult;
 use std::sync::LazyLock;
 use url::Url;
 
-#[allow(clippy::expect_used)]
+#[expect(clippy::expect_used)]
 static DUMMY_URL: LazyLock<DbUrlV3> = LazyLock::new(|| {
   Url::parse("http://example.com")
     .expect("parse dummy url")

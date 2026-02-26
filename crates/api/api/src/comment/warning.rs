@@ -39,6 +39,7 @@ pub async fn create_comment_warning(
   let form = ModlogInsertForm::mod_create_comment_warning(
     local_user_view.person.id,
     &orig_comment.comment,
+    orig_comment.community.id,
     &data.reason,
   );
 

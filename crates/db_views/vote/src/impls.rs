@@ -132,7 +132,7 @@ impl VoteView {
 }
 
 // https://github.com/rust-lang/rust/issues/115590
-#[allow(clippy::multiple_bound_locations)]
+#[expect(clippy::multiple_bound_locations)]
 fn paginate_vote_response<
   #[cfg(feature = "ts-rs")] T: ts_rs::TS,
   #[cfg(not(feature = "ts-rs"))] T,

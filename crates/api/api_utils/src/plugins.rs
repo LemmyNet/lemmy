@@ -246,6 +246,7 @@ impl LemmyPlugin {
     })
   }
 
+  #[expect(clippy::if_then_some_else_none)]
   fn get(&self, name: &'static str) -> LemmyResult<Option<PoolPlugin>> {
     let p = self
       .pool

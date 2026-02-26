@@ -80,6 +80,7 @@ pub async fn remove_post(
         ModlogInsertForm::mod_remove_comment(
           local_user_view.person.id,
           comment,
+          community.id,
           remove_children,
           &data.reason,
         )

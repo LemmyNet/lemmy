@@ -8,13 +8,13 @@ use unicode_segmentation::UnicodeSegmentation;
 use url::{ParseError, Url};
 
 // From here: https://github.com/vector-im/element-android/blob/develop/matrix-sdk-android/src/main/java/org/matrix/android/sdk/api/MatrixPatterns.kt#L35
-#[allow(clippy::expect_used)]
+#[expect(clippy::expect_used)]
 static VALID_MATRIX_ID_REGEX: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"^@[A-Za-z0-9\x21-\x39\x3B-\x7F]+:[A-Za-z0-9.-]+(:[0-9]{2,5})?$")
     .expect("compile regex")
 });
 // taken from https://en.wikipedia.org/wiki/UTM_parameters
-#[allow(clippy::expect_used)]
+#[expect(clippy::expect_used)]
 static URL_CLEANER: LazyLock<UrlCleaner> =
   LazyLock::new(|| UrlCleaner::from_embedded_rules().expect("compile clearurls"));
 const ALLOWED_POST_URL_SCHEMES: [&str; 3] = ["http", "https", "magnet"];
@@ -40,7 +40,7 @@ pub fn is_valid_actor_name(name: &str) -> LemmyResult<()> {
   // Only allow characters from a single alphabet per username. This avoids problems with lookalike
   // characters like `o` which looks identical in Latin and Cyrillic, and can be used to imitate
   // other users. Checks for additional alphabets can be added in the same way.
-  #[allow(clippy::expect_used)]
+  #[expect(clippy::expect_used)]
   static VALID_ACTOR_NAME_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"^(?:[a-zA-Z0-9_]+|[0-9_\p{Arabic}]+|[0-9_\p{Cyrillic}]+)$").expect("compile regex")
   });
@@ -182,21 +182,15 @@ pub fn build_and_check_regex(regex_str_opt: Option<&str>) -> LemmyResult<Regex> 
     if regex.is_empty() {
       match_nothing
     } else {
-      RegexBuilder::new(regex)
+      let regex = RegexBuilder::new(regex)
         .case_insensitive(true)
         .build()
-        .with_lemmy_type(LemmyErrorType::InvalidRegex)
-        .and_then(|regex| {
-          // NOTE: It is difficult to know, in the universe of user-crafted regex, which ones
-          // may match against any string text. To keep it simple, we'll match the regex
-          // against an innocuous string - a single number - which should help catch a regex
-          // that accidentally matches against all strings.
-          if regex.is_match("1") {
-            Err(LemmyErrorType::PermissiveRegex.into())
-          } else {
-            Ok(regex)
-          }
-        })
+        .with_lemmy_type(LemmyErrorType::InvalidRegex)?;
+      if regex.is_match("1") {
+        Err(LemmyErrorType::PermissiveRegex.into())
+      } else {
+        Ok(regex)
+      }
     }
   } else {
     match_nothing
@@ -223,7 +217,7 @@ pub fn clean_urls_in_text(text: &str) -> String {
 
 pub fn is_valid_url(url: &Url) -> LemmyResult<()> {
   if !ALLOWED_POST_URL_SCHEMES.contains(&url.scheme()) {
-    Err(LemmyErrorType::InvalidUrlScheme)?
+    return Err(LemmyErrorType::InvalidUrlScheme.into());
   }
 
   max_length_check(
@@ -237,7 +231,7 @@ pub fn is_valid_url(url: &Url) -> LemmyResult<()> {
 
 pub fn is_url_blocked(url: &Url, blocklist: &RegexSet) -> LemmyResult<()> {
   if blocklist.is_match(url.as_str()) {
-    Err(LemmyErrorType::BlockedUrl)?
+    return Err(LemmyErrorType::BlockedUrl.into());
   }
 
   Ok(())
@@ -356,7 +350,7 @@ pub fn truncate_summary(text: &str) -> String {
 
 pub fn check_api_elements_count(len: usize) -> LemmyResult<()> {
   if len >= MAX_API_PARAM_ELEMENTS {
-    Err(LemmyErrorType::TooManyItems)?
+    return Err(LemmyErrorType::TooManyItems.into());
   }
   Ok(())
 }

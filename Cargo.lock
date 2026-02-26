@@ -4447,9 +4447,9 @@ dependencies = [
 
 [[package]]
 name = "markdown-it-block-spoiler"
-version = "1.0.2"
+version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ecff0b200e54209a2f2b5e583aa02b978ed6f50f538b3c4001f4a576b82285e3"
+checksum = "558832b13260a7529dd67285a81f7a06b12339a104e1be3aded854e303b7e931"
 dependencies = [
  "itertools",
  "markdown-it",
@@ -6000,7 +6000,7 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

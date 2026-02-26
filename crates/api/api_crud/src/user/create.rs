@@ -91,14 +91,14 @@ pub async fn register(
     local_site.registration_mode == RegistrationMode::RequireApplication;
 
   if local_site.registration_mode == RegistrationMode::Closed {
-    Err(LemmyErrorType::RegistrationClosed)?
+    return Err(LemmyErrorType::RegistrationClosed.into());
   }
 
   password_length_check(&data.password)?;
   honeypot_check(&data.honeypot)?;
 
   if local_site.require_email_verification && data.email.is_none() {
-    Err(LemmyErrorType::EmailRequired)?
+    return Err(LemmyErrorType::EmailRequired.into());
   }
 
   // make sure the registration answer is provided when the registration application is required
@@ -108,7 +108,7 @@ pub async fn register(
 
   // Make sure passwords match
   if data.password != data.password_verify {
-    Err(LemmyErrorType::PasswordsDoNotMatch)?
+    return Err(LemmyErrorType::PasswordsDoNotMatch.into());
   }
 
   if local_site.site_setup && is_captcha_plugin_loaded() {
@@ -243,7 +243,7 @@ pub async fn authenticate_with_oauth(
 
   // validate inputs
   if data.oauth_provider_id == OAuthProviderId(0) || data.code.is_empty() || data.code.len() > 300 {
-    return Err(LemmyErrorType::OauthAuthorizationInvalid)?;
+    return Err(LemmyErrorType::OauthAuthorizationInvalid.into());
   }
 
   // validate the redirect_uri
@@ -252,7 +252,7 @@ pub async fn authenticate_with_oauth(
     || !redirect_uri.path().eq(&String::from("/oauth/callback"))
     || !redirect_uri.query().unwrap_or("").is_empty()
   {
-    Err(LemmyErrorType::OauthAuthorizationInvalid)?
+    return Err(LemmyErrorType::OauthAuthorizationInvalid.into());
   }
 
   // validate the PKCE challenge
@@ -268,7 +268,7 @@ pub async fn authenticate_with_oauth(
     .ok_or(LemmyErrorType::OauthAuthorizationInvalid)?;
 
   if !oauth_provider.enabled {
-    return Err(LemmyErrorType::OauthAuthorizationInvalid)?;
+    return Err(LemmyErrorType::OauthAuthorizationInvalid.into());
   }
 
   let token_response = oauth_request_access_token(
@@ -321,12 +321,12 @@ pub async fn authenticate_with_oauth(
 
     // prevent registration if registration is closed
     if local_site.registration_mode == RegistrationMode::Closed {
-      Err(LemmyErrorType::RegistrationClosed)?
+      return Err(LemmyErrorType::RegistrationClosed.into());
     }
 
     // prevent registration if registration is closed for OAUTH providers
     if !local_site.oauth_registration {
-      return Err(LemmyErrorType::OauthRegistrationClosed)?;
+      return Err(LemmyErrorType::OauthRegistrationClosed.into());
     }
 
     // Extract the OAUTH email claim from the returned user_info
@@ -358,7 +358,7 @@ pub async fn authenticate_with_oauth(
 
         user_view.local_user.clone()
       } else {
-        return Err(LemmyErrorType::EmailAlreadyTaken)?;
+        return Err(LemmyErrorType::EmailAlreadyTaken.into());
       }
     } else {
       // No user was found by email => Register as new user
@@ -552,7 +552,7 @@ fn validate_registration_answer(
   answer: &Option<String>,
 ) -> LemmyResult<()> {
   if require_registration_application && answer.is_none() {
-    Err(LemmyErrorType::RegistrationApplicationAnswerRequired)?
+    return Err(LemmyErrorType::RegistrationApplicationAnswerRequired.into());
   }
 
   Ok(())
@@ -630,10 +630,10 @@ fn read_user_info(user_info: &serde_json::Value, key: &str) -> LemmyResult<Strin
       .with_lemmy_type(LemmyErrorType::OauthLoginFailed)?;
     return Ok(result);
   }
-  Err(LemmyErrorType::OauthLoginFailed)?
+  Err(LemmyErrorType::OauthLoginFailed.into())
 }
 
-#[allow(clippy::expect_used)]
+#[expect(clippy::expect_used)]
 fn check_code_verifier(code_verifier: &str) -> LemmyResult<()> {
   static VALID_CODE_VERIFIER_REGEX: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^[a-zA-Z0-9\-._~]{43,128}$").expect("compile regex"));

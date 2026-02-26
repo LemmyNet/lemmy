@@ -36,7 +36,7 @@ use lemmy_diesel_utils::{
   utils::functions::{coalesce, hot_rank},
 };
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult, UntranslatedError},
   settings::structs::Settings,
 };
 use url::Url;
@@ -157,6 +157,7 @@ impl Comment {
     Ok(comments)
   }
 
+  #[expect(clippy::same_name_method)]
   pub async fn create(
     pool: &mut DbPool<'_>,
     comment_form: &CommentInsertForm,
@@ -210,7 +211,8 @@ impl Comment {
     ltree_split.remove(0); // The first is always 0
     if ltree_split.len() > 1 {
       let parent_comment_id = ltree_split.get(ltree_split.len() - 2);
-      parent_comment_id.and_then(|p| p.parse::<i32>().map(CommentId).ok())
+      let p = parent_comment_id?;
+      p.parse::<i32>().map(CommentId).ok()
     } else {
       None
     }
@@ -326,9 +328,8 @@ impl Crud for Comment {
   type IdType = CommentId;
 
   /// Use [[Comment::create]]
-  async fn create(pool: &mut DbPool<'_>, comment_form: &Self::InsertForm) -> LemmyResult<Self> {
-    debug_assert!(false);
-    Comment::create(pool, comment_form, None).await
+  async fn create(_pool: &mut DbPool<'_>, _comment_form: &Self::InsertForm) -> LemmyResult<Self> {
+    Err(UntranslatedError::Unreachable.into())
   }
 
   async fn update(

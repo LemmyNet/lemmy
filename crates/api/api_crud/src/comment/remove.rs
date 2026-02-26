@@ -83,6 +83,7 @@ pub async fn remove_comment(
         ModlogInsertForm::mod_remove_comment(
           local_user_view.person.id,
           comment,
+          orig_comment.community.id,
           remove_children,
           &data.reason,
         )
@@ -121,6 +122,7 @@ pub async fn remove_comment(
     let form = ModlogInsertForm::mod_remove_comment(
       local_user_view.person.id,
       &orig_comment.comment,
+      orig_comment.community.id,
       removed,
       &data.reason,
     );

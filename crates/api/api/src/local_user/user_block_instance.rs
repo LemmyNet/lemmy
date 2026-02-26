@@ -23,7 +23,7 @@ pub async fn user_block_instance_communities(
   let instance_id = data.instance_id;
   let person_id = local_user_view.person.id;
   if local_user_view.person.instance_id == instance_id {
-    return Err(LemmyErrorType::CantBlockLocalInstance)?;
+    return Err(LemmyErrorType::CantBlockLocalInstance.into());
   }
 
   let block_form = InstanceCommunitiesBlockForm::new(person_id, instance_id);
@@ -45,7 +45,7 @@ pub async fn user_block_instance_persons(
   let instance_id = data.instance_id;
   let person_id = local_user_view.person.id;
   if local_user_view.person.instance_id == instance_id {
-    return Err(LemmyErrorType::CantBlockLocalInstance)?;
+    return Err(LemmyErrorType::CantBlockLocalInstance.into());
   }
 
   let block_form = InstancePersonsBlockForm::new(person_id, instance_id);

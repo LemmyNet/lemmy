@@ -151,7 +151,7 @@ pub async fn create_site(
 fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> LemmyResult<()> {
   // Make sure the site hasn't already been set up...
   if local_site.site_setup {
-    Err(LemmyErrorType::AlreadyExists)?
+    return Err(LemmyErrorType::AlreadyExists.into());
   };
 
   // Check that the slur regex compiles, and returns the regex if valid...
@@ -200,7 +200,7 @@ mod tests {
     let invalid_payloads = [
       (
         "CreateSite attempted on set up LocalSite",
-        LemmyErrorType::AlreadyExists,
+        &LemmyErrorType::AlreadyExists,
         &LocalSite {
           site_setup: true,
           private_instance: true,
@@ -215,7 +215,7 @@ mod tests {
       ),
       (
         "CreateSite name matches LocalSite slur filter",
-        LemmyErrorType::Slurs,
+        &LemmyErrorType::Slurs,
         &LocalSite {
           site_setup: false,
           private_instance: true,
@@ -231,7 +231,7 @@ mod tests {
       ),
       (
         "CreateSite name matches new slur filter",
-        LemmyErrorType::Slurs,
+        &LemmyErrorType::Slurs,
         &LocalSite {
           site_setup: false,
           private_instance: true,
@@ -248,7 +248,7 @@ mod tests {
       ),
       (
         "CreateSite listing type is Subscribed, which is invalid",
-        LemmyErrorType::InvalidDefaultPostListingType,
+        &LemmyErrorType::InvalidDefaultPostListingType,
         &LocalSite {
           site_setup: false,
           private_instance: true,
@@ -264,7 +264,7 @@ mod tests {
       ),
       (
         "CreateSite requires application, but neither it nor LocalSite has an application question",
-        LemmyErrorType::ApplicationQuestionRequired,
+        &LemmyErrorType::ApplicationQuestionRequired,
         &LocalSite {
           site_setup: false,
           private_instance: true,
@@ -283,7 +283,7 @@ mod tests {
     invalid_payloads.iter().enumerate().for_each(
       |(
          idx,
-         &(reason, ref expected_err, local_site, create_site),
+         &(reason,  expected_err, local_site, create_site),
        )| {
         match validate_create_payload(
           local_site,

@@ -118,7 +118,7 @@ pub async fn edit_post(
 
   // Verify that only the creator can edit
   if !Post::is_post_creator(local_user_view.person.id, orig_post.post.creator_id) {
-    Err(LemmyErrorType::NoPostEditAllowed)?
+    return Err(LemmyErrorType::NoPostEditAllowed.into());
   }
 
   // handle changes to scheduled_publish_time

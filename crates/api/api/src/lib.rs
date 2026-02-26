@@ -21,9 +21,9 @@ pub mod sitemap;
 pub(crate) fn check_report_reason(reason: &str, slur_regex: &Regex) -> LemmyResult<()> {
   check_slurs(reason, slur_regex)?;
   if reason.is_empty() {
-    Err(LemmyErrorType::ReportReasonRequired)?
+    Err(LemmyErrorType::ReportReasonRequired.into())
   } else if reason.chars().count() > 1000 {
-    Err(LemmyErrorType::ReportTooLong)?
+    Err(LemmyErrorType::ReportTooLong.into())
   } else {
     Ok(())
   }
