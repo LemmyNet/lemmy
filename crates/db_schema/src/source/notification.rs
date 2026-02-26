@@ -51,26 +51,16 @@ pub struct NotificationInsertForm {
 }
 
 impl NotificationInsertForm {
-  pub fn new_post(
-    post_id: PostId,
-    recipient_id: PersonId,
-    creator_id: PersonId,
-    kind: NotificationType,
-  ) -> Self {
+  pub fn new_post(post: &Post, recipient_id: PersonId, kind: NotificationType) -> Self {
     Self {
-      post_id: Some(post_id),
-      ..Self::new(recipient_id, creator_id, kind)
+      post_id: Some(post.id),
+      ..Self::new(recipient_id, post.creator_id, kind)
     }
   }
-  pub fn new_comment(
-    comment_id: CommentId,
-    recipient_id: PersonId,
-    creator_id: PersonId,
-    kind: NotificationType,
-  ) -> Self {
+  pub fn new_comment(comment: &Comment, recipient_id: PersonId, kind: NotificationType) -> Self {
     Self {
-      comment_id: Some(comment_id),
-      ..Self::new(recipient_id, creator_id, kind)
+      comment_id: Some(comment.id),
+      ..Self::new(recipient_id, comment.creator_id, kind)
     }
   }
   pub fn new_private_message(private_message: &PrivateMessage) -> Self {

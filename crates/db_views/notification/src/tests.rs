@@ -98,12 +98,8 @@ async fn test_post() -> LemmyResult<()> {
   let post_form = PostInsertForm::new("title".to_string(), data.bob.id, community.id);
   let post = Post::create(pool, &post_form).await?;
 
-  let notif_form = NotificationInsertForm::new_post(
-    post.id,
-    data.alice.id,
-    post.creator_id,
-    NotificationType::Subscribed,
-  );
+  let notif_form =
+    NotificationInsertForm::new_post(&post, data.alice.id, NotificationType::Subscribed);
   Notification::create(pool, &[notif_form]).await?;
 
   let count = NotificationView::get_unread_count(pool, &data.alice, false).await?;

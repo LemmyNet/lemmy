@@ -103,9 +103,9 @@ impl NotifyData {
       };
 
       forms.push(if let Some(comment) = &self.comment {
-        NotificationInsertForm::new_comment(comment.id, c.recipient_id, self.creator.id, c.kind)
+        NotificationInsertForm::new_comment(&comment, c.recipient_id, c.kind)
       } else {
-        NotificationInsertForm::new_post(self.post.id, c.recipient_id, self.creator.id, c.kind)
+        NotificationInsertForm::new_post(&self.post, c.recipient_id, c.kind)
       });
 
       let Ok(user_view) = LocalUserView::read_person(&mut context.pool(), c.recipient_id).await
@@ -610,18 +610,16 @@ mod tests {
 
     // Timmy mentions sara in a comment
     let timmy_mention_sara_form = NotificationInsertForm::new_comment(
-      data.timmy_comment.id,
+      &data.timmy_comment,
       data.sara.person.id,
-      data.timmy.person.id,
       NotificationType::Mention,
     );
     Notification::create(pool, &[timmy_mention_sara_form]).await?;
 
     // Jessica mentions sara in a post
     let jessica_mention_sara_form = NotificationInsertForm::new_post(
-      data.jessica_post.id,
+      &data.jessica_post,
       data.sara.person.id,
-      data.jessica.id,
       NotificationType::Mention,
     );
     Notification::create(pool, &[jessica_mention_sara_form]).await?;
