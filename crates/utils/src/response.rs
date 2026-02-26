@@ -83,7 +83,7 @@ mod tests {
     check_for_jsonification(
       lemmy_error_service,
       StatusCode::BAD_REQUEST,
-      "{\"error\":\"already_exists\"}",
+      "{\"error\":\"already_exists\",\"cause\":\"AlreadyExists\"}",
     )
     .await;
   }
@@ -111,7 +111,7 @@ mod tests {
     check_for_jsonification(
       anyhow_error_service,
       StatusCode::BAD_REQUEST,
-      "{\"error\":\"unknown\",\"message\":\"This is the inner error\"}",
+      "{\"error\":\"unknown\",\"message\":\"This is the inner error\",\"cause\":\"This is the inner error\"}",
     )
     .await;
   }

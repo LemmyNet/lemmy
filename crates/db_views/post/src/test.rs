@@ -1386,7 +1386,7 @@ async fn pagination_hidden_cursors(data: &mut Data) -> LemmyResult<()> {
   let removed_item_page = get_page(&first_page2.prev_page).await;
   if let Err(LemmyError {
     error_type,
-    inner: _,
+    cause: _,
     caller: _,
   }) = removed_item_page
   {

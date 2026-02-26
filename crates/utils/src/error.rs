@@ -166,12 +166,20 @@ pub enum UntranslatedError {
 cfg_if! {
   if #[cfg(feature = "full")] {
 
-    use std::{fmt};
+    use std::fmt;
+    use serde_with::serde_as;
+    use serde_with::DisplayFromStr;
+
     pub type LemmyResult<T> = Result<T, LemmyError>;
 
+    #[serde_as]
+    #[derive(Serialize)]
     pub struct LemmyError {
+      #[serde(flatten)]
       pub error_type: LemmyErrorType,
-      pub inner: anyhow::Error,
+      #[serde_as(as = "DisplayFromStr")]
+      pub cause: anyhow::Error,
+      #[serde(skip)]
       pub caller: Location<'static>,
     }
 
@@ -191,7 +199,7 @@ cfg_if! {
       };
         LemmyError {
           error_type,
-          inner: cause,
+          cause: cause,
           caller: *Location::caller(),
         }
       }
@@ -202,7 +210,7 @@ cfg_if! {
         f.debug_struct("LemmyError")
          .field("message", &self.error_type)
          .field("caller", &format_args!("{}", self.caller))
-         .field("inner", &self.inner)
+         .field("inner", &self.cause)
          .finish()
       }
     }
@@ -211,7 +219,7 @@ cfg_if! {
       fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}: ", &self.error_type)?;
         write!(f, "{}", self.caller)?;
-        write!(f, "{}", self.inner)?;
+        write!(f, "{}", self.cause)?;
         Ok(())
       }
     }
@@ -226,18 +234,7 @@ cfg_if! {
       }
 
       fn error_response(&self) -> actix_web::HttpResponse {
-        // Extra response struct needed because `anyhow::Error` doesnt implement Serialize
-        #[derive(Serialize,Debug)]
-        struct Res<'a> {
-          #[serde(flatten)]
-          error: &'a LemmyErrorType,
-          cause: String
-        }
-        let res = Res {
-          error: &self.error_type,
-          cause: self.inner.to_string()
-        };
-        actix_web::HttpResponse::build(self.status_code()).json(&res)
+        actix_web::HttpResponse::build(self.status_code()).json(&self)
       }
     }
 
@@ -245,10 +242,10 @@ cfg_if! {
     #[track_caller]
       fn from(error_type: LemmyErrorType) -> Self {
 
-        let inner = anyhow::anyhow!("{}", error_type);
+        let cause = anyhow::anyhow!("{}", error_type);
         LemmyError {
           error_type,
-          inner,
+          cause,
           caller: *Location::caller(),
         }
       }
@@ -257,10 +254,10 @@ cfg_if! {
     impl From<UntranslatedError> for LemmyError {
     #[track_caller]
       fn from(error_type: UntranslatedError) -> Self {
-        let inner = anyhow::anyhow!("{}", error_type);
+        let cause = anyhow::anyhow!("{}", error_type);
         LemmyError {
           error_type: LemmyErrorType::UntranslatedError( Some(error_type) ),
-          inner,
+          cause,
           caller: *Location::caller(),
         }
       }
@@ -281,7 +278,7 @@ cfg_if! {
       fn with_lemmy_type(self, error_type: LemmyErrorType) -> LemmyResult<T> {
         self.map_err(|error| LemmyError {
           error_type,
-          inner: error.into(),
+          cause: error.into(),
           caller: *Location::caller(),
         })
       }
@@ -300,7 +297,7 @@ cfg_if! {
       }
       // this function can't be an impl From or similar because it would conflict with one of the other broad Into<> implementations
       fn into_anyhow(self) -> Result<T, anyhow::Error> {
-        self.map_err(|e| e.inner)
+        self.map_err(|e| e.cause)
       }
     }
 
@@ -315,7 +312,7 @@ cfg_if! {
       fn untranslated_error_format() -> LemmyResult<()> {
         let err = LemmyError::from(UntranslatedError::DomainBlocked("test".to_string())).error_response();
         let json = String::from_utf8(err.into_body().try_into_bytes().unwrap_or_default().to_vec())?;
-        assert_eq!(&json, r#"{"error":"domain_blocked","message":"test"}"#);
+        assert_eq!(&json, r#"{"error":"domain_blocked","message":"test","cause":"DomainBlocked"}"#);
 
         Ok(())
       }
@@ -324,7 +321,7 @@ cfg_if! {
       fn deserializes_no_message() -> LemmyResult<()> {
         let err = LemmyError::from(LemmyErrorType::BlockedUrl).error_response();
         let json = String::from_utf8(err.into_body().try_into_bytes().unwrap_or_default().to_vec())?;
-        assert_eq!(&json, "{\"error\":\"blocked_url\"}");
+        assert_eq!(&json, r#"{"error":"blocked_url","cause":"BlockedUrl"}"#);
 
         Ok(())
       }
@@ -336,7 +333,7 @@ cfg_if! {
         let json = String::from_utf8(err.into_body().try_into_bytes().unwrap_or_default().to_vec())?;
         assert_eq!(
           &json,
-          "{\"error\":\"pictrs_response_error\",\"message\":\"reason\"}"
+          r#"{"error":"pictrs_response_error","message":"reason","cause":"PictrsResponseError"}"#
         );
 
         Ok(())
