@@ -1,6 +1,6 @@
 use crate::{
   newtypes::{CommentId, ModlogId, NotificationId, PostId, PrivateMessageId},
-  source::private_message::PrivateMessage,
+  source::{comment::Comment, post::Post, private_message::PrivateMessage},
 };
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
