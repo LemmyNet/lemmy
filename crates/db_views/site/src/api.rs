@@ -1,4 +1,7 @@
 use crate::{ReadableFederationState, SiteView};
+#[cfg(feature = "full")]
+use extism::FromBytes;
+use extism_convert::Json;
 use lemmy_db_schema::{
   newtypes::{LanguageId, MultiCommunityId, OAuthProviderId, TaglineId},
   source::{
@@ -37,8 +40,6 @@ use lemmy_diesel_utils::{pagination::PaginationCursor, sensitive::SensitiveStrin
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
-#[cfg(feature = "full")]
-use {extism::FromBytes, extism_convert::Json};
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
@@ -140,8 +141,6 @@ pub struct CreateSite {
   pub rate_limit_import_user_settings_max_requests: Option<i32>,
   pub rate_limit_import_user_settings_interval_seconds: Option<i32>,
   pub federation_enabled: Option<bool>,
-  pub captcha_enabled: Option<bool>,
-  pub captcha_difficulty: Option<String>,
   pub registration_mode: Option<RegistrationMode>,
   pub oauth_registration: Option<bool>,
   pub content_warning: Option<String>,
@@ -246,10 +245,6 @@ pub struct EditSite {
   pub rate_limit_import_user_settings_interval_seconds: Option<i32>,
   /// Whether to enable federation.
   pub federation_enabled: Option<bool>,
-  /// Whether to enable captchas for signups.
-  pub captcha_enabled: Option<bool>,
-  /// The captcha difficulty. Can be easy, medium, or hard
-  pub captcha_difficulty: Option<String>,
   /// A list of blocked URLs
   pub blocked_urls: Option<Vec<String>>,
   pub registration_mode: Option<RegistrationMode>,
@@ -325,6 +320,7 @@ pub struct GetSiteResponse {
   ///
   /// Useful for estimating when your application will be approved.
   pub last_application_duration_seconds: Option<i64>,
+  pub captcha_enabled: bool,
 }
 
 #[skip_serializing_none]
@@ -347,7 +343,9 @@ pub struct SiteResponse {
   pub site_view: SiteView,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[cfg_attr(feature = "full", derive(FromBytes))]
+#[cfg_attr(feature = "full", encoding(Json))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A captcha response.

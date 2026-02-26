@@ -104,8 +104,6 @@ pub async fn create_site(
     updated_at: Some(Some(Utc::now())),
     slur_filter_regex: diesel_string_update(data.slur_filter_regex.as_deref()),
     federation_enabled: data.federation_enabled,
-    captcha_enabled: data.captcha_enabled,
-    captcha_difficulty: data.captcha_difficulty.clone(),
     default_post_listing_mode: data.default_post_listing_mode,
     post_upvotes: data.post_upvotes,
     post_downvotes: data.post_downvotes,

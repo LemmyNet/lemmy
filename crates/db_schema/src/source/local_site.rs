@@ -49,10 +49,6 @@ pub struct LocalSite {
   pub slur_filter_regex: Option<String>,
   /// Whether federation is enabled.
   pub federation_enabled: bool,
-  /// Whether captcha is enabled.
-  pub captcha_enabled: bool,
-  /// The captcha difficulty.
-  pub captcha_difficulty: String,
   pub published_at: DateTime<Utc>,
   pub updated_at: Option<DateTime<Utc>>,
   pub registration_mode: RegistrationMode,
@@ -129,10 +125,6 @@ pub struct LocalSiteInsertForm {
   #[new(default)]
   pub federation_enabled: Option<bool>,
   #[new(default)]
-  pub captcha_enabled: Option<bool>,
-  #[new(default)]
-  pub captcha_difficulty: Option<String>,
-  #[new(default)]
   pub registration_mode: Option<RegistrationMode>,
   #[new(default)]
   pub reports_email_admins: Option<bool>,
@@ -181,8 +173,6 @@ pub struct LocalSiteUpdateForm {
   pub application_email_admins: Option<bool>,
   pub slur_filter_regex: Option<Option<String>>,
   pub federation_enabled: Option<bool>,
-  pub captcha_enabled: Option<bool>,
-  pub captcha_difficulty: Option<String>,
   pub registration_mode: Option<RegistrationMode>,
   pub reports_email_admins: Option<bool>,
   pub updated_at: Option<Option<DateTime<Utc>>>,

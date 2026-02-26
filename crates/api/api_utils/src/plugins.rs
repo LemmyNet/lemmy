@@ -1,11 +1,21 @@
 use crate::context::LemmyContext;
 use anyhow::anyhow;
-use extism::{Manifest, PluginBuilder, Pool, PoolPlugin, Wasm, WasmMetadata};
+use extism::{
+  FromBytesOwned,
+  Manifest,
+  PluginBuilder,
+  Pool,
+  PoolPlugin,
+  ToBytes,
+  Wasm,
+  WasmMetadata,
+};
 use extism_convert::Json;
 use extism_manifest::HttpRequest;
 use lemmy_db_schema::source::{notification::Notification, person::Person};
 use lemmy_db_views_notification::NotificationView;
-use lemmy_db_views_site::api::PluginMetadata;
+use lemmy_db_views_registration_applications::api::CaptchaAnswer;
+use lemmy_db_views_site::api::{CaptchaResponse, PluginMetadata};
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::{
   VERSION,
@@ -14,6 +24,7 @@ use lemmy_utils::{
 };
 use serde::{Deserialize, Serialize};
 use std::{
+  env::var,
   ops::Deref,
   path::PathBuf,
   sync::{LazyLock, OnceLock},
@@ -59,12 +70,49 @@ pub async fn plugin_hook_notification(
   Ok(())
 }
 
+pub async fn plugin_get_captcha() -> LemmyResult<CaptchaResponse> {
+  call_captcha_plugin("get_captcha", ()).await
+}
+
+pub async fn plugin_validate_captcha(answer: String, uuid: String) -> LemmyResult<()> {
+  call_captcha_plugin("validate_captcha", CaptchaAnswer { answer, uuid }).await
+}
+
+async fn call_captcha_plugin<
+  'a,
+  T: ToBytes<'a> + Send + 'static,
+  R: FromBytesOwned + Send + 'static,
+>(
+  name: &'static str,
+  params: T,
+) -> LemmyResult<R> {
+  let plugins = LemmyPlugins::get_or_init();
+  let Some(captcha_plugin) = plugins.captcha_plugin else {
+    return Err(LemmyErrorType::PluginError("plugin not loaded".to_string()).into());
+  };
+
+  spawn_blocking(move || {
+    if let Some(p) = captcha_plugin.pool.get(GET_PLUGIN_TIMEOUT)? {
+      let res = p
+        .call(name, params)
+        .map_err(|e| LemmyErrorType::PluginError(e.to_string()))?;
+      return Ok(res);
+    }
+    Err(LemmyErrorType::PluginError("plugin not loaded".to_string()).into())
+  })
+  .await?
+}
+
+pub fn is_captcha_plugin_loaded() -> bool {
+  LemmyPlugins::get_or_init().captcha_plugin.is_some()
+}
+
 fn run_plugin_hook_after<T>(name: &'static str, data: T) -> LemmyResult<()>
 where
   T: Clone + Serialize + for<'b> Deserialize<'b>,
 {
   let plugins = LemmyPlugins::get_or_init();
-  for p in plugins.0 {
+  for p in plugins.plugins {
     if let Some(plugin) = p.get(name)? {
       let params: Json<T> = data.clone().into();
       plugin
@@ -87,7 +135,7 @@ where
 
   spawn_blocking(move || {
     let mut res: Json<T> = data.into();
-    for p in plugins.0 {
+    for p in plugins.plugins {
       if let Some(plugin) = p.get(name)? {
         let r = plugin
           .call(name, res)
@@ -110,7 +158,7 @@ pub fn plugin_metadata() -> Vec<PluginMetadata> {
     std::thread::spawn(|| {
       METADATA.get_or_init(|| {
         let mut metadata = vec![];
-        for plugin in LemmyPlugins::get_or_init().0 {
+        for plugin in LemmyPlugins::get_or_init().plugins {
           let run = match plugin.pool.get(GET_PLUGIN_TIMEOUT) {
             Ok(p) => p,
             Err(e) => {
@@ -139,7 +187,10 @@ pub fn plugin_metadata() -> Vec<PluginMetadata> {
 }
 
 #[derive(Clone)]
-struct LemmyPlugins(Vec<LemmyPlugin>);
+struct LemmyPlugins {
+  plugins: Vec<LemmyPlugin>,
+  captcha_plugin: Option<LemmyPlugin>,
+}
 
 #[derive(Clone)]
 struct LemmyPlugin {
@@ -149,8 +200,12 @@ struct LemmyPlugin {
 
 impl LemmyPlugin {
   fn init(settings: PluginSettings) -> LemmyResult<Self> {
-    // if no hash was provided in config, set a dummy value here to enforce hash check
-    let hash = Some(settings.hash.unwrap_or_else(|| "dummy".to_string()));
+    let hash = if cfg!(debug_assertions) || var("DANGER_PLUGIN_SKIP_HASH_CHECK").is_ok() {
+      None
+    } else {
+      // if no hash was provided in config, set a dummy value here to enforce hash check
+      Some(settings.hash.unwrap_or_else(|| "dummy".to_string()))
+    };
     let meta = WasmMetadata { hash, name: None };
     let (wasm, filename) = if settings.file.starts_with("http") {
       let name: Option<String> = Url::parse(&settings.file)?
@@ -209,7 +264,7 @@ impl LemmyPlugins {
   /// Load and initialize all plugins
   fn get_or_init() -> Self {
     static PLUGINS: LazyLock<LemmyPlugins> = LazyLock::new(|| {
-      let plugins: Vec<_> = SETTINGS
+      let mut plugins: Vec<_> = SETTINGS
         .plugins
         .iter()
         .flat_map(|p| {
@@ -218,14 +273,38 @@ impl LemmyPlugins {
             .ok()
         })
         .collect();
-      LemmyPlugins(plugins)
+
+      let mut captcha_plugin = None;
+      for (i, p) in plugins.iter().enumerate() {
+        let is_captcha = p
+          .pool
+          .function_exists("validate_captcha", GET_PLUGIN_TIMEOUT)
+          .unwrap_or_default()
+          && p
+            .pool
+            .function_exists("validate_captcha", GET_PLUGIN_TIMEOUT)
+            .unwrap_or_default();
+        if is_captcha {
+          captcha_plugin = Some(plugins.remove(i));
+          break;
+        }
+      }
+
+      // Need to put captcha plugin back in so it can be shown in the active plugins list.
+      if let Some(captcha_plugin) = &captcha_plugin {
+        plugins.push(captcha_plugin.clone());
+      }
+      LemmyPlugins {
+        plugins,
+        captcha_plugin,
+      }
     });
     PLUGINS.deref().clone()
   }
 
   /// Return early if no plugin is loaded for the given hook name
   fn function_exists(&self, name: &'static str) -> bool {
-    self.0.iter().any(|p| {
+    self.plugins.iter().any(|p| {
       p.pool
         .function_exists(name, GET_PLUGIN_TIMEOUT)
         .unwrap_or(false)
