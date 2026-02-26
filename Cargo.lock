@@ -3402,7 +3402,6 @@ dependencies = [
  "chrono",
  "either",
  "futures",
- "futures-util",
  "lemmy_api_utils",
  "lemmy_apub_activities",
  "lemmy_apub_objects",
