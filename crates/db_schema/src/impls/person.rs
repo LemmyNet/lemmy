@@ -140,7 +140,7 @@ impl Person {
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
-  pub async fn check_username_taken(pool: &mut DbPool<'_>, username: &str) -> LemmyResult<()> {
+  pub async fn check_name_taken(pool: &mut DbPool<'_>, username: &str) -> LemmyResult<()> {
     let conn = &mut get_conn(pool).await?;
     select(not(exists(
       person::table
@@ -150,7 +150,7 @@ impl Person {
     .get_result::<bool>(conn)
     .await?
     .then_some(())
-    .ok_or(LemmyErrorType::UsernameAlreadyTaken.into())
+    .ok_or(LemmyErrorType::NameAlreadyTaken.into())
   }
 }
 
