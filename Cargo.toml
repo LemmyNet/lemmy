@@ -21,7 +21,7 @@ debug = 0
 
 # Optimize procedural macros
 [profile.dev.build-override]
-opt-level = 3
+opt-level = 1
 
 [workspace]
 members = [
