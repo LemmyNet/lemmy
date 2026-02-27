@@ -73,7 +73,7 @@ impl ProcessUrl for PictrsGetParams {
   }
 }
 
-#[derive(EnumString, Display, Debug, Serialize, PartialEq, Default)]
+#[derive(EnumString, Display, PartialEq, Default)]
 #[strum(ascii_case_insensitive, serialize_all = "snake_case")]
 enum PictrsFileType {
   Apng,
