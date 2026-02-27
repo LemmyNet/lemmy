@@ -24,7 +24,7 @@ use lemmy_utils::{
 };
 use reqwest::Body;
 use reqwest_middleware::{ClientWithMiddleware, RequestBuilder};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::{str::FromStr, time::Duration};
 use strum::{Display, EnumString};
 use url::Url;
