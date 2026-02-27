@@ -67,7 +67,7 @@ impl Collection for ApubCommunityOutbox {
       {
         let announcable = AnnouncableActivities::CreateOrUpdatePost(create);
         if let Ok(announce) =
-          AnnounceActivity::new(announcable.try_into()?, owner, data, Some(&post_ap_id))
+          AnnounceActivity::new(announcable.try_into()?, owner, Some(&post_ap_id), data)
         {
           ordered_items.push(announce);
         }
