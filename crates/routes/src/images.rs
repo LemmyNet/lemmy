@@ -61,7 +61,7 @@ impl ProcessUrl for PictrsGetParams {
       format!("{}image/original/{}", pictrs_url, src)
     } else {
       // Take file type from name, or jpg if nothing is given
-      let format = file_type(self.format.clone(), src).unwrap_or(PictrsFileType::Jpg);
+      let format = file_type(self.format.clone(), src).unwrap_or_default();
 
       let mut url = format!("{}image/process.{}?src={}", pictrs_url, format, src);
 
@@ -73,13 +73,13 @@ impl ProcessUrl for PictrsGetParams {
   }
 }
 
-#[derive(EnumString, Display, Debug, Serialize, PartialEq)]
-#[serde(rename_all = "snake_case")]
-#[strum(ascii_case_insensitive)]
+#[derive(EnumString, Display, Debug, Serialize, PartialEq, Default)]
+#[strum(ascii_case_insensitive, serialize_all = "snake_case")]
 enum PictrsFileType {
   Apng,
   Avif,
   Gif,
+  #[default]
   Jpg,
   Jxl,
   Png,
@@ -108,7 +108,7 @@ impl ProcessUrl for ImageProxyParams {
       format!("{}image/original?proxy={}", pictrs_url, proxy_url)
     } else {
       // Take file type from name, or jpg if nothing is given
-      let format = file_type(self.format.clone(), proxy_url).unwrap_or(PictrsFileType::Jpg);
+      let format = file_type(self.format.clone(), proxy_url).unwrap_or_default();
 
       let mut url = format!("{}image/process.{}?proxy={}", pictrs_url, format, proxy_url);
 
@@ -343,5 +343,53 @@ where
     cx: &mut std::task::Context<'_>,
   ) -> std::task::Poll<Option<Self::Item>> {
     std::pin::Pin::new(&mut self.rx).poll_recv(cx)
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use crate::images::{file_type, PictrsFileType};
+  use lemmy_utils::error::LemmyResult;
+
+  #[tokio::test]
+  async fn image_file_type_tests() -> LemmyResult<()> {
+    // Make sure files type outputs are getting lower-cased
+    assert_eq!(PictrsFileType::Jpg.to_string(), "jpg".to_string());
+
+    let file_url = "a8a7f07f-3ef2-40fa-849c-ae952f68f3ec.jpg";
+
+    // Make sure wrong-cased file type requests are okay
+    assert_eq!(
+      PictrsFileType::Jpg,
+      file_type(Some("JPg".to_string()), file_url)?
+    );
+
+    // Make sure wrong file type requests are okay with unwrap_or_default
+    assert_eq!(
+      PictrsFileType::Jpg,
+      file_type(Some("jpeg".to_string()), file_url).unwrap_or_default()
+    );
+    assert_eq!(
+      PictrsFileType::Jpg,
+      file_type(Some("nonsense".to_string()), file_url).unwrap_or_default()
+    );
+
+    // Make sure missing file type requests are okay
+    assert_eq!(PictrsFileType::Jpg, file_type(None, file_url)?);
+
+    // jpeg
+    let file_url = "a8a7f07f-3ef2-40fa-849c-ae952f68f3ec.jpeg";
+
+    // Make sure jpeg one is okay
+    assert_eq!(
+      PictrsFileType::Jpg,
+      file_type(None, file_url).unwrap_or_default()
+    );
+
+    // Make sure proxy ones are okay
+    let proxy_url = "https://test.tld/pictrs/image/6d3b2f3f-7b29-4d9a-868e-b269423f4d6c.WEbP";
+    assert_eq!(PictrsFileType::Webp, file_type(None, proxy_url)?);
+
+    Ok(())
   }
 }
