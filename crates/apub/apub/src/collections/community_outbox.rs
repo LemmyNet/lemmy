@@ -53,6 +53,8 @@ impl Collection for ApubCommunityOutbox {
 
     let mut ordered_items = vec![];
     for post_view in post_views {
+      let post_ap_id = post_view.post.ap_id.clone();
+
       // ignore errors, in particular if post creator was deleted
       if let Ok(create) = CreateOrUpdatePage::new(
         post_view.post.into(),
@@ -64,7 +66,9 @@ impl Collection for ApubCommunityOutbox {
       .await
       {
         let announcable = AnnouncableActivities::CreateOrUpdatePost(create);
-        if let Ok(announce) = AnnounceActivity::new(announcable.try_into()?, owner, data) {
+        if let Ok(announce) =
+          AnnounceActivity::new(announcable.try_into()?, owner, data, Some(&post_ap_id))
+        {
           ordered_items.push(announce);
         }
       }

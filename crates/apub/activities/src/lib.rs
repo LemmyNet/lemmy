@@ -99,13 +99,23 @@ where
 fn generate_announce_activity_id(
   inner_kind: &str,
   protocol_and_hostname: &str,
+  object_id: Option<&Url>,
 ) -> Result<Url, ParseError> {
+  let inner = inner_kind.to_lowercase();
+
+  let uuid_str = if let Some(o) = object_id {
+    let input = format!("announce:{}:{}", inner, o.as_str()); // add "announce:" in front to avoid collision with generate_activity_id
+    Uuid::from_bytes(md5::compute(input.as_bytes()).0).to_string()
+  } else {
+    Uuid::new_v4().to_string()
+  };
+
   let id = format!(
     "{}/activities/{}/{}/{}",
     protocol_and_hostname,
     AnnounceType::Announce.to_string().to_lowercase(),
-    inner_kind.to_lowercase(),
-    Uuid::new_v4()
+    inner,
+    uuid_str
   );
   Url::parse(&id)
 }
