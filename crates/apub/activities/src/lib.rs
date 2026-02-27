@@ -95,7 +95,7 @@ where
 
   let uuid_str = if let Some(o) = object_id {
     let input = format!("{}:{}", kind_str, o);
-    Uuid::from_bytes(md5::compute(input.as_bytes()).0).to_string()
+    Uuid::from_bytes(md5::compute(input).0).to_string()
   } else {
     Uuid::new_v4().to_string()
   };
@@ -115,7 +115,7 @@ fn generate_announce_activity_id(
   let uuid_str = if let Some(o) = object_id {
     // add "announce:" in front to avoid collision with generate_activity_id
     let input = format!("announce:{}:{}", inner_kind_str, o);
-    Uuid::from_bytes(md5::compute(input.as_bytes()).0).to_string()
+    Uuid::from_bytes(md5::compute(input).0).to_string()
   } else {
     Uuid::new_v4().to_string()
   };
