@@ -261,8 +261,16 @@ fn map_to_enum(v: NotificationViewInternal, hide_modlog_name: bool) -> Option<No
   } else {
     return None;
   };
-  Some(NotificationView {
-    notification: v.notification,
-    data,
-  })
+
+  let notification = if hide_modlog_name {
+    // Set the creator_id to zero if you're hiding modlog names.
+    // The mod view hiding is above.
+    Notification {
+      creator_id: PersonId(0),
+      ..v.notification
+    }
+  } else {
+    v.notification
+  };
+  Some(NotificationView { notification, data })
 }
