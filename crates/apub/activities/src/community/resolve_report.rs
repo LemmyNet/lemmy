@@ -106,7 +106,7 @@ impl Activity for ResolveReport {
       // forward to remote mods
       let object_id = self.object.object.object_id(context).await?;
       let announce = AnnouncableActivities::ResolveReport(self);
-      let announce = AnnounceActivity::new(announce.try_into()?, community, context)?;
+      let announce = AnnounceActivity::new(announce.try_into()?, community, context, None)?;
       let inboxes = report_inboxes(object_id, &receiver, &reporter, context).await?;
       send_lemmy_activity(context, announce, community, inboxes.clone(), false).await?;
     }

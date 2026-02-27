@@ -172,7 +172,7 @@ impl Activity for Report {
       // forward to remote mods
       let object_id = self.object.object_id(context).await?;
       let announce = AnnouncableActivities::Report(self);
-      let announce = AnnounceActivity::new(announce.try_into()?, community, context)?;
+      let announce = AnnounceActivity::new(announce.try_into()?, community, context, None)?;
       let inboxes = report_inboxes(object_id, &receiver, &actor, context).await?;
       send_lemmy_activity(context, announce, community, inboxes.clone(), false).await?;
     }
