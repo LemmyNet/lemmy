@@ -82,16 +82,25 @@ pub(crate) fn check_community_deleted_or_removed(community: &Community) -> Lemmy
 
 /// Generate a unique ID for an activity, in the format:
 /// `http(s)://example.com/receive/create/202daf0a-1489-45df-8d2e-c8a3173fed36`
-fn generate_activity_id<T>(kind: T, context: &LemmyContext) -> Result<Url, ParseError>
+fn generate_activity_id<T>(
+  kind: T,
+  object_id: Option<&Url>,
+  context: &LemmyContext,
+) -> Result<Url, ParseError>
 where
   T: ToString,
 {
-  let id = format!(
-    "{}/activities/{}/{}",
-    &context.settings().get_protocol_and_hostname(),
-    kind.to_string().to_lowercase(),
-    Uuid::new_v4()
-  );
+  let hostname = context.settings().get_protocol_and_hostname();
+  let kind_str = kind.to_string().to_lowercase();
+
+  let uuid_str = if let Some(o) = object_id {
+    let input = format!("{}:{}", kind_str, o.as_str());
+    Uuid::from_bytes(md5::compute(input.as_bytes()).0).to_string()
+  } else {
+    Uuid::new_v4().to_string()
+  };
+
+  let id = format!("{}/activities/{}/{}", hostname, kind_str, uuid_str);
   Url::parse(&id)
 }
 
@@ -101,10 +110,11 @@ fn generate_announce_activity_id(
   protocol_and_hostname: &str,
   object_id: Option<&Url>,
 ) -> Result<Url, ParseError> {
-  let inner = inner_kind.to_lowercase();
+  let inner_kind_str = inner_kind.to_lowercase();
 
   let uuid_str = if let Some(o) = object_id {
-    let input = format!("announce:{}:{}", inner, o.as_str()); // add "announce:" in front to avoid collision with generate_activity_id
+    // add "announce:" in front to avoid collision with generate_activity_id
+    let input = format!("announce:{}:{}", inner_kind_str, o.as_str());
     Uuid::from_bytes(md5::compute(input.as_bytes()).0).to_string()
   } else {
     Uuid::new_v4().to_string()
@@ -114,7 +124,7 @@ fn generate_announce_activity_id(
     "{}/activities/{}/{}/{}",
     protocol_and_hostname,
     AnnounceType::Announce.to_string().to_lowercase(),
-    inner,
+    inner_kind_str,
     uuid_str
   );
   Url::parse(&id)

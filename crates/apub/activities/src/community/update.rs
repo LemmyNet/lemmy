@@ -35,7 +35,7 @@ pub(crate) async fn send_update_community(
 ) -> LemmyResult<()> {
   let community: ApubCommunity = community.into();
   let actor: ApubPerson = actor.into();
-  let id = generate_activity_id(UpdateType::Update, &context)?;
+  let id = generate_activity_id(UpdateType::Update, None, &context)?;
   let update = Update {
     actor: actor.id().clone().into(),
     to: generate_to(&community)?,
@@ -65,7 +65,7 @@ pub(crate) async fn send_update_multi_community(
 ) -> LemmyResult<()> {
   let multi: ApubMultiCommunity = multi.into();
   let actor: ApubPerson = actor.into();
-  let id = generate_activity_id(UpdateType::Update, &context)?;
+  let id = generate_activity_id(UpdateType::Update, None, &context)?;
   let update = Update {
     actor: actor.id().clone().into(),
     to: vec![multi.ap_id.clone().into(), public()],

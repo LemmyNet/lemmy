@@ -42,7 +42,7 @@ impl CollectionRemove {
     actor: &ApubPerson,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    let id = generate_activity_id(RemoveType::Remove, context)?;
+    let id = generate_activity_id(RemoveType::Remove, None, context)?;
     let remove = CollectionRemove {
       actor: actor.id().clone().into(),
       to: generate_to(community)?,
@@ -65,7 +65,7 @@ impl CollectionRemove {
     actor: &ApubPerson,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    let id = generate_activity_id(RemoveType::Remove, context)?;
+    let id = generate_activity_id(RemoveType::Remove, None, context)?;
     let remove = CollectionRemove {
       actor: actor.id().clone().into(),
       to: generate_to(community)?,

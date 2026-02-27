@@ -53,7 +53,7 @@ impl Report {
     context: &Data<LemmyContext>,
   ) -> LemmyResult<Self> {
     let kind = FlagType::Flag;
-    let id = generate_activity_id(kind.clone(), context)?;
+    let id = generate_activity_id(kind.clone(), None, context)?;
     Ok(Report {
       actor: actor.id().clone().into(),
       to: [receiver.id().clone().into()],

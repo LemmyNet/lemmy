@@ -45,7 +45,7 @@ impl CollectionAdd {
     actor: &ApubPerson,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    let id = generate_activity_id(AddType::Add, context)?;
+    let id = generate_activity_id(AddType::Add, None, context)?;
     let add = CollectionAdd {
       actor: actor.id().clone().into(),
       to: generate_to(community)?,
@@ -68,7 +68,7 @@ impl CollectionAdd {
     actor: &ApubPerson,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    let id = generate_activity_id(AddType::Add, context)?;
+    let id = generate_activity_id(AddType::Add, None, context)?;
     let add = CollectionAdd {
       actor: actor.id().clone().into(),
       to: generate_to(community)?,

@@ -61,6 +61,7 @@ impl Collection for ApubCommunityOutbox {
         &post_view.creator.into(),
         owner,
         CreateOrUpdateType::Create,
+        Some(&post_ap_id),
         data,
       )
       .await
