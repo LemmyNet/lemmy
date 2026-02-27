@@ -82,8 +82,8 @@ impl AnnounceActivity {
   pub fn new(
     object: RawAnnouncableActivities,
     community: &ApubCommunity,
-    context: &Data<LemmyContext>,
     object_id: Option<&Url>,
+    context: &Data<LemmyContext>,
   ) -> LemmyResult<AnnounceActivity> {
     let inner_kind = object
       .other
@@ -115,7 +115,7 @@ impl AnnounceActivity {
     community: &ApubCommunity,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    let announce = AnnounceActivity::new(object.clone(), community, context, None)?;
+    let announce = AnnounceActivity::new(object.clone(), community, None, context)?;
     let inboxes = ActivitySendTargets::to_local_community_followers(community.id);
     send_lemmy_activity(context, announce, community, inboxes.clone(), false).await?;
 
@@ -133,7 +133,7 @@ impl AnnounceActivity {
           .ok_or(UntranslatedError::Unreachable)?
           .clone(),
       };
-      let announce_compat = AnnounceActivity::new(announcable_page, community, context, None)?;
+      let announce_compat = AnnounceActivity::new(announcable_page, community, None, context)?;
       send_lemmy_activity(context, announce_compat, community, inboxes, false).await?;
     }
     Ok(())
