@@ -199,7 +199,7 @@ cfg_if! {
       };
         LemmyError {
           error_type,
-          cause: cause,
+          cause,
           caller: *Location::caller(),
         }
       }
@@ -234,7 +234,7 @@ cfg_if! {
       }
 
       fn error_response(&self) -> actix_web::HttpResponse {
-        actix_web::HttpResponse::build(self.status_code()).json(&self)
+        actix_web::HttpResponse::build(self.status_code()).json(self)
       }
     }
 
