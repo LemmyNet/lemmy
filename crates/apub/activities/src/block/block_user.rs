@@ -56,7 +56,7 @@ impl BlockUser {
       kind: BlockType::Block,
       remove_data,
       summary: Some(reason),
-      id: generate_activity_id(BlockType::Block, context)?,
+      id: generate_activity_id(BlockType::Block, None, context)?,
       end_time: expires,
       audience: target.as_ref().right().map(|c| c.ap_id.clone().into()),
     })

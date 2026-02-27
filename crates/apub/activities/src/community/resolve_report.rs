@@ -47,7 +47,7 @@ impl ResolveReport {
     context: Data<LemmyContext>,
   ) -> LemmyResult<()> {
     let kind = ResolveType::Resolve;
-    let id = generate_activity_id(kind.clone(), &context)?;
+    let id = generate_activity_id(kind.clone(), None, &context)?;
     let object = Report::new(&object_id, report_creator, receiver, None, &context)?;
     let resolve = ResolveReport {
       actor: actor.id().clone().into(),

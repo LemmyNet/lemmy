@@ -51,7 +51,7 @@ pub async fn send_accept_or_reject_follow(
     to: Some([community.ap_id.clone().into()]),
     object: community.ap_id.into(),
     kind: FollowType::Follow,
-    id: generate_activity_id(FollowType::Follow, context)?,
+    id: generate_activity_id(FollowType::Follow, None, context)?,
   };
   if accepted {
     AcceptFollow::send(follow, context).await

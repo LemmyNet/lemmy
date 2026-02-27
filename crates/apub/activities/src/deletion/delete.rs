@@ -82,7 +82,7 @@ impl Delete {
     with_replies: Option<bool>,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<Delete> {
-    let id = generate_activity_id(DeleteType::Delete, context)?;
+    let id = generate_activity_id(DeleteType::Delete, None, context)?;
     let cc: Option<Url> = community.map(|c| c.ap_id.clone().into());
     Ok(Delete {
       actor: actor.ap_id.clone().into(),

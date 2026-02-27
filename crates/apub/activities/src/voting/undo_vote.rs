@@ -29,7 +29,7 @@ impl UndoVote {
       actor: actor.id().clone().into(),
       object: vote,
       kind: UndoType::Undo,
-      id: generate_activity_id(UndoType::Undo, context)?,
+      id: generate_activity_id(UndoType::Undo, None, context)?,
       audience: Some(community.ap_id.clone().into()),
     })
   }

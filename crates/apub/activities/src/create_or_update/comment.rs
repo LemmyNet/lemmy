@@ -55,7 +55,7 @@ impl CreateOrUpdateNote {
       .await?
       .into();
 
-    let id = generate_activity_id(kind.clone(), &context)?;
+    let id = generate_activity_id(kind.clone(), None, &context)?;
     let note = ApubComment(comment).into_json(&context).await?;
 
     let create_or_update = CreateOrUpdateNote {
