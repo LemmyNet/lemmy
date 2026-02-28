@@ -532,28 +532,36 @@ BEGIN
                             person
                         WHERE
                             id = NEW.person_id) = TRUE THEN
-                        INSERT INTO person_liked_combined (voted_at, vote_is_upvote, person_id, thing_id)
-                            VALUES (NEW.voted_at, NEW.vote_is_upvote, NEW.person_id, NEW.thing_id)
-                        ON CONFLICT (person_id, post_id)
-                            DO UPDATE SET
-                                voted_at = NEW.voted_at,
-                                vote_is_upvote = NEW.vote_is_upvote;
+                        -- Use the merge command to handle conflicts, as you can't use on_conflict with multiple cases.
+                        -- Here we have uniques on (person_id, post_id) and (person_id, comment_id)
+                        -- See https://github.com/LemmyNet/lemmy/issues/6103
+                        MERGE INTO person_liked_combined AS plc
+                        USING (
+                        VALUES (NEW.voted_at, NEW.vote_is_upvote, NEW.person_id, NEW.thing_id)) AS vals (voted_at, vote_is_upvote, person_id, thing_id) ON plc.person_id = vals.person_id
+                            AND plc.thing_id = vals.thing_id
+                        WHEN matched THEN
+                            UPDATE SET
+                                voted_at = vals.voted_at, vote_is_upvote = vals.vote_is_upvote
+                                --
+                        WHEN NOT matched THEN
+                            INSERT (voted_at, vote_is_upvote, person_id, thing_id)
+                                VALUES (vals.voted_at, vals.vote_is_upvote, vals.person_id, vals.thing_id);
                         -- If liked gets set as null, delete the row
                     ELSE
                         DELETE FROM person_liked_combined AS p
                         WHERE p.person_id = NEW.person_id
                             AND p.thing_id = NEW.thing_id;
                     END IF;
-                END IF;
-                RETURN NULL;
-            END $$;
-    CREATE TRIGGER person_liked_combined
-        AFTER INSERT OR DELETE OR UPDATE OF voted_at ON thing_actions
-        FOR EACH ROW
-        EXECUTE FUNCTION r.person_liked_combined_change_values_thing ( );
-    $b$,
-    'thing',
-    table_name);
+                    END IF;
+                        RETURN NULL;
+                    END $$;
+                    CREATE TRIGGER person_liked_combined
+                        AFTER INSERT OR DELETE OR UPDATE OF voted_at ON thing_actions
+                        FOR EACH ROW
+                        EXECUTE FUNCTION r.person_liked_combined_change_values_thing ( );
+                $b$,
+                'thing',
+                table_name);
 END;
 $a$;
 CALL r.create_person_liked_combined_trigger ('post');

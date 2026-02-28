@@ -400,6 +400,40 @@ mod tests {
       panic!("wrong type");
     }
 
+    // Try doing the opposite of the previous comment/post like or dislike,
+    // to verify person_like_combined update on conflict triggers are working.
+    let like_sara_comment = CommentLikeForm::new(data.sara_comment.id, data.timmy.id, Some(true));
+    CommentActions::like(pool, &like_sara_comment).await?;
+
+    let post_dislike_form = PostLikeForm::new(data.timmy_post.id, data.timmy.id, Some(false));
+    PostActions::like(pool, &post_dislike_form).await?;
+
+    let timmy_likes_opposite = PersonLikedCombinedQuery::default()
+      .list(pool, &data.timmy_view)
+      .await?;
+    assert_eq!(3, timmy_likes_opposite.len());
+
+    if let PostCommentCombinedView::Post(v) = &timmy_likes_opposite[0] {
+      assert_eq!(data.timmy_post.id, v.post.id);
+      assert_eq!(data.timmy.id, v.post.creator_id);
+      assert_eq!(
+        Some(false),
+        v.post_actions.as_ref().and_then(|l| l.vote_is_upvote)
+      );
+    } else {
+      panic!("wrong type");
+    }
+    if let PostCommentCombinedView::Comment(v) = &timmy_likes_opposite[1] {
+      assert_eq!(data.sara_comment.id, v.comment.id);
+      assert_eq!(data.sara.id, v.comment.creator_id);
+      assert_eq!(
+        Some(true),
+        v.comment_actions.as_ref().and_then(|l| l.vote_is_upvote)
+      );
+    } else {
+      panic!("wrong type");
+    }
+
     // Try unliking 2 things
     let form = CommentLikeForm::new(data.sara_comment.id, data.timmy.id, None);
     CommentActions::like(pool, &form).await?;
