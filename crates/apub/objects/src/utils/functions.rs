@@ -132,7 +132,7 @@ pub async fn check_apub_id_valid_with_strictness(
       .ok_or(UntranslatedError::UrlWithoutDomain)?
       .to_string();
     if !allowed_and_local.contains(&domain) {
-      Err(UntranslatedError::FederationDisabledByStrictAllowList)?
+      return Err(UntranslatedError::FederationDisabledByStrictAllowList.into());
     }
   }
   Ok(())
@@ -157,7 +157,7 @@ pub fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Le
     .map(|l| l.federation_enabled)
     .unwrap_or(true)
   {
-    Err(UntranslatedError::FederationDisabled)?
+    return Err(UntranslatedError::FederationDisabled.into());
   }
 
   if local_site_data
@@ -165,7 +165,7 @@ pub fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Le
     .iter()
     .any(|i| domain.to_lowercase().eq(&i.domain.to_lowercase()))
   {
-    Err(UntranslatedError::DomainBlocked(domain.clone()))?
+    return Err(UntranslatedError::DomainBlocked(domain.clone()).into());
   }
 
   // Only check this if there are instances in the allowlist
@@ -175,7 +175,7 @@ pub fn check_apub_id_valid(apub_id: &Url, local_site_data: &LocalSiteData) -> Le
       .iter()
       .any(|i| domain.to_lowercase().eq(&i.domain.to_lowercase()))
   {
-    Err(UntranslatedError::DomainNotInAllowList(domain))?
+    return Err(UntranslatedError::DomainNotInAllowList(domain).into());
   }
 
   Ok(())
@@ -240,7 +240,7 @@ pub async fn verify_person_in_site_or_community(
 
 pub fn verify_is_public(to: &[Url], cc: &[Url]) -> LemmyResult<()> {
   if ![to, cc].iter().any(|set| set.contains(&public())) {
-    Err(UntranslatedError::ObjectIsNotPublic)?
+    Err(UntranslatedError::ObjectIsNotPublic.into())
   } else {
     Ok(())
   }
@@ -252,8 +252,8 @@ pub fn verify_visibility(to: &[Url], cc: &[Url], community: &ApubCommunity) -> L
   use CommunityVisibility::*;
   let object_is_public = [to, cc].iter().any(|set| set.contains(&public()));
   match community.visibility {
-    Public | Unlisted if !object_is_public => Err(UntranslatedError::ObjectIsNotPublic)?,
-    Private if object_is_public => Err(UntranslatedError::ObjectIsNotPrivate)?,
+    Public | Unlisted if !object_is_public => Err(UntranslatedError::ObjectIsNotPublic.into()),
+    Private if object_is_public => Err(UntranslatedError::ObjectIsNotPrivate.into()),
     _ => Ok(()),
   }
 }

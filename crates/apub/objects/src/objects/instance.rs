@@ -34,10 +34,7 @@ use lemmy_db_schema_file::{InstanceId, enums::ActorType};
 use lemmy_diesel_utils::{sensitive::SensitiveString, traits::Crud};
 use lemmy_utils::{
   error::{LemmyError, LemmyResult, UntranslatedError},
-  utils::{
-    markdown::markdown_to_html,
-    slurs::{check_slurs, check_slurs_opt},
-  },
+  utils::{markdown::markdown_to_html, slurs::remove_slurs},
 };
 use std::ops::Deref;
 use tracing::debug;
@@ -106,7 +103,7 @@ impl Object for ApubSite {
       public_key: self.public_key(),
       language,
       content_warning: self.content_warning.clone(),
-      published: self.published_at,
+      published: Some(self.published_at),
       updated: self.updated_at,
     };
     Ok(instance)
@@ -120,10 +117,6 @@ impl Object for ApubSite {
     check_apub_id_valid_with_strictness(apub.id.inner(), true, data).await?;
     verify_domains_match(expected_domain, apub.id.inner())?;
     verify_is_remote_object(&apub.id, data)?;
-
-    let slur_regex = &slur_regex(data).await?;
-    check_slurs(&apub.name, slur_regex)?;
-    check_slurs_opt(&apub.summary, slur_regex)?;
 
     Ok(())
   }
@@ -141,16 +134,18 @@ impl Object for ApubSite {
     let sidebar = read_from_string_or_source_opt(&apub.content, &None, &apub.source);
     let sidebar = process_markdown_opt(&sidebar, &slur_regex, &url_blocklist, context).await?;
     let sidebar = markdown_rewrite_remote_links_opt(sidebar, context).await;
+    let summary = apub.summary.map(|s| remove_slurs(&s, &slur_regex));
     let icon = proxy_image_link_opt_apub(apub.icon.map(|i| i.url), context).await?;
     let banner = proxy_image_link_opt_apub(apub.image.map(|i| i.url), context).await?;
 
     let site_form = SiteInsertForm {
       name: apub.name.clone(),
       sidebar,
+      published_at: apub.published,
       updated_at: apub.updated,
       icon,
       banner,
-      summary: apub.summary,
+      summary,
       ap_id: Some(apub.id.clone().into()),
       last_refreshed_at: Some(Utc::now()),
       inbox_url: Some(apub.inbox.clone().into()),

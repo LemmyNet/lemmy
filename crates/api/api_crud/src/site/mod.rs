@@ -12,7 +12,7 @@ pub fn site_default_post_listing_type_check(
   if let Some(listing_type) = default_post_listing_type {
     // Dont allow Subscribed or ModeratorView as default listing type
     if [ListingType::Subscribed, ListingType::ModeratorView].contains(listing_type) {
-      Err(LemmyErrorType::InvalidDefaultPostListingType)?
+      Err(LemmyErrorType::InvalidDefaultPostListingType.into())
     } else {
       Ok(())
     }
@@ -34,7 +34,7 @@ pub fn application_question_check(
   if registration_mode == RegistrationMode::RequireApplication
     && (has_no_question || is_nullifying_question)
   {
-    Err(LemmyErrorType::ApplicationQuestionRequired)?
+    Err(LemmyErrorType::ApplicationQuestionRequired.into())
   } else {
     Ok(())
   }

@@ -57,16 +57,33 @@ pub(crate) async fn send_apub_delete_in_community(
   object: DeletableObjects,
   reason: Option<String>,
   deleted: bool,
+  with_replies: Option<bool>,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let actor = ApubPerson::from(actor);
   let is_mod_action = reason.is_some();
   let to = generate_to(&community)?;
   let activity = if deleted {
-    let delete = Delete::new(&actor, object, to, Some(&community), reason, context)?;
+    let delete = Delete::new(
+      &actor,
+      object,
+      to,
+      Some(&community),
+      reason,
+      with_replies,
+      context,
+    )?;
     AnnouncableActivities::Delete(delete)
   } else {
-    let undo = UndoDelete::new(&actor, object, to, Some(&community), reason, context)?;
+    let undo = UndoDelete::new(
+      &actor,
+      object,
+      to,
+      Some(&community),
+      reason,
+      with_replies,
+      context,
+    )?;
     AnnouncableActivities::UndoDelete(undo)
   };
   send_activity_in_community(
@@ -100,6 +117,7 @@ pub(crate) async fn send_apub_delete_private_message(
       vec![recipient.id().clone()],
       None,
       None,
+      None,
       &context,
     )?;
     send_lemmy_activity(&context, delete, actor, inbox, true).await?;
@@ -108,6 +126,7 @@ pub(crate) async fn send_apub_delete_private_message(
       actor,
       deletable,
       vec![recipient.id().clone()],
+      None,
       None,
       None,
       &context,
@@ -125,7 +144,15 @@ pub async fn send_apub_delete_user(
   let person: ApubPerson = person.into();
 
   let deletable = DeletableObjects::Person(person.clone());
-  let mut delete: Delete = Delete::new(&person, deletable, vec![public()], None, None, &context)?;
+  let mut delete: Delete = Delete::new(
+    &person,
+    deletable,
+    vec![public()],
+    None,
+    None,
+    None,
+    &context,
+  )?;
   delete.remove_data = Some(remove_data);
 
   let inboxes = ActivitySendTargets::to_all_instances();
@@ -261,7 +288,7 @@ async fn receive_delete_action(
         let mod_: Person = actor.dereference(context).await?.deref().clone();
         let object = DeletableObjects::Community(community.clone());
         let c: Community = community.deref().clone();
-        send_apub_delete_in_community(mod_, c, object, None, true, context).await?;
+        send_apub_delete_in_community(mod_, c, object, None, true, None, context).await?;
       }
 
       Community::update(

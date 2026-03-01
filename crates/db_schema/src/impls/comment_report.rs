@@ -1,5 +1,5 @@
 use crate::{
-  newtypes::{CommentId, CommentReportId},
+  newtypes::{CommentId, CommentReportId, PostId},
   source::comment_report::{CommentReport, CommentReportForm},
   traits::Reportable,
 };
@@ -7,11 +7,16 @@ use chrono::Utc;
 use diesel::{
   BoolExpressionMethods,
   ExpressionMethods,
+  JoinOnDsl,
   QueryDsl,
   dsl::{insert_into, update},
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::{PersonId, schema::comment_report};
+use diesel_ltree::{Ltree, LtreeExtensions};
+use lemmy_db_schema_file::{
+  PersonId,
+  schema::{comment, comment_report},
+};
 use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -94,5 +99,53 @@ impl Reportable for CommentReport {
       .execute(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
+  }
+}
+
+impl CommentReport {
+  pub async fn resolve_all_for_thread(
+    pool: &mut DbPool<'_>,
+    comment_path: &Ltree,
+    by_resolver_id: PersonId,
+  ) -> LemmyResult<usize> {
+    let conn = &mut get_conn(pool).await?;
+    let report_alias = diesel::alias!(comment_report as cr);
+    let report_subquery = report_alias
+      .inner_join(comment::table.on(comment::id.eq(report_alias.field(comment_report::comment_id))))
+      .filter(comment::path.contained_by(comment_path));
+    update(comment_report::table.filter(
+      comment_report::id.eq_any(report_subquery.select(report_alias.field(comment_report::id))),
+    ))
+    .set((
+      comment_report::resolved.eq(true),
+      comment_report::resolver_id.eq(by_resolver_id),
+      comment_report::updated_at.eq(Utc::now()),
+    ))
+    .execute(conn)
+    .await
+    .with_lemmy_type(LemmyErrorType::CouldntUpdate)
+  }
+
+  pub async fn resolve_all_for_post(
+    pool: &mut DbPool<'_>,
+    post_id: PostId,
+    by_resolver_id: PersonId,
+  ) -> LemmyResult<usize> {
+    let conn = &mut get_conn(pool).await?;
+    let report_alias = diesel::alias!(comment_report as cr);
+    let report_subquery = report_alias
+      .inner_join(comment::table.on(comment::id.eq(report_alias.field(comment_report::comment_id))))
+      .filter(comment::post_id.eq(post_id));
+    update(comment_report::table.filter(
+      comment_report::id.eq_any(report_subquery.select(report_alias.field(comment_report::id))),
+    ))
+    .set((
+      comment_report::resolved.eq(true),
+      comment_report::resolver_id.eq(by_resolver_id),
+      comment_report::updated_at.eq(Utc::now()),
+    ))
+    .execute(conn)
+    .await
+    .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }

@@ -48,7 +48,7 @@ pub async fn edit_comment(
 
   // Verify that only the creator can edit
   if local_user_view.person.id != orig_comment.creator.id {
-    Err(LemmyErrorType::NoCommentEditAllowed)?
+    return Err(LemmyErrorType::NoCommentEditAllowed.into());
   }
 
   let slur_regex = slur_regex(&context).await?;

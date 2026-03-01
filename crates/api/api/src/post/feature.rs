@@ -54,11 +54,7 @@ pub async fn feature_post(
         featured_local: Some(data.featured),
         ..Default::default()
       },
-      ModlogInsertForm::admin_feature_post_site(
-        local_user_view.person.id,
-        &orig_post,
-        data.featured,
-      ),
+      ModlogInsertForm::admin_feature_post_site(&local_user_view.person, &orig_post, data.featured),
     )
   };
   let post = Post::update(&mut context.pool(), post_id, &post_form).await?;

@@ -24,9 +24,8 @@ full = [
   "lemmy_db_schema_file/full",
   "lemmy_db_views_person/full",
   "lemmy_db_views_community/full",
-  "extism",
-  "extism-convert",
   "anyhow",
+  "extism",
   "i-love-jesus",
 ]
 ts-rs = [
@@ -57,7 +56,7 @@ serde_with = { workspace = true }
 ts-rs = { workspace = true, optional = true }
 url = { workspace = true }
 extism = { workspace = true, optional = true }
-extism-convert = { workspace = true, optional = true }
+extism-convert = { workspace = true }
 anyhow = { workspace = true, optional = true }
 i-love-jesus = { workspace = true, optional = true }
 chrono = { workspace = true }

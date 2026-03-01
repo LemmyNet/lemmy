@@ -3,7 +3,7 @@ use std::fs::read_dir;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
   let mut config = rosetta_build::config();
 
-  for path in read_dir("translations/email/")? {
+  for path in read_dir("translations/backend/")? {
     let path = path?.path();
     if let Some(name) = path.file_name() {
       let mut lang = name.to_string_lossy().to_string().replace(".json", "");

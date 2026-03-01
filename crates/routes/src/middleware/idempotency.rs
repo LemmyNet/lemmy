@@ -32,7 +32,7 @@ struct InstantSecs {
 
 static START_TIME: LazyLock<Instant> = LazyLock::new(Instant::now);
 
-#[allow(clippy::expect_used)]
+#[expect(clippy::expect_used)]
 impl InstantSecs {
   pub fn now() -> Self {
     InstantSecs {
@@ -83,7 +83,7 @@ impl Default for IdempotencySet {
       while let Some(state) = state_weak_ref.upgrade() {
         tokio::time::sleep(interval).await;
         let now = InstantSecs::now();
-        #[allow(clippy::expect_used)]
+        #[expect(clippy::expect_used)]
         let mut lock = state.write().expect("lock failed");
         lock.retain(|e| e.created.secs > now.secs.saturating_sub(CLEANUP_INTERVAL_SECS));
         lock.shrink_to_fit();
@@ -140,7 +140,7 @@ where
 
   forward_ready!(service);
 
-  #[allow(clippy::expect_used)]
+  #[expect(clippy::expect_used)]
   fn call(&self, req: ServiceRequest) -> Self::Future {
     let is_post_or_put = req.method() == Method::POST || req.method() == Method::PUT;
     let idempotency = req

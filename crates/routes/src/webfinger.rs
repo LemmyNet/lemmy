@@ -57,12 +57,10 @@ async fn get_webfinger_response(
         .ok()
         .flatten()
         .and_then(|c| {
-          if c.visibility.can_federate() {
+          c.visibility.can_federate().then(|| {
             let id: Url = c.ap_id.into();
-            Some(id)
-          } else {
-            None
-          }
+            id
+          })
         });
 
     // NOTE: Do not change the order of these items!

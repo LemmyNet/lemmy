@@ -6,7 +6,7 @@ license = "AGPL-3.0"
 homepage = "https://join-lemmy.org/"
 documentation = "https://join-lemmy.org/docs/en/index.html"
 repository = "https://github.com/LemmyNet/lemmy"
-rust-version = "1.91"
+rust-version = "1.92"
 
 # See https://github.com/johnthagen/min-sized-rust for additional optimizations
 [profile.release]
@@ -18,6 +18,10 @@ codegen-units = 1 # Reduce parallel code generation.
 # out temporarily, but make sure to leave this in the main branch.
 [profile.dev]
 debug = 0
+
+# Optimize procedural macros
+[profile.dev.build-override]
+opt-level = 1
 
 [workspace]
 members = [
@@ -92,6 +96,16 @@ map_err_ignore = "deny"
 expect_used = "deny"
 as_conversions = "deny"
 large_futures = "deny"
+tests_outside_test_module = "deny"
+try_err = "deny"
+unreachable = "deny"
+string_slice = "deny"
+same_name_method = "deny"
+return_and_then = "deny"
+ref_patterns = "deny"
+redundant_type_annotations = "deny"
+if_then_some_else_none = "deny"
+allow_attributes = "deny"
 
 [workspace.dependencies]
 lemmy_api = { version = "=1.0.0-alpha.12", path = "./crates/api/api" }
@@ -137,11 +151,11 @@ activitypub_federation = { git = "https://github.com/LemmyNet/activitypub-federa
   "actix-web",
 ] }
 diesel = { version = "2.3.4", features = [
+  "64-column-tables",
   "chrono",
   "postgres",
   "serde_json",
   "uuid",
-  "64-column-tables",
 ] }
 diesel_migrations = "2.3.1"
 diesel-async = "0.7.4"
@@ -176,7 +190,6 @@ chrono = { version = "0.4.42", features = [
 serde_json = { version = "1.0.145", features = ["preserve_order"] }
 base64 = "0.22.1"
 uuid = { version = "1.19.0", features = ["serde"] }
-captcha = "1.0.0"
 anyhow = { version = "1.0.100", features = ["backtrace"] }
 diesel_ltree = "0.4.0"
 tokio = { version = "1.48.0", features = ["full"] }
@@ -210,8 +223,8 @@ async-trait = "0.1.89"
 either = { version = "1.15.0", features = ["serde"] }
 extism = { version = "1.13.0", default-features = false, features = [
   "http",
-  "register-http",
   "register-filesystem",
+  "register-http",
 ] }
 extism-convert = "1.13.0"
 unified-diff = "0.2.1"

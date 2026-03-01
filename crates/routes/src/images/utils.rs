@@ -83,7 +83,7 @@ where
 }
 
 // TODO: remove these conversions after actix-web upgrades to http 1.0
-#[allow(clippy::expect_used)]
+#[expect(clippy::expect_used)]
 pub(super) fn convert_method(method: &Method) -> http::Method {
   http::Method::from_bytes(method.as_str().as_bytes()).expect("method can be converted")
 }

@@ -67,14 +67,6 @@ pub mod sql_types {
 }
 
 diesel::table! {
-    captcha_answer (uuid) {
-        uuid -> Uuid,
-        answer -> Text,
-        published_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
     use diesel::sql_types::*;
     use diesel_ltree::sql_types::Ltree;
 
@@ -394,9 +386,6 @@ diesel::table! {
         application_email_admins -> Bool,
         slur_filter_regex -> Nullable<Text>,
         federation_enabled -> Bool,
-        captcha_enabled -> Bool,
-        #[max_length = 255]
-        captcha_difficulty -> Varchar,
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
         registration_mode -> RegistrationModeEnum,
@@ -421,7 +410,7 @@ diesel::table! {
         users_active_month -> Int4,
         users_active_half_year -> Int4,
         disable_email_notifications -> Bool,
-        suggested_communities -> Nullable<Int4>,
+        suggested_multi_community_id -> Nullable<Int4>,
         system_account -> Int4,
         default_items_per_page -> Int4,
     }
@@ -987,7 +976,7 @@ diesel::joinable!(instance_actions -> instance (instance_id));
 diesel::joinable!(instance_actions -> person (person_id));
 diesel::joinable!(local_image -> person (person_id));
 diesel::joinable!(local_image -> post (thumbnail_for_post_id));
-diesel::joinable!(local_site -> multi_community (suggested_communities));
+diesel::joinable!(local_site -> multi_community (suggested_multi_community_id));
 diesel::joinable!(local_site -> person (system_account));
 diesel::joinable!(local_site -> site (site_id));
 diesel::joinable!(local_site_rate_limit -> local_site (local_site_id));

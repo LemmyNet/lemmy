@@ -32,7 +32,7 @@ pub async fn delete_comment(
 
   // Dont delete it if its already been deleted.
   if orig_comment.comment.deleted == data.deleted {
-    Err(LemmyErrorType::CouldntUpdate)?
+    return Err(LemmyErrorType::CouldntUpdate.into());
   }
 
   check_community_user_action(
@@ -44,7 +44,7 @@ pub async fn delete_comment(
 
   // Verify that only the creator can delete
   if local_user_view.person.id != orig_comment.creator.id {
-    Err(LemmyErrorType::NoCommentEditAllowed)?
+    return Err(LemmyErrorType::NoCommentEditAllowed.into());
   }
 
   // Do the delete

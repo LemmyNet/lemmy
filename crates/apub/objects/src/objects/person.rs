@@ -35,10 +35,7 @@ use lemmy_db_schema_file::enums::ActorType;
 use lemmy_diesel_utils::{sensitive::SensitiveString, traits::Crud};
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
-  utils::{
-    markdown::markdown_to_html,
-    slurs::{check_slurs, check_slurs_opt},
-  },
+  utils::{markdown::markdown_to_html, slurs::remove_slurs},
 };
 use std::ops::Deref;
 use url::Url;
@@ -129,16 +126,10 @@ impl Object for ApubPerson {
     expected_domain: &Url,
     context: &Data<Self::DataType>,
   ) -> LemmyResult<()> {
-    let slur_regex = slur_regex(context).await?;
-    check_slurs(&person.preferred_username, &slur_regex)?;
-    check_slurs_opt(&person.name, &slur_regex)?;
-
     verify_domains_match(person.id.inner(), expected_domain)?;
     verify_is_remote_object(&person.id, context)?;
     check_apub_id_valid_with_strictness(person.id.inner(), false, context).await?;
 
-    let bio = read_from_string_or_source_opt(&person.summary, &None, &person.source);
-    check_slurs_opt(&bio, &slur_regex)?;
     Ok(())
   }
 
@@ -152,10 +143,11 @@ impl Object for ApubPerson {
     let bio = markdown_rewrite_remote_links_opt(bio, context).await;
     let avatar = proxy_image_link_opt_apub(person.icon.map(|i| i.url), context).await?;
     let banner = proxy_image_link_opt_apub(person.image.map(|i| i.url), context).await?;
+    let display_name = person.name.map(|s| remove_slurs(&s, &slur_regex));
 
     let person_form = PersonInsertForm {
       name: person.preferred_username,
-      display_name: person.name,
+      display_name,
       deleted: Some(false),
       avatar,
       banner,

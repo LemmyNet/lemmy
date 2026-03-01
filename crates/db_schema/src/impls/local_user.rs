@@ -268,7 +268,7 @@ impl LocalUser {
     if res.person_id == admin_person_id {
       Ok(())
     } else {
-      Err(LemmyErrorType::NotHigherAdmin)?
+      Err(LemmyErrorType::NotHigherAdmin.into())
     }
   }
 
@@ -306,7 +306,7 @@ impl LocalUser {
     if *first_person == admin_person_id {
       Ok(())
     } else {
-      Err(LemmyErrorType::NotHigherMod)?
+      Err(LemmyErrorType::NotHigherMod.into())
     }
   }
 }

@@ -1,4 +1,4 @@
-#![expect(clippy::indexing_slicing, clippy::expect_used)]
+#![expect(clippy::indexing_slicing, clippy::expect_used, clippy::unreachable)]
 
 use crate::{PostView, impls::PostQuery};
 use chrono::{DateTime, Days, Utc};
@@ -103,7 +103,7 @@ impl Data {
     }
   }
 
-  async fn setup() -> LemmyResult<Data> {
+    async fn setup_inner() -> LemmyResult<Data> {
     let actual_pool = build_db_pool_for_tests().await;
     let pool = &mut (&actual_pool).into();
     let data = TestData::create(pool).await?;
@@ -258,7 +258,7 @@ impl Data {
       site: data.site,
     })
   }
-  async fn teardown(data: Data) -> LemmyResult<()> {
+  async fn teardown_inner(data: Data) -> LemmyResult<()> {
     let pool = &mut data.pool2();
     let num_deleted = Post::delete(pool, data.post.id).await?;
     Community::delete(pool, data.community.id).await?;
@@ -274,10 +274,10 @@ impl Data {
 }
 impl AsyncTestContext for Data {
   async fn setup() -> Self {
-    Data::setup().await.expect("setup failed")
+    Data::setup_inner().await.expect("setup failed")
   }
   async fn teardown(self) {
-    Data::teardown(self).await.expect("teardown failed")
+    Data::teardown_inner(self).await.expect("teardown failed")
   }
 }
 
@@ -1387,7 +1387,7 @@ async fn pagination_hidden_cursors(data: &mut Data) -> LemmyResult<()> {
   let removed_item_page = get_page(&first_page2.prev_page).await;
   if let Err(LemmyError {
     error_type,
-    inner: _,
+    cause: _,
     caller: _,
   }) = removed_item_page
   {
@@ -2308,7 +2308,7 @@ async fn post_listing_multi_community(data: &mut Data) -> LemmyResult<()> {
   assert!(suggested.is_empty());
 
   let form = LocalSiteUpdateForm {
-    suggested_communities: Some(multi.id),
+    suggested_multi_community_id: Some(Some(multi.id)),
     ..Default::default()
   };
   LocalSite::update(pool, &form).await?;

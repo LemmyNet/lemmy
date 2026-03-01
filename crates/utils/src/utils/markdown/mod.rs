@@ -28,7 +28,7 @@ pub fn markdown_to_html(text: &str) -> String {
 
 pub fn markdown_check_for_blocked_urls(text: &str, blocklist: &RegexSet) -> LemmyResult<()> {
   if blocklist.is_match(text) {
-    Err(LemmyErrorType::BlockedUrl)?
+    return Err(LemmyErrorType::BlockedUrl.into());
   }
   Ok(())
 }
@@ -102,7 +102,7 @@ mod tests {
       (
         "basic spoiler",
         "::: spoiler click to see more\nhow spicy!\n:::\n",
-        "<details><summary>click to see more</summary>how spicy!\n</details>\n",
+        "<details>\n<summary>\nclick to see more\n</summary>\n<p>how spicy!</p>\n</details>\n",
       ),
       (
         "escape html special chars",

@@ -73,7 +73,7 @@ impl RateLimit {
     })
   }
 
-  #[allow(clippy::expect_used)]
+  #[expect(clippy::expect_used)]
   pub fn set_config(&self, configs: EnumMap<ActionType, BucketConfig>) {
     *self.backend.configs.write().expect("write rwlock") = configs;
   }

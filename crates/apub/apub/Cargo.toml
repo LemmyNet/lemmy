@@ -43,7 +43,6 @@ tokio = { workspace = true }
 tracing = { workspace = true }
 url = { workspace = true }
 futures = { workspace = true }
-futures-util = { workspace = true }
 async-trait = { workspace = true }
 either = { workspace = true }
 chrono = { workspace = true }

@@ -75,10 +75,7 @@ impl Crud for Post {
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
-}
-
-impl Post {
-  pub async fn read(pool: &mut DbPool<'_>, id: PostId) -> LemmyResult<Self> {
+  async fn read(pool: &mut DbPool<'_>, id: PostId) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     post::table
       .find(id)
@@ -86,7 +83,9 @@ impl Post {
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
+}
 
+impl Post {
   pub async fn insert_apub(
     pool: &mut DbPool<'_>,
     timestamp: DateTime<Utc>,

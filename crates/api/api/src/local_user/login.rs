@@ -36,7 +36,7 @@ pub async fn login(
     .and_then(|password_encrypted| verify(&data.password, password_encrypted).ok())
     .unwrap_or(false);
   if !valid {
-    Err(LemmyErrorType::IncorrectLogin)?
+    return Err(LemmyErrorType::IncorrectLogin.into());
   }
   check_local_user_deleted(&local_user_view)?;
   check_email_verified(&local_user_view, &site_view)?;

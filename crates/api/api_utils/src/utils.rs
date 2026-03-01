@@ -85,7 +85,7 @@ pub async fn check_is_mod_or_admin(
   if is_mod || is_admin {
     Ok(())
   } else {
-    Err(LemmyErrorType::NotAModOrAdmin)?
+    Err(LemmyErrorType::NotAModOrAdmin.into())
   }
 }
 
@@ -104,7 +104,7 @@ pub(crate) async fn check_is_mod_of_any_or_admin(
   if is_mod_of_any || is_admin {
     Ok(())
   } else {
-    Err(LemmyErrorType::NotAModOrAdmin)?
+    Err(LemmyErrorType::NotAModOrAdmin.into())
   }
 }
 
@@ -129,7 +129,7 @@ pub async fn is_mod_or_admin_opt(
       is_admin(local_user_view)
     }
   } else {
-    Err(LemmyErrorType::NotAModOrAdmin)?
+    Err(LemmyErrorType::NotAModOrAdmin.into())
   }
 }
 
@@ -149,7 +149,7 @@ pub async fn check_community_mod_of_any_or_admin_action(
 pub fn is_admin(local_user_view: &LocalUserView) -> LemmyResult<()> {
   check_local_user_valid(local_user_view)?;
   if !local_user_view.local_user.admin {
-    Err(LemmyErrorType::NotAnAdmin)?
+    Err(LemmyErrorType::NotAnAdmin.into())
   } else {
     Ok(())
   }
@@ -166,7 +166,7 @@ pub fn is_top_mod(
       .map(|cm| cm.moderator.id)
       .unwrap_or(PersonId(0))
   {
-    Err(LemmyErrorType::NotTopMod)?
+    Err(LemmyErrorType::NotTopMod.into())
   } else {
     Ok(())
   }
@@ -188,7 +188,7 @@ pub async fn update_read_comments(
 pub fn check_local_user_valid(local_user_view: &LocalUserView) -> LemmyResult<()> {
   // Check for a site ban
   if local_user_view.banned {
-    Err(LemmyErrorType::SiteBan)?
+    return Err(LemmyErrorType::SiteBan.into());
   }
   check_local_user_deleted(local_user_view)
 }
@@ -196,7 +196,7 @@ pub fn check_local_user_valid(local_user_view: &LocalUserView) -> LemmyResult<()
 /// Check for account deletion
 pub fn check_local_user_deleted(local_user_view: &LocalUserView) -> LemmyResult<()> {
   if local_user_view.person.deleted {
-    Err(LemmyErrorType::Deleted)?
+    Err(LemmyErrorType::Deleted.into())
   } else {
     Ok(())
   }
@@ -212,7 +212,7 @@ pub fn check_email_verified(
     && site_view.local_site.require_email_verification
     && !local_user_view.local_user.email_verified
   {
-    Err(LemmyErrorType::EmailNotVerified)?
+    return Err(LemmyErrorType::EmailNotVerified.into());
   }
   Ok(())
 }
@@ -232,11 +232,11 @@ pub async fn check_registration_application(
     let local_user_id = local_user_view.local_user.id;
     let registration = RegistrationApplication::find_by_local_user_id(pool, local_user_id).await?;
     if registration.admin_id.is_some() {
-      Err(LemmyErrorType::RegistrationDenied(
-        registration.deny_reason.unwrap_or_default(),
-      ))?
+      return Err(
+        LemmyErrorType::RegistrationDenied(registration.deny_reason.unwrap_or_default()).into(),
+      );
     } else {
-      Err(LemmyErrorType::RegistrationApplicationIsPending)?
+      return Err(LemmyErrorType::RegistrationApplicationIsPending.into());
     }
   }
   Ok(())
@@ -262,7 +262,7 @@ pub async fn check_community_user_action(
 
 pub fn check_community_deleted_removed(community: &Community) -> LemmyResult<()> {
   if community.deleted || community.removed {
-    Err(LemmyErrorType::Deleted)?
+    return Err(LemmyErrorType::Deleted.into());
   }
   Ok(())
 }
@@ -290,7 +290,7 @@ pub async fn check_community_mod_action(
 /// Don't allow creating reports for removed / deleted posts
 pub fn check_post_deleted_or_removed(post: &Post) -> LemmyResult<()> {
   if post.deleted || post.removed {
-    Err(LemmyErrorType::Deleted)?
+    Err(LemmyErrorType::Deleted.into())
   } else {
     Ok(())
   }
@@ -298,7 +298,7 @@ pub fn check_post_deleted_or_removed(post: &Post) -> LemmyResult<()> {
 
 pub fn check_comment_deleted_or_removed(comment: &Comment) -> LemmyResult<()> {
   if comment.deleted || comment.removed {
-    Err(LemmyErrorType::Deleted)?
+    Err(LemmyErrorType::Deleted.into())
   } else {
     Ok(())
   }
@@ -338,7 +338,7 @@ pub async fn check_local_vote_mode(
 /// Dont allow bots to do certain actions, like voting
 pub fn check_bot_account(person: &Person) -> LemmyResult<()> {
   if person.bot_account {
-    Err(LemmyErrorType::InvalidBotAction)?
+    Err(LemmyErrorType::InvalidBotAction.into())
   } else {
     Ok(())
   }
@@ -349,7 +349,7 @@ pub fn check_private_instance(
   local_site: &LocalSite,
 ) -> LemmyResult<()> {
   if local_user_view.is_none() && local_site.private_instance {
-    Err(LemmyErrorType::InstanceIsPrivate)?
+    Err(LemmyErrorType::InstanceIsPrivate.into())
   } else {
     Ok(())
   }
@@ -358,7 +358,7 @@ pub fn check_private_instance(
 /// If private messages are disabled, dont allow them to be sent / received
 pub fn check_private_messages_enabled(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
   if !local_user_view.local_user.enable_private_messages {
-    Err(LemmyErrorType::CouldntCreate)?
+    Err(LemmyErrorType::CouldntCreate.into())
   } else {
     Ok(())
   }
@@ -367,7 +367,7 @@ pub fn check_private_messages_enabled(local_user_view: &LocalUserView) -> Result
 /// Checks the password length
 pub fn password_length_check(pass: &str) -> LemmyResult<()> {
   if !(10..=60).contains(&pass.chars().count()) {
-    Err(LemmyErrorType::InvalidPassword)?
+    Err(LemmyErrorType::InvalidPassword.into())
   } else {
     Ok(())
   }
@@ -376,7 +376,7 @@ pub fn password_length_check(pass: &str) -> LemmyResult<()> {
 /// Checks for a honeypot. If this field is filled, fail the rest of the function
 pub fn honeypot_check(honeypot: &Option<String>) -> LemmyResult<()> {
   if honeypot.is_some() && honeypot != &Some(String::new()) {
-    Err(LemmyErrorType::HoneypotFailed)?
+    Err(LemmyErrorType::HoneypotFailed.into())
   } else {
     Ok(())
   }
@@ -453,7 +453,7 @@ pub fn check_nsfw_allowed(nsfw: Option<bool>, local_site: Option<&LocalSite>) ->
   let nsfw_disallowed = local_site.is_some_and(|s| s.disallow_nsfw_content);
 
   if nsfw_disallowed && is_nsfw {
-    Err(LemmyErrorType::NsfwNotAllowed)?
+    return Err(LemmyErrorType::NsfwNotAllowed.into());
   }
 
   Ok(())
@@ -626,10 +626,36 @@ async fn create_modlog_entries_for_removed_or_restored_comments(
   removed: bool,
   reason: &str,
 ) -> LemmyResult<()> {
+  let mut forms: Vec<ModlogInsertForm> = Vec::new();
+
+  for comment in comments {
+    // This is extremely unfortunate, but since the comment table doesn't have community id,
+    // you need to query the post table to get each of them, as they could be in any community
+    let community_id = Post::read(pool, comment.post_id).await?.community_id;
+    let form =
+      ModlogInsertForm::mod_remove_comment(mod_person_id, comment, community_id, removed, reason);
+    forms.push(form);
+  }
+
+  Modlog::create(pool, &forms).await?;
+
+  Ok(())
+}
+
+async fn create_modlog_entries_for_removed_or_restored_comments_in_community(
+  pool: &mut DbPool<'_>,
+  mod_person_id: PersonId,
+  comments: &[Comment],
+  community_id: CommunityId,
+  removed: bool,
+  reason: &str,
+) -> LemmyResult<()> {
   // Build the forms
   let forms: Vec<_> = comments
     .iter()
-    .map(|comment| ModlogInsertForm::mod_remove_comment(mod_person_id, comment, removed, reason))
+    .map(|comment| {
+      ModlogInsertForm::mod_remove_comment(mod_person_id, comment, community_id, removed, reason)
+    })
     .collect();
 
   Modlog::create(pool, &forms).await?;
@@ -665,10 +691,11 @@ pub async fn remove_or_restore_user_data_in_community(
     Comment::update_removed_for_creator_and_community(pool, banned_person_id, community_id, remove)
       .await?;
 
-  create_modlog_entries_for_removed_or_restored_comments(
+  create_modlog_entries_for_removed_or_restored_comments_in_community(
     pool,
     mod_person_id,
     &removed_comments,
+    community_id,
     remove,
     reason,
   )
@@ -751,7 +778,7 @@ fn limit_expire_time(expires: DateTime<Utc>) -> LemmyResult<Option<DateTime<Utc>
   const MAX_BAN_TERM: Days = Days::new(10 * 365);
 
   if expires < Local::now() {
-    Err(LemmyErrorType::BanExpirationInPast)?
+    Err(LemmyErrorType::BanExpirationInPast.into())
   } else if expires > Local::now() + MAX_BAN_TERM {
     Ok(None)
   } else {
@@ -764,7 +791,7 @@ pub fn check_conflicting_like_filters(
   disliked_only: Option<bool>,
 ) -> LemmyResult<()> {
   if liked_only.unwrap_or_default() && disliked_only.unwrap_or_default() {
-    Err(LemmyErrorType::ContradictingFilters)?
+    Err(LemmyErrorType::ContradictingFilters.into())
   } else {
     Ok(())
   }
@@ -949,7 +976,7 @@ pub fn check_comment_depth(comment: &Comment) -> LemmyResult<()> {
   let length = path.split('.').count();
   // Need to increment by one because the path always starts with 0
   if length > MAX_COMMENT_DEPTH_LIMIT + 1 {
-    Err(LemmyErrorType::MaxCommentDepthReached)?
+    Err(LemmyErrorType::MaxCommentDepthReached.into())
   } else {
     Ok(())
   }

@@ -22,13 +22,13 @@ async fn convert_published_time(
       .single()
       .ok_or(LemmyErrorType::InvalidUnixTime)?;
     if converted < Utc::now() {
-      Err(LemmyErrorType::PostScheduleTimeMustBeInFuture)?;
+      return Err(LemmyErrorType::PostScheduleTimeMustBeInFuture.into());
     }
     if !local_user_view.local_user.admin {
       let count =
         Post::user_scheduled_post_count(local_user_view.person.id, &mut context.pool()).await?;
       if count >= MAX_SCHEDULED_POSTS {
-        Err(LemmyErrorType::TooManyScheduledPosts)?;
+        return Err(LemmyErrorType::TooManyScheduledPosts.into());
       }
     }
     Ok(Some(converted))

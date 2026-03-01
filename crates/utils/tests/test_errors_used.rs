@@ -3,7 +3,7 @@ use std::{env::current_dir, process::Command};
 use strum::IntoEnumIterator;
 
 #[test]
-#[allow(clippy::unwrap_used)]
+#[expect(clippy::unwrap_used, clippy::tests_outside_test_module)]
 fn test_errors_used() {
   let mut unused_error_found = false;
   let mut current_dir = current_dir().unwrap();

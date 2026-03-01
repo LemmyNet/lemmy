@@ -26,7 +26,7 @@ use std::{
 /// currently fairly high because of the current structure of storing inboxes for every person, not
 /// having a separate list of shared_inboxes, and the architecture of having every instance queue be
 /// fully separate. (see https://github.com/LemmyNet/lemmy/issues/3958)
-#[allow(clippy::expect_used)]
+#[expect(clippy::expect_used)]
 static FOLLOW_ADDITIONS_RECHECK_DELAY: LazyLock<chrono::TimeDelta> = LazyLock::new(|| {
   if *LEMMY_TEST_FAST_FEDERATION {
     chrono::TimeDelta::try_seconds(1).expect("TimeDelta out of bounds")
@@ -37,7 +37,7 @@ static FOLLOW_ADDITIONS_RECHECK_DELAY: LazyLock<chrono::TimeDelta> = LazyLock::n
 /// The same as FOLLOW_ADDITIONS_RECHECK_DELAY, but triggering when the last person on an instance
 /// unfollows a specific remote community. This is expected to happen pretty rarely and updating it
 /// in a timely manner is not too important.
-#[allow(clippy::expect_used)]
+#[expect(clippy::expect_used)]
 static FOLLOW_REMOVALS_RECHECK_DELAY: LazyLock<chrono::TimeDelta> =
   LazyLock::new(|| chrono::TimeDelta::try_hours(1).expect("TimeDelta out of bounds"));
 
@@ -458,7 +458,7 @@ mod tests {
     Ok(())
   }
 
-  #[allow(clippy::expect_used)]
+  #[expect(clippy::expect_used)]
   #[tokio::test]
   async fn test_update_communities() -> LemmyResult<()> {
     let mut collector = setup_collector();
