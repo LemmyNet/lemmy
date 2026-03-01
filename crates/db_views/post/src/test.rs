@@ -103,7 +103,7 @@ impl Data {
     }
   }
 
-    async fn setup_inner() -> LemmyResult<Data> {
+  async fn setup_inner() -> LemmyResult<Data> {
     let actual_pool = build_db_pool_for_tests().await;
     let pool = &mut (&actual_pool).into();
     let data = TestData::create(pool).await?;
