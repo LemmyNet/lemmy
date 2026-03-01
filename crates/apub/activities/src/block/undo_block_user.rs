@@ -32,7 +32,7 @@ use lemmy_db_schema::{
   },
   traits::Bannable,
 };
-use lemmy_utils::error::{LemmyError, LemmyResult};
+use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
 use url::Url;
 
 impl UndoBlockUser {
@@ -107,6 +107,12 @@ impl Activity for UndoBlockUser {
         let form = InstanceBanForm::new(blocked_person.id, site.instance_id, expires_at);
         InstanceActions::unban(pool, &form).await?;
 
+        // Mod tables - create unban entry first so bulk actions can reference it as parent
+        let form =
+          ModlogInsertForm::admin_ban(&mod_person, blocked_person.id, false, expires_at, &reason);
+        let action = Modlog::create(&mut context.pool(), &[form]).await?;
+        notify_mod_action(action.clone(), context.app_data());
+
         if self.restore_data.unwrap_or(false) {
           if blocked_person.instance_id == site.instance_id {
             // user unbanned from home instance, restore all content
@@ -115,7 +121,7 @@ impl Activity for UndoBlockUser {
               blocked_person.id,
               false,
               &reason,
-              None,
+              action.first().ok_or(LemmyErrorType::NotFound)?.id,
               context,
             )
             .await?;
@@ -123,32 +129,13 @@ impl Activity for UndoBlockUser {
             update_removed_for_instance(&blocked_person, &site, false, pool).await?;
           }
         }
-
-        // write mod log
-        let form =
-          ModlogInsertForm::admin_ban(&mod_person, blocked_person.id, false, expires_at, &reason);
-        let action = Modlog::create(&mut context.pool(), &[form]).await?;
-        notify_mod_action(action.clone(), context.app_data());
       }
       SiteOrCommunity::Right(community) => {
         verify_visibility(&self.to, &self.cc, &community)?;
         let community_user_ban_form = CommunityPersonBanForm::new(community.id, blocked_person.id);
         CommunityActions::unban(&mut context.pool(), &community_user_ban_form).await?;
 
-        if self.restore_data.unwrap_or(false) {
-          remove_or_restore_user_data_in_community(
-            community.id,
-            mod_person.id,
-            blocked_person.id,
-            false,
-            &reason,
-            None,
-            &mut context.pool(),
-          )
-          .await?;
-        }
-
-        // write to mod log
+        // Mod tables - create unban entry first so bulk actions can reference it as parent
         let form = ModlogInsertForm::mod_ban_from_community(
           mod_person.id,
           community.id,
@@ -159,6 +146,19 @@ impl Activity for UndoBlockUser {
         );
         let action = Modlog::create(&mut context.pool(), &[form]).await?;
         notify_mod_action(action.clone(), context.app_data());
+
+        if self.restore_data.unwrap_or(false) {
+          remove_or_restore_user_data_in_community(
+            community.id,
+            mod_person.id,
+            blocked_person.id,
+            false,
+            &reason,
+            action.first().ok_or(LemmyErrorType::NotFound)?.id,
+            &mut context.pool(),
+          )
+          .await?;
+        }
       }
     }
 

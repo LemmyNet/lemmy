@@ -28,7 +28,7 @@ pub struct GetModlog {
   pub post_id: Option<PostId>,
   /// Filter by comment.
   pub comment_id: Option<CommentId>,
-  /// Only show bulk actions (true), hide bulk actions (false), or show all (None).
+  /// When `true` show all. When `false` or `None`, hide bulk actions (default).
   pub show_bulk: Option<bool>,
   /// Return only child entries triggered by this parent modlog action.
   pub bulk_action_parent_id: Option<ModlogId>,

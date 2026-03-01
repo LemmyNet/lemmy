@@ -141,14 +141,14 @@ impl ModlogQuery<'_> {
       query = query.filter(comment::id.eq(comment_id))
     }
 
-    match self.show_bulk {
-      Some(true) => query = query.filter(modlog::bulk_action_parent_id.is_not_null()),
-      Some(false) => query = query.filter(modlog::bulk_action_parent_id.is_null()),
-      None => {}
-    }
-
-    if let Some(bulk_action_parent_id) = self.bulk_action_parent_id {
+    // `show_bulk`: true => show all entries; false/None => hide bulk child entries.
+    // When bulk_action_parent_id is provided the caller is looking into a bulk
+    // action, so skip null guard
+    if self.bulk_action_parent_id.is_some() {
+      let bulk_action_parent_id = self.bulk_action_parent_id.unwrap();
       query = query.filter(modlog::bulk_action_parent_id.eq(bulk_action_parent_id))
+    } else if !self.show_bulk.unwrap_or_default() {
+      query = query.filter(modlog::bulk_action_parent_id.is_null())
     }
 
     if let Some(type_) = self.type_ {
@@ -499,7 +499,7 @@ mod tests {
     let form = ModlogInsertForm::mod_lock_comment(data.timmy.id, &data.comment, true, "reason");
     Modlog::create(pool, &[form]).await?;
 
-    let form = ModlogInsertForm::mod_remove_comment(data.timmy.id, &data.comment, true, "reason");
+    let form = ModlogInsertForm::mod_remove_comment(data.timmy.id, &data.comment, true, "reason", None);
     Modlog::create(pool, &[form]).await?;
 
     let form = ModlogInsertForm::admin_remove_community(
@@ -511,7 +511,7 @@ mod tests {
     );
     Modlog::create(pool, &[form]).await?;
 
-    let form = ModlogInsertForm::mod_remove_post(data.timmy.id, &data.post, true, "reason");
+    let form = ModlogInsertForm::mod_remove_post(data.timmy.id, &data.post, true, "reason", None);
     Modlog::create(pool, &[form]).await?;
 
     let form =
@@ -523,11 +523,11 @@ mod tests {
       ModlogInsertForm::mod_transfer_community(data.jessica.id, data.community_2.id, data.sara.id);
     Modlog::create(pool, &[form]).await?;
 
-    let form = ModlogInsertForm::mod_remove_post(data.jessica.id, &data.post_2, true, "reason");
+    let form = ModlogInsertForm::mod_remove_post(data.jessica.id, &data.post_2, true, "reason", None);
     Modlog::create(pool, &[form]).await?;
 
     let form =
-      ModlogInsertForm::mod_remove_comment(data.jessica.id, &data.comment_2, true, "reason");
+      ModlogInsertForm::mod_remove_comment(data.jessica.id, &data.comment_2, true, "reason", None);
     Modlog::create(pool, &[form]).await?;
 
     let form =
@@ -867,7 +867,7 @@ mod tests {
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
-    let form = ModlogInsertForm::mod_remove_post(data.timmy.id, &data.post, true, "reason");
+    let form = ModlogInsertForm::mod_remove_post(data.timmy.id, &data.post, true, "reason", None);
     Modlog::create(pool, &[form]).await?;
 
     let modlog = ModlogQuery {
@@ -900,21 +900,19 @@ mod tests {
     let parent_id = ban_action[0].id;
 
     // Create two bulk post removals linked to the ban
-    let mut post_form_1 =
-      ModlogInsertForm::mod_remove_post(data.timmy.id, &data.post, true, "bulk remove");
-    post_form_1.bulk_action_parent_id = Some(parent_id);
-    let mut post_form_2 =
-      ModlogInsertForm::mod_remove_post(data.timmy.id, &data.post_2, true, "bulk remove");
-    post_form_2.bulk_action_parent_id = Some(parent_id);
+    let post_form_1 =
+      ModlogInsertForm::mod_remove_post(data.timmy.id, &data.post, true, "bulk remove", Some(parent_id));
+    let post_form_2 =
+      ModlogInsertForm::mod_remove_post(data.timmy.id, &data.post_2, true, "bulk remove", Some(parent_id));
     Modlog::create(pool, &[post_form_1, post_form_2]).await?;
 
     // Create one individual (non-bulk) post removal for mixed-dataset tests
     let individual_form =
-      ModlogInsertForm::mod_remove_post(data.timmy.id, &data.post, true, "individual remove");
+      ModlogInsertForm::mod_remove_post(data.timmy.id, &data.post, true, "individual remove", None);
     Modlog::create(pool, &[individual_form]).await?;
 
-    // show_bulk: Some(true) returns only bulk entries
-    let bulk_entries = ModlogQuery {
+    // show_bulk: Some(true) now includes bulk and non-bulk (show all)
+    let all_with_show_true = ModlogQuery {
       type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemovePost)),
       show_bulk: Some(true),
       ..Default::default()
@@ -922,12 +920,8 @@ mod tests {
     .list(pool)
     .await?
     .items;
-    assert_eq!(2, bulk_entries.len());
-    assert!(
-      bulk_entries
-        .iter()
-        .all(|e| e.modlog.bulk_action_parent_id == Some(parent_id))
-    );
+    // parent-linked two bulk + one individual = 3 total
+    assert_eq!(3, all_with_show_true.len());
 
     // bulk_action_parent_id filter returns only children of that ban
     let children = ModlogQuery {
@@ -950,16 +944,15 @@ mod tests {
     .items;
     assert_eq!(1, non_bulk.len());
     assert!(non_bulk[0].modlog.bulk_action_parent_id.is_none());
-
-    // show_bulk: None returns all entries – bulk and non-bulk alike
-    let all_entries = ModlogQuery {
+    // show_bulk: None behaves like false (hide bulk) and returns only the non-bulk entry
+    let none_behaviour = ModlogQuery {
       type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemovePost)),
       ..Default::default()
     }
     .list(pool)
     .await?
     .items;
-    assert_eq!(3, all_entries.len());
+    assert_eq!(1, none_behaviour.len());
 
     cleanup(data, pool).await?;
 
@@ -985,21 +978,17 @@ mod tests {
     let parent_b_id = ban_b[0].id;
 
     // Two post removals linked to parent A
-    let mut post_form_1 =
-      ModlogInsertForm::mod_remove_post(data.timmy.id, &data.post, true, "bulk A");
-    post_form_1.bulk_action_parent_id = Some(parent_a_id);
-    let mut post_form_2 =
-      ModlogInsertForm::mod_remove_post(data.timmy.id, &data.post_2, true, "bulk A");
-    post_form_2.bulk_action_parent_id = Some(parent_a_id);
+    let post_form_1 =
+      ModlogInsertForm::mod_remove_post(data.timmy.id, &data.post, true, "bulk A", Some(parent_a_id));
+    let post_form_2 =
+      ModlogInsertForm::mod_remove_post(data.timmy.id, &data.post_2, true, "bulk A", Some(parent_a_id));
     Modlog::create(pool, &[post_form_1, post_form_2]).await?;
 
     // Two comment removals linked to parent B
-    let mut comment_form_1 =
-      ModlogInsertForm::mod_remove_comment(data.timmy.id, &data.comment, true, "bulk B");
-    comment_form_1.bulk_action_parent_id = Some(parent_b_id);
-    let mut comment_form_2 =
-      ModlogInsertForm::mod_remove_comment(data.timmy.id, &data.comment_2, true, "bulk B");
-    comment_form_2.bulk_action_parent_id = Some(parent_b_id);
+    let comment_form_1 =
+      ModlogInsertForm::mod_remove_comment(data.timmy.id, &data.comment, true, "bulk B", Some(parent_b_id));
+    let comment_form_2 =
+      ModlogInsertForm::mod_remove_comment(data.timmy.id, &data.comment_2, true, "bulk B", Some(parent_b_id));
     Modlog::create(pool, &[comment_form_1, comment_form_2]).await?;
 
     // Filter by parent A

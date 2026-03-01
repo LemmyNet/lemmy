@@ -509,7 +509,7 @@ pub async fn remove_or_restore_user_data(
   banned_person_id: PersonId,
   removed: bool,
   reason: &str,
-  bulk_action_parent_id: Option<ModlogId>,
+  bulk_action_parent_id: ModlogId,
   context: &LemmyContext,
 ) -> LemmyResult<()> {
   let pool = &mut context.pool();
@@ -610,15 +610,13 @@ async fn create_modlog_entries_for_removed_or_restored_posts(
   posts: &[Post],
   removed: bool,
   reason: &str,
-  bulk_action_parent_id: Option<ModlogId>,
+  bulk_action_parent_id: ModlogId,
 ) -> LemmyResult<()> {
   // Build the forms
   let forms: Vec<_> = posts
     .iter()
     .map(|post| {
-      let mut form = ModlogInsertForm::mod_remove_post(mod_person_id, post, removed, reason);
-      form.bulk_action_parent_id = bulk_action_parent_id;
-      form
+      ModlogInsertForm::mod_remove_post(mod_person_id, post, removed, reason, Some(bulk_action_parent_id))
     })
     .collect();
 
@@ -633,15 +631,13 @@ async fn create_modlog_entries_for_removed_or_restored_comments(
   comments: &[Comment],
   removed: bool,
   reason: &str,
-  bulk_action_parent_id: Option<ModlogId>,
+  bulk_action_parent_id: ModlogId,
 ) -> LemmyResult<()> {
   // Build the forms
   let forms: Vec<_> = comments
     .iter()
     .map(|comment| {
-      let mut form = ModlogInsertForm::mod_remove_comment(mod_person_id, comment, removed, reason);
-      form.bulk_action_parent_id = bulk_action_parent_id;
-      form
+      ModlogInsertForm::mod_remove_comment(mod_person_id, comment, removed, reason, Some(bulk_action_parent_id))
     })
     .collect();
 
@@ -656,7 +652,7 @@ pub async fn remove_or_restore_user_data_in_community(
   banned_person_id: PersonId,
   remove: bool,
   reason: &str,
-  bulk_action_parent_id: Option<ModlogId>,
+  bulk_action_parent_id: ModlogId,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
   // These actions are only possible when removing, not restoring

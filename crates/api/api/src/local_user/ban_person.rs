@@ -19,7 +19,7 @@ use lemmy_db_views_person::{
   PersonView,
   api::{BanPerson, PersonResponse},
 };
-use lemmy_utils::{error::LemmyResult, utils::validation::is_valid_body_field};
+use lemmy_utils::{error::{LemmyErrorType, LemmyResult}, utils::validation::is_valid_body_field};
 
 pub async fn ban_from_site(
   Json(data): Json<BanPerson>,
@@ -69,7 +69,7 @@ pub async fn ban_from_site(
       data.person_id,
       removed,
       &data.reason,
-      action.first().map(|a| a.id),
+      action.first().ok_or(LemmyErrorType::NotFound)?.id,
       &context,
     )
     .await?;

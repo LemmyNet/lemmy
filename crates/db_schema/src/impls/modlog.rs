@@ -1,5 +1,5 @@
 use crate::{
-  newtypes::CommunityId,
+  newtypes::{CommunityId, ModlogId},
   source::{
     comment::Comment,
     modlog::{Modlog, ModlogInsertForm},
@@ -57,11 +57,13 @@ impl<'a> ModlogInsertForm<'a> {
     post: &Post,
     removed: bool,
     reason: &'a str,
+    bulk_action_parent_id: Option<ModlogId>,
   ) -> Self {
     Self {
       reason: Some(reason),
       target_post_id: Some(post.id),
       target_person_id: Some(post.creator_id),
+      bulk_action_parent_id,
       ..ModlogInsertForm::new(ModlogKind::ModRemovePost, !removed, mod_person_id)
     }
   }
@@ -70,12 +72,14 @@ impl<'a> ModlogInsertForm<'a> {
     comment: &Comment,
     removed: bool,
     reason: &'a str,
+    bulk_action_parent_id: Option<ModlogId>,
   ) -> Self {
     Self {
       reason: Some(reason),
       target_comment_id: Some(comment.id),
       target_post_id: Some(comment.post_id),
       target_person_id: Some(comment.creator_id),
+      bulk_action_parent_id,
       ..ModlogInsertForm::new(ModlogKind::ModRemoveComment, !removed, mod_person_id)
     }
   }

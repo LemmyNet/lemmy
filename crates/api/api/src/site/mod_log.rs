@@ -139,12 +139,16 @@ mod tests {
     );
 
     // Remove the user data
-    remove_or_restore_user_data(john.id, sara.id, true, "a remove reason", None, &context).await?;
+    let ban_form = ModlogInsertForm::admin_ban(&john, sara.id, true, None, "a remove reason");
+    let ban_action = Modlog::create(pool, &[ban_form]).await?;
+    let ban_id = ban_action.first().ok_or(LemmyErrorType::NotFound)?.id;
+    remove_or_restore_user_data(john.id, sara.id, true, "a remove reason", ban_id, &context).await?;
 
     // Verify that their posts and comments are removed.
     // Posts
     let post_modlog = ModlogQuery {
       type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemovePost)),
+      show_bulk: Some(true),
       ..Default::default()
     }
     .list(pool)
@@ -179,6 +183,7 @@ mod tests {
     // Comments
     let comment_modlog = ModlogQuery {
       type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemoveComment)),
+      show_bulk: Some(true),
       ..Default::default()
     }
     .list(pool)
@@ -232,12 +237,16 @@ mod tests {
     );
 
     // Now restore the content, and make sure it got appended
-    remove_or_restore_user_data(john.id, sara.id, false, "a restore reason", None, &context)
+    let unban_form = ModlogInsertForm::admin_ban(&john, sara.id, false, None, "a restore reason");
+    let unban_action = Modlog::create(pool, &[unban_form]).await?;
+    let unban_id = unban_action.first().ok_or(LemmyErrorType::NotFound)?.id;
+    remove_or_restore_user_data(john.id, sara.id, false, "a restore reason", unban_id, &context)
       .await?;
 
     // Posts
     let post_modlog = ModlogQuery {
       type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemovePost)),
+      show_bulk: Some(true),
       ..Default::default()
     }
     .list(pool)
@@ -290,6 +299,7 @@ mod tests {
     // Comments
     let comment_modlog = ModlogQuery {
       type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemoveComment)),
+      show_bulk: Some(true),
       ..Default::default()
     }
     .list(pool)
@@ -389,13 +399,14 @@ mod tests {
       person_b.id,
       true,
       "bulk remove reason",
-      Some(ban_id),
+      ban_id,
       &context,
     )
     .await?;
 
     let post_modlog = ModlogQuery {
       type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemovePost)),
+      show_bulk: Some(true),
       ..Default::default()
     }
     .list(pool)
@@ -411,6 +422,7 @@ mod tests {
 
     let comment_modlog = ModlogQuery {
       type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemoveComment)),
+      show_bulk: Some(true),
       ..Default::default()
     }
     .list(pool)

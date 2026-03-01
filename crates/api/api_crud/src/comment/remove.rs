@@ -82,6 +82,7 @@ pub async fn remove_comment(
     &orig_comment.comment,
     removed,
     &data.reason,
+    None,
   );
   let actions = Modlog::create(&mut context.pool(), &[form]).await?;
   notify_mod_action(actions, context.app_data());
