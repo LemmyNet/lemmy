@@ -149,6 +149,7 @@ impl UndoDelete {
                 post.community_id,
                 false,
                 &reason,
+                None,
               )
             })
             .collect();

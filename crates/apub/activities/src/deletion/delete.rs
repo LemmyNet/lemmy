@@ -167,6 +167,7 @@ pub(crate) async fn receive_remove_action(
               post.community_id,
               true,
               &reason,
+              None,
             )
           })
           .collect();

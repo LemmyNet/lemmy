@@ -88,6 +88,7 @@ pub async fn remove_post(
           community.id,
           remove_children,
           &data.reason,
+          None,
         )
       })
       .collect();
