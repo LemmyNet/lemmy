@@ -490,20 +490,33 @@ mod tests {
     let form = ModlogInsertForm::mod_feature_post_community(data.timmy.id, &data.post, true);
     Modlog::create(pool, &[form]).await?;
 
-    let form = ModlogInsertForm::admin_feature_post_site(data.timmy.id, &data.post, true);
+    let form = ModlogInsertForm::admin_feature_post_site(&data.timmy, &data.post, true);
     Modlog::create(pool, &[form]).await?;
 
     let form = ModlogInsertForm::mod_lock_post(data.timmy.id, &data.post, true, "reason");
     Modlog::create(pool, &[form]).await?;
 
-    let form = ModlogInsertForm::mod_lock_comment(data.timmy.id, &data.comment, true, "reason");
+    let form = ModlogInsertForm::mod_lock_comment(
+      data.timmy.id,
+      &data.comment,
+      data.community.id,
+      true,
+      "reason",
+    );
     Modlog::create(pool, &[form]).await?;
 
-    let form = ModlogInsertForm::mod_remove_comment(data.timmy.id, &data.comment, true, "reason", None);
+    let form = ModlogInsertForm::mod_remove_comment(
+      data.timmy.id,
+      &data.comment,
+      data.community.id,
+      true,
+      "reason",
+      None,
+    );
     Modlog::create(pool, &[form]).await?;
 
     let form = ModlogInsertForm::admin_remove_community(
-      data.timmy.id,
+      &data.timmy,
       data.community.id,
       None,
       true,
@@ -526,12 +539,22 @@ mod tests {
     let form = ModlogInsertForm::mod_remove_post(data.jessica.id, &data.post_2, true, "reason", None);
     Modlog::create(pool, &[form]).await?;
 
-    let form =
-      ModlogInsertForm::mod_remove_comment(data.jessica.id, &data.comment_2, true, "reason", None);
+    let form = ModlogInsertForm::mod_remove_comment(
+      data.jessica.id,
+      &data.comment_2,
+      data.community_2.id,
+      true,
+      "reason",
+      None,
+    );
     Modlog::create(pool, &[form]).await?;
 
-    let form =
-      ModlogInsertForm::mod_create_comment_warning(data.jessica.id, &data.comment, "reason");
+    let form = ModlogInsertForm::mod_create_comment_warning(
+      data.jessica.id,
+      &data.comment,
+      data.community.id,
+      "reason",
+    );
     Modlog::create(pool, &[form]).await?;
 
     let form = ModlogInsertForm::mod_create_post_warning(data.jessica.id, &data.post_2, "reason");
@@ -582,6 +605,10 @@ mod tests {
     assert_eq!(ModlogKind::ModRemovePost, v.modlog.kind);
     assert_eq!(Some(data.post_2.id), v.target_post.as_ref().map(|a| a.id));
     assert_eq!(Some(data.sara.id), v.target_person.as_ref().map(|a| a.id));
+    assert_eq!(
+      Some(data.community_2.id),
+      v.target_community.as_ref().map(|a| a.id)
+    );
     assert_eq!(Some(data.jessica.id), v.moderator.as_ref().map(|a| a.id));
 
     let v = &modlog[4];
@@ -627,6 +654,10 @@ mod tests {
     );
     assert_eq!(Some(data.post.id), v.target_post.as_ref().map(|a| a.id));
     assert_eq!(Some(data.timmy.id), v.moderator.as_ref().map(|a| a.id));
+    assert_eq!(
+      Some(data.community.id),
+      v.target_community.as_ref().map(|a| a.id)
+    );
 
     let v = &modlog[9];
     assert_eq!(ModlogKind::ModLockComment, v.modlog.kind);
@@ -751,7 +782,7 @@ mod tests {
     }
     .list(pool)
     .await?;
-    assert_eq!(6, modlog_community_filter.len());
+    assert_eq!(11, modlog_community_filter.len());
 
     let modlog_community_2_filter = ModlogQuery {
       community_id: Some(data.community_2.id),
@@ -759,7 +790,7 @@ mod tests {
     }
     .list(pool)
     .await?;
-    assert_eq!(2, modlog_community_2_filter.len());
+    assert_eq!(4, modlog_community_2_filter.len());
 
     // Filter by post
     let modlog_post_filter = ModlogQuery {
@@ -768,7 +799,7 @@ mod tests {
     }
     .list(pool)
     .await?;
-    assert_eq!(5, modlog_post_filter.len());
+    assert_eq!(7, modlog_post_filter.len());
 
     let modlog_post_2_filter = ModlogQuery {
       post_id: Some(data.post_2.id),

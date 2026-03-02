@@ -17,9 +17,9 @@ export RUST_BACKTRACE=1
 export LEMMY_TEST_FAST_FEDERATION=1 # by default, the persistent federation queue has delays in the scale of 30s-5min
 
 if [ -n "$PACKAGE" ]; then
-  cargo test -p $PACKAGE --features full --no-fail-fast $TEST
+  cargo test -p $PACKAGE --features full $TEST
 else
-  cargo test --workspace --features full --no-fail-fast
+  cargo test --workspace --features full
 fi
 
 # Add this to do printlns: -- --nocapture

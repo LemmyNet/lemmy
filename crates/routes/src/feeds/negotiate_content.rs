@@ -27,14 +27,13 @@ fn negotiate_lang(req: &HttpRequest) -> Option<Lang> {
   let client_langs = AcceptLanguage::parse(req).ok()?;
 
   client_langs.ranked().iter().find_map(|cl| {
-    cl.item()
-      .map(|l| LanguageId::new(l.primary_language()))
-      .and_then(|l| Lang::from_language_id(&l))
+    let l = cl.item().map(|l| LanguageId::new(l.primary_language()))?;
+    Lang::from_language_id(&l)
   })
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
+#[expect(clippy::unwrap_used)]
 mod tests {
   use super::*;
   use actix_web::test::TestRequest;

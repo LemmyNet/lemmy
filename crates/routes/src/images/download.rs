@@ -10,8 +10,11 @@ use actix_web::{
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::source::images::RemoteImage;
 use lemmy_db_views_local_image::api::{ImageGetParams, ImageProxyParams};
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use percent_encoding::{NON_ALPHANUMERIC, utf8_percent_encode};
+use serde::Serialize;
+use std::str::FromStr;
+use strum::{Display, EnumString};
 use url::Url;
 
 pub async fn get_image(
@@ -27,7 +30,8 @@ pub async fn get_image(
   let processed_url = if params.file_type.is_none() && params.max_size.is_none() {
     format!("{}image/original/{}", pictrs_url, name)
   } else {
-    let file_type = file_type(params.file_type, name);
+    let file_type = file_type(params.file_type, name)?;
+
     let mut url = format!("{}image/process.{}?src={}", pictrs_url, file_type, name);
 
     if let Some(size) = params.max_size {
@@ -55,7 +59,8 @@ pub async fn image_proxy(
   let processed_url = if params.file_type.is_none() && params.max_size.is_none() {
     format!("{}image/original?proxy={}", pictrs_config.url, encoded_url)
   } else {
-    let file_type = file_type(params.file_type, url.path());
+    let file_type = file_type(params.file_type, url.path())?;
+
     let mut url = format!(
       "{}image/process.{}?proxy={}",
       pictrs_config.url, file_type, encoded_url
@@ -112,9 +117,24 @@ pub(super) async fn do_get_image(
   Ok(client_res.body(BodyStream::new(res.bytes_stream())))
 }
 
+#[derive(EnumString, Display, Debug, Serialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+#[strum(ascii_case_insensitive)]
+enum PictrsFileType {
+  Apng,
+  Avif,
+  Gif,
+  Jpg,
+  Jxl,
+  Png,
+  Webp,
+}
+
 /// Take file type from param, name, or use jpg if nothing is given
-pub(super) fn file_type(file_type: Option<String>, name: &str) -> String {
-  file_type
+fn file_type(file_type: Option<String>, name: &str) -> LemmyResult<PictrsFileType> {
+  let type_str = file_type
     .clone()
-    .unwrap_or_else(|| name.split('.').next_back().unwrap_or("jpg").to_string())
+    .unwrap_or_else(|| name.split('.').next_back().unwrap_or("jpg").to_string());
+
+  PictrsFileType::from_str(&type_str).with_lemmy_type(LemmyErrorType::NotAnImageType)
 }

@@ -7,7 +7,7 @@ variables:
   # features. In particular the ARM builder image needs to be updated manually in the repo below:
   # https://github.com/raskyld/lemmy-cross-toolchains
   # Also be sure to change the version in `rust-toolchain.toml`
-  - &rust_image "rust:1.91"
+  - &rust_image "rust:1.92"
   - &rust_nightly_image "rustlang/rust:nightly"
   - &install_pnpm "npm install -g corepack@latest && corepack enable pnpm"
   - &install_binstall "wget -q -O- https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz | tar -xvz -C /usr/local/cargo/bin"
@@ -160,7 +160,7 @@ steps:
       - wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /usr/share/keyrings/postgres-keyring.gpg
       - apt update && apt install -y postgresql-client-18
       # Run tests (if they fail, try again)
-      - cargo test --workspace --no-fail-fast || cargo test --workspace --no-fail-fast
+      - cargo test --workspace || cargo test --workspace
     when: *slow_check_paths
 
   cargo_clippy:
@@ -170,7 +170,7 @@ steps:
       RUSTUP_HOME: .rustup_home
     commands:
       - rustup component add clippy
-      - cargo clippy --workspace --tests -- -D warnings
+      - cargo clippy --workspace --tests --all-targets --all-features -- -D warnings
     when: *slow_check_paths
 
   # make sure api builds with default features (used by other crates relying on lemmy api)

@@ -67,14 +67,6 @@ pub mod sql_types {
 }
 
 diesel::table! {
-    captcha_answer (uuid) {
-        uuid -> Uuid,
-        answer -> Text,
-        published_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
     use diesel::sql_types::*;
     use diesel_ltree::sql_types::Ltree;
 
@@ -394,9 +386,6 @@ diesel::table! {
         application_email_admins -> Bool,
         slur_filter_regex -> Nullable<Text>,
         federation_enabled -> Bool,
-        captcha_enabled -> Bool,
-        #[max_length = 255]
-        captcha_difficulty -> Varchar,
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
         registration_mode -> RegistrationModeEnum,

@@ -39,6 +39,7 @@ pub enum SendActivityData {
     moderator: Person,
     reason: String,
     removed: bool,
+    with_replies: bool,
   },
   LockPost(Post, Person, bool, String),
   FeaturePost(Post, Person, bool),
@@ -50,6 +51,7 @@ pub enum SendActivityData {
     moderator: Person,
     community: Community,
     reason: String,
+    with_replies: bool,
   },
   LockComment(Comment, Person, bool, String),
   LikePostOrComment {

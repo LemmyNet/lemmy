@@ -1,5 +1,8 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_utils::{context::LemmyContext, plugins::plugin_metadata};
+use lemmy_api_utils::{
+  context::LemmyContext,
+  plugins::{is_captcha_plugin_loaded, plugin_metadata},
+};
 use lemmy_db_schema::source::{
   actor_language::SiteLanguage,
   language::Language,
@@ -64,5 +67,6 @@ async fn read_site(context: &LemmyContext) -> LemmyResult<GetSiteResponse> {
     image_upload_disabled: context.settings().pictrs()?.image_upload_disabled,
     active_plugins: plugin_metadata(),
     last_application_duration_seconds,
+    captcha_enabled: is_captcha_plugin_loaded(),
   })
 }

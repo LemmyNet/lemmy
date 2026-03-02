@@ -74,8 +74,12 @@ impl Activity for LockPageOrNote {
       PostOrComment::Right(comment) => {
         Comment::update_locked_for_comment_and_children(&mut context.pool(), &comment.path, true)
           .await?;
+        let community_id = Post::read(&mut context.pool(), comment.post_id)
+          .await?
+          .community_id;
 
-        let form = ModlogInsertForm::mod_lock_comment(actor.id, &comment, true, &reason);
+        let form =
+          ModlogInsertForm::mod_lock_comment(actor.id, &comment, community_id, true, &reason);
         let action = Modlog::create(&mut context.pool(), &[form]).await?;
         notify_mod_action(action, context);
       }
@@ -130,7 +134,12 @@ impl Activity for UndoLockPageOrNote {
         Comment::update_locked_for_comment_and_children(&mut context.pool(), &comment.path, false)
           .await?;
 
-        let form = ModlogInsertForm::mod_lock_comment(actor.id, &comment, false, &reason);
+        let community_id = Post::read(&mut context.pool(), comment.post_id)
+          .await?
+          .community_id;
+
+        let form =
+          ModlogInsertForm::mod_lock_comment(actor.id, &comment, community_id, false, &reason);
         let action = Modlog::create(&mut context.pool(), &[form]).await?;
         notify_mod_action(action, context);
       }

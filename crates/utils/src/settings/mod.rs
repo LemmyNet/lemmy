@@ -13,7 +13,7 @@ static DEFAULT_CONFIG_FILE: &str = "config/config.hjson";
 /// Some connection options to speed up queries
 const CONNECTION_OPTIONS: [&str; 1] = ["geqo_threshold=12"];
 
-#[allow(clippy::expect_used)]
+#[expect(clippy::expect_used)]
 pub static SETTINGS: LazyLock<Settings> = LazyLock::new(|| {
   if env::var("LEMMY_INITIALIZE_WITH_DEFAULT_SETTINGS").is_ok() {
     println!(
@@ -111,7 +111,7 @@ impl Settings {
     Ok(url.into())
   }
 }
-#[allow(clippy::expect_used)]
+#[expect(clippy::expect_used)]
 /// Necessary to avoid URL expect failures
 fn pictrs_placeholder_url() -> Url {
   Url::parse("http://localhost:8080").expect("parse pictrs url")

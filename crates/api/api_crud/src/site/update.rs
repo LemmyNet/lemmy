@@ -113,8 +113,6 @@ pub async fn edit_site(
     updated_at: Some(Some(Utc::now())),
     slur_filter_regex: diesel_string_update(data.slur_filter_regex.as_deref()),
     federation_enabled: data.federation_enabled,
-    captcha_enabled: data.captcha_enabled,
-    captcha_difficulty: data.captcha_difficulty.clone(),
     reports_email_admins: data.reports_email_admins,
     default_post_listing_mode: data.default_post_listing_mode,
     oauth_registration: data.oauth_registration,
@@ -247,7 +245,7 @@ mod tests {
     let invalid_payloads = [
       (
         "EditSite name matches LocalSite slur filter",
-        LemmyErrorType::Slurs,
+        &LemmyErrorType::Slurs,
         &LocalSite {
           private_instance: true,
           slur_filter_regex: Some(String::from("(foo|bar)")),
@@ -262,7 +260,7 @@ mod tests {
       ),
       (
         "EditSite name matches new slur filter",
-        LemmyErrorType::Slurs,
+        &LemmyErrorType::Slurs,
         &LocalSite {
           private_instance: true,
           slur_filter_regex: Some(String::from("(foo|bar)")),
@@ -278,7 +276,7 @@ mod tests {
       ),
       (
         "EditSite listing type is Subscribed, which is invalid",
-        LemmyErrorType::InvalidDefaultPostListingType,
+        &LemmyErrorType::InvalidDefaultPostListingType,
         &LocalSite {
           private_instance: true,
           federation_enabled: false,
@@ -293,7 +291,7 @@ mod tests {
       ),
       (
         "EditSite requires application, but neither it nor LocalSite has an application question",
-        LemmyErrorType::ApplicationQuestionRequired,
+        &LemmyErrorType::ApplicationQuestionRequired,
         &LocalSite {
           private_instance: true,
           federation_enabled: false,
@@ -311,7 +309,7 @@ mod tests {
     invalid_payloads.iter().enumerate().for_each(
       |(
          idx,
-         &(reason, ref expected_err, local_site, edit_site),
+         &(reason,  expected_err, local_site, edit_site),
        )| {
         match validate_update_payload(local_site, edit_site) {
           Ok(_) => {

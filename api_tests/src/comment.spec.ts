@@ -23,6 +23,7 @@ import {
   reportComment,
   randomString,
   unfollows,
+  getComment,
   getComments,
   getCommentParentId,
   resolveCommunity,
@@ -979,6 +980,65 @@ test("Lock comment", async () => {
   expect(
     await createComment(newBetaApi, betaPost.post.id, betaComment1.comment.id),
   ).toBeDefined();
+});
+
+test("Remove children", async () => {
+  const alphaCommunity = await resolveCommunity(
+    alpha,
+    "!main@lemmy-alpha:8541",
+  );
+  if (!alphaCommunity) {
+    throw "Missing alpha community";
+  }
+
+  let post = await createPost(alpha, alphaCommunity.community.id);
+  let betaPost = await resolvePost(beta, post.post_view.post);
+
+  if (!betaPost) {
+    throw "unable to locate post on beta";
+  }
+  await followCommunity(beta, true, betaPost.community.id);
+
+  let comment1 = await createComment(beta, betaPost.post.id);
+  let comment2 = await createComment(
+    beta,
+    betaPost.post.id,
+    comment1.comment_view.comment.id,
+  );
+  await createComment(beta, betaPost.post.id, comment2.comment_view.comment.id);
+  await createComment(beta, betaPost.post.id, comment1.comment_view.comment.id);
+
+  // Wait until the comments have federated
+  await waitUntil(
+    () => getPost(alpha, post.post_view.post.id),
+    p => p.post_view.post.comments == 4,
+  );
+
+  let commentOnAlpha = await resolveComment(
+    alpha,
+    comment1.comment_view.comment,
+  );
+  if (!commentOnAlpha) {
+    throw "unable to locate comment on alpha";
+  }
+
+  await removeComment(alpha, true, commentOnAlpha.comment.id, true);
+
+  let post2 = await getPost(alpha, post.post_view.post.id);
+  expect(post2.post_view.post.comments).toBe(0);
+
+  // Wait until the remove has federated
+  await waitUntil(
+    () => getComment(beta, comment1.comment_view.comment.id),
+    c => c.comment_view.comment.removed,
+  );
+
+  // Make sure removal federates properly
+  let betaPost2 = await resolvePost(beta, post.post_view.post);
+  if (!betaPost2) {
+    throw "unable to locate post on beta";
+  }
+  expect(betaPost2.post.comments).toBe(0);
 });
 
 function checkCommentReportReason(rcv: ReportCombinedView, reason: string) {

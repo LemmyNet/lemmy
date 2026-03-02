@@ -41,7 +41,7 @@ actix-web = { workspace = true, features = ["cookies"] }
 chrono = { workspace = true }
 futures = { workspace = true }
 reqwest = { workspace = true, features = ["stream"] }
-reqwest-middleware = { workspace = true, features = ["query", "form"] }
+reqwest-middleware = { workspace = true, features = ["form", "query"] }
 serde = { workspace = true }
 url = { workspace = true }
 tracing = { workspace = true }
@@ -62,6 +62,7 @@ percent-encoding = "2.3.2"
 diesel-uplete.workspace = true
 lemmy_diesel_utils = { workspace = true }
 rosetta-i18n = { workspace = true }
+strum = { workspace = true }
 
 [dev-dependencies]
 pretty_assertions.workspace = true

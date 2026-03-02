@@ -51,7 +51,7 @@ pub(super) async fn resolve_object_internal(
     // user isn't authenticated only allow a local search.
     search_query_to_object_id_local(query, context).await
   }
-  .map_err(|e| LemmyErrorType::ResolveObjectFailed(e.inner.to_string()))?;
+  .map_err(|e| LemmyErrorType::ResolveObjectFailed(e.cause.to_string()))?;
 
   let my_person_id_opt = local_user_view.as_ref().map(|l| l.person.id);
   let my_person_id = my_person_id_opt.unwrap_or(PersonId(-1));

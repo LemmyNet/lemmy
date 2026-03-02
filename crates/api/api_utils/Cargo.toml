@@ -45,6 +45,7 @@ lemmy_db_views_private_message = { workspace = true }
 lemmy_db_views_comment = { workspace = true }
 lemmy_db_views_post = { workspace = true }
 lemmy_db_views_notification = { workspace = true }
+lemmy_db_views_registration_applications = { workspace = true }
 lemmy_email = { workspace = true }
 anyhow = { workspace = true }
 serde = { workspace = true }
@@ -60,7 +61,7 @@ mime = { version = "0.3.17" }
 mime_guess = "2.0.5"
 infer = "0.19.0"
 chrono = { workspace = true }
-encoding_rs = { version = "0.8.35" }
+encoding_rs = "0.8.35"
 futures = { workspace = true }
 reqwest = { workspace = true }
 actix-web = { workspace = true }
