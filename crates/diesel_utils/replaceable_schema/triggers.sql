@@ -532,9 +532,10 @@ BEGIN
                             person
                         WHERE
                             id = NEW.person_id) = TRUE THEN
+                        -- Here we have uniques on (person_id, post_id) and (person_id, comment_id)
                         INSERT INTO person_liked_combined (voted_at, vote_is_upvote, person_id, thing_id)
                             VALUES (NEW.voted_at, NEW.vote_is_upvote, NEW.person_id, NEW.thing_id)
-                        ON CONFLICT (person_id, post_id)
+                        ON CONFLICT (person_id, thing_id)
                             DO UPDATE SET
                                 voted_at = NEW.voted_at,
                                 vote_is_upvote = NEW.vote_is_upvote;

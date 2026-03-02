@@ -29,24 +29,11 @@ use lemmy_db_schema_file::{
 
 #[diesel::dsl::auto_type(no_type_alias)]
 pub fn notification_joins(person_id: PersonId, instance_id: InstanceId) -> _ {
-  let item_creator = person::id;
-  let recipient_person = aliases::person1.field(person::id);
-
-  let item_creator_join = person::table.on(
-    notification::comment_id
-      .is_not_null()
-      .and(comment::creator_id.eq(item_creator))
-      .or(
-        notification::post_id
-          .is_not_null()
-          .and(post::creator_id.eq(item_creator)),
-      )
-      .or(private_message::creator_id.eq(item_creator))
-      .or(modlog::mod_id.eq(item_creator)),
-  );
+  let item_creator_join = person::table.on(notification::creator_id.eq(person::id));
 
   // No need to join on `modlog::target_person_id` as it is identical to
   // `notification::recipient_id`.
+  let recipient_person = aliases::person1.field(person::id);
   let recipient_join = aliases::person1.on(notification::recipient_id.eq(recipient_person));
 
   let comment_join = comment::table.on(
@@ -105,7 +92,7 @@ pub fn notification_joins(person_id: PersonId, instance_id: InstanceId) -> _ {
     .left_join(comment_join)
     .left_join(post_join)
     .left_join(community_join)
-    .left_join(item_creator_join)
+    .inner_join(item_creator_join)
     .inner_join(recipient_join)
     .left_join(image_details_join())
     .left_join(creator_community_actions_join())
