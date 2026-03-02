@@ -10,6 +10,7 @@ use diesel::{
   PgTextExpressionMethods,
   QueryDsl,
   SelectableHelper,
+  dsl::count_star,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
@@ -187,6 +188,35 @@ impl FederatedInstanceView {
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
+
+  pub async fn count(pool: &mut DbPool<'_>, data: GetFederatedInstances) -> LemmyResult<i64> {
+    let mut query = Self::joins().select(Self::as_select()).into_boxed();
+
+    if let Some(domain_filter) = &data.domain_filter {
+      query = query.filter(instance::domain.ilike(fuzzy_search(domain_filter)))
+    }
+
+    query = match data.kind {
+      GetFederatedInstancesKind::All => query,
+      GetFederatedInstancesKind::Linked => {
+        query.filter(federation_blocklist::instance_id.is_null())
+      }
+      GetFederatedInstancesKind::Allowed => {
+        query.filter(federation_allowlist::instance_id.is_not_null())
+      }
+      GetFederatedInstancesKind::Blocked => {
+        query.filter(federation_blocklist::instance_id.is_not_null())
+      }
+    };
+
+    let conn = &mut get_conn(pool).await?;
+
+    query
+      .select(count_star())
+      .first::<i64>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
+  }
 }
 
 impl PaginationCursorConversion for FederatedInstanceView {
@@ -273,6 +303,30 @@ mod tests {
     assert!(list1.queue_state.is_none());
     assert!(list1.allowed.is_none());
     assert!(list1.blocked.is_none());
+
+    Instance::delete_all(pool).await?;
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_instance_count() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+
+    // insert test data
+    let _instance0 = Instance::read_or_create(pool, "example0.com").await?;
+    let _instance1 = Instance::read_or_create(pool, "example1.com").await?;
+
+    // run the query
+    let data = GetFederatedInstances {
+      domain_filter: None,
+      kind: GetFederatedInstancesKind::Linked,
+      page_cursor: None,
+      limit: None,
+    };
+    let count = FederatedInstanceView::count(pool, data).await?;
+    assert_eq!(2, count);
 
     Instance::delete_all(pool).await?;
     Ok(())
