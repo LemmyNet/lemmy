@@ -93,7 +93,7 @@ impl Activity for Follow {
     if let (Right(community), Right(Left(follower))) = (&actor, &object)
       && (community.visibility == Public || community.visibility == Unlisted)
     {
-      check_community_deleted_or_removed(&community)?;
+      check_community_deleted_or_removed(community)?;
       CommunityCommunityFollow::follow(&mut context.pool(), community.id, follower.id).await?;
       AcceptFollow::send(self, context).await?;
       return Ok(());

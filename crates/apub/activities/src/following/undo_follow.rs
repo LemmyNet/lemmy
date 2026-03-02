@@ -74,7 +74,7 @@ impl Activity for UndoFollow {
 
     // Handle remote community unfollowing a local community
     if let (Right(community), Right(Left(follower))) = (&actor, &object) {
-      check_community_deleted_or_removed(&community)?;
+      check_community_deleted_or_removed(community)?;
       CommunityCommunityFollow::unfollow(&mut context.pool(), community.id, follower.id).await?;
       return Ok(());
     }
