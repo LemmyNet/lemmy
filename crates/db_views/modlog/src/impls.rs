@@ -1040,6 +1040,7 @@ mod tests {
     let comment_form_1 = ModlogInsertForm::mod_remove_comment(
       data.timmy.id,
       &data.comment,
+      data.community.id,
       true,
       "bulk B",
       Some(parent_b_id),
@@ -1047,6 +1048,7 @@ mod tests {
     let comment_form_2 = ModlogInsertForm::mod_remove_comment(
       data.timmy.id,
       &data.comment_2,
+      data.community.id,
       true,
       "bulk B",
       Some(parent_b_id),
