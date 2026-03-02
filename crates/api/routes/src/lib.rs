@@ -103,6 +103,7 @@ use lemmy_api::{
       get::get_registration_application,
       list::list_registration_applications,
     },
+    stats::get_stats,
   },
 };
 use lemmy_api_crud::{
@@ -203,6 +204,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("/banner", post().to(upload_site_banner))
           .route("/banner", delete().to(delete_site_banner)),
       )
+      .route("/stats", get().to(get_stats))
       .route("/modlog", get().to(get_mod_log))
       .service(
         resource("/search")

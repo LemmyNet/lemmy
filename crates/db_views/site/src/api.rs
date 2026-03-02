@@ -299,6 +299,14 @@ pub struct GetFederatedInstances {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+pub struct GetSiteStatsResponse {
+  pub linked_instances: i64,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// An expanded response for a site.
 pub struct GetSiteResponse {
   pub site_view: SiteView,
