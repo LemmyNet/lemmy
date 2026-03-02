@@ -30,7 +30,7 @@ impl Vote {
       actor: actor.id().clone().into(),
       object: object_id,
       kind: kind.clone(),
-      id: generate_activity_id(kind, context)?,
+      id: generate_activity_id(kind, None, context)?,
       audience: Some(community.ap_id.clone().into()),
     })
   }

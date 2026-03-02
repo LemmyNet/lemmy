@@ -44,9 +44,10 @@ impl CreateOrUpdatePage {
     actor: &ApubPerson,
     community: &ApubCommunity,
     kind: CreateOrUpdateType,
+    object_id: Option<&str>,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<CreateOrUpdatePage> {
-    let id = generate_activity_id(kind.clone(), context)?;
+    let id = generate_activity_id(kind.clone(), object_id, context)?;
     Ok(CreateOrUpdatePage {
       actor: actor.id().clone().into(),
       to: generate_to(community)?,
@@ -71,7 +72,7 @@ impl CreateOrUpdatePage {
       .into();
 
     let create_or_update =
-      CreateOrUpdatePage::new(post.into(), &person, &community, kind, &context).await?;
+      CreateOrUpdatePage::new(post.into(), &person, &community, kind, None, &context).await?;
     let inboxes = tagged_user_inboxes(&create_or_update.object.tag, &context).await?;
     let activity = AnnouncableActivities::CreateOrUpdatePost(create_or_update);
     send_activity_in_community(activity, &person, &community, inboxes, false, &context).await?;

@@ -53,7 +53,7 @@ impl Report {
     context: &Data<LemmyContext>,
   ) -> LemmyResult<Self> {
     let kind = FlagType::Flag;
-    let id = generate_activity_id(kind.clone(), context)?;
+    let id = generate_activity_id(kind.clone(), None, context)?;
     Ok(Report {
       actor: actor.id().clone().into(),
       to: [receiver.id().clone().into()],
@@ -151,7 +151,7 @@ impl Activity for Report {
       // forward to remote mods
       let object_id = self.object.object_id(context).await?;
       let announce = AnnouncableActivities::Report(self);
-      let announce = AnnounceActivity::new(announce.try_into()?, community, context)?;
+      let announce = AnnounceActivity::new(announce.try_into()?, community, None, context)?;
       let inboxes = report_inboxes(object_id, &receiver, &actor, context).await?;
       send_lemmy_activity(context, announce, community, inboxes.clone(), false).await?;
     }

@@ -157,7 +157,7 @@ pub(crate) async fn send_lock(
   context: Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let community: ApubCommunity = post_or_comment_community(&object, &context).await?.into();
-  let id = generate_activity_id(LockType::Lock, &context)?;
+  let id = generate_activity_id(LockType::Lock, None, &context)?;
   let community_id = community.ap_id.inner().clone();
   let ap_id = match object {
     PostOrComment::Left(p) => p.ap_id.clone(),
@@ -177,7 +177,7 @@ pub(crate) async fn send_lock(
   let activity = if locked {
     AnnouncableActivities::Lock(lock)
   } else {
-    let id = generate_activity_id(UndoType::Undo, &context)?;
+    let id = generate_activity_id(UndoType::Undo, None, &context)?;
     let undo = UndoLockPageOrNote {
       actor: lock.actor.clone(),
       to: generate_to(&community)?,
