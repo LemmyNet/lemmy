@@ -232,7 +232,7 @@ impl InCommunity for Page {
               break c;
             }
           } else {
-            Err(LemmyErrorType::NotFound)?;
+            return Err(LemmyErrorType::NotFound.into());
           }
         }
       }

@@ -73,7 +73,7 @@ pub async fn edit_community(
     // https://stackoverflow.com/a/64227550
     let is_subset = languages.iter().all(|item| site_languages.contains(item));
     if !is_subset {
-      Err(LemmyErrorType::LanguageNotAllowed)?
+      return Err(LemmyErrorType::LanguageNotAllowed.into());
     }
     CommunityLanguage::update(&mut context.pool(), languages, community_id).await?;
   }

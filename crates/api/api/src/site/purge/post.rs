@@ -50,6 +50,7 @@ pub async fn purge_post(
       moderator: local_user_view.person.clone(),
       reason: data.reason.clone(),
       removed: true,
+      with_replies: false,
     },
     &context,
   )?;

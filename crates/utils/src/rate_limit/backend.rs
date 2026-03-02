@@ -72,7 +72,7 @@ impl Backend<LemmyInput> for LemmyBackend {
     &self,
     input: LemmyInput,
   ) -> Result<(Decision, Self::Output, Self::RollbackToken), Self::Error> {
-    #[allow(clippy::expect_used)]
+    #[expect(clippy::expect_used)]
     let config = self.configs.read().expect("read rwlock")[input.1];
 
     let max_requests: u64 = config.max_requests.into();

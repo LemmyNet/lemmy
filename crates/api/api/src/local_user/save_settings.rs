@@ -77,7 +77,7 @@ pub async fn save_user_settings(
     && email.is_none()
     && site_view.local_site.require_email_verification
   {
-    Err(LemmyErrorType::EmailRequired)?
+    return Err(LemmyErrorType::EmailRequired.into());
   }
 
   if let Some(Some(bio)) = &bio {

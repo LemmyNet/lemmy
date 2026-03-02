@@ -1,0 +1,15 @@
+{
+  "@context": ["https:\/\/fedia.io\/contexts"],
+  "id": "https:\/\/fedia.io\/i\/actor",
+  "type": "Application",
+  "name": "Mbin",
+  "inbox": "https:\/\/fedia.io\/i\/inbox",
+  "outbox": "https:\/\/fedia.io\/i\/outbox",
+  "preferredUsername": "fedia.io",
+  "manuallyApprovesFollowers": true,
+  "publicKey": {
+    "id": "https:\/\/fedia.io\/i\/actor#main-key",
+    "owner": "https:\/\/fedia.io\/i\/actor",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\r\nMIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAr4P8hDVpL+DpvNvl5s+S\r\nAuRoIl8C00sSfgFfXwMKKxzSEfD2FJBvQuFhu3DSmD26owdItQqKTfMKop7YBvTj\r\nvwngDyBCz9nDSBQtaVG4lPuo\/45Fcdu+jr9SPC7Bd5JFDIejKf86ONDMfFwuz1Ns\r\nyf1sj\/UEVV8fO9CX+aey9E67\/SZ\/SxpbU6b02jY7hWN5wGHvIxJifpRabhVIcTja\r\nV4CZiv6IObKQQ7h\/nK4ly2K7CpA9meljldu2CgV0q6QTnJNqNw12yPhUPVC\/ywOd\r\nUhPUaTEeU0DBuJMzxr9bX9fMLlegYuVV6btOp8JAds0C3rUWv\/bTpymh+CUDL8QL\r\nA9KNqJ\/aFmKZ5z58lRuKW2xJos5ScJnpzkWSHxzC6ZSAvD5zUfCRy42s43qyIcxR\r\nyvzjly9vZIzN5YyDG5QE5YOPMVDSR9cRfq2hi+vVxwTSoYn73EKiRZfVOA\/i6l35\r\nXY6EVPUSykk\/YmOeoKyc4FJQ3ARLBFcI0iOAr1CnseX8KKjGvS3pu3JJdlZEUYv8\r\ngO6kPArPa53VDmlFxRL9uPLR2TGKmVjjLO6SY1sGc1jQAfIvbsg5NY2Q503aLVPB\r\nnZHo\/gtR9ugFfJ8SxnZgGXiuzx6L7+6IZgZYnngGK5KV0h0o7YF2umi5fJJeEtHd\r\nCKOHcjXz2DAn6MD8BCqbfmMCAwEAAQ==\r\n-----END PUBLIC KEY-----"
+  }
+}

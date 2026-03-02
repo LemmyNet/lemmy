@@ -22,7 +22,7 @@ pub async fn change_password_after_reset(
 
   // Make sure passwords match
   if data.password != data.password_verify {
-    Err(LemmyErrorType::PasswordsDoNotMatch)?
+    return Err(LemmyErrorType::PasswordsDoNotMatch.into());
   }
 
   // Update the user with the new password

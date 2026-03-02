@@ -45,7 +45,7 @@ pub struct NotifyData {
 }
 
 struct CollectedNotifyData<'a> {
-  person_id: PersonId,
+  recipient_id: PersonId,
   local_url: DbUrl,
   data: NotificationEmailData<'a>,
   kind: NotificationType,
@@ -54,13 +54,13 @@ struct CollectedNotifyData<'a> {
 /// For PartialEq and Hash, we only need to compare recipient id and object url.
 impl<'a> PartialEq for CollectedNotifyData<'a> {
   fn eq(&self, other: &CollectedNotifyData<'_>) -> bool {
-    self.person_id == other.person_id && self.local_url == other.local_url
+    self.recipient_id == other.recipient_id && self.local_url == other.local_url
   }
 }
 
 impl<'a> Hash for CollectedNotifyData<'a> {
   fn hash<H: Hasher>(&self, state: &mut H) {
-    self.person_id.hash(state);
+    self.recipient_id.hash(state);
     self.local_url.hash(state);
   }
 }
@@ -90,12 +90,12 @@ impl NotifyData {
     let mut forms = vec![];
     for c in collected {
       // Dont get notified about own actions
-      if self.creator.id == c.person_id {
+      if self.creator.id == c.recipient_id {
         continue;
       }
 
       if self
-        .check_notifications_allowed(c.person_id, &context)
+        .check_notifications_allowed(c.recipient_id, &context)
         .await
         .is_err()
       {
@@ -103,12 +103,13 @@ impl NotifyData {
       };
 
       forms.push(if let Some(comment) = &self.comment {
-        NotificationInsertForm::new_comment(comment.id, c.person_id, c.kind)
+        NotificationInsertForm::new_comment(comment, c.recipient_id, c.kind)
       } else {
-        NotificationInsertForm::new_post(self.post.id, c.person_id, c.kind)
+        NotificationInsertForm::new_post(&self.post, c.recipient_id, c.kind)
       });
 
-      let Ok(user_view) = LocalUserView::read_person(&mut context.pool(), c.person_id).await else {
+      let Ok(user_view) = LocalUserView::read_person(&mut context.pool(), c.recipient_id).await
+      else {
         // is a remote user, ignore
         continue;
       };
@@ -193,7 +194,7 @@ impl NotifyData {
       };
 
     Ok(vec![CollectedNotifyData {
-      person_id: parent_creator_id,
+      recipient_id: parent_creator_id,
       local_url: comment.local_url(context.settings())?.into(),
       data: NotificationEmailData::Reply {
         comment,
@@ -230,7 +231,7 @@ impl NotifyData {
     let mut res = vec![];
     for mention in mentions {
       res.push(CollectedNotifyData {
-        person_id: mention.id,
+        recipient_id: mention.id,
         local_url: self.link(context)?.into(),
         data: NotificationEmailData::Mention {
           content: self.content().clone(),
@@ -257,7 +258,7 @@ impl NotifyData {
     .collect::<Vec<_>>();
 
     let mut res = vec![];
-    for person_id in subscribers {
+    for recipient_id in subscribers {
       let d = if let Some(comment) = &self.comment {
         NotificationEmailData::PostSubscribed {
           post: &self.post,
@@ -270,7 +271,7 @@ impl NotifyData {
         }
       };
       res.push(CollectedNotifyData {
-        person_id,
+        recipient_id,
         local_url: self.link(context)?.into(),
         data: d,
         kind: NotificationType::Subscribed,
@@ -342,10 +343,8 @@ pub fn notify_mod_action(actions: Vec<Modlog>, context: &LemmyContext) {
         continue;
       };
 
-      let form = NotificationInsertForm {
-        modlog_id: Some(action.id),
-        ..NotificationInsertForm::new(local_recipient.person.id, NotificationType::ModAction)
-      };
+      let form =
+        NotificationInsertForm::new_mod_action(action.id, local_recipient.person.id, action.mod_id);
       let notifications = Notification::create(&mut context.pool(), &[form]).await?;
       plugin_hook_notification(notifications, &context).await?;
 
@@ -611,7 +610,7 @@ mod tests {
 
     // Timmy mentions sara in a comment
     let timmy_mention_sara_form = NotificationInsertForm::new_comment(
-      data.timmy_comment.id,
+      &data.timmy_comment,
       data.sara.person.id,
       NotificationType::Mention,
     );
@@ -619,7 +618,7 @@ mod tests {
 
     // Jessica mentions sara in a post
     let jessica_mention_sara_form = NotificationInsertForm::new_post(
-      data.jessica_post.id,
+      &data.jessica_post,
       data.sara.person.id,
       NotificationType::Mention,
     );

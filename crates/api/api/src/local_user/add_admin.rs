@@ -34,7 +34,7 @@ pub async fn add_admin(
     )
     .await?;
     if admins.len() == 1 {
-      Err(LemmyErrorType::CannotLeaveAdmin)?
+      return Err(LemmyErrorType::CannotLeaveAdmin.into());
     }
   }
 

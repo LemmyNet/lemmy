@@ -5,7 +5,7 @@ pub(crate) mod group_outbox;
 pub mod url_collection;
 
 #[cfg(test)]
-#[allow(clippy::as_conversions)]
+#[expect(clippy::as_conversions)]
 mod tests {
   use crate::protocol::collections::{
     group_featured::GroupFeatured,

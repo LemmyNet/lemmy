@@ -84,14 +84,14 @@ pub async fn create_comment(
   // comment we also lock all of its children.
   let locked = post.locked || parent_opt.as_ref().is_some_and(|p| p.locked);
   if locked && !is_mod_or_admin {
-    Err(LemmyErrorType::Locked)?
+    return Err(LemmyErrorType::Locked.into());
   }
 
   // If there's a parent_id, check to make sure that comment is in that post
   // Strange issue where sometimes the post ID of the parent comment is incorrect
   if let Some(parent) = parent_opt.as_ref() {
     if parent.post_id != post_id {
-      Err(LemmyErrorType::CouldntCreate)?
+      return Err(LemmyErrorType::CouldntCreate.into());
     }
     check_comment_depth(parent)?;
   }

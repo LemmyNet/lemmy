@@ -1,4 +1,4 @@
-use deadpool::Runtime;
+use deadpool::{Runtime, managed::Timeouts};
 use diesel::result::{
   ConnectionError,
   ConnectionResult,
@@ -169,6 +169,11 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
   let pool = Pool::builder(manager)
     .max_size(pool_size)
     .runtime(Runtime::Tokio1)
+    .timeouts(Timeouts {
+      wait: Some(Duration::from_secs(1)),
+      create: Some(Duration::from_secs(5)),
+      recycle: Some(Duration::from_secs(5)),
+    })
     // Limit connection age to prevent use of prepared statements that have query plans based on
     // very old statistics
     .pre_recycle(Hook::sync_fn(|_conn, metrics| {
@@ -188,7 +193,7 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
   Ok(pool)
 }
 
-#[allow(clippy::expect_used)]
+#[expect(clippy::expect_used)]
 pub fn build_db_pool_for_tests() -> ActualDbPool {
   build_db_pool().expect("db pool missing")
 }

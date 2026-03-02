@@ -41,6 +41,11 @@ pub struct Delete {
   /// Nonstandard field, only valid if object refers to a Person. If present, all content from the
   /// user should be deleted along with the account
   pub(crate) remove_data: Option<bool>,
+  /// Nonstandard field denoting that the replies to an `Object` should be removed along with the
+  /// `Object`. Only valid for `Pages` and `Notes`.
+  // See here for discussion of this:
+  // https://activitypub.space/topic/78/deleting-a-post-vs-deleting-an-entire-comment-tree
+  pub(crate) with_replies: Option<bool>,
 }
 
 impl InCommunity for Delete {

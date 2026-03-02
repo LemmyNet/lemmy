@@ -322,7 +322,7 @@ fn convert_err(e: Box<dyn std::error::Error + Send + Sync>) -> anyhow::Error {
 }
 
 #[cfg(test)]
-#[allow(clippy::indexing_slicing, clippy::unwrap_used)]
+#[expect(clippy::indexing_slicing, clippy::unwrap_used)]
 mod tests {
   use super::{
     Branch::{EarlyReturn, ReplaceableSchemaNotRebuilt, ReplaceableSchemaRebuilt},

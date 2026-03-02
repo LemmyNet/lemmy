@@ -56,7 +56,7 @@ pub async fn remove_community(
   let community_owner =
     CommunityModeratorView::top_mod_for_community(&mut context.pool(), data.community_id).await?;
   let form = ModlogInsertForm::admin_remove_community(
-    local_user_view.person.id,
+    &local_user_view.person,
     data.community_id,
     community_owner,
     removed,

@@ -127,4 +127,10 @@ mod tests {
     test_json::<Note>("../apub/assets/wordpress/objects/note.json")?;
     Ok(())
   }
+
+  #[test]
+  fn test_parse_object_mbin() -> LemmyResult<()> {
+    test_json::<Instance>("../apub/assets/mbin/objects/instance.json")?;
+    Ok(())
+  }
 }

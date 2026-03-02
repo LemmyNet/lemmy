@@ -186,7 +186,7 @@ impl Object for ApubComment {
       .is_ok();
     let locked = post.locked || parent_comment.is_some_and(|c| c.locked);
     if locked && !is_mod_or_admin {
-      Err(UntranslatedError::PostIsLocked)?
+      return Err(UntranslatedError::PostIsLocked.into());
     } else {
       Ok(())
     }

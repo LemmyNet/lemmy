@@ -29,7 +29,7 @@ pub async fn user_note_person(
 
   // Don't let a person note themselves
   if target_id == my_person_id {
-    Err(LemmyErrorType::CantNoteYourself)?
+    return Err(LemmyErrorType::CantNoteYourself.into());
   }
 
   // If the note is empty, delete it

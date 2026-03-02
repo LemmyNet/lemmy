@@ -71,6 +71,7 @@ use lemmy_diesel_utils::{
     PaginationCursorConversion,
     paginate_response,
   },
+  traits::Crud,
   utils::{CoalesceKey, Commented, now, seconds_to_pg_interval},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};

@@ -23,7 +23,7 @@ pub async fn user_block_person(
 
   // Don't let a person block themselves
   if target_id == my_person_id {
-    Err(LemmyErrorType::CantBlockYourself)?
+    return Err(LemmyErrorType::CantBlockYourself.into());
   }
 
   let person_block_form = PersonBlockForm::new(my_person_id, target_id);
@@ -33,7 +33,7 @@ pub async fn user_block_person(
     .ok();
 
   if target_user.is_some_and(|t| t.local_user.admin) {
-    Err(LemmyErrorType::CantBlockAdmin)?
+    return Err(LemmyErrorType::CantBlockAdmin.into());
   }
 
   if data.block {
