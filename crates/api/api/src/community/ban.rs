@@ -23,7 +23,10 @@ use lemmy_db_views_community::api::BanFromCommunity;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::{PersonView, api::PersonResponse};
 use lemmy_diesel_utils::{connection::get_conn, traits::Crud};
-use lemmy_utils::{error::{LemmyErrorType, LemmyResult}, utils::validation::is_valid_body_field};
+use lemmy_utils::{
+  error::{LemmyErrorType, LemmyResult},
+  utils::validation::is_valid_body_field,
+};
 
 pub async fn ban_from_community(
   Json(data): Json<BanFromCommunity>,

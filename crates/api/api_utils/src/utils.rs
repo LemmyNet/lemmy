@@ -616,7 +616,13 @@ async fn create_modlog_entries_for_removed_or_restored_posts(
   let forms: Vec<_> = posts
     .iter()
     .map(|post| {
-      ModlogInsertForm::mod_remove_post(mod_person_id, post, removed, reason, Some(bulk_action_parent_id))
+      ModlogInsertForm::mod_remove_post(
+        mod_person_id,
+        post,
+        removed,
+        reason,
+        Some(bulk_action_parent_id),
+      )
     })
     .collect();
 
@@ -661,7 +667,14 @@ async fn create_modlog_entries_for_removed_or_restored_comments_in_community(
   let forms: Vec<_> = comments
     .iter()
     .map(|comment| {
-      ModlogInsertForm::mod_remove_comment(mod_person_id, comment, community_id, removed, reason, None)
+      ModlogInsertForm::mod_remove_comment(
+        mod_person_id,
+        comment,
+        community_id,
+        removed,
+        reason,
+        None,
+      )
     })
     .collect();
 
