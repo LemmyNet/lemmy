@@ -144,8 +144,7 @@ impl ModlogQuery<'_> {
     // `show_bulk`: true => show all entries; false/None => hide bulk child entries.
     // When bulk_action_parent_id is provided the caller is looking into a bulk
     // action, so skip null guard
-    if self.bulk_action_parent_id.is_some() {
-      let bulk_action_parent_id = self.bulk_action_parent_id.unwrap();
+    if let Some(bulk_action_parent_id) = self.bulk_action_parent_id {
       query = query.filter(modlog::bulk_action_parent_id.eq(bulk_action_parent_id))
     } else if !self.show_bulk.unwrap_or_default() {
       query = query.filter(modlog::bulk_action_parent_id.is_null())
