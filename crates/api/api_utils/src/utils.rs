@@ -645,8 +645,14 @@ async fn create_modlog_entries_for_removed_or_restored_comments(
     // This is extremely unfortunate, but since the comment table doesn't have community id,
     // you need to query the post table to get each of them, as they could be in any community
     let community_id = Post::read(pool, comment.post_id).await?.community_id;
-    let form =
-      ModlogInsertForm::mod_remove_comment(mod_person_id, comment, community_id, removed, reason);
+    let form = ModlogInsertForm::mod_remove_comment(
+      mod_person_id,
+      comment,
+      community_id,
+      removed,
+      reason,
+      Some(bulk_action_parent_id),
+    );
     forms.push(form);
   }
 
@@ -726,7 +732,6 @@ pub async fn remove_or_restore_user_data_in_community(
     community_id,
     remove,
     reason,
-    bulk_action_parent_id,
   )
   .await?;
 
