@@ -256,7 +256,10 @@ steps:
         from_secret: docker_username
       password:
         from_secret: docker_password
-      platforms: linux/amd64,linux/arm64
+      # On release builds, switch these comment lines to also do arm64 qemu builds.
+      # This takes 8 hours, so its not a good idea to do it for any other release.
+      platforms: linux/amd64
+      # platforms: linux/amd64,linux/arm64
       build_args:
         RUST_RELEASE_MODE: release
       build_args_from_env:
