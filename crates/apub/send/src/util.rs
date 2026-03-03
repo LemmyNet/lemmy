@@ -202,10 +202,12 @@ pub(crate) async fn get_latest_activity_id(pool: &mut DbPool<'_>) -> Result<Opti
   });
   CACHE
     .try_get_with((), async {
-      use diesel::dsl::max;
       use lemmy_db_schema_file::schema::sent_activity::dsl::{id, sent_activity};
       let conn = &mut get_conn(pool).await?;
-      let latest_id: Option<ActivityId> = sent_activity.select(max(id)).get_result(conn).await?;
+      let latest_id: Option<ActivityId> = sent_activity
+        .select(diesel::dsl::max(id))
+        .get_result(conn)
+        .await?;
       anyhow::Result::<_, anyhow::Error>::Ok(latest_id)
     })
     .await
