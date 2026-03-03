@@ -26,7 +26,7 @@ use lemmy_diesel_utils::{traits::Crud, utils::diesel_string_update};
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::{
-    slurs::check_slurs_opt,
+    slurs::{check_slurs, check_slurs_opt},
     validation::{is_valid_body_field, is_valid_display_name},
   },
 };
@@ -42,10 +42,13 @@ pub async fn edit_community(
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
   check_slurs_opt(&data.title, &slur_regex)?;
+  check_slurs_opt(&data.summary, &slur_regex)?;
   check_nsfw_allowed(data.nsfw, Some(&local_site))?;
-  let title = data.title.as_ref().map(|x| x.trim());
+
+  let title = data.title.as_ref().map(|x| x.trim().to_string());
 
   if let Some(title) = &title {
+    check_slurs(title, &slur_regex)?;
     is_valid_display_name(title)?;
   }
 
@@ -54,7 +57,6 @@ pub async fn edit_community(
       .await?
       .as_deref(),
   );
-
   if let Some(Some(sidebar)) = &sidebar {
     is_valid_body_field(sidebar, false)?;
   }
@@ -79,7 +81,7 @@ pub async fn edit_community(
   }
 
   let community_form = CommunityUpdateForm {
-    title: data.title.clone(),
+    title,
     sidebar,
     summary,
     nsfw: data.nsfw,
