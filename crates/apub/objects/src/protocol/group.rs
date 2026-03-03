@@ -30,11 +30,11 @@ pub struct Group {
   pub inbox: Url,
   pub followers: Option<Url>,
   pub public_key: PublicKey,
-
-  /// title
+  /// title / display name
   pub name: Option<String>,
   // short instance description
   pub(crate) content: Option<String>,
+  /// sidebar
   #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub source: Option<Source>,
   pub(crate) media_type: Option<MediaTypeHtml>,

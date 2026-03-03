@@ -1,15 +1,29 @@
 use crate::{
   objects::ApubSite,
   protocol::multi_community::Feed,
-  utils::functions::{GetActorType, check_apub_id_valid_with_strictness},
+  utils::{
+    functions::{
+      GetActorType,
+      check_apub_id_valid_with_strictness,
+      read_from_string_or_source_opt,
+    },
+    markdown_links::markdown_rewrite_remote_links_opt,
+    protocol::Source,
+  },
 };
 use activitypub_federation::{
   config::Data,
-  protocol::verification::{verify_domains_match, verify_is_remote_object},
+  protocol::{
+    values::MediaTypeHtml,
+    verification::{verify_domains_match, verify_is_remote_object},
+  },
   traits::{Actor, Object},
 };
 use chrono::{DateTime, Utc};
-use lemmy_api_utils::{context::LemmyContext, utils::slur_regex};
+use lemmy_api_utils::{
+  context::LemmyContext,
+  utils::{process_markdown_opt, slur_regex},
+};
 use lemmy_db_schema::{
   source::{
     multi_community::{MultiCommunity, MultiCommunityInsertForm},
@@ -22,8 +36,9 @@ use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::{sensitive::SensitiveString, traits::Crud};
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType, LemmyResult},
-  utils::slurs::remove_slurs,
+  utils::{markdown::markdown_to_html, slurs::remove_slurs, validation::truncate_summary},
 };
+use regex::RegexSet;
 use std::ops::Deref;
 use url::Url;
 
@@ -88,9 +103,12 @@ impl Object for ApubMultiCommunity {
       // reusing pubkey from site instead of generating new one
       public_key: site.public_key(),
       following: self.following_url.clone().into(),
-      name: self.name.clone(),
-      summary: self.title.clone(),
+      preferred_username: self.name.clone(),
+      name: self.title.clone(),
+      summary: self.sidebar.as_ref().map(|d| markdown_to_html(d)),
+      source: self.sidebar.clone().map(Source::new),
       content: self.summary.clone(),
+      media_type: self.sidebar.as_ref().map(|_| MediaTypeHtml::Html),
       attributed_to: creator.ap_id.into(),
     })
   }
@@ -109,20 +127,34 @@ impl Object for ApubMultiCommunity {
 
   async fn from_json(json: Self::Kind, context: &Data<LemmyContext>) -> LemmyResult<Self> {
     let creator = json.attributed_to.dereference(context).await?;
-
-    // Remove slurs from title / summary
     let slur_regex = slur_regex(context).await?;
-    let title = json.summary.map(|s| remove_slurs(&s, &slur_regex));
-    let summary = json.content.map(|s| remove_slurs(&s, &slur_regex));
+
+    // Use empty regex so that url blocklist doesnt prevent community federation.
+    let url_blocklist = RegexSet::empty();
+
+    let sidebar = read_from_string_or_source_opt(&json.summary, &None, &json.source);
+    let sidebar = process_markdown_opt(&sidebar, &slur_regex, &url_blocklist, context).await?;
+    let sidebar = markdown_rewrite_remote_links_opt(sidebar, context).await;
+
+    let summary = json
+      .content
+      .clone()
+      .as_deref()
+      .map(truncate_summary)
+      .map(|s| remove_slurs(&s, &slur_regex));
+
+    let name = json.preferred_username.clone();
+    let title = json.name.map(|t| remove_slurs(&t, &slur_regex));
 
     let form = MultiCommunityInsertForm {
       creator_id: creator.id,
       instance_id: creator.instance_id,
-      name: json.name,
+      name,
       ap_id: Some(json.id.into()),
       local: Some(false),
       title,
       summary,
+      sidebar,
       public_key: json.public_key.public_key_pem,
       private_key: None,
       inbox_url: Some(json.inbox.into()),

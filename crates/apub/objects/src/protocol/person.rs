@@ -34,9 +34,9 @@ pub struct Person {
   /// mandatory field in activitypub, lemmy currently serves an empty outbox
   pub(crate) outbox: Url,
   pub(crate) public_key: PublicKey,
-
   /// displayname
   pub(crate) name: Option<String>,
+  /// bio
   pub(crate) summary: Option<String>,
   #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) source: Option<Source>,
