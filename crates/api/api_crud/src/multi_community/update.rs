@@ -16,8 +16,8 @@ use lemmy_diesel_utils::{traits::Crud, utils::diesel_string_update};
 use lemmy_utils::{
   error::LemmyResult,
   utils::{
-    slurs::{check_slurs, check_slurs_opt},
-    validation::{is_valid_body_field, is_valid_display_name},
+    slurs::check_slurs,
+    validation::{is_valid_body_field, is_valid_display_name, summary_length_check},
   },
 };
 
@@ -32,8 +32,6 @@ pub async fn edit_multi_community(
 
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
-
-  check_slurs_opt(&data.summary, &slur_regex)?;
 
   let orig_multi = MultiCommunity::read(&mut context.pool(), data.id).await?;
   check_multi_community_creator(&orig_multi, &local_user_view)?;
@@ -54,7 +52,12 @@ pub async fn edit_multi_community(
     is_valid_body_field(sidebar, false)?;
   }
 
-  let summary = diesel_string_update(data.summary.as_deref());
+  let summary = data.summary.clone();
+  if let Some(summary) = &summary {
+    summary_length_check(summary)?;
+    check_slurs(summary, &slur_regex)?;
+  }
+  let summary = diesel_string_update(summary.as_deref());
 
   let form = MultiCommunityUpdateForm {
     title,
