@@ -1,6 +1,6 @@
 use lemmy_db_schema::{
   ModlogKindFilter,
-  newtypes::{CommentId, CommunityId, PostId},
+  newtypes::{CommentId, CommunityId, ModlogId, PostId},
 };
 use lemmy_db_schema_file::{PersonId, enums::ListingType};
 use lemmy_diesel_utils::pagination::PaginationCursor;
@@ -28,6 +28,10 @@ pub struct GetModlog {
   pub post_id: Option<PostId>,
   /// Filter by comment.
   pub comment_id: Option<CommentId>,
+  /// When `true` show all. When `false` or `None`, hide bulk actions (default).
+  pub show_bulk: Option<bool>,
+  /// Return only child entries triggered by this parent modlog action.
+  pub bulk_action_parent_id: Option<ModlogId>,
   pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }

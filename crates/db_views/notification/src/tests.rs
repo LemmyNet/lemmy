@@ -118,7 +118,8 @@ async fn test_post() -> LemmyResult<()> {
   assert_eq!(0, count);
 
   // create a notification entry for removed post
-  let mod_remove_post_form = ModlogInsertForm::mod_remove_post(data.bob.id, &post, true, "reason");
+  let mod_remove_post_form =
+    ModlogInsertForm::mod_remove_post(data.bob.id, &post, true, "reason", None);
   let mod_remove_post = &Modlog::create(pool, &[mod_remove_post_form]).await?[0];
   let notif_form =
     NotificationInsertForm::new_mod_action(mod_remove_post.id, data.alice.id, data.bob.id);
@@ -173,8 +174,14 @@ async fn test_modlog() -> LemmyResult<()> {
   let comment = Comment::create(pool, &form, None).await?;
 
   // remove the comment and check notifs
-  let form =
-    ModlogInsertForm::mod_remove_comment(data.alice.id, &comment, community.id, true, "rule 1");
+  let form = ModlogInsertForm::mod_remove_comment(
+    data.alice.id,
+    &comment,
+    community.id,
+    true,
+    "rule 1",
+    None,
+  );
   let modlog = &Modlog::create(pool, &[form]).await?[0];
 
   let form = NotificationInsertForm::new_mod_action(modlog.id, data.bob.id, data.alice.id);
