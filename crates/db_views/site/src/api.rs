@@ -1,4 +1,4 @@
-use crate::{ReadableFederationState, SiteView};
+use crate::SiteView;
 #[cfg(feature = "full")]
 use extism::FromBytes;
 use extism_convert::Json;
@@ -321,18 +321,6 @@ pub struct GetSiteResponse {
   /// Useful for estimating when your application will be approved.
   pub last_application_duration_seconds: Option<i64>,
   pub captcha_enabled: bool,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-pub struct InstanceWithFederationState {
-  #[serde(flatten)]
-  pub instance: Instance,
-  /// if federation to this instance is or was active, show state of outgoing federation to this
-  /// instance
-  pub federation_state: Option<ReadableFederationState>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

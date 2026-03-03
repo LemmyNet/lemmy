@@ -58,4 +58,4 @@ serial_test = { workspace = true }
 pretty_assertions = { workspace = true }
 
 [package.metadata.cargo-shear]
-ignored = ["futures", "futures-util"]
+ignored = ["futures-util"]

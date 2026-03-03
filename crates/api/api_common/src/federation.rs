@@ -8,16 +8,12 @@ pub use lemmy_db_schema::{
   },
 };
 pub use lemmy_db_schema_file::{InstanceId, enums::FederationMode};
-pub use lemmy_db_views_site::{
-  ReadableFederationState,
-  api::{
-    GetFederatedInstances,
-    GetFederatedInstancesKind,
-    InstanceWithFederationState,
-    ResolveObject,
-    UserBlockInstanceCommunitiesParams,
-    UserBlockInstancePersonsParams,
-  },
+pub use lemmy_db_views_site::api::{
+  GetFederatedInstances,
+  GetFederatedInstancesKind,
+  ResolveObject,
+  UserBlockInstanceCommunitiesParams,
+  UserBlockInstancePersonsParams,
 };
 
 pub mod administration {
