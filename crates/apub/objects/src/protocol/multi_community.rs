@@ -27,7 +27,7 @@ pub struct Feed {
   pub preferred_username: String,
   /// title
   pub name: Option<String>,
-  /// short instance description
+  /// short description
   pub(crate) content: Option<String>,
   /// sidebar
   #[serde(deserialize_with = "deserialize_skip_error", default)]
