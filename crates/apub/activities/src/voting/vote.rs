@@ -1,4 +1,5 @@
 use crate::{
+  check_community_deleted_or_removed,
   generate_activity_id,
   protocol::voting::vote::{Vote, VoteType},
   voting::{undo_vote_comment, undo_vote_post, vote_comment, vote_post},
@@ -51,6 +52,7 @@ impl Activity for Vote {
 
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     let community = self.community(context).await?;
+    check_community_deleted_or_removed(&community)?;
     verify_person_in_community(&self.actor, &community, context).await?;
     Ok(())
   }

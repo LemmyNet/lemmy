@@ -538,6 +538,7 @@ diesel::table! {
         target_instance_id -> Nullable<Int4>,
         expires_at -> Nullable<Timestamptz>,
         published_at -> Timestamptz,
+        bulk_action_parent_id -> Nullable<Int4>,
     }
 }
 

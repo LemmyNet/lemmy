@@ -1,5 +1,6 @@
 use super::send_activity_from_user_or_community_or_multi;
 use crate::{
+  check_community_deleted_or_removed,
   generate_activity_id,
   protocol::following::{follow::Follow, reject::RejectFollow},
 };
@@ -58,6 +59,7 @@ impl Activity for RejectFollow {
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     let community = self.actor.dereference(context).await?;
+    check_community_deleted_or_removed(&community)?;
     let actor = self.object.actor.dereference(context).await?;
     let person = actor.left().ok_or(UntranslatedError::Unreachable)?;
 

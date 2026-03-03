@@ -23,7 +23,10 @@ use lemmy_db_views_community::api::BanFromCommunity;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::{PersonView, api::PersonResponse};
 use lemmy_diesel_utils::{connection::get_conn, traits::Crud};
-use lemmy_utils::{error::LemmyResult, utils::validation::is_valid_body_field};
+use lemmy_utils::{
+  error::{LemmyErrorType, LemmyResult},
+  utils::validation::is_valid_body_field,
+};
 
 pub async fn ban_from_community(
   Json(data): Json<BanFromCommunity>,
@@ -71,21 +74,7 @@ pub async fn ban_from_community(
           CommunityActions::unban(&mut conn.into(), &community_user_ban_form).await?;
         }
 
-        // Remove/Restore their data if that's desired
-        if tx_data.remove_or_restore_data.unwrap_or(false) {
-          let remove_data = tx_data.ban;
-          remove_or_restore_user_data_in_community(
-            tx_data.community_id,
-            my_person_id,
-            banned_person_id,
-            remove_data,
-            &tx_data.reason,
-            &mut conn.into(),
-          )
-          .await?;
-        };
-
-        // Mod tables
+        // Mod tables - create ban entry first so bulk actions can reference it as parent
         let form = ModlogInsertForm::mod_ban_from_community(
           my_person_id,
           tx_data.community_id,
@@ -94,7 +83,25 @@ pub async fn ban_from_community(
           expires_at,
           &tx_data.reason,
         );
-        Modlog::create(&mut conn.into(), &[form]).await
+        let action = Modlog::create(&mut conn.into(), &[form]).await?;
+
+        // Remove/Restore their data if that's desired
+        let ban_id = action.first().ok_or(LemmyErrorType::NotFound)?.id;
+        if tx_data.remove_or_restore_data.unwrap_or(false) {
+          let remove_data = tx_data.ban;
+          remove_or_restore_user_data_in_community(
+            tx_data.community_id,
+            my_person_id,
+            banned_person_id,
+            remove_data,
+            &tx_data.reason,
+            ban_id,
+            &mut conn.into(),
+          )
+          .await?;
+        };
+
+        Ok(action)
       }
       .scope_boxed()
     })

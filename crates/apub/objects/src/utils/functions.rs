@@ -216,9 +216,7 @@ pub async fn verify_person_in_community(
 ) -> LemmyResult<()> {
   let person = person_id.dereference(context).await?;
   InstanceActions::check_ban(&mut context.pool(), person.id, person.instance_id).await?;
-  let person_id = person.id;
-  let community_id = community.id;
-  CommunityPersonBanView::check(&mut context.pool(), person_id, community_id).await
+  CommunityPersonBanView::check(&mut context.pool(), person.id, community.id).await
 }
 
 /// Fetches the person and community or site to verify their type, then checks if person is banned
@@ -290,7 +288,11 @@ pub fn context_url(id: &Url) -> String {
   format!("{id}/context")
 }
 
-/// Verify that mod action in community was performed by a moderator.
+/// Verify that mod action in community was performed by a moderator. Also checks that the moderator
+/// doesn't have a community ban.
+///
+/// Do not call together with `verify_person_in_community()`.
+/// Moderators with site ban are allowed, see https://github.com/LemmyNet/lemmy/issues/4409
 ///
 /// * `mod_id` - Activitypub ID of the mod or admin who performed the action
 /// * `object_id` - Activitypub ID of the actor or object that is being moderated
@@ -308,5 +310,7 @@ pub async fn verify_mod_action(
   }
 
   let mod_ = mod_id.dereference(context).await?;
-  check_is_mod_or_admin(&mut context.pool(), mod_.id, community.id).await
+  check_is_mod_or_admin(&mut context.pool(), mod_.id, community.id).await?;
+  CommunityPersonBanView::check(&mut context.pool(), mod_.id, community.id).await?;
+  Ok(())
 }

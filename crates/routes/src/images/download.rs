@@ -12,7 +12,6 @@ use lemmy_db_schema::source::images::RemoteImage;
 use lemmy_db_views_local_image::api::{ImageGetParams, ImageProxyParams};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use percent_encoding::{NON_ALPHANUMERIC, utf8_percent_encode};
-use serde::Serialize;
 use std::str::FromStr;
 use strum::{Display, EnumString};
 use url::Url;
@@ -30,7 +29,7 @@ pub async fn get_image(
   let processed_url = if params.file_type.is_none() && params.max_size.is_none() {
     format!("{}image/original/{}", pictrs_url, name)
   } else {
-    let file_type = file_type(params.file_type, name)?;
+    let file_type = file_type(params.file_type, name).unwrap_or_default();
 
     let mut url = format!("{}image/process.{}?src={}", pictrs_url, file_type, name);
 
@@ -59,7 +58,7 @@ pub async fn image_proxy(
   let processed_url = if params.file_type.is_none() && params.max_size.is_none() {
     format!("{}image/original?proxy={}", pictrs_config.url, encoded_url)
   } else {
-    let file_type = file_type(params.file_type, url.path())?;
+    let file_type = file_type(params.file_type, url.path()).unwrap_or_default();
 
     let mut url = format!(
       "{}image/process.{}?proxy={}",
@@ -117,13 +116,13 @@ pub(super) async fn do_get_image(
   Ok(client_res.body(BodyStream::new(res.bytes_stream())))
 }
 
-#[derive(EnumString, Display, Debug, Serialize, PartialEq)]
-#[serde(rename_all = "snake_case")]
-#[strum(ascii_case_insensitive)]
+#[derive(EnumString, Display, PartialEq, Debug, Default)]
+#[strum(ascii_case_insensitive, serialize_all = "snake_case")]
 enum PictrsFileType {
   Apng,
   Avif,
   Gif,
+  #[default]
   Jpg,
   Jxl,
   Png,
@@ -137,4 +136,58 @@ fn file_type(file_type: Option<String>, name: &str) -> LemmyResult<PictrsFileTyp
     .unwrap_or_else(|| name.split('.').next_back().unwrap_or("jpg").to_string());
 
   PictrsFileType::from_str(&type_str).with_lemmy_type(LemmyErrorType::NotAnImageType)
+}
+
+#[cfg(test)]
+mod tests {
+  use crate::images::download::{PictrsFileType, file_type};
+  use lemmy_utils::error::LemmyResult;
+
+  #[tokio::test]
+  async fn image_file_type_tests() -> LemmyResult<()> {
+    // Make sure files type outputs are getting lower-cased
+    assert_eq!(PictrsFileType::Jpg.to_string(), "jpg".to_string());
+
+    let file_url = "a8a7f07f-3ef2-40fa-849c-ae952f68f3ec.jpg";
+
+    // Make sure wrong-cased file type requests are okay
+    assert_eq!(
+      PictrsFileType::Jpg,
+      file_type(Some("JPg".to_string()), file_url)?
+    );
+
+    // Make sure converts are working
+    assert_eq!(
+      PictrsFileType::Avif,
+      file_type(Some("AVif".to_string()), file_url)?
+    );
+
+    // Make sure wrong file type requests are okay with unwrap_or_default
+    assert_eq!(
+      PictrsFileType::Jpg,
+      file_type(Some("jpeg".to_string()), file_url).unwrap_or_default()
+    );
+    assert_eq!(
+      PictrsFileType::Jpg,
+      file_type(Some("nonsense".to_string()), file_url).unwrap_or_default()
+    );
+
+    // Make sure missing file type requests are okay
+    assert_eq!(PictrsFileType::Jpg, file_type(None, file_url)?);
+
+    // jpeg
+    let file_url = "a8a7f07f-3ef2-40fa-849c-ae952f68f3ec.jpeg";
+
+    // Make sure jpeg one is okay
+    assert_eq!(
+      PictrsFileType::Jpg,
+      file_type(None, file_url).unwrap_or_default()
+    );
+
+    // Make sure proxy ones are okay
+    let proxy_url = "https://test.tld/pictrs/image/6d3b2f3f-7b29-4d9a-868e-b269423f4d6c.WEbP";
+    assert_eq!(PictrsFileType::Webp, file_type(None, proxy_url)?);
+
+    Ok(())
+  }
 }
