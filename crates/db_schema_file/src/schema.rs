@@ -26,6 +26,10 @@ pub mod sql_types {
   pub struct FederationModeEnum;
 
   #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+  #[diesel(postgres_type(name = "image_mode_enum"))]
+  pub struct ImageModeEnum;
+
+  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
   #[diesel(postgres_type(name = "listing_type_enum"))]
   pub struct ListingTypeEnum;
 
@@ -371,6 +375,7 @@ diesel::table! {
     use super::sql_types::PostSortTypeEnum;
     use super::sql_types::CommentSortTypeEnum;
     use super::sql_types::FederationModeEnum;
+    use super::sql_types::ImageModeEnum;
 
     local_site (id) {
         id -> Int4,
@@ -413,6 +418,15 @@ diesel::table! {
         suggested_multi_community_id -> Nullable<Int4>,
         system_account -> Int4,
         default_items_per_page -> Int4,
+        image_mode -> ImageModeEnum,
+        image_proxy_bypass_domains -> Nullable<Text>,
+        image_upload_timeout_seconds -> Int4,
+        image_max_thumbnail_size -> Int4,
+        image_max_avatar_size -> Int4,
+        image_max_banner_size -> Int4,
+        image_max_upload_size -> Int4,
+        image_allow_video_uploads -> Bool,
+        image_upload_disabled -> Bool,
     }
 }
 

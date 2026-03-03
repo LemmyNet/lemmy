@@ -312,9 +312,6 @@ pub struct GetSiteResponse {
   pub oauth_providers: Vec<PublicOAuthProvider>,
   pub admin_oauth_providers: Vec<AdminOAuthProvider>,
   pub blocked_urls: Vec<LocalSiteUrlBlocklist>,
-  // If true then uploads for post images or markdown images are disabled. Only avatars, icons and
-  // banners can be set.
-  pub image_upload_disabled: bool,
   pub active_plugins: Vec<PluginMetadata>,
   /// The number of seconds between the last application published, and approved / denied time.
   ///

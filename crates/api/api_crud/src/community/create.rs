@@ -53,8 +53,9 @@ pub async fn create_community(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityResponse>> {
   check_local_user_valid(&local_user_view)?;
-  let site_view = SiteView::read_local(&mut context.pool()).await?;
-  let local_site = site_view.local_site;
+  let SiteView {
+    site, local_site, ..
+  } = SiteView::read_local(&mut context.pool()).await?;
 
   if local_site.community_creation_admin_only && is_admin(&local_user_view).is_err() {
     return Err(LemmyErrorType::OnlyAdminsCanCreateCommunities.into());
@@ -65,7 +66,14 @@ pub async fn create_community(
   let url_blocklist = get_url_blocklist(&context).await?;
   check_slurs(&data.name, &slur_regex)?;
   check_slurs(&data.title, &slur_regex)?;
-  let sidebar = process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context).await?;
+  let sidebar = process_markdown_opt(
+    &data.sidebar,
+    &slur_regex,
+    &url_blocklist,
+    &local_site,
+    &context,
+  )
+  .await?;
   let title = data.title.trim();
   is_valid_display_name(title)?;
 
@@ -103,7 +111,7 @@ pub async fn create_community(
     posting_restricted_to_mods: data.posting_restricted_to_mods,
     visibility: data.visibility,
     ..CommunityInsertForm::new(
-      site_view.site.instance_id,
+      site.instance_id,
       data.name.clone(),
       data.title.clone(),
       keypair.public_key,

@@ -31,6 +31,7 @@ use lemmy_db_schema::source::{
   site::{Site, SiteInsertForm},
 };
 use lemmy_db_schema_file::{InstanceId, enums::ActorType};
+use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::{sensitive::SensitiveString, traits::Crud};
 use lemmy_utils::{
   error::{LemmyError, LemmyResult, UntranslatedError},
@@ -131,12 +132,15 @@ impl Object for ApubSite {
 
     let slur_regex = slur_regex(context).await?;
     let url_blocklist = get_url_blocklist(context).await?;
+    let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
+
     let sidebar = read_from_string_or_source_opt(&apub.content, &None, &apub.source);
-    let sidebar = process_markdown_opt(&sidebar, &slur_regex, &url_blocklist, context).await?;
+    let sidebar =
+      process_markdown_opt(&sidebar, &slur_regex, &url_blocklist, &local_site, context).await?;
     let sidebar = markdown_rewrite_remote_links_opt(sidebar, context).await;
     let summary = apub.summary.map(|s| remove_slurs(&s, &slur_regex));
-    let icon = proxy_image_link_opt_apub(apub.icon.map(|i| i.url), context).await?;
-    let banner = proxy_image_link_opt_apub(apub.image.map(|i| i.url), context).await?;
+    let icon = proxy_image_link_opt_apub(apub.icon.map(|i| i.url), &local_site, context).await?;
+    let banner = proxy_image_link_opt_apub(apub.image.map(|i| i.url), &local_site, context).await?;
 
     let site_form = SiteInsertForm {
       name: apub.name.clone(),

@@ -173,6 +173,38 @@ pub enum FederationMode {
   Disable,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash)]
+#[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "full", derive(DbEnum))]
+#[cfg_attr(
+  feature = "full",
+  ExistingTypePath = "crate::schema::sql_types::ImageModeEnum"
+)]
+#[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
+/// A mode for setting how pictrs handles images.
+pub enum ImageMode {
+  /// Leave images unchanged, don't generate any local thumbnails for post urls. Instead the
+  /// Opengraph image is directly returned as thumbnail
+  None,
+  /// Generate thumbnails for external post urls and store them persistently in pict-rs. This
+  /// ensures that they can be reliably retrieved and can be resized using pict-rs APIs. However it
+  /// also increases storage usage.
+  ///
+  /// This behaviour matches Lemmy 0.18.
+  StoreLinkPreviews,
+  /// If enabled, all images from remote domains are rewritten to pass through
+  /// `/api/v4/image/proxy`, including embedded images in markdown. Images are stored temporarily in
+  /// pict-rs for caching. This improves privacy as users don't expose their IP to untrusted
+  /// servers, and decreases load on other servers. However it increases bandwidth use for the local
+  /// server.
+  ///
+  /// Requires pict-rs 0.5
+  #[default]
+  ProxyAllImages,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(

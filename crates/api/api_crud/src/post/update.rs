@@ -67,9 +67,15 @@ pub async fn edit_post(
   let slur_regex = slur_regex(&context).await?;
 
   let body = diesel_string_update(
-    process_markdown_opt(&data.body, &slur_regex, &url_blocklist, &context)
-      .await?
-      .as_deref(),
+    process_markdown_opt(
+      &data.body,
+      &slur_regex,
+      &url_blocklist,
+      &local_site,
+      &context,
+    )
+    .await?
+    .as_deref(),
   );
 
   check_nsfw_allowed(data.nsfw, Some(&local_site))?;

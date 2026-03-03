@@ -18,6 +18,7 @@ use lemmy_db_views_comment::{
   api::{CommentResponse, EditComment},
 };
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
@@ -29,6 +30,8 @@ pub async fn edit_comment(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponse>> {
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
+
   let comment_id = data.comment_id;
   let local_instance_id = local_user_view.person.instance_id;
   let orig_comment = CommentView::read(
@@ -53,7 +56,14 @@ pub async fn edit_comment(
 
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
-  let content = process_markdown_opt(&data.content, &slur_regex, &url_blocklist, &context).await?;
+  let content = process_markdown_opt(
+    &data.content,
+    &slur_regex,
+    &url_blocklist,
+    &local_site,
+    &context,
+  )
+  .await?;
   if let Some(content) = &content {
     is_valid_body_field(content, false)?;
   }

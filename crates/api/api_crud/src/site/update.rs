@@ -69,9 +69,15 @@ pub async fn edit_site(
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
   let sidebar = diesel_string_update(
-    process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context)
-      .await?
-      .as_deref(),
+    process_markdown_opt(
+      &data.sidebar,
+      &slur_regex,
+      &url_blocklist,
+      &local_site,
+      &context,
+    )
+    .await?
+    .as_deref(),
   );
   let default_post_time_range_seconds =
     diesel_opt_number_update(data.default_post_time_range_seconds);

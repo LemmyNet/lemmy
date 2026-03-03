@@ -64,7 +64,14 @@ pub async fn create_site(
 
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
-  let sidebar = process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context).await?;
+  let sidebar = process_markdown_opt(
+    &data.sidebar,
+    &slur_regex,
+    &url_blocklist,
+    &local_site,
+    &context,
+  )
+  .await?;
 
   let suggested_multi_community_id =
     diesel_opt_number_update(data.suggested_multi_community_id.map(|id| id.0))

@@ -2,12 +2,9 @@ use crate::{build_totp_2fa, generate_totp_2fa_secret};
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_utils::{context::LemmyContext, utils::check_local_user_valid};
-use lemmy_db_schema::source::{
-  local_user::{LocalUser, LocalUserUpdateForm},
-  site::Site,
-};
+use lemmy_db_schema::source::local_user::{LocalUser, LocalUserUpdateForm};
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_site::api::GenerateTotpSecretResponse;
+use lemmy_db_views_site::{SiteView, api::GenerateTotpSecretResponse};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 /// Generate a new secret for two-factor-authentication. Afterwards you need to call [toggle_totp]
@@ -17,7 +14,7 @@ pub async fn generate_totp_secret(
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<GenerateTotpSecretResponse>> {
   check_local_user_valid(&local_user_view)?;
-  let site = Site::read_local(&mut context.pool()).await?;
+  let site = SiteView::read_local(&mut context.pool()).await?.site;
 
   if local_user_view.local_user.totp_2fa_enabled {
     return Err(LemmyErrorType::TotpAlreadyEnabled.into());

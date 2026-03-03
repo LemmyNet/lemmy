@@ -7,10 +7,7 @@ use crate::{
 };
 use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, dsl::insert_into};
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::{
-  InstanceId,
-  schema::{local_site, site},
-};
+use lemmy_db_schema_file::{InstanceId, schema::site};
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   dburl::DbUrl,
@@ -111,16 +108,5 @@ impl Site {
     url.set_path("");
     url.set_query(None);
     url
-  }
-
-  pub async fn read_local(pool: &mut DbPool<'_>) -> LemmyResult<Self> {
-    let conn = &mut get_conn(pool).await?;
-
-    site::table
-      .inner_join(local_site::table)
-      .select(site::all_columns)
-      .first(conn)
-      .await
-      .with_lemmy_type(LemmyErrorType::LocalSiteNotSetup)
   }
 }
