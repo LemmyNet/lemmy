@@ -3,94 +3,59 @@ ARG RUST_VERSION=1.92
 ARG CARGO_BUILD_FEATURES=default
 ARG RUST_RELEASE_MODE=debug
 
-ARG AMD_BUILDER_IMAGE=rust:${RUST_VERSION}
-# Repo: https://github.com/raskyld/lemmy-cross-toolchains
-ARG ARM_BUILDER_IMAGE="ghcr.io/raskyld/aarch64-lemmy-linux-gnu:v0.6.0"
-
-ARG AMD_RUNNER_IMAGE=debian:sid-slim
-ARG ARM_RUNNER_IMAGE=debian:sid-slim
+ARG BUILDER_IMAGE=lukemathwalker/cargo-chef:latest-rust-${RUST_VERSION}
+ARG RUNNER_IMAGE=debian:sid-slim
 
 ARG UNAME=lemmy
 ARG UID=1000
 ARG GID=1000
 
-# AMD64 builder
-FROM --platform=${BUILDPLATFORM} ${AMD_BUILDER_IMAGE} AS build-amd64
+# Chef
+FROM ${BUILDER_IMAGE} AS chef
+WORKDIR /lemmy
+
+# Planner
+FROM chef AS planner
+COPY . . 
+RUN cargo chef prepare --recipe-path recipe.json
+
+# Builder
+FROM chef AS builder
 
 ARG CARGO_BUILD_FEATURES
 ARG RUST_RELEASE_MODE
 ARG RUSTFLAGS
 ARG CI_PIPELINE_EVENT
 
-WORKDIR /lemmy
+COPY --from=planner /lemmy/recipe.json recipe.json
+# Build dependencies - this is the caching Docker layer!
+RUN if [ "${RUST_RELEASE_MODE}" = "release" ]; \
+  then \
+  cargo chef cook --recipe-path recipe.json --release; \
+  else \
+  cargo chef cook --recipe-path recipe.json; \
+  fi 
 
-COPY . ./
-
-# Debug build
-RUN --mount=type=cache,target=/lemmy/target set -ex; \
-    if [ "${RUST_RELEASE_MODE}" = "debug" ]; then \
-        cargo build --features "${CARGO_BUILD_FEATURES}"; \
-        mv target/"${RUST_RELEASE_MODE}"/lemmy_server ./lemmy_server; \
-    fi
-
-# Release build
-RUN --mount=type=cache,target=/lemmy/target set -ex; \
-    if [ "${RUST_RELEASE_MODE}" = "release" ]; then \
-        cargo clean --release; \
-        cargo build --features "${CARGO_BUILD_FEATURES}" --release; \
-        mv target/"${RUST_RELEASE_MODE}"/lemmy_server ./lemmy_server; \
-    fi
-
-# ARM64 builder
-# NB(raskyld): this is a hack to be able to COPY --from= this image, because the variable doesn't
-# seem to be expended in --form arg of COPY :(
-FROM --platform=linux/amd64 ${ARM_BUILDER_IMAGE} AS build-arm64
-
-ARG RUST_RELEASE_MODE
-ARG CARGO_BUILD_FEATURES
-ARG RUSTFLAGS
-
-WORKDIR /home/lemmy/src
-USER 10001:10001
-
-COPY --chown=lemmy:lemmy . ./
-
-ENV PATH="/home/lemmy/.cargo/bin:${PATH}"
-ENV RUST_RELEASE_MODE=${RUST_RELEASE_MODE} \
-    CARGO_BUILD_FEATURES=${CARGO_BUILD_FEATURES}
-
-# Debug build
-RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
-    if [ "${RUST_RELEASE_MODE}" = "debug" ]; then \
-        cargo build --features "${CARGO_BUILD_FEATURES}"; \
-        mv "./target/$CARGO_BUILD_TARGET/$RUST_RELEASE_MODE/lemmy_server" /home/lemmy/lemmy_server; \
-    fi
+COPY . .
 
 # Release build
-RUN --mount=type=cache,target=./target,uid=10001,gid=10001 set -ex; \
-    if [ "${RUST_RELEASE_MODE}" = "release" ]; then \
-        cargo clean --release; \
-        cargo build --features "${CARGO_BUILD_FEATURES}" --release; \
-        mv "./target/$CARGO_BUILD_TARGET/$RUST_RELEASE_MODE/lemmy_server" /home/lemmy/lemmy_server; \
-    fi
 
-# amd64 base runner
-FROM ${AMD_RUNNER_IMAGE} AS runner-linux-amd64
+RUN if [ "${RUST_RELEASE_MODE}" = "release" ]; \
+  then \
+  cargo build --features "${CARGO_BUILD_FEATURES}" --release; \
+  mv target/release/lemmy_server .; \
+  else \
+  cargo build --features "${CARGO_BUILD_FEATURES}"; \
+  mv target/debug/lemmy_server .; \
+  fi 
+
+# Runner
+FROM ${RUNNER_IMAGE} AS runner
 
 # Add system packages that are needed: federation needs CA certificates, curl can be used for healthchecks
 RUN apt update && apt install -y libssl-dev libpq-dev ca-certificates curl git
 
-COPY --from=build-amd64 --chmod=0755 /lemmy/lemmy_server /usr/local/bin
-
-# arm base runner
-FROM ${ARM_RUNNER_IMAGE} AS runner-linux-arm64
-
-RUN apt update && apt install -y libssl-dev libpq-dev ca-certificates curl git
-
-COPY --from=build-arm64 --chmod=0755 /home/lemmy/lemmy_server /usr/local/bin
-
-# Final image that use a base runner based on the target OS and ARCH
-FROM runner-${TARGETOS}-${TARGETARCH}
+COPY --from=builder --chmod=0755 /lemmy/lemmy_server /usr/local/bin
 
 LABEL org.opencontainers.image.authors="The Lemmy Authors"
 LABEL org.opencontainers.image.source="https://github.com/LemmyNet/lemmy"
@@ -102,7 +67,7 @@ ARG GID
 ARG UID
 
 RUN groupadd -g ${GID} -o ${UNAME} && \
-    useradd -m -u ${UID} -g ${GID} -o -s /bin/bash ${UNAME}
+  useradd -m -u ${UID} -g ${GID} -o -s /bin/bash ${UNAME}
 USER $UNAME
 
 ENTRYPOINT ["lemmy_server"]

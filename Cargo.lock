@@ -3150,7 +3150,7 @@ checksum = "09edd9e8b54e49e587e4f6295a7d29c3ea94d469cb40ab8ca70b288248a81db2"
 
 [[package]]
 name = "lemmy_api"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -3166,7 +3166,7 @@ dependencies = [
  "lemmy_api_crud",
  "lemmy_api_utils",
  "lemmy_apub_objects",
- "lemmy_db_schema 1.0.0-alpha.12",
+ "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_schema_file",
  "lemmy_db_views_comment",
  "lemmy_db_views_community",
@@ -3190,7 +3190,7 @@ dependencies = [
  "lemmy_db_views_vote",
  "lemmy_diesel_utils",
  "lemmy_email",
- "lemmy_utils 1.0.0-alpha.12",
+ "lemmy_utils 1.0.0-test-arm-qemu.0",
  "pretty_assertions",
  "regex",
  "serde",
@@ -3230,9 +3230,9 @@ dependencies = [
 
 [[package]]
 name = "lemmy_api_common"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
- "lemmy_db_schema 1.0.0-alpha.12",
+ "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_schema_file",
  "lemmy_db_views_comment",
  "lemmy_db_views_community",
@@ -3257,12 +3257,12 @@ dependencies = [
  "lemmy_db_views_site",
  "lemmy_db_views_vote",
  "lemmy_diesel_utils",
- "lemmy_utils 1.0.0-alpha.12",
+ "lemmy_utils 1.0.0-test-arm-qemu.0",
 ]
 
 [[package]]
 name = "lemmy_api_crud"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "accept-language",
  "activitypub_federation",
@@ -3275,7 +3275,7 @@ dependencies = [
  "futures-util",
  "lemmy_api_utils",
  "lemmy_apub_objects",
- "lemmy_db_schema 1.0.0-alpha.12",
+ "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_schema_file",
  "lemmy_db_views_comment",
  "lemmy_db_views_community",
@@ -3291,7 +3291,7 @@ dependencies = [
  "lemmy_db_views_site",
  "lemmy_diesel_utils",
  "lemmy_email",
- "lemmy_utils 1.0.0-alpha.12",
+ "lemmy_utils 1.0.0-test-arm-qemu.0",
  "regex",
  "serde",
  "serde_json",
@@ -3302,18 +3302,18 @@ dependencies = [
 
 [[package]]
 name = "lemmy_api_routes"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "actix-web",
  "lemmy_api",
  "lemmy_api_crud",
  "lemmy_routes",
- "lemmy_utils 1.0.0-alpha.12",
+ "lemmy_utils 1.0.0-test-arm-qemu.0",
 ]
 
 [[package]]
 name = "lemmy_api_routes_v3"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -3322,7 +3322,7 @@ dependencies = [
  "lemmy_api_common 0.19.14",
  "lemmy_api_crud",
  "lemmy_api_utils",
- "lemmy_db_schema 1.0.0-alpha.12",
+ "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_schema_file",
  "lemmy_db_views_comment",
  "lemmy_db_views_community",
@@ -3334,13 +3334,13 @@ dependencies = [
  "lemmy_db_views_search_combined",
  "lemmy_db_views_site",
  "lemmy_diesel_utils",
- "lemmy_utils 1.0.0-alpha.12",
+ "lemmy_utils 1.0.0-test-arm-qemu.0",
  "url",
 ]
 
 [[package]]
 name = "lemmy_api_utils"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -3358,7 +3358,7 @@ dependencies = [
  "futures",
  "infer 0.19.0",
  "jsonwebtoken",
- "lemmy_db_schema 1.0.0-alpha.12",
+ "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_schema_file",
  "lemmy_db_views_comment",
  "lemmy_db_views_community",
@@ -3373,7 +3373,7 @@ dependencies = [
  "lemmy_db_views_site",
  "lemmy_diesel_utils",
  "lemmy_email",
- "lemmy_utils 1.0.0-alpha.12",
+ "lemmy_utils 1.0.0-test-arm-qemu.0",
  "mime",
  "mime_guess",
  "moka",
@@ -3394,7 +3394,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_apub"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -3405,14 +3405,14 @@ dependencies = [
  "lemmy_api_utils",
  "lemmy_apub_activities",
  "lemmy_apub_objects",
- "lemmy_db_schema 1.0.0-alpha.12",
+ "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_schema_file",
  "lemmy_db_views_community_follower",
  "lemmy_db_views_community_follower_approval",
  "lemmy_db_views_community_moderator",
  "lemmy_db_views_post",
  "lemmy_diesel_utils",
- "lemmy_utils 1.0.0-alpha.12",
+ "lemmy_utils 1.0.0-test-arm-qemu.0",
  "pretty_assertions",
  "serde",
  "serde_json",
@@ -3424,7 +3424,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_apub_activities"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "activitypub_federation",
  "anyhow",
@@ -3437,7 +3437,7 @@ dependencies = [
  "futures-util",
  "lemmy_api_utils",
  "lemmy_apub_objects",
- "lemmy_db_schema 1.0.0-alpha.12",
+ "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_schema_file",
  "lemmy_db_views_community",
  "lemmy_db_views_community_moderator",
@@ -3446,7 +3446,7 @@ dependencies = [
  "lemmy_db_views_private_message",
  "lemmy_db_views_site",
  "lemmy_diesel_utils",
- "lemmy_utils 1.0.0-alpha.12",
+ "lemmy_utils 1.0.0-test-arm-qemu.0",
  "serde",
  "serde_json",
  "serde_with",
@@ -3458,7 +3458,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_apub_objects"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "activitypub_federation",
  "anyhow",
@@ -3472,14 +3472,14 @@ dependencies = [
  "html2text",
  "itertools",
  "lemmy_api_utils",
- "lemmy_db_schema 1.0.0-alpha.12",
+ "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_schema_file",
  "lemmy_db_views_community_moderator",
  "lemmy_db_views_local_user",
  "lemmy_db_views_private_message",
  "lemmy_db_views_site",
  "lemmy_diesel_utils",
- "lemmy_utils 1.0.0-alpha.12",
+ "lemmy_utils 1.0.0-test-arm-qemu.0",
  "moka",
  "pretty_assertions",
  "regex",
@@ -3496,7 +3496,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_apub_send"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -3509,11 +3509,11 @@ dependencies = [
  "futures",
  "lemmy_api_utils",
  "lemmy_apub_objects",
- "lemmy_db_schema 1.0.0-alpha.12",
+ "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_schema_file",
  "lemmy_db_views_community_follower",
  "lemmy_diesel_utils",
- "lemmy_utils 1.0.0-alpha.12",
+ "lemmy_utils 1.0.0-test-arm-qemu.0",
  "mockall",
  "moka",
  "reqwest 0.13.1",
@@ -3552,7 +3552,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_schema"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "bcrypt",
  "chrono",
@@ -3565,7 +3565,7 @@ dependencies = [
  "i-love-jesus",
  "lemmy_db_schema_file",
  "lemmy_diesel_utils",
- "lemmy_utils 1.0.0-alpha.12",
+ "lemmy_utils 1.0.0-test-arm-qemu.0",
  "moka",
  "pretty_assertions",
  "serde",
@@ -3580,7 +3580,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_schema_file"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "diesel",
  "diesel-derive-enum",
@@ -3619,18 +3619,18 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_comment"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "chrono",
  "diesel",
  "diesel-async",
  "diesel_ltree",
  "i-love-jesus",
- "lemmy_db_schema 1.0.0-alpha.12",
+ "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_schema_file",
  "lemmy_db_views_local_user",
  "lemmy_diesel_utils",
- "lemmy_utils 1.0.0-alpha.12",
+ "lemmy_utils 1.0.0-test-arm-qemu.0",
  "pretty_assertions",
  "serde",
  "serde_with",
@@ -3641,16 +3641,16 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_community"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "diesel",
  "diesel-async",
  "i-love-jesus",
- "lemmy_db_schema 1.0.0-alpha.12",
+ "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_schema_file",
  "lemmy_db_views_community_moderator",
  "lemmy_diesel_utils",
- "lemmy_utils 1.0.0-alpha.12",
+ "lemmy_utils 1.0.0-test-arm-qemu.0",
  "serde",
  "serde_with",
  "serial_test",
@@ -3661,15 +3661,15 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_community_follower"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "chrono",
  "diesel",
  "diesel-async",
- "lemmy_db_schema 1.0.0-alpha.12",
+ "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_schema_file",
  "lemmy_diesel_utils",
- "lemmy_utils 1.0.0-alpha.12",
+ "lemmy_utils 1.0.0-test-arm-qemu.0",
  "serde",
  "serde_with",
  "ts-rs",
@@ -3677,15 +3677,15 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_community_follower_approval"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "diesel",
  "diesel-async",
  "i-love-jesus",
- "lemmy_db_schema 1.0.0-alpha.12",
+ "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_schema_file",
  "lemmy_diesel_utils",
- "lemmy_utils 1.0.0-alpha.12",
+ "lemmy_utils 1.0.0-test-arm-qemu.0",
  "serde",
  "serde_with",
  "serial_test",
@@ -3695,28 +3695,28 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_community_moderator"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "diesel",
  "diesel-async",
- "lemmy_db_schema 1.0.0-alpha.12",
+ "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_schema_file",
  "lemmy_diesel_utils",
- "lemmy_utils 1.0.0-alpha.12",
+ "lemmy_utils 1.0.0-test-arm-qemu.0",
  "serde",
  "ts-rs",
 ]
 
 [[package]]
 name = "lemmy_db_views_custom_emoji"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "diesel",
  "diesel-async",
- "lemmy_db_schema 1.0.0-alpha.12",
+ "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_schema_file",
  "lemmy_diesel_utils",
- "lemmy_utils 1.0.0-alpha.12",
+ "lemmy_utils 1.0.0-test-arm-qemu.0",
  "serde",
  "serde_with",
  "ts-rs",
@@ -3724,15 +3724,15 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_local_image"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "diesel",
  "diesel-async",
  "i-love-jesus",
- "lemmy_db_schema 1.0.0-alpha.12",
+ "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_schema_file",
  "lemmy_diesel_utils",
- "lemmy_utils 1.0.0-alpha.12",
+ "lemmy_utils 1.0.0-test-arm-qemu.0",
  "serde",
  "serde_with",
  "ts-rs",
@@ -3741,17 +3741,17 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_local_user"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "actix-web",
  "chrono",
  "diesel",
  "diesel-async",
  "i-love-jesus",
- "lemmy_db_schema 1.0.0-alpha.12",
+ "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_schema_file",
  "lemmy_diesel_utils",
- "lemmy_utils 1.0.0-alpha.12",
+ "lemmy_utils 1.0.0-test-arm-qemu.0",
  "pretty_assertions",
  "serde",
  "serde_with",
@@ -3773,15 +3773,15 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_modlog"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "diesel",
  "diesel-async",
  "i-love-jesus",
- "lemmy_db_schema 1.0.0-alpha.12",
+ "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_schema_file",
  "lemmy_diesel_utils",
- "lemmy_utils 1.0.0-alpha.12",
+ "lemmy_utils 1.0.0-test-arm-qemu.0",
  "pretty_assertions",
  "serde",
  "serde_with",
@@ -3792,13 +3792,13 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_notification"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "chrono",
  "diesel",
  "diesel-async",
  "i-love-jesus",
- "lemmy_db_schema 1.0.0-alpha.12",
+ "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_schema_file",
  "lemmy_db_views_comment",
  "lemmy_db_views_modlog",
@@ -3806,7 +3806,7 @@ dependencies = [
  "lemmy_db_views_post",
  "lemmy_db_views_private_message",
  "lemmy_diesel_utils",
- "lemmy_utils 1.0.0-alpha.12",
+ "lemmy_utils 1.0.0-test-arm-qemu.0",
  "pretty_assertions",
  "serde",
  "serde_with",
@@ -3817,7 +3817,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_notification_sql"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "diesel",
  "lemmy_db_schema_file",
@@ -3825,17 +3825,17 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_person"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "chrono",
  "diesel",
  "diesel-async",
- "lemmy_db_schema 1.0.0-alpha.12",
+ "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_schema_file",
  "lemmy_db_views_community",
  "lemmy_db_views_community_moderator",
  "lemmy_diesel_utils",
- "lemmy_utils 1.0.0-alpha.12",
+ "lemmy_utils 1.0.0-test-arm-qemu.0",
  "pretty_assertions",
  "serde",
  "serde_with",
@@ -3846,18 +3846,18 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_person_content_combined"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "derive-new",
  "diesel",
  "diesel-async",
  "i-love-jesus",
- "lemmy_db_schema 1.0.0-alpha.12",
+ "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_schema_file",
  "lemmy_db_views_local_user",
  "lemmy_db_views_post_comment_combined",
  "lemmy_diesel_utils",
- "lemmy_utils 1.0.0-alpha.12",
+ "lemmy_utils 1.0.0-test-arm-qemu.0",
  "pretty_assertions",
  "serde",
  "serde_with",
@@ -3868,17 +3868,17 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_person_liked_combined"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "diesel",
  "diesel-async",
  "i-love-jesus",
- "lemmy_db_schema 1.0.0-alpha.12",
+ "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_schema_file",
  "lemmy_db_views_local_user",
  "lemmy_db_views_post_comment_combined",
  "lemmy_diesel_utils",
- "lemmy_utils 1.0.0-alpha.12",
+ "lemmy_utils 1.0.0-test-arm-qemu.0",
  "pretty_assertions",
  "serde",
  "serde_with",
@@ -3889,17 +3889,17 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_person_saved_combined"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "diesel",
  "diesel-async",
  "i-love-jesus",
- "lemmy_db_schema 1.0.0-alpha.12",
+ "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_schema_file",
  "lemmy_db_views_local_user",
  "lemmy_db_views_post_comment_combined",
  "lemmy_diesel_utils",
- "lemmy_utils 1.0.0-alpha.12",
+ "lemmy_utils 1.0.0-test-arm-qemu.0",
  "pretty_assertions",
  "serde",
  "serde_with",
@@ -3910,18 +3910,18 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_post"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "chrono",
  "diesel",
  "diesel-async",
  "diesel-uplete",
  "i-love-jesus",
- "lemmy_db_schema 1.0.0-alpha.12",
+ "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_schema_file",
  "lemmy_db_views_local_user",
  "lemmy_diesel_utils",
- "lemmy_utils 1.0.0-alpha.12",
+ "lemmy_utils 1.0.0-test-arm-qemu.0",
  "pretty_assertions",
  "serde",
  "serde_with",
@@ -3935,11 +3935,11 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_post_comment_combined"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "chrono",
  "diesel",
- "lemmy_db_schema 1.0.0-alpha.12",
+ "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_views_comment",
  "lemmy_db_views_post",
  "serde",
@@ -3948,31 +3948,31 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_private_message"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "diesel",
  "diesel-async",
- "lemmy_db_schema 1.0.0-alpha.12",
+ "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_schema_file",
  "lemmy_diesel_utils",
- "lemmy_utils 1.0.0-alpha.12",
+ "lemmy_utils 1.0.0-test-arm-qemu.0",
  "serde",
  "ts-rs",
 ]
 
 [[package]]
 name = "lemmy_db_views_registration_applications"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "diesel",
  "diesel-async",
  "extism",
  "extism-convert",
  "i-love-jesus",
- "lemmy_db_schema 1.0.0-alpha.12",
+ "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_schema_file",
  "lemmy_diesel_utils",
- "lemmy_utils 1.0.0-alpha.12",
+ "lemmy_utils 1.0.0-test-arm-qemu.0",
  "pretty_assertions",
  "serde",
  "serde_with",
@@ -3983,18 +3983,18 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_report_combined"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "chrono",
  "diesel",
  "diesel-async",
  "i-love-jesus",
- "lemmy_db_schema 1.0.0-alpha.12",
+ "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_schema_file",
  "lemmy_db_views_local_user",
  "lemmy_db_views_report_combined_sql",
  "lemmy_diesel_utils",
- "lemmy_utils 1.0.0-alpha.12",
+ "lemmy_utils 1.0.0-test-arm-qemu.0",
  "pretty_assertions",
  "serde",
  "serde_with",
@@ -4005,7 +4005,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_report_combined_sql"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "diesel",
  "lemmy_db_schema_file",
@@ -4013,13 +4013,13 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_search_combined"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "chrono",
  "diesel",
  "diesel-async",
  "i-love-jesus",
- "lemmy_db_schema 1.0.0-alpha.12",
+ "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_schema_file",
  "lemmy_db_views_comment",
  "lemmy_db_views_community",
@@ -4027,7 +4027,7 @@ dependencies = [
  "lemmy_db_views_person",
  "lemmy_db_views_post",
  "lemmy_diesel_utils",
- "lemmy_utils 1.0.0-alpha.12",
+ "lemmy_utils 1.0.0-test-arm-qemu.0",
  "pretty_assertions",
  "serde",
  "serde_with",
@@ -4039,7 +4039,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_site"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "anyhow",
  "chrono",
@@ -4048,7 +4048,7 @@ dependencies = [
  "extism",
  "extism-convert",
  "i-love-jesus",
- "lemmy_db_schema 1.0.0-alpha.12",
+ "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_schema_file",
  "lemmy_db_views_community",
  "lemmy_db_views_community_follower",
@@ -4056,7 +4056,7 @@ dependencies = [
  "lemmy_db_views_local_user",
  "lemmy_db_views_person",
  "lemmy_diesel_utils",
- "lemmy_utils 1.0.0-alpha.12",
+ "lemmy_utils 1.0.0-test-arm-qemu.0",
  "serde",
  "serde_with",
  "serial_test",
@@ -4067,15 +4067,15 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_vote"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "diesel",
  "diesel-async",
  "i-love-jesus",
- "lemmy_db_schema 1.0.0-alpha.12",
+ "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_schema_file",
  "lemmy_diesel_utils",
- "lemmy_utils 1.0.0-alpha.12",
+ "lemmy_utils 1.0.0-test-arm-qemu.0",
  "pretty_assertions",
  "serde",
  "serde_with",
@@ -4086,7 +4086,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_diesel_utils"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "activitypub_federation",
  "anyhow",
@@ -4103,7 +4103,7 @@ dependencies = [
  "i-love-jesus",
  "itertools",
  "lemmy_db_schema_file",
- "lemmy_utils 1.0.0-alpha.12",
+ "lemmy_utils 1.0.0-test-arm-qemu.0",
  "pathfinding",
  "pretty_assertions",
  "rustls 0.23.35",
@@ -4122,14 +4122,14 @@ dependencies = [
 
 [[package]]
 name = "lemmy_email"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "html2text",
- "lemmy_db_schema 1.0.0-alpha.12",
+ "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_schema_file",
  "lemmy_db_views_local_user",
  "lemmy_diesel_utils",
- "lemmy_utils 1.0.0-alpha.12",
+ "lemmy_utils 1.0.0-test-arm-qemu.0",
  "lettre",
  "rosetta-build",
  "rosetta-i18n",
@@ -4138,7 +4138,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_routes"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "activitypub_federation",
  "actix-cors",
@@ -4153,7 +4153,7 @@ dependencies = [
  "futures-util",
  "http 1.4.0",
  "lemmy_api_utils",
- "lemmy_db_schema 1.0.0-alpha.12",
+ "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_schema_file",
  "lemmy_db_views_community",
  "lemmy_db_views_local_image",
@@ -4165,7 +4165,7 @@ dependencies = [
  "lemmy_db_views_site",
  "lemmy_diesel_utils",
  "lemmy_email",
- "lemmy_utils 1.0.0-alpha.12",
+ "lemmy_utils 1.0.0-test-arm-qemu.0",
  "percent-encoding",
  "pretty_assertions",
  "prometheus",
@@ -4184,7 +4184,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_server"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -4197,11 +4197,11 @@ dependencies = [
  "lemmy_apub_activities",
  "lemmy_apub_objects",
  "lemmy_apub_send",
- "lemmy_db_schema 1.0.0-alpha.12",
+ "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_views_site",
  "lemmy_diesel_utils",
  "lemmy_routes",
- "lemmy_utils 1.0.0-alpha.12",
+ "lemmy_utils 1.0.0-test-arm-qemu.0",
  "mimalloc",
  "reqwest-middleware",
  "reqwest-tracing",
@@ -4228,7 +4228,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_utils"
-version = "1.0.0-alpha.12"
+version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "actix-extensible-rate-limit",
  "actix-web",
