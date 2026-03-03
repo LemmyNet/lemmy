@@ -32,7 +32,7 @@ use lemmy_apub_objects::{
     instance::ApubSite,
     person::ApubPerson,
   },
-  utils::functions::{verify_mod_action, verify_person_in_site_or_community},
+  utils::functions::{verify_person_in_community, verify_person_in_site_or_community},
 };
 use lemmy_db_schema::{
   source::{
@@ -102,15 +102,19 @@ impl Activity for Report {
     verify_person_in_site_or_community(&self.actor, &receiver, context).await?;
     match self.object.dereference(context).await? {
       ReportableObjects::Left(PostOrComment::Left(post)) => {
-        let community = Community::read(&mut context.pool(), post.community_id).await?;
+        let community: ApubCommunity = Community::read(&mut context.pool(), post.community_id)
+          .await?
+          .into();
         check_community_deleted_or_removed(&community)?;
-        verify_mod_action(&self.actor, &community, context).await?;
+        verify_person_in_community(&self.actor, &community, context).await?;
         check_post_deleted_or_removed(&post)?;
       }
       ReportableObjects::Left(PostOrComment::Right(comment)) => {
         let post = Post::read(&mut context.pool(), comment.post_id).await?;
-        let community = Community::read(&mut context.pool(), post.community_id).await?;
-        verify_mod_action(&self.actor, &community, context).await?;
+        let community: ApubCommunity = Community::read(&mut context.pool(), post.community_id)
+          .await?
+          .into();
+        verify_person_in_community(&self.actor, &community, context).await?;
         check_community_deleted_or_removed(&community)?;
         check_comment_deleted_or_removed(&comment)?;
       }
