@@ -15,7 +15,10 @@ use lemmy_db_views_local_user::LocalUserView;
 use lemmy_diesel_utils::{traits::Crud, utils::diesel_string_update};
 use lemmy_utils::{
   error::LemmyResult,
-  utils::validation::{is_valid_body_field, is_valid_display_name},
+  utils::{
+    slurs::{check_slurs, check_slurs_opt},
+    validation::{is_valid_body_field, is_valid_display_name},
+  },
 };
 
 pub async fn edit_multi_community(
@@ -26,13 +29,14 @@ pub async fn edit_multi_community(
   let multi_community_id = data.id;
   let my_person_id = local_user_view.person.id;
   check_local_user_valid(&local_user_view)?;
+
+  let slur_regex = slur_regex(&context).await?;
+  let url_blocklist = get_url_blocklist(&context).await?;
+
   check_slurs_opt(&data.summary, &slur_regex)?;
 
   let orig_multi = MultiCommunity::read(&mut context.pool(), data.id).await?;
   check_multi_community_creator(&orig_multi, &local_user_view)?;
-
-  let slur_regex = slur_regex(&context).await?;
-  let url_blocklist = get_url_blocklist(&context).await?;
 
   let title = data.title.as_ref().map(|x| x.trim().to_string());
   if let Some(title) = &title {
