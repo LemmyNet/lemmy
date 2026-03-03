@@ -4042,7 +4042,6 @@ name = "lemmy_db_views_site"
 version = "1.0.0-test-arm-qemu.0"
 dependencies = [
  "anyhow",
- "chrono",
  "diesel",
  "diesel-async",
  "extism",
