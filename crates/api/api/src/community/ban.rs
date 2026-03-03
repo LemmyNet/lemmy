@@ -86,6 +86,7 @@ pub async fn ban_from_community(
         let action = Modlog::create(&mut conn.into(), &[form]).await?;
 
         // Remove/Restore their data if that's desired
+        let ban_id = action.first().ok_or(LemmyErrorType::NotFound)?.id;
         if tx_data.remove_or_restore_data.unwrap_or(false) {
           let remove_data = tx_data.ban;
           remove_or_restore_user_data_in_community(
@@ -94,7 +95,7 @@ pub async fn ban_from_community(
             banned_person_id,
             remove_data,
             &tx_data.reason,
-            action.first().ok_or(LemmyErrorType::NotFound)?.id,
+            ban_id,
             &mut conn.into(),
           )
           .await?;

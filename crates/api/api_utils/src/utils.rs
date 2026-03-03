@@ -668,6 +668,7 @@ async fn create_modlog_entries_for_removed_or_restored_comments_in_community(
   community_id: CommunityId,
   removed: bool,
   reason: &str,
+  bulk_action_parent_id: ModlogId,
 ) -> LemmyResult<()> {
   // Build the forms
   let forms: Vec<_> = comments
@@ -679,7 +680,7 @@ async fn create_modlog_entries_for_removed_or_restored_comments_in_community(
         community_id,
         removed,
         reason,
-        None,
+        Some(bulk_action_parent_id),
       )
     })
     .collect();
@@ -732,6 +733,7 @@ pub async fn remove_or_restore_user_data_in_community(
     community_id,
     remove,
     reason,
+    bulk_action_parent_id,
   )
   .await?;
 

@@ -146,7 +146,8 @@ impl Activity for BlockUser {
         let form =
           ModlogInsertForm::admin_ban(&mod_person, blocked_person.id, true, expires_at, &reason);
         let action = Modlog::create(&mut context.pool(), &[form]).await?;
-        notify_mod_action(action.clone(), context);
+        let parent_id = action.first().ok_or(LemmyErrorType::NotFound)?.id;
+        notify_mod_action(action, context);
 
         if self.remove_data.unwrap_or(false) {
           if blocked_person.instance_id == site.instance_id {
@@ -156,7 +157,7 @@ impl Activity for BlockUser {
               blocked_person.id,
               true,
               &reason,
-              action.first().ok_or(LemmyErrorType::NotFound)?.id,
+              parent_id,
               context,
             )
             .await?;
@@ -186,7 +187,8 @@ impl Activity for BlockUser {
           &reason,
         );
         let action = Modlog::create(&mut context.pool(), &[form]).await?;
-        notify_mod_action(action.clone(), context);
+        let parent_id = action.first().ok_or(LemmyErrorType::NotFound)?.id;
+        notify_mod_action(action, context);
 
         if self.remove_data.unwrap_or(false) {
           remove_or_restore_user_data_in_community(
@@ -195,7 +197,7 @@ impl Activity for BlockUser {
             blocked_person.id,
             true,
             &reason,
-            action.first().ok_or(LemmyErrorType::NotFound)?.id,
+            parent_id,
             &mut context.pool(),
           )
           .await?;
