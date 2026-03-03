@@ -36,7 +36,16 @@ use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::{sensitive::SensitiveString, traits::Crud};
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType, LemmyResult},
-  utils::{markdown::markdown_to_html, slurs::remove_slurs, validation::truncate_summary},
+  utils::{
+    markdown::markdown_to_html,
+    slurs::remove_slurs,
+    validation::{
+      is_valid_body_field,
+      is_valid_display_name,
+      summary_length_check,
+      truncate_summary,
+    },
+  },
 };
 use regex::RegexSet;
 use std::ops::Deref;
@@ -135,6 +144,9 @@ impl Object for ApubMultiCommunity {
     let sidebar = read_from_string_or_source_opt(&json.summary, &None, &json.source);
     let sidebar = process_markdown_opt(&sidebar, &slur_regex, &url_blocklist, context).await?;
     let sidebar = markdown_rewrite_remote_links_opt(sidebar, context).await;
+    if let Some(sidebar) = &sidebar {
+      is_valid_body_field(sidebar, false)?;
+    }
 
     let summary = json
       .content
@@ -142,9 +154,15 @@ impl Object for ApubMultiCommunity {
       .as_deref()
       .map(truncate_summary)
       .map(|s| remove_slurs(&s, &slur_regex));
+    if let Some(summary) = &summary {
+      summary_length_check(summary)?;
+    }
 
     let name = json.preferred_username.clone();
     let title = json.name.map(|t| remove_slurs(&t, &slur_regex));
+    if let Some(title) = &title {
+      is_valid_display_name(title)?;
+    }
 
     let form = MultiCommunityInsertForm {
       creator_id: creator.id,
