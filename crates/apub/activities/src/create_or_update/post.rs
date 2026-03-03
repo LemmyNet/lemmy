@@ -8,7 +8,7 @@ use crate::{
 };
 use activitypub_federation::{
   config::Data,
-  protocol::verification::{verify_domains_match, verify_is_remote_object, verify_urls_match},
+  protocol::verification::{verify_domains_match, verify_urls_match},
   traits::{Activity, Object},
 };
 use chrono::Utc;
@@ -35,7 +35,7 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::PersonId;
 use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::traits::Crud;
-use lemmy_utils::error::{LemmyError, LemmyResult};
+use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
 use url::Url;
 
 impl CreateOrUpdatePage {
@@ -95,7 +95,6 @@ impl Activity for CreateOrUpdatePage {
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     let community = self.community(context).await?;
     verify_visibility(&self.to, &self.cc, &community)?;
-    verify_person_in_community(&self.actor, &community, context).await?;
     check_community_deleted_or_removed(&community)?;
     verify_domains_match(self.actor.inner(), self.object.id.inner())?;
     ApubPost::verify(&self.object, self.actor.inner(), context).await?;
@@ -103,34 +102,33 @@ impl Activity for CreateOrUpdatePage {
   }
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    if verify_urls_match(self.actor.inner(), self.object.creator()?.inner()).is_err()
-      && verify_is_remote_object(&self.object.id, context).is_err()
-    {
-      if let Ok(post) = self.object.id.dereference_local(context).await {
-        post.set_not_pending(&mut context.pool()).await?;
+    let community = self.community(context).await?;
+    let is_same_actor =
+      verify_urls_match(self.actor.inner(), self.object.creator()?.inner()).is_ok();
+    let original_post =
+      Post::read_from_apub_id(&mut context.pool(), self.object.id.clone().into()).await;
+    let is_mod_action = verify_mod_action(&self.actor, &community, context)
+      .await
+      .is_ok();
+    // allow mods to edit the post
+    if !is_same_actor && let Ok(Some(post)) = original_post {
+      if is_mod_action {
+        let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
+        let form = PostUpdateForm {
+          updated_at: Some(Some(Utc::now())),
+          nsfw: post_nsfw(&self.object, &community, Some(&local_site), context).await?,
+          ..Default::default()
+        };
+        Post::update(&mut context.pool(), post.id, &form).await?;
+        update_apub_post_tags(&self.object, &post, context).await?;
+        return Ok(());
+      } else {
+        return Err(LemmyErrorType::NotAModerator.into());
       }
+    }
 
-      // allow mods to edit the post
-      if let Ok(Some(post)) =
-        Post::read_from_apub_id(&mut context.pool(), self.object.id.clone().into()).await
-      {
-        let community = Community::read(&mut context.pool(), post.community_id).await?;
-        if verify_mod_action(&self.actor, &community, context)
-          .await
-          .is_ok()
-        {
-          let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
-          let form = PostUpdateForm {
-            updated_at: Some(Some(Utc::now())),
-            nsfw: post_nsfw(&self.object, &community, Some(&local_site), context).await?,
-            ..Default::default()
-          };
-          Post::update(&mut context.pool(), post.id, &form).await?;
-          update_apub_post_tags(&self.object, &post, context).await?;
-        }
-      }
-
-      return Ok(());
+    if !is_mod_action {
+      verify_person_in_community(&self.actor, &community, context).await?;
     }
 
     verify_urls_match(self.actor.inner(), self.object.creator()?.inner())?;
@@ -149,12 +147,10 @@ impl Activity for CreateOrUpdatePage {
       self.kind == CreateOrUpdateType::Create && !site_view.local_site.disable_email_notifications;
     let actor = self.actor.dereference(context).await?;
 
-    let community = Community::read(&mut context.pool(), post.community_id).await?;
-
     NotifyData {
       apub_mentions: Some(parse_apub_mentions(&self.object.tag, context).await?),
       do_send_email,
-      ..NotifyData::new(post.0, actor.0, community)
+      ..NotifyData::new(post.0, actor.0, community.0)
     }
     .send(context);
 

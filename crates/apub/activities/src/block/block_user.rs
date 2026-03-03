@@ -3,6 +3,7 @@ use crate::{
   MOD_ACTION_DEFAULT_REASON,
   activity_lists::AnnouncableActivities,
   block::{SiteOrCommunity, generate_cc},
+  check_community_deleted_or_removed,
   community::send_activity_in_community,
   generate_activity_id,
   protocol::block::block_user::BlockUser,
@@ -21,12 +22,7 @@ use lemmy_api_utils::{
 };
 use lemmy_apub_objects::{
   objects::person::ApubPerson,
-  utils::functions::{
-    verify_is_public,
-    verify_mod_action,
-    verify_person_in_community,
-    verify_visibility,
-  },
+  utils::functions::{verify_is_public, verify_mod_action, verify_visibility},
 };
 use lemmy_db_schema::{
   source::{
@@ -120,8 +116,8 @@ impl Activity for BlockUser {
       }
       SiteOrCommunity::Right(community) => {
         verify_visibility(&self.to, &self.cc, &community)?;
-        verify_person_in_community(&self.actor, &community, context).await?;
         verify_mod_action(&self.actor, &community, context).await?;
+        check_community_deleted_or_removed(&community)?;
       }
     }
     Ok(())

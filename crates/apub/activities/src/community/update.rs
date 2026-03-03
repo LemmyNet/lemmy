@@ -1,4 +1,5 @@
 use crate::{
+  check_community_deleted_or_removed,
   community::{AnnouncableActivities, send_activity_in_community},
   generate_activity_id,
   protocol::community::update::Update,
@@ -14,7 +15,7 @@ use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
   objects::{community::ApubCommunity, multi_community::ApubMultiCommunity, person::ApubPerson},
   utils::{
-    functions::{generate_to, verify_mod_action, verify_person_in_community, verify_visibility},
+    functions::{generate_to, verify_mod_action, verify_visibility},
     protocol::InCommunity,
   },
 };
@@ -100,8 +101,8 @@ impl Activity for Update {
       Either::Left(c) => {
         let community = self.community(context).await?;
         verify_visibility(&self.to, &self.cc, &community)?;
-        verify_person_in_community(&self.actor, &community, context).await?;
         verify_mod_action(&self.actor, &community, context).await?;
+        check_community_deleted_or_removed(&community)?;
         ApubCommunity::verify(c, &community.ap_id.clone().into(), context).await?;
       }
       Either::Right(m) => ApubMultiCommunity::verify(m, &self.id, context).await?,

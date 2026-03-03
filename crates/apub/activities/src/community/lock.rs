@@ -17,7 +17,7 @@ use lemmy_api_utils::{context::LemmyContext, notify::notify_mod_action};
 use lemmy_apub_objects::{
   objects::{PostOrComment, community::ApubCommunity},
   utils::{
-    functions::{generate_to, verify_mod_action, verify_person_in_community, verify_visibility},
+    functions::{generate_to, verify_mod_action, verify_visibility},
     protocol::InCommunity,
   },
 };
@@ -48,7 +48,6 @@ impl Activity for LockPageOrNote {
   async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
     let community = self.community(context).await?;
     verify_visibility(&self.to, &self.cc, &community)?;
-    verify_person_in_community(&self.actor, &community, context).await?;
     check_community_deleted_or_removed(&community)?;
     verify_mod_action(&self.actor, &community, context).await?;
     Ok(())
@@ -105,7 +104,6 @@ impl Activity for UndoLockPageOrNote {
   async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
     let community = self.object.community(context).await?;
     verify_visibility(&self.to, &self.cc, &community)?;
-    verify_person_in_community(&self.actor, &community, context).await?;
     check_community_deleted_or_removed(&community)?;
     verify_mod_action(&self.actor, &community, context).await?;
     Ok(())

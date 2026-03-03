@@ -1,6 +1,7 @@
 use super::{local_community, report_inboxes};
 use crate::{
   activity_lists::AnnouncableActivities,
+  check_community_deleted_or_removed,
   generate_activity_id,
   protocol::community::{
     announce::AnnounceActivity,
@@ -31,16 +32,19 @@ use lemmy_apub_objects::{
     instance::ApubSite,
     person::ApubPerson,
   },
-  utils::functions::verify_person_in_site_or_community,
+  utils::functions::{verify_person_in_community, verify_person_in_site_or_community},
 };
 use lemmy_db_schema::{
   source::{
     comment_report::{CommentReport, CommentReportForm},
+    community::Community,
     community_report::{CommunityReport, CommunityReportForm},
+    post::Post,
     post_report::{PostReport, PostReportForm},
   },
   traits::Reportable,
 };
+use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
@@ -96,6 +100,28 @@ impl Activity for Report {
   async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     let receiver = self.to[0].dereference(context).await?;
     verify_person_in_site_or_community(&self.actor, &receiver, context).await?;
+    match self.object.dereference(context).await? {
+      ReportableObjects::Left(PostOrComment::Left(post)) => {
+        let community: ApubCommunity = Community::read(&mut context.pool(), post.community_id)
+          .await?
+          .into();
+        check_community_deleted_or_removed(&community)?;
+        verify_person_in_community(&self.actor, &community, context).await?;
+        check_post_deleted_or_removed(&post)?;
+      }
+      ReportableObjects::Left(PostOrComment::Right(comment)) => {
+        let post = Post::read(&mut context.pool(), comment.post_id).await?;
+        let community: ApubCommunity = Community::read(&mut context.pool(), post.community_id)
+          .await?
+          .into();
+        verify_person_in_community(&self.actor, &community, context).await?;
+        check_community_deleted_or_removed(&community)?;
+        check_comment_deleted_or_removed(&comment)?;
+      }
+      ReportableObjects::Right(community) => {
+        check_community_deleted_removed(&community)?;
+      }
+    }
     Ok(())
   }
 
@@ -104,8 +130,6 @@ impl Activity for Report {
     let reason = self.reason()?;
     match self.object.dereference(context).await? {
       ReportableObjects::Left(PostOrComment::Left(post)) => {
-        check_post_deleted_or_removed(&post)?;
-
         let report_form = PostReportForm {
           creator_id: actor.id,
           post_id: post.id,
@@ -118,8 +142,6 @@ impl Activity for Report {
         PostReport::report(&mut context.pool(), &report_form).await?;
       }
       ReportableObjects::Left(PostOrComment::Right(comment)) => {
-        check_comment_deleted_or_removed(&comment)?;
-
         let report_form = CommentReportForm {
           creator_id: actor.id,
           comment_id: comment.id,
@@ -130,7 +152,6 @@ impl Activity for Report {
         CommentReport::report(&mut context.pool(), &report_form).await?;
       }
       ReportableObjects::Right(community) => {
-        check_community_deleted_removed(&community)?;
         let report_form = CommunityReportForm {
           creator_id: actor.id,
           community_id: community.id,

@@ -1,5 +1,6 @@
 use crate::{
   activity_lists::AnnouncableActivities,
+  check_community_deleted_or_removed,
   community::send_activity_in_community,
   protocol::deletion::{delete::Delete, undo_delete::UndoDelete},
   send_lemmy_activity,
@@ -264,10 +265,11 @@ async fn verify_delete_post_or_comment(
   is_mod_action: bool,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
-  verify_person_in_community(actor, community, context).await?;
+  check_community_deleted_or_removed(community)?;
   if is_mod_action {
     verify_mod_action(actor, community, context).await?;
   } else {
+    verify_person_in_community(actor, community, context).await?;
     // domain of post ap_id and post.creator ap_id are identical, so we just check the former
     verify_domains_match(actor.inner(), object_id)?;
   }
