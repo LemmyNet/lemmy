@@ -1,12 +1,12 @@
 -- This moves a few pictrs related settings in the config, to the database
 CREATE TYPE image_mode_enum AS enum (
-    'none',
-    'store_link_previews',
-    'proxy_all_images'
+    'None',
+    'StoreLinkPreviews',
+    'ProxyAllImages'
 );
 
 ALTER TABLE local_site
-    ADD COLUMN image_mode image_mode_enum NOT NULL DEFAULT 'proxy_all_images',
+    ADD COLUMN image_mode image_mode_enum NOT NULL DEFAULT 'ProxyAllImages',
     ADD COLUMN image_proxy_bypass_domains text,
     ADD COLUMN image_upload_timeout_seconds int NOT NULL DEFAULT 30,
     ADD COLUMN image_max_thumbnail_size int NOT NULL DEFAULT 512,
