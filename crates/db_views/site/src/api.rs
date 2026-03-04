@@ -24,6 +24,7 @@ use lemmy_db_schema_file::{
   enums::{
     CommentSortType,
     FederationMode,
+    ImageMode,
     ListingType,
     PostListingMode,
     PostSortType,
@@ -121,6 +122,7 @@ pub struct CreateSite {
   pub default_post_listing_mode: Option<PostListingMode>,
   pub default_post_sort_type: Option<PostSortType>,
   pub default_post_time_range_seconds: Option<i32>,
+  pub default_items_per_page: Option<i32>,
   pub default_comment_sort_type: Option<CommentSortType>,
   pub legal_information: Option<String>,
   pub application_email_admins: Option<bool>,
@@ -144,6 +146,8 @@ pub struct CreateSite {
   pub registration_mode: Option<RegistrationMode>,
   pub oauth_registration: Option<bool>,
   pub content_warning: Option<String>,
+  pub reports_email_admins: Option<bool>,
+  pub federation_signed_fetch: Option<bool>,
   pub post_upvotes: Option<FederationMode>,
   pub post_downvotes: Option<FederationMode>,
   pub comment_upvotes: Option<FederationMode>,
@@ -151,6 +155,15 @@ pub struct CreateSite {
   pub disallow_nsfw_content: Option<bool>,
   pub disable_email_notifications: Option<bool>,
   pub suggested_multi_community_id: Option<MultiCommunityId>,
+  pub image_mode: Option<ImageMode>,
+  pub image_proxy_bypass_domains: Option<String>,
+  pub image_upload_timeout_seconds: Option<i32>,
+  pub image_max_thumbnail_size: Option<i32>,
+  pub image_max_avatar_size: Option<i32>,
+  pub image_max_banner_size: Option<i32>,
+  pub image_max_upload_size: Option<i32>,
+  pub image_allow_video_uploads: Option<bool>,
+  pub image_upload_disabled: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -218,6 +231,9 @@ pub struct EditSite {
   pub legal_information: Option<String>,
   /// Whether to email admins when receiving a new application.
   pub application_email_admins: Option<bool>,
+  /// Whether to sign outgoing Activitypub fetches with private key of local instance. Some
+  /// Fediverse instances and platforms require this.
+  pub federation_signed_fetch: Option<bool>,
   /// A list of allowed discussion languages.
   pub discussion_languages: Option<Vec<LanguageId>>,
   /// A regex string of items to filter.
@@ -270,6 +286,20 @@ pub struct EditSite {
   /// A multicommunity with suggested communities which is shown on the homepage. Sending a zero
   /// erases this field.
   pub suggested_multi_community_id: Option<MultiCommunityId>,
+  /// A mode for setting how pictrs handles images.
+  pub image_mode: Option<ImageMode>,
+  /// Allows bypassing proxy for specific image hosts when using [[ImageMode.ProxyAllImages]]. Use
+  /// a comma-delimited string.
+  ///
+  /// Example: i.imgur.com,postimg.cc
+  pub image_proxy_bypass_domains: Option<String>,
+  pub image_upload_timeout_seconds: Option<i32>,
+  pub image_max_thumbnail_size: Option<i32>,
+  pub image_max_avatar_size: Option<i32>,
+  pub image_max_banner_size: Option<i32>,
+  pub image_max_upload_size: Option<i32>,
+  pub image_allow_video_uploads: Option<bool>,
+  pub image_upload_disabled: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
