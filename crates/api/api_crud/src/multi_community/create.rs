@@ -2,7 +2,7 @@ use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_utils::{
   context::LemmyContext,
-  utils::{check_local_user_valid, slur_regex},
+  utils::{check_local_user_valid, get_url_blocklist, process_markdown_opt, slur_regex},
 };
 use lemmy_db_schema::{
   source::multi_community::{MultiCommunity, MultiCommunityFollowForm, MultiCommunityInsertForm},
@@ -18,7 +18,15 @@ use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::{
   error::LemmyResult,
-  utils::{slurs::check_slurs, validation::is_valid_display_name},
+  utils::{
+    slurs::check_slurs,
+    validation::{
+      is_valid_actor_name,
+      is_valid_body_field,
+      is_valid_display_name,
+      summary_length_check,
+    },
+  },
 };
 use url::Url;
 
@@ -31,16 +39,40 @@ pub async fn create_multi_community(
   let site_view = SiteView::read_local(&mut context.pool()).await?;
 
   let my_person_id = local_user_view.person.id;
-  is_valid_display_name(&data.name)?;
 
   let slur_regex = slur_regex(&context).await?;
+  let url_blocklist = get_url_blocklist(&context).await?;
+
+  is_valid_display_name(&data.name)?;
   check_slurs(&data.name, &slur_regex)?;
+
   let ap_id = MultiCommunity::generate_local_actor_url(&data.name, context.settings())?;
   let following_url = Url::parse(&format!("{}/following", ap_id))?;
 
+  let title = data.title.as_ref().map(|x| x.trim().to_string());
+  if let Some(title) = &title {
+    check_slurs(title, &slur_regex)?;
+    is_valid_display_name(title)?;
+  }
+
+  // Ensure that the sidebar has fewer than the max num characters...
+  let sidebar = process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context).await?;
+  if let Some(sidebar) = &sidebar {
+    is_valid_body_field(sidebar, false)?;
+  }
+
+  let summary = data.summary.clone();
+  if let Some(summary) = &summary {
+    summary_length_check(summary)?;
+    check_slurs(summary, &slur_regex)?;
+  }
+
+  is_valid_actor_name(&data.name)?;
+
   let form = MultiCommunityInsertForm {
-    title: data.title.clone(),
-    summary: data.summary.clone(),
+    title,
+    summary,
+    sidebar,
     ap_id: Some(ap_id),
     private_key: site_view.site.private_key,
     inbox_url: Some(site_view.site.inbox_url),
