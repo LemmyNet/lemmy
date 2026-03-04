@@ -66,7 +66,8 @@ pub fn notification_joins(person_id: PersonId, instance_id: InstanceId) -> _ {
     notification::private_message_id
       .eq(private_message::id.nullable())
       .and(not(private_message::deleted))
-      .and(not(private_message::removed)),
+      .and(not(private_message::removed))
+      .and(not(private_message::deleted_by_recipient)),
   );
 
   let instance_join = instance::table.on(modlog::target_instance_id.eq(instance::id.nullable()));
