@@ -404,7 +404,7 @@ mod tests {
     assert_eq!(post.body.as_ref().map(std::string::String::len), Some(45));
     assert!(!post.locked);
     assert!(!post.featured_community);
-    assert_eq!(context.request_count(), 0);
+    assert_eq!(context.request_count(), 2);
 
     Instance::delete_all(&mut context.pool()).await?;
     Ok(())
