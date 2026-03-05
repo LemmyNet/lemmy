@@ -33,6 +33,7 @@ pub struct MultiCommunity {
   pub instance_id: InstanceId,
   pub name: String,
   pub title: Option<String>,
+  /// A shorter, one-line summary.
   pub summary: Option<String>,
   pub local: bool,
   pub deleted: bool,
@@ -51,6 +52,8 @@ pub struct MultiCommunity {
   pub subscribers: i32,
   pub subscribers_local: i32,
   pub communities: i32,
+  /// A sidebar in markdown.
+  pub sidebar: Option<String>,
 }
 
 #[derive(Debug, Clone, derive_new::new)]
@@ -70,6 +73,8 @@ pub struct MultiCommunityInsertForm {
   #[new(default)]
   pub summary: Option<String>,
   #[new(default)]
+  pub sidebar: Option<String>,
+  #[new(default)]
   pub last_refreshed_at: Option<DateTime<Utc>>,
   #[new(default)]
   pub private_key: Option<SensitiveString>,
@@ -85,6 +90,7 @@ pub struct MultiCommunityInsertForm {
 pub struct MultiCommunityUpdateForm {
   pub title: Option<Option<String>>,
   pub summary: Option<Option<String>>,
+  pub sidebar: Option<Option<String>>,
   pub deleted: Option<bool>,
   pub updated_at: Option<DateTime<Utc>>,
 }

@@ -580,6 +580,7 @@ diesel::table! {
         subscribers -> Int4,
         subscribers_local -> Int4,
         communities -> Int4,
+        sidebar -> Nullable<Text>,
     }
 }
 

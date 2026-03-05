@@ -2,7 +2,10 @@ use super::{check_multi_community_creator, send_federation_update};
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use chrono::Utc;
-use lemmy_api_utils::{context::LemmyContext, utils::check_local_user_valid};
+use lemmy_api_utils::{
+  context::LemmyContext,
+  utils::{check_local_user_valid, get_url_blocklist, process_markdown_opt, slur_regex},
+};
 use lemmy_db_schema::source::multi_community::{MultiCommunity, MultiCommunityUpdateForm};
 use lemmy_db_views_community::{
   MultiCommunityView,
@@ -10,7 +13,13 @@ use lemmy_db_views_community::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_diesel_utils::{traits::Crud, utils::diesel_string_update};
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::{
+  error::LemmyResult,
+  utils::{
+    slurs::check_slurs,
+    validation::{is_valid_body_field, is_valid_display_name, summary_length_check},
+  },
+};
 
 pub async fn edit_multi_community(
   Json(data): Json<EditMultiCommunity>,
@@ -21,12 +30,39 @@ pub async fn edit_multi_community(
   let my_person_id = local_user_view.person.id;
   check_local_user_valid(&local_user_view)?;
 
+  let slur_regex = slur_regex(&context).await?;
+  let url_blocklist = get_url_blocklist(&context).await?;
+
   let orig_multi = MultiCommunity::read(&mut context.pool(), data.id).await?;
   check_multi_community_creator(&orig_multi, &local_user_view)?;
 
+  let title = data.title.as_ref().map(|x| x.trim().to_string());
+  if let Some(title) = &title {
+    check_slurs(title, &slur_regex)?;
+    is_valid_display_name(title)?;
+  }
+  let title = diesel_string_update(title.as_deref());
+
+  let sidebar = diesel_string_update(
+    process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context)
+      .await?
+      .as_deref(),
+  );
+  if let Some(Some(sidebar)) = &sidebar {
+    is_valid_body_field(sidebar, false)?;
+  }
+
+  let summary = data.summary.clone();
+  if let Some(summary) = &summary {
+    summary_length_check(summary)?;
+    check_slurs(summary, &slur_regex)?;
+  }
+  let summary = diesel_string_update(summary.as_deref());
+
   let form = MultiCommunityUpdateForm {
-    title: diesel_string_update(data.title.as_deref()),
-    summary: diesel_string_update(data.summary.as_deref()),
+    title,
+    sidebar,
+    summary,
     deleted: data.deleted,
     updated_at: Some(Utc::now()),
   };

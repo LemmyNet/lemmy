@@ -252,6 +252,7 @@ pub struct CreateMultiCommunity {
   pub name: String,
   pub title: Option<String>,
   pub summary: Option<String>,
+  pub sidebar: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -261,6 +262,7 @@ pub struct EditMultiCommunity {
   pub id: MultiCommunityId,
   pub title: Option<String>,
   pub summary: Option<String>,
+  pub sidebar: Option<String>,
   pub deleted: Option<bool>,
 }
 

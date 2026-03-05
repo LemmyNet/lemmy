@@ -66,6 +66,7 @@ pub async fn create_community(
   let url_blocklist = get_url_blocklist(&context).await?;
   check_slurs(&data.name, &slur_regex)?;
   check_slurs(&data.title, &slur_regex)?;
+
   let sidebar = process_markdown_opt(
     &data.sidebar,
     &slur_regex,
@@ -74,8 +75,8 @@ pub async fn create_community(
     &context,
   )
   .await?;
-  let title = data.title.trim();
-  is_valid_display_name(title)?;
+  let title = data.title.trim().to_string();
+  is_valid_display_name(&title)?;
 
   // Ensure that the sidebar has fewer than the max num characters...
   if let Some(sidebar) = &sidebar {
@@ -113,7 +114,7 @@ pub async fn create_community(
     ..CommunityInsertForm::new(
       site.instance_id,
       data.name.clone(),
-      data.title.clone(),
+      title,
       keypair.public_key,
     )
   };
