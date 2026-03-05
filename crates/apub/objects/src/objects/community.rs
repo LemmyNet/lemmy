@@ -172,11 +172,14 @@ impl Object for ApubCommunity {
     let url_blocklist = RegexSet::empty();
 
     let sidebar = read_from_string_or_source_opt(&group.summary, &None, &group.source);
-    let sidebar = process_markdown_opt(&sidebar, &slur_regex, &url_blocklist, &local_site, context).await?;
+    let sidebar =
+      process_markdown_opt(&sidebar, &slur_regex, &url_blocklist, &local_site, context).await?;
     let sidebar = markdown_rewrite_remote_links_opt(sidebar, context).await;
 
-    let icon = proxy_image_link_opt_apub(group.icon.clone().map(|i| i.url), &local_site, context).await?;
-    let banner = proxy_image_link_opt_apub(group.image.clone().map(|i| i.url),&local_site,  context).await?;
+    let icon =
+      proxy_image_link_opt_apub(group.icon.clone().map(|i| i.url), &local_site, context).await?;
+    let banner =
+      proxy_image_link_opt_apub(group.image.clone().map(|i| i.url), &local_site, context).await?;
     let visibility = Some(community_visibility(&group));
 
     let summary = group
