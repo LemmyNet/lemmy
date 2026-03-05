@@ -188,11 +188,6 @@ impl NotificationQuery {
     let hide_modlog_names = self.hide_modlog_names.unwrap_or_default();
     let res = res
       .into_iter()
-      .filter(|r| {
-        r.private_message
-          .as_ref()
-          .is_none_or(|pm| !(pm.deleted_by_recipient && pm.recipient_id == my_person.id))
-      })
       .filter_map(|r| map_to_enum(r, hide_modlog_names))
       .collect();
     paginate_response(res, limit, self.page_cursor)
@@ -242,7 +237,10 @@ fn map_to_enum(v: NotificationViewInternal, hide_modlog_name: bool) -> Option<No
       post,
       community,
       creator,
-      image_details: v.image_details,
+      // This causes a stack overflow currently, due to diesel join limitations.
+      // image_details aren't critical for for post notifications anyway.
+      // image_details: v.image_details,
+      image_details: None,
       community_actions: v.community_actions,
       post_actions: v.post_actions,
       person_actions: v.person_actions,
