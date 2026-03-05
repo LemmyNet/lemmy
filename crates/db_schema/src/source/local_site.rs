@@ -104,6 +104,7 @@ pub struct LocalSite {
   /// Example: i.imgur.com,postimg.cc
   pub image_proxy_bypass_domains: Option<String>,
   pub image_upload_timeout_seconds: i32,
+  /// These pixel sizes. Larger images are automatically downscaled.
   pub image_max_thumbnail_size: i32,
   pub image_max_avatar_size: i32,
   pub image_max_banner_size: i32,
