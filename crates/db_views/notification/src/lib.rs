@@ -5,7 +5,6 @@ use lemmy_db_schema::{
     comment::{Comment, CommentActions},
     community::{Community, CommunityActions},
     community_tag::CommunityTagsView,
-    images::ImageDetails,
     instance::Instance,
     modlog::Modlog,
     notification::Notification,
@@ -74,8 +73,10 @@ struct NotificationViewInternal {
     select_expression = person1_select()
   )]
   recipient: Person,
-  #[diesel(embed)]
-  image_details: Option<ImageDetails>,
+  // This causes a stack overflow currently, due to diesel join limitations.
+  // image_details aren't critical for for post notifications anyway.
+  // #[diesel(embed)]
+  // image_details: Option<ImageDetails>,
   #[diesel(embed)]
   community_actions: Option<CommunityActions>,
   #[diesel(embed)]
