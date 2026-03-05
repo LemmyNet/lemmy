@@ -1095,18 +1095,18 @@ mod tests {
     let context = LemmyContext::init_test_context().await;
 
     let pool = &mut context.pool();
-    let local_site = TestData::create(pool).await?.local_site;
+    let test_data = TestData::create(pool).await?;
+    let local_site = &test_data.local_site;
 
     // image from local domain is unchanged
     let local_url = Url::parse("http://lemmy-alpha/image.png")?;
-    let proxied =
-      proxy_image_link_internal(local_url.clone(), &local_site, false, &context).await?;
+    let proxied = proxy_image_link_internal(local_url.clone(), local_site, false, &context).await?;
     assert_eq!(&local_url, proxied.inner());
 
     // image from remote domain is proxied
     let remote_image = Url::parse("http://lemmy-beta/image.png")?;
     let proxied =
-      proxy_image_link_internal(remote_image.clone(), &local_site, false, &context).await?;
+      proxy_image_link_internal(remote_image.clone(), local_site, false, &context).await?;
     assert_eq!(
       "https://lemmy-alpha/api/v4/image/proxy?url=http%3A%2F%2Flemmy-beta%2Fimage.png",
       proxied.as_str()
@@ -1120,6 +1120,7 @@ mod tests {
         .is_ok()
     );
 
+    test_data.delete(&mut context.pool()).await?;
     Ok(())
   }
 
