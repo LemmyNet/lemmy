@@ -854,12 +854,7 @@ pub async fn process_markdown(
       // Insert image details for the remote image
       let details_res = fetch_pictrs_proxied_image_details(&link, context).await;
       if let Ok(details) = details_res {
-        let proxied = build_proxied_image_url(
-          &link,
-          false,
-          local_site.image_max_thumbnail_size,
-          &context.settings().get_protocol_and_hostname(),
-        )?;
+        let proxied = build_proxied_image_url(&link, false, &local_site, context)?;
         let details_form = details.build_image_details_form(&proxied);
         ImageDetails::create(&mut context.pool(), &details_form).await?;
       }
@@ -901,12 +896,7 @@ async fn proxy_image_link_internal(
   } else if local_site.image_mode == ImageMode::ProxyAllImages {
     RemoteImage::create(&mut context.pool(), vec![link.clone()]).await?;
 
-    let proxied = build_proxied_image_url(
-      &link,
-      is_thumbnail,
-      local_site.image_max_thumbnail_size,
-      &context.settings().get_protocol_and_hostname(),
-    )?;
+    let proxied = build_proxied_image_url(&link, is_thumbnail, local_site, context)?;
     // This should fail softly, since pictrs might not even be running
     let details_res = fetch_pictrs_proxied_image_details(&link, context).await;
 
@@ -949,16 +939,16 @@ pub async fn proxy_image_link_opt_apub(
 fn build_proxied_image_url(
   link: &Url,
   is_thumbnail: bool,
-  max_thumbnail_size: i32,
-  protocol_and_hostname: &str,
+  local_site: &LocalSite,
+  context: &LemmyContext,
 ) -> LemmyResult<Url> {
   let mut url = format!(
     "{}/api/v4/image/proxy?url={}",
-    protocol_and_hostname,
+    context.settings().get_protocol_and_hostname(),
     encode(link.as_str()),
   );
   if is_thumbnail {
-    url = format!("{url}&max_size={}", max_thumbnail_size);
+    url = format!("{url}&max_size={}", local_site.image_max_thumbnail_size);
   }
   Ok(Url::parse(&url)?)
 }
