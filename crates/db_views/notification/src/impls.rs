@@ -188,6 +188,11 @@ impl NotificationQuery {
     let hide_modlog_names = self.hide_modlog_names.unwrap_or_default();
     let res = res
       .into_iter()
+      .filter(|r| {
+        r.private_message
+          .as_ref()
+          .is_none_or(|pm| !(pm.deleted_by_recipient && pm.recipient_id == my_person.id))
+      })
       .filter_map(|r| map_to_enum(r, hide_modlog_names))
       .collect();
     paginate_response(res, limit, self.page_cursor)
