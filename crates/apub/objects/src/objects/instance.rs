@@ -217,7 +217,7 @@ pub(crate) async fn fetch_instance_actor_for_object<T: Into<Url> + Clone>(
 pub(crate) mod tests {
   use super::*;
   use crate::utils::test::parse_lemmy_instance;
-  use lemmy_db_schema::source::instance::Instance;
+  use lemmy_db_schema::{source::instance::Instance, test_data::TestData};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -225,6 +225,7 @@ pub(crate) mod tests {
   #[serial]
   async fn test_parse_lemmy_instance() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
+    let test_data = TestData::create(&mut context.pool()).await?;
     let site = parse_lemmy_instance(&context).await?;
 
     assert_eq!(site.name, "Enterprise");
@@ -233,6 +234,7 @@ pub(crate) mod tests {
       Some(15)
     );
 
+    test_data.delete(&mut context.pool()).await?;
     Instance::delete_all(&mut context.pool()).await?;
     Ok(())
   }

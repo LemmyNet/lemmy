@@ -382,7 +382,7 @@ mod tests {
     objects::ApubPerson,
     utils::test::{file_to_json_object, parse_lemmy_community, parse_lemmy_person},
   };
-  use lemmy_db_schema::source::instance::Instance;
+  use lemmy_db_schema::{source::instance::Instance, test_data::TestData};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -390,6 +390,7 @@ mod tests {
   #[serial]
   async fn test_parse_lemmy_post() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
+    let test_data = TestData::create(&mut context.pool()).await?;
     parse_lemmy_person(&context).await?;
     parse_lemmy_community(&context).await?;
 
@@ -406,6 +407,7 @@ mod tests {
     assert!(!post.featured_community);
     assert_eq!(context.request_count(), 2);
 
+    test_data.delete(&mut context.pool()).await?;
     Instance::delete_all(&mut context.pool()).await?;
     Ok(())
   }
@@ -414,6 +416,7 @@ mod tests {
   #[serial]
   async fn test_convert_mastodon_post_title() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
+    let test_data = TestData::create(&mut context.pool()).await?;
     parse_lemmy_community(&context).await?;
 
     let json = file_to_json_object("../apub/assets/mastodon/objects/person.json")?;
@@ -424,6 +427,7 @@ mod tests {
 
     assert_eq!(post.name, "Variable never resetting at refresh");
 
+    test_data.delete(&mut context.pool()).await?;
     Instance::delete_all(&mut context.pool()).await?;
     Ok(())
   }
