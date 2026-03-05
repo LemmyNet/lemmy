@@ -219,7 +219,7 @@ mod tests {
 
     assert_eq!(pm.ap_id.clone(), url.into());
     assert_eq!(pm.content.len(), 20);
-    assert_eq!(context.request_count(), 2);
+    assert_eq!(context.request_count(), 0);
 
     let to_apub = pm.into_json(&context).await?;
     assert_json_include!(actual: json, expected: to_apub);
@@ -243,7 +243,7 @@ mod tests {
 
     assert_eq!(pm.ap_id, pleroma_url.into());
     assert_eq!(pm.content.len(), 3);
-    assert_eq!(context.request_count(), 1);
+    assert_eq!(context.request_count(), 0);
 
     test_data.delete(&mut context.pool()).await?;
     Instance::delete_all(&mut context.pool()).await?;

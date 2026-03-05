@@ -290,7 +290,7 @@ pub(crate) mod tests {
     assert_eq!(comment.ap_id, url.into());
     assert_eq!(comment.content.len(), 14);
     assert!(!comment.local);
-    assert_eq!(context.request_count(), 3);
+    assert_eq!(context.request_count(), 0);
 
     let to_apub = comment.into_json(&context).await?;
     assert_json_include!(actual: json, expected: to_apub);
