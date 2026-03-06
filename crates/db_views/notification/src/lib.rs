@@ -1,10 +1,12 @@
 use chrono::{DateTime, Utc};
+#[cfg(feature = "full")]
 use lemmy_db_schema::{
   NotificationTypeFilter,
   source::{
     comment::{Comment, CommentActions},
     community::{Community, CommunityActions},
     community_tag::CommunityTagsView,
+    images::ImageDetails,
     instance::Instance,
     modlog::Modlog,
     notification::Notification,
@@ -73,10 +75,8 @@ struct NotificationViewInternal {
     select_expression = person1_select()
   )]
   recipient: Person,
-  // This causes a stack overflow currently, due to diesel join limitations.
-  // image_details aren't critical for for post notifications anyway.
-  // #[diesel(embed)]
-  // image_details: Option<ImageDetails>,
+  #[diesel(embed)]
+  image_details: Option<ImageDetails>,
   #[diesel(embed)]
   community_actions: Option<CommunityActions>,
   #[diesel(embed)]

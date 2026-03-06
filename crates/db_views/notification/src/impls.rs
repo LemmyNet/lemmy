@@ -242,10 +242,7 @@ fn map_to_enum(v: NotificationViewInternal, hide_modlog_name: bool) -> Option<No
       post,
       community,
       creator,
-      // This causes a stack overflow currently, due to diesel join limitations.
-      // image_details aren't critical for for post notifications anyway.
-      // image_details: v.image_details,
-      image_details: None,
+      image_details: v.image_details,
       community_actions: v.community_actions,
       post_actions: v.post_actions,
       person_actions: v.person_actions,

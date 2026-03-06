@@ -15,6 +15,7 @@ use lemmy_db_schema_file::{
     creator_home_instance_actions_join,
     creator_local_instance_actions_join,
     creator_local_user_admin_join,
+    image_details_join,
     my_comment_actions_join,
     my_community_actions_join,
     my_instance_communities_actions_join,
@@ -95,6 +96,7 @@ pub fn notification_joins(person_id: PersonId, instance_id: InstanceId) -> _ {
     .left_join(post_join)
     .left_join(community_join)
     .left_join(instance_join)
+    .left_join(image_details_join())
     .inner_join(item_creator_join)
     .inner_join(recipient_join)
     // The private message join must come after recipient, as it uses it to filter out deleted by
@@ -111,7 +113,4 @@ pub fn notification_joins(person_id: PersonId, instance_id: InstanceId) -> _ {
     .left_join(my_post_actions_join)
     .left_join(my_person_actions_join)
     .left_join(my_comment_actions_join)
-  // This causes a stack overflow currently, due to diesel join limitations.
-  // image_details aren't critical for for post notifications anyway.
-  // .left_join(image_details_join())
 }
