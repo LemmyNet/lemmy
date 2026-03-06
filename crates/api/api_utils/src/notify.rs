@@ -536,9 +536,7 @@ mod tests {
       NotificationView::get_unread_count(pool, &data.timmy.person, true).await?;
     assert_eq!(1, timmy_unread_replies);
 
-    let timmy_inbox = NotificationQuery::default()
-      .list(pool, &data.timmy.person)
-      .await?;
+    let timmy_inbox = Box::pin(NotificationQuery::default().list(pool, &data.timmy.person)).await?;
     assert_length!(1, timmy_inbox);
 
     if let NotificationData::Comment(comment) = &timmy_inbox[0].data {
@@ -567,11 +565,13 @@ mod tests {
       NotificationView::get_unread_count(pool, &data.timmy.person, true).await?;
     assert_eq!(0, timmy_unread_replies);
 
-    let timmy_inbox_unread = NotificationQuery {
-      unread_only: Some(true),
-      ..Default::default()
-    }
-    .list(pool, &data.timmy.person)
+    let timmy_inbox_unread = Box::pin(
+      NotificationQuery {
+        unread_only: Some(true),
+        ..Default::default()
+      }
+      .list(pool, &data.timmy.person),
+    )
     .await?;
     assert_length!(0, timmy_inbox_unread);
 
@@ -588,11 +588,13 @@ mod tests {
       NotificationView::get_unread_count(pool, &data.timmy.person, true).await?;
     assert_eq!(1, timmy_unread_replies);
 
-    let timmy_inbox_unread = NotificationQuery {
-      unread_only: Some(true),
-      ..Default::default()
-    }
-    .list(pool, &data.timmy.person)
+    let timmy_inbox_unread = Box::pin(
+      NotificationQuery {
+        unread_only: Some(true),
+        ..Default::default()
+      }
+      .list(pool, &data.timmy.person),
+    )
     .await?;
     assert_length!(1, timmy_inbox_unread);
 
@@ -629,9 +631,7 @@ mod tests {
       NotificationView::get_unread_count(pool, &data.sara.person, true).await?;
     assert_eq!(2, sara_unread_mentions);
 
-    let sara_inbox = NotificationQuery::default()
-      .list(pool, &data.sara.person)
-      .await?;
+    let sara_inbox = Box::pin(NotificationQuery::default().list(pool, &data.sara.person)).await?;
     assert_length!(2, sara_inbox);
 
     if let NotificationData::Post(post) = &sara_inbox[0].data {
@@ -661,9 +661,8 @@ mod tests {
       NotificationView::get_unread_count(pool, &data.sara.person, true).await?;
     assert_eq!(1, sara_unread_mentions_after_block);
 
-    let sara_inbox_after_block = NotificationQuery::default()
-      .list(pool, &data.sara.person)
-      .await?;
+    let sara_inbox_after_block =
+      Box::pin(NotificationQuery::default().list(pool, &data.sara.person)).await?;
     assert_length!(1, sara_inbox_after_block);
 
     // Make sure the comment mention which timmy made is the hidden one
@@ -676,11 +675,13 @@ mod tests {
     PersonActions::unblock(pool, &sara_blocks_timmy_form).await?;
 
     // Test the type filter
-    let sara_inbox_mentions_only = NotificationQuery {
-      type_: Some(NotificationTypeFilter::Other(NotificationType::Mention)),
-      ..Default::default()
-    }
-    .list(pool, &data.sara.person)
+    let sara_inbox_mentions_only = Box::pin(
+      NotificationQuery {
+        type_: Some(NotificationTypeFilter::Other(NotificationType::Mention)),
+        ..Default::default()
+      }
+      .list(pool, &data.sara.person),
+    )
     .await?;
     assert_length!(2, sara_inbox_mentions_only);
 
@@ -701,9 +702,8 @@ mod tests {
       NotificationView::get_unread_count(pool, &data.sara.person, false).await?;
     assert_eq!(1, sara_unread_mentions_after_hide_bots);
 
-    let sara_inbox_after_hide_bots = NotificationQuery::default()
-      .list(pool, &data.sara.person)
-      .await?;
+    let sara_inbox_after_hide_bots =
+      Box::pin(NotificationQuery::default().list(pool, &data.sara.person)).await?;
     assert_length!(1, sara_inbox_after_hide_bots);
 
     // Make sure the post mention which jessica made is the hidden one
@@ -720,11 +720,13 @@ mod tests {
       NotificationView::get_unread_count(pool, &data.sara.person, true).await?;
     assert_eq!(0, sara_unread_mentions);
 
-    let sara_inbox_unread = NotificationQuery {
-      unread_only: Some(true),
-      ..Default::default()
-    }
-    .list(pool, &data.sara.person)
+    let sara_inbox_unread = Box::pin(
+      NotificationQuery {
+        unread_only: Some(true),
+        ..Default::default()
+      }
+      .list(pool, &data.sara.person),
+    )
     .await?;
     assert_length!(0, sara_inbox_unread);
 
@@ -750,12 +752,12 @@ mod tests {
     let data = init_data(pool).await?;
     setup_private_messages(&data, &context).await?;
 
-    let timmy_messages: Vec<_> = NotificationQuery::default()
-      .list(pool, &data.timmy.person)
-      .await?
-      .into_iter()
-      .filter_map(to_pm)
-      .collect();
+    let timmy_messages: Vec<_> =
+      Box::pin(NotificationQuery::default().list(pool, &data.timmy.person))
+        .await?
+        .into_iter()
+        .filter_map(to_pm)
+        .collect();
 
     // The read even shows timmy's sent messages
     assert_length!(3, &timmy_messages);
@@ -769,11 +771,13 @@ mod tests {
     let timmy_unread = NotificationView::get_unread_count(pool, &data.timmy.person, true).await?;
     assert_eq!(2, timmy_unread);
 
-    let timmy_unread_messages: Vec<_> = NotificationQuery {
-      unread_only: Some(true),
-      ..Default::default()
-    }
-    .list(pool, &data.timmy.person)
+    let timmy_unread_messages: Vec<_> = Box::pin(
+      NotificationQuery {
+        unread_only: Some(true),
+        ..Default::default()
+      }
+      .list(pool, &data.timmy.person),
+    )
     .await?
     .into_iter()
     .filter_map(to_pm)
@@ -813,11 +817,13 @@ mod tests {
       )
     );
 
-    let timmy_messages: Vec<_> = NotificationQuery {
-      unread_only: Some(true),
-      ..Default::default()
-    }
-    .list(pool, &data.timmy.person)
+    let timmy_messages: Vec<_> = Box::pin(
+      NotificationQuery {
+        unread_only: Some(true),
+        ..Default::default()
+      }
+      .list(pool, &data.timmy.person),
+    )
     .await?
     .into_iter()
     .filter_map(to_pm)
@@ -857,11 +863,13 @@ mod tests {
       )
     );
 
-    let timmy_messages: Vec<_> = NotificationQuery {
-      unread_only: Some(true),
-      ..Default::default()
-    }
-    .list(pool, &data.timmy.person)
+    let timmy_messages: Vec<_> = Box::pin(
+      NotificationQuery {
+        unread_only: Some(true),
+        ..Default::default()
+      }
+      .list(pool, &data.timmy.person),
+    )
     .await?
     .into_iter()
     .filter_map(to_pm)
@@ -887,12 +895,12 @@ mod tests {
     let data = init_data(pool).await?;
     setup_private_messages(&data, &context).await?;
 
-    let timmy_messages: Vec<_> = NotificationQuery::default()
-      .list(pool, &data.timmy.person)
-      .await?
-      .into_iter()
-      .filter_map(to_pm)
-      .collect();
+    let timmy_messages: Vec<_> =
+      Box::pin(NotificationQuery::default().list(pool, &data.timmy.person))
+        .await?
+        .into_iter()
+        .filter_map(to_pm)
+        .collect();
 
     let timmy_recipient = timmy_messages
       .iter()
@@ -904,12 +912,12 @@ mod tests {
 
     if let Some(pm) = pm {
       let view = PrivateMessageView::read(pool, pm.id).await?;
-      let num_sender_messages_before = NotificationQuery::default()
-        .list(pool, &view.creator)
-        .await?
-        .into_iter()
-        .filter_map(to_pm)
-        .count();
+      let num_sender_messages_before =
+        Box::pin(NotificationQuery::default().list(pool, &view.creator))
+          .await?
+          .into_iter()
+          .filter_map(to_pm)
+          .count();
 
       let form = PrivateMessageUpdateForm {
         deleted_by_recipient: Some(true),
@@ -918,12 +926,12 @@ mod tests {
 
       let _pm = PrivateMessage::update(&mut context.pool(), pm.id, &form).await?;
 
-      let timmy_messages_after: Vec<_> = NotificationQuery::default()
-        .list(pool, &data.timmy.person)
-        .await?
-        .into_iter()
-        .filter_map(to_pm)
-        .collect();
+      let timmy_messages_after: Vec<_> =
+        Box::pin(NotificationQuery::default().list(pool, &data.timmy.person))
+          .await?
+          .into_iter()
+          .filter_map(to_pm)
+          .collect();
 
       let pm_exists = timmy_messages_after
         .iter()
@@ -932,12 +940,12 @@ mod tests {
       // the private message should no longer exist
       assert_eq!(pm_exists, None);
 
-      let num_sender_messages_after = NotificationQuery::default()
-        .list(pool, &view.creator)
-        .await?
-        .into_iter()
-        .filter_map(to_pm)
-        .count();
+      let num_sender_messages_after =
+        Box::pin(NotificationQuery::default().list(pool, &view.creator))
+          .await?
+          .into_iter()
+          .filter_map(to_pm)
+          .count();
 
       // the sender should have the same # of messages
       assert_eq!(num_sender_messages_before, num_sender_messages_after);
