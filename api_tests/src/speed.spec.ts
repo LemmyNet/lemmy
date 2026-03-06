@@ -7,25 +7,43 @@
 jest.setTimeout(120000);
 
 import {
+  CommentId,
   CommentSortType,
+  CommunitySortType,
   LemmyHttp,
+  LikeType,
+  ListingType,
   Login,
+  // TODO notification type needs an "All"
+  NotificationType,
+  PersonContentType,
+  PostId,
   PostSortType,
+  SearchSortType,
+  SearchType,
 } from "lemmy-js-client";
 import { fetchFunction } from "./shared";
+import * as fs from "fs";
 
 const defaultServerUrl = "http://localhost:8536";
 const defaultLogin = "lemmy";
 const defaultPassword = "lemmylemmy";
+const postCommentsMaxDepth = 8;
+
+const samplePerson = "dessalines";
+const sampleCommunity = "memes";
+const searchTerm = "test";
 
 // Post without a url
-const textPost = 43615136;
+const textPost: PostId = 43615136;
 
 // Post with a url
-const postWithUrl = 43614333;
+const postWithUrl: PostId = 43614333;
 
 // A post with ~2.2k comments
-const postWithLotsOfComments = 3192572;
+const postWithLotsOfComments: PostId = 3192572;
+
+const sampleComment: CommentId = 24109064;
 
 let api: LemmyHttp;
 let report: string[] = [];
@@ -42,7 +60,9 @@ beforeAll(async () => {
   api.setHeaders({ Authorization: `Bearer ${res.jwt ?? ""}` });
 });
 afterAll(() => {
-  console.log(report.join("\n"));
+  const reportMd = report.join("\n");
+  fs.writeFileSync("speed_test_report.md", reportMd);
+  console.log(reportMd);
 });
 
 test("List posts with different sorts", async () => {
@@ -60,6 +80,36 @@ test("List posts with different sorts", async () => {
     const time = await timeApiCalls(() => api.getPosts({ sort }));
     report.push(`${sort} | ${formatMs(time)}`);
   }
+});
+
+test("List posts with different listing types", async () => {
+  report.push("\n# List posts with different listing types \n");
+  report.push("type | time");
+  report.push("--- | ---");
+  const listingTypes: ListingType[] = [
+    "all",
+    "local",
+    "subscribed",
+    "moderator_view",
+    // No suggested yet
+    // "suggested",
+  ];
+  for (let type_ of listingTypes) {
+    const time = await timeApiCalls(() => api.getPosts({ type_ }));
+    report.push(`${type_} | ${formatMs(time)}`);
+  }
+});
+
+test("List posts with show hidden", async () => {
+  report.push("\n# List posts with show hidden \n");
+  const time = await timeApiCalls(() => api.getPosts({ show_hidden: true }));
+  report.push(`show hidden: ${formatMs(time)}`);
+});
+
+test("List posts with hide read", async () => {
+  report.push("\n# List posts with hide read \n");
+  const time = await timeApiCalls(() => api.getPosts({ show_read: false }));
+  report.push(`show read : ${formatMs(time)}`);
 });
 
 test("List posts with higher pages", async () => {
@@ -82,6 +132,57 @@ test("List posts with higher pages", async () => {
   report.push(`avg | ${formatMs(avg)}`);
 });
 
+test("List communities with different sorts", async () => {
+  report.push("\n# List communities with different sorts \n");
+  report.push("sort | time");
+  report.push("--- | ---");
+  const sortTypes: CommunitySortType[] = [
+    "active_six_months",
+    "active_monthly",
+    "active_weekly",
+    "active_daily",
+    "hot",
+    "new",
+    "old",
+    "name_asc",
+    "name_desc",
+    "comments",
+    "posts",
+    "subscribers",
+    "subscribers_local",
+  ];
+  for (let sort of sortTypes) {
+    const time = await timeApiCalls(() => api.listCommunities({ sort }));
+    report.push(`${sort} | ${formatMs(time)}`);
+  }
+});
+
+test("List communities with different listing types", async () => {
+  report.push("\n# List communities with different listing types \n");
+  report.push("type | time");
+  report.push("--- | ---");
+  const listingTypes: ListingType[] = [
+    "all",
+    "local",
+    "subscribed",
+    "moderator_view",
+    // No suggested yet
+    // "suggested",
+  ];
+  for (let type_ of listingTypes) {
+    const time = await timeApiCalls(() => api.listCommunities({ type_ }));
+    report.push(`${type_} | ${formatMs(time)}`);
+  }
+});
+
+test("Get a community", async () => {
+  report.push("\n# Get a community \n");
+  const time = await timeApiCalls(() =>
+    api.getCommunity({ name: sampleCommunity }),
+  );
+  report.push(`get community: ${formatMs(time)}`);
+});
+
 test.skip("Get a post", async () => {
   report.push("\n# Get a post\n");
   report.push("type | time");
@@ -94,8 +195,8 @@ test.skip("Get a post", async () => {
   report.push(`text post | ${formatMs(getTextPost)}`);
 });
 
-test("Get comments with different sorts", async () => {
-  report.push("\n# Get comments\n");
+test("Get comments for a post with different sorts", async () => {
+  report.push("\n# Get comments for a post with different sorts\n");
   report.push("sort | time");
   report.push("--- | ---");
 
@@ -109,20 +210,227 @@ test("Get comments with different sorts", async () => {
 
   for (let sort of sortTypes) {
     const time = await timeApiCalls(() =>
-      api.getComments({ post_id: postWithLotsOfComments, sort }),
+      api.getComments({
+        post_id: postWithLotsOfComments,
+        sort,
+        max_depth: postCommentsMaxDepth,
+      }),
     );
     report.push(`${sort} | ${formatMs(time)}`);
   }
 });
 
-test("Get comments slim", async () => {
-  report.push("\n# Get comments slim\n");
+test("Get comments for a post slim", async () => {
+  report.push("\n# Get comments for a post slim\n");
   report.push("sort | time");
   report.push("--- | ---");
   const getCommentsSlim = await timeApiCalls(() =>
-    api.getCommentsSlim({ post_id: postWithLotsOfComments }),
+    api.getCommentsSlim({
+      post_id: postWithLotsOfComments,
+      max_depth: postCommentsMaxDepth,
+    }),
   );
   report.push(`getCommentsSlim: ${formatMs(getCommentsSlim)}`);
+});
+
+test("Get all comments with different sorts", async () => {
+  report.push("\n# Get all comments with different sorts\n");
+  report.push("sort | time");
+  report.push("--- | ---");
+
+  const sortTypes: CommentSortType[] = [
+    "hot",
+    "new",
+    "old",
+    "top",
+    "controversial",
+  ];
+
+  for (let sort of sortTypes) {
+    const time = await timeApiCalls(() => api.getComments({ sort }));
+    report.push(`${sort} | ${formatMs(time)}`);
+  }
+});
+
+test("Get comments with different types", async () => {
+  report.push("\n# Get comments with different types\n");
+  report.push("type | time");
+  report.push("--- | ---");
+
+  const listingTypes: ListingType[] = [
+    "all",
+    "local",
+    "subscribed",
+    "moderator_view",
+    // No suggested yet
+    // "suggested",
+  ];
+
+  for (let type_ of listingTypes) {
+    const time = await timeApiCalls(() => api.getComments({ type_ }));
+    report.push(`${type_} | ${formatMs(time)}`);
+  }
+});
+
+test.skip("List person content with types", async () => {
+  report.push("\n# List person content with types\n");
+  report.push("type | time");
+  report.push("--- | ---");
+
+  const contentTypes: PersonContentType[] = ["all", "comments", "posts"];
+
+  for (let type_ of contentTypes) {
+    const time = await timeApiCalls(() =>
+      api.listPersonContent({ username: samplePerson, type_ }),
+    );
+    report.push(`${type_} | ${formatMs(time)}`);
+  }
+});
+
+test("List person saved with types", async () => {
+  report.push("\n# List person saved with types\n");
+  report.push("type | time");
+  report.push("--- | ---");
+
+  const contentTypes: PersonContentType[] = ["all", "comments", "posts"];
+
+  for (let type_ of contentTypes) {
+    const time = await timeApiCalls(() => api.listPersonSaved({ type_ }));
+    report.push(`${type_} | ${formatMs(time)}`);
+  }
+});
+
+test.skip("List person liked with types", async () => {
+  report.push("\n# List person liked with types\n");
+  report.push("type | time");
+  report.push("--- | ---");
+
+  const contentTypes: PersonContentType[] = ["all", "comments", "posts"];
+
+  for (let type_ of contentTypes) {
+    const time = await timeApiCalls(() => api.listPersonLiked({ type_ }));
+    report.push(`${type_} | ${formatMs(time)}`);
+  }
+
+  const likeType: LikeType[] = ["all", "liked_only", "disliked_only"];
+
+  for (let like_type of likeType) {
+    const time = await timeApiCalls(() => api.listPersonLiked({ like_type }));
+    report.push(`${like_type} | ${formatMs(time)}`);
+  }
+});
+
+test.skip("List person read with types", async () => {
+  report.push("\n# List read with types\n");
+
+  const time = await timeApiCalls(() => api.listPersonRead({}));
+  report.push(`list person read: ${formatMs(time)}`);
+});
+
+test("List registration applications", async () => {
+  report.push("\n# List registration applications\n");
+  report.push("type | time");
+  report.push("--- | ---");
+
+  const unreadOnly = await timeApiCalls(() =>
+    api.listRegistrationApplications({ unread_only: true }),
+  );
+  const all = await timeApiCalls(() => api.listRegistrationApplications({}));
+  report.push(`unread only | ${formatMs(unreadOnly)}`);
+  report.push(`all | ${formatMs(all)}`);
+});
+
+test("List reports", async () => {
+  report.push("\n# List reports\n");
+  report.push("type | time");
+  report.push("--- | ---");
+
+  const unresolvedOnly = await timeApiCalls(() =>
+    api.listReports({ unresolved_only: true }),
+  );
+  const all = await timeApiCalls(() => api.listReports({}));
+  report.push(`unresolved only | ${formatMs(unresolvedOnly)}`);
+  report.push(`all | ${formatMs(all)}`);
+});
+
+test.skip("Search with types", async () => {
+  report.push("\n# Search with types\n");
+  report.push("type | time");
+  report.push("--- | ---");
+
+  const searchTypes: SearchType[] = [
+    "all",
+    "comments",
+    "posts",
+    "communities",
+    "users",
+    "multi_communities",
+  ];
+
+  for (let type_ of searchTypes) {
+    const time = await timeApiCalls(() => api.search({ q: searchTerm, type_ }));
+    report.push(`${type_} | ${formatMs(time)}`);
+  }
+});
+
+test.skip("Search with sorts", async () => {
+  report.push("\n# Search with sorts\n");
+  report.push("sort | time");
+  report.push("--- | ---");
+
+  const sortTypes: SearchSortType[] = ["new", "old", "top"];
+
+  for (let sort of sortTypes) {
+    const time = await timeApiCalls(() => api.search({ q: searchTerm, sort }));
+    report.push(`${sort} | ${formatMs(time)}`);
+  }
+});
+
+test("Notifications with types", async () => {
+  report.push("\n# Notifications with types\n");
+  report.push("type | time");
+  report.push("--- | ---");
+
+  const notificationTypes: NotificationType[] = [
+    "mention",
+    "reply",
+    "subscribed",
+    "private_message",
+    "mod_action",
+  ];
+
+  for (let type_ of notificationTypes) {
+    const time = await timeApiCalls(() => api.listNotifications({ type_ }));
+    report.push(`${type_} | ${formatMs(time)}`);
+  }
+});
+
+test("Notifications with unread only", async () => {
+  report.push("\n# Notifications with unread only\n");
+  report.push("type | time");
+  report.push("--- | ---");
+
+  const unreadOnly = await timeApiCalls(() =>
+    api.listNotifications({ unread_only: true }),
+  );
+  const all = await timeApiCalls(() => api.listNotifications({}));
+  report.push(`all | ${formatMs(all)}`);
+  report.push(`unread_only | ${formatMs(unreadOnly)}`);
+});
+
+test("Liking a comment / post", async () => {
+  report.push("\n# Liking a comment / post\n");
+  report.push("type | time");
+  report.push("--- | ---");
+
+  const commentLike = await timeApiCall(() =>
+    api.likeComment({ comment_id: sampleComment }),
+  );
+  const postLike = await timeApiCall(() =>
+    api.likePost({ post_id: postWithUrl }),
+  );
+  report.push(`comment | ${formatMs(commentLike.diff)}`);
+  report.push(`post | ${formatMs(postLike.diff)}`);
 });
 
 type Result<T> = {
