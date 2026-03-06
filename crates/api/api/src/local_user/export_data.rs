@@ -40,12 +40,14 @@ pub async fn export_data(
   })
   .collect();
 
-  let notifications = NotificationQuery {
-    no_limit: Some(true),
-    show_bot_accounts: Some(local_user_view.local_user.show_bot_accounts),
-    ..NotificationQuery::default()
-  }
-  .list(pool, &local_user_view.person)
+  let notifications = Box::pin(
+    NotificationQuery {
+      no_limit: Some(true),
+      show_bot_accounts: Some(local_user_view.local_user.show_bot_accounts),
+      ..NotificationQuery::default()
+    }
+    .list(pool, &local_user_view.person),
+  )
   .await?
   .into_iter()
   .flat_map(|u| match u.data {
