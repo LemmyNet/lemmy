@@ -802,6 +802,44 @@ test("Multi-community", async () => {
   );
 });
 
+test("Mark existing community as local-only, ensure it federates", async () => {
+  let communityRes = await createCommunity(alpha);
+  expect(communityRes.community_view.community.name).toBeDefined();
+
+  let community = communityRes.community_view.community;
+
+  let betaCommunity = await resolveCommunity(beta, community.ap_id);
+  assertCommunityFederation(betaCommunity, communityRes.community_view);
+
+  await followCommunity(beta, true, betaCommunity!.community.id);
+  await waitUntil(
+    () => getCommunity(beta, betaCommunity!.community.id),
+    g => g?.community_view.community_actions?.follow_state == "accepted",
+  );
+
+  let res = await editCommunity(alpha, {
+    community_id: community.id,
+    visibility: "local_only_private",
+  });
+  expect(res.community_view.community.visibility).toBe("local_only_private");
+
+  await waitUntil(
+    () => getCommunity(beta, betaCommunity!.community.id),
+    g => g?.community_view.community?.deleted,
+  );
+
+  let res2 = await editCommunity(alpha, {
+    community_id: community.id,
+    visibility: "public",
+  });
+  expect(res2.community_view.community.visibility).toBe("public");
+
+  await waitUntil(
+    () => getCommunity(beta, betaCommunity!.community.id),
+    g => !g?.community_view.community?.deleted,
+  );
+});
+
 function checkCommunityReportName(
   rcv: ReportCombinedView,
   report: CommunityReport,
