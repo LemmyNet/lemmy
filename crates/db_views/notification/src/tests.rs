@@ -62,7 +62,7 @@ async fn test_private_message() -> LemmyResult<()> {
 
   let count = NotificationView::get_unread_count(pool, &data.alice, false).await?;
   assert_eq!(1, count);
-  let notifs = Box::Pin(NotificationQuery::default().list(pool, &data.alice)).await?;
+  let notifs = Box::pin(NotificationQuery::default().list(pool, &data.alice)).await?;
   assert_length!(1, notifs);
   assert_eq!(Some(pm.id), notifs[0].notification.private_message_id);
   assert_eq!(pm.recipient_id, notifs[0].notification.recipient_id);
