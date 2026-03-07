@@ -28,7 +28,7 @@ use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
 };
-use rand::{Rng, distr::Alphanumeric};
+use rand::{RngExt, distr::Alphanumeric};
 use tracing::info;
 use url::Url;
 
