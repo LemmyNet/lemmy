@@ -1,20 +1,17 @@
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
-use lemmy_db_schema::{
-  NotificationTypeFilter,
-  source::{
-    comment::{Comment, CommentActions},
-    community::{Community, CommunityActions},
-    community_tag::CommunityTagsView,
-    images::ImageDetails,
-    instance::Instance,
-    modlog::Modlog,
-    notification::Notification,
-    person::{Person, PersonActions},
-    post::{Post, PostActions},
-    private_message::PrivateMessage,
-  },
+use lemmy_db_schema::source::{
+  comment::{Comment, CommentActions},
+  community::{Community, CommunityActions},
+  community_tag::CommunityTagsView,
+  images::ImageDetails,
+  instance::Instance,
+  modlog::Modlog,
+  person::{Person, PersonActions},
+  post::{Post, PostActions},
+  private_message::PrivateMessage,
 };
+use lemmy_db_schema::{NotificationTypeFilter, source::notification::Notification};
 use lemmy_db_schema_file::PersonId;
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_modlog::ModlogView;
