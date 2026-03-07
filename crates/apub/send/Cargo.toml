@@ -44,7 +44,7 @@ tokio = { workspace = true, features = ["full"] }
 serde.workspace = true
 tracing.workspace = true
 moka.workspace = true
-tokio-util = "0.7.17"
+tokio-util = "0.7.18"
 lemmy_diesel_utils = { workspace = true }
 
 [dev-dependencies]
