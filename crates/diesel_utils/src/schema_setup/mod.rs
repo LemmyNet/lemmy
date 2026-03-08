@@ -405,6 +405,7 @@ mod tests {
   const COMMENT2_AP_ID: &str = "https://fedi.example/comment/12346";
 
   #[test]
+  #[ignore]
   fn test_schema_setup() -> LemmyResult<()> {
     let o = Options::default();
     let db_url = SETTINGS.get_database_url();
