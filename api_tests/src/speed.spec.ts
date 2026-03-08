@@ -272,7 +272,7 @@ test("Get comments with different types", async () => {
   }
 });
 
-test.skip("List person content with types", async () => {
+test("List person content with types", async () => {
   report.push("\n# List person content with types\n");
   report.push("type | time");
   report.push("--- | ---");
@@ -300,7 +300,7 @@ test("List person saved with types", async () => {
   }
 });
 
-test.skip("List person liked with types", async () => {
+test("List person liked with types", async () => {
   report.push("\n# List person liked with types\n");
   report.push("type | time");
   report.push("--- | ---");
@@ -320,10 +320,17 @@ test.skip("List person liked with types", async () => {
   }
 });
 
-test.skip("List person read with types", async () => {
-  report.push("\n# List read with types\n");
+test("List person read", async () => {
+  report.push("\n# List person read\n");
 
   const time = await timeApiCalls(() => api.listPersonRead({}));
+  report.push(`list person read: ${formatMs(time)}`);
+});
+
+test("List person hidden", async () => {
+  report.push("\n# List person hidden\n");
+
+  const time = await timeApiCalls(() => api.listPersonHidden({}));
   report.push(`list person read: ${formatMs(time)}`);
 });
 
