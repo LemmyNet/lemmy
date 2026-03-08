@@ -19,7 +19,10 @@ use crate::{
 };
 use activitypub_federation::{
   config::Data,
-  protocol::{values::MediaTypeMarkdownOrHtml, verification::verify_domains_match},
+  protocol::{
+    values::MediaTypeMarkdownOrHtml,
+    verification::{verify_domains_match, verify_is_remote_object},
+  },
   traits::Object,
 };
 use anyhow::anyhow;
@@ -194,6 +197,13 @@ impl Object for ApubPost {
 
     verify_domains_match(page.creator()?.inner(), page.id.inner())?;
     verify_visibility(&page.to, &page.cc, &community)?;
+
+    if let Err(e) = verify_is_remote_object(&page.id, context) {
+      if let Ok(post) = page.id.dereference_local(context).await {
+        post.set_not_pending(&mut context.pool()).await?;
+      }
+      return Err(e.into());
+    }
     Ok(())
   }
 

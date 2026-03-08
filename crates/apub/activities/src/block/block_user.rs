@@ -3,6 +3,7 @@ use crate::{
   MOD_ACTION_DEFAULT_REASON,
   activity_lists::AnnouncableActivities,
   block::{SiteOrCommunity, generate_cc},
+  check_community_deleted_or_removed,
   community::send_activity_in_community,
   generate_activity_id,
   protocol::block::block_user::BlockUser,
@@ -21,12 +22,7 @@ use lemmy_api_utils::{
 };
 use lemmy_apub_objects::{
   objects::person::ApubPerson,
-  utils::functions::{
-    verify_is_public,
-    verify_mod_action,
-    verify_person_in_community,
-    verify_visibility,
-  },
+  utils::functions::{verify_is_public, verify_mod_action, verify_visibility},
 };
 use lemmy_db_schema::{
   source::{
@@ -37,7 +33,7 @@ use lemmy_db_schema::{
   },
   traits::Bannable,
 };
-use lemmy_utils::error::{LemmyError, LemmyResult};
+use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
 use url::Url;
 
 impl BlockUser {
@@ -120,8 +116,8 @@ impl Activity for BlockUser {
       }
       SiteOrCommunity::Right(community) => {
         verify_visibility(&self.to, &self.cc, &community)?;
-        verify_person_in_community(&self.actor, &community, context).await?;
         verify_mod_action(&self.actor, &community, context).await?;
+        check_community_deleted_or_removed(&community)?;
       }
     }
     Ok(())
@@ -142,21 +138,29 @@ impl Activity for BlockUser {
         let form = InstanceBanForm::new(blocked_person.id, site.instance_id, expires_at);
         InstanceActions::ban(pool, &form).await?;
 
+        // Mod tables - create ban entry first so bulk actions can reference it as parent
+        let form =
+          ModlogInsertForm::admin_ban(&mod_person, blocked_person.id, true, expires_at, &reason);
+        let action = Modlog::create(&mut context.pool(), &[form]).await?;
+        let parent_id = action.first().ok_or(LemmyErrorType::NotFound)?.id;
+        notify_mod_action(action, context);
+
         if self.remove_data.unwrap_or(false) {
           if blocked_person.instance_id == site.instance_id {
             // user banned from home instance, remove all content
-            remove_or_restore_user_data(mod_person.id, blocked_person.id, true, &reason, context)
-              .await?;
+            remove_or_restore_user_data(
+              mod_person.id,
+              blocked_person.id,
+              true,
+              &reason,
+              parent_id,
+              context,
+            )
+            .await?;
           } else {
             update_removed_for_instance(&blocked_person, &site, true, pool).await?;
           }
         }
-
-        // write mod log
-        let form =
-          ModlogInsertForm::admin_ban(&mod_person, blocked_person.id, true, expires_at, &reason);
-        let action = Modlog::create(&mut context.pool(), &[form]).await?;
-        notify_mod_action(action.clone(), context);
       }
       SiteOrCommunity::Right(community) => {
         let community_user_ban_form = CommunityPersonBanForm {
@@ -169,19 +173,7 @@ impl Activity for BlockUser {
         // If we unfollowed the community here, activities from the community would be rejected
         // in [[can_accept_activity_in_community]] in case are no other local followers.
 
-        if self.remove_data.unwrap_or(false) {
-          remove_or_restore_user_data_in_community(
-            community.id,
-            mod_person.id,
-            blocked_person.id,
-            true,
-            &reason,
-            &mut context.pool(),
-          )
-          .await?;
-        }
-
-        // write to mod log
+        // Mod tables - create ban entry first so bulk actions can reference it as parent
         let form = ModlogInsertForm::mod_ban_from_community(
           mod_person.id,
           community.id,
@@ -191,7 +183,21 @@ impl Activity for BlockUser {
           &reason,
         );
         let action = Modlog::create(&mut context.pool(), &[form]).await?;
-        notify_mod_action(action.clone(), context);
+        let parent_id = action.first().ok_or(LemmyErrorType::NotFound)?.id;
+        notify_mod_action(action, context);
+
+        if self.remove_data.unwrap_or(false) {
+          remove_or_restore_user_data_in_community(
+            community.id,
+            mod_person.id,
+            blocked_person.id,
+            true,
+            &reason,
+            parent_id,
+            &mut context.pool(),
+          )
+          .await?;
+        }
       }
     }
 

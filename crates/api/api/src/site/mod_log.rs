@@ -35,6 +35,8 @@ pub async fn get_mod_log(
     post_id: data.post_id,
     comment_id: data.comment_id,
     hide_modlog_names: Some(hide_modlog_names),
+    show_bulk: data.show_bulk,
+    bulk_action_parent_id: data.bulk_action_parent_id,
     page_cursor: data.page_cursor,
     limit: data.limit,
   }
@@ -55,7 +57,7 @@ mod tests {
       community::{Community, CommunityInsertForm},
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm},
-      modlog::Modlog,
+      modlog::{Modlog, ModlogInsertForm},
       person::{Person, PersonInsertForm},
       post::{Post, PostActions, PostInsertForm, PostLikeForm},
     },
@@ -66,6 +68,7 @@ mod tests {
   use lemmy_db_views_modlog::ModlogView;
   use lemmy_db_views_post::PostView;
   use lemmy_diesel_utils::traits::Crud;
+  use lemmy_utils::error::LemmyErrorType;
   use pretty_assertions::assert_eq;
 
   #[tokio_shared_rt::test(shared = true)]
@@ -134,12 +137,17 @@ mod tests {
     );
 
     // Remove the user data
-    remove_or_restore_user_data(john.id, sara.id, true, "a remove reason", &context).await?;
+    let ban_form = ModlogInsertForm::admin_ban(&john, sara.id, true, None, "a remove reason");
+    let ban_action = Modlog::create(pool, &[ban_form]).await?;
+    let ban_id = ban_action.first().ok_or(LemmyErrorType::NotFound)?.id;
+    remove_or_restore_user_data(john.id, sara.id, true, "a remove reason", ban_id, &context)
+      .await?;
 
     // Verify that their posts and comments are removed.
     // Posts
     let post_modlog = ModlogQuery {
       type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemovePost)),
+      show_bulk: Some(true),
       ..Default::default()
     }
     .list(pool)
@@ -174,6 +182,7 @@ mod tests {
     // Comments
     let comment_modlog = ModlogQuery {
       type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemoveComment)),
+      show_bulk: Some(true),
       ..Default::default()
     }
     .list(pool)
@@ -227,11 +236,23 @@ mod tests {
     );
 
     // Now restore the content, and make sure it got appended
-    remove_or_restore_user_data(john.id, sara.id, false, "a restore reason", &context).await?;
+    let unban_form = ModlogInsertForm::admin_ban(&john, sara.id, false, None, "a restore reason");
+    let unban_action = Modlog::create(pool, &[unban_form]).await?;
+    let unban_id = unban_action.first().ok_or(LemmyErrorType::NotFound)?.id;
+    remove_or_restore_user_data(
+      john.id,
+      sara.id,
+      false,
+      "a restore reason",
+      unban_id,
+      &context,
+    )
+    .await?;
 
     // Posts
     let post_modlog = ModlogQuery {
       type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemovePost)),
+      show_bulk: Some(true),
       ..Default::default()
     }
     .list(pool)
@@ -284,6 +305,7 @@ mod tests {
     // Comments
     let comment_modlog = ModlogQuery {
       type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemoveComment)),
+      show_bulk: Some(true),
       ..Default::default()
     }
     .list(pool)
@@ -332,6 +354,93 @@ mod tests {
         },
       ],
     ));
+
+    Instance::delete(pool, instance.id).await?;
+
+    Ok(())
+  }
+
+  /// Verifies that remove_or_restore_user_data sets bulk_action_parent_id on all child entries
+  /// when a real parent ModlogId is provided
+  #[tokio::test]
+  #[serial]
+  async fn test_bulk_parent_id_propagated() -> LemmyResult<()> {
+    let context = LemmyContext::init_test_context().await;
+    let pool = &mut context.pool();
+
+    let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
+
+    let person_a_form = PersonInsertForm::test_form(instance.id, "person_a_bulk_test");
+    let person_a = Person::create(pool, &person_a_form).await?;
+
+    let person_b_form = PersonInsertForm::test_form(instance.id, "person_b_bulk_test");
+    let person_b = Person::create(pool, &person_b_form).await?;
+
+    let community_form = CommunityInsertForm::new(
+      instance.id,
+      "bulk_parent_community".to_string(),
+      "nada".to_owned(),
+      "pubkey".to_string(),
+    );
+    let community = Community::create(pool, &community_form).await?;
+
+    let post_form_1 = PostInsertForm::new("Bulk test post 1".into(), person_b.id, community.id);
+    Post::create(pool, &post_form_1).await?;
+
+    let post_form_2 = PostInsertForm::new("Bulk test post 2".into(), person_b.id, community.id);
+    let post_2 = Post::create(pool, &post_form_2).await?;
+
+    let comment_form = CommentInsertForm::new(person_b.id, post_2.id, "Bulk test comment".into());
+    Comment::create(pool, &comment_form, None).await?;
+
+    // Create the ban entry first and capture its ID as the expected parent
+    let ban_form =
+      ModlogInsertForm::admin_ban(&person_a, person_b.id, true, None, "banning for bulk test");
+    let ban_action = Modlog::create(pool, &[ban_form]).await?;
+    let ban_id = ban_action.first().ok_or(LemmyErrorType::NotFound)?.id;
+
+    // Remove person_b's content as a bulk action triggered by the ban
+    remove_or_restore_user_data(
+      person_a.id,
+      person_b.id,
+      true,
+      "bulk remove reason",
+      ban_id,
+      &context,
+    )
+    .await?;
+
+    let post_modlog = ModlogQuery {
+      type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemovePost)),
+      show_bulk: Some(true),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?
+    .items;
+    assert_eq!(2, post_modlog.len());
+    assert!(
+      post_modlog
+        .iter()
+        .all(|e| e.modlog.bulk_action_parent_id == Some(ban_id)),
+      "all post removal entries should reference the ban as their parent"
+    );
+
+    let comment_modlog = ModlogQuery {
+      type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemoveComment)),
+      show_bulk: Some(true),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?
+    .items;
+    assert_eq!(1, comment_modlog.len());
+    let first_comment = comment_modlog.first().ok_or(LemmyErrorType::NotFound)?;
+    assert_eq!(
+      Some(ban_id),
+      first_comment.modlog.bulk_action_parent_id,
+      "comment removal entry should reference the ban as its parent"
+    );
 
     Instance::delete(pool, instance.id).await?;
 

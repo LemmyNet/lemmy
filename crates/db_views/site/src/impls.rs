@@ -1,6 +1,5 @@
 use crate::{
   FederatedInstanceView,
-  ReadableFederationState,
   SiteView,
   api::{GetFederatedInstances, GetFederatedInstancesKind, UserSettingsBackup},
 };
@@ -17,7 +16,6 @@ use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   source::{
     actor_language::LocalUserLanguage,
-    federation_queue_state::FederationQueueState,
     instance::{Instance, instance_keys as key},
     keyword_block::LocalUserKeywordBlock,
     language::Language,
@@ -49,7 +47,6 @@ use lemmy_utils::{
   CacheLock,
   build_cache,
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
-  federate_retry_sleep_duration,
 };
 use std::{
   collections::HashMap,
@@ -203,19 +200,6 @@ impl PaginationCursorConversion for FederatedInstanceView {
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Self::PaginatedType> {
     Instance::read(pool, InstanceId(cursor.id()?)).await
-  }
-}
-
-#[expect(clippy::expect_used)]
-impl From<FederationQueueState> for ReadableFederationState {
-  fn from(internal_state: FederationQueueState) -> Self {
-    ReadableFederationState {
-      next_retry_at: internal_state.last_retry_at.map(|r| {
-        r + chrono::Duration::from_std(federate_retry_sleep_duration(internal_state.fail_count))
-          .expect("sleep duration longer than 2**63 ms (262 million years)")
-      }),
-      internal_state,
-    }
   }
 }
 

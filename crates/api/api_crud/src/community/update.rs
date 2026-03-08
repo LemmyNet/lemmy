@@ -26,7 +26,7 @@ use lemmy_diesel_utils::{traits::Crud, utils::diesel_string_update};
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::{
-    slurs::check_slurs_opt,
+    slurs::{check_slurs, check_slurs_opt},
     validation::{is_valid_body_field, is_valid_display_name},
   },
 };
@@ -42,10 +42,13 @@ pub async fn edit_community(
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
   check_slurs_opt(&data.title, &slur_regex)?;
+  check_slurs_opt(&data.summary, &slur_regex)?;
   check_nsfw_allowed(data.nsfw, Some(&local_site))?;
-  let title = data.title.as_ref().map(|x| x.trim());
+
+  let title = data.title.as_ref().map(|x| x.trim().to_string());
 
   if let Some(title) = &title {
+    check_slurs(title, &slur_regex)?;
     is_valid_display_name(title)?;
   }
 
@@ -54,7 +57,6 @@ pub async fn edit_community(
       .await?
       .as_deref(),
   );
-
   if let Some(Some(sidebar)) = &sidebar {
     is_valid_body_field(sidebar, false)?;
   }
@@ -79,7 +81,7 @@ pub async fn edit_community(
   }
 
   let community_form = CommunityUpdateForm {
-    title: data.title.clone(),
+    title,
     sidebar,
     summary,
     nsfw: data.nsfw,
@@ -92,12 +94,27 @@ pub async fn edit_community(
   let community_id = data.community_id;
   let community = Community::update(&mut context.pool(), community_id, &community_form).await?;
 
-  if old_community.visibility != community.visibility {
+  let visibility_changed = old_community.visibility != community.visibility;
+  if visibility_changed {
     let form = ModlogInsertForm::mod_change_community_visibility(
       local_user_view.person.id,
       data.community_id,
     );
     Modlog::create(&mut context.pool(), &[form]).await?;
+  }
+
+  // If community visibility was changed to local-only, mark it as deleted on other instances. Also
+  // restore it if visibility is changed to public again.
+  if visibility_changed && !old_community.visibility.can_federate()
+    || !community.visibility.can_federate()
+  {
+    let mark_deleted = !community.visibility.can_federate();
+    let activity = SendActivityData::DeleteCommunity(
+      local_user_view.person.clone(),
+      community.clone(),
+      mark_deleted,
+    );
+    ActivityChannel::submit_activity(activity, &context)?;
   }
 
   ActivityChannel::submit_activity(

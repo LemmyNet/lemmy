@@ -1,5 +1,6 @@
 use crate::{
   activity_lists::AnnouncableActivities,
+  check_community_deleted_or_removed,
   community::send_activity_in_community,
   protocol::deletion::{delete::Delete, undo_delete::UndoDelete},
   send_lemmy_activity,
@@ -40,6 +41,7 @@ use lemmy_db_schema::source::{
   post::{Post, PostUpdateForm},
   private_message::{PrivateMessage as DbPrivateMessage, PrivateMessageUpdateForm},
 };
+use lemmy_db_schema_file::enums::CommunityVisibility;
 use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
@@ -53,13 +55,16 @@ pub mod undo_delete;
 /// action was done by a normal user.
 pub(crate) async fn send_apub_delete_in_community(
   actor: Person,
-  community: Community,
+  mut community: Community,
   object: DeletableObjects,
   reason: Option<String>,
   deleted: bool,
   with_replies: Option<bool>,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
+  // Bypass visibility check for sending this activity type
+  community.visibility = CommunityVisibility::Public;
+
   let actor = ApubPerson::from(actor);
   let is_mod_action = reason.is_some();
   let to = generate_to(&community)?;
@@ -86,6 +91,7 @@ pub(crate) async fn send_apub_delete_in_community(
     )?;
     AnnouncableActivities::UndoDelete(undo)
   };
+
   send_activity_in_community(
     activity,
     &actor,
@@ -264,10 +270,11 @@ async fn verify_delete_post_or_comment(
   is_mod_action: bool,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
-  verify_person_in_community(actor, community, context).await?;
+  check_community_deleted_or_removed(community)?;
   if is_mod_action {
     verify_mod_action(actor, community, context).await?;
   } else {
+    verify_person_in_community(actor, community, context).await?;
     // domain of post ap_id and post.creator ap_id are identical, so we just check the former
     verify_domains_match(actor.inner(), object_id)?;
   }

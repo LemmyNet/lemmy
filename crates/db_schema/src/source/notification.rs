@@ -1,6 +1,6 @@
 use crate::{
   newtypes::{CommentId, ModlogId, NotificationId, PostId, PrivateMessageId},
-  source::private_message::PrivateMessage,
+  source::{comment::Comment, post::Post, private_message::PrivateMessage},
 };
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
@@ -30,6 +30,7 @@ pub struct Notification {
   pub post_id: Option<PostId>,
   pub private_message_id: Option<PrivateMessageId>,
   pub modlog_id: Option<ModlogId>,
+  pub creator_id: PersonId,
 }
 
 #[derive(derive_new::new)]
@@ -37,6 +38,7 @@ pub struct Notification {
 #[cfg_attr(feature = "full", diesel(table_name = notification))]
 pub struct NotificationInsertForm {
   pub recipient_id: PersonId,
+  pub creator_id: PersonId,
   pub kind: NotificationType,
   #[new(default)]
   pub comment_id: Option<CommentId>,
@@ -49,20 +51,16 @@ pub struct NotificationInsertForm {
 }
 
 impl NotificationInsertForm {
-  pub fn new_post(post_id: PostId, recipient_id: PersonId, kind: NotificationType) -> Self {
+  pub fn new_post(post: &Post, recipient_id: PersonId, kind: NotificationType) -> Self {
     Self {
-      post_id: Some(post_id),
-      ..Self::new(recipient_id, kind)
+      post_id: Some(post.id),
+      ..Self::new(recipient_id, post.creator_id, kind)
     }
   }
-  pub fn new_comment(
-    comment_id: CommentId,
-    recipient_id: PersonId,
-    kind: NotificationType,
-  ) -> Self {
+  pub fn new_comment(comment: &Comment, recipient_id: PersonId, kind: NotificationType) -> Self {
     Self {
-      comment_id: Some(comment_id),
-      ..Self::new(recipient_id, kind)
+      comment_id: Some(comment.id),
+      ..Self::new(recipient_id, comment.creator_id, kind)
     }
   }
   pub fn new_private_message(private_message: &PrivateMessage) -> Self {
@@ -70,8 +68,15 @@ impl NotificationInsertForm {
       private_message_id: Some(private_message.id),
       ..Self::new(
         private_message.recipient_id,
+        private_message.creator_id,
         NotificationType::PrivateMessage,
       )
+    }
+  }
+  pub fn new_mod_action(modlog_id: ModlogId, recipient_id: PersonId, creator_id: PersonId) -> Self {
+    Self {
+      modlog_id: Some(modlog_id),
+      ..Self::new(recipient_id, creator_id, NotificationType::ModAction)
     }
   }
 }

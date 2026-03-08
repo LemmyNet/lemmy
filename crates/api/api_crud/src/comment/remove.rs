@@ -86,6 +86,7 @@ pub async fn remove_comment(
           orig_comment.community.id,
           remove_children,
           &data.reason,
+          None,
         )
       })
       .collect();
@@ -125,6 +126,7 @@ pub async fn remove_comment(
       orig_comment.community.id,
       removed,
       &data.reason,
+      None,
     );
 
     (updated_comment, vec![form])

@@ -137,7 +137,7 @@ pub(crate) async fn receive_remove_action(
     }
     DeletableObjects::Post(post) => {
       PostReport::resolve_all_for_object(&mut context.pool(), post.id, actor.id).await?;
-      let form = ModlogInsertForm::mod_remove_post(actor.id, &post, true, &reason);
+      let form = ModlogInsertForm::mod_remove_post(actor.id, &post, true, &reason, None);
       let action = Modlog::create(&mut context.pool(), &[form]).await?;
       notify_mod_action(action, context.app_data());
       let post = Post::update(
@@ -167,6 +167,7 @@ pub(crate) async fn receive_remove_action(
               post.community_id,
               true,
               &reason,
+              None,
             )
           })
           .collect();
@@ -197,7 +198,14 @@ pub(crate) async fn receive_remove_action(
           // Filter out deleted comments here so their content doesn't show up in the modlog.
           .filter(|c| !c.deleted)
           .map(|comment| {
-            ModlogInsertForm::mod_remove_comment(actor.id, comment, community_id, true, &reason)
+            ModlogInsertForm::mod_remove_comment(
+              actor.id,
+              comment,
+              community_id,
+              true,
+              &reason,
+              None,
+            )
           })
           .collect();
 
@@ -205,8 +213,14 @@ pub(crate) async fn receive_remove_action(
         notify_mod_action(actions, context);
       } else {
         CommentReport::resolve_all_for_object(&mut context.pool(), comment.id, actor.id).await?;
-        let form =
-          ModlogInsertForm::mod_remove_comment(actor.id, &comment, community_id, true, &reason);
+        let form = ModlogInsertForm::mod_remove_comment(
+          actor.id,
+          &comment,
+          community_id,
+          true,
+          &reason,
+          None,
+        );
         let action = Modlog::create(&mut context.pool(), &[form]).await?;
         notify_mod_action(action, context.app_data());
         Comment::update(

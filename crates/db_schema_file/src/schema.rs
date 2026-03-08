@@ -538,6 +538,7 @@ diesel::table! {
         target_instance_id -> Nullable<Int4>,
         expires_at -> Nullable<Timestamptz>,
         published_at -> Timestamptz,
+        bulk_action_parent_id -> Nullable<Int4>,
     }
 }
 
@@ -565,6 +566,7 @@ diesel::table! {
         subscribers -> Int4,
         subscribers_local -> Int4,
         communities -> Int4,
+        sidebar -> Nullable<Text>,
     }
 }
 
@@ -600,6 +602,7 @@ diesel::table! {
         post_id -> Nullable<Int4>,
         private_message_id -> Nullable<Int4>,
         modlog_id -> Nullable<Int4>,
+        creator_id -> Int4,
     }
 }
 
@@ -993,7 +996,6 @@ diesel::joinable!(multi_community_follow -> multi_community (multi_community_id)
 diesel::joinable!(multi_community_follow -> person (person_id));
 diesel::joinable!(notification -> comment (comment_id));
 diesel::joinable!(notification -> modlog (modlog_id));
-diesel::joinable!(notification -> person (recipient_id));
 diesel::joinable!(notification -> post (post_id));
 diesel::joinable!(notification -> private_message (private_message_id));
 diesel::joinable!(oauth_account -> local_user (local_user_id));

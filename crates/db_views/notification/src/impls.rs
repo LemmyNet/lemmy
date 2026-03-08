@@ -17,7 +17,10 @@ use lemmy_db_schema::{
   },
   utils::{limit_fetch, queries::filters::filter_blocked},
 };
-use lemmy_db_schema_file::schema::{notification, person};
+use lemmy_db_schema_file::{
+  PersonId,
+  schema::{notification, person},
+};
 use lemmy_db_views_modlog::ModlogView;
 use lemmy_db_views_notification_sql::notification_joins;
 use lemmy_db_views_post::PostView;
@@ -113,6 +116,7 @@ pub struct NotificationQuery {
   pub unread_only: Option<bool>,
   pub show_bot_accounts: Option<bool>,
   pub hide_modlog_names: Option<bool>,
+  pub creator_id: Option<PersonId>,
   pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
   pub no_limit: Option<bool>,
@@ -162,6 +166,10 @@ impl NotificationQuery {
         NotificationTypeFilter::All => query,
         NotificationTypeFilter::Other(kind) => query.filter(notification::kind.eq(kind)),
       }
+    }
+
+    if let Some(creator_id) = self.creator_id {
+      query = query.filter(notification::creator_id.eq(creator_id));
     }
 
     // Sorting by published
@@ -253,8 +261,16 @@ fn map_to_enum(v: NotificationViewInternal, hide_modlog_name: bool) -> Option<No
   } else {
     return None;
   };
-  Some(NotificationView {
-    notification: v.notification,
-    data,
-  })
+
+  let notification = if hide_modlog_name {
+    // Set the creator_id to zero if you're hiding modlog names.
+    // The mod view hiding is above.
+    Notification {
+      creator_id: PersonId(0),
+      ..v.notification
+    }
+  } else {
+    v.notification
+  };
+  Some(NotificationView { notification, data })
 }

@@ -120,7 +120,7 @@ impl UndoDelete {
         .await?;
       }
       DeletableObjects::Post(post) => {
-        let form = ModlogInsertForm::mod_remove_post(actor.id, &post, false, &reason);
+        let form = ModlogInsertForm::mod_remove_post(actor.id, &post, false, &reason, None);
         let action = Modlog::create(&mut context.pool(), &[form]).await?;
         notify_mod_action(action, context.app_data());
         Post::update(
@@ -149,6 +149,7 @@ impl UndoDelete {
                 post.community_id,
                 false,
                 &reason,
+                None,
               )
             })
             .collect();
@@ -174,8 +175,14 @@ impl UndoDelete {
             let community_id = Post::read(&mut context.pool(), comment.post_id)
               .await?
               .community_id;
-            let form =
-              ModlogInsertForm::mod_remove_comment(actor.id, comment, community_id, false, &reason);
+            let form = ModlogInsertForm::mod_remove_comment(
+              actor.id,
+              comment,
+              community_id,
+              false,
+              &reason,
+              None,
+            );
             forms.push(form);
           }
           let actions = Modlog::create(&mut context.pool(), &forms).await?;
@@ -184,8 +191,14 @@ impl UndoDelete {
           let community_id = Post::read(&mut context.pool(), comment.post_id)
             .await?
             .community_id;
-          let form =
-            ModlogInsertForm::mod_remove_comment(actor.id, &comment, community_id, false, &reason);
+          let form = ModlogInsertForm::mod_remove_comment(
+            actor.id,
+            &comment,
+            community_id,
+            false,
+            &reason,
+            None,
+          );
           let action = Modlog::create(&mut context.pool(), &[form]).await?;
           notify_mod_action(action, context.app_data());
           Comment::update(

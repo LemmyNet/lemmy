@@ -8,7 +8,7 @@ use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
 use enum_map::{EnumMap, enum_map};
 use lemmy_db_schema::{
-  newtypes::{CommunityId, CommunityTagId, PostId, PostOrCommentId},
+  newtypes::{CommunityId, CommunityTagId, ModlogId, PostId, PostOrCommentId},
   source::{
     comment::{Comment, CommentActions, CommentLikeForm},
     community::{Community, CommunityActions, CommunityUpdateForm},
@@ -509,6 +509,7 @@ pub async fn remove_or_restore_user_data(
   banned_person_id: PersonId,
   removed: bool,
   reason: &str,
+  bulk_action_parent_id: ModlogId,
   context: &LemmyContext,
 ) -> LemmyResult<()> {
   let pool = &mut context.pool();
@@ -580,6 +581,7 @@ pub async fn remove_or_restore_user_data(
     &removed_or_restored_posts,
     removed,
     reason,
+    bulk_action_parent_id,
   )
   .await?;
 
@@ -592,6 +594,7 @@ pub async fn remove_or_restore_user_data(
     &removed_or_restored_comments,
     removed,
     reason,
+    bulk_action_parent_id,
   )
   .await?;
 
@@ -607,11 +610,20 @@ async fn create_modlog_entries_for_removed_or_restored_posts(
   posts: &[Post],
   removed: bool,
   reason: &str,
+  bulk_action_parent_id: ModlogId,
 ) -> LemmyResult<()> {
   // Build the forms
   let forms: Vec<_> = posts
     .iter()
-    .map(|post| ModlogInsertForm::mod_remove_post(mod_person_id, post, removed, reason))
+    .map(|post| {
+      ModlogInsertForm::mod_remove_post(
+        mod_person_id,
+        post,
+        removed,
+        reason,
+        Some(bulk_action_parent_id),
+      )
+    })
     .collect();
 
   Modlog::create(pool, &forms).await?;
@@ -625,6 +637,7 @@ async fn create_modlog_entries_for_removed_or_restored_comments(
   comments: &[Comment],
   removed: bool,
   reason: &str,
+  bulk_action_parent_id: ModlogId,
 ) -> LemmyResult<()> {
   let mut forms: Vec<ModlogInsertForm> = Vec::new();
 
@@ -632,8 +645,14 @@ async fn create_modlog_entries_for_removed_or_restored_comments(
     // This is extremely unfortunate, but since the comment table doesn't have community id,
     // you need to query the post table to get each of them, as they could be in any community
     let community_id = Post::read(pool, comment.post_id).await?.community_id;
-    let form =
-      ModlogInsertForm::mod_remove_comment(mod_person_id, comment, community_id, removed, reason);
+    let form = ModlogInsertForm::mod_remove_comment(
+      mod_person_id,
+      comment,
+      community_id,
+      removed,
+      reason,
+      Some(bulk_action_parent_id),
+    );
     forms.push(form);
   }
 
@@ -649,12 +668,20 @@ async fn create_modlog_entries_for_removed_or_restored_comments_in_community(
   community_id: CommunityId,
   removed: bool,
   reason: &str,
+  bulk_action_parent_id: ModlogId,
 ) -> LemmyResult<()> {
   // Build the forms
   let forms: Vec<_> = comments
     .iter()
     .map(|comment| {
-      ModlogInsertForm::mod_remove_comment(mod_person_id, comment, community_id, removed, reason)
+      ModlogInsertForm::mod_remove_comment(
+        mod_person_id,
+        comment,
+        community_id,
+        removed,
+        reason,
+        Some(bulk_action_parent_id),
+      )
     })
     .collect();
 
@@ -669,6 +696,7 @@ pub async fn remove_or_restore_user_data_in_community(
   banned_person_id: PersonId,
   remove: bool,
   reason: &str,
+  bulk_action_parent_id: ModlogId,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
   // These actions are only possible when removing, not restoring
@@ -683,8 +711,15 @@ pub async fn remove_or_restore_user_data_in_community(
     Post::update_removed_for_creator_and_community(pool, banned_person_id, community_id, remove)
       .await?;
 
-  create_modlog_entries_for_removed_or_restored_posts(pool, mod_person_id, &posts, remove, reason)
-    .await?;
+  create_modlog_entries_for_removed_or_restored_posts(
+    pool,
+    mod_person_id,
+    &posts,
+    remove,
+    reason,
+    bulk_action_parent_id,
+  )
+  .await?;
 
   // Comments
   let removed_comments =
@@ -698,6 +733,7 @@ pub async fn remove_or_restore_user_data_in_community(
     community_id,
     remove,
     reason,
+    bulk_action_parent_id,
   )
   .await?;
 
