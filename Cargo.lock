@@ -1444,7 +1444,7 @@ dependencies = [
 [[package]]
 name = "db-pool"
 version = "0.6.0"
-source = "git+https://github.com/momentary-lapse/db-pool.git?branch=edition2021-superuser-config#ee6c96d9ca1248d41e19fcedd2db6990c9b7bebd"
+source = "git+https://github.com/momentary-lapse/db-pool.git?branch=edition2021-superuser-config#73594bc1a8d6f9484745a4a2d96a2bc4ac085dc2"
 dependencies = [
  "async-trait",
  "bb8",
