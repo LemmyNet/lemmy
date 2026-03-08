@@ -433,8 +433,8 @@ BEGIN
             LANGUAGE plpgsql
             AS $$
             BEGIN
-                INSERT INTO person_content_combined (published_at, thing_id)
-                    VALUES (NEW.published_at, NEW.id);
+                INSERT INTO person_content_combined (published_at, thing_id, creator_id)
+                    VALUES (NEW.published_at, NEW.id, NEW.creator_id);
                 RETURN NEW;
             END $$;
     CREATE TRIGGER person_content_combined
@@ -468,13 +468,29 @@ BEGIN
                         AND p.thing_id = OLD.thing_id;
                 ELSIF (TG_OP = 'INSERT') THEN
                     IF NEW.saved_at IS NOT NULL THEN
-                        INSERT INTO person_saved_combined (saved_at, person_id, thing_id)
-                            VALUES (NEW.saved_at, NEW.person_id, NEW.thing_id);
+                        INSERT INTO person_saved_combined (saved_at, person_id, thing_id, creator_id)
+                        SELECT
+                            NEW.saved_at,
+                            NEW.person_id,
+                            NEW.thing_id,
+                            t.creator_id
+                        FROM
+                            thing AS t
+                        WHERE
+                            t.id = NEW.thing_id;
                     END IF;
                 ELSIF (TG_OP = 'UPDATE') THEN
                     IF NEW.saved_at IS NOT NULL THEN
-                        INSERT INTO person_saved_combined (saved_at, person_id, thing_id)
-                            VALUES (NEW.saved_at, NEW.person_id, NEW.thing_id);
+                        INSERT INTO person_saved_combined (saved_at, person_id, thing_id, creator_id)
+                        SELECT
+                            NEW.saved_at,
+                            NEW.person_id,
+                            NEW.thing_id,
+                            t.creator_id
+                        FROM
+                            thing AS t
+                        WHERE
+                            t.id = NEW.thing_id;
                         -- If saved gets set as null, delete the row
                     ELSE
                         DELETE FROM person_saved_combined AS p
@@ -521,8 +537,17 @@ BEGIN
                             person
                         WHERE
                             id = NEW.person_id) = TRUE THEN
-                        INSERT INTO person_liked_combined (voted_at, vote_is_upvote, person_id, thing_id)
-                            VALUES (NEW.voted_at, NEW.vote_is_upvote, NEW.person_id, NEW.thing_id);
+                        INSERT INTO person_liked_combined (voted_at, vote_is_upvote, person_id, thing_id, creator_id)
+                        SELECT
+                            NEW.voted_at,
+                            NEW.vote_is_upvote,
+                            NEW.person_id,
+                            NEW.thing_id,
+                            t.creator_id
+                        FROM
+                            thing AS t
+                        WHERE
+                            t.id = NEW.thing_id;
                     END IF;
                 ELSIF (TG_OP = 'UPDATE') THEN
                     IF NEW.voted_at IS NOT NULL AND (
@@ -533,9 +558,19 @@ BEGIN
                         WHERE
                             id = NEW.person_id) = TRUE THEN
                         -- Here we have uniques on (person_id, post_id) and (person_id, comment_id)
-                        INSERT INTO person_liked_combined (voted_at, vote_is_upvote, person_id, thing_id)
-                            VALUES (NEW.voted_at, NEW.vote_is_upvote, NEW.person_id, NEW.thing_id)
-                        ON CONFLICT (person_id, thing_id)
+                        INSERT INTO person_liked_combined (voted_at, vote_is_upvote, person_id, thing_id, creator_id)
+                        SELECT
+                            NEW.voted_at,
+                            NEW.vote_is_upvote,
+                            NEW.person_id,
+                            NEW.thing_id,
+                            t.creator_id
+                        FROM
+                            thing AS t
+                        WHERE
+                            t.id = NEW.thing_id
+                        ON CONFLICT (person_id,
+                            thing_id)
                             DO UPDATE SET
                                 voted_at = NEW.voted_at,
                                 vote_is_upvote = NEW.vote_is_upvote;

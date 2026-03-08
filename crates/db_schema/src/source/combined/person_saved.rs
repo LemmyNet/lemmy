@@ -21,6 +21,7 @@ use serde_with::skip_serializing_none;
 pub struct PersonSavedCombined {
   pub saved_at: DateTime<Utc>,
   pub person_id: PersonId,
+  pub creator_id: PersonId,
   pub post_id: Option<PostId>,
   pub comment_id: Option<CommentId>,
   pub id: PersonSavedCombinedId,
