@@ -331,7 +331,7 @@ test("List person hidden", async () => {
   report.push("\n# List person hidden\n");
 
   const time = await timeApiCalls(() => api.listPersonHidden({}));
-  report.push(`list person read: ${formatMs(time)}`);
+  report.push(`list person hidden: ${formatMs(time)}`);
 });
 
 test("List registration applications", async () => {
