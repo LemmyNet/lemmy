@@ -413,6 +413,16 @@ diesel::table! {
         suggested_multi_community_id -> Nullable<Int4>,
         system_account -> Int4,
         default_items_per_page -> Int4,
+        linked_instances -> Nullable<Int4>,
+        total_posts -> Nullable<Int4>,
+        total_comments -> Nullable<Int4>,
+        total_users -> Nullable<Int4>,
+        total_communities -> Nullable<Int4>,
+        user_retention_percent -> Nullable<Int4>,
+        local_post_english_percent -> Nullable<Int4>,
+        ban_rate -> Nullable<Int4>,
+        accepted_signups_rate -> Nullable<Int4>,
+        failed_signups_rate -> Nullable<Int4>,
     }
 }
 

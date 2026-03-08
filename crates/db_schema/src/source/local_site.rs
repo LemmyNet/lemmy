@@ -95,6 +95,16 @@ pub struct LocalSite {
   #[serde(skip)]
   pub system_account: PersonId,
   pub default_items_per_page: i32,
+  pub linked_instances: Option<i32>,
+  pub total_posts: Option<i32>,
+  pub total_comments: Option<i32>,
+  pub total_users: Option<i32>,
+  pub total_communities: Option<i32>,
+  pub user_retention_percent: Option<i32>,
+  pub local_post_english_percent: Option<i32>,
+  pub ban_rate: Option<i32>,
+  pub accepted_signups_rate: Option<i32>,
+  pub failed_signups_rate: Option<i32>,
 }
 
 #[derive(Clone, derive_new::new)]
