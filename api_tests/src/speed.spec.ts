@@ -14,8 +14,8 @@ import {
   LikeType,
   ListingType,
   Login,
-  // TODO notification type needs an "All"
-  NotificationType,
+  ModlogKindFilter,
+  NotificationTypeFilter,
   PersonContentType,
   PostId,
   PostSortType,
@@ -398,7 +398,8 @@ test("Notifications with types", async () => {
   report.push("type | time");
   report.push("--- | ---");
 
-  const notificationTypes: NotificationType[] = [
+  const notificationTypes: NotificationTypeFilter[] = [
+    "all",
     "mention",
     "reply",
     "subscribed",
@@ -444,6 +445,40 @@ type Result<T> = {
   diff: number;
   res: T;
 };
+
+test("Get modlog with types", async () => {
+  report.push("\n# Get modlog with types\n");
+  report.push("type | time");
+  report.push("--- | ---");
+
+  const modlogKinds: ModlogKindFilter[] = [
+    "all",
+    "admin_add",
+    "admin_ban",
+    "admin_allow_instance",
+    "admin_block_instance",
+    "admin_purge_comment",
+    "admin_purge_community",
+    "admin_purge_person",
+    "admin_purge_post",
+    "mod_add_to_community",
+    "mod_ban_from_community",
+    "admin_feature_post_site",
+    "mod_feature_post_community",
+    "mod_change_community_visibility",
+    "mod_lock_post",
+    "mod_remove_comment",
+    "admin_remove_community",
+    "mod_remove_post",
+    "mod_transfer_community",
+    "mod_lock_comment",
+  ];
+
+  for (let type_ of modlogKinds) {
+    const time = await timeApiCalls(() => api.getModlog({ type_ }));
+    report.push(`${type_} | ${formatMs(time)}`);
+  }
+});
 
 async function timeApiCall<T>(promise: () => Promise<T>): Promise<Result<T>> {
   const start = performance.now();
