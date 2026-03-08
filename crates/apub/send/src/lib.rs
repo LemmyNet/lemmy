@@ -272,7 +272,7 @@ mod test {
   }
 
   /// Basic test with default params and only active/allowed instances
-  #[tokio_shared_rt::test(shared = true)]
+  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
   async fn test_send_manager() -> LemmyResult<()> {
     let mut data = TestData::init(1, 1).await?;
 
@@ -312,7 +312,7 @@ mod test {
   }
 
   /// Use blocklist, should not send to blocked instances
-  #[tokio_shared_rt::test(shared = true)]
+  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
   async fn test_send_manager_blocked() -> LemmyResult<()> {
     let mut data = TestData::init(1, 1).await?;
 
@@ -333,7 +333,7 @@ mod test {
   }
 
   /// Use allowlist, should only send to allowed instance
-  #[tokio_shared_rt::test(shared = true)]
+  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
   async fn test_send_manager_allowed() -> LemmyResult<()> {
     let mut data = TestData::init(1, 1).await?;
 
@@ -353,7 +353,7 @@ mod test {
   }
 
   /// Mark instance as dead, there should be no worker created for it
-  #[tokio_shared_rt::test(shared = true)]
+  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
   async fn test_send_manager_dead() -> LemmyResult<()> {
     let mut data = TestData::init(1, 1).await?;
 

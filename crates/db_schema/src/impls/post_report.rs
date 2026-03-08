@@ -128,7 +128,7 @@ mod tests {
     Ok((person, report))
   }
 
-  #[tokio_shared_rt::test(shared = true)]
+  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
   #[ignore]
   async fn test_resolve_post_report() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
@@ -148,7 +148,7 @@ mod tests {
     Ok(())
   }
 
-  #[tokio_shared_rt::test(shared = true)]
+  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
   #[ignore]
   async fn test_resolve_all_post_reports() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;

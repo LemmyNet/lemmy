@@ -394,7 +394,7 @@ mod tests {
     })
   }
 
-  #[tokio_shared_rt::test(shared = true)]
+  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
   #[ignore]
   async fn test_counts() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
@@ -452,7 +452,7 @@ mod tests {
     Ok(())
   }
 
-  #[tokio_shared_rt::test(shared = true)]
+  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
   #[ignore]
   async fn test_multi_community_apub() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;

@@ -224,7 +224,7 @@ pub(crate) mod tests {
     Ok(())
   }
 
-  #[tokio_shared_rt::test(shared = true)]
+  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
   async fn test_parse_pleroma_person() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
 

@@ -282,7 +282,7 @@ impl AsyncTestContext for Data {
 }
 
 #[test_context(Data)]
-#[tokio_shared_rt::test(shared = true)]
+#[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
 #[ignore]
 async fn post_listing_with_person(data: &mut Data) -> LemmyResult<()> {
   let pool_arc = data.pool();
@@ -343,7 +343,7 @@ async fn post_listing_with_person(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio_shared_rt::test(shared = true)]
+#[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
 #[ignore]
 async fn post_listing_no_person(data: &mut Data) -> LemmyResult<()> {
   let pool_arc = data.pool();
@@ -377,7 +377,7 @@ async fn post_listing_no_person(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio_shared_rt::test(shared = true)]
+#[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
 async fn post_listing_block_community(data: &mut Data) -> LemmyResult<()> {
   let pool_arc = data.pool();
   let pool_ref = &***pool_arc;
@@ -400,7 +400,7 @@ async fn post_listing_block_community(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio_shared_rt::test(shared = true)]
+#[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
 async fn post_listing_like(data: &mut Data) -> LemmyResult<()> {
   let pool_arc = data.pool();
   let pool_ref = &***pool_arc;
@@ -466,7 +466,7 @@ async fn post_listing_like(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio_shared_rt::test(shared = true)]
+#[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
 async fn person_note(data: &mut Data) -> LemmyResult<()> {
   let pool_arc = data.pool();
   let pool_ref = &***pool_arc;
@@ -516,7 +516,7 @@ async fn person_note(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio_shared_rt::test(shared = true)]
+#[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
 #[ignore]
 async fn post_listing_person_vote_totals(data: &mut Data) -> LemmyResult<()> {
   let pool_arc = data.pool();
@@ -692,7 +692,7 @@ async fn post_listing_person_vote_totals(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio_shared_rt::test(shared = true)]
+#[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
 #[ignore]
 async fn post_listing_read_only(data: &mut Data) -> LemmyResult<()> {
   let pool_arc = data.pool();
@@ -717,7 +717,7 @@ async fn post_listing_read_only(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio_shared_rt::test(shared = true)]
+#[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
 async fn creator_info(data: &mut Data) -> LemmyResult<()> {
   let pool_arc = data.pool();
   let pool_ref = &***pool_arc;
@@ -840,7 +840,7 @@ async fn creator_info(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio_shared_rt::test(shared = true)]
+#[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
 #[ignore]
 async fn post_listing_person_language(data: &mut Data) -> LemmyResult<()> {
   const EL_POSTO: &str = "el posto";
@@ -908,7 +908,7 @@ async fn post_listing_person_language(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio_shared_rt::test(shared = true)]
+#[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
 #[ignore]
 async fn post_listings_removed(data: &mut Data) -> LemmyResult<()> {
   let pool_arc = data.pool();
@@ -943,7 +943,7 @@ async fn post_listings_removed(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio_shared_rt::test(shared = true)]
+#[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
 #[ignore]
 async fn post_listings_deleted(data: &mut Data) -> LemmyResult<()> {
   let pool_arc = data.pool();
@@ -983,7 +983,7 @@ async fn post_listings_deleted(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio_shared_rt::test(shared = true)]
+#[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
 #[ignore]
 async fn post_listings_hidden_community(data: &mut Data) -> LemmyResult<()> {
   let pool_arc = data.pool();
@@ -1021,7 +1021,7 @@ async fn post_listings_hidden_community(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio_shared_rt::test(shared = true)]
+#[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
 async fn post_listing_instance_block_communities(data: &mut Data) -> LemmyResult<()> {
   const POST_FROM_BLOCKED_INSTANCE_COMMS: &str = "post on blocked instance";
   const HOWARD_POST: &str = "howard post";
@@ -1110,7 +1110,7 @@ async fn post_listing_instance_block_communities(data: &mut Data) -> LemmyResult
 }
 
 #[test_context(Data)]
-#[tokio_shared_rt::test(shared = true)]
+#[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
 async fn post_listing_instance_block_persons(data: &mut Data) -> LemmyResult<()> {
   const POST_FROM_BLOCKED_INSTANCE_USERS: &str = "post from blocked instance user";
   const POST_TO_UNBLOCKED_COMM: &str = "post to unblocked comm";
@@ -1191,7 +1191,7 @@ async fn post_listing_instance_block_persons(data: &mut Data) -> LemmyResult<()>
 }
 
 #[test_context(Data)]
-#[tokio_shared_rt::test(shared = true)]
+#[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
 async fn pagination_includes_each_post_once(data: &mut Data) -> LemmyResult<()> {
   let pool_arc = data.pool();
   let pool_ref = &***pool_arc;
@@ -1291,7 +1291,7 @@ async fn pagination_includes_each_post_once(data: &mut Data) -> LemmyResult<()> 
 }
 
 #[test_context(Data)]
-#[tokio_shared_rt::test(shared = true)]
+#[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
 /// Test that last and first partial pages only have one cursor.
 async fn pagination_hidden_cursors(data: &mut Data) -> LemmyResult<()> {
   let pool_arc = data.pool();
@@ -1409,7 +1409,7 @@ async fn pagination_hidden_cursors(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio_shared_rt::test(shared = true)]
+#[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
 /// Test paging past the last and first page.
 async fn pagination_recovery_cursors(data: &mut Data) -> LemmyResult<()> {
   let pool_arc = data.pool();
@@ -1540,7 +1540,7 @@ async fn pagination_recovery_cursors(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio_shared_rt::test(shared = true)]
+#[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
 #[ignore]
 async fn post_listings_hide_read(data: &mut Data) -> LemmyResult<()> {
   let pool_arc = data.pool();
@@ -1589,7 +1589,7 @@ async fn post_listings_hide_read(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio_shared_rt::test(shared = true)]
+#[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
 #[ignore]
 async fn post_listings_hide_hidden(data: &mut Data) -> LemmyResult<()> {
   let pool_arc = data.pool();
@@ -1636,7 +1636,7 @@ async fn post_listings_hide_hidden(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio_shared_rt::test(shared = true)]
+#[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
 #[ignore]
 async fn post_listings_hide_nsfw(data: &mut Data) -> LemmyResult<()> {
   let pool_arc = data.pool();
@@ -1682,7 +1682,7 @@ async fn post_listings_hide_nsfw(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio_shared_rt::test(shared = true)]
+#[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
 async fn local_only_instance(data: &mut Data) -> LemmyResult<()> {
   let pool_arc = data.pool();
   let pool_ref = &***pool_arc;
@@ -1731,7 +1731,7 @@ async fn local_only_instance(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio_shared_rt::test(shared = true)]
+#[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
 async fn post_listing_local_user_banned_from_community(data: &mut Data) -> LemmyResult<()> {
   let pool_arc = data.pool();
   let pool_ref = &***pool_arc;
@@ -1775,7 +1775,7 @@ async fn post_listing_local_user_banned_from_community(data: &mut Data) -> Lemmy
 }
 
 #[test_context(Data)]
-#[tokio_shared_rt::test(shared = true)]
+#[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
 #[ignore]
 async fn post_listing_local_user_not_banned_from_community(data: &mut Data) -> LemmyResult<()> {
   let pool_arc = data.pool();
@@ -1804,7 +1804,7 @@ fn micros(dt: DateTime<Utc>) -> i64 {
 }
 
 #[test_context(Data)]
-#[tokio_shared_rt::test(shared = true)]
+#[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
 async fn post_listing_creator_banned(data: &mut Data) -> LemmyResult<()> {
   let pool_arc = data.pool();
   let pool_ref = &***pool_arc;
@@ -1855,7 +1855,7 @@ async fn post_listing_creator_banned(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio_shared_rt::test(shared = true)]
+#[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
 async fn post_listing_creator_community_banned(data: &mut Data) -> LemmyResult<()> {
   let pool_arc = data.pool();
   let pool_ref = &***pool_arc;
@@ -1910,7 +1910,7 @@ async fn post_listing_creator_community_banned(data: &mut Data) -> LemmyResult<(
 }
 
 #[test_context(Data)]
-#[tokio_shared_rt::test(shared = true)]
+#[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
 #[ignore]
 async fn speed_check(data: &mut Data) -> LemmyResult<()> {
   let pool_arc = data.pool();
@@ -1963,7 +1963,7 @@ async fn speed_check(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio_shared_rt::test(shared = true)]
+#[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
 #[ignore]
 async fn post_listings_no_comments_only(data: &mut Data) -> LemmyResult<()> {
   let pool_arc = data.pool();
@@ -1994,7 +1994,7 @@ async fn post_listings_no_comments_only(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio_shared_rt::test(shared = true)]
+#[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
 #[ignore]
 async fn post_listing_private_community(data: &mut Data) -> LemmyResult<()> {
   let pool_arc = data.pool();
@@ -2094,7 +2094,7 @@ async fn post_listing_private_community(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio_shared_rt::test(shared = true)]
+#[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
 #[ignore]
 async fn post_listings_hide_media(data: &mut Data) -> LemmyResult<()> {
   let pool_arc = data.pool();
@@ -2155,7 +2155,7 @@ async fn post_listings_hide_media(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio_shared_rt::test(shared = true)]
+#[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
 #[ignore]
 async fn post_with_blocked_keywords(data: &mut Data) -> LemmyResult<()> {
   let pool_arc = data.pool();
@@ -2229,7 +2229,7 @@ async fn post_with_blocked_keywords(data: &mut Data) -> LemmyResult<()> {
   Ok(())
 }
 #[test_context(Data)]
-#[tokio_shared_rt::test(shared = true)]
+#[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
 #[ignore]
 async fn post_tags_present(data: &mut Data) -> LemmyResult<()> {
   let pool_arc = data.pool();
@@ -2260,7 +2260,7 @@ async fn post_tags_present(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio_shared_rt::test(shared = true)]
+#[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
 #[ignore]
 async fn post_listing_multi_community(data: &mut Data) -> LemmyResult<()> {
   let pool_arc = data.pool();

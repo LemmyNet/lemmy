@@ -121,7 +121,7 @@ async fn get_application_statuses(
   ))
 }
 
-#[tokio_shared_rt::test(shared = true)]
+#[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
 #[expect(clippy::indexing_slicing)]
 async fn test_application_approval() -> LemmyResult<()> {
   let context = LemmyContext::init_test_context().await;

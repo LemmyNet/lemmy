@@ -71,7 +71,7 @@ mod tests {
   use lemmy_utils::error::LemmyErrorType;
   use pretty_assertions::assert_eq;
 
-  #[tokio_shared_rt::test(shared = true)]
+  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
   async fn test_mod_remove_or_restore_data() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();

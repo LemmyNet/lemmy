@@ -42,7 +42,7 @@ async fn cleanup(data: Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
   Ok(())
 }
 
-#[tokio_shared_rt::test(shared = true)]
+#[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
 async fn test_private_message() -> LemmyResult<()> {
   let pool = &build_db_pool_for_tests().await;
   let pool = &mut pool.into();
@@ -73,7 +73,7 @@ async fn test_private_message() -> LemmyResult<()> {
   cleanup(data, pool).await
 }
 
-#[tokio_shared_rt::test(shared = true)]
+#[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
 async fn test_post() -> LemmyResult<()> {
   let pool = &build_db_pool_for_tests().await;
   let pool = &mut pool.into();
@@ -143,7 +143,7 @@ async fn test_post() -> LemmyResult<()> {
   cleanup(data, pool).await
 }
 
-#[tokio_shared_rt::test(shared = true)]
+#[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
 async fn test_modlog() -> LemmyResult<()> {
   let pool = &build_db_pool_for_tests().await;
   let pool = &mut pool.into();
