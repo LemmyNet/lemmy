@@ -76,6 +76,12 @@ pub async fn list_posts(
   // dont allow more than page 10 for performance reasons
   let page = data.page.map(|p| min(p, 10));
 
+  // TODO what about pre-fetching a list of communities for subscribed, multi-communities, and
+  // moderator_view to avoid the join filter? Then don't allow passing multi_community_id to this.
+  // An in_query on post.community_id might be fast enough.
+  //
+  // - Make a new enum for postquery with restricted listing_types.
+  // - Get rid of the weird largest_community pre-fetch
   let posts = PostQuery {
     local_user,
     listing_type,
