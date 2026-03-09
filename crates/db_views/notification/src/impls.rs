@@ -123,79 +123,76 @@ pub struct NotificationQuery {
 }
 
 impl NotificationQuery {
-  pub async fn list(
+  pub fn list(
     self,
     pool: &mut DbPool<'_>,
     my_person: &Person,
-  ) -> LemmyResult<PagedResponse<NotificationView>> {
-    let limit = limit_fetch(self.limit, self.no_limit)?;
-    let mut query = notification_joins(my_person.id, my_person.instance_id)
-      .select(NotificationViewInternal::as_select())
-      .limit(limit)
-      .into_boxed();
+  ) -> impl Future<Output = LemmyResult<PagedResponse<NotificationView>>> {
+    Box::pin(async move {
+      let limit = limit_fetch(self.limit, self.no_limit)?;
+      let mut query = notification_joins(my_person.id, my_person.instance_id)
+        .select(NotificationViewInternal::as_select())
+        .limit(limit)
+        .into_boxed();
 
-    // Filters
-    if self.unread_only.unwrap_or_default() {
-      query = query
-        // The recipient filter (IE only show replies to you)
-        .filter(notification::recipient_id.eq(my_person.id))
-        .filter(notification::read.eq(false));
-    } else {
-      // A special case for private messages: show messages FROM you also.
-      // Use a not-null checks to catch the others
-      query = query.filter(
-        notification::recipient_id.eq(my_person.id).or(
-          notification::private_message_id.is_not_null().and(
-            notification::recipient_id
-              .eq(my_person.id)
-              .or(person::id.eq(my_person.id)),
+      // Filters
+      if self.unread_only.unwrap_or_default() {
+        query = query
+          // The recipient filter (IE only show replies to you)
+          .filter(notification::recipient_id.eq(my_person.id))
+          .filter(notification::read.eq(false));
+      } else {
+        // A special case for private messages: show messages FROM you also.
+        // Use a not-null checks to catch the others
+        query = query.filter(
+          notification::recipient_id.eq(my_person.id).or(
+            notification::private_message_id.is_not_null().and(
+              notification::recipient_id
+                .eq(my_person.id)
+                .or(person::id.eq(my_person.id)),
+            ),
           ),
-        ),
-      );
-    }
-
-    if !self.show_bot_accounts.unwrap_or_default() {
-      query = query.filter(person::bot_account.is_distinct_from(true));
-    };
-
-    // Dont show replies from blocked users or instances
-    query = query.filter(filter_blocked());
-
-    if let Some(type_) = self.type_ {
-      query = match type_ {
-        NotificationTypeFilter::All => query,
-        NotificationTypeFilter::Other(kind) => query.filter(notification::kind.eq(kind)),
+        );
       }
-    }
 
-    if let Some(creator_id) = self.creator_id {
-      query = query.filter(notification::creator_id.eq(creator_id));
-    }
+      if !self.show_bot_accounts.unwrap_or_default() {
+        query = query.filter(person::bot_account.is_distinct_from(true));
+      };
 
-    // Sorting by published
-    let paginated_query = Box::pin(NotificationView::paginate(
-      query,
-      &self.page_cursor,
-      SortDirection::Desc,
-      pool,
-      None,
-    ))
-    .await?
-    .then_order_by(notification_keys::published_at)
-    // Tie breaker
-    .then_order_by(notification_keys::id);
+      // Dont show replies from blocked users or instances
+      query = query.filter(filter_blocked());
 
-    let conn = &mut get_conn(pool).await?;
-    let res = paginated_query
-      .load::<NotificationViewInternal>(conn)
-      .await?;
+      if let Some(type_) = self.type_ {
+        query = match type_ {
+          NotificationTypeFilter::All => query,
+          NotificationTypeFilter::Other(kind) => query.filter(notification::kind.eq(kind)),
+        }
+      }
 
-    let hide_modlog_names = self.hide_modlog_names.unwrap_or_default();
-    let res = res
-      .into_iter()
-      .filter_map(|r| map_to_enum(r, hide_modlog_names))
-      .collect();
-    paginate_response(res, limit, self.page_cursor)
+      if let Some(creator_id) = self.creator_id {
+        query = query.filter(notification::creator_id.eq(creator_id));
+      }
+
+      // Sorting by published
+      let paginated_query =
+        NotificationView::paginate(query, &self.page_cursor, SortDirection::Desc, pool, None)
+          .await?
+          .then_order_by(notification_keys::published_at)
+          // Tie breaker
+          .then_order_by(notification_keys::id);
+
+      let conn = &mut get_conn(pool).await?;
+      let res = paginated_query
+        .load::<NotificationViewInternal>(conn)
+        .await?;
+
+      let hide_modlog_names = self.hide_modlog_names.unwrap_or_default();
+      let res = res
+        .into_iter()
+        .filter_map(|r| map_to_enum(r, hide_modlog_names))
+        .collect();
+      paginate_response(res, limit, self.page_cursor)
+    })
   }
 }
 

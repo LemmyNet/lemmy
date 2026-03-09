@@ -361,13 +361,11 @@ async fn get_feed_notifs(
 
   check_private_instance(&Some(local_user.clone()), &site_view.local_site)?;
 
-  let notifications = Box::pin(
-    NotificationQuery {
-      show_bot_accounts,
-      ..Default::default()
-    }
-    .list(&mut context.pool(), &local_user.person),
-  )
+  let notifications = NotificationQuery {
+    show_bot_accounts,
+    ..Default::default()
+  }
+  .list(&mut context.pool(), &local_user.person)
   .await?
   .items;
 

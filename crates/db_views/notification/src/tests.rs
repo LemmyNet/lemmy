@@ -52,7 +52,7 @@ async fn test_private_message() -> LemmyResult<()> {
 
   let count = NotificationView::get_unread_count(pool, &data.alice, false).await?;
   assert_eq!(0, count);
-  let notifs = Box::pin(NotificationQuery::default().list(pool, &data.alice)).await?;
+  let notifs = NotificationQuery::default().list(pool, &data.alice).await?;
   assert_length!(0, notifs);
 
   let form = &PrivateMessageInsertForm::new(data.bob.id, data.alice.id, "my message".to_string());
@@ -62,7 +62,7 @@ async fn test_private_message() -> LemmyResult<()> {
 
   let count = NotificationView::get_unread_count(pool, &data.alice, false).await?;
   assert_eq!(1, count);
-  let notifs = Box::pin(NotificationQuery::default().list(pool, &data.alice)).await?;
+  let notifs = NotificationQuery::default().list(pool, &data.alice).await?;
   assert_length!(1, notifs);
   assert_eq!(Some(pm.id), notifs[0].notification.private_message_id);
   assert_eq!(pm.recipient_id, notifs[0].notification.recipient_id);
@@ -84,7 +84,7 @@ async fn test_post() -> LemmyResult<()> {
 
   let count = NotificationView::get_unread_count(pool, &data.alice, false).await?;
   assert_eq!(0, count);
-  let notifs = Box::pin(NotificationQuery::default().list(pool, &data.alice)).await?;
+  let notifs = NotificationQuery::default().list(pool, &data.alice).await?;
   assert_length!(0, notifs);
 
   let community_form = CommunityInsertForm::new(
@@ -104,7 +104,7 @@ async fn test_post() -> LemmyResult<()> {
 
   let count = NotificationView::get_unread_count(pool, &data.alice, false).await?;
   assert_eq!(1, count);
-  let notifs1 = Box::pin(NotificationQuery::default().list(pool, &data.alice)).await?;
+  let notifs1 = NotificationQuery::default().list(pool, &data.alice).await?;
   assert_length!(1, notifs1);
   assert_eq!(Some(post.id), notifs1[0].notification.post_id);
   assert!(!notifs1[0].notification.read);
@@ -127,13 +127,11 @@ async fn test_post() -> LemmyResult<()> {
 
   let count = NotificationView::get_unread_count(pool, &data.alice, false).await?;
   assert_eq!(1, count);
-  let notifs2 = Box::pin(
-    NotificationQuery {
-      unread_only: Some(true),
-      ..Default::default()
-    }
-    .list(pool, &data.alice),
-  )
+  let notifs2 = NotificationQuery {
+    unread_only: Some(true),
+    ..Default::default()
+  }
+  .list(pool, &data.alice)
   .await?;
   assert_length!(1, notifs2);
   assert_eq!(Some(mod_remove_post.id), notifs2[0].notification.modlog_id);
@@ -189,7 +187,7 @@ async fn test_modlog() -> LemmyResult<()> {
   let form = NotificationInsertForm::new_mod_action(modlog.id, data.bob.id, data.alice.id);
   let notification = &Notification::create(pool, &[form]).await?[0];
 
-  let notifs = Box::pin(NotificationQuery::default().list(pool, &data.bob)).await?;
+  let notifs = NotificationQuery::default().list(pool, &data.bob).await?;
   assert_length!(1, notifs);
   let NotificationData::ModAction(m) = &notifs[0].data else {
     panic!();
