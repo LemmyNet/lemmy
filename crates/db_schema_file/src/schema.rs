@@ -695,6 +695,7 @@ diesel::table! {
 diesel::table! {
     person_content_combined (id) {
         published_at -> Timestamptz,
+        creator_id -> Int4,
         post_id -> Nullable<Int4>,
         comment_id -> Nullable<Int4>,
         id -> Int4,
@@ -706,6 +707,7 @@ diesel::table! {
         voted_at -> Timestamptz,
         id -> Int4,
         person_id -> Int4,
+        creator_id -> Int4,
         post_id -> Nullable<Int4>,
         comment_id -> Nullable<Int4>,
         vote_is_upvote -> Bool,
@@ -716,6 +718,7 @@ diesel::table! {
     person_saved_combined (id) {
         saved_at -> Timestamptz,
         person_id -> Int4,
+        creator_id -> Int4,
         post_id -> Nullable<Int4>,
         comment_id -> Nullable<Int4>,
         id -> Int4,
@@ -1003,12 +1006,11 @@ diesel::joinable!(oauth_account -> oauth_provider (oauth_provider_id));
 diesel::joinable!(password_reset_request -> local_user (local_user_id));
 diesel::joinable!(person -> instance (instance_id));
 diesel::joinable!(person_content_combined -> comment (comment_id));
+diesel::joinable!(person_content_combined -> person (creator_id));
 diesel::joinable!(person_content_combined -> post (post_id));
 diesel::joinable!(person_liked_combined -> comment (comment_id));
-diesel::joinable!(person_liked_combined -> person (person_id));
 diesel::joinable!(person_liked_combined -> post (post_id));
 diesel::joinable!(person_saved_combined -> comment (comment_id));
-diesel::joinable!(person_saved_combined -> person (person_id));
 diesel::joinable!(person_saved_combined -> post (post_id));
 diesel::joinable!(post -> community (community_id));
 diesel::joinable!(post -> language (language_id));
