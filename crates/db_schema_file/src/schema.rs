@@ -843,6 +843,7 @@ diesel::table! {
         ap_id -> Varchar,
         local -> Bool,
         removed -> Bool,
+        deleted_by_recipient -> Bool,
     }
 }
 
