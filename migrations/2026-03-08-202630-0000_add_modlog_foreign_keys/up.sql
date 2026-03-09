@@ -1,12 +1,12 @@
--- Use on delete no action for all these, so that if an item is purged, the modlog rows will still remain.
+-- Use on delete set null for all these (except require mod_id), so that if an item is purged, the modlog rows will still remain.
 ALTER TABLE modlog
-    ADD CONSTRAINT modlog_mod_fkey FOREIGN KEY (mod_id) REFERENCES person ON UPDATE CASCADE ON DELETE NO ACTION,
-    ADD CONSTRAINT modlog_target_person_fkey FOREIGN KEY (target_person_id) REFERENCES person ON UPDATE CASCADE ON DELETE NO ACTION,
-    ADD CONSTRAINT modlog_target_community_fkey FOREIGN KEY (target_community_id) REFERENCES community ON UPDATE CASCADE ON DELETE NO ACTION,
-    ADD CONSTRAINT modlog_target_post_fkey FOREIGN KEY (target_post_id) REFERENCES post ON UPDATE CASCADE ON DELETE NO ACTION,
-    ADD CONSTRAINT modlog_target_comment_fkey FOREIGN KEY (target_comment_id) REFERENCES COMMENT ON UPDATE CASCADE ON DELETE NO ACTION,
-    ADD CONSTRAINT modlog_target_instance_fkey FOREIGN KEY (target_instance_id) REFERENCES instance ON UPDATE CASCADE ON DELETE NO ACTION,
-    ADD CONSTRAINT modlog_bulk_action_parent_fkey FOREIGN KEY (bulk_action_parent_id) REFERENCES modlog ON UPDATE CASCADE ON DELETE NO ACTION;
+    ADD CONSTRAINT modlog_mod_fkey FOREIGN KEY (mod_id) REFERENCES person ON UPDATE CASCADE ON DELETE CASCADE,
+    ADD CONSTRAINT modlog_target_person_fkey FOREIGN KEY (target_person_id) REFERENCES person ON UPDATE CASCADE ON DELETE SET NULL,
+    ADD CONSTRAINT modlog_target_community_fkey FOREIGN KEY (target_community_id) REFERENCES community ON UPDATE CASCADE ON DELETE SET NULL,
+    ADD CONSTRAINT modlog_target_post_fkey FOREIGN KEY (target_post_id) REFERENCES post ON UPDATE CASCADE ON DELETE SET NULL,
+    ADD CONSTRAINT modlog_target_comment_fkey FOREIGN KEY (target_comment_id) REFERENCES COMMENT ON UPDATE CASCADE ON DELETE SET NULL,
+    ADD CONSTRAINT modlog_target_instance_fkey FOREIGN KEY (target_instance_id) REFERENCES instance ON UPDATE CASCADE ON DELETE SET NULL,
+    ADD CONSTRAINT modlog_bulk_action_parent_fkey FOREIGN KEY (bulk_action_parent_id) REFERENCES modlog ON UPDATE CASCADE ON DELETE SET NULL;
 
 CREATE INDEX idx_modlog_kind ON modlog (kind);
 
