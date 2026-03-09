@@ -15,6 +15,7 @@ import {
   ListingType,
   Login,
   ModlogKindFilter,
+  MultiCommunitySortType,
   NotificationTypeFilter,
   PersonContentType,
   PostId,
@@ -32,6 +33,8 @@ const postCommentsMaxDepth = 8;
 
 const samplePerson = "dessalines";
 const sampleCommunity = "memes";
+/// A multicommunity with several high-volume communities in it.
+const sampleMultiCommunity = "test_1";
 const searchTerm = "test";
 
 // Post without a url
@@ -132,6 +135,25 @@ test("List posts with higher pages", async () => {
   report.push(`avg | ${formatMs(avg)}`);
 });
 
+test("List posts for a multi-community with different sorts", async () => {
+  report.push("\n# List posts for a multi-community with different sorts \n");
+  report.push("sort | time");
+  report.push("--- | ---");
+  const sortTypes: PostSortType[] = [
+    "active",
+    "hot",
+    "new",
+    "top",
+    "controversial",
+  ];
+  for (let sort of sortTypes) {
+    const time = await timeApiCalls(() =>
+      api.getPosts({ sort, multi_community_name: sampleMultiCommunity }),
+    );
+    report.push(`${sort} | ${formatMs(time)}`);
+  }
+});
+
 test("List communities with different sorts", async () => {
   report.push("\n# List communities with different sorts \n");
   report.push("sort | time");
@@ -172,6 +194,25 @@ test("List communities with different listing types", async () => {
   for (let type_ of listingTypes) {
     const time = await timeApiCalls(() => api.listCommunities({ type_ }));
     report.push(`${type_} | ${formatMs(time)}`);
+  }
+});
+
+test("List multi-communities with different sorts", async () => {
+  report.push("\n# List multi-communities with different sorts \n");
+  report.push("sort | time");
+  report.push("--- | ---");
+  const sortTypes: MultiCommunitySortType[] = [
+    "new",
+    "old",
+    "name_asc",
+    "name_desc",
+    "communities",
+    "subscribers",
+    "subscribers_local",
+  ];
+  for (let sort of sortTypes) {
+    const time = await timeApiCalls(() => api.listMultiCommunities({ sort }));
+    report.push(`${sort} | ${formatMs(time)}`);
   }
 });
 
