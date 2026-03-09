@@ -40,14 +40,20 @@ pub async fn save_user_settings(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
   check_local_user_valid(&local_user_view)?;
-  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
 
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
   let bio = diesel_string_update(
-    process_markdown_opt(&data.bio, &slur_regex, &url_blocklist, &context)
-      .await?
-      .as_deref(),
+    process_markdown_opt(
+      &data.bio,
+      &slur_regex,
+      &url_blocklist,
+      &local_site,
+      &context,
+    )
+    .await?
+    .as_deref(),
   );
 
   let display_name = diesel_string_update(data.display_name.as_deref().map(str::trim));
@@ -61,7 +67,7 @@ pub async fn save_user_settings(
     if previous_email.deref() != email {
       LocalUser::check_is_email_taken(&mut context.pool(), &email).await?;
       send_verification_email(
-        &site_view.local_site,
+        &local_site,
         &local_user_view,
         email.into(),
         &mut context.pool(),
@@ -75,7 +81,7 @@ pub async fn save_user_settings(
   // value
   if let Some(email) = &email
     && email.is_none()
-    && site_view.local_site.require_email_verification
+    && local_site.require_email_verification
   {
     return Err(LemmyErrorType::EmailRequired.into());
   }
@@ -93,7 +99,7 @@ pub async fn save_user_settings(
   }
 
   if let Some(send_notifications_to_email) = data.send_notifications_to_email
-    && site_view.local_site.disable_email_notifications
+    && local_site.disable_email_notifications
     && send_notifications_to_email
   {
     return Err(LemmyErrorType::EmailNotificationsDisabled.into());

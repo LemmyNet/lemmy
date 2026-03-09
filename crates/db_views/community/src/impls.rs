@@ -276,12 +276,11 @@ impl MultiCommunityQuery {
     use lemmy_db_schema::{MultiCommunityListingType::*, MultiCommunitySortType::*};
     let o = self;
 
+    let limit = limit_fetch(o.limit, o.no_limit)?;
     let mut query = MultiCommunityView::joins(o.my_person_id)
       .select(MultiCommunityView::as_select())
+      .limit(limit)
       .into_boxed();
-
-    let limit = limit_fetch(o.limit, o.no_limit)?;
-    query = query.limit(limit);
 
     if let Some(listing_type) = o.listing_type {
       query = match listing_type {

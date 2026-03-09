@@ -10,6 +10,7 @@ use actix_web::{
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::source::images::RemoteImage;
 use lemmy_db_views_local_image::api::{ImageGetParams, ImageProxyParams};
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use percent_encoding::{NON_ALPHANUMERIC, utf8_percent_encode};
 use std::str::FromStr;
@@ -71,8 +72,14 @@ pub async fn image_proxy(
     url
   };
 
-  let bypass_proxy = pictrs_config
-    .proxy_bypass_domains
+  let proxy_bypass_domains = SiteView::read_local(&mut context.pool())
+    .await?
+    .local_site
+    .image_proxy_bypass_domains
+    .map(|e| e.split(',').map(ToString::to_string).collect::<Vec<_>>())
+    .unwrap_or_default();
+
+  let bypass_proxy = proxy_bypass_domains
     .iter()
     .any(|s| url.domain().is_some_and(|d| d == s));
   if bypass_proxy {

@@ -12,6 +12,7 @@ use lemmy_db_views_community::{
   api::{EditMultiCommunity, MultiCommunityResponse},
 };
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::{traits::Crud, utils::diesel_string_update};
 use lemmy_utils::{
   error::LemmyResult,
@@ -32,6 +33,7 @@ pub async fn edit_multi_community(
 
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
 
   let orig_multi = MultiCommunity::read(&mut context.pool(), data.id).await?;
   check_multi_community_creator(&orig_multi, &local_user_view)?;
@@ -44,9 +46,15 @@ pub async fn edit_multi_community(
   let title = diesel_string_update(title.as_deref());
 
   let sidebar = diesel_string_update(
-    process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context)
-      .await?
-      .as_deref(),
+    process_markdown_opt(
+      &data.sidebar,
+      &slur_regex,
+      &url_blocklist,
+      &local_site,
+      &context,
+    )
+    .await?
+    .as_deref(),
   );
   if let Some(Some(sidebar)) = &sidebar {
     is_valid_body_field(sidebar, false)?;

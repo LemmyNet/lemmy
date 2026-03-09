@@ -11,6 +11,7 @@ use lemmy_utils::error::LemmyResult;
 pub struct TestData {
   pub instance: Instance,
   pub site: Site,
+  pub local_site: LocalSite,
   pub person: Person,
 }
 
@@ -36,6 +37,7 @@ impl TestData {
     Ok(Self {
       instance,
       site,
+      local_site,
       person,
     })
   }

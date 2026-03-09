@@ -164,10 +164,7 @@ impl Object for ApubCommunity {
 
   /// Converts a `Group` to `Community`, inserts it into the database and updates moderators.
   async fn from_json(group: Group, context: &Data<Self::DataType>) -> LemmyResult<ApubCommunity> {
-    let local_site = SiteView::read_local(&mut context.pool())
-      .await
-      .ok()
-      .map(|s| s.local_site);
+    let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
     let instance_id = fetch_instance_actor_for_object(&group.id, context).await?;
 
     let slur_regex = slur_regex(context).await?;
@@ -175,11 +172,14 @@ impl Object for ApubCommunity {
     let url_blocklist = RegexSet::empty();
 
     let sidebar = read_from_string_or_source_opt(&group.summary, &None, &group.source);
-    let sidebar = process_markdown_opt(&sidebar, &slur_regex, &url_blocklist, context).await?;
+    let sidebar =
+      process_markdown_opt(&sidebar, &slur_regex, &url_blocklist, &local_site, context).await?;
     let sidebar = markdown_rewrite_remote_links_opt(sidebar, context).await;
 
-    let icon = proxy_image_link_opt_apub(group.icon.clone().map(|i| i.url), context).await?;
-    let banner = proxy_image_link_opt_apub(group.image.clone().map(|i| i.url), context).await?;
+    let icon =
+      proxy_image_link_opt_apub(group.icon.clone().map(|i| i.url), &local_site, context).await?;
+    let banner =
+      proxy_image_link_opt_apub(group.image.clone().map(|i| i.url), &local_site, context).await?;
     let visibility = Some(community_visibility(&group));
 
     let summary = group
@@ -193,7 +193,7 @@ impl Object for ApubCommunity {
     let title = remove_slurs(&group.name.clone().unwrap_or(name.clone()), &slur_regex);
 
     // If NSFW is not allowed, then remove NSFW communities
-    let removed = check_nsfw_allowed(group.sensitive, local_site.as_ref())
+    let removed = check_nsfw_allowed(group.sensitive, Some(&local_site))
       .err()
       .map(|_| true);
 
@@ -294,12 +294,13 @@ impl GetActorType for ApubCommunity {
 pub(crate) mod tests {
   use super::*;
   use crate::utils::test::{parse_lemmy_community, parse_lemmy_instance};
-  use lemmy_db_schema::source::instance::Instance;
+  use lemmy_db_schema::{source::instance::Instance, test_data::TestData};
   use pretty_assertions::assert_eq;
 
   #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
   async fn test_parse_lemmy_community() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
+    let test_data = TestData::create(&mut context.pool()).await?;
     parse_lemmy_instance(&context).await?;
     let community = parse_lemmy_community(&context).await?;
 
@@ -317,6 +318,7 @@ pub(crate) mod tests {
     );
 
     Instance::delete_all(&mut context.pool()).await?;
+    test_data.delete(&mut context.pool()).await?;
     Ok(())
   }
 }

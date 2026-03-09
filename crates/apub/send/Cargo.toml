@@ -44,14 +44,14 @@ tokio = { workspace = true, features = ["full"] }
 serde.workspace = true
 tracing.workspace = true
 moka.workspace = true
-tokio-util = "0.7.17"
+tokio-util = "0.7.18"
 lemmy_diesel_utils = { workspace = true }
 
 [dev-dependencies]
 url.workspace = true
 actix-web.workspace = true
-tracing-test = "0.2.5"
+tracing-test = "0.2.6"
 uuid.workspace = true
-test-context = "0.5.4"
+test-context = "0.5.5"
 mockall = "0.14.0"
 tokio-shared-rt = { workspace = true }

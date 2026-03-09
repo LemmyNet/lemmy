@@ -67,7 +67,7 @@ http = { workspace = true, optional = true }
 doku = { workspace = true, features = ["url-2"], optional = true }
 tokio = { workspace = true, optional = true }
 urlencoding = { workspace = true, optional = true }
-deser-hjson = { version = "2.2.4", optional = true }
+deser-hjson = { version = "2.2.5", optional = true }
 smart-default = { version = "0.7.1", optional = true }
 markdown-it = { version = "0.6.1", optional = true }
 ts-rs = { workspace = true, optional = true }

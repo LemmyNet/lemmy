@@ -9,7 +9,7 @@ use db_pool::{
     ReusableConnectionPool,
   },
 };
-use deadpool::{Runtime, Status, managed::Timeouts};
+use deadpool::{Runtime, Status};
 use diesel::result::{
   ConnectionError,
   ConnectionResult,
@@ -223,13 +223,11 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
   let pool_size = std::cmp::max(SETTINGS.database.pool_size, 2);
 
   let pool = Pool::builder(manager)
-    .max_size(pool_size)
     .runtime(Runtime::Tokio1)
-    .timeouts(Timeouts {
-      wait: Some(Duration::from_secs(1)),
-      create: Some(Duration::from_secs(5)),
-      recycle: Some(Duration::from_secs(5)),
-    })
+    .max_size(pool_size)
+    .wait_timeout(Some(Duration::from_secs(1)))
+    .create_timeout(Some(Duration::from_secs(5)))
+    .recycle_timeout(Some(Duration::from_secs(5)))
     // Limit connection age to prevent use of prepared statements that have query plans based on
     // very old statistics
     .pre_recycle(Hook::sync_fn(|_conn, metrics| {

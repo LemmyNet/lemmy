@@ -14,7 +14,7 @@ use lemmy_db_schema::source::{
 use lemmy_db_views_community::api::CommunityIdQuery;
 use lemmy_db_views_local_image::api::DeleteImageParams;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_site::api::SuccessResponse;
+use lemmy_db_views_site::{SiteView, api::SuccessResponse};
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 
@@ -22,7 +22,7 @@ pub async fn delete_site_icon(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
-  let site = Site::read_local(&mut context.pool()).await?;
+  let site = SiteView::read_local(&mut context.pool()).await?.site;
   is_admin(&local_user_view)?;
 
   delete_old_image(&site.icon, &context).await?;
@@ -39,7 +39,7 @@ pub async fn delete_site_banner(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
-  let site = Site::read_local(&mut context.pool()).await?;
+  let site = SiteView::read_local(&mut context.pool()).await?.site;
   is_admin(&local_user_view)?;
 
   delete_old_image(&site.banner, &context).await?;

@@ -137,12 +137,14 @@ impl Object for ApubMultiCommunity {
   async fn from_json(json: Self::Kind, context: &Data<LemmyContext>) -> LemmyResult<Self> {
     let creator = json.attributed_to.dereference(context).await?;
     let slur_regex = slur_regex(context).await?;
+    let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
 
     // Use empty regex so that url blocklist doesnt prevent community federation.
     let url_blocklist = RegexSet::empty();
 
     let sidebar = read_from_string_or_source_opt(&json.summary, &None, &json.source);
-    let sidebar = process_markdown_opt(&sidebar, &slur_regex, &url_blocklist, context).await?;
+    let sidebar =
+      process_markdown_opt(&sidebar, &slur_regex, &url_blocklist, &local_site, context).await?;
     let sidebar = markdown_rewrite_remote_links_opt(sidebar, context).await;
     if let Some(sidebar) = &sidebar {
       is_valid_body_field(sidebar, false)?;

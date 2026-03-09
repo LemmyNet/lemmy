@@ -31,6 +31,7 @@ use lemmy_db_schema::source::{
   site::{Site, SiteInsertForm},
 };
 use lemmy_db_schema_file::{InstanceId, enums::ActorType};
+use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::{sensitive::SensitiveString, traits::Crud};
 use lemmy_utils::{
   error::{LemmyError, LemmyResult, UntranslatedError},
@@ -131,12 +132,15 @@ impl Object for ApubSite {
 
     let slur_regex = slur_regex(context).await?;
     let url_blocklist = get_url_blocklist(context).await?;
+    let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
+
     let sidebar = read_from_string_or_source_opt(&apub.content, &None, &apub.source);
-    let sidebar = process_markdown_opt(&sidebar, &slur_regex, &url_blocklist, context).await?;
+    let sidebar =
+      process_markdown_opt(&sidebar, &slur_regex, &url_blocklist, &local_site, context).await?;
     let sidebar = markdown_rewrite_remote_links_opt(sidebar, context).await;
     let summary = apub.summary.map(|s| remove_slurs(&s, &slur_regex));
-    let icon = proxy_image_link_opt_apub(apub.icon.map(|i| i.url), context).await?;
-    let banner = proxy_image_link_opt_apub(apub.image.map(|i| i.url), context).await?;
+    let icon = proxy_image_link_opt_apub(apub.icon.map(|i| i.url), &local_site, context).await?;
+    let banner = proxy_image_link_opt_apub(apub.image.map(|i| i.url), &local_site, context).await?;
 
     let site_form = SiteInsertForm {
       name: apub.name.clone(),
@@ -213,12 +217,13 @@ pub(crate) async fn fetch_instance_actor_for_object<T: Into<Url> + Clone>(
 pub(crate) mod tests {
   use super::*;
   use crate::utils::test::parse_lemmy_instance;
-  use lemmy_db_schema::source::instance::Instance;
+  use lemmy_db_schema::{source::instance::Instance, test_data::TestData};
   use pretty_assertions::assert_eq;
 
   #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
   async fn test_parse_lemmy_instance() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
+    let test_data = TestData::create(&mut context.pool()).await?;
     let site = parse_lemmy_instance(&context).await?;
 
     assert_eq!(site.name, "Enterprise");
@@ -227,6 +232,7 @@ pub(crate) mod tests {
       Some(15)
     );
 
+    test_data.delete(&mut context.pool()).await?;
     Instance::delete_all(&mut context.pool()).await?;
     Ok(())
   }

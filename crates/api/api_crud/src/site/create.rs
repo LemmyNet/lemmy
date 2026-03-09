@@ -64,7 +64,14 @@ pub async fn create_site(
 
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
-  let sidebar = process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context).await?;
+  let sidebar = process_markdown_opt(
+    &data.sidebar,
+    &slur_regex,
+    &url_blocklist,
+    &local_site,
+    &context,
+  )
+  .await?;
 
   let suggested_multi_community_id =
     diesel_opt_number_update(data.suggested_multi_community_id.map(|id| id.0))
@@ -98,7 +105,9 @@ pub async fn create_site(
     default_theme: data.default_theme.clone(),
     default_post_listing_type: data.default_post_listing_type,
     default_post_sort_type: data.default_post_sort_type,
+    default_post_time_range_seconds: diesel_opt_number_update(data.default_post_time_range_seconds),
     default_comment_sort_type: data.default_comment_sort_type,
+    reports_email_admins: data.reports_email_admins,
     legal_information: diesel_string_update(data.legal_information.as_deref()),
     application_email_admins: data.application_email_admins,
     updated_at: Some(Some(Utc::now())),
@@ -112,7 +121,18 @@ pub async fn create_site(
     disallow_nsfw_content: data.disallow_nsfw_content,
     disable_email_notifications: data.disable_email_notifications,
     suggested_multi_community_id,
-    ..Default::default()
+    federation_signed_fetch: data.federation_signed_fetch,
+    oauth_registration: data.oauth_registration,
+    default_items_per_page: data.default_items_per_page,
+    image_mode: data.image_mode,
+    image_proxy_bypass_domains: diesel_string_update(data.image_proxy_bypass_domains.as_deref()),
+    image_upload_timeout_seconds: data.image_upload_timeout_seconds,
+    image_max_thumbnail_size: data.image_max_thumbnail_size,
+    image_max_avatar_size: data.image_max_avatar_size,
+    image_max_banner_size: data.image_max_banner_size,
+    image_max_upload_size: data.image_max_upload_size,
+    image_allow_video_uploads: data.image_allow_video_uploads,
+    image_upload_disabled: data.image_upload_disabled,
   };
 
   LocalSite::update(&mut context.pool(), &local_site_form).await?;

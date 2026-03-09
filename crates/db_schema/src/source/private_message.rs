@@ -33,6 +33,7 @@ pub struct PrivateMessage {
   pub ap_id: DbUrl,
   pub local: bool,
   pub removed: bool,
+  pub deleted_by_recipient: bool,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -68,4 +69,5 @@ pub struct PrivateMessageUpdateForm {
   pub ap_id: Option<DbUrl>,
   pub local: Option<bool>,
   pub removed: Option<bool>,
+  pub deleted_by_recipient: Option<bool>,
 }

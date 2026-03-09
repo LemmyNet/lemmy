@@ -9,16 +9,18 @@ use encoding_rs::{Encoding, UTF_8};
 use futures::StreamExt;
 use lemmy_db_schema::source::{
   images::{ImageDetailsInsertForm, LocalImage, LocalImageForm},
+  local_site::LocalSite,
   post::{Post, PostUpdateForm},
-  site::Site,
 };
+use lemmy_db_schema_file::enums::ImageMode;
 use lemmy_db_views_post::api::{LinkMetadata, OpenGraphData};
+use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::{
   REQWEST_TIMEOUT,
   VERSION,
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult, UntranslatedError},
-  settings::structs::{PictrsImageMode, Settings},
+  settings::structs::Settings,
 };
 use mime::{Mime, TEXT_HTML};
 use reqwest::{
@@ -213,13 +215,17 @@ pub async fn generate_post_link_metadata(
     .is_some_and(|content_type| content_type.starts_with("image"));
 
   // Decide if we are allowed to generate local thumbnail
-  let site = Site::read_local(&mut context.pool()).await?;
+  let SiteView {
+    site, local_site, ..
+  } = SiteView::read_local(&mut context.pool()).await?;
   let allow_sensitive = site.content_warning.is_some();
   let allow_generate_thumbnail = allow_sensitive || !post.nsfw;
 
   // Proxy the post url itself if it is an image
   let url = if let (true, Some(url)) = (is_image_post, post.url.clone()) {
-    Some(Some(proxy_image_link(url.into(), false, &context).await?))
+    Some(Some(
+      proxy_image_link(url.into(), &local_site, false, &context).await?,
+    ))
   } else {
     None
   };
@@ -233,13 +239,13 @@ pub async fn generate_post_link_metadata(
   // Attempt to generate a thumbnail depending on the instance settings. Either by proxying,
   // storing image persistently in pict-rs or returning the remote url directly as thumbnail.
   let thumbnail_url = if let (false, Some(url)) = (is_image_post, custom_thumbnail) {
-    proxy_image_link(url.clone(), true, &context)
+    proxy_image_link(url.clone(), &local_site, true, &context)
       .await
       .map_err(|e| warn!("Failed to proxy thumbnail: {e}"))
       .ok()
       .or(Some(url.into()))
   } else if let (true, Some(url)) = (allow_generate_thumbnail, image_url.clone()) {
-    generate_pictrs_thumbnail(&post, &url, &context)
+    generate_pictrs_thumbnail(&post, &url, &local_site, &context)
       .await
       .map_err(|e| warn!("Failed to generate thumbnail: {e}"))
       .ok()
@@ -481,15 +487,14 @@ pub async fn delete_image_alias(alias: &str, context: &LemmyContext) -> LemmyRes
 async fn generate_pictrs_thumbnail(
   post: &Post,
   image_url: &Url,
+  local_site: &LocalSite,
   context: &LemmyContext,
 ) -> LemmyResult<Url> {
-  let pictrs_config = context.settings().pictrs()?;
-
-  match pictrs_config.image_mode {
-    PictrsImageMode::None => return Ok(image_url.clone()),
-    PictrsImageMode::ProxyAllImages => {
+  match local_site.image_mode {
+    ImageMode::None => return Ok(image_url.clone()),
+    ImageMode::ProxyAllImages => {
       return Ok(
-        proxy_image_link(image_url.clone(), true, context)
+        proxy_image_link(image_url.clone(), local_site, true, context)
           .await?
           .into(),
       );
@@ -500,9 +505,9 @@ async fn generate_pictrs_thumbnail(
   // fetch remote non-pictrs images for persistent thumbnail link
   let fetch_url = format!(
     "{}image/download?url={}&resize={}",
-    pictrs_config.url,
+    context.settings().pictrs()?.url,
     encode(image_url.as_str()),
-    context.settings().pictrs()?.max_thumbnail_size
+    local_site.image_max_thumbnail_size
   );
 
   let res = context

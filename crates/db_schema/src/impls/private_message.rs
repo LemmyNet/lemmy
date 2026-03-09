@@ -153,6 +153,7 @@ mod tests {
       .into(),
       local: true,
       removed: false,
+      deleted_by_recipient: false,
     };
 
     let read_private_message = PrivateMessage::read(pool, inserted_private_message.id).await?;

@@ -31,6 +31,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_private_message::PrivateMessageView;
+use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType, LemmyResult},
@@ -149,9 +150,11 @@ impl Object for ApubPrivateMessage {
     }
     let slur_regex = slur_regex(context).await?;
     let url_blocklist = get_url_blocklist(context).await?;
+    let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
 
     let content = read_from_string_or_source(&note.content, &None, &note.source);
-    let content = process_markdown(&content, &slur_regex, &url_blocklist, context).await?;
+    let content =
+      process_markdown(&content, &slur_regex, &url_blocklist, &local_site, context).await?;
     let content = markdown_rewrite_remote_links(content, context).await;
 
     let mut form = PrivateMessageInsertForm {

@@ -42,6 +42,7 @@ use lemmy_db_schema::source::{
   person::Person,
   post::Post,
 };
+use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::{
   error::{LemmyError, LemmyResult, UntranslatedError},
@@ -206,8 +207,11 @@ impl Object for ApubComment {
 
     let slur_regex = slur_regex(context).await?;
     let url_blocklist = get_url_blocklist(context).await?;
+    let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
+
     let content = append_attachments_to_comment(content, &note.attachment, context).await?;
-    let content = process_markdown(&content, &slur_regex, &url_blocklist, context).await?;
+    let content =
+      process_markdown(&content, &slur_regex, &url_blocklist, &local_site, context).await?;
     let content = markdown_rewrite_remote_links(content, context).await;
     let language_id = Some(
       LanguageTag::to_language_id_single(note.language.unwrap_or_default(), &mut context.pool())
