@@ -877,6 +877,7 @@ diesel::table! {
         comment_report_id -> Nullable<Int4>,
         private_message_report_id -> Nullable<Int4>,
         community_report_id -> Nullable<Int4>,
+        resolved -> Bool,
     }
 }
 

@@ -14,6 +14,7 @@ use diesel::{
   PgExpressionMethods,
   QueryDsl,
   SelectableHelper,
+  dsl::not,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::asc_if;
@@ -40,11 +41,9 @@ use lemmy_db_schema_file::{
     comment_report,
     community,
     community_actions,
-    community_report,
     person,
     post,
     post_report,
-    private_message_report,
     report_combined,
   },
 };
@@ -145,7 +144,7 @@ impl ReportCombinedViewInternal {
     let conn = &mut get_conn(pool).await?;
 
     let mut query = report_combined_joins(user.person.id, user.person.instance_id)
-      .filter(report_is_not_resolved())
+      .filter(not(report_combined::resolved))
       .select(count(report_combined::id))
       .into_boxed();
 
@@ -270,7 +269,7 @@ impl ReportCombinedQuery {
     let sort_direction = asc_if(unresolved_only);
 
     if unresolved_only {
-      query = query.filter(report_is_not_resolved())
+      query = query.filter(not(report_combined::resolved));
     };
 
     // Sorting by published
@@ -326,15 +325,6 @@ fn filter_violates_instance_rules() -> _ {
     .or(comment_report::violates_instance_rules)
     .or(report_combined::community_report_id.is_not_null())
     .or(report_combined::private_message_report_id.is_not_null())
-}
-
-#[diesel::dsl::auto_type]
-fn report_is_not_resolved() -> _ {
-  post_report::resolved
-    .or(comment_report::resolved)
-    .or(private_message_report::resolved)
-    .or(community_report::resolved)
-    .is_distinct_from(true)
 }
 
 impl InternalToCombinedView for ReportCombinedViewInternal {
