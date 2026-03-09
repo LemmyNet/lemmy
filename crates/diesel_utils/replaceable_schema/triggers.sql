@@ -410,10 +410,27 @@ BEGIN
                     VALUES (NEW.published_at, NEW.id);
                 RETURN NEW;
             END $$;
-    CREATE TRIGGER report_combined
+    CREATE FUNCTION r.report_combined_thing_update ( )
+        RETURNS TRIGGER
+        LANGUAGE plpgsql
+        AS $$
+        BEGIN
+            UPDATE
+                report_combined
+            SET
+                resolved = NEW.resolved
+            WHERE
+                thing_id = NEW.id;
+            RETURN NULL;
+        END $$;
+    CREATE TRIGGER report_combined_insert
         AFTER INSERT ON thing
         FOR EACH ROW
         EXECUTE FUNCTION r.report_combined_thing_insert ( );
+        CREATE TRIGGER report_combined_update
+            AFTER UPDATE OF resolved ON thing
+            FOR EACH ROW
+            EXECUTE FUNCTION r.report_combined_thing_update ( );
         $b$,
         'thing',
         table_name);
