@@ -41,6 +41,7 @@ use lemmy_db_schema::source::{
   post::{Post, PostUpdateForm},
   private_message::{PrivateMessage as DbPrivateMessage, PrivateMessageUpdateForm},
 };
+use lemmy_db_schema_file::enums::CommunityVisibility;
 use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
@@ -54,13 +55,16 @@ pub mod undo_delete;
 /// action was done by a normal user.
 pub(crate) async fn send_apub_delete_in_community(
   actor: Person,
-  community: Community,
+  mut community: Community,
   object: DeletableObjects,
   reason: Option<String>,
   deleted: bool,
   with_replies: Option<bool>,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
+  // Bypass visibility check for sending this activity type
+  community.visibility = CommunityVisibility::Public;
+
   let actor = ApubPerson::from(actor);
   let is_mod_action = reason.is_some();
   let to = generate_to(&community)?;
@@ -87,6 +91,7 @@ pub(crate) async fn send_apub_delete_in_community(
     )?;
     AnnouncableActivities::UndoDelete(undo)
   };
+
   send_activity_in_community(
     activity,
     &actor,
