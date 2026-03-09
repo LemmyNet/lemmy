@@ -54,7 +54,7 @@ services:
       # set the outside hostname here
       # - LEMMY_UI_LEMMY_EXTERNAL_HOST=localhost:1236
       - LEMMY_UI_HTTPS=false
-      - LEMMY_UI_DEBUG=true
+      - LEMMY_UI_ERUDA=true
     depends_on:
       - lemmy
     restart: unless-stopped
