@@ -16,9 +16,10 @@ use lemmy_apub_activities::{
   },
 };
 use lemmy_apub_objects::objects::community::ApubCommunity;
-use lemmy_db_schema::{source::site::Site, utils::FETCH_LIMIT_MAX};
+use lemmy_db_schema::utils::FETCH_LIMIT_MAX;
 use lemmy_db_schema_file::enums::PostSortType;
 use lemmy_db_views_post::impls::PostQuery;
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
@@ -33,7 +34,7 @@ impl Collection for ApubCommunityOutbox {
   type Error = LemmyError;
 
   async fn read_local(owner: &Self::Owner, data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
-    let site = Site::read_local(&mut data.pool()).await?;
+    let site = SiteView::read_local(&mut data.pool()).await?.site;
 
     let mut post_views = Box::pin(
       PostQuery {

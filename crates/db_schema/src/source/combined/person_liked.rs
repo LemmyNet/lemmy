@@ -22,6 +22,7 @@ pub struct PersonLikedCombined {
   pub voted_at: DateTime<Utc>,
   pub id: PersonLikedCombinedId,
   pub person_id: PersonId,
+  pub creator_id: PersonId,
   pub post_id: Option<PostId>,
   pub comment_id: Option<CommentId>,
   pub vote_is_upvote: bool,

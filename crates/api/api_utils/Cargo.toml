@@ -74,7 +74,7 @@ webmention = { version = "0.6.0" }
 urlencoding = { workspace = true }
 webpage = { version = "2.0", default-features = false, features = ["serde"] }
 regex = { workspace = true }
-jsonwebtoken = { version = "10.2.0", features = ["rust_crypto"] }
+jsonwebtoken = { version = "10.3.0", features = ["rust_crypto"] }
 either.workspace = true
 derive-new.workspace = true
 lemmy_diesel_utils = { workspace = true }

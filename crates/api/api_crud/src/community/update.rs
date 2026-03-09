@@ -53,9 +53,15 @@ pub async fn edit_community(
   }
 
   let sidebar = diesel_string_update(
-    process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context)
-      .await?
-      .as_deref(),
+    process_markdown_opt(
+      &data.sidebar,
+      &slur_regex,
+      &url_blocklist,
+      &local_site,
+      &context,
+    )
+    .await?
+    .as_deref(),
   );
   if let Some(Some(sidebar)) = &sidebar {
     is_valid_body_field(sidebar, false)?;
@@ -94,12 +100,27 @@ pub async fn edit_community(
   let community_id = data.community_id;
   let community = Community::update(&mut context.pool(), community_id, &community_form).await?;
 
-  if old_community.visibility != community.visibility {
+  let visibility_changed = old_community.visibility != community.visibility;
+  if visibility_changed {
     let form = ModlogInsertForm::mod_change_community_visibility(
       local_user_view.person.id,
       data.community_id,
     );
     Modlog::create(&mut context.pool(), &[form]).await?;
+  }
+
+  // If community visibility was changed to local-only, mark it as deleted on other instances. Also
+  // restore it if visibility is changed to public again.
+  if visibility_changed && !old_community.visibility.can_federate()
+    || !community.visibility.can_federate()
+  {
+    let mark_deleted = !community.visibility.can_federate();
+    let activity = SendActivityData::DeleteCommunity(
+      local_user_view.person.clone(),
+      community.clone(),
+      mark_deleted,
+    );
+    ActivityChannel::submit_activity(activity, &context)?;
   }
 
   ActivityChannel::submit_activity(

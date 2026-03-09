@@ -9,12 +9,14 @@ use lemmy_api_utils::{
 use lemmy_db_schema::source::{
   community::{Community, CommunityUpdateForm},
   images::{LocalImage, LocalImageForm},
+  local_site::LocalSite,
   person::{Person, PersonUpdateForm},
   site::{Site, SiteUpdateForm},
 };
 use lemmy_db_views_community::api::CommunityIdQuery;
 use lemmy_db_views_local_image::api::UploadImageResponse;
 use lemmy_db_views_local_user::LocalUserView;
+use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use reqwest::Body;
@@ -32,12 +34,14 @@ pub async fn upload_image(
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<UploadImageResponse>> {
-  if context.settings().pictrs()?.image_upload_disabled {
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
+
+  if local_site.image_upload_disabled {
     return Err(LemmyErrorType::ImageUploadDisabled.into());
   }
 
   Ok(Json(
-    do_upload_image(req, body, Other, &local_user_view, &context).await?,
+    do_upload_image(req, body, Other, &local_user_view, &local_site, &context).await?,
   ))
 }
 
@@ -47,7 +51,9 @@ pub async fn upload_user_avatar(
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<UploadImageResponse>> {
-  let image = do_upload_image(req, body, Avatar, &local_user_view, &context).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
+
+  let image = do_upload_image(req, body, Avatar, &local_user_view, &local_site, &context).await?;
   delete_old_image(&local_user_view.person.avatar, &context).await?;
 
   let form = PersonUpdateForm {
@@ -65,7 +71,9 @@ pub async fn upload_user_banner(
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<UploadImageResponse>> {
-  let image = do_upload_image(req, body, Banner, &local_user_view, &context).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
+
+  let image = do_upload_image(req, body, Banner, &local_user_view, &local_site, &context).await?;
   delete_old_image(&local_user_view.person.banner, &context).await?;
 
   let form = PersonUpdateForm {
@@ -84,10 +92,12 @@ pub async fn upload_community_icon(
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<UploadImageResponse>> {
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
+
   let community: Community = Community::read(&mut context.pool(), query.id).await?;
   is_mod_or_admin(&mut context.pool(), &local_user_view, community.id).await?;
 
-  let image = do_upload_image(req, body, Avatar, &local_user_view, &context).await?;
+  let image = do_upload_image(req, body, Avatar, &local_user_view, &local_site, &context).await?;
   delete_old_image(&community.icon, &context).await?;
 
   let form = CommunityUpdateForm {
@@ -106,10 +116,12 @@ pub async fn upload_community_banner(
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<UploadImageResponse>> {
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
+
   let community: Community = Community::read(&mut context.pool(), query.id).await?;
   is_mod_or_admin(&mut context.pool(), &local_user_view, community.id).await?;
 
-  let image = do_upload_image(req, body, Banner, &local_user_view, &context).await?;
+  let image = do_upload_image(req, body, Banner, &local_user_view, &local_site, &context).await?;
   delete_old_image(&community.banner, &context).await?;
 
   let form = CommunityUpdateForm {
@@ -128,9 +140,12 @@ pub async fn upload_site_icon(
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<UploadImageResponse>> {
   is_admin(&local_user_view)?;
-  let site = Site::read_local(&mut context.pool()).await?;
 
-  let image = do_upload_image(req, body, Avatar, &local_user_view, &context).await?;
+  let SiteView {
+    site, local_site, ..
+  } = SiteView::read_local(&mut context.pool()).await?;
+
+  let image = do_upload_image(req, body, Avatar, &local_user_view, &local_site, &context).await?;
   delete_old_image(&site.icon, &context).await?;
 
   let form = SiteUpdateForm {
@@ -149,9 +164,12 @@ pub async fn upload_site_banner(
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<UploadImageResponse>> {
   is_admin(&local_user_view)?;
-  let site = Site::read_local(&mut context.pool()).await?;
 
-  let image = do_upload_image(req, body, Banner, &local_user_view, &context).await?;
+  let SiteView {
+    site, local_site, ..
+  } = SiteView::read_local(&mut context.pool()).await?;
+
+  let image = do_upload_image(req, body, Banner, &local_user_view, &local_site, &context).await?;
   delete_old_image(&site.banner, &context).await?;
 
   let form = SiteUpdateForm {
@@ -168,11 +186,12 @@ async fn do_upload_image(
   body: Payload,
   upload_type: UploadType,
   local_user_view: &LocalUserView,
+  local_site: &LocalSite,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<UploadImageResponse> {
-  let pictrs = context.settings().pictrs()?;
-  let max_upload_size = pictrs.max_upload_size.map(|m| m.to_string());
-  let image_url = format!("{}image", pictrs.url);
+  let pictrs_url = context.settings().pictrs()?.url;
+  let max_upload_size = local_site.image_max_upload_size.to_string();
+  let image_url = format!("{}image", pictrs_url);
 
   let mut client_req = adapt_request(&req, image_url, context);
 
@@ -180,7 +199,7 @@ async fn do_upload_image(
   // https://git.asonix.dog/asonix/pict-rs/#api
   client_req = match upload_type {
     Avatar => {
-      let max_size = pictrs.max_avatar_size.to_string();
+      let max_size = local_site.image_max_avatar_size.to_string();
       client_req.query(&[
         ("resize", max_size.as_ref()),
         ("allow_animation", "false"),
@@ -188,7 +207,7 @@ async fn do_upload_image(
       ])
     }
     Banner => {
-      let max_size = pictrs.max_banner_size.to_string();
+      let max_size = local_site.image_max_banner_size.to_string();
       client_req.query(&[
         ("resize", max_size.as_ref()),
         ("allow_animation", "false"),
@@ -196,10 +215,11 @@ async fn do_upload_image(
       ])
     }
     Other => {
-      let mut query = vec![("allow_video", pictrs.allow_video_uploads.to_string())];
-      if let Some(max_upload_size) = max_upload_size {
-        query.push(("resize", max_upload_size));
-      }
+      let mut query = vec![(
+        "allow_video",
+        local_site.image_allow_video_uploads.to_string(),
+      )];
+      query.push(("resize", max_upload_size));
       client_req.query(&query)
     }
   };
@@ -208,7 +228,9 @@ async fn do_upload_image(
   };
   // Make HTTP request to pict-rs with the user provided image data.
   let res = client_req
-    .timeout(Duration::from_secs(pictrs.upload_timeout))
+    .timeout(Duration::from_secs(
+      local_site.image_upload_timeout_seconds.try_into()?,
+    ))
     .body(Body::wrap_stream(make_send(body)))
     .send()
     .await

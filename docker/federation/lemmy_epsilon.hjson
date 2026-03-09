@@ -12,7 +12,6 @@
   }
   pictrs: {
     api_key: "my-pictrs-key"
-    image_mode: ProxyAllImages
   }
   plugins: [{
     file: "https://github.com/LemmyNet/lemmy-plugins/releases/download/0.1.1/go_replace_words.wasm"

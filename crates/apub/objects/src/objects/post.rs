@@ -208,10 +208,7 @@ impl Object for ApubPost {
   }
 
   async fn from_json(page: Page, context: &Data<Self::DataType>) -> LemmyResult<ApubPost> {
-    let local_site = SiteView::read_local(&mut context.pool())
-      .await
-      .ok()
-      .map(|s| s.local_site);
+    let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
     let creator = page.creator()?.dereference(context).await?;
     let community = page.community(context).await?;
 
@@ -280,7 +277,8 @@ impl Object for ApubPost {
     let alt_text = first_attachment.cloned().and_then(Attachment::alt_text);
 
     let body = read_from_string_or_source_opt(&page.content, &page.media_type, &page.source);
-    let body = process_markdown_opt(&body, &slur_regex, &url_blocklist, context).await?;
+    let body =
+      process_markdown_opt(&body, &slur_regex, &url_blocklist, &local_site, context).await?;
     let body = markdown_rewrite_remote_links_opt(body, context).await;
     let language_id = Some(
       LanguageTag::to_language_id_single(
@@ -298,7 +296,7 @@ impl Object for ApubPost {
       published_at: page.published,
       updated_at: page.updated,
       deleted: Some(false),
-      nsfw: post_nsfw(&page, &community, local_site.as_ref(), context).await?,
+      nsfw: post_nsfw(&page, &community, Some(&local_site), context).await?,
       ap_id: Some(page.id.clone().into()),
       // May be a local post which is updated by remote mod.
       local: Some(page.id.is_local(context)),
@@ -384,7 +382,7 @@ mod tests {
     objects::ApubPerson,
     utils::test::{file_to_json_object, parse_lemmy_community, parse_lemmy_person},
   };
-  use lemmy_db_schema::source::instance::Instance;
+  use lemmy_db_schema::{source::instance::Instance, test_data::TestData};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -392,6 +390,7 @@ mod tests {
   #[serial]
   async fn test_parse_lemmy_post() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
+    let test_data = TestData::create(&mut context.pool()).await?;
     parse_lemmy_person(&context).await?;
     parse_lemmy_community(&context).await?;
 
@@ -408,6 +407,7 @@ mod tests {
     assert!(!post.featured_community);
     assert_eq!(context.request_count(), 0);
 
+    test_data.delete(&mut context.pool()).await?;
     Instance::delete_all(&mut context.pool()).await?;
     Ok(())
   }
@@ -416,6 +416,7 @@ mod tests {
   #[serial]
   async fn test_convert_mastodon_post_title() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
+    let test_data = TestData::create(&mut context.pool()).await?;
     parse_lemmy_community(&context).await?;
 
     let json = file_to_json_object("../apub/assets/mastodon/objects/person.json")?;
@@ -426,6 +427,7 @@ mod tests {
 
     assert_eq!(post.name, "Variable never resetting at refresh");
 
+    test_data.delete(&mut context.pool()).await?;
     Instance::delete_all(&mut context.pool()).await?;
     Ok(())
   }

@@ -12,6 +12,5 @@
   }
   pictrs: {
     api_key: "my-pictrs-key"
-    image_mode: ProxyAllImages
   }
 }

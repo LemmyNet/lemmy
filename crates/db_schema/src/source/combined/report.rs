@@ -30,4 +30,5 @@ pub struct ReportCombined {
   pub comment_report_id: Option<CommentReportId>,
   pub private_message_report_id: Option<PrivateMessageReportId>,
   pub community_report_id: Option<CommunityReportId>,
+  pub resolved: bool,
 }

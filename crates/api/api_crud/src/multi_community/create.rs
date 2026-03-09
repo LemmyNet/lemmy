@@ -36,7 +36,9 @@ pub async fn create_multi_community(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<MultiCommunityResponse>> {
   check_local_user_valid(&local_user_view)?;
-  let site_view = SiteView::read_local(&mut context.pool()).await?;
+  let SiteView {
+    site, local_site, ..
+  } = SiteView::read_local(&mut context.pool()).await?;
 
   let my_person_id = local_user_view.person.id;
 
@@ -56,7 +58,14 @@ pub async fn create_multi_community(
   }
 
   // Ensure that the sidebar has fewer than the max num characters...
-  let sidebar = process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context).await?;
+  let sidebar = process_markdown_opt(
+    &data.sidebar,
+    &slur_regex,
+    &url_blocklist,
+    &local_site,
+    &context,
+  )
+  .await?;
   if let Some(sidebar) = &sidebar {
     is_valid_body_field(sidebar, false)?;
   }
@@ -74,14 +83,14 @@ pub async fn create_multi_community(
     summary,
     sidebar,
     ap_id: Some(ap_id),
-    private_key: site_view.site.private_key,
-    inbox_url: Some(site_view.site.inbox_url),
+    private_key: site.private_key,
+    inbox_url: Some(site.inbox_url),
     following_url: Some(following_url.into()),
     ..MultiCommunityInsertForm::new(
       my_person_id,
       local_user_view.person.instance_id,
       data.name.clone(),
-      site_view.site.public_key,
+      site.public_key,
     )
   };
 
