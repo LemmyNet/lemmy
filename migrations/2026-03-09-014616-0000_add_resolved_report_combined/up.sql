@@ -45,5 +45,5 @@ WHERE
 -- For unresolved, its an asc query
 DROP INDEX idx_report_combined_published_asc;
 
-CREATE INDEX idx_report_combined_published_asc ON report_combined (resolved, reverse_timestamp_sort (published_at) DESC, id DESC);
+CREATE INDEX idx_report_combined_published_asc ON report_combined (resolved, published_at, id);
 
