@@ -9,7 +9,7 @@ use diesel::{
   QueryDsl,
   QueryableByName,
   SelectableHelper,
-  dsl::{IntervalDsl, count, exists, not, update},
+  dsl::{IntervalDsl, count, count_star, exists, not, update},
   query_builder::AsQuery,
   sql_query,
   sql_types::{BigInt, Integer, Timestamptz},
@@ -34,7 +34,9 @@ use lemmy_db_schema_file::schema::{
   comment,
   community,
   community_actions,
+  federation_allowlist,
   federation_blocklist,
+  federation_queue_state,
   instance,
   instance_actions,
   local_site,
@@ -124,6 +126,10 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
       update_local_user_count(&mut context.pool())
         .await
         .inspect_err(|e| warn!("Failed to update local user count: {e}"))
+        .ok();
+      update_stats(&mut context.pool())
+        .await
+        .inspect_err(|e| warn!("Failed to update stats: {e}"))
         .ok();
       overwrite_deleted_posts_and_comments(&mut context.pool())
         .await
@@ -518,6 +524,33 @@ async fn update_local_user_count(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   Ok(())
 }
 
+async fn update_stats(pool: &mut DbPool<'_>) -> LemmyResult<()> {
+  info!("Updating the linked instance count ...");
+
+  let conn = &mut get_conn(pool).await?;
+  let linked_instance_count = instance::table
+    // omit instance representing the local site
+    .left_join(site::table.left_join(local_site::table))
+    .filter(local_site::id.is_null())
+    .left_join(federation_blocklist::table)
+    .left_join(federation_allowlist::table)
+    .left_join(federation_queue_state::table)
+    .filter(federation_blocklist::instance_id.is_null())
+    .select(count_star())
+    .first::<i64>(conn)
+    .await
+    .map(i32::try_from)??;
+
+  update(local_site::table)
+    .set(local_site::linked_instances.eq(linked_instance_count))
+    .execute(conn)
+    .await?;
+
+  info!("Done.");
+
+  Ok(())
+}
+
 /// Set banned to false after ban expires
 async fn update_banned_when_expired(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   info!("Updating banned column if it expires ...");
@@ -788,6 +821,30 @@ mod tests {
     );
 
     data.delete(pool).await?;
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_update_stats() -> LemmyResult<()> {
+    let context = LemmyContext::init_test_context().await;
+    let pool = &mut context.pool();
+    // Setup local site
+    let data = TestData::create(pool).await?;
+
+    // insert test data
+    let _instance0 = Instance::read_or_create(pool, "example0.com").await?;
+    let _instance1 = Instance::read_or_create(pool, "example1.com").await?;
+
+    // run the query
+    update_stats(pool).await?;
+    let local_site_after = SiteView::read_local(pool).await?.local_site;
+    dbg!(&local_site_after);
+
+    assert_eq!(2, local_site_after.linked_instances.unwrap());
+
+    data.delete(pool).await?;
+    Instance::delete_all(pool).await?;
     Ok(())
   }
 }
