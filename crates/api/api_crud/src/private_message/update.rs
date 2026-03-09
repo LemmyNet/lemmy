@@ -14,6 +14,7 @@ use lemmy_db_views_private_message::{
   PrivateMessageView,
   api::{EditPrivateMessage, PrivateMessageResponse},
 };
+use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
@@ -36,7 +37,15 @@ pub async fn edit_private_message(
   // Doing the update
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
-  let content = process_markdown(&data.content, &slur_regex, &url_blocklist, &context).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
+  let content = process_markdown(
+    &data.content,
+    &slur_regex,
+    &url_blocklist,
+    &local_site,
+    &context,
+  )
+  .await?;
   is_valid_body_field(&content, false)?;
 
   let private_message_id = data.private_message_id;

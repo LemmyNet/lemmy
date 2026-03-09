@@ -32,6 +32,7 @@ use lemmy_db_schema::{
   traits::ApubActor,
 };
 use lemmy_db_schema_file::enums::ActorType;
+use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::{sensitive::SensitiveString, traits::Crud};
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
@@ -138,11 +139,15 @@ impl Object for ApubPerson {
 
     let slur_regex = slur_regex(context).await?;
     let url_blocklist = get_url_blocklist(context).await?;
+    let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
+
     let bio = read_from_string_or_source_opt(&person.summary, &None, &person.source);
-    let bio = process_markdown_opt(&bio, &slur_regex, &url_blocklist, context).await?;
+    let bio = process_markdown_opt(&bio, &slur_regex, &url_blocklist, &local_site, context).await?;
     let bio = markdown_rewrite_remote_links_opt(bio, context).await;
-    let avatar = proxy_image_link_opt_apub(person.icon.map(|i| i.url), context).await?;
-    let banner = proxy_image_link_opt_apub(person.image.map(|i| i.url), context).await?;
+    let avatar =
+      proxy_image_link_opt_apub(person.icon.map(|i| i.url), &local_site, context).await?;
+    let banner =
+      proxy_image_link_opt_apub(person.image.map(|i| i.url), &local_site, context).await?;
     let display_name = person.name.map(|s| remove_slurs(&s, &slur_regex));
 
     let person_form = PersonInsertForm {
@@ -208,7 +213,7 @@ pub(crate) mod tests {
     utils::test::{file_to_json_object, parse_lemmy_person},
   };
   use activitypub_federation::fetch::object_id::ObjectId;
-  use lemmy_db_schema::source::instance::Instance;
+  use lemmy_db_schema::{source::instance::Instance, test_data::TestData};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -216,12 +221,14 @@ pub(crate) mod tests {
   #[serial]
   async fn test_parse_lemmy_person() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
+    let test_data = TestData::create(&mut context.pool()).await?;
     let (person, _) = parse_lemmy_person(&context).await?;
 
     assert_eq!(person.display_name, Some("Jean-Luc Picard".to_string()));
     assert!(!person.local);
     assert_eq!(person.bio.as_ref().map(std::string::String::len), Some(39));
 
+    test_data.delete(&mut context.pool()).await?;
     Instance::delete_all(&mut context.pool()).await?;
     Ok(())
   }
@@ -230,6 +237,7 @@ pub(crate) mod tests {
   #[serial]
   async fn test_parse_pleroma_person() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
+    let test_data = TestData::create(&mut context.pool()).await?;
 
     // create and parse a fake pleroma instance actor, to avoid network request during test
     let mut json: crate::protocol::instance::Instance =
@@ -249,6 +257,7 @@ pub(crate) mod tests {
     assert_eq!(context.request_count(), 0);
     assert_eq!(person.bio.as_ref().map(std::string::String::len), Some(812));
 
+    test_data.delete(&mut context.pool()).await?;
     Instance::delete_all(&mut context.pool()).await?;
     Ok(())
   }

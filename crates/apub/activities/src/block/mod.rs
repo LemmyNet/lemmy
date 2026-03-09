@@ -11,6 +11,7 @@ use lemmy_db_schema::{
   source::{comment::Comment, community::Community, person::Person, post::Post, site::Site},
 };
 use lemmy_db_views_community::api::BanFromCommunity;
+use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::{connection::DbPool, traits::Crud};
 use lemmy_utils::error::LemmyResult;
 use url::Url;
@@ -40,7 +41,7 @@ pub(crate) async fn send_ban_from_site(
   expires: Option<i64>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<()> {
-  let site = SiteOrCommunity::Left(Site::read_local(&mut context.pool()).await?.into());
+  let site = SiteOrCommunity::Left(SiteView::read_local(&mut context.pool()).await?.site.into());
   let expires = check_expire_time(expires)?;
 
   if ban {

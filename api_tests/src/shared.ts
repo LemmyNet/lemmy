@@ -174,6 +174,11 @@ export async function setupLogins() {
   await delta.editSite(editSiteForm);
   await epsilon.editSite(editSiteForm);
 
+  // Alpha and beta use image_mode StoreLinkPreviews
+  let imageModeForm: EditSite = { image_mode: "store_link_previews" };
+  await alpha.editSite(imageModeForm);
+  await beta.editSite(imageModeForm);
+
   // Set the blocks for each
   await allowInstance(alpha, "lemmy-beta");
   await allowInstance(alpha, "lemmy-gamma");

@@ -3411,6 +3411,7 @@ dependencies = [
  "lemmy_db_views_community_follower_approval",
  "lemmy_db_views_community_moderator",
  "lemmy_db_views_post",
+ "lemmy_db_views_site",
  "lemmy_diesel_utils",
  "lemmy_utils 1.0.0-test-arm-qemu.0",
  "pretty_assertions",

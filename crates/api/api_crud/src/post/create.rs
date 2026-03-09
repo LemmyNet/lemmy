@@ -57,7 +57,14 @@ pub async fn create_post(
   check_slurs(&data.name, &slur_regex)?;
   let url_blocklist = get_url_blocklist(&context).await?;
 
-  let body = process_markdown_opt(&data.body, &slur_regex, &url_blocklist, &context).await?;
+  let body = process_markdown_opt(
+    &data.body,
+    &slur_regex,
+    &url_blocklist,
+    &local_site,
+    &context,
+  )
+  .await?;
   let url = diesel_url_create(data.url.as_deref())?;
   let custom_thumbnail = diesel_url_create(data.custom_thumbnail.as_deref())?;
   check_nsfw_allowed(data.nsfw, Some(&local_site))?;

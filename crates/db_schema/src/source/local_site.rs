@@ -7,6 +7,7 @@ use lemmy_db_schema_file::{
   enums::{
     CommentSortType,
     FederationMode,
+    ImageMode,
     ListingType,
     PostListingMode,
     PostSortType,
@@ -95,6 +96,23 @@ pub struct LocalSite {
   #[serde(skip)]
   pub system_account: PersonId,
   pub default_items_per_page: i32,
+  /// A mode for setting how pictrs handles images.
+  pub image_mode: ImageMode,
+  /// Allows bypassing proxy for specific image hosts when using [[ImageMode.ProxyAllImages]]. Use
+  /// a comma-delimited string.
+  ///
+  /// Example: i.imgur.com,postimg.cc
+  pub image_proxy_bypass_domains: Option<String>,
+  pub image_upload_timeout_seconds: i32,
+  /// These are pixel sizes. Larger images are automatically downscaled.
+  pub image_max_thumbnail_size: i32,
+  pub image_max_avatar_size: i32,
+  pub image_max_banner_size: i32,
+  /// This affects post and comment images, but not avatar and banner sizes.
+  pub image_max_upload_size: i32,
+  /// This affects post and comment images, but not avatars and banners.
+  pub image_allow_video_uploads: bool,
+  pub image_upload_disabled: bool,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -156,6 +174,24 @@ pub struct LocalSiteInsertForm {
   pub suggested_multi_community_id: Option<MultiCommunityId>,
   #[new(default)]
   pub system_account: Option<PersonId>,
+  #[new(default)]
+  pub image_mode: Option<ImageMode>,
+  #[new(default)]
+  pub image_proxy_bypass_domains: Option<String>,
+  #[new(default)]
+  pub image_upload_timeout_seconds: Option<i32>,
+  #[new(default)]
+  pub image_max_thumbnail_size: Option<i32>,
+  #[new(default)]
+  pub image_max_avatar_size: Option<i32>,
+  #[new(default)]
+  pub image_max_banner_size: Option<i32>,
+  #[new(default)]
+  pub image_max_upload_size: Option<i32>,
+  #[new(default)]
+  pub image_allow_video_uploads: Option<bool>,
+  #[new(default)]
+  pub image_upload_disabled: Option<bool>,
 }
 
 #[derive(Clone, Default)]
@@ -190,4 +226,13 @@ pub struct LocalSiteUpdateForm {
   pub disable_email_notifications: Option<bool>,
   pub suggested_multi_community_id: Option<Option<MultiCommunityId>>,
   pub default_items_per_page: Option<i32>,
+  pub image_mode: Option<ImageMode>,
+  pub image_proxy_bypass_domains: Option<Option<String>>,
+  pub image_upload_timeout_seconds: Option<i32>,
+  pub image_max_thumbnail_size: Option<i32>,
+  pub image_max_avatar_size: Option<i32>,
+  pub image_max_banner_size: Option<i32>,
+  pub image_max_upload_size: Option<i32>,
+  pub image_allow_video_uploads: Option<bool>,
+  pub image_upload_disabled: Option<bool>,
 }
