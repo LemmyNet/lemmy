@@ -113,8 +113,7 @@ test("List posts with different listing types", async () => {
     "local",
     "subscribed",
     "moderator_view",
-    // No suggested yet
-    // "suggested",
+    "suggested",
   ];
   for (let type_ of listingTypes) {
     const time = await timeApiCalls(() => api.getPosts({ type_ }));
@@ -207,8 +206,7 @@ test("List communities with different listing types", async () => {
     "local",
     "subscribed",
     "moderator_view",
-    // No suggested yet
-    // "suggested",
+    "suggested",
   ];
   for (let type_ of listingTypes) {
     const time = await timeApiCalls(() => api.listCommunities({ type_ }));
@@ -322,8 +320,7 @@ test("Get comments with different types", async () => {
     "local",
     "subscribed",
     "moderator_view",
-    // No suggested yet
-    // "suggested",
+    "suggested",
   ];
 
   for (let type_ of listingTypes) {
