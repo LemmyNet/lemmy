@@ -32,7 +32,6 @@ mod tests {
   use pretty_assertions::assert_eq;
 
   #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
-  #[ignore]
   async fn test_allowlist_insert_and_clear() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
