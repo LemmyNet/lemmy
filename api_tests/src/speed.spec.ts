@@ -85,6 +85,25 @@ test("List posts with different sorts", async () => {
   }
 });
 
+test("List posts for a community with different sorts", async () => {
+  report.push("\n# List posts for a community with different sorts \n");
+  report.push("sort | time");
+  report.push("--- | ---");
+  const sortTypes: PostSortType[] = [
+    "active",
+    "hot",
+    "new",
+    "top",
+    "controversial",
+  ];
+  for (let sort of sortTypes) {
+    const time = await timeApiCalls(() =>
+      api.getPosts({ sort, community_name: sampleCommunity }),
+    );
+    report.push(`${sort} | ${formatMs(time)}`);
+  }
+});
+
 test("List posts with different listing types", async () => {
   report.push("\n# List posts with different listing types \n");
   report.push("type | time");
