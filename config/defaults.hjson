@@ -19,57 +19,6 @@
     url: "http://localhost:8080/"
     # Set a custom pictrs API key. ( Required for deleting images )
     api_key: "string"
-    # Specifies how to handle remote images, so that users don't have to connect directly to remote
-    # servers.
-    image_mode: 
-      # Leave images unchanged, don't generate any local thumbnails for post urls. Instead the
-      # Opengraph image is directly returned as thumbnail
-      "None"
-
-      # or
-
-      # Generate thumbnails for external post urls and store them persistently in pict-rs. This
-      # ensures that they can be reliably retrieved and can be resized using pict-rs APIs. However
-      # it also increases storage usage.
-      # 
-      # This behaviour matches Lemmy 0.18.
-      "StoreLinkPreviews"
-
-      # or
-
-      # If enabled, all images from remote domains are rewritten to pass through
-      # `/api/v4/image/proxy`, including embedded images in markdown. Images are stored temporarily
-      # in pict-rs for caching. This improves privacy as users don't expose their IP to untrusted
-      # servers, and decreases load on other servers. However it increases bandwidth use for the
-      # local server.
-      # 
-      # Requires pict-rs 0.5
-      "ProxyAllImages"
-    # Allows bypassing proxy for specific image hosts when using ProxyAllImages.
-    # 
-    # imgur.com is bypassed by default to avoid rate limit errors. When specifying any bypass
-    # in the config, this default is ignored and you need to list imgur explicitly. To proxy imgur
-    # requests, specify a noop bypass list, eg `proxy_bypass_domains ["example.org"]`.
-    proxy_bypass_domains: [
-      "i.imgur.com"
-      /* ... */
-    ]
-    # Timeout for uploading images to pictrs (in seconds)
-    upload_timeout: 30
-    # Resize post thumbnails to this maximum width/height.
-    max_thumbnail_size: 512
-    # Maximum size for user avatar, community icon and site icon. Larger images are downscaled.
-    max_avatar_size: 512
-    # Maximum size for user, community and site banner. Larger images are downscaled.
-    max_banner_size: 1024
-    # Maximum size for other uploads (e.g. post images or markdown embed images). Larger
-    # images are downscaled.
-    max_upload_size: 1024
-    # Whether users can upload videos as post image or markdown embed.
-    allow_video_uploads: true
-    # Prevent users from uploading images for posts or embedding in markdown. Avatars, icons and
-    # banners can still be uploaded.
-    image_upload_disabled: false
   }
   # Email sending configuration. All options except login/password are mandatory
   email: {

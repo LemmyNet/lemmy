@@ -3,6 +3,7 @@ use diesel::{
   self,
   BoolExpressionMethods,
   ExpressionMethods,
+  JoinOnDsl,
   NullableExpressionMethods,
   PgTextExpressionMethods,
   QueryDsl,
@@ -143,6 +144,37 @@ impl PostView {
       .left_join(my_local_user_admin_join)
   }
 
+  #[diesel::dsl::auto_type(no_type_alias)]
+  /// This uses the post_actions table as the base, for faster filtering for some queries
+  fn post_action_joins(my_person_id: Option<PersonId>, local_instance_id: InstanceId) -> _ {
+    let community_join = community::table.on(post::community_id.eq(community::id));
+    let my_community_actions_join: my_community_actions_join =
+      my_community_actions_join(my_person_id);
+    let my_local_user_admin_join: my_local_user_admin_join = my_local_user_admin_join(my_person_id);
+    let my_instance_communities_actions_join: my_instance_communities_actions_join =
+      my_instance_communities_actions_join(my_person_id);
+    let my_instance_persons_actions_join_1: my_instance_persons_actions_join_1 =
+      my_instance_persons_actions_join_1(my_person_id);
+    let my_person_actions_join: my_person_actions_join = my_person_actions_join(my_person_id);
+    let creator_local_instance_actions_join: creator_local_instance_actions_join =
+      creator_local_instance_actions_join(local_instance_id);
+
+    post_actions::table
+      .inner_join(post::table)
+      .inner_join(person::table)
+      .inner_join(community_join)
+      .left_join(image_details_join())
+      .left_join(creator_home_instance_actions_join())
+      .left_join(creator_community_instance_actions_join())
+      .left_join(creator_local_instance_actions_join)
+      .left_join(creator_community_actions_join())
+      .left_join(my_community_actions_join)
+      .left_join(my_person_actions_join)
+      .left_join(my_instance_communities_actions_join)
+      .left_join(my_instance_persons_actions_join_1)
+      .left_join(my_local_user_admin_join)
+  }
+
   pub async fn read(
     pool: &mut DbPool<'_>,
     post_id: PostId,
@@ -210,7 +242,7 @@ impl PostView {
     no_limit: Option<bool>,
   ) -> LemmyResult<PagedResponse<PostView>> {
     let limit = limit_fetch(limit, no_limit)?;
-    let query = PostView::joins(Some(my_person.id), my_person.instance_id)
+    let query = PostView::post_action_joins(Some(my_person.id), my_person.instance_id)
       .filter(post_actions::person_id.eq(my_person.id))
       .filter(post_actions::read_at.is_not_null())
       .filter(filter_blocked())
@@ -243,7 +275,7 @@ impl PostView {
     no_limit: Option<bool>,
   ) -> LemmyResult<PagedResponse<PostView>> {
     let limit = limit_fetch(limit, no_limit)?;
-    let query = PostView::joins(Some(my_person.id), my_person.instance_id)
+    let query = PostView::post_action_joins(Some(my_person.id), my_person.instance_id)
       .filter(post_actions::person_id.eq(my_person.id))
       .filter(post_actions::hidden_at.is_not_null())
       .filter(filter_blocked())

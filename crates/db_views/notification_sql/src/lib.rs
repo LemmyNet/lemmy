@@ -61,11 +61,15 @@ pub fn notification_joins(person_id: PersonId, instance_id: InstanceId) -> _ {
       .or(modlog::target_community_id.eq(community::id.nullable())),
   );
 
-  // This could be a simple join, but you need to check for deleted here
   let private_message_join = private_message::table.on(
     notification::private_message_id
       .eq(private_message::id.nullable())
+      // Filter out the deleted / removed
       .and(not(private_message::deleted))
+      // Also hide messages deleted by the recipient, but only for them
+      .and(not(
+        private_message::deleted_by_recipient.and(recipient_person.eq(person_id)),
+      ))
       .and(not(private_message::removed)),
   );
 
@@ -88,13 +92,16 @@ pub fn notification_joins(person_id: PersonId, instance_id: InstanceId) -> _ {
   // Note: avoid adding any more joins here as it will significantly slow down compilation.
   notification::table
     .left_join(modlog::table)
-    .left_join(private_message_join)
     .left_join(comment_join)
     .left_join(post_join)
     .left_join(community_join)
+    .left_join(instance_join)
+    .left_join(image_details_join())
     .inner_join(item_creator_join)
     .inner_join(recipient_join)
-    .left_join(image_details_join())
+    // The private message join must come after recipient, as it uses it to filter out deleted by
+    // recipient.
+    .left_join(private_message_join)
     .left_join(creator_community_actions_join())
     .left_join(creator_local_user_admin_join())
     .left_join(creator_home_instance_actions_join())
@@ -106,5 +113,4 @@ pub fn notification_joins(person_id: PersonId, instance_id: InstanceId) -> _ {
     .left_join(my_post_actions_join)
     .left_join(my_person_actions_join)
     .left_join(my_comment_actions_join)
-    .left_join(instance_join)
 }

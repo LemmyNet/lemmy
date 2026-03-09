@@ -9,6 +9,7 @@ use lemmy_db_views_person::{
   PersonView,
   api::{NotePerson, PersonResponse},
 };
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::{slurs::check_slurs, validation::is_valid_body_field},
@@ -20,6 +21,7 @@ pub async fn user_note_person(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PersonResponse>> {
   check_local_user_valid(&local_user_view)?;
+
   let target_id = data.person_id;
   let my_person_id = local_user_view.person.id;
   let local_instance_id = local_user_view.person.instance_id;
@@ -39,7 +41,16 @@ pub async fn user_note_person(
     check_slurs(&data.note, &slur_regex)?;
     is_valid_body_field(&data.note, false)?;
 
-    let note = process_markdown(&data.note, &slur_regex, &url_blocklist, &context).await?;
+    let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
+
+    let note = process_markdown(
+      &data.note,
+      &slur_regex,
+      &url_blocklist,
+      &local_site,
+      &context,
+    )
+    .await?;
     let note_form = PersonNoteForm::new(my_person_id, target_id, note);
 
     PersonActions::note(&mut context.pool(), &note_form).await?;
