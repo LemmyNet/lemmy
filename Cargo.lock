@@ -4106,7 +4106,7 @@ dependencies = [
  "anyhow",
  "base64 0.22.1",
  "chrono",
- "deadpool-runtime",
+ "deadpool",
  "diesel",
  "diesel-async",
  "diesel-derive-newtype",

@@ -1,4 +1,4 @@
-use deadpool_runtime::Runtime;
+use deadpool::Runtime;
 use diesel::result::{
   ConnectionError,
   ConnectionResult,
