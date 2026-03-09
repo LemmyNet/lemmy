@@ -91,14 +91,14 @@ pub fn notification_joins(person_id: PersonId, instance_id: InstanceId) -> _ {
 
   // Note: avoid adding any more joins here as it will significantly slow down compilation.
   notification::table
+    .inner_join(recipient_join)
+    .inner_join(item_creator_join)
     .left_join(modlog::table)
     .left_join(comment_join)
     .left_join(post_join)
     .left_join(community_join)
     .left_join(instance_join)
     .left_join(image_details_join())
-    .inner_join(item_creator_join)
-    .inner_join(recipient_join)
     // The private message join must come after recipient, as it uses it to filter out deleted by
     // recipient.
     .left_join(private_message_join)

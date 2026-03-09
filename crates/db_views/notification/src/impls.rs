@@ -19,6 +19,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::{
   PersonId,
+  enums::NotificationType,
   schema::{notification, person},
 };
 use lemmy_db_views_modlog::ModlogView;
@@ -141,9 +142,13 @@ impl NotificationQuery {
           // The recipient filter (IE only show replies to you)
           .filter(notification::recipient_id.eq(my_person.id))
           .filter(notification::read.eq(false));
-      } else {
+      } else if self.type_
+        == Some(NotificationTypeFilter::Other(
+          NotificationType::PrivateMessage,
+        ))
+      {
         // A special case for private messages: show messages FROM you also.
-        // Use a not-null checks to catch the others
+        // Use a not-null check to catch the others
         query = query.filter(
           notification::recipient_id.eq(my_person.id).or(
             notification::private_message_id.is_not_null().and(
@@ -153,6 +158,15 @@ impl NotificationQuery {
             ),
           ),
         );
+      } else {
+        query = query.filter(notification::recipient_id.eq(my_person.id))
+      }
+
+      if let Some(type_) = self.type_ {
+        query = match type_ {
+          NotificationTypeFilter::All => query,
+          NotificationTypeFilter::Other(kind) => query.filter(notification::kind.eq(kind)),
+        }
       }
 
       if !self.show_bot_accounts.unwrap_or_default() {
@@ -162,29 +176,13 @@ impl NotificationQuery {
       // Dont show replies from blocked users or instances
       query = query.filter(filter_blocked());
 
-      if let Some(type_) = self.type_ {
-        query = match type_ {
-          NotificationTypeFilter::All => query,
-          NotificationTypeFilter::Other(kind) => query.filter(notification::kind.eq(kind)),
-        }
-      }
-
-      if let Some(creator_id) = self.creator_id {
-        query = query.filter(notification::creator_id.eq(creator_id));
-      }
-
       // Sorting by published
-      let paginated_query = Box::pin(NotificationView::paginate(
-        query,
-        &self.page_cursor,
-        SortDirection::Desc,
-        pool,
-        None,
-      ))
-      .await?
-      .then_order_by(notification_keys::published_at)
-      // Tie breaker
-      .then_order_by(notification_keys::id);
+      let paginated_query =
+        NotificationView::paginate(query, &self.page_cursor, SortDirection::Desc, pool, None)
+          .await?
+          .then_order_by(notification_keys::published_at)
+          // Tie breaker
+          .then_order_by(notification_keys::id);
 
       let conn = &mut get_conn(pool).await?;
       let res = paginated_query
@@ -192,6 +190,7 @@ impl NotificationQuery {
         .await?;
 
       let hide_modlog_names = self.hide_modlog_names.unwrap_or_default();
+
       let res = res
         .into_iter()
         .filter_map(|r| map_to_enum(r, hide_modlog_names))
@@ -202,10 +201,10 @@ impl NotificationQuery {
 }
 
 fn map_to_enum(v: NotificationViewInternal, hide_modlog_name: bool) -> Option<NotificationView> {
-  let data = if let (Some(modlog), Some(creator)) = (v.modlog.clone(), v.creator.clone()) {
+  let data = if let Some(modlog) = v.modlog {
     let m = ModlogView {
       modlog,
-      moderator: Some(creator),
+      moderator: Some(v.creator),
       target_person: Some(v.recipient),
       target_community: v.community,
       target_post: v.post,
@@ -214,17 +213,12 @@ fn map_to_enum(v: NotificationViewInternal, hide_modlog_name: bool) -> Option<No
     };
     let m = m.hide_mod_name(hide_modlog_name);
     NotificationData::ModAction(m)
-  } else if let (Some(comment), Some(post), Some(community), Some(creator)) = (
-    v.comment.clone(),
-    v.post.clone(),
-    v.community.clone(),
-    v.creator.clone(),
-  ) {
+  } else if let (Some(comment), Some(post), Some(community)) = (v.comment, &v.post, &v.community) {
     NotificationData::Comment(CommentView {
       comment,
-      post,
-      community,
-      creator,
+      post: post.clone(),
+      community: community.clone(),
+      creator: v.creator,
       community_actions: v.community_actions,
       person_actions: v.person_actions,
       comment_actions: v.comment_actions,
@@ -237,13 +231,11 @@ fn map_to_enum(v: NotificationViewInternal, hide_modlog_name: bool) -> Option<No
       creator_ban_expires_at: v.creator_ban_expires_at,
       creator_is_moderator: v.creator_is_moderator,
     })
-  } else if let (Some(post), Some(community), Some(creator)) =
-    (v.post.clone(), v.community.clone(), v.creator.clone())
-  {
+  } else if let (Some(post), Some(community)) = (v.post, v.community) {
     NotificationData::Post(PostView {
       post,
       community,
-      creator,
+      creator: v.creator,
       image_details: v.image_details,
       community_actions: v.community_actions,
       post_actions: v.post_actions,
@@ -257,12 +249,10 @@ fn map_to_enum(v: NotificationViewInternal, hide_modlog_name: bool) -> Option<No
       creator_ban_expires_at: v.creator_ban_expires_at,
       creator_is_moderator: v.creator_is_moderator,
     })
-  } else if let (Some(private_message), Some(creator)) =
-    (v.private_message.clone(), v.creator.clone())
-  {
+  } else if let Some(private_message) = v.private_message {
     NotificationData::PrivateMessage(PrivateMessageView {
       private_message,
-      creator,
+      creator: v.creator,
       recipient: v.recipient,
     })
   } else {

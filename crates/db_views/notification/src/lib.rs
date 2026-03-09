@@ -66,7 +66,7 @@ struct NotificationViewInternal {
   #[diesel(embed)]
   instance: Option<Instance>,
   #[diesel(embed)]
-  creator: Option<Person>,
+  creator: Person,
   #[diesel(
     select_expression_type = Person1AliasAllColumnsTuple,
     select_expression = person1_select()
