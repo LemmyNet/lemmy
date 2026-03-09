@@ -11,15 +11,25 @@ CREATE INDEX idx_modlog_kind ON modlog (kind);
 
 CREATE INDEX idx_modlog_mod ON modlog (mod_id);
 
-CREATE INDEX idx_modlog_target_person ON modlog (target_person_id);
+CREATE INDEX idx_modlog_target_person ON modlog (target_person_id)
+WHERE
+    target_person_id IS NOT NULL;
 
-CREATE INDEX idx_modlog_target_community ON modlog (target_community_id);
+CREATE INDEX idx_modlog_target_community ON modlog (target_community_id)
+WHERE
+    target_community_id IS NOT NULL;
 
-CREATE INDEX idx_modlog_target_post ON modlog (target_post_id);
+CREATE INDEX idx_modlog_target_post ON modlog (target_post_id)
+WHERE
+    target_post_id IS NOT NULL;
 
-CREATE INDEX idx_modlog_target_comment ON modlog (target_comment_id);
+CREATE INDEX idx_modlog_target_comment ON modlog (target_comment_id)
+WHERE
+    target_comment_id IS NOT NULL;
 
-CREATE INDEX idx_modlog_target_instance ON modlog (target_instance_id);
+CREATE INDEX idx_modlog_target_instance ON modlog (target_instance_id)
+WHERE
+    target_instance_id IS NOT NULL;
 
 CREATE INDEX idx_modlog_published_id ON modlog (published_at DESC, id DESC);
 
