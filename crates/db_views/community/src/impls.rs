@@ -293,6 +293,8 @@ pub struct MultiCommunityQuery {
   pub time_range_seconds: Option<i32>,
   pub my_person_id: Option<PersonId>,
   pub creator_id: Option<PersonId>,
+  pub search_term: Option<String>,
+  pub search_title_only: Option<bool>,
   pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
   pub no_limit: Option<bool>,
@@ -332,6 +334,24 @@ impl MultiCommunityQuery {
       query = query.filter(
         multi_community::published_at.gt(now() - seconds_to_pg_interval(time_range_seconds)),
       );
+    }
+
+    // The search term
+    if let Some(search_term) = o.search_term {
+      let searcher = fuzzy_search(&search_term);
+
+      let name_or_title_filter = multi_community::title
+        .ilike(searcher.clone())
+        .or(multi_community::name.ilike(searcher.clone()));
+
+      query = if o.search_title_only.unwrap_or_default() {
+        query.filter(name_or_title_filter)
+      } else {
+        let body_or_description_filter = multi_community::summary
+          .ilike(searcher.clone())
+          .or(multi_community::sidebar.ilike(searcher.clone()));
+        query.filter(name_or_title_filter.or(body_or_description_filter))
+      }
     }
 
     // Only sort by ascending for Old or NameAsc sorts.

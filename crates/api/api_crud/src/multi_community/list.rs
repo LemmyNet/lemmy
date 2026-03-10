@@ -23,9 +23,11 @@ pub async fn list_multi_communities(
     creator_id: data.creator_id,
     my_person_id,
     time_range_seconds: data.time_range_seconds,
+    search_term: data.search_term,
+    search_title_only: data.search_title_only,
     page_cursor: data.page_cursor,
     limit: data.limit,
-    ..Default::default()
+    no_limit: None,
   }
   .list(&mut context.pool())
   .await?;
