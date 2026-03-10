@@ -19,7 +19,7 @@ use lemmy_db_schema::{
     instance::{Instance, InstanceForm},
   },
 };
-use lemmy_diesel_utils::connection::{ActualDbPool, DbPool};
+use lemmy_diesel_utils::connection::{DbPool, GenericDbPool};
 use lemmy_utils::{
   error::LemmyResult,
   federate_retry_sleep_duration,
@@ -65,7 +65,7 @@ pub(crate) struct InstanceWorker {
   federation_worker_config: FederationWorkerConfig,
   state: FederationQueueState,
   last_state_insert: DateTime<Utc>,
-  pool: ActualDbPool,
+  pool: GenericDbPool,
   inbox_collector: RealCommunityInboxCollector,
   // regularily send stats back to the SendManager
   stats_sender: UnboundedSender<FederationQueueStateWithDomain>,
@@ -89,9 +89,8 @@ impl InstanceWorker {
     stats_sender: UnboundedSender<FederationQueueStateWithDomain>,
   ) -> LemmyResult<()> {
     let pool = config.to_request_data().inner_pool().clone();
-    let state = FederationQueueState::load(&mut DbPool::Pool(&pool), instance.id).await?;
-    let (report_send_result, receive_send_result) =
-      tokio::sync::mpsc::unbounded_channel::<SendActivityResult>();
+    let state = FederationQueueState::load(&mut DbPool::from(&pool), instance.id).await?;
+    let (report_send_result, receive_send_result) = mpsc::unbounded_channel::<SendActivityResult>();
     let mut worker = InstanceWorker {
       inbox_collector: RealCommunityInboxCollector::new_real(
         pool.clone(),
@@ -443,7 +442,7 @@ impl InstanceWorker {
   }
 
   fn pool(&self) -> DbPool<'_> {
-    DbPool::Pool(&self.pool)
+    DbPool::from(&self.pool)
   }
 }
 

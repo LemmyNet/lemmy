@@ -225,7 +225,6 @@ mod tests {
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
-  use serial_test::serial;
 
   struct Data {
     instance: Instance,
@@ -303,10 +302,9 @@ mod tests {
     Ok(())
   }
 
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
   async fn admin_types() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -455,10 +453,9 @@ mod tests {
     Ok(())
   }
 
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
   async fn mod_types() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -850,10 +847,9 @@ mod tests {
     Ok(())
   }
 
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
   async fn hide_modlog_names() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -891,10 +887,9 @@ mod tests {
   }
 
   /// Verifies that a single (non-bulk) modlog entry has bulk_action_parent_id == None by default.
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
   async fn individual_modlog_is_not_bulk() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -917,10 +912,9 @@ mod tests {
   }
 
   /// Verifies bulk entries are linked to their parent and can be queried by parent ID or show_bulk.
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
   async fn bulk_modlog_has_parent_id() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
@@ -1001,10 +995,9 @@ mod tests {
   }
 
   /// Verifies that bulk_action_parent_id filter isolates children of one parent from another.
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
   async fn bulk_action_parent_id_isolation() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 

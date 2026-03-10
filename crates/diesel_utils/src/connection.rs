@@ -1,4 +1,15 @@
-use deadpool::Runtime;
+use crate::schema_setup;
+use db_pool::{
+  PrivilegedPostgresConfig,
+  r#async::{
+    DatabasePool,
+    DatabasePoolBuilderTrait,
+    DieselAsyncPostgresBackend,
+    DieselDeadpool,
+    ReusableConnectionPool,
+  },
+};
+use deadpool::{Runtime, Status};
 use diesel::result::{
   ConnectionError,
   ConnectionResult,
@@ -6,6 +17,7 @@ use diesel::result::{
 };
 use diesel_async::{
   AsyncConnection,
+  async_connection_wrapper::AsyncConnectionWrapper,
   pg::AsyncPgConnection,
   pooled_connection::{
     AsyncDieselConnectionManager,
@@ -37,9 +49,12 @@ use std::{
   sync::Arc,
   time::Duration,
 };
+use tokio::sync::OnceCell;
 use tracing::error;
 
 pub type ActualDbPool = Pool<AsyncPgConnection>;
+pub type ReusableDbPool =
+  ReusableConnectionPool<'static, DieselAsyncPostgresBackend<DieselDeadpool>>;
 
 /// References a pool or connection. Functions must take `&mut DbPool<'_>` to allow implicit
 /// reborrowing.
@@ -47,6 +62,7 @@ pub type ActualDbPool = Pool<AsyncPgConnection>;
 /// https://github.com/rust-lang/rfcs/issues/1403
 pub enum DbPool<'a> {
   Pool(&'a ActualDbPool),
+  ReusablePool(&'a ReusableDbPool),
   Conn(&'a mut AsyncPgConnection),
 }
 
@@ -55,10 +71,28 @@ pub enum DbConn<'a> {
   Conn(&'a mut AsyncPgConnection),
 }
 
+#[derive(Clone)]
+pub enum GenericDbPool {
+  Actual(ActualDbPool),
+  Reusable(Arc<ReusableDbPool>),
+}
+
+impl GenericDbPool {
+  pub fn status(&self) -> Status {
+    match self {
+      GenericDbPool::Actual(pool) => pool.status(),
+      GenericDbPool::Reusable(pool) => pool.status(),
+    }
+  }
+}
+
 pub async fn get_conn<'a, 'b: 'a>(pool: &'a mut DbPool<'b>) -> Result<DbConn<'a>, DieselError> {
   Ok(match pool {
     DbPool::Pool(pool) => DbConn::Pool(pool.get().await.map_err(|e| QueryBuilderError(e.into()))?),
     DbPool::Conn(conn) => DbConn::Conn(conn),
+    DbPool::ReusablePool(pool) => {
+      DbConn::Pool(pool.get().await.map_err(|e| QueryBuilderError(e.into()))?)
+    }
   })
 }
 
@@ -117,6 +151,21 @@ impl<'a> From<&'a ActualDbPool> for DbPool<'a> {
   }
 }
 
+impl<'a> From<&'a ReusableDbPool> for DbPool<'a> {
+  fn from(value: &'a ReusableDbPool) -> Self {
+    DbPool::ReusablePool(value)
+  }
+}
+
+impl<'a> From<&'a GenericDbPool> for DbPool<'a> {
+  fn from(value: &'a GenericDbPool) -> Self {
+    match value {
+      GenericDbPool::Actual(pool) => DbPool::Pool(pool),
+      GenericDbPool::Reusable(pool) => DbPool::ReusablePool(pool),
+    }
+  }
+}
+
 /// Runs multiple async functions that take `&mut DbPool<'_>` as input and return `Result`. Only
 /// works when the  `futures` crate is listed in `Cargo.toml`.
 ///
@@ -151,6 +200,13 @@ macro_rules! try_join_with_pool {
           }
         }),+))
       }.await,
+      // Run concurrently with `try_join`
+      $crate::connection::DbPool::ReusablePool(__pool) => ::futures_util::try_join!(
+        $(async {
+          let mut __dbpool = $crate::connection::DbPool::ReusablePool(__pool);
+          ($func)(&mut __dbpool).await
+        }),+
+      ),
     }
   }};
 }
@@ -192,8 +248,53 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
 }
 
 #[expect(clippy::expect_used)]
-pub fn build_db_pool_for_tests() -> ActualDbPool {
-  build_db_pool().expect("db pool missing")
+pub async fn build_db_pool_for_tests()
+-> ReusableConnectionPool<'static, DieselAsyncPostgresBackend<DieselDeadpool>> {
+  static POOL: OnceCell<DatabasePool<DieselAsyncPostgresBackend<DieselDeadpool>>> =
+    OnceCell::const_new();
+  let db_pool = POOL
+    .get_or_init(|| async {
+      let config = PrivilegedPostgresConfig::new().database_url(
+        SETTINGS
+          .get_database_url_with_options()
+          .expect("get database url with options"),
+      );
+
+      let backend = DieselAsyncPostgresBackend::new(
+        config,
+        |manager| Pool::builder(manager).max_size(30), //TODO use some env var
+        |manager| Pool::builder(manager).max_size(2),
+        None,
+        move |conn| {
+          Box::pin(async {
+            let mut async_wrapper: AsyncConnectionWrapper<AsyncPgConnection> =
+              AsyncConnectionWrapper::from(conn);
+
+            tokio::task::spawn_blocking(move || {
+              schema_setup::run_with_connection(
+                schema_setup::Options::default().run(),
+                &mut async_wrapper,
+              )
+              .expect("run migrations")
+            })
+            .await
+            .expect("task panicked");
+
+            None
+          })
+        },
+      )
+      .await
+      .expect("diesel postgres backend");
+
+      backend
+        .create_database_pool()
+        .await
+        .expect("create db pool")
+    })
+    .await;
+
+  db_pool.pull_immutable().await
 }
 
 fn establish_connection(config: &str) -> BoxFuture<'_, ConnectionResult<AsyncPgConnection>> {
