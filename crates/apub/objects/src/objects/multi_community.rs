@@ -116,7 +116,7 @@ impl Object for ApubMultiCommunity {
       name: self.title.clone(),
       summary: self.sidebar.as_ref().map(|d| markdown_to_html(d)),
       source: self.sidebar.clone().map(Source::new),
-      content: self.summary.clone(),
+      description: self.summary.clone(),
       media_type: self.sidebar.as_ref().map(|_| MediaTypeHtml::Html),
       attributed_to: creator.ap_id.into(),
     })
@@ -151,7 +151,7 @@ impl Object for ApubMultiCommunity {
     }
 
     let summary = json
-      .content
+      .description
       .clone()
       .as_deref()
       .map(truncate_summary)

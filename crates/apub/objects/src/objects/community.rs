@@ -121,7 +121,7 @@ impl Object for ApubCommunity {
       name: Some(self.title.clone()),
       summary: self.sidebar.as_ref().map(|d| markdown_to_html(d)),
       source: self.sidebar.clone().map(Source::new),
-      content: self.summary.clone(),
+      description: self.summary.clone(),
       media_type: self.sidebar.as_ref().map(|_| MediaTypeHtml::Html),
       icon: self.icon.clone().map(ImageObject::new),
       image: self.banner.clone().map(ImageObject::new),
@@ -183,7 +183,7 @@ impl Object for ApubCommunity {
     let visibility = Some(community_visibility(&group));
 
     let summary = group
-      .content
+      .description
       .clone()
       .as_deref()
       .map(truncate_summary)
