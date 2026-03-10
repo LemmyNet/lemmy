@@ -1,7 +1,19 @@
 use crate::PersonView;
-use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
+use diesel::{
+  BoolExpressionMethods,
+  ExpressionMethods,
+  PgTextExpressionMethods,
+  QueryDsl,
+  SelectableHelper,
+};
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema::source::person::Person;
+use lemmy_db_schema::{
+  PersonListingType,
+  PersonSortType,
+  impls::local_user::LocalUserOptionHelper,
+  source::{local_user::LocalUser, person::Person, site::Site},
+  utils::limit_fetch,
+};
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
@@ -16,6 +28,7 @@ use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   pagination::{CursorData, PaginationCursorConversion},
   traits::Crud,
+  utils::fuzzy_search,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -87,6 +100,66 @@ impl PersonView {
       .then_order_by(person::id)
       .select(Self::as_select())
       .load::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+}
+
+#[derive(Default)]
+pub struct PersonQuery<'a> {
+  local_user: Option<&'a LocalUser>,
+  sort: Option<PersonSortType>,
+  listing_type: Option<PersonListingType>,
+  search_term: Option<String>,
+  search_title_only: Option<bool>,
+  limit: Option<i64>,
+}
+
+impl PersonQuery<'_> {
+  pub async fn list(self, site: &Site, pool: &mut DbPool<'_>) -> LemmyResult<Vec<PersonView>> {
+    let o = self;
+    let limit = limit_fetch(o.limit, None)?;
+
+    let mut query = PersonView::joins(o.local_user.person_id(), site.instance_id)
+      .select(PersonView::as_select())
+      .limit(limit)
+      .filter(person::deleted.eq(false))
+      .into_boxed();
+
+    if let Some(listing_type) = o.listing_type {
+      query = match listing_type {
+        PersonListingType::All => query,
+        PersonListingType::Local => query.filter(person::local),
+      };
+    }
+
+    // The search term
+    if let Some(search_term) = o.search_term {
+      let searcher = fuzzy_search(&search_term);
+
+      let name_or_title_filter = person::name
+        .ilike(searcher.clone())
+        .or(person::display_name.ilike(searcher.clone()));
+
+      query = if o.search_title_only.unwrap_or_default() {
+        query.filter(name_or_title_filter)
+      } else {
+        let body_or_description_filter = person::bio.ilike(searcher.clone());
+        query.filter(name_or_title_filter.or(body_or_description_filter))
+      }
+    }
+
+    query = match o.sort.unwrap_or_default() {
+      PersonSortType::New => query.then_order_by(person::published_at),
+      PersonSortType::Old => query.then_order_by(person::published_at.asc()),
+    }
+    // Tie breaker
+    .then_order_by(person::id);
+
+    let conn = &mut get_conn(pool).await?;
+
+    query
+      .load::<PersonView>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
