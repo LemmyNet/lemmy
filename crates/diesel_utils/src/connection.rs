@@ -254,12 +254,15 @@ pub async fn build_db_pool_for_tests()
     OnceCell::const_new();
   let db_pool = POOL
     .get_or_init(|| async {
-      let config = PrivilegedPostgresConfig::new()
-        .database_url(SETTINGS.get_database_url_with_options().unwrap());
+      let config = PrivilegedPostgresConfig::new().database_url(
+        SETTINGS
+          .get_database_url_with_options()
+          .expect("get database url with options"),
+      );
 
       let backend = DieselAsyncPostgresBackend::new(
         config,
-        |manager| Pool::builder(manager).max_size(30),
+        |manager| Pool::builder(manager).max_size(30), //TODO use some env var
         |manager| Pool::builder(manager).max_size(2),
         None,
         move |conn| {
