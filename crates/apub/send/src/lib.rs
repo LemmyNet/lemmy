@@ -288,7 +288,6 @@ mod test {
 
   /// Running with multiple processes should start correct workers
   #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
-  #[ignore]
   async fn test_send_manager_processes() -> LemmyResult<()> {
     let active = Arc::new(Mutex::new(vec![]));
     let execute = |count, index, active: Arc<Mutex<Vec<InstanceId>>>| async move {
