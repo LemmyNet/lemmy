@@ -130,6 +130,10 @@ pub struct GetPosts {
   pub mark_as_read: Option<bool>,
   /// If true, then only show posts with no comments
   pub no_comments_only: Option<bool>,
+  pub search_term: Option<String>,
+  pub search_title_only: Option<bool>,
+  pub url_search: Option<String>,
+
   pub page_cursor: Option<PaginationCursor>,
   /// For backwards compat with API v3 (not available on API v4)
   #[serde(skip)]

@@ -73,10 +73,14 @@ use lemmy_diesel_utils::{
     paginate_response,
   },
   traits::Crud,
-  utils::{CoalesceKey, Commented, now, seconds_to_pg_interval},
+  utils::{CoalesceKey, Commented, fuzzy_search, now, seconds_to_pg_interval},
 };
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::{
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  utils::validation::clean_url,
+};
 use tracing::debug;
+use url::Url;
 
 impl PaginationCursorConversion for PostView {
   type PaginatedType = Post;
@@ -314,6 +318,9 @@ pub struct PostQuery<'a> {
   pub hide_media: Option<bool>,
   pub no_comments_only: Option<bool>,
   pub keyword_blocks: Option<Vec<String>>,
+  pub search_term: Option<String>,
+  pub search_title_only: Option<bool>,
+  pub url_search: Option<String>,
   pub page_cursor: Option<PaginationCursor>,
   /// For backwards compat with API v3 (not available on API v4).
   pub page: Option<i64>,
@@ -455,6 +462,28 @@ impl PostQuery<'_> {
         query = query.filter(community_actions::became_moderator_at.is_not_null());
       }
       ListingType::Suggested => query = query.filter(filter_suggested_communities()),
+    }
+
+    // A url / cross-post search
+    if let Some(url_search) = o.url_search {
+      // Parse and normalize the url, removing tracking parameters (same logic which is used
+      // when creating a new post).
+      let normalized_url = Url::parse(&url_search).map(|u| clean_url(&u).to_string())?;
+      query = query.filter(post::url.eq(normalized_url));
+    }
+
+    // The search term
+    if let Some(search_term) = o.search_term {
+      let searcher = fuzzy_search(&search_term);
+
+      let name_or_title_filter = post::name.ilike(searcher.clone());
+
+      query = if o.search_title_only.unwrap_or_default() {
+        query.filter(name_or_title_filter)
+      } else {
+        let body_or_description_filter = post::body.ilike(searcher.clone());
+        query.filter(name_or_title_filter.or(body_or_description_filter))
+      }
     }
 
     if !o.show_nsfw.unwrap_or(o.local_user.show_nsfw(site)) {
