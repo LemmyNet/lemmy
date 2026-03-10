@@ -40,8 +40,6 @@ async fn list_comments_common(
   let time_range_seconds =
     post_time_range_seconds_with_default(data.time_range_seconds, local_user, local_site);
   let limit = Some(fetch_limit_with_default(data.limit, local_user, local_site));
-  let max_depth = data.max_depth;
-  let parent_id = data.parent_id;
 
   let listing_type = Some(listing_type_with_default(
     data.type_,
@@ -58,8 +56,17 @@ async fn list_comments_common(
   };
 
   let parent_path = parent_path_.clone();
-  let post_id = data.post_id;
+
   let local_user = local_user_view.as_ref().map(|l| &l.local_user);
+
+  let GetComments {
+    max_depth,
+    parent_id,
+    post_id,
+    search_term,
+    page_cursor,
+    ..
+  } = data;
 
   CommentQuery {
     listing_type,
@@ -70,7 +77,8 @@ async fn list_comments_common(
     parent_path,
     post_id,
     local_user,
-    page_cursor: data.page_cursor,
+    search_term,
+    page_cursor,
     limit,
   }
   .list(&site_view.site, &mut context.pool())
