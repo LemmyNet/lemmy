@@ -29,3 +29,10 @@ ALTER TABLE local_site
 ALTER TABLE local_site
     DROP COLUMN failed_signups_rate;
 
+ALTER TABLE local_site RENAME local_posts TO posts;
+
+ALTER TABLE local_site RENAME local_comments TO comments;
+
+ALTER TABLE local_site RENAME local_users TO users;
+
+ALTER TABLE local_site RENAME local_communities TO communities;

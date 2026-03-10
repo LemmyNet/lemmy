@@ -1,31 +1,38 @@
 -- Your SQL goes here
 ALTER TABLE local_site
-    ADD COLUMN linked_instances integer;
+    ADD COLUMN linked_instances integer NOT NULL DEFAULT 0;
 
 ALTER TABLE local_site
-    ADD COLUMN total_posts integer;
+    ADD COLUMN total_posts integer NOT NULL DEFAULT 0;
 
 ALTER TABLE local_site
-    ADD COLUMN total_comments integer;
+    ADD COLUMN total_comments integer NOT NULL DEFAULT 0;
 
 ALTER TABLE local_site
-    ADD COLUMN total_users integer;
+    ADD COLUMN total_users integer NOT NULL DEFAULT 0;
 
 ALTER TABLE local_site
-    ADD COLUMN total_communities integer;
+    ADD COLUMN total_communities integer NOT NULL DEFAULT 0;
 
 ALTER TABLE local_site
-    ADD COLUMN user_retention_percent integer;
+    ADD COLUMN user_retention_percent integer NOT NULL DEFAULT 0;
 
 ALTER TABLE local_site
-    ADD COLUMN local_post_english_percent integer;
+    ADD COLUMN local_post_english_percent integer NOT NULL DEFAULT 0;
 
 ALTER TABLE local_site
-    ADD COLUMN ban_rate integer;
+    ADD COLUMN ban_rate integer NOT NULL DEFAULT 0;
 
 ALTER TABLE local_site
-    ADD COLUMN accepted_signups_rate integer;
+    ADD COLUMN accepted_signups_rate integer NOT NULL DEFAULT 0;
 
 ALTER TABLE local_site
-    ADD COLUMN failed_signups_rate integer;
+    ADD COLUMN failed_signups_rate integer NOT NULL DEFAULT 0;
 
+ALTER TABLE local_site RENAME posts TO local_posts;
+
+ALTER TABLE local_site RENAME comments TO local_comments;
+
+ALTER TABLE local_site RENAME users TO local_users;
+
+ALTER TABLE local_site RENAME communities TO local_communities;

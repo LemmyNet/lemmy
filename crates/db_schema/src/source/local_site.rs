@@ -78,10 +78,10 @@ pub struct LocalSite {
   pub default_post_time_range_seconds: Option<i32>,
   /// Block NSFW content being created
   pub disallow_nsfw_content: bool,
-  pub users: i32,
-  pub posts: i32,
-  pub comments: i32,
-  pub communities: i32,
+  pub local_users: i32,
+  pub local_posts: i32,
+  pub local_comments: i32,
+  pub local_communities: i32,
   /// The number of users with any activity in the last day.
   pub users_active_day: i32,
   /// The number of users with any activity in the last week.
@@ -113,16 +113,16 @@ pub struct LocalSite {
   /// This affects post and comment images, but not avatars and banners.
   pub image_allow_video_uploads: bool,
   pub image_upload_disabled: bool,
-  pub linked_instances: Option<i32>,
-  pub total_posts: Option<i32>,
-  pub total_comments: Option<i32>,
-  pub total_users: Option<i32>,
-  pub total_communities: Option<i32>,
-  pub user_retention_percent: Option<i32>,
-  pub local_post_english_percent: Option<i32>,
-  pub ban_rate: Option<i32>,
-  pub accepted_signups_rate: Option<i32>,
-  pub failed_signups_rate: Option<i32>,
+  pub linked_instances: i32,
+  pub total_posts: i32,
+  pub total_comments: i32,
+  pub total_users: i32,
+  pub total_communities: i32,
+  pub user_retention_percent: i32,
+  pub local_post_english_percent: i32,
+  pub ban_rate: i32,
+  pub accepted_signups_rate: i32,
+  pub failed_signups_rate: i32,
 }
 
 #[derive(Clone, derive_new::new)]
