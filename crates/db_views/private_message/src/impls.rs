@@ -1,7 +1,7 @@
 use crate::PrivateMessageView;
 use diesel::{BoolExpressionMethods, ExpressionMethods, JoinOnDsl, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema::newtypes::PrivateMessageId;
+use lemmy_db_schema::{newtypes::PrivateMessageId, source::person::Person};
 use lemmy_db_schema_file::{
   aliases,
   schema::{instance_actions, person, person_actions, private_message},
@@ -39,13 +39,20 @@ impl PrivateMessageView {
   pub async fn read(
     pool: &mut DbPool<'_>,
     private_message_id: PrivateMessageId,
+    my_person: Option<&Person>,
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
-    Self::joins()
+    let mut pm = Self::joins()
       .filter(private_message::id.eq(private_message_id))
       .select(Self::as_select())
       .first(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::NotFound)
+      .with_lemmy_type(LemmyErrorType::NotFound)?;
+
+    // Dont let creator know that recipient deleted the message
+    if Some(pm.creator.id) == my_person.map(|p| p.id) {
+      pm.private_message.deleted_by_recipient = false;
+    }
+    Ok(pm)
   }
 }
