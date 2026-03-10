@@ -467,6 +467,7 @@ mod test {
   use lemmy_diesel_utils::{dburl::DbUrl, traits::Crud};
   use lemmy_utils::error::LemmyResult;
   use serde_json::{Value, json};
+  use serial_test::serial;
   use std::sync::{Arc, RwLock};
   use test_context::{AsyncTestContext, test_context};
   use tokio::{
@@ -570,9 +571,9 @@ mod test {
   }
 
   #[test_context(Data)]
-  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
+  #[tokio::test]
   #[traced_test]
-  #[ignore]
+  #[serial]
   async fn test_stats(data: &mut Data) -> LemmyResult<()> {
     tracing::debug!("hello world");
 
@@ -610,9 +611,9 @@ mod test {
   }
 
   #[test_context(Data)]
-  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
+  #[tokio::test]
   #[traced_test]
-  #[ignore]
+  #[serial]
   async fn test_send_40(data: &mut Data) -> LemmyResult<()> {
     tracing::debug!("hello world");
 
@@ -634,9 +635,9 @@ mod test {
   }
 
   #[test_context(Data)]
-  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
+  #[tokio::test]
   #[traced_test]
-  #[ignore]
+  #[serial]
   /// this test sends 15 activities, waits and checks they have all been received, then sends 50,
   /// etc
   async fn test_send_15_20_30(data: &mut Data) -> LemmyResult<()> {
@@ -664,8 +665,8 @@ mod test {
   }
 
   #[test_context(Data)]
-  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
-  #[ignore]
+  #[tokio::test]
+  #[serial]
   async fn test_update_instance(data: &mut Data) -> LemmyResult<()> {
     let form = InstanceForm::new(data.instance.domain.clone());
     Instance::update(&mut data.context.pool(), data.instance.id, form).await?;
@@ -682,8 +683,8 @@ mod test {
   }
 
   #[test_context(Data)]
-  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
-  #[ignore]
+  #[tokio::test]
+  #[serial]
   async fn test_errors(data: &mut Data) -> LemmyResult<()> {
     let form = InstanceForm::new(data.instance.domain.clone());
     Instance::update(&mut data.context.pool(), data.instance.id, form).await?;

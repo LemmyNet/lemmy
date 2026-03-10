@@ -54,4 +54,5 @@ tracing-test = "0.2.6"
 uuid.workspace = true
 test-context = "0.5.5"
 mockall = "0.14.0"
+serial_test = "3.4.0"
 tokio-shared-rt = { workspace = true }
