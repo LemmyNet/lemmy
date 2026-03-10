@@ -22,15 +22,34 @@ pub async fn list_communities(
     .show_nsfw
     .unwrap_or(local_site.site.content_warning.is_some());
 
+  let listing_type = Some(listing_type_with_default(
+    data.type_,
+    local_user,
+    local_site,
+    community_id,
+  ));
+
+  let ListCommunities {
+    time_range_seconds,
+    sort,
+    limit,
+    page_cursor,
+    search_title_only,
+    multi_community_id,
+    ..
+  } = data;
+
   let res = CommunityQuery {
     listing_type: data.type_,
     show_nsfw: Some(show_nsfw),
-    sort: data.sort,
+    sort,
     time_range_seconds: data.time_range_seconds,
     local_user: local_user.as_ref(),
-    page_cursor: data.page_cursor,
-    limit: data.limit,
-    ..Default::default()
+    multi_community_id,
+    search_term,
+    search_title_only,
+    page_cursor,
+    limit,
   }
   .list(&local_site.site, &mut context.pool())
   .await?;

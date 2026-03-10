@@ -1,5 +1,11 @@
 use crate::{CommunityView, MultiCommunityView};
-use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
+use diesel::{
+  BoolExpressionMethods,
+  ExpressionMethods,
+  PgTextExpressionMethods,
+  QueryDsl,
+  SelectableHelper,
+};
 use diesel_async::RunQueryDsl;
 use i_love_jesus::asc_if;
 use lemmy_db_schema::{
@@ -52,7 +58,7 @@ use lemmy_diesel_utils::{
     paginate_response,
   },
   traits::Crud,
-  utils::{LowerKey, now, seconds_to_pg_interval},
+  utils::{LowerKey, fuzzy_search, now, seconds_to_pg_interval},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -120,6 +126,8 @@ pub struct CommunityQuery<'a> {
   pub local_user: Option<&'a LocalUser>,
   pub show_nsfw: Option<bool>,
   pub multi_community_id: Option<MultiCommunityId>,
+  pub search_term: Option<String>,
+  pub search_title_only: Option<bool>,
   pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }
@@ -178,6 +186,24 @@ impl CommunityQuery<'_> {
       query = query.filter(community::id.eq_any(communities))
     }
 
+    // The search term
+    if let Some(search_term) = o.search_term {
+      let searcher = fuzzy_search(&search_term);
+
+      let name_or_title_filter = community::name
+        .ilike(searcher.clone())
+        .or(community::title.ilike(searcher.clone()));
+
+      query = if o.search_title_only.unwrap_or_default() {
+        query.filter(name_or_title_filter)
+      } else {
+        let body_or_description_filter = community::summary
+          .ilike(searcher.clone())
+          .or(community::sidebar.ilike(searcher.clone()));
+        query.filter(name_or_title_filter.or(body_or_description_filter))
+      }
+    }
+
     // Filter by the time range
     if let Some(time_range_seconds) = o.time_range_seconds {
       query = query
@@ -218,6 +244,7 @@ impl CommunityQuery<'_> {
   }
 }
 
+// TODO this should be its own view crate
 impl MultiCommunityView {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins(person_id: Option<PersonId>) -> _ {
