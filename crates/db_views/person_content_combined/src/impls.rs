@@ -91,16 +91,11 @@ impl PaginationCursorConversion for PostCommentCombinedViewWrapper {
   }
 }
 
-#[derive(derive_new::new)]
 pub struct PersonContentCombinedQuery {
   pub creator_id: PersonId,
-  #[new(default)]
   pub type_: Option<PersonContentType>,
-  #[new(default)]
   pub page_cursor: Option<PaginationCursor>,
-  #[new(default)]
   pub limit: Option<i64>,
-  #[new(default)]
   pub no_limit: Option<bool>,
 }
 
