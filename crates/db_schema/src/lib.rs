@@ -84,6 +84,8 @@ pub enum PersonSortType {
   #[default]
   New,
   Old,
+  PostScore,
+  CommentScore,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]

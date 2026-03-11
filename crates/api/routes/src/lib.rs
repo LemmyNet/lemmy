@@ -406,10 +406,11 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
               .route(get().to(export_data)),
           ),
       )
-      // User actions
+      // Person / User actions
       .service(
         scope("/person")
           .route("", get().to(read_person))
+          .route("/list", get().to(list_persons))
           .route("/content", get().to(list_person_content))
           .route("/note", post().to(user_note_person)),
       )
