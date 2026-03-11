@@ -46,7 +46,6 @@ import {
   FollowMultiCommunity,
   GetPosts,
   LemmyError,
-  MultiCommunityView,
   ReportCombinedView,
   ResolveCommunityReport,
 } from "lemmy-js-client";
