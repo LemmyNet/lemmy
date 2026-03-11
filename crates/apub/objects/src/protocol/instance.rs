@@ -34,7 +34,7 @@ pub struct Instance {
   pub(crate) source: Option<Source>,
   pub(crate) media_type: Option<MediaTypeHtml>,
   // short description
-  pub(crate) summary: Option<String>,
+  pub(crate) description: Option<String>,
   /// instance icon
   pub(crate) icon: Option<ImageObject>,
   /// instance banner
