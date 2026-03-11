@@ -3861,7 +3861,6 @@ dependencies = [
 name = "lemmy_db_views_person_content_combined"
 version = "1.0.0-test-arm-qemu.0"
 dependencies = [
- "derive-new",
  "diesel",
  "diesel-async",
  "i-love-jesus",
