@@ -7,11 +7,16 @@ use diesel::{
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
+use i_love_jesus::asc_if;
 use lemmy_db_schema::{
   PersonListingType,
   PersonSortType,
   impls::local_user::LocalUserOptionHelper,
-  source::{local_user::LocalUser, person::Person, site::Site},
+  source::{
+    local_user::LocalUser,
+    person::{Person, person_keys as key},
+    site::Site,
+  },
   utils::limit_fetch,
 };
 use lemmy_db_schema_file::{
@@ -26,7 +31,13 @@ use lemmy_db_schema_file::{
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
-  pagination::{CursorData, PaginationCursorConversion},
+  pagination::{
+    CursorData,
+    PagedResponse,
+    PaginationCursor,
+    PaginationCursorConversion,
+    paginate_response,
+  },
   traits::Crud,
   utils::fuzzy_search,
 };
@@ -107,16 +118,23 @@ impl PersonView {
 
 #[derive(Default)]
 pub struct PersonQuery<'a> {
-  local_user: Option<&'a LocalUser>,
-  sort: Option<PersonSortType>,
-  listing_type: Option<PersonListingType>,
-  search_term: Option<String>,
-  search_title_only: Option<bool>,
-  limit: Option<i64>,
+  pub local_user: Option<&'a LocalUser>,
+  pub sort: Option<PersonSortType>,
+  pub listing_type: Option<PersonListingType>,
+  pub search_term: Option<String>,
+  pub search_title_only: Option<bool>,
+  pub page_cursor: Option<PaginationCursor>,
+  pub limit: Option<i64>,
 }
 
 impl PersonQuery<'_> {
-  pub async fn list(self, site: &Site, pool: &mut DbPool<'_>) -> LemmyResult<Vec<PersonView>> {
+  pub async fn list(
+    self,
+    site: &Site,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<PagedResponse<PersonView>> {
+    use PersonSortType::*;
+
     let o = self;
     let limit = limit_fetch(o.limit, None)?;
 
@@ -149,19 +167,25 @@ impl PersonQuery<'_> {
       }
     }
 
-    query = match o.sort.unwrap_or_default() {
-      PersonSortType::New => query.then_order_by(person::published_at),
-      PersonSortType::Old => query.then_order_by(person::published_at.asc()),
+    // Only sort by ascending for Old
+    let sort = o.sort.unwrap_or_default();
+    let sort_direction = asc_if(sort == Old);
+
+    let mut pq = PersonView::paginate(query, &o.page_cursor, sort_direction, pool, None).await?;
+    pq = match o.sort.unwrap_or_default() {
+      New | Old => pq.then_order_by(key::published_at),
+      PostScore => pq.then_order_by(key::post_score),
+      CommentScore => pq.then_order_by(key::comment_score),
     }
     // Tie breaker
-    .then_order_by(person::id);
+    .then_order_by(key::id);
 
     let conn = &mut get_conn(pool).await?;
-
-    query
+    let res = pq
       .load::<PersonView>(conn)
       .await
-      .with_lemmy_type(LemmyErrorType::NotFound)
+      .with_lemmy_type(LemmyErrorType::NotFound)?;
+    paginate_response(res, limit, o.page_cursor)
   }
 }
 
