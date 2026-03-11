@@ -320,7 +320,7 @@ pub struct PostQuery<'a> {
   pub keyword_blocks: Option<Vec<String>>,
   pub search_term: Option<String>,
   pub search_title_only: Option<bool>,
-  pub url_search: Option<String>,
+  pub search_url_only: Option<bool>,
   pub page_cursor: Option<PaginationCursor>,
   /// For backwards compat with API v3 (not available on API v4).
   pub page: Option<i64>,
@@ -464,21 +464,20 @@ impl PostQuery<'_> {
       ListingType::Suggested => query = query.filter(filter_suggested_communities()),
     }
 
-    // A url / cross-post search
-    if let Some(url_search) = o.url_search {
-      // Parse and normalize the url, removing tracking parameters (same logic which is used
-      // when creating a new post).
-      let normalized_url = Url::parse(&url_search).map(|u| clean_url(&u).to_string())?;
-      query = query.filter(post::url.eq(normalized_url));
-    }
-
     // The search term
     if let Some(search_term) = o.search_term {
       let searcher = fuzzy_search(&search_term);
 
       let name_or_title_filter = post::name.ilike(searcher.clone());
 
-      query = if o.search_title_only.unwrap_or_default() {
+      // A url / cross-post search
+      query = if o.search_url_only.unwrap_or_default() {
+        // Parse and normalize the url, removing tracking parameters (same logic which is used
+        // when creating a new post).
+        let normalized_url = Url::parse(&search_term).map(|u| clean_url(&u).to_string())?;
+
+        query.filter(post::url.eq(normalized_url))
+      } else if o.search_title_only.unwrap_or_default() {
         query.filter(name_or_title_filter)
       } else {
         let body_or_description_filter = post::body.ilike(searcher.clone());
