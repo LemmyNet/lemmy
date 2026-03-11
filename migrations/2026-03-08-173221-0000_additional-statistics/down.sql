@@ -36,3 +36,4 @@ ALTER TABLE local_site RENAME local_comments TO comments;
 ALTER TABLE local_site RENAME local_users TO users;
 
 ALTER TABLE local_site RENAME local_communities TO communities;
+
