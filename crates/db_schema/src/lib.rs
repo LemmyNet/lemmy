@@ -137,23 +137,6 @@ pub enum PersonListingType {
 #[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
-/// The type of content returned from a search.
-pub enum SearchType {
-  #[default]
-  All,
-  Comments,
-  Posts,
-  Communities,
-  Users,
-  MultiCommunities,
-}
-
-#[derive(
-  EnumString, Display, Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash,
-)]
-#[serde(rename_all = "snake_case")]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
 /// A list of possible types for the inbox.
 pub enum NotificationTypeFilter {
   #[default]
