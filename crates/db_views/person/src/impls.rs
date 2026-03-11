@@ -197,10 +197,14 @@ mod tests {
   use lemmy_db_schema::{
     assert_length,
     source::{
+      community::{Community, CommunityInsertForm},
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
       person::{Person, PersonActions, PersonInsertForm, PersonNoteForm, PersonUpdateForm},
+      post::{Post, PostActions, PostInsertForm, PostLikeForm},
+      site::SiteInsertForm,
     },
+    traits::Likeable,
   };
   use lemmy_diesel_utils::{
     connection::{DbPool, build_db_pool_for_tests},
@@ -211,6 +215,7 @@ mod tests {
   use serial_test::serial;
 
   struct Data {
+    site: Site,
     alice: Person,
     alice_local_user: LocalUser,
     bob: Person,
@@ -218,6 +223,8 @@ mod tests {
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
     let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
+    let site_form = SiteInsertForm::new("test_site".to_string(), instance.id);
+    let site = Site::create(pool, &site_form).await?;
 
     let alice_form = PersonInsertForm {
       local: Some(true),
@@ -234,7 +241,27 @@ mod tests {
     };
     let bob = Person::create(pool, &bob_form).await?;
 
+    // Create a post like to give bob a higher post score for sorting tests
+    let community_form = CommunityInsertForm {
+      summary: Some("bobs comm".into()),
+      ..CommunityInsertForm::new(
+        instance.id,
+        "bobs_comm".to_string(),
+        "Bobs Comm".to_owned(),
+        "pubkey".to_string(),
+      )
+    };
+    let community = Community::create(pool, &community_form).await?;
+    let bob_post_form = PostInsertForm {
+      body: Some("person query list inside here".into()),
+      ..PostInsertForm::new("bob post".into(), bob.id, community.id)
+    };
+    let bob_post = Post::create(pool, &bob_post_form).await?;
+    let bob_like_post_form = PostLikeForm::new(bob_post.id, bob.id, Some(true));
+    PostActions::like(pool, &bob_like_post_form).await?;
+
     Ok(Data {
+      site,
       alice,
       alice_local_user,
       bob,
@@ -336,5 +363,45 @@ mod tests {
     );
 
     cleanup(data, pool).await
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn search() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // Person search
+    let list_all = PersonQuery::default().list(&data.site, pool).await?;
+    assert_length!(2, list_all);
+    assert_eq!(data.bob.id, list_all[0].person.id);
+    assert_eq!(data.alice.id, list_all[1].person.id);
+
+    // Using a term
+    let search_by_name = PersonQuery {
+      search_term: Some("alice".into()),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+
+    assert_length!(1, search_by_name);
+    assert_eq!(data.alice.id, search_by_name[0].person.id);
+
+    // Post score sorting score
+    let list_sort_top = PersonQuery {
+      sort: Some(PersonSortType::PostScore),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+    assert_length!(2, list_sort_top);
+    // Bobs should be at the top
+    assert_eq!(data.bob.id, list_sort_top[0].person.id);
+
+    cleanup(data, pool).await?;
+
+    Ok(())
   }
 }
