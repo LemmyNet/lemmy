@@ -1091,4 +1091,27 @@ mod tests {
 
     cleanup(data, pool).await
   }
+
+  #[tokio::test]
+  #[serial]
+  async fn search() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // Using a term
+    let comment_search_by_name = CommentQuery {
+      search_term: Some("comment 2".into()),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+
+    assert_length!(1, comment_search_by_name);
+    assert_eq!(data.comment_2.id, comment_search_by_name[0].comment.id);
+
+    cleanup(data, pool).await?;
+
+    Ok(())
+  }
 }
