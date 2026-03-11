@@ -9,6 +9,10 @@ use lemmy_db_schema::source::{
   local_site_rate_limit::LocalSiteRateLimit,
   site::Site,
 };
+use lemmy_db_views_comment::CommentView;
+use lemmy_db_views_community::{CommunityView, MultiCommunityView};
+use lemmy_db_views_person::PersonView;
+use lemmy_db_views_post::PostView;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -50,4 +54,16 @@ pub struct FederatedInstanceView {
   pub blocked: Option<FederationBlockList>,
   #[cfg_attr(feature = "full", diesel(embed))]
   pub allowed: Option<FederationAllowList>,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
+#[serde(tag = "type_", rename_all = "snake_case")]
+pub enum ResolveObjectView {
+  Post(PostView),
+  Comment(CommentView),
+  Person(PersonView),
+  Community(CommunityView),
+  MultiCommunity(MultiCommunityView),
 }

@@ -23,6 +23,7 @@ full = [
   "i-love-jesus",
   "lemmy_db_schema/full",
   "lemmy_db_schema_file/full",
+  "lemmy_db_views_community/full",
   "lemmy_diesel_utils/full",
 ]
 ts-rs = ["dep:ts-rs", "lemmy_db_schema/ts-rs", "lemmy_db_schema_file/ts-rs"]
@@ -40,6 +41,7 @@ i-love-jesus = { workspace = true, optional = true }
 chrono = { workspace = true }
 tracing = { workspace = true }
 lemmy_diesel_utils = { workspace = true }
+lemmy_db_views_community = { workspace = true }
 url = { workspace = true }
 
 [dev-dependencies]
