@@ -54,7 +54,7 @@ pub async fn list_posts(
     no_comments_only,
     search_term,
     search_title_only,
-    url_search,
+    search_url_only,
     page_cursor,
     ..
   } = data;
@@ -99,7 +99,7 @@ pub async fn list_posts(
     keyword_blocks,
     search_term,
     search_title_only,
-    url_search,
+    search_url_only,
     page_cursor,
   }
   .list(&site_view.site, &mut context.pool())
