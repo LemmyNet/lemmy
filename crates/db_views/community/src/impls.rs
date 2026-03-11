@@ -425,7 +425,10 @@ mod tests {
   struct Data {
     instance: Instance,
     local_user: LocalUser,
+    tom: Person,
     communities: [Community; 3],
+    multi_1: MultiCommunity,
+    multi_2: MultiCommunity,
     site: Site,
   }
 
@@ -440,6 +443,21 @@ mod tests {
 
     let local_user_form = LocalUserInsertForm::test_form(inserted_person.id);
     let local_user = LocalUser::create(pool, &local_user_form, vec![]).await?;
+
+    let tom_form = PersonInsertForm::test_form(instance.id, "tom");
+    let tom = Person::create(pool, &tom_form).await?;
+
+    let multi_1_form = MultiCommunityInsertForm::new(
+      local_user.person_id,
+      instance.id,
+      "multi1".to_string(),
+      String::new(),
+    );
+    let multi_1 = MultiCommunity::create(pool, &multi_1_form).await?;
+
+    let multi_2_form =
+      MultiCommunityInsertForm::new(tom.id, tom.instance_id, "multi2".to_string(), String::new());
+    let multi_2 = MultiCommunity::create(pool, &multi_2_form).await?;
 
     let communities = [
       Community::create(
@@ -499,8 +517,11 @@ mod tests {
     Ok(Data {
       instance,
       local_user,
+      tom,
       communities,
       site,
+      multi_1,
+      multi_2,
     })
   }
 
@@ -715,21 +736,6 @@ mod tests {
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
-    let tom_form = PersonInsertForm::test_form(data.instance.id, "tom");
-    let tom = Person::create(pool, &tom_form).await?;
-
-    let multi_1_form = MultiCommunityInsertForm::new(
-      data.local_user.person_id,
-      data.instance.id,
-      "multi2".to_string(),
-      String::new(),
-    );
-    let multi = MultiCommunity::create(pool, &multi_1_form).await?;
-
-    let multi_2_form =
-      MultiCommunityInsertForm::new(tom.id, tom.instance_id, "multi2".to_string(), String::new());
-    let multi2 = MultiCommunity::create(pool, &multi_2_form).await?;
-
     // list all multis
     let list_all = MultiCommunityQuery::default()
       .list(pool)
@@ -738,7 +744,7 @@ mod tests {
       .map(|m| m.multi.id)
       .collect::<HashSet<_>>();
 
-    assert_eq!(list_all, HashSet::from([multi.id, multi2.id]));
+    assert_eq!(list_all, HashSet::from([data.multi_1.id, data.multi_2.id]));
 
     // list multis by owner
     let list_owner = MultiCommunityQuery {
@@ -749,12 +755,12 @@ mod tests {
     .list(pool)
     .await?;
     assert_eq!(list_owner.len(), 1);
-    assert_eq!(list_owner[0].multi.id, multi.id);
+    assert_eq!(list_owner[0].multi.id, data.multi_1.id);
     assert_eq!(list_owner[0].follow_state, None);
 
     // Tegan follows multi2
     let follow_form = MultiCommunityFollowForm {
-      multi_community_id: multi2.id,
+      multi_community_id: data.multi_2.id,
       person_id: data.local_user.person_id,
       follow_state: CommunityFollowerState::Accepted,
     };
@@ -769,15 +775,15 @@ mod tests {
     .list(pool)
     .await?;
     assert_eq!(list_followed.len(), 1);
-    assert_eq!(list_followed[0].multi.id, multi2.id);
-    assert_eq!(list_followed[0].owner.id, tom.id);
+    assert_eq!(list_followed[0].multi.id, data.multi_2.id);
+    assert_eq!(list_followed[0].owner.id, data.tom.id);
     assert_eq!(
       list_followed[0].follow_state,
       Some(CommunityFollowerState::Accepted)
     );
 
     // Unfollow, and make sure its removed
-    MultiCommunity::unfollow(pool, data.local_user.person_id, multi2.id).await?;
+    MultiCommunity::unfollow(pool, data.local_user.person_id, data.multi_2.id).await?;
     let list_followed = MultiCommunityQuery {
       my_person_id: Some(data.local_user.person_id),
       listing_type: Some(MultiCommunityListingType::Subscribed),
@@ -838,6 +844,29 @@ mod tests {
     .await?;
 
     assert!(community_search_title_only.is_empty());
+
+    cleanup(data, pool).await?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn multi_community_search() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // Using a term
+    let search_by_name = MultiCommunityQuery {
+      search_term: Some("multi1".into()),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?;
+
+    assert_length!(1, search_by_name);
+    assert_eq!(data.multi_1.id, search_by_name[0].multi.id);
 
     cleanup(data, pool).await?;
 
