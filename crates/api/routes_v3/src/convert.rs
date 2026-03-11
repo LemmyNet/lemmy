@@ -49,7 +49,11 @@ use lemmy_api_019::{
   lemmy_db_views_actor::structs::{CommunityView as CommunityViewV3, PersonView as PersonViewV3},
   person::LoginResponse as LoginResponseV3,
   post::PostResponse as PostResponseV3,
-  site::{MyUserInfo as MyUserInfoV3, SearchResponse as SearchResponseV3},
+  site::{
+    MyUserInfo as MyUserInfoV3,
+    ResolveObjectResponse as ResolveObjectResponseV3,
+    SearchResponse as SearchResponseV3,
+  },
 };
 use lemmy_api_utils::plugins::is_captcha_plugin_loaded;
 use lemmy_db_schema::{
@@ -77,8 +81,8 @@ use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
 use lemmy_db_views_post::{PostView, api::PostResponse};
-use lemmy_db_views_search_combined::SearchCombinedView;
 use lemmy_db_views_site::{
+  ResolveObjectView,
   SiteView,
   api::{LoginResponse, MyUserInfo},
 };
@@ -709,27 +713,40 @@ pub(crate) fn convert_score(score: i16) -> Option<bool> {
     None
   }
 }
-pub(crate) fn convert_search_response(
-  views: Vec<SearchCombinedView>,
-  type_: Option<SearchTypeV3>,
-) -> SearchResponseV3 {
-  let mut res = SearchResponseV3 {
+
+pub(crate) fn convert_search_response(type_: Option<SearchTypeV3>) -> SearchResponseV3 {
+  SearchResponseV3 {
     type_: type_.unwrap_or(SearchTypeV3::All),
     comments: vec![],
     posts: vec![],
     communities: vec![],
     users: vec![],
-  };
-  for v in views {
-    match v {
-      SearchCombinedView::Post(p) => res.posts.push(convert_post_view(p)),
-      SearchCombinedView::Comment(c) => res.comments.push(convert_comment_view(c)),
-      SearchCombinedView::Community(c) => res.communities.push(convert_community_view(c)),
-      SearchCombinedView::Person(p) => res.users.push(convert_person_view(p)),
-      SearchCombinedView::MultiCommunity(_) => continue,
-    }
   }
-  res
+}
+
+pub(crate) fn convert_resolve_object_response(res: ResolveObjectView) -> ResolveObjectResponseV3 {
+  ResolveObjectResponseV3 {
+    comment: if let ResolveObjectView::Comment(cv) = &res {
+      Some(convert_comment_view(cv.clone()))
+    } else {
+      None
+    },
+    post: if let ResolveObjectView::Post(pv) = &res {
+      Some(convert_post_view(pv.clone()))
+    } else {
+      None
+    },
+    community: if let ResolveObjectView::Community(cv) = &res {
+      Some(convert_community_view(cv.clone()))
+    } else {
+      None
+    },
+    person: if let ResolveObjectView::Person(pv) = res {
+      Some(convert_person_view(pv))
+    } else {
+      None
+    },
+  }
 }
 
 pub(crate) fn convert_post_listing_sort(

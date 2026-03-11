@@ -16,6 +16,7 @@ use crate::convert::{
   convert_post_listing_sort,
   convert_post_response,
   convert_post_view,
+  convert_resolve_object_response,
   convert_score,
   convert_search_response,
   convert_site,
@@ -31,7 +32,6 @@ use lemmy_api::{
     list_posts::list_posts,
     read_community::get_community,
     resolve_object::resolve_object,
-    search::search,
   },
   local_user::{
     block::user_block_person,
@@ -107,7 +107,6 @@ use lemmy_api_crud::{
 };
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::newtypes::{CommentId, CommunityId, LanguageId, PostId};
-use lemmy_db_schema_file::PersonId;
 use lemmy_db_views_comment::api::{
   CreateComment,
   CreateCommentLike,
@@ -129,12 +128,12 @@ use lemmy_db_views_post::api::{
   CreatePostLike,
   DeletePost,
   EditPost,
+  GetPost,
   GetPosts,
   SavePost,
 };
 use lemmy_db_views_registration_applications::api::Register;
 use lemmy_db_views_report_combined::api::{CreateCommentReport, CreatePostReport};
-use lemmy_db_views_search_combined::{Search, api::GetPost};
 use lemmy_db_views_site::api::{GetSiteResponse, Login, ResolveObject};
 use lemmy_utils::error::LemmyResult;
 
@@ -222,6 +221,7 @@ pub(crate) async fn list_comments_v3(
     post_id: post_id.map(|p| PostId(p.0)),
     parent_id: parent_id.map(|p| CommentId(p.0)),
     time_range_seconds: None,
+    search_term: None,
   };
   let comments = list_comments(Query(data), context, local_user_view)
     .await?
@@ -374,30 +374,9 @@ pub(crate) async fn create_post_v3(
   convert_post_response(res)
 }
 
-pub(crate) async fn search_v3(
-  Query(data): Query<SearchV3>,
-  context: ApubData<LemmyContext>,
-  local_user_view: Option<LocalUserView>,
-) -> LemmyResult<Json<SearchResponseV3>> {
-  let SearchV3 {
-    q,
-    community_id,
-    community_name,
-    creator_id,
-    limit,
-    type_,
-    ..
-  } = data;
-  let data = Search {
-    q,
-    community_id: community_id.map(|i| CommunityId(i.0)),
-    community_name,
-    creator_id: creator_id.map(|i| PersonId(i.0)),
-    limit,
-    ..Default::default()
-  };
-  let res = search(Query(data), context, local_user_view).await?;
-  Ok(Json(convert_search_response(res.0.search, type_)))
+pub(crate) async fn search_v3(Query(data): Query<SearchV3>) -> LemmyResult<Json<SearchResponseV3>> {
+  let SearchV3 { type_, .. } = data;
+  Ok(Json(convert_search_response(type_)))
 }
 
 pub(crate) async fn resolve_object_v3(
@@ -406,13 +385,8 @@ pub(crate) async fn resolve_object_v3(
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<ResolveObjectResponseV3>> {
   let res = resolve_object(data, context, local_user_view).await?;
-  let mut conv = convert_search_response(res.0.resolve.into_iter().collect(), None);
-  Ok(Json(ResolveObjectResponseV3 {
-    comment: conv.comments.pop(),
-    post: conv.posts.pop(),
-    community: conv.communities.pop(),
-    person: conv.users.pop(),
-  }))
+  let conv = convert_resolve_object_response(res.0);
+  Ok(Json(conv))
 }
 
 pub(crate) async fn save_post_v3(
@@ -641,6 +615,9 @@ pub(crate) async fn list_communities_v3(
     show_nsfw,
     page_cursor: None,
     limit,
+    multi_community_id: None,
+    search_term: None,
+    search_title_only: None,
   };
   let res = list_communities(Query(data), context, local_user_view)
     .await?

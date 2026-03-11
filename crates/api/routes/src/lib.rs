@@ -23,12 +23,12 @@ use lemmy_api::{
   federation::{
     list_comments::{list_comments, list_comments_slim},
     list_person_content::list_person_content,
+    list_persons::list_persons,
     list_posts::list_posts,
     read_community::get_community,
     read_multi_community::read_multi_community,
     read_person::read_person,
     resolve_object::resolve_object,
-    search::search,
     user_settings_backup::{export_settings, import_settings},
   },
   local_user::{
@@ -204,11 +204,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("/banner", delete().to(delete_site_banner)),
       )
       .route("/modlog", get().to(get_mod_log))
-      .service(
-        resource("/search")
-          .wrap(rate_limit.search())
-          .route(get().to(search)),
-      )
       .service(
         resource("/resolve_object")
           .wrap(rate_limit.search())
