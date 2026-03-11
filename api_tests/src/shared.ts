@@ -78,7 +78,6 @@ import {
   RemovePost,
   ResolveObject,
   SaveUserSettings,
-  Search,
   PagedResponse,
   NotificationView,
   ReportCombinedView,
@@ -87,6 +86,7 @@ import {
   LemmyError,
   PostCommentCombinedView,
   UnreadCountsResponse,
+  MultiCommunityView,
 } from "lemmy-js-client";
 
 export const fetchFunction = fetch;
@@ -334,22 +334,7 @@ export async function resolvePost(
   };
   return api
     .resolveObject(form)
-    .then(a => a.resolve)
     .then(a => (a?.type_ == "post" ? a : undefined));
-}
-
-export async function searchPostLocal(
-  api: LemmyHttp,
-  post: Post,
-): Promise<PostView | undefined> {
-  let form: Search = {
-    q: post.name,
-    type_: "posts",
-    listing_type: "all",
-  };
-  let res = await api.search(form);
-  let first = res.search.at(0);
-  return first?.type_ == "post" ? first : undefined;
 }
 
 /// wait for a post to appear locally without pulling it
@@ -358,10 +343,17 @@ export async function waitForPost(
   post: Post,
   checker: (t: PostView | undefined) => boolean = p => !!p,
 ) {
-  return waitUntil(
-    () => searchPostLocal(api, post),
-    checker,
-  ) as Promise<PostView>;
+  return waitUntil(() => searchPost(api, post), checker) as Promise<PostView>;
+}
+
+async function searchPost(
+  api: LemmyHttp,
+  post: Post,
+): Promise<PostView | undefined> {
+  let form: GetPosts = {
+    search_term: post.name,
+  };
+  return (await api.getPosts(form)).items.at(0);
 }
 
 export async function getPost(
@@ -438,7 +430,6 @@ export async function resolveComment(
   };
   return api
     .resolveObject(form)
-    .then(a => a.resolve)
     .then(a => (a?.type_ == "comment" ? a : undefined));
 }
 
@@ -451,7 +442,6 @@ export async function resolveBetaCommunity(
   };
   return api
     .resolveObject(form)
-    .then(a => a.resolve)
     .then(a => (a?.type_ == "community" ? a : undefined));
 }
 
@@ -464,8 +454,19 @@ export async function resolveCommunity(
   };
   return api
     .resolveObject(form)
-    .then(a => a.resolve)
     .then(a => (a?.type_ == "community" ? a : undefined));
+}
+
+export async function resolveMultiCommunity(
+  api: LemmyHttp,
+  q: string,
+): Promise<MultiCommunityView | undefined> {
+  let form: ResolveObject = {
+    q,
+  };
+  return api
+    .resolveObject(form)
+    .then(a => (a?.type_ == "multi_community" ? a : undefined));
 }
 
 export async function resolvePerson(
@@ -477,7 +478,6 @@ export async function resolvePerson(
   };
   return api
     .resolveObject(form)
-    .then(a => a.resolve)
     .then(a => (a?.type_ == "person" ? a : undefined));
 }
 
