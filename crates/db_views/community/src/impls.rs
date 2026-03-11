@@ -394,6 +394,7 @@ mod tests {
   };
   use lemmy_db_schema::{
     CommunitySortType,
+    assert_length,
     source::{
       community::{
         Community,
@@ -463,12 +464,15 @@ mod tests {
       .await?,
       Community::create(
         pool,
-        &CommunityInsertForm::new(
-          instance.id,
-          "test_community_3".to_string(),
-          "nada3".to_owned(),
-          "pubkey".to_string(),
-        ),
+        &CommunityInsertForm {
+          sidebar: Some("sidebar here".to_string()),
+          ..CommunityInsertForm::new(
+            instance.id,
+            "test_community_3".to_string(),
+            "nada3".to_owned(),
+            "pubkey".to_string(),
+          )
+        },
       )
       .await?,
     ];
@@ -782,6 +786,58 @@ mod tests {
     .list(pool)
     .await?;
     assert_eq!(list_followed.len(), 0);
+
+    cleanup(data, pool).await?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn search() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // Using a term
+    let community_search_by_name = CommunityQuery {
+      search_term: Some("test_community_2".into()),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+
+    assert_length!(1, community_search_by_name);
+    assert_eq!(
+      data.communities[1].id,
+      community_search_by_name[0].community.id
+    );
+
+    // Searching the sidebar
+    let community_search_body = CommunityQuery {
+      search_term: Some("sidebar".into()),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+
+    assert_length!(1, community_search_body);
+    assert_eq!(
+      data.communities[2].id,
+      community_search_body[0].community.id
+    );
+
+    // Test title only search to make sure sidebar doesn't get returned
+    // Using a term
+    let community_search_title_only = CommunityQuery {
+      search_term: Some("sidebar".into()),
+      search_title_only: Some(true),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+
+    assert!(community_search_title_only.is_empty());
 
     cleanup(data, pool).await?;
 
