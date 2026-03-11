@@ -21,10 +21,19 @@ async fn list_comments_common(
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<PagedResponse<CommentView>> {
-  let site_view = SiteView::read_local(&mut context.pool()).await?;
-  let local_site = &site_view.local_site;
+  let SiteView {
+    site, local_site, ..
+  } = SiteView::read_local(&mut context.pool()).await?;
+  let GetComments {
+    max_depth,
+    parent_id,
+    post_id,
+    search_term,
+    page_cursor,
+    ..
+  } = data;
 
-  check_private_instance(&local_user_view, local_site)?;
+  check_private_instance(&local_user_view, &local_site)?;
 
   let community_id = resolve_community_identifier(
     &data.community_name,
@@ -35,16 +44,22 @@ async fn list_comments_common(
   .await?;
   let local_user = local_user_view.as_ref().map(|u| &u.local_user);
   let sort = Some(comment_sort_type_with_default(
-    data.sort, local_user, local_site,
+    data.sort,
+    local_user,
+    &local_site,
   ));
   let time_range_seconds =
-    post_time_range_seconds_with_default(data.time_range_seconds, local_user, local_site);
-  let limit = Some(fetch_limit_with_default(data.limit, local_user, local_site));
+    post_time_range_seconds_with_default(data.time_range_seconds, local_user, &local_site);
+  let limit = Some(fetch_limit_with_default(
+    data.limit,
+    local_user,
+    &local_site,
+  ));
 
   let listing_type = Some(listing_type_with_default(
     data.type_,
     local_user_view.as_ref().map(|u| &u.local_user),
-    local_site,
+    &local_site,
     community_id,
   ));
 
@@ -59,15 +74,6 @@ async fn list_comments_common(
 
   let local_user = local_user_view.as_ref().map(|l| &l.local_user);
 
-  let GetComments {
-    max_depth,
-    parent_id,
-    post_id,
-    search_term,
-    page_cursor,
-    ..
-  } = data;
-
   CommentQuery {
     listing_type,
     sort,
@@ -81,7 +87,7 @@ async fn list_comments_common(
     page_cursor,
     limit,
   }
-  .list(&site_view.site, &mut context.pool())
+  .list(&site, &mut context.pool())
   .await
 }
 
