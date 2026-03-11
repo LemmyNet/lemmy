@@ -3200,7 +3200,6 @@ dependencies = [
  "lemmy_db_views_post_comment_combined",
  "lemmy_db_views_registration_applications",
  "lemmy_db_views_report_combined",
- "lemmy_db_views_search_combined",
  "lemmy_db_views_site",
  "lemmy_db_views_vote",
  "lemmy_diesel_utils",
@@ -3268,7 +3267,6 @@ dependencies = [
  "lemmy_db_views_private_message",
  "lemmy_db_views_registration_applications",
  "lemmy_db_views_report_combined",
- "lemmy_db_views_search_combined",
  "lemmy_db_views_site",
  "lemmy_db_views_vote",
  "lemmy_diesel_utils",
@@ -3302,7 +3300,6 @@ dependencies = [
  "lemmy_db_views_post",
  "lemmy_db_views_private_message",
  "lemmy_db_views_registration_applications",
- "lemmy_db_views_search_combined",
  "lemmy_db_views_site",
  "lemmy_diesel_utils",
  "lemmy_email",
@@ -3346,7 +3343,6 @@ dependencies = [
  "lemmy_db_views_post",
  "lemmy_db_views_registration_applications",
  "lemmy_db_views_report_combined",
- "lemmy_db_views_search_combined",
  "lemmy_db_views_site",
  "lemmy_diesel_utils",
  "lemmy_utils 1.0.0-test-arm-qemu.0",
@@ -3936,6 +3932,7 @@ dependencies = [
  "i-love-jesus",
  "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_schema_file",
+ "lemmy_db_views_community",
  "lemmy_db_views_local_user",
  "lemmy_diesel_utils",
  "lemmy_utils 1.0.0-test-arm-qemu.0",
@@ -4029,32 +4026,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "lemmy_db_views_search_combined"
-version = "1.0.0-test-arm-qemu.0"
-dependencies = [
- "chrono",
- "diesel",
- "diesel-async",
- "i-love-jesus",
- "lemmy_db_schema 1.0.0-test-arm-qemu.0",
- "lemmy_db_schema_file",
- "lemmy_db_views_comment",
- "lemmy_db_views_community",
- "lemmy_db_views_local_user",
- "lemmy_db_views_person",
- "lemmy_db_views_post",
- "lemmy_diesel_utils",
- "lemmy_utils 1.0.0-test-arm-qemu.0",
- "pretty_assertions",
- "serde",
- "serde_with",
- "serial_test",
- "tokio",
- "ts-rs",
- "url",
-]
-
-[[package]]
 name = "lemmy_db_views_site"
 version = "1.0.0-test-arm-qemu.0"
 dependencies = [
@@ -4066,11 +4037,13 @@ dependencies = [
  "i-love-jesus",
  "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_schema_file",
+ "lemmy_db_views_comment",
  "lemmy_db_views_community",
  "lemmy_db_views_community_follower",
  "lemmy_db_views_community_moderator",
  "lemmy_db_views_local_user",
  "lemmy_db_views_person",
+ "lemmy_db_views_post",
  "lemmy_diesel_utils",
  "lemmy_utils 1.0.0-test-arm-qemu.0",
  "serde",
