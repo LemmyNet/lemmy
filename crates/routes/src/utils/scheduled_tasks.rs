@@ -730,6 +730,7 @@ mod tests {
   use lemmy_db_schema::{
     source::{
       community::{Community, CommunityInsertForm},
+      language::Language,
       person::{Person, PersonInsertForm},
       post::{Post, PostActions, PostInsertForm, PostLikeForm},
     },
@@ -831,20 +832,137 @@ mod tests {
     let pool = &mut context.pool();
     // Setup local site
     let data = TestData::create(pool).await?;
+    // insert some local data
+    let community = Community::create(
+      pool,
+      &CommunityInsertForm::new(
+        data.instance.id,
+        "name".to_owned(),
+        "title".to_owned(),
+        "pubkey".to_owned(),
+      ),
+    )
+    .await?;
+    let person = Person::create(
+      pool,
+      &PersonInsertForm::new("felicity".to_owned(), "pubkey".to_owned(), data.instance.id),
+    )
+    .await?;
+    let _post = Post::create(
+      pool,
+      &PostInsertForm::new("i am grrreat".to_owned(), person.id, community.id),
+    )
+    .await?;
 
-    // insert test data
-    let _instance0 = Instance::read_or_create(pool, "example0.com").await?;
+    // insert linked instances
+    let instance0 = Instance::read_or_create(pool, "example0.com").await?;
+
+    // insert some federated data
+    let community = Community::create(
+      pool,
+      &CommunityInsertForm::new(
+        instance0.id,
+        "name".to_owned(),
+        "title".to_owned(),
+        "pubkey".to_owned(),
+      ),
+    )
+    .await?;
+    let person = Person::create(
+      pool,
+      &PersonInsertForm::new("felicity".to_owned(), "pubkey".to_owned(), instance0.id),
+    )
+    .await?;
+    let _post = Post::create(
+      pool,
+      &PostInsertForm::new("i am grrreat".to_owned(), person.id, community.id),
+    )
+    .await?;
+
     let _instance1 = Instance::read_or_create(pool, "example1.com").await?;
+
+    let local_site_before = SiteView::read_local(pool).await?.local_site;
+    assert_eq!(0, local_site_before.linked_instances);
+    assert_eq!(0, local_site_before.total_posts);
+    assert_eq!(0, local_site_before.total_comments);
+    assert_eq!(0, local_site_before.total_users);
+    assert_eq!(0, local_site_before.total_communities);
 
     // run the query
     update_stats(pool).await?;
     let local_site_after = SiteView::read_local(pool).await?.local_site;
-    dbg!(&local_site_after);
 
-    assert_eq!(2, local_site_after.linked_instances.unwrap());
+    assert_eq!(2, local_site_after.linked_instances);
+    assert_eq!(2, local_site_after.total_posts);
+    assert_eq!(0, local_site_after.total_comments);
+    assert_eq!(4, local_site_after.total_users);
+    assert_eq!(2, local_site_after.total_communities);
 
     data.delete(pool).await?;
     Instance::delete_all(pool).await?;
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_process_language_breakdown() -> LemmyResult<()> {
+    let context = LemmyContext::init_test_context().await;
+    let pool = &mut context.pool();
+
+    let data = TestData::create(pool).await?;
+    let community = Community::create(
+      pool,
+      &CommunityInsertForm::new(
+        data.instance.id,
+        "name".to_owned(),
+        "title".to_owned(),
+        "pubkey".to_owned(),
+      ),
+    )
+    .await?;
+    let person = Person::create(
+      pool,
+      &PersonInsertForm::new("felicity".to_owned(), "pubkey".to_owned(), data.instance.id),
+    )
+    .await?;
+
+    let en_id = Language::read_id_from_code(pool, "en").await?;
+    let de_id = Language::read_id_from_code(pool, "de").await?;
+
+    // Create 2 English posts and 1 German post (expect 67% and 33%)
+    for _ in 0..2 {
+      Post::create(
+        pool,
+        &PostInsertForm {
+          language_id: Some(en_id),
+          ..PostInsertForm::new("english post".to_owned(), person.id, community.id)
+        },
+      )
+      .await?;
+    }
+    Post::create(
+      pool,
+      &PostInsertForm {
+        language_id: Some(de_id),
+        ..PostInsertForm::new("german post".to_owned(), person.id, community.id)
+      },
+    )
+    .await?;
+
+    let conn = &mut get_conn(pool).await?;
+    process_language_breakdown(conn).await?;
+    let local_site = SiteView::read_local(pool).await?.local_site;
+
+    assert_eq!(
+      local_site.language_usage_percent["en"].as_f64(),
+      Some(66.67)
+    );
+    assert_eq!(
+      local_site.language_usage_percent["de"].as_f64(),
+      Some(33.33)
+    );
+
+    data.delete(pool).await?;
     Ok(())
   }
 }
