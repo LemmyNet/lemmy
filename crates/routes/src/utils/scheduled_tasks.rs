@@ -5,11 +5,13 @@ use clokwerk::{AsyncScheduler, TimeUnits as CTimeUnits};
 use diesel::{
   BoolExpressionMethods,
   ExpressionMethods,
+  JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
   QueryableByName,
   SelectableHelper,
   dsl::{IntervalDsl, count, count_star, exists, not, update},
+  prelude::Queryable,
   query_builder::AsQuery,
   sql_query,
   sql_types::{BigInt, Integer, Timestamptz},
@@ -39,6 +41,7 @@ use lemmy_db_schema_file::schema::{
   federation_queue_state,
   instance,
   instance_actions,
+  language,
   local_site,
   local_user,
   person,
@@ -58,6 +61,7 @@ use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
 };
 use reqwest_middleware::ClientWithMiddleware;
+use serde_json::{Map, Value};
 use std::time::Duration;
 use tracing::{info, warn};
 
@@ -360,6 +364,14 @@ struct CommunityAggregatesUpdateResult {
   community_id: i32,
 }
 
+#[derive(Queryable, Debug)]
+struct PostCountSelectResult {
+  #[diesel(sql_type = VarChar)]
+  lang_code: String,
+  #[diesel(sql_type = Integer)]
+  post_count: i64,
+}
+
 /// Re-calculate the site and community active counts for a given interval
 async fn active_counts(pool: &mut DbPool<'_>, interval: (&str, &str)) -> LemmyResult<()> {
   info!(
@@ -516,7 +528,7 @@ async fn update_local_user_count(pool: &mut DbPool<'_>) -> LemmyResult<()> {
     .map(i32::try_from)??;
 
   update(local_site::table)
-    .set(local_site::users.eq(user_count))
+    .set(local_site::local_users.eq(user_count))
     .execute(conn)
     .await?;
 
@@ -525,7 +537,7 @@ async fn update_local_user_count(pool: &mut DbPool<'_>) -> LemmyResult<()> {
 }
 
 async fn update_stats(pool: &mut DbPool<'_>) -> LemmyResult<()> {
-  info!("Updating the linked instance count ...");
+  info!("Updating stats ...");
 
   let conn = &mut get_conn(pool).await?;
   let linked_instance_count = instance::table
@@ -546,7 +558,94 @@ async fn update_stats(pool: &mut DbPool<'_>) -> LemmyResult<()> {
     .execute(conn)
     .await?;
 
+  let total_post_count = post::table
+    .select(count_star())
+    .first::<i64>(conn)
+    .await
+    .map(i32::try_from)??;
+
+  update(local_site::table)
+    .set(local_site::total_posts.eq(total_post_count))
+    .execute(conn)
+    .await?;
+
+  let total_comment_count = comment::table
+    .select(count_star())
+    .first::<i64>(conn)
+    .await
+    .map(i32::try_from)??;
+
+  update(local_site::table)
+    .set(local_site::total_comments.eq(total_comment_count))
+    .execute(conn)
+    .await?;
+
+  let total_user_count = person::table
+    .select(count_star())
+    .first::<i64>(conn)
+    .await
+    .map(i32::try_from)??;
+
+  update(local_site::table)
+    .set(local_site::total_users.eq(total_user_count))
+    .execute(conn)
+    .await?;
+
+  let total_community_count = community::table
+    .select(count_star())
+    .first::<i64>(conn)
+    .await
+    .map(i32::try_from)??;
+
+  update(local_site::table)
+    .set(local_site::total_communities.eq(total_community_count))
+    .execute(conn)
+    .await?;
+
+  process_language_breakdown(conn).await?;
+
   info!("Done.");
+
+  Ok(())
+}
+// Update db with percentage breakdown of local posts per language tag
+async fn process_language_breakdown(conn: &mut AsyncPgConnection) -> LemmyResult<()> {
+  info!("Updating local language usage percentages ...");
+  let local_post_count = local_site::table
+    .select(local_site::local_posts)
+    .get_result::<i32>(conn)
+    .await?;
+
+  if local_post_count == 0 {
+    return Ok(());
+  }
+
+  let post_lang_breakdown = post::table
+    .inner_join(language::table.on(post::language_id.eq(language::id)))
+    .filter(post::local.eq(true))
+    .group_by(language::code)
+    .select((language::code, count_star()))
+    .load::<PostCountSelectResult>(conn)
+    .await?;
+
+  let mut post_counts = Map::new();
+
+  for post_count in post_lang_breakdown {
+    post_counts.insert(
+      post_count.lang_code,
+      Value::Number(
+        serde_json::Number::from_f64(
+          (post_count.post_count as f64 * 10000.0 / local_post_count as f64).round() / 100.0,
+        )
+        .unwrap_or(serde_json::Number::from(0)),
+      ),
+    );
+  }
+
+  update(local_site::table)
+    .set(local_site::language_usage_percent.eq(Value::Object(post_counts)))
+    .execute(conn)
+    .await?;
 
   Ok(())
 }
