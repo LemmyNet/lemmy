@@ -6,6 +6,7 @@ ansible/passwords/
 docker/lemmy_mine.hjson
 docker/dev/env_deploy.sh
 docker/volumes
+docker/*.sql.xz
 
 # ide config
 .idea
@@ -21,6 +22,7 @@ api_tests/node_modules
 api_tests/.yalc
 api_tests/yalc.lock
 api_tests/pict-rs
+api_tests/speed_tests.sh
 
 # pictrs data
 pictrs/
