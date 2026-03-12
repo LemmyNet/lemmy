@@ -287,11 +287,11 @@ impl PaginationCursorConversion for MultiCommunityView {
 }
 
 #[derive(Default)]
-pub struct MultiCommunityQuery {
+pub struct MultiCommunityQuery<'a> {
   pub listing_type: Option<MultiCommunityListingType>,
   pub sort: Option<MultiCommunitySortType>,
   pub time_range_seconds: Option<i32>,
-  pub my_person_id: Option<PersonId>,
+  pub local_user: Option<&'a LocalUser>,
   pub creator_id: Option<PersonId>,
   pub search_term: Option<String>,
   pub search_title_only: Option<bool>,
@@ -300,13 +300,13 @@ pub struct MultiCommunityQuery {
   pub no_limit: Option<bool>,
 }
 
-impl MultiCommunityQuery {
+impl MultiCommunityQuery<'_> {
   pub async fn list(self, pool: &mut DbPool<'_>) -> LemmyResult<PagedResponse<MultiCommunityView>> {
     use lemmy_db_schema::{MultiCommunityListingType::*, MultiCommunitySortType::*};
     let o = self;
 
     let limit = limit_fetch(o.limit, o.no_limit)?;
-    let mut query = MultiCommunityView::joins(o.my_person_id)
+    let mut query = MultiCommunityView::joins(o.local_user.person_id())
       .select(MultiCommunityView::as_select())
       .limit(limit)
       .into_boxed();
@@ -315,7 +315,7 @@ impl MultiCommunityQuery {
       query = match listing_type {
         All => query,
         Subscribed => {
-          if let Some(my_person_id) = o.my_person_id {
+          if let Some(my_person_id) = o.local_user.person_id() {
             query.filter(multi_community_follow::person_id.eq(my_person_id))
           } else {
             query
@@ -749,7 +749,7 @@ mod tests {
     // list multis by owner
     let list_owner = MultiCommunityQuery {
       creator_id: Some(data.local_user.person_id),
-      my_person_id: Some(data.local_user.person_id),
+      local_user: Some(&data.local_user),
       ..Default::default()
     }
     .list(pool)
@@ -768,7 +768,7 @@ mod tests {
 
     // list multis followed by user, followed_only
     let list_followed = MultiCommunityQuery {
-      my_person_id: Some(data.local_user.person_id),
+      local_user: Some(&data.local_user),
       listing_type: Some(MultiCommunityListingType::Subscribed),
       ..Default::default()
     }
@@ -785,7 +785,7 @@ mod tests {
     // Unfollow, and make sure its removed
     MultiCommunity::unfollow(pool, data.local_user.person_id, data.multi_2.id).await?;
     let list_followed = MultiCommunityQuery {
-      my_person_id: Some(data.local_user.person_id),
+      local_user: Some(&data.local_user),
       listing_type: Some(MultiCommunityListingType::Subscribed),
       ..Default::default()
     }

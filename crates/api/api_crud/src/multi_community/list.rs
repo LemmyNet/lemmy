@@ -15,13 +15,11 @@ pub async fn list_multi_communities(
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<PagedResponse<MultiCommunityView>>> {
-  let my_person_id = local_user_view.map(|l| l.person.id);
-
   let res = MultiCommunityQuery {
     listing_type: data.type_,
     sort: data.sort,
     creator_id: data.creator_id,
-    my_person_id,
+    local_user: local_user_view.map(|l| l.local_user).as_ref(),
     time_range_seconds: data.time_range_seconds,
     search_term: data.search_term,
     search_title_only: data.search_title_only,
