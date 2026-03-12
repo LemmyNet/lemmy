@@ -37,6 +37,7 @@ import {
   statusBadRequest,
   jestLemmyError,
   resolveMultiCommunity,
+  searchPostLocal,
 } from "./shared";
 import { AdminAllowInstanceParams } from "lemmy-js-client/dist/types/AdminAllowInstanceParams";
 import {
@@ -553,7 +554,7 @@ test("Dont receive community activities after unsubscribe", async () => {
   expect(postRes.post_view.post.id).toBeDefined();
   // await longDelay();
 
-  let res = await resolvePost(beta, postRes.post_view.post);
+  let res = await searchPostLocal(beta, postRes.post_view.post);
   expect(res).toBeUndefined();
 });
 
