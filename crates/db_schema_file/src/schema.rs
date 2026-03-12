@@ -26,6 +26,10 @@ pub mod sql_types {
   pub struct FederationModeEnum;
 
   #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+  #[diesel(postgres_type(name = "image_mode_enum"))]
+  pub struct ImageModeEnum;
+
+  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
   #[diesel(postgres_type(name = "listing_type_enum"))]
   pub struct ListingTypeEnum;
 
@@ -371,6 +375,7 @@ diesel::table! {
     use super::sql_types::PostSortTypeEnum;
     use super::sql_types::CommentSortTypeEnum;
     use super::sql_types::FederationModeEnum;
+    use super::sql_types::ImageModeEnum;
 
     local_site (id) {
         id -> Int4,
@@ -413,6 +418,15 @@ diesel::table! {
         suggested_multi_community_id -> Nullable<Int4>,
         system_account -> Int4,
         default_items_per_page -> Int4,
+        image_mode -> ImageModeEnum,
+        image_proxy_bypass_domains -> Nullable<Text>,
+        image_upload_timeout_seconds -> Int4,
+        image_max_thumbnail_size -> Int4,
+        image_max_avatar_size -> Int4,
+        image_max_banner_size -> Int4,
+        image_max_upload_size -> Int4,
+        image_allow_video_uploads -> Bool,
+        image_upload_disabled -> Bool,
     }
 }
 
@@ -695,6 +709,7 @@ diesel::table! {
 diesel::table! {
     person_content_combined (id) {
         published_at -> Timestamptz,
+        creator_id -> Int4,
         post_id -> Nullable<Int4>,
         comment_id -> Nullable<Int4>,
         id -> Int4,
@@ -706,6 +721,7 @@ diesel::table! {
         voted_at -> Timestamptz,
         id -> Int4,
         person_id -> Int4,
+        creator_id -> Int4,
         post_id -> Nullable<Int4>,
         comment_id -> Nullable<Int4>,
         vote_is_upvote -> Bool,
@@ -716,6 +732,7 @@ diesel::table! {
     person_saved_combined (id) {
         saved_at -> Timestamptz,
         person_id -> Int4,
+        creator_id -> Int4,
         post_id -> Nullable<Int4>,
         comment_id -> Nullable<Int4>,
         id -> Int4,
@@ -826,6 +843,7 @@ diesel::table! {
         ap_id -> Varchar,
         local -> Bool,
         removed -> Bool,
+        deleted_by_recipient -> Bool,
     }
 }
 
@@ -877,6 +895,7 @@ diesel::table! {
         comment_report_id -> Nullable<Int4>,
         private_message_report_id -> Nullable<Int4>,
         community_report_id -> Nullable<Int4>,
+        resolved -> Bool,
     }
 }
 
@@ -1007,12 +1026,11 @@ diesel::joinable!(oauth_account -> oauth_provider (oauth_provider_id));
 diesel::joinable!(password_reset_request -> local_user (local_user_id));
 diesel::joinable!(person -> instance (instance_id));
 diesel::joinable!(person_content_combined -> comment (comment_id));
+diesel::joinable!(person_content_combined -> person (creator_id));
 diesel::joinable!(person_content_combined -> post (post_id));
 diesel::joinable!(person_liked_combined -> comment (comment_id));
-diesel::joinable!(person_liked_combined -> person (person_id));
 diesel::joinable!(person_liked_combined -> post (post_id));
 diesel::joinable!(person_saved_combined -> comment (comment_id));
-diesel::joinable!(person_saved_combined -> person (person_id));
 diesel::joinable!(person_saved_combined -> post (post_id));
 diesel::joinable!(post -> community (community_id));
 diesel::joinable!(post -> language (language_id));

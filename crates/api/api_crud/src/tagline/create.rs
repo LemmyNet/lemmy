@@ -6,7 +6,10 @@ use lemmy_api_utils::{
 };
 use lemmy_db_schema::source::tagline::{Tagline, TaglineInsertForm};
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_site::api::{CreateTagline, TaglineResponse};
+use lemmy_db_views_site::{
+  SiteView,
+  api::{CreateTagline, TaglineResponse},
+};
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyError;
 
@@ -20,7 +23,15 @@ pub async fn create_tagline(
 
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
-  let content = process_markdown(&data.content, &slur_regex, &url_blocklist, &context).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
+  let content = process_markdown(
+    &data.content,
+    &slur_regex,
+    &url_blocklist,
+    &local_site,
+    &context,
+  )
+  .await?;
 
   let tagline_form = TaglineInsertForm { content };
 

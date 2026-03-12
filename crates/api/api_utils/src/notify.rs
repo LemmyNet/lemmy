@@ -387,7 +387,7 @@ mod tests {
       notification::{Notification, NotificationInsertForm},
       person::{Person, PersonActions, PersonBlockForm, PersonInsertForm, PersonUpdateForm},
       post::{Post, PostInsertForm},
-      private_message::{PrivateMessage, PrivateMessageInsertForm},
+      private_message::{PrivateMessage, PrivateMessageInsertForm, PrivateMessageUpdateForm},
     },
     traits::Blockable,
   };
@@ -462,7 +462,7 @@ mod tests {
   ) -> LemmyResult<()> {
     let pool = &mut context.pool();
     let pm = PrivateMessage::create(pool, &form).await?;
-    let view = PrivateMessageView::read(pool, pm.id).await?;
+    let view = PrivateMessageView::read(pool, pm.id, None).await?;
     notify_private_message_internal(&view, false, context).await?;
     Ok(())
   }
@@ -873,6 +873,75 @@ mod tests {
 
     let timmy_unread = NotificationView::get_unread_count(pool, &data.timmy.person, true).await?;
     assert_eq!(1, timmy_unread);
+
+    cleanup(data, pool).await?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn private_message_delete_by_recipient() -> LemmyResult<()> {
+    let context = LemmyContext::init_test_context().await;
+    let pool = &mut context.pool();
+    let data = init_data(pool).await?;
+    setup_private_messages(&data, &context).await?;
+
+    let timmy_messages: Vec<_> = NotificationQuery::default()
+      .list(pool, &data.timmy.person)
+      .await?
+      .into_iter()
+      .filter_map(to_pm)
+      .collect();
+
+    let timmy_recipient = timmy_messages
+      .iter()
+      .find(|x| x.recipient.id == data.timmy.person.id);
+    let pm = timmy_recipient.map(|x| &x.private_message);
+
+    // make sure the private message to timmy is found
+    assert_ne!(pm, None);
+
+    if let Some(pm) = pm {
+      let view = PrivateMessageView::read(pool, pm.id, None).await?;
+      let num_sender_messages_before = NotificationQuery::default()
+        .list(pool, &view.creator)
+        .await?
+        .into_iter()
+        .filter_map(to_pm)
+        .count();
+
+      let form = PrivateMessageUpdateForm {
+        deleted_by_recipient: Some(true),
+        ..Default::default()
+      };
+
+      let _pm = PrivateMessage::update(&mut context.pool(), pm.id, &form).await?;
+
+      let timmy_messages_after: Vec<_> = NotificationQuery::default()
+        .list(pool, &data.timmy.person)
+        .await?
+        .into_iter()
+        .filter_map(to_pm)
+        .collect();
+
+      let pm_exists = timmy_messages_after
+        .iter()
+        .find(|x| x.private_message.id == pm.id);
+
+      // the private message should no longer exist
+      assert_eq!(pm_exists, None);
+
+      let num_sender_messages_after = NotificationQuery::default()
+        .list(pool, &view.creator)
+        .await?
+        .into_iter()
+        .filter_map(to_pm)
+        .count();
+
+      // the sender should have the same # of messages
+      assert_eq!(num_sender_messages_before, num_sender_messages_after);
+    }
 
     cleanup(data, pool).await?;
 

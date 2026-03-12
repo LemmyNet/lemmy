@@ -53,9 +53,15 @@ pub async fn edit_community(
   }
 
   let sidebar = diesel_string_update(
-    process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context)
-      .await?
-      .as_deref(),
+    process_markdown_opt(
+      &data.sidebar,
+      &slur_regex,
+      &url_blocklist,
+      &local_site,
+      &context,
+    )
+    .await?
+    .as_deref(),
   );
   if let Some(Some(sidebar)) = &sidebar {
     is_valid_body_field(sidebar, false)?;

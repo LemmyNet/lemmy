@@ -23,20 +23,30 @@ pub async fn delete_private_message(
   // Checking permissions
   let private_message_id = data.private_message_id;
   let orig_private_message = PrivateMessage::read(&mut context.pool(), private_message_id).await?;
-  if local_user_view.person.id != orig_private_message.creator_id {
-    return Err(LemmyErrorType::EditPrivateMessageNotAllowed.into());
-  }
 
-  // Doing the update
-  let private_message_id = data.private_message_id;
   let deleted = data.deleted;
-  let private_message = PrivateMessage::update(
-    &mut context.pool(),
-    private_message_id,
-    &PrivateMessageUpdateForm {
+  let form = if local_user_view.person.id == orig_private_message.recipient_id {
+    PrivateMessageUpdateForm {
+      deleted_by_recipient: Some(deleted),
+      ..Default::default()
+    }
+  } else if local_user_view.person.id == orig_private_message.creator_id {
+    PrivateMessageUpdateForm {
       deleted: Some(deleted),
       ..Default::default()
-    },
+    }
+  } else {
+    return Err(LemmyErrorType::EditPrivateMessageNotAllowed.into());
+  };
+
+  // Doing the update
+  let private_message =
+    PrivateMessage::update(&mut context.pool(), private_message_id, &form).await?;
+
+  let view = PrivateMessageView::read(
+    &mut context.pool(),
+    private_message_id,
+    Some(&local_user_view.person),
   )
   .await?;
 
@@ -45,7 +55,6 @@ pub async fn delete_private_message(
     &context,
   )?;
 
-  let view = PrivateMessageView::read(&mut context.pool(), private_message_id).await?;
   Ok(Json(PrivateMessageResponse {
     private_message_view: view,
   }))

@@ -1,7 +1,10 @@
 use crate::{
   diesel::{DecoratableTarget, OptionalExtension},
   newtypes::PrivateMessageId,
-  source::private_message::{PrivateMessage, PrivateMessageInsertForm, PrivateMessageUpdateForm},
+  source::{
+    person::Person,
+    private_message::{PrivateMessage, PrivateMessageInsertForm, PrivateMessageUpdateForm},
+  },
 };
 use chrono::{DateTime, Utc};
 use diesel::{ExpressionMethods, QueryDsl, dsl::insert_into};
@@ -99,6 +102,13 @@ impl PrivateMessage {
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
+
+  /// Dont let creator know that recipient deleted the message
+  pub fn clear_deleted_by_recipient(&mut self, my_person: Option<&Person>) {
+    if Some(self.creator_id) == my_person.map(|p| p.id) {
+      self.deleted_by_recipient = false;
+    }
+  }
 }
 
 #[cfg(test)]
@@ -154,6 +164,7 @@ mod tests {
       .into(),
       local: true,
       removed: false,
+      deleted_by_recipient: false,
     };
 
     let read_private_message = PrivateMessage::read(pool, inserted_private_message.id).await?;

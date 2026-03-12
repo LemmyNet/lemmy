@@ -64,7 +64,6 @@ async fn read_site(context: &LemmyContext) -> LemmyResult<GetSiteResponse> {
     tagline,
     oauth_providers,
     admin_oauth_providers,
-    image_upload_disabled: context.settings().pictrs()?.image_upload_disabled,
     active_plugins: plugin_metadata(),
     last_application_duration_seconds,
     captcha_enabled: is_captcha_plugin_loaded(),

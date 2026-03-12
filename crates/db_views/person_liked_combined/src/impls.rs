@@ -102,8 +102,6 @@ impl PaginationCursorConversion for PostCommentCombinedViewWrapper {
 impl PersonLikedCombinedQuery {
   #[diesel::dsl::auto_type(no_type_alias)]
   pub(crate) fn joins(my_person_id: PersonId, local_instance_id: InstanceId) -> _ {
-    let item_creator = person::id;
-
     let comment_join =
       comment::table.on(person_liked_combined::comment_id.eq(comment::id.nullable()));
 
@@ -113,17 +111,7 @@ impl PersonLikedCombinedQuery {
         .or(comment::post_id.eq(post::id)),
     );
 
-    let item_creator_join = person::table.on(
-      comment::creator_id
-        .eq(item_creator)
-        // Need to filter out the post rows where the post_id given is null
-        // Otherwise you'll get duped post rows
-        .or(
-          post::creator_id
-            .eq(item_creator)
-            .and(person_liked_combined::post_id.is_not_null()),
-        ),
-    );
+    let item_creator_join = person::table.on(person_liked_combined::creator_id.eq(person::id));
 
     let my_community_actions_join: my_community_actions_join =
       my_community_actions_join(Some(my_person_id));
@@ -162,12 +150,13 @@ impl PersonLikedCombinedQuery {
     let my_person_id = user.local_user.person_id;
     let local_instance_id = user.person.instance_id;
 
+    let limit = limit_fetch(self.limit, self.no_limit)?;
+
     let mut query = Self::joins(my_person_id, local_instance_id)
       .filter(person_liked_combined::person_id.eq(my_person_id))
       .select(PostCommentCombinedViewInternal::as_select())
+      .limit(limit)
       .into_boxed();
-
-    let limit = limit_fetch(self.limit, self.no_limit)?;
 
     if let Some(type_) = self.type_ {
       query = match type_ {

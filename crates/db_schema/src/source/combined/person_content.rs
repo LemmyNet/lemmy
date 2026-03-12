@@ -2,6 +2,7 @@ use crate::newtypes::{CommentId, PersonContentCombinedId, PostId};
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;
+use lemmy_db_schema_file::PersonId;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::person_content_combined;
 use serde::{Deserialize, Serialize};
@@ -19,6 +20,7 @@ use serde_with::skip_serializing_none;
 /// A combined table for a persons contents (posts and comments)
 pub struct PersonContentCombined {
   pub published_at: DateTime<Utc>,
+  pub creator_id: PersonId,
   pub post_id: Option<PostId>,
   pub comment_id: Option<CommentId>,
   pub id: PersonContentCombinedId,

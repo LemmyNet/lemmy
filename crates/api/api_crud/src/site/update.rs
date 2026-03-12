@@ -69,9 +69,15 @@ pub async fn edit_site(
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
   let sidebar = diesel_string_update(
-    process_markdown_opt(&data.sidebar, &slur_regex, &url_blocklist, &context)
-      .await?
-      .as_deref(),
+    process_markdown_opt(
+      &data.sidebar,
+      &slur_regex,
+      &url_blocklist,
+      &local_site,
+      &context,
+    )
+    .await?
+    .as_deref(),
   );
   let default_post_time_range_seconds =
     diesel_opt_number_update(data.default_post_time_range_seconds);
@@ -97,6 +103,8 @@ pub async fn edit_site(
     .ok();
 
   let local_site_form = LocalSiteUpdateForm {
+    site_setup: None,
+    federation_signed_fetch: data.federation_signed_fetch,
     registration_mode: data.registration_mode,
     community_creation_admin_only: data.community_creation_admin_only,
     require_email_verification: data.require_email_verification,
@@ -123,7 +131,15 @@ pub async fn edit_site(
     disallow_nsfw_content: data.disallow_nsfw_content,
     disable_email_notifications: data.disable_email_notifications,
     suggested_multi_community_id,
-    ..Default::default()
+    image_mode: data.image_mode,
+    image_proxy_bypass_domains: diesel_string_update(data.image_proxy_bypass_domains.as_deref()),
+    image_upload_timeout_seconds: data.image_upload_timeout_seconds,
+    image_max_thumbnail_size: data.image_max_thumbnail_size,
+    image_max_avatar_size: data.image_max_avatar_size,
+    image_max_banner_size: data.image_max_banner_size,
+    image_max_upload_size: data.image_max_upload_size,
+    image_allow_video_uploads: data.image_allow_video_uploads,
+    image_upload_disabled: data.image_upload_disabled,
   };
 
   let update_local_site = LocalSite::update(&mut context.pool(), &local_site_form)

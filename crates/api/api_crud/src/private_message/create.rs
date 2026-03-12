@@ -25,6 +25,7 @@ use lemmy_db_views_private_message::{
   PrivateMessageView,
   api::{CreatePrivateMessage, PrivateMessageResponse},
 };
+use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::{error::LemmyResult, utils::validation::is_valid_body_field};
 
@@ -34,9 +35,18 @@ pub async fn create_private_message(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PrivateMessageResponse>> {
   check_local_user_valid(&local_user_view)?;
+
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
-  let content = process_markdown(&data.content, &slur_regex, &url_blocklist, &context).await?;
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
+  let content = process_markdown(
+    &data.content,
+    &slur_regex,
+    &url_blocklist,
+    &local_site,
+    &context,
+  )
+  .await?;
   is_valid_body_field(&content, false)?;
 
   PersonActions::read_block(
@@ -69,7 +79,12 @@ pub async fn create_private_message(
     &inserted_private_message,
   );
 
-  let view = PrivateMessageView::read(&mut context.pool(), inserted_private_message.id).await?;
+  let view = PrivateMessageView::read(
+    &mut context.pool(),
+    inserted_private_message.id,
+    Some(&local_user_view.person),
+  )
+  .await?;
 
   notify_private_message(&view, true, &context);
 
