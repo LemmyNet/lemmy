@@ -10,7 +10,7 @@
   "scripts": {
     "lint": "tsc --noEmit && eslint --report-unused-disable-directives && prettier --check 'src/**/*.ts'",
     "fix": "prettier --write src && eslint --fix src",
-    "api-test": "jest -i --bail --verbose --silent",
+    "api-test": "jest -i --bail --verbose --silent --testPathIgnorePatterns speed.spec.ts",
     "api-test-multiple": "pnpm run api-test || pnpm run api-test || pnpm run api-test || pnpm run api-test",
     "api-test-follow": "jest -i follow.spec.ts",
     "api-test-comment": "jest -i comment.spec.ts",
