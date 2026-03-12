@@ -352,6 +352,7 @@ async function searchPost(
 ): Promise<PostView | undefined> {
   let form: GetPosts = {
     search_term: post.name,
+    type_: "all",
   };
   return (await api.getPosts(form)).items.at(0);
 }
