@@ -635,7 +635,7 @@ async fn process_language_breakdown(conn: &mut AsyncPgConnection) -> LemmyResult
       post_count.lang_code,
       Value::Number(
         serde_json::Number::from_f64(
-          (post_count.post_count as f64 * 10000.0 / local_post_count as f64).round() / 100.0,
+          (post_count.post_count as f64 * 10000.0 / f64::from(local_post_count)).round() / 100.0,
         )
         .unwrap_or(serde_json::Number::from(0)),
       ),

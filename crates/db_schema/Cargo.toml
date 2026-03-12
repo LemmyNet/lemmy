@@ -52,7 +52,7 @@ diesel-derive-newtype = { workspace = true, optional = true }
 diesel-async = { workspace = true, optional = true }
 diesel-uplete = { workspace = true, optional = true }
 diesel_ltree = { workspace = true, optional = true }
-ts-rs = { workspace = true, optional = true }
+ts-rs = { workspace = true, optional = true, features = ["serde-json-impl"] }
 tokio = { workspace = true, optional = true }
 i-love-jesus = { workspace = true, optional = true }
 derive-new.workspace = true

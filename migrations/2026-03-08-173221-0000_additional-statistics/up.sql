@@ -27,7 +27,7 @@ ALTER TABLE local_site
     ADD COLUMN failed_signups_rate integer NOT NULL DEFAULT 0;
 
 ALTER TABLE local_site
-    ADD COLUMN language_usage_percent jsonb NOT NULL DEFAULT '{}'::jsonb; 
+    ADD COLUMN language_usage_percent jsonb NOT NULL DEFAULT '{}'::jsonb;
 
 ALTER TABLE local_site RENAME posts TO local_posts;
 

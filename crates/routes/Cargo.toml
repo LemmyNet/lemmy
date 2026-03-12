@@ -63,7 +63,7 @@ diesel-uplete.workspace = true
 lemmy_diesel_utils = { workspace = true }
 rosetta-i18n = { workspace = true }
 strum = { workspace = true }
-serde_json = {workspace = true}
+serde_json = { workspace = true }
 
 [dev-dependencies]
 pretty_assertions.workspace = true
