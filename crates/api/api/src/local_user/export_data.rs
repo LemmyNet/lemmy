@@ -29,7 +29,10 @@ pub async fn export_data(
 
   let content = PersonContentCombinedQuery {
     no_limit: Some(true),
-    ..PersonContentCombinedQuery::new(my_person_id)
+    ..PersonContentCombinedQuery {
+      creator_id: my_person_id,
+      ..Default::default()
+    }
   }
   .list(pool, Some(&local_user_view), local_instance_id)
   .await?
