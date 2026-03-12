@@ -433,10 +433,10 @@ diesel::table! {
         total_users -> Int4,
         total_communities -> Int4,
         user_retention_percent -> Int4,
-        local_post_english_percent -> Int4,
         ban_rate -> Int4,
         accepted_signups_rate -> Int4,
         failed_signups_rate -> Int4,
+        language_usage_percent -> Jsonb,
     }
 }
 
