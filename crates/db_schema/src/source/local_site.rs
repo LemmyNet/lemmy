@@ -15,6 +15,7 @@ use lemmy_db_schema_file::{
   },
 };
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use serde_with::skip_serializing_none;
 
 #[skip_serializing_none]
@@ -119,10 +120,10 @@ pub struct LocalSite {
   pub total_users: i32,
   pub total_communities: i32,
   pub user_retention_percent: i32,
-  pub local_post_english_percent: i32,
   pub ban_rate: i32,
   pub accepted_signups_rate: i32,
   pub failed_signups_rate: i32,
+  pub language_usage_percent: Value,
 }
 
 #[derive(Clone, derive_new::new)]
