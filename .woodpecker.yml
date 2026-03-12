@@ -90,7 +90,7 @@ steps:
     commands:
       - *install_binstall
       - cargo binstall -y cargo-shear --disable-strategies compile
-      - cargo shear
+      - cargo shear --deny-warnings
     when:
       - event: pull_request
 
