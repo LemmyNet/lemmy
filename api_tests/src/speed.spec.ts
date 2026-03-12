@@ -1,3 +1,4 @@
+// This is meant to be used with an already-filled / production db with lots of history.
 // Requires env vars:
 //
 // LEMMY_SERVER_URL (ex http://localhost:8536)

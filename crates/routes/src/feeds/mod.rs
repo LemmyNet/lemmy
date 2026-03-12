@@ -702,7 +702,6 @@ fn build_item(
   settings: &Settings,
   lang: Lang,
 ) -> LemmyResult<Item> {
-  // TODO add images
   let guid = Some(Guid {
     permalink: true,
     value: url.to_owned(),

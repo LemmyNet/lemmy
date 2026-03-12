@@ -171,7 +171,7 @@ impl Object for ApubPrivateMessage {
     let timestamp = note.updated.or(note.published).unwrap_or_else(Utc::now);
     let pm = DbPrivateMessage::insert_apub(&mut context.pool(), timestamp, &form).await?;
     plugin_hook_after("federated_private_message_after_receive", &pm);
-    let view = PrivateMessageView::read(&mut context.pool(), pm.id).await?;
+    let view = PrivateMessageView::read(&mut context.pool(), pm.id, None).await?;
     notify_private_message(&view, pm.updated_at.is_none(), context);
     Ok(pm.into())
   }
