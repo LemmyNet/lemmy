@@ -343,10 +343,13 @@ export async function waitForPost(
   post: Post,
   checker: (t: PostView | undefined) => boolean = p => !!p,
 ) {
-  return waitUntil(() => searchPost(api, post), checker) as Promise<PostView>;
+  return waitUntil(
+    () => searchPostLocal(api, post),
+    checker,
+  ) as Promise<PostView>;
 }
 
-async function searchPost(
+async function searchPostLocal(
   api: LemmyHttp,
   post: Post,
 ): Promise<PostView | undefined> {
