@@ -49,10 +49,7 @@ impl PrivateMessageView {
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)?;
 
-    // Dont let creator know that recipient deleted the message
-    if Some(pm.creator.id) == my_person.map(|p| p.id) {
-      pm.private_message.deleted_by_recipient = false;
-    }
+    pm.private_message.clear_deleted_by_recipient(my_person);
     Ok(pm)
   }
 }

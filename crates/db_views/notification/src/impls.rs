@@ -264,10 +264,7 @@ fn map_to_enum(
   } else if let (Some(mut private_message), Some(creator)) =
     (v.private_message.clone(), v.creator.clone())
   {
-    // Dont let creator know that recipient deleted the message
-    if private_message.creator_id == my_person.id {
-      private_message.deleted_by_recipient = false;
-    }
+    private_message.clear_deleted_by_recipient(Some(my_person));
     NotificationData::PrivateMessage(PrivateMessageView {
       private_message,
       creator,
