@@ -3,8 +3,8 @@
   "type": "Group",
   "preferredUsername": "tenforward",
   "name": "Ten Forward",
-  "summary": "A description of ten forward.",
-  "description": "<p>Lounge and recreation facility</p>\n<hr />\n<p>Welcome to the Enterprise!.</p>\n",
+  "description": "A description of ten forward.",
+  "summary": "<p>Lounge and recreation facility</p>\n<hr />\n<p>Welcome to the Enterprise!.</p>\n",
   "source": {
     "content": "Lounge and recreation facility\n\n---\n\nWelcome to the Enterprise!",
     "mediaType": "text/markdown"
