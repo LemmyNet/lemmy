@@ -29,6 +29,9 @@ ALTER TABLE local_site
 ALTER TABLE local_site
     DROP COLUMN failed_signups_rate;
 
+ALTER TABLE local_site
+    DROP COLUMN language_usage_percent;
+
 ALTER TABLE local_site RENAME local_posts TO posts;
 
 ALTER TABLE local_site RENAME local_comments TO comments;

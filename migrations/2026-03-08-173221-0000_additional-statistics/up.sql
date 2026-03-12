@@ -18,9 +18,6 @@ ALTER TABLE local_site
     ADD COLUMN user_retention_percent integer NOT NULL DEFAULT 0;
 
 ALTER TABLE local_site
-    ADD COLUMN local_post_english_percent integer NOT NULL DEFAULT 0;
-
-ALTER TABLE local_site
     ADD COLUMN ban_rate integer NOT NULL DEFAULT 0;
 
 ALTER TABLE local_site
@@ -28,6 +25,9 @@ ALTER TABLE local_site
 
 ALTER TABLE local_site
     ADD COLUMN failed_signups_rate integer NOT NULL DEFAULT 0;
+
+ALTER TABLE local_site
+    ADD COLUMN language_usage_percent jsonb NOT NULL DEFAULT '{}'::jsonb; 
 
 ALTER TABLE local_site RENAME posts TO local_posts;
 
