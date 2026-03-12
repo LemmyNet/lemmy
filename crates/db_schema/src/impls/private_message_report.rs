@@ -54,7 +54,7 @@ impl Reportable for PrivateMessageReport {
     Err(UntranslatedError::Unreachable.into())
   }
 
-  // TODO: this is unused because private message doesn't have remove handler
+  // This is unused because private message doesn't have remove handler
   async fn resolve_all_for_object(
     _pool: &mut DbPool<'_>,
     _pm_id_: PrivateMessageId,

@@ -462,7 +462,7 @@ mod tests {
   ) -> LemmyResult<()> {
     let pool = &mut context.pool();
     let pm = PrivateMessage::create(pool, &form).await?;
-    let view = PrivateMessageView::read(pool, pm.id).await?;
+    let view = PrivateMessageView::read(pool, pm.id, None).await?;
     notify_private_message_internal(&view, false, context).await?;
     Ok(())
   }
@@ -903,7 +903,7 @@ mod tests {
     assert_ne!(pm, None);
 
     if let Some(pm) = pm {
-      let view = PrivateMessageView::read(pool, pm.id).await?;
+      let view = PrivateMessageView::read(pool, pm.id, None).await?;
       let num_sender_messages_before = NotificationQuery::default()
         .list(pool, &view.creator)
         .await?
