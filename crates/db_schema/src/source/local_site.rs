@@ -15,6 +15,7 @@ use lemmy_db_schema_file::{
   },
 };
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use serde_with::skip_serializing_none;
 
 #[skip_serializing_none]
@@ -78,10 +79,10 @@ pub struct LocalSite {
   pub default_post_time_range_seconds: Option<i32>,
   /// Block NSFW content being created
   pub disallow_nsfw_content: bool,
-  pub users: i32,
-  pub posts: i32,
-  pub comments: i32,
-  pub communities: i32,
+  pub local_users: i32,
+  pub local_posts: i32,
+  pub local_comments: i32,
+  pub local_communities: i32,
   /// The number of users with any activity in the last day.
   pub users_active_day: i32,
   /// The number of users with any activity in the last week.
@@ -113,6 +114,16 @@ pub struct LocalSite {
   /// This affects post and comment images, but not avatars and banners.
   pub image_allow_video_uploads: bool,
   pub image_upload_disabled: bool,
+  pub linked_instances: i32,
+  pub total_posts: i32,
+  pub total_comments: i32,
+  pub total_users: i32,
+  pub total_communities: i32,
+  pub user_retention_percent: i32,
+  pub ban_rate: i32,
+  pub accepted_signups_rate: i32,
+  pub failed_signups_rate: i32,
+  pub language_usage_percent: Value,
 }
 
 #[derive(Clone, derive_new::new)]
