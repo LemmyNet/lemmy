@@ -340,9 +340,9 @@ impl MultiCommunityQuery {
     if let Some(search_term) = o.search_term {
       let searcher = fuzzy_search(&search_term);
 
-      let name_or_title_filter = multi_community::title
+      let name_or_title_filter = multi_community::name
         .ilike(searcher.clone())
-        .or(multi_community::name.ilike(searcher.clone()));
+        .or(multi_community::title.ilike(searcher.clone()));
 
       query = if o.search_title_only.unwrap_or_default() {
         query.filter(name_or_title_filter)
