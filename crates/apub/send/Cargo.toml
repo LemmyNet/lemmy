@@ -55,3 +55,6 @@ tracing-test = "0.2.6"
 uuid.workspace = true
 test-context = "0.5.5"
 mockall = "0.14.0"
+
+[lib]
+doctest = false
