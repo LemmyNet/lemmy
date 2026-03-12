@@ -32,11 +32,13 @@ use lemmy_db_schema_file::{
     VoteShow,
   },
 };
-use lemmy_db_views_community::MultiCommunityView;
+use lemmy_db_views_comment::CommentView;
+use lemmy_db_views_community::{CommunityView, MultiCommunityView};
 use lemmy_db_views_community_follower::CommunityFollowerView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
+use lemmy_db_views_post::PostView;
 use lemmy_diesel_utils::{pagination::PaginationCursor, sensitive::SensitiveString};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -676,6 +678,29 @@ impl PluginMetadata {
 pub struct ResolveObject {
   /// Can be the full url, or a shortened version like: !fediverse@lemmy.ml
   pub q: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+/// An *all* type search that returns many objects sorted by new.
+///
+/// This will likely be deprecated, and you should use the list endpoints with `search_term`
+/// instead.
+pub struct Search {
+  pub search_term: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+/// The search response, containing lists of the return type possibilities
+pub struct SearchResponse {
+  pub comments: Vec<CommentView>,
+  pub posts: Vec<PostView>,
+  pub communities: Vec<CommunityView>,
+  pub persons: Vec<PersonView>,
+  pub multi_communities: Vec<MultiCommunityView>,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]

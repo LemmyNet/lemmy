@@ -84,7 +84,7 @@ use lemmy_db_views_post::{PostView, api::PostResponse};
 use lemmy_db_views_site::{
   ResolveObjectView,
   SiteView,
-  api::{LoginResponse, MyUserInfo},
+  api::{LoginResponse, MyUserInfo, SearchResponse},
 };
 use lemmy_diesel_utils::{dburl::DbUrl, sensitive::SensitiveString};
 use lemmy_utils::error::LemmyResult;
@@ -714,13 +714,20 @@ pub(crate) fn convert_score(score: i16) -> Option<bool> {
   }
 }
 
-pub(crate) fn convert_search_response(type_: Option<SearchTypeV3>) -> SearchResponseV3 {
+pub(crate) fn convert_search_response(
+  res: SearchResponse,
+  type_: Option<SearchTypeV3>,
+) -> SearchResponseV3 {
   SearchResponseV3 {
     type_: type_.unwrap_or(SearchTypeV3::All),
-    comments: vec![],
-    posts: vec![],
-    communities: vec![],
-    users: vec![],
+    comments: res.comments.into_iter().map(convert_comment_view).collect(),
+    posts: res.posts.into_iter().map(convert_post_view).collect(),
+    communities: res
+      .communities
+      .into_iter()
+      .map(convert_community_view)
+      .collect(),
+    users: res.persons.into_iter().map(convert_person_view).collect(),
   }
 }
 

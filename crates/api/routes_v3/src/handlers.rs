@@ -32,6 +32,7 @@ use lemmy_api::{
     list_posts::list_posts,
     read_community::get_community,
     resolve_object::resolve_object,
+    search::search,
   },
   local_user::{
     block::user_block_person,
@@ -134,7 +135,7 @@ use lemmy_db_views_post::api::{
 };
 use lemmy_db_views_registration_applications::api::Register;
 use lemmy_db_views_report_combined::api::{CreateCommentReport, CreatePostReport};
-use lemmy_db_views_site::api::{GetSiteResponse, Login, ResolveObject};
+use lemmy_db_views_site::api::{GetSiteResponse, Login, ResolveObject, Search};
 use lemmy_utils::error::LemmyResult;
 
 pub(crate) async fn get_post_v3(
@@ -374,9 +375,15 @@ pub(crate) async fn create_post_v3(
   convert_post_response(res)
 }
 
-pub(crate) async fn search_v3(Query(data): Query<SearchV3>) -> LemmyResult<Json<SearchResponseV3>> {
-  let SearchV3 { type_, .. } = data;
-  Ok(Json(convert_search_response(type_)))
+pub(crate) async fn search_v3(
+  Query(data): Query<SearchV3>,
+  context: ApubData<LemmyContext>,
+  local_user_view: Option<LocalUserView>,
+) -> LemmyResult<Json<SearchResponseV3>> {
+  let SearchV3 { type_, q, .. } = data;
+  let form = Search { search_term: q };
+  let data = search(Query(form), context, local_user_view).await?;
+  Ok(Json(convert_search_response(data.0, type_)))
 }
 
 pub(crate) async fn resolve_object_v3(
