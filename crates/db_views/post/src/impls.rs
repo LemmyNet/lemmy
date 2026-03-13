@@ -22,18 +22,14 @@ use lemmy_db_schema::{
   source::{
     community::CommunityActions,
     local_user::LocalUser,
+    multi_community::MultiCommunityEntry,
     person::Person,
     post::{Post, PostActions, post_actions_keys as pa_key, post_keys as key},
     site::Site,
   },
   utils::{
     limit_fetch,
-    queries::filters::{
-      filter_blocked,
-      filter_is_subscribed,
-      filter_not_unlisted_or_is_subscribed,
-      filter_suggested_communities,
-    },
+    queries::filters::{filter_blocked, filter_not_unlisted},
   },
 };
 use lemmy_db_schema_file::{
@@ -53,15 +49,7 @@ use lemmy_db_schema_file::{
     my_person_actions_join,
     my_post_actions_join,
   },
-  schema::{
-    community,
-    community_actions,
-    local_user_language,
-    multi_community_entry,
-    person,
-    post,
-    post_actions,
-  },
+  schema::{community, community_actions, local_user_language, person, post, post_actions},
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
@@ -321,71 +309,62 @@ pub struct PostQuery<'a> {
 }
 
 impl PostQuery<'_> {
-  async fn prefetch_cursor_before_data(
+  /// A special function which pre-fetches a list of community_ids, that can be used for a sql
+  /// `post::community_id.eq_any` query.
+  ///
+  /// Used for the following cases:
+  /// - Subscribed
+  /// - Multicommunities
+  /// - Moderator view
+  /// - Suggested
+  async fn prefetch_community_ids(
     &self,
-    site: &Site,
     pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Option<Post>> {
-    // first get one page for the most popular community to get an upper bound for the page end for
-    // the real query. the reason this is needed is that when fetching posts for a single
-    // community PostgreSQL can optimize the query to use an index on e.g. (=, >=, >=, >=) and
-    // fetch only LIMIT rows but for the followed-communities query it has to query the index on
-    // (IN, >=, >=, >=) which it currently can't do at all (as of PG 16). see the discussion
-    // here: https://github.com/LemmyNet/lemmy/issues/2877#issuecomment-1673597190
-    //
-    // the results are correct no matter which community we fetch these for, since it basically
-    // covers the "worst case" of the whole page consisting of posts from one community
-    // but using the largest community decreases the pagination-frame so make the real query more
-    // efficient.
+  ) -> LemmyResult<Option<Vec<CommunityId>>> {
+    let o = self;
+    // None means ignore, empty vec means filter out everything (IE empty subscribed, moderated,
+    // suggested)
 
-    // If its a subscribed type, you need to prefetch both the largest community, and the upper
-    // bound post for the cursor.
-    Ok(if self.listing_type == Some(ListingType::Subscribed) {
-      if let Some(person_id) = self.local_user.person_id() {
-        let largest_subscribed =
-          CommunityActions::fetch_largest_subscribed_community(pool, person_id).await?;
-
-        let upper_bound_results: Vec<PostView> = self
-          .clone()
-          .list_inner(site, None, largest_subscribed, pool)
-          .await?
-          .items;
-
-        let limit = limit_fetch(self.limit, None)?;
-
-        // take last element of array. if this query returned less than LIMIT elements,
-        // the heuristic is invalid since we can't guarantee the full query will return >= LIMIT
-        // results (return original query)
-        let len: i64 = upper_bound_results.len().try_into()?;
-        if len < limit {
-          None
-        } else {
-          if self
-            .page_cursor
-            .clone()
-            .and_then(|c| c.is_back().ok())
-            .unwrap_or_default()
-          {
-            // for backward pagination, get first element instead
-            upper_bound_results.into_iter().next()
-          } else {
-            upper_bound_results.into_iter().next_back()
-          }
-          .map(|pv| pv.post)
-        }
-      } else {
-        None
+    // First, check the given community or multi community id, then if both are none, check the
+    // listing types
+    let community_ids = match (o.community_id, o.multi_community_id) {
+      (Some(id), None) => Some(vec![id]),
+      (None, Some(id)) => Some(MultiCommunityEntry::list_community_ids(pool, id).await?),
+      (Some(_), Some(_)) => {
+        return Err(LemmyErrorType::CannotCombineCommunityIdAndMultiCommunityId.into());
       }
-    } else {
-      None
-    })
+      (None, None) => {
+        // If no community or multi_community is given, then parse the listing_types
+        match o.listing_type.unwrap_or_default() {
+          ListingType::Local | ListingType::All => None,
+          ListingType::Subscribed => {
+            if let Some(my_person_id) = o.local_user.person_id() {
+              Some(CommunityActions::list_subscribed_community_ids(pool, my_person_id).await?)
+            } else {
+              Some(vec![])
+            }
+          }
+          ListingType::ModeratorView => {
+            if let Some(my_person_id) = o.local_user.person_id() {
+              Some(CommunityActions::get_person_moderated_communities(pool, my_person_id).await?)
+            } else {
+              Some(vec![])
+            }
+          }
+          ListingType::Suggested => {
+            Some(MultiCommunityEntry::list_suggested_community_ids(pool).await?)
+          }
+        }
+      }
+    };
+
+    Ok(community_ids)
   }
 
   async fn list_inner(
     self,
     site: &Site,
-    cursor_before_data: Option<Post>,
-    largest_subscribed_for_prefetch: Option<CommunityId>,
+    community_ids: Option<Vec<CommunityId>>,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<PagedResponse<PostView>> {
     let o = self;
@@ -420,41 +399,25 @@ impl PostQuery<'_> {
         .filter(post::scheduled_publish_time_at.is_null());
     }
 
-    match (o.community_id, o.multi_community_id) {
-      (Some(id), None) => {
-        query = query.filter(post::community_id.eq(id));
-      }
-      (None, Some(id)) => {
-        let communities = multi_community_entry::table
-          .filter(multi_community_entry::multi_community_id.eq(id))
-          .select(multi_community_entry::community_id);
-        query = query.filter(post::community_id.eq_any(communities))
-      }
-      (Some(_), Some(_)) => {
-        return Err(LemmyErrorType::CannotCombineCommunityIdAndMultiCommunityId.into());
-      }
-      (None, None) => {
-        if let (Some(ListingType::Subscribed), Some(id)) =
-          (o.listing_type, largest_subscribed_for_prefetch)
-        {
-          query = query.filter(post::community_id.eq(id));
-        }
-      }
+    // TODO these are all faster with the community_id at the end of the index:
+    //
+    // create index idx_tmp_1 on post (featured_community DESC, score DESC, published_at DESC, id
+    // DESC, community_id);
+    //
+    //  Filter by the given community ids, prefetched above
+    if let Some(community_ids) = community_ids {
+      query = query.filter(post::community_id.eq_any(community_ids));
     }
 
-    match o.listing_type.unwrap_or_default() {
-      // TODO we might have much better performance by using post::community_id.eq_any()
-      ListingType::Subscribed => query = query.filter(filter_is_subscribed()),
-      ListingType::Local => {
-        query = query
-          .filter(community::local.eq(true))
-          .filter(filter_not_unlisted_or_is_subscribed());
-      }
-      ListingType::All => query = query.filter(filter_not_unlisted_or_is_subscribed()),
-      ListingType::ModeratorView => {
-        query = query.filter(community_actions::became_moderator_at.is_not_null());
-      }
-      ListingType::Suggested => query = query.filter(filter_suggested_communities()),
+    // Although the other listing types pre-fetched the communities, you still need to filter by
+    // local if necessary.
+    if o.listing_type.unwrap_or_default() == ListingType::Local {
+      query = query.filter(community::local.eq(true));
+    }
+
+    // Hide the unlisted communities for the general types. Subscribed will still show them
+    if [ListingType::Local, ListingType::All].contains(&o.listing_type.unwrap_or_default()) {
+      query = query.filter(filter_not_unlisted());
     }
 
     if !o.show_nsfw.unwrap_or(o.local_user.show_nsfw(site)) {
@@ -514,6 +477,7 @@ impl PostQuery<'_> {
     // Dont filter blocks or missing languages for moderator view type
     if o.listing_type.unwrap_or_default() != ListingType::ModeratorView {
       // Filter out the rows with missing languages if user is logged in
+      // TODO This is very slow, takes ~20ms hit on every query
       if o.local_user.is_some() {
         query = query.filter(exists(
           local_user_language::table.filter(
@@ -552,19 +516,12 @@ impl PostQuery<'_> {
     let sort = o.sort.unwrap_or(PostSortType::Hot);
     let sort_direction = asc_if(sort == PostSortType::Old);
 
-    let mut pq = PostView::paginate(
-      query,
-      &o.page_cursor,
-      sort_direction,
-      pool,
-      cursor_before_data,
-    )
-    .await?;
+    let mut pq = PostView::paginate(query, &o.page_cursor, sort_direction, pool, None).await?;
 
     // featured posts first
     // Don't do for new / old sorts
     if sort != PostSortType::New && sort != PostSortType::Old {
-      pq = if o.community_id.is_none() || largest_subscribed_for_prefetch.is_some() {
+      pq = if o.community_id.is_none() {
         pq.then_order_by(key::featured_local)
       } else {
         pq.then_order_by(key::featured_community)
@@ -614,11 +571,8 @@ impl PostQuery<'_> {
     site: &Site,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<PagedResponse<PostView>> {
-    let cursor_before_data = self.prefetch_cursor_before_data(site, pool).await?;
+    let community_ids = self.prefetch_community_ids(pool).await?;
 
-    self
-      .clone()
-      .list_inner(site, cursor_before_data, None, pool)
-      .await
+    self.clone().list_inner(site, community_ids, pool).await
   }
 }
