@@ -32,7 +32,7 @@ use reqwest::{
 };
 use reqwest_middleware::ClientWithMiddleware;
 use serde::{Deserialize, Serialize};
-use std::net::IpAddr;
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use tokio::net::lookup_host;
 use tracing::{info, warn};
 use url::Url;
@@ -75,15 +75,8 @@ pub async fn fetch_link_metadata(
     let invalid_ip = lookup_host((domain.to_owned(), 80))
       .await?
       .any(|addr| match addr.ip() {
-        IpAddr::V4(addr) => {
-          addr.is_private() || addr.is_link_local() || addr.is_loopback() || addr.is_multicast()
-        }
-        IpAddr::V6(addr) => {
-          addr.is_loopback()
-                        || addr.is_multicast()
-                        || ((addr.segments()[0] & 0xfe00) == 0xfc00) // is_unique_local
-                        || ((addr.segments()[0] & 0xffc0) == 0xfe80) // is_unicast_link_local
-        }
+        IpAddr::V4(addr) => v4_is_invalid(addr),
+        IpAddr::V6(addr) => v6_is_invalid(addr),
       });
     if invalid_ip {
       return Err(LemmyErrorType::InvalidUrl.into());
@@ -168,6 +161,30 @@ pub async fn fetch_link_metadata(
     opengraph_data,
     content_type: content_type.map(|c| c.to_string()),
   })
+}
+
+fn v4_is_invalid(v4: Ipv4Addr) -> bool {
+  v4.is_private()
+    || v4.is_loopback()
+    || v4.is_link_local()
+    || v4.is_multicast()
+    || v4.is_documentation()
+    || v4.is_unspecified()
+    || v4.is_broadcast()
+}
+
+fn v6_is_invalid(v6: Ipv6Addr) -> bool {
+  let is_documentation = matches!(
+    v6.segments(),
+    [0x2001, 0xdb8, ..] | [0x3fff, 0..=0x0fff, ..]
+  );
+  is_documentation
+    || v6.is_loopback()
+    || v6.is_multicast()
+    || v6.is_unique_local()
+    || v6.is_unicast_link_local()
+    || v6.is_unspecified()
+    || v6.to_ipv4_mapped().is_some_and(v4_is_invalid)
 }
 
 async fn collect_bytes_until_limit(
