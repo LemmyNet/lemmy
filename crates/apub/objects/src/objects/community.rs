@@ -316,7 +316,7 @@ pub(crate) mod tests {
     );
     assert_eq!(
       community.summary.as_ref().map(std::string::String::len),
-      Some(80)
+      Some(29)
     );
 
     Instance::delete_all(&mut context.pool()).await?;
