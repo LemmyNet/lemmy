@@ -1,5 +1,12 @@
 use crate::{
-  diesel::{BoolExpressionMethods, OptionalExtension, PgExpressionMethods, SelectableHelper},
+  diesel::{
+    BoolExpressionMethods,
+    JoinOnDsl,
+    NullableExpressionMethods,
+    OptionalExtension,
+    PgExpressionMethods,
+    SelectableHelper,
+  },
   newtypes::{CommunityId, MultiCommunityId},
   source::{
     community::Community,
@@ -29,6 +36,7 @@ use lemmy_db_schema_file::{
   schema::{
     community,
     instance,
+    local_site,
     multi_community,
     multi_community_entry,
     multi_community_follow,
@@ -342,6 +350,39 @@ impl MultiCommunityEntry {
     .get_result(conn)
     .await
     .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  pub async fn list_community_ids(
+    pool: &mut DbPool<'_>,
+    id: MultiCommunityId,
+  ) -> LemmyResult<Vec<CommunityId>> {
+    let conn = &mut get_conn(pool).await?;
+
+    multi_community_entry::table
+      .filter(multi_community_entry::multi_community_id.eq(id))
+      .select(multi_community_entry::community_id)
+      .get_results(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  pub async fn list_suggested_community_ids(
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<Vec<CommunityId>> {
+    let conn = &mut get_conn(pool).await?;
+
+    multi_community_entry::table
+      .inner_join(
+        local_site::table.on(
+          multi_community_entry::multi_community_id
+            .nullable()
+            .eq(local_site::suggested_multi_community_id),
+        ),
+      )
+      .select(multi_community_entry::community_id)
+      .get_results(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 }
 
