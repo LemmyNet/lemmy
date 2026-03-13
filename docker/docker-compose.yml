@@ -29,6 +29,7 @@ services:
     restart: unless-stopped
     environment:
       - RUST_LOG=warn,extism=info,lemmy_server=debug,lemmy_api=debug,lemmy_api_common=debug,lemmy_api_crud=debug,lemmy_apub=debug,lemmy_db_schema=debug,lemmy_db_views=debug,lemmy_routes=debug,lemmy_utils=debug,lemmy_websocket=debug
+      - LEMMY_DISABLE_ACTIVITY_SENDING=true
     volumes:
       - ./lemmy.hjson:/config/config.hjson:Z
       - ./plugins:/plugins:Z
@@ -39,7 +40,7 @@ services:
 
   lemmy-ui:
     # use "image" to pull down an already compiled lemmy-ui. make sure to comment out "build".
-    image: dessalines/lemmy-ui:0.19.14
+    image: dessalines/lemmy-ui:nightly
     # platform: linux/x86_64 # no arm64 support. uncomment platform if using m1.
     # use "build" to build your local lemmy ui image for development. make sure to comment out "image".
     # run: docker compose up --build
@@ -49,11 +50,10 @@ services:
     #   dockerfile: dev.dockerfile
     environment:
       # this needs to match the hostname defined in the lemmy service
-      - LEMMY_UI_LEMMY_INTERNAL_HOST=lemmy:8536
+      - LEMMY_UI_BACKEND=lemmy:8536
       # set the outside hostname here
-      - LEMMY_UI_LEMMY_EXTERNAL_HOST=localhost:1236
       - LEMMY_UI_HTTPS=false
-      - LEMMY_UI_DEBUG=true
+      - LEMMY_UI_ERUDA=true
     depends_on:
       - lemmy
     restart: unless-stopped

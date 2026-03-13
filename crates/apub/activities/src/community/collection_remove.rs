@@ -130,8 +130,6 @@ impl Activity for CollectionRemove {
           ModlogInsertForm::mod_add_to_community(actor.id, community.id, remove_mod.id, true);
         let action = Modlog::create(&mut context.pool(), &[form]).await?;
         notify_mod_action(action, context);
-
-        // TODO: send websocket notification about removed mod
       }
       CollectionType::Featured => {
         let post = ObjectId::<ApubPost>::from(self.object)
