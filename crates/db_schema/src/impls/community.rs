@@ -50,6 +50,7 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use std::collections::HashMap;
 
 #[async_trait]
 impl Crud for Community {
@@ -145,6 +146,26 @@ impl Community {
     }
 
     Ok(community_)
+  }
+
+  pub async fn read_many(
+    pool: &mut DbPool<'_>,
+    community_ids: &[CommunityId],
+    is_admin: bool,
+  ) -> Result<HashMap<CommunityId, Community>, Error> {
+    let conn = &mut get_conn(pool).await?;
+    let mut query = community::table
+      .filter(community::id.eq_any(community_ids))
+      .into_boxed();
+    if !is_admin {
+      query = query
+        .filter(community::deleted.eq(false))
+        .filter(community::removed.eq(false));
+    }
+    let communities: Vec<Community> = query.get_results(conn).await?;
+    Ok(HashMap::from_iter(
+      communities.iter().map(|c| (c.id, c.clone())),
+    ))
   }
 
   /// Get the community which has a given moderators or featured url, also return the collection
