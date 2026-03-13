@@ -31,11 +31,7 @@ use lemmy_db_schema::{
   traits::InternalToCombinedView,
   utils::{
     limit_fetch,
-    queries::filters::{
-      filter_is_subscribed,
-      filter_not_unlisted_or_is_subscribed,
-      filter_suggested_communities,
-    },
+    queries::filters::{filter_is_subscribed, filter_not_unlisted, filter_suggested_communities},
   },
 };
 use lemmy_db_schema_file::{
@@ -346,15 +342,11 @@ impl SearchCombinedQuery {
       ListingType::Local => query.filter(
         community::local
           .eq(true)
-          .and(filter_not_unlisted_or_is_subscribed())
+          .and(filter_not_unlisted())
           .or(is_person.and(person::local))
           .or(multi_community::local),
       ),
-      ListingType::All => query.filter(
-        filter_not_unlisted_or_is_subscribed()
-          .or(is_person)
-          .or(is_multi_community),
-      ),
+      ListingType::All => query.filter(filter_not_unlisted().or(is_person).or(is_multi_community)),
       ListingType::ModeratorView => {
         query.filter(community_actions::became_moderator_at.is_not_null())
       }
