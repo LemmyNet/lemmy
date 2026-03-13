@@ -1006,7 +1006,12 @@ async fn post_listings_hidden_community(data: &mut Data) -> LemmyResult<()> {
   );
   CommunityActions::follow(pool, &form).await?;
 
-  let posts = data.default_post_query().list(&data.site, pool).await?;
+  let posts = PostQuery {
+    listing_type: Some(ListingType::Subscribed),
+    ..data.default_post_query()
+  }
+  .list(&data.site, pool)
+  .await?;
   assert!(!posts.is_empty());
 
   Ok(())

@@ -16,11 +16,7 @@ use lemmy_db_schema::{
   },
   utils::{
     limit_fetch,
-    queries::filters::{
-      filter_is_subscribed,
-      filter_not_unlisted_or_is_subscribed,
-      filter_suggested_communities,
-    },
+    queries::filters::{filter_is_subscribed, filter_not_unlisted, filter_suggested_communities},
   },
 };
 use lemmy_db_schema_file::{
@@ -86,7 +82,7 @@ impl CommunityView {
     if !is_mod_or_admin {
       query = query
         .filter(Community::hide_removed_and_deleted())
-        .filter(filter_not_unlisted_or_is_subscribed());
+        .filter(filter_not_unlisted());
     }
 
     query = my_local_user.visible_communities_only(query);
@@ -142,18 +138,16 @@ impl CommunityQuery<'_> {
     // Hide deleted and removed for non-admins
     let is_admin = o.local_user.map(|l| l.admin).unwrap_or_default();
     if !is_admin {
-      query = query
-        .filter(Community::hide_removed_and_deleted())
-        .filter(filter_not_unlisted_or_is_subscribed());
+      query = query.filter(Community::hide_removed_and_deleted());
     }
 
     if let Some(listing_type) = o.listing_type {
       query = match listing_type {
-        ListingType::All => query.filter(filter_not_unlisted_or_is_subscribed()),
+        ListingType::All => query.filter(filter_not_unlisted()),
         ListingType::Subscribed => query.filter(filter_is_subscribed()),
         ListingType::Local => query
           .filter(community::local.eq(true))
-          .filter(filter_not_unlisted_or_is_subscribed()),
+          .filter(filter_not_unlisted()),
         ListingType::ModeratorView => {
           query.filter(community_actions::became_moderator_at.is_not_null())
         }
