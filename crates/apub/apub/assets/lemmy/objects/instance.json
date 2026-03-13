@@ -3,7 +3,7 @@
   "id": "https://enterprise.lemmy.ml/",
   "name": "Enterprise",
   "preferredUsername": "enterprise.lemmy.ml",
-  "summary": "A test instance",
+  "description": "A test instance",
   "content": "<p>Enterprise sidebar</p>\\n",
   "mediaType": "text/html",
   "source": {
