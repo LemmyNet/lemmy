@@ -341,6 +341,7 @@ impl PostQuery<'_> {
             if let Some(my_person_id) = o.local_user.person_id() {
               Some(CommunityActions::list_subscribed_community_ids(pool, my_person_id).await?)
             } else {
+              // If you have no subscriptions, then return an empty list
               Some(vec![])
             }
           }
@@ -348,6 +349,7 @@ impl PostQuery<'_> {
             if let Some(my_person_id) = o.local_user.person_id() {
               Some(CommunityActions::get_person_moderated_communities(pool, my_person_id).await?)
             } else {
+              // If you don't moderate anything, then return an empty list
               Some(vec![])
             }
           }
@@ -399,11 +401,6 @@ impl PostQuery<'_> {
         .filter(post::scheduled_publish_time_at.is_null());
     }
 
-    // TODO these are all faster with the community_id at the end of the index:
-    //
-    // create index idx_tmp_1 on post (featured_community DESC, score DESC, published_at DESC, id
-    // DESC, community_id);
-    //
     //  Filter by the given community ids, prefetched above
     if let Some(community_ids) = community_ids {
       query = query.filter(post::community_id.eq_any(community_ids));
