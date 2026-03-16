@@ -179,8 +179,8 @@ fn v6_is_invalid(v6: Ipv6Addr) -> bool {
   is_documentation
     || v6.is_loopback()
     || v6.is_multicast()
-    || v6.is_unique_local()
-    || v6.is_unicast_link_local()
+        || (v6.segments()[0] & 0xfe00) == 0xfc00 // is_unique_local
+        || (v6.segments()[0] & 0xffc0) == 0xfe80 // is_unicast_link_local
     || v6.is_unspecified()
     || v6.to_ipv4_mapped().is_some_and(v4_is_invalid)
 }
