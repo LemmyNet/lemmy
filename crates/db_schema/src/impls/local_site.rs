@@ -123,15 +123,15 @@ mod tests {
 
     // TODO: this is unstable, sometimes it returns 0 users, sometimes 1
     //assert_eq!(0, site_aggregates_before_delete.users);
-    assert_eq!(1, site_aggregates_before_delete.communities);
-    assert_eq!(2, site_aggregates_before_delete.posts);
-    assert_eq!(2, site_aggregates_before_delete.comments);
+    assert_eq!(1, site_aggregates_before_delete.local_communities);
+    assert_eq!(2, site_aggregates_before_delete.local_posts);
+    assert_eq!(2, site_aggregates_before_delete.local_comments);
 
     // Try a post delete
     Post::delete(pool, inserted_post.id).await?;
     let site_aggregates_after_post_delete = read_local_site(pool).await?;
-    assert_eq!(1, site_aggregates_after_post_delete.posts);
-    assert_eq!(0, site_aggregates_after_post_delete.comments);
+    assert_eq!(1, site_aggregates_after_post_delete.local_posts);
+    assert_eq!(0, site_aggregates_after_post_delete.local_comments);
 
     // This shouuld delete all the associated rows, and fire triggers
     let person_num_deleted = Person::delete(pool, inserted_person.id).await?;
@@ -163,7 +163,7 @@ mod tests {
     let (data, inserted_person, inserted_community) = prepare_site_with_community(pool).await?;
 
     let site_aggregates_before = read_local_site(pool).await?;
-    assert_eq!(1, site_aggregates_before.communities);
+    assert_eq!(1, site_aggregates_before.local_communities);
 
     Community::update(
       pool,
@@ -176,7 +176,7 @@ mod tests {
     .await?;
 
     let site_aggregates_after_delete = read_local_site(pool).await?;
-    assert_eq!(0, site_aggregates_after_delete.communities);
+    assert_eq!(0, site_aggregates_after_delete.local_communities);
 
     Community::update(
       pool,
@@ -199,7 +199,7 @@ mod tests {
     .await?;
 
     let site_aggregates_after_remove = read_local_site(pool).await?;
-    assert_eq!(0, site_aggregates_after_remove.communities);
+    assert_eq!(0, site_aggregates_after_remove.local_communities);
 
     Community::update(
       pool,
@@ -212,7 +212,7 @@ mod tests {
     .await?;
 
     let site_aggregates_after_remove_delete = read_local_site(pool).await?;
-    assert_eq!(0, site_aggregates_after_remove_delete.communities);
+    assert_eq!(0, site_aggregates_after_remove_delete.local_communities);
 
     Community::delete(pool, inserted_community.id).await?;
     Person::delete(pool, inserted_person.id).await?;

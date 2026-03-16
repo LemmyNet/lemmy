@@ -5,11 +5,13 @@ use clokwerk::{AsyncScheduler, TimeUnits as CTimeUnits};
 use diesel::{
   BoolExpressionMethods,
   ExpressionMethods,
+  JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
   QueryableByName,
   SelectableHelper,
-  dsl::{IntervalDsl, count, exists, not, update},
+  dsl::{IntervalDsl, count, count_star, exists, not, update},
+  prelude::Queryable,
   query_builder::AsQuery,
   sql_query,
   sql_types::{BigInt, Integer, Timestamptz},
@@ -34,9 +36,12 @@ use lemmy_db_schema_file::schema::{
   comment,
   community,
   community_actions,
+  federation_allowlist,
   federation_blocklist,
+  federation_queue_state,
   instance,
   instance_actions,
+  language,
   local_site,
   local_user,
   person,
@@ -56,6 +61,7 @@ use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
 };
 use reqwest_middleware::ClientWithMiddleware;
+use serde_json::{Map, Value};
 use std::time::Duration;
 use tracing::{info, warn};
 
@@ -124,6 +130,10 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
       update_local_user_count(&mut context.pool())
         .await
         .inspect_err(|e| warn!("Failed to update local user count: {e}"))
+        .ok();
+      update_stats(&mut context.pool())
+        .await
+        .inspect_err(|e| warn!("Failed to update stats: {e}"))
         .ok();
       overwrite_deleted_posts_and_comments(&mut context.pool())
         .await
@@ -354,6 +364,14 @@ struct CommunityAggregatesUpdateResult {
   community_id: i32,
 }
 
+#[derive(Queryable, Debug)]
+struct PostCountSelectResult {
+  #[diesel(sql_type = VarChar)]
+  lang_code: String,
+  #[diesel(sql_type = Integer)]
+  post_count: i64,
+}
+
 /// Re-calculate the site and community active counts for a given interval
 async fn active_counts(pool: &mut DbPool<'_>, interval: (&str, &str)) -> LemmyResult<()> {
   info!(
@@ -510,11 +528,125 @@ async fn update_local_user_count(pool: &mut DbPool<'_>) -> LemmyResult<()> {
     .map(i32::try_from)??;
 
   update(local_site::table)
-    .set(local_site::users.eq(user_count))
+    .set(local_site::local_users.eq(user_count))
     .execute(conn)
     .await?;
 
   info!("Done.");
+  Ok(())
+}
+
+async fn update_stats(pool: &mut DbPool<'_>) -> LemmyResult<()> {
+  info!("Updating stats ...");
+
+  let conn = &mut get_conn(pool).await?;
+  let linked_instance_count = instance::table
+    // omit instance representing the local site
+    .left_join(site::table.left_join(local_site::table))
+    .filter(local_site::id.is_null())
+    .left_join(federation_blocklist::table)
+    .left_join(federation_allowlist::table)
+    .left_join(federation_queue_state::table)
+    .filter(federation_blocklist::instance_id.is_null())
+    .select(count_star())
+    .first::<i64>(conn)
+    .await
+    .map(i32::try_from)??;
+
+  update(local_site::table)
+    .set(local_site::linked_instances.eq(linked_instance_count))
+    .execute(conn)
+    .await?;
+
+  let total_post_count = post::table
+    .select(count_star())
+    .first::<i64>(conn)
+    .await
+    .map(i32::try_from)??;
+
+  update(local_site::table)
+    .set(local_site::total_posts.eq(total_post_count))
+    .execute(conn)
+    .await?;
+
+  let total_comment_count = comment::table
+    .select(count_star())
+    .first::<i64>(conn)
+    .await
+    .map(i32::try_from)??;
+
+  update(local_site::table)
+    .set(local_site::total_comments.eq(total_comment_count))
+    .execute(conn)
+    .await?;
+
+  let total_user_count = person::table
+    .select(count_star())
+    .first::<i64>(conn)
+    .await
+    .map(i32::try_from)??;
+
+  update(local_site::table)
+    .set(local_site::total_users.eq(total_user_count))
+    .execute(conn)
+    .await?;
+
+  let total_community_count = community::table
+    .select(count_star())
+    .first::<i64>(conn)
+    .await
+    .map(i32::try_from)??;
+
+  update(local_site::table)
+    .set(local_site::total_communities.eq(total_community_count))
+    .execute(conn)
+    .await?;
+
+  process_language_breakdown(conn).await?;
+
+  info!("Done.");
+
+  Ok(())
+}
+// Update db with percentage breakdown of local posts per language tag
+async fn process_language_breakdown(conn: &mut AsyncPgConnection) -> LemmyResult<()> {
+  info!("Updating local language usage percentages ...");
+  let local_post_count = local_site::table
+    .select(local_site::local_posts)
+    .get_result::<i32>(conn)
+    .await?;
+
+  if local_post_count == 0 {
+    return Ok(());
+  }
+
+  let post_lang_breakdown = post::table
+    .inner_join(language::table.on(post::language_id.eq(language::id)))
+    .filter(post::local.eq(true))
+    .group_by(language::code)
+    .select((language::code, count_star()))
+    .load::<PostCountSelectResult>(conn)
+    .await?;
+
+  let mut post_counts = Map::new();
+
+  for post_count in post_lang_breakdown {
+    post_counts.insert(
+      post_count.lang_code,
+      Value::Number(
+        serde_json::Number::from_f64(
+          (post_count.post_count as f64 * 10000.0 / f64::from(local_post_count)).round() / 100.0,
+        )
+        .unwrap_or(serde_json::Number::from(0)),
+      ),
+    );
+  }
+
+  update(local_site::table)
+    .set(local_site::language_usage_percent.eq(Value::Object(post_counts)))
+    .execute(conn)
+    .await?;
+
   Ok(())
 }
 
@@ -697,6 +829,7 @@ mod tests {
   use lemmy_db_schema::{
     source::{
       community::{Community, CommunityInsertForm},
+      language::Language,
       person::{Person, PersonInsertForm},
       post::{Post, PostActions, PostInsertForm, PostLikeForm},
     },
@@ -785,6 +918,147 @@ mod tests {
         interactions_month: 1,
         ..community_after.clone()
       }
+    );
+
+    data.delete(pool).await?;
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_update_stats() -> LemmyResult<()> {
+    let context = LemmyContext::init_test_context().await;
+    let pool = &mut context.pool();
+    // Setup local site
+    let data = TestData::create(pool).await?;
+    // insert some local data
+    let community = Community::create(
+      pool,
+      &CommunityInsertForm::new(
+        data.instance.id,
+        "name".to_owned(),
+        "title".to_owned(),
+        "pubkey".to_owned(),
+      ),
+    )
+    .await?;
+    let person = Person::create(
+      pool,
+      &PersonInsertForm::new("felicity".to_owned(), "pubkey".to_owned(), data.instance.id),
+    )
+    .await?;
+    let _post = Post::create(
+      pool,
+      &PostInsertForm::new("i am grrreat".to_owned(), person.id, community.id),
+    )
+    .await?;
+
+    // insert linked instances
+    let instance0 = Instance::read_or_create(pool, "example0.com").await?;
+
+    // insert some federated data
+    let community = Community::create(
+      pool,
+      &CommunityInsertForm::new(
+        instance0.id,
+        "name".to_owned(),
+        "title".to_owned(),
+        "pubkey".to_owned(),
+      ),
+    )
+    .await?;
+    let person = Person::create(
+      pool,
+      &PersonInsertForm::new("felicity".to_owned(), "pubkey".to_owned(), instance0.id),
+    )
+    .await?;
+    let _post = Post::create(
+      pool,
+      &PostInsertForm::new("i am grrreat".to_owned(), person.id, community.id),
+    )
+    .await?;
+
+    let _instance1 = Instance::read_or_create(pool, "example1.com").await?;
+
+    let local_site_before = SiteView::read_local(pool).await?.local_site;
+    assert_eq!(0, local_site_before.linked_instances);
+    assert_eq!(0, local_site_before.total_posts);
+    assert_eq!(0, local_site_before.total_comments);
+    assert_eq!(0, local_site_before.total_users);
+    assert_eq!(0, local_site_before.total_communities);
+
+    // run the query
+    update_stats(pool).await?;
+    let local_site_after = SiteView::read_local(pool).await?.local_site;
+
+    assert_eq!(2, local_site_after.linked_instances);
+    assert_eq!(2, local_site_after.total_posts);
+    assert_eq!(0, local_site_after.total_comments);
+    assert_eq!(4, local_site_after.total_users);
+    assert_eq!(2, local_site_after.total_communities);
+
+    data.delete(pool).await?;
+    Instance::delete_all(pool).await?;
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_process_language_breakdown() -> LemmyResult<()> {
+    let context = LemmyContext::init_test_context().await;
+    let pool = &mut context.pool();
+
+    let data = TestData::create(pool).await?;
+    let community = Community::create(
+      pool,
+      &CommunityInsertForm::new(
+        data.instance.id,
+        "name".to_owned(),
+        "title".to_owned(),
+        "pubkey".to_owned(),
+      ),
+    )
+    .await?;
+    let person = Person::create(
+      pool,
+      &PersonInsertForm::new("felicity".to_owned(), "pubkey".to_owned(), data.instance.id),
+    )
+    .await?;
+
+    let en_id = Language::read_id_from_code(pool, "en").await?;
+    let de_id = Language::read_id_from_code(pool, "de").await?;
+
+    // Create 2 English posts and 1 German post (expect 67% and 33%)
+    for _ in 0..2 {
+      Post::create(
+        pool,
+        &PostInsertForm {
+          language_id: Some(en_id),
+          ..PostInsertForm::new("english post".to_owned(), person.id, community.id)
+        },
+      )
+      .await?;
+    }
+    Post::create(
+      pool,
+      &PostInsertForm {
+        language_id: Some(de_id),
+        ..PostInsertForm::new("german post".to_owned(), person.id, community.id)
+      },
+    )
+    .await?;
+
+    let conn = &mut get_conn(pool).await?;
+    process_language_breakdown(conn).await?;
+    let local_site = SiteView::read_local(pool).await?.local_site;
+
+    assert_eq!(
+      local_site.language_usage_percent["en"].as_f64(),
+      Some(66.67)
+    );
+    assert_eq!(
+      local_site.language_usage_percent["de"].as_f64(),
+      Some(33.33)
     );
 
     data.delete(pool).await?;
