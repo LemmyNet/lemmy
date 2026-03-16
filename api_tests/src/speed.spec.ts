@@ -77,6 +77,7 @@ test("List posts with different sorts", async () => {
     "active",
     "hot",
     "new",
+    "old",
     "top",
     "controversial",
   ];
@@ -94,6 +95,7 @@ test("List posts for a community with different sorts", async () => {
     "active",
     "hot",
     "new",
+    "old",
     "top",
     "controversial",
   ];

@@ -6,22 +6,22 @@ use diesel::{
   NullableExpressionMethods,
   QueryDsl,
   SelectableHelper,
-  dsl::exists,
 };
 use diesel_async::RunQueryDsl;
 use diesel_ltree::{Ltree, LtreeExtensions, nlevel};
 use i_love_jesus::asc_if;
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommentId, CommunityId, PostId},
+  newtypes::{CommentId, CommunityId, LanguageId, PostId},
   source::{
+    actor_language::LocalUserLanguage,
     comment::{Comment, comment_keys as key},
     local_user::LocalUser,
     site::Site,
   },
   utils::{
     limit_fetch,
-    queries::filters::{filter_blocked, filter_suggested_communities},
+    queries::filters::{filter_blocked, filter_is_subscribed, filter_suggested_communities},
   },
 };
 use lemmy_db_schema_file::{
@@ -45,7 +45,7 @@ use lemmy_db_schema_file::{
     my_local_user_admin_join,
     my_person_actions_join,
   },
-  schema::{comment, community, community_actions, local_user_language, person, post},
+  schema::{comment, community, community_actions, person, post},
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
@@ -156,7 +156,7 @@ impl CommentView {
   }
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct CommentQuery<'a> {
   pub listing_type: Option<ListingType>,
   pub sort: Option<CommentSortType>,
@@ -171,16 +171,16 @@ pub struct CommentQuery<'a> {
 }
 
 impl CommentQuery<'_> {
-  pub async fn list(
+  pub async fn list_inner(
     self,
     site: &Site,
+    language_ids: Option<Vec<LanguageId>>,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<PagedResponse<CommentView>> {
     let o = self;
 
     // The left join below will return None in this case
     let my_person_id = o.local_user.person_id();
-    let local_user_id = o.local_user.local_user_id();
 
     let mut query = CommentView::joins(my_person_id, site.instance_id)
       .select(CommentView::as_select())
@@ -198,12 +198,10 @@ impl CommentQuery<'_> {
       query = query.filter(post::community_id.eq(community_id));
     }
 
-    let is_subscribed = community_actions::followed_at.is_not_null();
-
     // For posts, we only show hidden if its subscribed, but for comments,
     // we ignore hidden.
     query = match o.listing_type.unwrap_or_default() {
-      ListingType::Subscribed => query.filter(is_subscribed),
+      ListingType::Subscribed => query.filter(filter_is_subscribed()),
       ListingType::Local => query.filter(community::local.eq(true)),
       ListingType::All => query,
       ListingType::ModeratorView => {
@@ -217,18 +215,9 @@ impl CommentQuery<'_> {
     };
 
     if o.local_user.is_some() && o.listing_type.unwrap_or_default() != ListingType::ModeratorView {
-      // Filter out the rows with missing languages
-      query = query.filter(exists(
-        local_user_language::table.filter(
-          comment::language_id
-            .eq(local_user_language::language_id)
-            .and(
-              local_user_language::local_user_id
-                .nullable()
-                .eq(local_user_id),
-            ),
-        ),
-      ));
+      if let Some(language_ids) = language_ids {
+        query = query.filter(comment::language_id.eq_any(language_ids));
+      }
 
       query = query.filter(filter_blocked());
     };
@@ -319,6 +308,16 @@ impl CommentQuery<'_> {
     let res = pq.load::<CommentView>(conn).await?;
 
     paginate_response(res, limit, o.page_cursor)
+  }
+
+  pub async fn list(
+    &self,
+    site: &Site,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<PagedResponse<CommentView>> {
+    let language_ids = LocalUserLanguage::read_opt(pool, self.local_user.map(|l| l.id)).await?;
+
+    self.clone().list_inner(site, language_ids, pool).await
   }
 }
 

@@ -49,6 +49,18 @@ impl LocalUserLanguage {
     convert_read_languages(conn, langs).await
   }
 
+  /// A helpful wrapper function for pre-fetching language ids.
+  pub async fn read_opt(
+    pool: &mut DbPool<'_>,
+    for_local_user_id: Option<LocalUserId>,
+  ) -> LemmyResult<Option<Vec<LanguageId>>> {
+    Ok(if let Some(local_user_id) = for_local_user_id {
+      Some(Self::read(pool, local_user_id).await?)
+    } else {
+      None
+    })
+  }
+
   /// Update the user's languages.
   ///
   /// If no language_id vector is given, it will show all languages

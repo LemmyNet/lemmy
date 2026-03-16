@@ -10,7 +10,7 @@ use diesel::{
   SelectableHelper,
   TextExpressionMethods,
   debug_query,
-  dsl::{exists, not},
+  dsl::not,
   pg::Pg,
   query_builder::AsQuery,
 };
@@ -18,8 +18,9 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::{SortDirection, asc_if};
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommunityId, MultiCommunityId, PostId},
+  newtypes::{CommunityId, LanguageId, MultiCommunityId, PostId},
   source::{
+    actor_language::LocalUserLanguage,
     community::CommunityActions,
     local_user::LocalUser,
     multi_community::MultiCommunityEntry,
@@ -49,7 +50,7 @@ use lemmy_db_schema_file::{
     my_person_actions_join,
     my_post_actions_join,
   },
-  schema::{community, community_actions, local_user_language, person, post, post_actions},
+  schema::{community, community_actions, person, post, post_actions},
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
@@ -367,13 +368,12 @@ impl PostQuery<'_> {
     self,
     site: &Site,
     community_ids: Option<Vec<CommunityId>>,
+    language_ids: Option<Vec<LanguageId>>,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<PagedResponse<PostView>> {
     let o = self;
     let limit = limit_fetch(o.limit, None)?;
-
     let my_person_id = o.local_user.person_id();
-    let my_local_user_id = o.local_user.local_user_id();
 
     let mut query = PostView::joins(my_person_id, site.instance_id)
       .select(PostView::as_select())
@@ -474,17 +474,8 @@ impl PostQuery<'_> {
     // Dont filter blocks or missing languages for moderator view type
     if o.listing_type.unwrap_or_default() != ListingType::ModeratorView {
       // Filter out the rows with missing languages if user is logged in
-      // TODO This is very slow, takes ~20ms hit on every query
-      if o.local_user.is_some() {
-        query = query.filter(exists(
-          local_user_language::table.filter(
-            post::language_id.eq(local_user_language::language_id).and(
-              local_user_language::local_user_id
-                .nullable()
-                .eq(my_local_user_id),
-            ),
-          ),
-        ));
+      if let Some(language_ids) = language_ids {
+        query = query.filter(post::language_id.eq_any(language_ids));
       }
 
       query = query.filter(filter_blocked());
@@ -569,7 +560,11 @@ impl PostQuery<'_> {
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<PagedResponse<PostView>> {
     let community_ids = self.prefetch_community_ids(pool).await?;
+    let language_ids = LocalUserLanguage::read_opt(pool, self.local_user.map(|l| l.id)).await?;
 
-    self.clone().list_inner(site, community_ids, pool).await
+    self
+      .clone()
+      .list_inner(site, community_ids, language_ids, pool)
+      .await
   }
 }
