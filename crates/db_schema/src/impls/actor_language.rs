@@ -430,7 +430,7 @@ mod tests {
     let local_user_langs1 = LocalUserLanguage::read(pool, local_user.id).await?;
 
     // new user should be initialized with all languages
-    assert_eq!(0, local_user_langs1.len());
+    assert_eq!(184, local_user_langs1.len());
 
     // update user languages
     let test_langs2 = test_langs2(pool).await?;
