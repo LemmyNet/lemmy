@@ -294,6 +294,7 @@ pub(crate) mod tests {
     assert_eq!(context.request_count(), 0);
 
     let to_apub = comment.into_json(&context).await?;
+    dbg!(&json.tag, &to_apub.tag);
     assert_json_include!(actual: json, expected: to_apub);
 
     test_data.delete(&mut context.pool()).await?;
