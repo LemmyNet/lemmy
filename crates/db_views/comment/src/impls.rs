@@ -171,7 +171,7 @@ pub struct CommentQuery<'a> {
 }
 
 impl CommentQuery<'_> {
-  pub async fn list_inner(
+  async fn list_inner(
     self,
     site: &Site,
     language_ids: Option<Vec<LanguageId>>,
@@ -214,7 +214,7 @@ impl CommentQuery<'_> {
       query = query.filter(person::bot_account.eq(false));
     };
 
-    if o.local_user.is_some() && o.listing_type.unwrap_or_default() != ListingType::ModeratorView {
+    if o.listing_type.unwrap_or_default() != ListingType::ModeratorView {
       if let Some(language_ids) = language_ids {
         query = query.filter(comment::language_id.eq_any(language_ids));
       }
