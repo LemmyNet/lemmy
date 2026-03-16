@@ -689,6 +689,7 @@ pub struct ResolveObject {
 /// instead.
 pub struct Search {
   pub search_term: String,
+  pub search_title_only: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

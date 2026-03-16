@@ -380,8 +380,16 @@ pub(crate) async fn search_v3(
   context: ApubData<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<SearchResponseV3>> {
-  let SearchV3 { type_, q, .. } = data;
-  let form = Search { search_term: q };
+  let SearchV3 {
+    type_,
+    q: search_term,
+    post_title_only: search_title_only,
+    ..
+  } = data;
+  let form = Search {
+    search_term,
+    search_title_only,
+  };
   let data = search(Query(form), context, local_user_view).await?;
   Ok(Json(convert_search_response(data.0, type_)))
 }

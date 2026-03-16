@@ -1,8 +1,14 @@
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
-use lemmy_db_schema::{MultiCommunityListingType, PersonListingType};
-use lemmy_db_schema_file::enums::ListingType;
+use lemmy_db_schema::{
+  CommunitySortType,
+  MultiCommunityListingType,
+  MultiCommunitySortType,
+  PersonListingType,
+  PersonSortType,
+};
+use lemmy_db_schema_file::enums::{CommentSortType, ListingType, PostSortType};
 use lemmy_db_views_comment::impls::CommentQuery;
 use lemmy_db_views_community::impls::{CommunityQuery, MultiCommunityQuery};
 use lemmy_db_views_local_user::LocalUserView;
@@ -25,6 +31,7 @@ pub async fn search(
 
   let search_term = Some(data.search_term);
   let listing_type = Some(ListingType::All);
+  let search_title_only = data.search_title_only;
 
   check_private_instance(&local_user_view, &local_site)?;
 
@@ -32,8 +39,10 @@ pub async fn search(
 
   let posts = PostQuery {
     search_term: search_term.clone(),
+    search_title_only,
     local_user,
     listing_type,
+    sort: Some(PostSortType::New),
     ..Default::default()
   }
   .list(&site, &mut context.pool())
@@ -44,6 +53,7 @@ pub async fn search(
     search_term: search_term.clone(),
     local_user,
     listing_type,
+    sort: Some(CommentSortType::New),
     ..Default::default()
   }
   .list(&site, &mut context.pool())
@@ -52,8 +62,10 @@ pub async fn search(
 
   let persons = PersonQuery {
     search_term: search_term.clone(),
+    search_title_only,
     local_user,
     listing_type: Some(PersonListingType::All),
+    sort: Some(PersonSortType::New),
     ..Default::default()
   }
   .list(&site, &mut context.pool())
@@ -62,8 +74,10 @@ pub async fn search(
 
   let communities = CommunityQuery {
     search_term: search_term.clone(),
+    search_title_only,
     local_user,
     listing_type,
+    sort: Some(CommunitySortType::New),
     ..Default::default()
   }
   .list(&site, &mut context.pool())
@@ -72,8 +86,10 @@ pub async fn search(
 
   let multi_communities = MultiCommunityQuery {
     search_term,
+    search_title_only,
     local_user,
     listing_type: Some(MultiCommunityListingType::All),
+    sort: Some(MultiCommunitySortType::New),
     ..Default::default()
   }
   .list(&mut context.pool())
