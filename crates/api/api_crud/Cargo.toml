@@ -62,3 +62,6 @@ ignored = ["futures", "futures-util"]
 [build-dependencies]
 serde = { workspace = true }
 serde_json = { workspace = true }
+
+[lib]
+doctest = false

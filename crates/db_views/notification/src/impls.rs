@@ -86,7 +86,7 @@ impl NotificationView {
       .with_lemmy_type(LemmyErrorType::NotFound)?;
     // TODO: should pass this in as param
     let hide_modlog_names = true;
-    map_to_enum(res, hide_modlog_names).ok_or(LemmyErrorType::NotFound.into())
+    map_to_enum(res, hide_modlog_names, my_person).ok_or(LemmyErrorType::NotFound.into())
   }
 }
 
@@ -193,15 +193,19 @@ impl NotificationQuery {
 
       let res = res
         .into_iter()
-        .filter_map(|r| map_to_enum(r, hide_modlog_names))
+        .filter_map(|r| map_to_enum(r, hide_modlog_names, my_person))
         .collect();
       paginate_response(res, limit, self.page_cursor)
     })
   }
 }
 
-fn map_to_enum(v: NotificationViewInternal, hide_modlog_name: bool) -> Option<NotificationView> {
-  let data = if let Some(modlog) = v.modlog {
+fn map_to_enum(
+  v: NotificationViewInternal,
+  hide_modlog_name: bool,
+  my_person: &Person,
+) -> Option<NotificationView> {
+  let data = if let (Some(modlog), Some(creator)) = (v.modlog.clone(), v.creator.clone()) {
     let m = ModlogView {
       modlog,
       moderator: Some(v.creator),
@@ -249,7 +253,10 @@ fn map_to_enum(v: NotificationViewInternal, hide_modlog_name: bool) -> Option<No
       creator_ban_expires_at: v.creator_ban_expires_at,
       creator_is_moderator: v.creator_is_moderator,
     })
-  } else if let Some(private_message) = v.private_message {
+  } else if let (Some(mut private_message), Some(creator)) =
+    (v.private_message.clone(), v.creator.clone())
+  {
+    private_message.clear_deleted_by_recipient(Some(my_person));
     NotificationData::PrivateMessage(PrivateMessageView {
       private_message,
       creator: v.creator,

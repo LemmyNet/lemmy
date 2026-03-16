@@ -79,7 +79,12 @@ pub async fn create_private_message(
     &inserted_private_message,
   );
 
-  let view = PrivateMessageView::read(&mut context.pool(), inserted_private_message.id).await?;
+  let view = PrivateMessageView::read(
+    &mut context.pool(),
+    inserted_private_message.id,
+    Some(&local_user_view.person),
+  )
+  .await?;
 
   notify_private_message(&view, true, &context);
 
