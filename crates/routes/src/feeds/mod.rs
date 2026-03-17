@@ -145,7 +145,7 @@ async fn get_feed_data(
     limit: Some(limit),
     ..Default::default()
   }
-  .list(&site_view.site, &mut context.pool())
+  .list(&mut context.pool(), &site_view.site, &site_view.local_site)
   .await?
   .items;
 
@@ -241,7 +241,7 @@ async fn get_feed_community(
     limit: Some(info.get_limit()),
     ..Default::default()
   }
-  .list(&site_view.site, &mut context.pool())
+  .list(&mut context.pool(), &site_view.site, &site_view.local_site)
   .await?
   .items;
 
@@ -278,7 +278,7 @@ async fn get_feed_multi_community(
     limit: Some(info.get_limit()),
     ..Default::default()
   }
-  .list(&site_view.site, &mut context.pool())
+  .list(&mut context.pool(), &site_view.site, &site_view.local_site)
   .await?
   .items;
 
@@ -313,7 +313,7 @@ async fn get_feed_front(
     limit: Some(info.get_limit()),
     ..Default::default()
   }
-  .list(&site_view.site, &mut context.pool())
+  .list(&mut context.pool(), &site_view.site, &site_view.local_site)
   .await?
   .items;
 

@@ -24,10 +24,11 @@ pub async fn list_posts(
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<PagedResponse<PostView>>> {
-  let site_view = SiteView::read_local(&mut context.pool()).await?;
-  let local_site = &site_view.local_site;
+  let SiteView {
+    site, local_site, ..
+  } = &SiteView::read_local(&mut context.pool()).await?;
 
-  check_private_instance(&local_user_view, &site_view.local_site)?;
+  check_private_instance(&local_user_view, local_site)?;
 
   let community_id = resolve_community_identifier(
     &data.community_name,
@@ -93,7 +94,7 @@ pub async fn list_posts(
     keyword_blocks,
     page_cursor,
   }
-  .list(&site_view.site, &mut context.pool())
+  .list(&mut context.pool(), site, local_site)
   .await?;
 
   // If in their user settings (or as part of the API request), auto-mark fetched posts as read

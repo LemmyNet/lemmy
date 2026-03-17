@@ -34,7 +34,7 @@ impl Collection for ApubCommunityOutbox {
   type Error = LemmyError;
 
   async fn read_local(owner: &Self::Owner, data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
-    let site = SiteView::read_local(&mut data.pool()).await?.site;
+    let site_view = SiteView::read_local(&mut data.pool()).await?;
 
     let mut post_views = Box::pin(
       PostQuery {
@@ -43,7 +43,7 @@ impl Collection for ApubCommunityOutbox {
         limit: Some(FETCH_LIMIT_MAX.try_into()?),
         ..Default::default()
       }
-      .list(&site, &mut data.pool()),
+      .list(&mut data.pool(), &site_view.site, &site_view.local_site),
     )
     .await?
     .items;

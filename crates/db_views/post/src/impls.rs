@@ -22,6 +22,7 @@ use lemmy_db_schema::{
   source::{
     actor_language::LocalUserLanguage,
     community::CommunityActions,
+    local_site::LocalSite,
     local_user::LocalUser,
     multi_community::MultiCommunityEntry,
     person::Person,
@@ -322,6 +323,7 @@ impl PostQuery<'_> {
   async fn prefetch_community_ids(
     &self,
     pool: &mut DbPool<'_>,
+    local_site: &LocalSite,
   ) -> LemmyResult<Option<Vec<CommunityId>>> {
     // First, check the given community or multi community id, then if both are none, check the
     // listing types
@@ -352,7 +354,11 @@ impl PostQuery<'_> {
             }
           }
           ListingType::Suggested => {
-            Some(MultiCommunityEntry::list_suggested_community_ids(pool).await?)
+            if let Some(suggested_multi_id) = local_site.suggested_multi_community_id {
+              Some(MultiCommunityEntry::list_community_ids(pool, suggested_multi_id).await?)
+            } else {
+              Some(vec![])
+            }
           }
         }
       }
@@ -363,11 +369,12 @@ impl PostQuery<'_> {
 
   pub async fn list(
     self,
-    site: &Site,
     pool: &mut DbPool<'_>,
+    site: &Site,
+    local_site: &LocalSite,
   ) -> LemmyResult<PagedResponse<PostView>> {
     // Pre-fetching some important items, to prevent costly joins.
-    let community_ids = self.prefetch_community_ids(pool).await?;
+    let community_ids = self.prefetch_community_ids(pool, local_site).await?;
     let language_ids = LocalUserLanguage::read_opt(pool, self.local_user.map(|l| l.id)).await?;
 
     let limit = limit_fetch(self.limit, None)?;

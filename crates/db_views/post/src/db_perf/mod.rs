@@ -11,6 +11,7 @@ use diesel_async::{RunQueryDsl, SimpleAsyncConnection};
 use lemmy_db_schema::source::{
   community::{Community, CommunityInsertForm},
   instance::Instance,
+  local_site::LocalSite,
   person::{Person, PersonInsertForm},
   site::Site,
 };
@@ -157,7 +158,7 @@ async fn db_perf() -> LemmyResult<()> {
       page_cursor,
       ..Default::default()
     }
-    .list(&site()?, &mut conn.into())
+    .list(&mut conn.into(), &site()?, &local_site()?)
     .await?;
 
     if let Some(cursor) = post_views.next_page {
@@ -196,5 +197,11 @@ fn site() -> LemmyResult<Site> {
     public_key: String::new(),
     instance_id: Default::default(),
     content_warning: None,
+  })
+}
+
+fn local_site() -> LemmyResult<LocalSite> {
+  Ok(LocalSite {
+    ..LocalSite::default()
   })
 }
