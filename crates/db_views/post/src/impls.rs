@@ -18,7 +18,7 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::{SortDirection, asc_if};
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommunityId, LanguageId, MultiCommunityId, PostId},
+  newtypes::{CommunityId, MultiCommunityId, PostId},
   source::{
     actor_language::LocalUserLanguage,
     community::CommunityActions,
@@ -361,13 +361,15 @@ impl PostQuery<'_> {
     Ok(community_ids)
   }
 
-  async fn list_inner(
+  pub async fn list(
     self,
     site: &Site,
-    community_ids: Option<Vec<CommunityId>>,
-    language_ids: Option<Vec<LanguageId>>,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<PagedResponse<PostView>> {
+    // Pre-fetching some important items, to prevent costly joins.
+    let community_ids = self.prefetch_community_ids(pool).await?;
+    let language_ids = LocalUserLanguage::read_opt(pool, self.local_user.map(|l| l.id)).await?;
+
     let limit = limit_fetch(self.limit, None)?;
     let my_person_id = self.local_user.person_id();
 
@@ -548,19 +550,5 @@ impl PostQuery<'_> {
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)?;
     paginate_response(res, limit, self.page_cursor)
-  }
-
-  pub async fn list(
-    &self,
-    site: &Site,
-    pool: &mut DbPool<'_>,
-  ) -> LemmyResult<PagedResponse<PostView>> {
-    let community_ids = self.prefetch_community_ids(pool).await?;
-    let language_ids = LocalUserLanguage::read_opt(pool, self.local_user.map(|l| l.id)).await?;
-
-    self
-      .clone()
-      .list_inner(site, community_ids, language_ids, pool)
-      .await
   }
 }
