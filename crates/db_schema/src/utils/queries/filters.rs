@@ -51,7 +51,6 @@ pub fn filter_not_unlisted() -> _ {
   not_unlisted
 }
 
-// TODO this is very slow, and should be prefetched
 #[diesel::dsl::auto_type]
 pub fn filter_suggested_communities() -> _ {
   community::id.eq_any(
