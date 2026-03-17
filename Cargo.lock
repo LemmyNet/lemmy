@@ -4195,6 +4195,7 @@ dependencies = [
  "strum 0.28.0",
  "tokio",
  "tracing",
+ "ts-rs",
  "url",
 ]
 
