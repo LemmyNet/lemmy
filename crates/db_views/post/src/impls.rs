@@ -318,13 +318,13 @@ impl PostQuery<'_> {
   /// - Multicommunities
   /// - Moderator view
   /// - Suggested
+  ///
+  ///  A return value of None means ignore, empty vec means filter out everything (IE empty
+  /// subscribed, moderated,  suggested)
   async fn prefetch_community_ids(
     &self,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Option<Vec<CommunityId>>> {
-    // None means ignore, empty vec means filter out everything (IE empty subscribed, moderated,
-    // suggested)
-
     // First, check the given community or multi community id, then if both are none, check the
     // listing types
     let community_ids = match (self.community_id, self.multi_community_id) {

@@ -42,6 +42,7 @@ impl LocalUserLanguage {
   }
 
   /// A helpful wrapper function for pre-fetching language ids.
+  /// A return value of None means don't filter for languages
   pub async fn read_opt(
     pool: &mut DbPool<'_>,
     for_local_user_id: Option<LocalUserId>,
