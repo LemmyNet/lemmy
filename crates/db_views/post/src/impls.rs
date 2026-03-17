@@ -322,13 +322,12 @@ impl PostQuery<'_> {
     &self,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Option<Vec<CommunityId>>> {
-    let o = self;
     // None means ignore, empty vec means filter out everything (IE empty subscribed, moderated,
     // suggested)
 
     // First, check the given community or multi community id, then if both are none, check the
     // listing types
-    let community_ids = match (o.community_id, o.multi_community_id) {
+    let community_ids = match (self.community_id, self.multi_community_id) {
       (Some(id), None) => Some(vec![id]),
       (None, Some(id)) => Some(MultiCommunityEntry::list_community_ids(pool, id).await?),
       (Some(_), Some(_)) => {
@@ -336,10 +335,10 @@ impl PostQuery<'_> {
       }
       (None, None) => {
         // If no community or multi_community is given, then parse the listing_types
-        match o.listing_type.unwrap_or_default() {
+        match self.listing_type.unwrap_or_default() {
           ListingType::Local | ListingType::All => None,
           ListingType::Subscribed => {
-            if let Some(my_person_id) = o.local_user.person_id() {
+            if let Some(my_person_id) = self.local_user.person_id() {
               Some(CommunityActions::list_subscribed_community_ids(pool, my_person_id).await?)
             } else {
               // If you have no subscriptions, then return an empty list
@@ -347,7 +346,7 @@ impl PostQuery<'_> {
             }
           }
           ListingType::ModeratorView => {
-            if let Some(my_person_id) = o.local_user.person_id() {
+            if let Some(my_person_id) = self.local_user.person_id() {
               Some(CommunityActions::get_person_moderated_communities(pool, my_person_id).await?)
             } else {
               // If you don't moderate anything, then return an empty list
@@ -371,16 +370,15 @@ impl PostQuery<'_> {
     language_ids: Option<Vec<LanguageId>>,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<PagedResponse<PostView>> {
-    let o = self;
-    let limit = limit_fetch(o.limit, None)?;
-    let my_person_id = o.local_user.person_id();
+    let limit = limit_fetch(self.limit, None)?;
+    let my_person_id = self.local_user.person_id();
 
     let mut query = PostView::joins(my_person_id, site.instance_id)
       .select(PostView::as_select())
       .limit(limit)
       .into_boxed();
 
-    if let Some(page) = o.page {
+    if let Some(page) = self.page {
       query = query.offset(limit * (page - 1));
     }
 
@@ -408,40 +406,40 @@ impl PostQuery<'_> {
 
     // Although the other listing types pre-fetched the communities, you still need to filter by
     // local if necessary.
-    if o.listing_type.unwrap_or_default() == ListingType::Local {
+    if self.listing_type.unwrap_or_default() == ListingType::Local {
       query = query.filter(community::local.eq(true));
     }
 
     // Hide the unlisted communities for the general types. Subscribed will still show them
-    if [ListingType::Local, ListingType::All].contains(&o.listing_type.unwrap_or_default()) {
+    if [ListingType::Local, ListingType::All].contains(&self.listing_type.unwrap_or_default()) {
       query = query.filter(filter_not_unlisted());
     }
 
-    if !o.show_nsfw.unwrap_or(o.local_user.show_nsfw(site)) {
+    if !self.show_nsfw.unwrap_or(self.local_user.show_nsfw(site)) {
       query = query
         .filter(post::nsfw.eq(false))
         .filter(community::nsfw.eq(false));
     };
 
-    if !o.local_user.show_bot_accounts() {
+    if !self.local_user.show_bot_accounts() {
       query = query.filter(person::bot_account.eq(false));
     };
 
     // Filter to show only posts with no comments
-    if o.no_comments_only.unwrap_or_default() {
+    if self.no_comments_only.unwrap_or_default() {
       query = query.filter(post::comments.eq(0));
     };
 
-    if !o.show_read.unwrap_or(o.local_user.show_read_posts()) {
+    if !self.show_read.unwrap_or(self.local_user.show_read_posts()) {
       query = query.filter(post_actions::read_at.is_null());
     }
 
     // Hide the hidden posts
-    if !o.show_hidden.unwrap_or_default() {
+    if !self.show_hidden.unwrap_or_default() {
       query = query.filter(post_actions::hidden_at.is_null());
     }
 
-    if o.hide_media.unwrap_or(o.local_user.hide_media()) {
+    if self.hide_media.unwrap_or(self.local_user.hide_media()) {
       query = query.filter(not(
         post::url_content_type.is_not_null().and(
           post::url_content_type
@@ -451,14 +449,14 @@ impl PostQuery<'_> {
       ));
     }
 
-    query = o.local_user.visible_communities_only(query);
+    query = self.local_user.visible_communities_only(query);
     query = query.filter(
       post::federation_pending
         .eq(false)
         .or(post::creator_id.nullable().eq(my_person_id)),
     );
 
-    if !o.local_user.is_admin() {
+    if !self.local_user.is_admin() {
       query = query
         .filter(
           community::visibility
@@ -472,7 +470,7 @@ impl PostQuery<'_> {
     }
 
     // Dont filter blocks or missing languages for moderator view type
-    if o.listing_type.unwrap_or_default() != ListingType::ModeratorView {
+    if self.listing_type.unwrap_or_default() != ListingType::ModeratorView {
       // Filter out the rows with missing languages if user is logged in
       if let Some(language_ids) = language_ids {
         query = query.filter(post::language_id.eq_any(language_ids));
@@ -480,7 +478,7 @@ impl PostQuery<'_> {
 
       query = query.filter(filter_blocked());
 
-      if let Some(keyword_blocks) = o.keyword_blocks {
+      if let Some(keyword_blocks) = self.keyword_blocks {
         for keyword in keyword_blocks {
           let pattern = format!("%{}%", keyword);
           query = query.filter(post::name.not_ilike(pattern.clone()));
@@ -495,21 +493,21 @@ impl PostQuery<'_> {
     }
 
     // Filter by the time range
-    if let Some(time_range_seconds) = o.time_range_seconds {
+    if let Some(time_range_seconds) = self.time_range_seconds {
       query =
         query.filter(post::published_at.gt(now() - seconds_to_pg_interval(time_range_seconds)));
     }
 
     // Only sort by ascending for Old
-    let sort = o.sort.unwrap_or(PostSortType::Hot);
+    let sort = self.sort.unwrap_or(PostSortType::Hot);
     let sort_direction = asc_if(sort == PostSortType::Old);
 
-    let mut pq = PostView::paginate(query, &o.page_cursor, sort_direction, pool, None).await?;
+    let mut pq = PostView::paginate(query, &self.page_cursor, sort_direction, pool, None).await?;
 
     // featured posts first
     // Don't do for new / old sorts
     if sort != PostSortType::New && sort != PostSortType::Old {
-      pq = if o.community_id.is_none() {
+      pq = if self.community_id.is_none() {
         pq.then_order_by(key::featured_local)
       } else {
         pq.then_order_by(key::featured_community)
@@ -551,7 +549,7 @@ impl PostQuery<'_> {
       .load::<PostView>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)?;
-    paginate_response(res, limit, o.page_cursor)
+    paginate_response(res, limit, self.page_cursor)
   }
 
   pub async fn list(
