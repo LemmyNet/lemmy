@@ -95,8 +95,6 @@ pub trait PaginationCursorConversion {
     cursor: &Option<PaginationCursor>,
     sort_direction: SortDirection,
     pool: &mut DbPool<'_>,
-    // this is only used by PostView for optimization
-    page_before_or_equal: Option<Self::PaginatedType>,
   ) -> impl std::future::Future<Output = LemmyResult<PaginatedQueryBuilder<Self::PaginatedType, Q>>> + Send
   {
     async move {
@@ -119,14 +117,6 @@ pub trait PaginationCursorConversion {
         query = query.after_or_equal(page_after);
       } else {
         query = query.after(page_after);
-      }
-
-      if page_back.unwrap_or_default() {
-        query = query
-          .after_or_equal(page_before_or_equal)
-          .limit_and_offset_from_end();
-      } else {
-        query = query.before_or_equal(page_before_or_equal);
       }
 
       Ok(query)

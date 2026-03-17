@@ -240,12 +240,11 @@ impl PostView {
       .into_boxed();
 
     // Sorting by the read date
-    let paginated_query =
-      PostViewDummy::paginate(query, &page_cursor, SortDirection::Desc, pool, None)
-        .await?
-        .then_order_by(pa_key::read_at)
-        // Tie breaker
-        .then_order_by(pa_key::post_id);
+    let paginated_query = PostViewDummy::paginate(query, &page_cursor, SortDirection::Desc, pool)
+      .await?
+      .then_order_by(pa_key::read_at)
+      // Tie breaker
+      .then_order_by(pa_key::post_id);
 
     let conn = &mut get_conn(pool).await?;
     let res = paginated_query
@@ -273,12 +272,11 @@ impl PostView {
       .into_boxed();
 
     // Sorting by the hidden date
-    let paginated_query =
-      PostViewDummy::paginate(query, &page_cursor, SortDirection::Desc, pool, None)
-        .await?
-        .then_order_by(pa_key::hidden_at)
-        // Tie breaker
-        .then_order_by(pa_key::post_id);
+    let paginated_query = PostViewDummy::paginate(query, &page_cursor, SortDirection::Desc, pool)
+      .await?
+      .then_order_by(pa_key::hidden_at)
+      // Tie breaker
+      .then_order_by(pa_key::post_id);
 
     let conn = &mut get_conn(pool).await?;
     let res = paginated_query
@@ -502,7 +500,7 @@ impl PostQuery<'_> {
     let sort = self.sort.unwrap_or(PostSortType::Hot);
     let sort_direction = asc_if(sort == PostSortType::Old);
 
-    let mut pq = PostView::paginate(query, &self.page_cursor, sort_direction, pool, None).await?;
+    let mut pq = PostView::paginate(query, &self.page_cursor, sort_direction, pool).await?;
 
     // featured posts first
     // Don't do for new / old sorts

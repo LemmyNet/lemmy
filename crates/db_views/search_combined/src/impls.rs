@@ -401,7 +401,7 @@ impl SearchCombinedQuery {
     let sort_direction = asc_if(sort == Old);
 
     let mut paginated_query =
-      SearchCombinedView::paginate(query, &self.page_cursor, sort_direction, pool, None).await?;
+      SearchCombinedView::paginate(query, &self.page_cursor, sort_direction, pool).await?;
 
     paginated_query = match sort {
       New | Old => paginated_query.then_order_by(key::published_at),

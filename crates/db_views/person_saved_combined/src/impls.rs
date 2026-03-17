@@ -171,7 +171,6 @@ impl PersonSavedCombinedQuery {
       &self.page_cursor,
       SortDirection::Desc,
       pool,
-      None,
     )
     .await?
     .then_order_by(key::saved_at)

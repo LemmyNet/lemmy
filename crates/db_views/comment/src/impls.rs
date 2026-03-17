@@ -279,8 +279,7 @@ impl CommentQuery<'_> {
     let sort = self.sort.unwrap_or(Hot);
     let sort_direction = asc_if(sort == Old);
 
-    let mut pq =
-      CommentView::paginate(query, &self.page_cursor, sort_direction, pool, None).await?;
+    let mut pq = CommentView::paginate(query, &self.page_cursor, sort_direction, pool).await?;
 
     // Order by a subpath for max depth queries
     // Only order if filtering by a post id, or parent_path. DOS potential otherwise and max_depth

@@ -141,15 +141,10 @@ impl RegistrationApplicationQuery {
     }
 
     // Sorting by published
-    let paginated_query = RegistrationApplicationView::paginate(
-      query,
-      &self.page_cursor,
-      SortDirection::Desc,
-      pool,
-      None,
-    )
-    .await?
-    .then_order_by(key::published_at);
+    let paginated_query =
+      RegistrationApplicationView::paginate(query, &self.page_cursor, SortDirection::Desc, pool)
+        .await?
+        .then_order_by(key::published_at);
 
     let conn = &mut get_conn(pool).await?;
     let res = paginated_query

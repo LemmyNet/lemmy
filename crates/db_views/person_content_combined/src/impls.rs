@@ -194,7 +194,6 @@ impl PersonContentCombinedQuery {
       &self.page_cursor,
       SortDirection::Desc,
       pool,
-      None,
     )
     .await?
     .then_order_by(key::published_at)
