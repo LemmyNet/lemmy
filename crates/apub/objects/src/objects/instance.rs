@@ -93,9 +93,9 @@ impl Object for ApubSite {
       id: self.id().clone().into(),
       name: self.name.clone(),
       preferred_username: Some(data.domain().to_string()),
-      summary: self.sidebar.as_ref().map(|d| markdown_to_html(d)),
+      content: self.sidebar.as_ref().map(|d| markdown_to_html(d)),
       source: self.sidebar.clone().map(Source::new),
-      content: self.summary.clone(),
+      description: self.summary.clone(),
       media_type: self.sidebar.as_ref().map(|_| MediaTypeHtml::Html),
       icon: self.icon.clone().map(ImageObject::new),
       image: self.banner.clone().map(ImageObject::new),
@@ -138,7 +138,7 @@ impl Object for ApubSite {
     let sidebar =
       process_markdown_opt(&sidebar, &slur_regex, &url_blocklist, &local_site, context).await?;
     let sidebar = markdown_rewrite_remote_links_opt(sidebar, context).await;
-    let summary = apub.summary.map(|s| remove_slurs(&s, &slur_regex));
+    let summary = apub.description.map(|s| remove_slurs(&s, &slur_regex));
     let icon = proxy_image_link_opt_apub(apub.icon.map(|i| i.url), &local_site, context).await?;
     let banner = proxy_image_link_opt_apub(apub.image.map(|i| i.url), &local_site, context).await?;
 
