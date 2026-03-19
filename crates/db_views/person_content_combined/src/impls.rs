@@ -107,9 +107,6 @@ pub struct PersonContentCombinedQuery {
 impl PersonContentCombinedQuery {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins(my_person_id: Option<PersonId>, local_instance_id: InstanceId) -> _ {
-    let comment_join =
-      comment::table.on(person_content_combined::comment_id.eq(comment::id.nullable()));
-
     let post_join = post::table.on(
       person_content_combined::post_id
         .eq(post::id.nullable())
@@ -128,7 +125,7 @@ impl PersonContentCombinedQuery {
       creator_local_instance_actions_join(local_instance_id);
 
     person_content_combined::table
-      .left_join(comment_join)
+      .left_join(comment::table)
       .inner_join(post_join)
       .inner_join(item_creator_join)
       .inner_join(community_join())
