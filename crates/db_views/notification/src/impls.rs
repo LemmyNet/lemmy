@@ -5,6 +5,7 @@ use diesel::{
   PgExpressionMethods,
   QueryDsl,
   SelectableHelper,
+  dsl::not,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
@@ -20,7 +21,7 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::{
   PersonId,
   enums::NotificationType,
-  schema::{notification, person},
+  schema::{comment, notification, person, post, private_message},
 };
 use lemmy_db_views_modlog::ModlogView;
 use lemmy_db_views_notification_sql::notification_joins;
@@ -55,6 +56,18 @@ impl NotificationView {
       .filter(notification::recipient_id.eq(my_person.id))
       // Filter unreads
       .filter(unread_filter)
+      // Filter out the deleted / removed
+      .filter(not(comment::deleted))
+      .filter(not(comment::removed))
+      .filter(not(post::deleted))
+      .filter(not(post::removed))
+      // Filter out the deleted / removed
+      .filter(not(private_message::deleted))
+      .filter(not(private_message::removed))
+      // Also hide messages deleted by the recipient, but only for them
+      .filter(not(
+        private_message::deleted_by_recipient.and(notification::recipient_id.eq(my_person.id)),
+      ))
       // Don't count replies from blocked users
       .filter(filter_blocked())
       .select(count(notification::id))
@@ -132,8 +145,20 @@ impl NotificationQuery {
     Box::pin(async move {
       let limit = limit_fetch(self.limit, self.no_limit)?;
       let mut query = notification_joins(my_person.id, my_person.instance_id)
-        .select(NotificationViewInternal::as_select())
+        // Filter out the deleted / removed
+        .filter(not(comment::deleted))
+        .filter(not(comment::removed))
+        .filter(not(post::deleted))
+        .filter(not(post::removed))
+        // Filter out the deleted / removed
+        .filter(not(private_message::deleted))
+        .filter(not(private_message::removed))
+        // Also hide messages deleted by the recipient, but only for them
+        .filter(not(
+          private_message::deleted_by_recipient.and(notification::recipient_id.eq(my_person.id)),
+        ))
         .limit(limit)
+        .select(NotificationViewInternal::as_select())
         .into_boxed();
 
       // Filters
@@ -205,7 +230,7 @@ fn map_to_enum(
   hide_modlog_name: bool,
   my_person: &Person,
 ) -> Option<NotificationView> {
-  let data = if let (Some(modlog), Some(creator)) = (v.modlog.clone(), v.creator.clone()) {
+  let data = if let Some(modlog) = v.modlog {
     let m = ModlogView {
       modlog,
       moderator: Some(v.creator),
@@ -253,9 +278,7 @@ fn map_to_enum(
       creator_ban_expires_at: v.creator_ban_expires_at,
       creator_is_moderator: v.creator_is_moderator,
     })
-  } else if let (Some(mut private_message), Some(creator)) =
-    (v.private_message.clone(), v.creator.clone())
-  {
+  } else if let Some(mut private_message) = v.private_message {
     private_message.clear_deleted_by_recipient(Some(my_person));
     NotificationData::PrivateMessage(PrivateMessageView {
       private_message,
