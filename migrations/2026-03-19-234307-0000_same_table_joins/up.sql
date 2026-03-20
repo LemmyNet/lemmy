@@ -158,6 +158,7 @@ CREATE INDEX idx_report_combined_private_message ON report_combined (private_mes
 -- Add the post_id for person_saved, person_liked, and person_content combined comments
 -- drop the check and unique constraint
 ALTER TABLE person_saved_combined
+    ADD COLUMN community_id int REFERENCES community (id) ON UPDATE CASCADE ON DELETE CASCADE,
     DROP CONSTRAINT person_saved_combined_check,
     DROP CONSTRAINT person_saved_combined_person_id_comment_id_key,
     DROP CONSTRAINT person_saved_combined_person_id_post_id_key;
@@ -165,7 +166,17 @@ ALTER TABLE person_saved_combined
 UPDATE
     person_saved_combined AS psc
 SET
-    post_id = c.post_id
+    community_id = p.community_id
+FROM
+    post p
+WHERE
+    psc.post_id = p.id;
+
+UPDATE
+    person_saved_combined AS psc
+SET
+    post_id = c.post_id,
+    community_id = c.community_id
 FROM
     comment c
 WHERE
@@ -173,10 +184,14 @@ WHERE
 
 -- Set it to not null
 ALTER TABLE person_saved_combined
-    ALTER COLUMN post_id SET NOT NULL;
+    ALTER COLUMN post_id SET NOT NULL,
+    ALTER COLUMN community_id SET NOT NULL;
+
+CREATE INDEX idx_person_saved_combined_community ON person_saved_combined (community_id);
 
 -- drop the check constraint
 ALTER TABLE person_liked_combined
+    ADD COLUMN community_id int REFERENCES community (id) ON UPDATE CASCADE ON DELETE CASCADE,
     DROP CONSTRAINT person_liked_combined_check,
     DROP CONSTRAINT person_liked_combined_person_id_comment_id_key,
     DROP CONSTRAINT person_liked_combined_person_id_post_id_key;
@@ -184,7 +199,17 @@ ALTER TABLE person_liked_combined
 UPDATE
     person_liked_combined AS psc
 SET
-    post_id = c.post_id
+    community_id = p.community_id
+FROM
+    post p
+WHERE
+    psc.post_id = p.id;
+
+UPDATE
+    person_liked_combined AS psc
+SET
+    post_id = c.post_id,
+    community_id = c.community_id
 FROM
     comment c
 WHERE
@@ -192,10 +217,14 @@ WHERE
 
 -- Set it to not null
 ALTER TABLE person_liked_combined
-    ALTER COLUMN post_id SET NOT NULL;
+    ALTER COLUMN post_id SET NOT NULL,
+    ALTER COLUMN community_id SET NOT NULL;
+
+CREATE INDEX idx_person_liked_combined_community ON person_liked_combined (community_id);
 
 -- drop the check constraint
 ALTER TABLE person_content_combined
+    ADD COLUMN community_id int REFERENCES community (id) ON UPDATE CASCADE ON DELETE CASCADE,
     DROP CONSTRAINT person_content_combined_check,
     DROP CONSTRAINT person_content_combined_post_id_key,
     DROP CONSTRAINT person_content_combined_comment_id_key;
@@ -203,7 +232,17 @@ ALTER TABLE person_content_combined
 UPDATE
     person_content_combined AS psc
 SET
-    post_id = c.post_id
+    community_id = p.community_id
+FROM
+    post p
+WHERE
+    psc.post_id = p.id;
+
+UPDATE
+    person_content_combined AS psc
+SET
+    post_id = c.post_id,
+    community_id = c.community_id
 FROM
     comment c
 WHERE
@@ -211,9 +250,12 @@ WHERE
 
 -- Set it to not null
 ALTER TABLE person_content_combined
-    ALTER COLUMN post_id SET NOT NULL;
+    ALTER COLUMN post_id SET NOT NULL,
+    ALTER COLUMN community_id SET NOT NULL;
 
 CREATE INDEX idx_person_content_combined_post ON person_content_combined (post_id);
 
 CREATE INDEX idx_person_content_combined_comment ON person_content_combined (comment_id);
+
+CREATE INDEX idx_person_content_combined_community ON person_content_combined (community_id);
 
