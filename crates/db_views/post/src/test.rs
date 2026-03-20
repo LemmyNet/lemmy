@@ -1956,8 +1956,12 @@ async fn post_listings_no_comments_only(data: &mut Data) -> LemmyResult<()> {
   let pool = &mut pool.into();
 
   // Create a comment for a post
-  let comment_form =
-    CommentInsertForm::new(data.tegan.person.id, data.post.id, "a comment".to_owned());
+  let comment_form = CommentInsertForm::new(
+    data.tegan.person.id,
+    data.post.id,
+    data.community.id,
+    "a comment".to_owned(),
+  );
   Comment::create(pool, &comment_form, None).await?;
 
   // Make sure it doesnt come back with the no_comments option

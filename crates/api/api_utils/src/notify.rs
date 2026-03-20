@@ -440,8 +440,12 @@ mod tests {
       PostInsertForm::new("jessica post prv".into(), jessica.id, community.id);
     let jessica_post = Post::create(pool, &jessica_post_form).await?;
 
-    let timmy_comment_form =
-      CommentInsertForm::new(timmy.person.id, timmy_post.id, "timmy comment prv".into());
+    let timmy_comment_form = CommentInsertForm::new(
+      timmy.person.id,
+      timmy_post.id,
+      community.id,
+      "timmy comment prv".into(),
+    );
     let timmy_comment = Comment::create(pool, &timmy_comment_form, None).await?;
 
     Ok(Data {
@@ -516,6 +520,7 @@ mod tests {
     let sara_comment_form = CommentInsertForm::new(
       data.sara.person.id,
       data.timmy_post.id,
+      data.community.id,
       "@timmy_notify@lemmy-alpha".into(),
     );
     let sara_comment =

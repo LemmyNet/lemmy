@@ -638,21 +638,34 @@ mod tests {
     );
     let timmy_post_private_comm = Post::create(pool, &timmy_post_private_comm_form).await?;
 
-    let timmy_comment_form =
-      CommentInsertForm::new(timmy.id, timmy_post.id, "timmy comment prv gold".into());
+    let timmy_comment_form = CommentInsertForm::new(
+      timmy.id,
+      timmy_post.id,
+      community.id,
+      "timmy comment prv gold".into(),
+    );
     let timmy_comment = Comment::create(pool, &timmy_comment_form, None).await?;
 
-    let sara_comment_form =
-      CommentInsertForm::new(sara.id, sara_post.id, "sara comment prv gold".into());
+    let sara_comment_form = CommentInsertForm::new(
+      sara.id,
+      sara_post.id,
+      community_2.id,
+      "sara comment prv gold".into(),
+    );
     let sara_comment = Comment::create(pool, &sara_comment_form, None).await?;
 
-    let sara_comment_form_2 =
-      CommentInsertForm::new(sara.id, timmy_post_2.id, "sara comment prv 2".into());
+    let sara_comment_form_2 = CommentInsertForm::new(
+      sara.id,
+      timmy_post_2.id,
+      community.id,
+      "sara comment prv 2".into(),
+    );
     let sara_comment_2 = Comment::create(pool, &sara_comment_form_2, None).await?;
 
     let comment_in_nsfw_post_form = CommentInsertForm::new(
       sara.id,
       nsfw_post.id,
+      community.id,
       "sara comment in nsfw post prv 2".into(),
     );
     let comment_in_nsfw_post = Comment::create(pool, &comment_in_nsfw_post_form, None).await?;
@@ -660,6 +673,7 @@ mod tests {
     let timmy_comment_private_comm_form = CommentInsertForm::new(
       timmy.id,
       timmy_post_private_comm.id,
+      private_community.id,
       "timmy comment private comm".into(),
     );
     let timmy_comment_private_comm =

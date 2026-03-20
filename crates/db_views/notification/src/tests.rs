@@ -169,7 +169,7 @@ async fn test_modlog() -> LemmyResult<()> {
 
   let form = CommentInsertForm {
     removed: Some(true),
-    ..CommentInsertForm::new(data.bob.id, post.id, String::new())
+    ..CommentInsertForm::new(data.bob.id, post.id, community.id, String::new())
   };
   let comment = Comment::create(pool, &form, None).await?;
 

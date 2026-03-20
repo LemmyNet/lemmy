@@ -107,15 +107,23 @@ mod tests {
     let post_form_2 = PostInsertForm::new("A test post radical".into(), sara.id, community.id);
     let post_2 = Post::create(pool, &post_form_2).await?;
 
-    let comment_form_1 =
-      CommentInsertForm::new(sara.id, post_1.id, "A test comment tubular".into());
+    let comment_form_1 = CommentInsertForm::new(
+      sara.id,
+      post_1.id,
+      community.id,
+      "A test comment tubular".into(),
+    );
     let comment_1 = Comment::create(pool, &comment_form_1, None).await?;
 
     let comment_like_form_1 = CommentLikeForm::new(comment_1.id, sara.id, Some(true));
     CommentActions::like(pool, &comment_like_form_1).await?;
 
-    let comment_form_2 =
-      CommentInsertForm::new(sara.id, post_2.id, "A test comment radical".into());
+    let comment_form_2 = CommentInsertForm::new(
+      sara.id,
+      post_2.id,
+      community.id,
+      "A test comment radical".into(),
+    );
     Comment::create(pool, &comment_form_2, None).await?;
 
     // Read saras post to make sure it has a like
@@ -392,7 +400,12 @@ mod tests {
     let post_form_2 = PostInsertForm::new("Bulk test post 2".into(), person_b.id, community.id);
     let post_2 = Post::create(pool, &post_form_2).await?;
 
-    let comment_form = CommentInsertForm::new(person_b.id, post_2.id, "Bulk test comment".into());
+    let comment_form = CommentInsertForm::new(
+      person_b.id,
+      post_2.id,
+      community.id,
+      "Bulk test comment".into(),
+    );
     Comment::create(pool, &comment_form, None).await?;
 
     // Create the ban entry first and capture its ID as the expected parent

@@ -1120,6 +1120,7 @@ mod tests {
       id: CommentId(0),
       creator_id: PersonId(0),
       post_id: PostId(0),
+      community_id: CommunityId(0),
       content: String::new(),
       removed: false,
       published_at: Utc::now(),

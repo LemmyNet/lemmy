@@ -923,6 +923,7 @@ mod tests {
     let comment_form = CommentInsertForm::new(
       inserted_person.id,
       inserted_post.id,
+      inserted_community.id,
       "A test comment".into(),
     );
     let inserted_comment = Comment::create(pool, &comment_form, None).await?;
@@ -930,6 +931,7 @@ mod tests {
     let child_comment_form = CommentInsertForm::new(
       inserted_person.id,
       inserted_post.id,
+      inserted_community.id,
       "A test comment".into(),
     );
     let _inserted_child_comment =

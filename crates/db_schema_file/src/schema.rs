@@ -99,6 +99,7 @@ diesel::table! {
         unresolved_report_count -> Int2,
         federation_pending -> Bool,
         locked -> Bool,
+        community_id -> Int4,
     }
 }
 

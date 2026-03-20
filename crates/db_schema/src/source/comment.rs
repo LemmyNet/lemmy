@@ -1,4 +1,4 @@
-use crate::newtypes::{CommentId, LanguageId, PostId};
+use crate::newtypes::{CommentId, CommunityId, LanguageId, PostId};
 use chrono::{DateTime, Utc};
 use lemmy_db_schema_file::PersonId;
 use lemmy_diesel_utils::dburl::DbUrl;
@@ -67,6 +67,7 @@ pub struct Comment {
   pub federation_pending: bool,
   /// Whether the comment is locked.
   pub locked: bool,
+  pub community_id: CommunityId,
 }
 
 #[derive(Debug, Clone, derive_new::new, Serialize, Deserialize)]
@@ -75,6 +76,7 @@ pub struct Comment {
 pub struct CommentInsertForm {
   pub creator_id: PersonId,
   pub post_id: PostId,
+  pub community_id: CommunityId,
   pub content: String,
   #[new(default)]
   pub removed: Option<bool>,

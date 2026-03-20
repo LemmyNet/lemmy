@@ -281,12 +281,17 @@ mod tests {
     let post_2 = Post::create(pool, &new_post_2).await?;
 
     // Timmy creates a comment
-    let comment_form = CommentInsertForm::new(timmy.id, post.id, "A test comment rv".into());
+    let comment_form =
+      CommentInsertForm::new(timmy.id, post.id, community.id, "A test comment rv".into());
     let comment = Comment::create(pool, &comment_form, None).await?;
 
     // jessica creates a comment
-    let comment_form_2 =
-      CommentInsertForm::new(jessica.id, post_2.id, "A test comment rv 2".into());
+    let comment_form_2 = CommentInsertForm::new(
+      jessica.id,
+      post_2.id,
+      community_2.id,
+      "A test comment rv 2".into(),
+    );
     let comment_2 = Comment::create(pool, &comment_form_2, None).await?;
 
     Ok(Data {

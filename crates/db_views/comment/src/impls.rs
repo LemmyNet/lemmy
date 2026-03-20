@@ -2,7 +2,6 @@ use crate::{CommentSlimView, CommentView};
 use diesel::{
   BoolExpressionMethods,
   ExpressionMethods,
-  JoinOnDsl,
   NullableExpressionMethods,
   QueryDsl,
   SelectableHelper,
@@ -78,8 +77,6 @@ impl PaginationCursorConversion for CommentView {
 impl CommentView {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins(my_person_id: Option<PersonId>, local_instance_id: InstanceId) -> _ {
-    let community_join = community::table.on(post::community_id.eq(community::id));
-
     let my_community_actions_join: my_community_actions_join =
       my_community_actions_join(my_person_id);
     let my_comment_actions_join: my_comment_actions_join = my_comment_actions_join(my_person_id);
@@ -95,7 +92,7 @@ impl CommentView {
     comment::table
       .inner_join(person::table)
       .inner_join(post::table)
-      .inner_join(community_join)
+      .inner_join(community::table)
       .left_join(creator_home_instance_actions_join())
       .left_join(creator_community_instance_actions_join())
       .left_join(creator_community_actions_join())
@@ -195,7 +192,7 @@ impl CommentQuery<'_> {
     };
 
     if let Some(community_id) = o.community_id {
-      query = query.filter(post::community_id.eq(community_id));
+      query = query.filter(comment::community_id.eq(community_id));
     }
 
     let is_subscribed = community_actions::followed_at.is_not_null();
@@ -415,41 +412,65 @@ mod tests {
     //     5
     let comment_form_0 = CommentInsertForm {
       language_id: Some(english_id),
-      ..CommentInsertForm::new(inserted_timmy_person.id, post.id, "Comment 0".into())
+      ..CommentInsertForm::new(
+        inserted_timmy_person.id,
+        post.id,
+        community.id,
+        "Comment 0".into(),
+      )
     };
 
     let comment_0 = Comment::create(pool, &comment_form_0, None).await?;
 
     let comment_form_1 = CommentInsertForm {
       language_id: Some(english_id),
-      ..CommentInsertForm::new(sara_person.id, post.id, "Comment 1".into())
+      ..CommentInsertForm::new(sara_person.id, post.id, community.id, "Comment 1".into())
     };
     let comment_1 = Comment::create(pool, &comment_form_1, Some(&comment_0.path)).await?;
 
     let finnish_id = Language::read_id_from_code(pool, "fi").await?;
     let comment_form_2 = CommentInsertForm {
       language_id: Some(finnish_id),
-      ..CommentInsertForm::new(inserted_timmy_person.id, post.id, "Comment 2".into())
+      ..CommentInsertForm::new(
+        inserted_timmy_person.id,
+        post.id,
+        community.id,
+        "Comment 2".into(),
+      )
     };
 
     let comment_2 = Comment::create(pool, &comment_form_2, Some(&comment_0.path)).await?;
 
     let comment_form_3 = CommentInsertForm {
       language_id: Some(english_id),
-      ..CommentInsertForm::new(inserted_timmy_person.id, post.id, "Comment 3".into())
+      ..CommentInsertForm::new(
+        inserted_timmy_person.id,
+        post.id,
+        community.id,
+        "Comment 3".into(),
+      )
     };
     let _inserted_comment_3 = Comment::create(pool, &comment_form_3, Some(&comment_1.path)).await?;
 
     let polish_id = Language::read_id_from_code(pool, "pl").await?;
     let comment_form_4 = CommentInsertForm {
       language_id: Some(polish_id),
-      ..CommentInsertForm::new(inserted_timmy_person.id, post.id, "Comment 4".into())
+      ..CommentInsertForm::new(
+        inserted_timmy_person.id,
+        post.id,
+        community.id,
+        "Comment 4".into(),
+      )
     };
 
     let inserted_comment_4 = Comment::create(pool, &comment_form_4, Some(&comment_1.path)).await?;
 
-    let comment_form_5 =
-      CommentInsertForm::new(inserted_timmy_person.id, post.id, "Comment 5".into());
+    let comment_form_5 = CommentInsertForm::new(
+      inserted_timmy_person.id,
+      post.id,
+      community.id,
+      "Comment 5".into(),
+    );
     let _comment_5 = Comment::create(pool, &comment_form_5, Some(&inserted_comment_4.path)).await?;
 
     let timmy_blocks_sara_form = PersonBlockForm::new(inserted_timmy_person.id, sara_person.id);
