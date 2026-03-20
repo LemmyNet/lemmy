@@ -259,3 +259,6 @@ CREATE INDEX idx_person_content_combined_comment ON person_content_combined (com
 
 CREATE INDEX idx_person_content_combined_community ON person_content_combined (community_id);
 
+-- Adding a faster index on notification
+CREATE INDEX idx_notification_published_id_recipient ON notification (published_at DESC, id DESC, recipient_id);
+

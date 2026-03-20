@@ -71,3 +71,5 @@ ALTER TABLE person_content_combined
 
 DROP INDEX idx_person_content_combined_post, idx_person_content_combined_comment;
 
+DROP INDEX idx_notification_published_id_recipient;
+
