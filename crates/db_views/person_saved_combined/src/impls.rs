@@ -1,12 +1,5 @@
 use crate::LocalUserView;
-use diesel::{
-  BoolExpressionMethods,
-  ExpressionMethods,
-  JoinOnDsl,
-  NullableExpressionMethods,
-  QueryDsl,
-  SelectableHelper,
-};
+use diesel::{ExpressionMethods, JoinOnDsl, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
@@ -19,7 +12,6 @@ use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
   joins::{
-    community_join,
     creator_community_actions_join,
     creator_community_instance_actions_join,
     creator_home_instance_actions_join,
@@ -32,7 +24,7 @@ use lemmy_db_schema_file::{
     my_person_actions_join,
     my_post_actions_join,
   },
-  schema::{comment, person, person_saved_combined, post},
+  schema::{comment, community, person, person_saved_combined, post},
 };
 use lemmy_db_views_post_comment_combined::{
   PostCommentCombinedView,
@@ -99,12 +91,6 @@ impl PaginationCursorConversion for PostCommentCombinedViewWrapper {
 impl PersonSavedCombinedQuery {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins(my_person_id: PersonId, local_instance_id: InstanceId) -> _ {
-    let post_join = post::table.on(
-      person_saved_combined::post_id
-        .eq(post::id.nullable())
-        .or(comment::post_id.eq(post::id)),
-    );
-
     let item_creator_join = person::table.on(person_saved_combined::creator_id.eq(person::id));
 
     let my_community_actions_join: my_community_actions_join =
@@ -120,9 +106,9 @@ impl PersonSavedCombinedQuery {
 
     person_saved_combined::table
       .left_join(comment::table)
-      .inner_join(post_join)
+      .inner_join(post::table)
       .inner_join(item_creator_join)
-      .inner_join(community_join())
+      .inner_join(community::table)
       .left_join(image_details_join())
       .left_join(creator_community_actions_join())
       .left_join(creator_local_user_admin_join())
@@ -265,16 +251,28 @@ mod tests {
     let sara_post_form = PostInsertForm::new("sara post prv".into(), sara.id, community.id);
     let _sara_post = Post::create(pool, &sara_post_form).await?;
 
-    let timmy_comment_form =
-      CommentInsertForm::new(timmy.id, timmy_post.id, "timmy comment prv".into());
+    let timmy_comment_form = CommentInsertForm::new(
+      timmy.id,
+      timmy_post.id,
+      community.id,
+      "timmy comment prv".into(),
+    );
     let _timmy_comment = Comment::create(pool, &timmy_comment_form, None).await?;
 
-    let sara_comment_form =
-      CommentInsertForm::new(sara.id, timmy_post.id, "sara comment prv".into());
+    let sara_comment_form = CommentInsertForm::new(
+      sara.id,
+      timmy_post.id,
+      community.id,
+      "sara comment prv".into(),
+    );
     let sara_comment = Comment::create(pool, &sara_comment_form, None).await?;
 
-    let sara_comment_form_2 =
-      CommentInsertForm::new(sara.id, timmy_post_2.id, "sara comment prv 2".into());
+    let sara_comment_form_2 = CommentInsertForm::new(
+      sara.id,
+      timmy_post_2.id,
+      community.id,
+      "sara comment prv 2".into(),
+    );
     let sara_comment_2 = Comment::create(pool, &sara_comment_form_2, None).await?;
 
     Ok(Data {

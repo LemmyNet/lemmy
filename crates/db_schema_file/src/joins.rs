@@ -37,10 +37,6 @@ pub fn creator_local_user_admin_join() -> _ {
 }
 
 #[diesel::dsl::auto_type]
-pub fn community_join() -> _ {
-  community::table.on(post::community_id.eq(community::id))
-}
-#[diesel::dsl::auto_type]
 pub fn creator_home_instance_actions_join() -> _ {
   creator_home_instance_actions.on(
     creator_home_instance_actions
