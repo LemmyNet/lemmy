@@ -397,49 +397,180 @@ CREATE TRIGGER change_values
 -- Combined tables triggers
 -- These insert (published_at, item_id) into X_combined tables
 -- Reports (comment_report, post_report, private_message_report)
-CREATE PROCEDURE r.create_report_combined_trigger (table_name text)
-LANGUAGE plpgsql
-AS $a$
+-- report_combined_post_insert
+CREATE FUNCTION r.report_combined_post_insert ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
 BEGIN
-    EXECUTE replace($b$ CREATE FUNCTION r.report_combined_thing_insert ( )
-            RETURNS TRIGGER
-            LANGUAGE plpgsql
-            AS $$
-            BEGIN
-                INSERT INTO report_combined (published_at, thing_id)
-                    VALUES (NEW.published_at, NEW.id);
-                RETURN NEW;
-            END $$;
-    CREATE FUNCTION r.report_combined_thing_update ( )
-        RETURNS TRIGGER
-        LANGUAGE plpgsql
-        AS $$
-        BEGIN
-            UPDATE
-                report_combined
-            SET
-                resolved = NEW.resolved
-            WHERE
-                thing_id = NEW.id;
-            RETURN NULL;
-        END $$;
-    CREATE TRIGGER report_combined_insert
-        AFTER INSERT ON thing
-        FOR EACH ROW
-        EXECUTE FUNCTION r.report_combined_thing_insert ( );
-        CREATE TRIGGER report_combined_update
-            AFTER UPDATE OF resolved ON thing
-            FOR EACH ROW
-            EXECUTE FUNCTION r.report_combined_thing_update ( );
-        $b$,
-        'thing',
-        table_name);
-END;
-$a$;
-CALL r.create_report_combined_trigger ('post_report');
-CALL r.create_report_combined_trigger ('comment_report');
-CALL r.create_report_combined_trigger ('private_message_report');
-CALL r.create_report_combined_trigger ('community_report');
+    INSERT INTO report_combined (published_at, post_report_id, report_creator_id, item_creator_id, post_id, community_id)
+    SELECT
+        NEW.published_at,
+        NEW.id,
+        NEW.creator_id,
+        p.creator_id,
+        p.id,
+        p.community_id
+    FROM
+        post p
+    WHERE
+        NEW.post_id = p.id;
+    RETURN NEW;
+END
+$$;
+CREATE TRIGGER report_combined_post_insert
+    AFTER INSERT ON post_report
+    FOR EACH ROW
+    EXECUTE FUNCTION r.report_combined_post_insert ();
+-- report_combined_post_update
+CREATE FUNCTION r.report_combined_post_update ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        report_combined
+    SET
+        resolved = NEW.resolved,
+        resolver_id = NEW.resolver_id
+    WHERE
+        post_report_id = NEW.id;
+    RETURN NULL;
+END
+$$;
+CREATE TRIGGER report_combined_post_update
+    AFTER UPDATE OF resolved,
+    resolver_id ON post_report
+    FOR EACH ROW
+    EXECUTE FUNCTION r.report_combined_post_update ();
+-- report_combined_comment_insert
+CREATE FUNCTION r.report_combined_comment_insert ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    INSERT INTO report_combined (published_at, comment_report_id, report_creator_id, item_creator_id, comment_id, post_id, community_id)
+    SELECT
+        NEW.published_at,
+        NEW.id,
+        NEW.creator_id,
+        c.creator_id,
+        c.id,
+        c.post_id,
+        c.community_id
+    FROM
+        comment c
+    WHERE
+        NEW.comment_id = c.id;
+    RETURN NEW;
+END
+$$;
+CREATE TRIGGER report_combined_comment_insert
+    AFTER INSERT ON comment_report
+    FOR EACH ROW
+    EXECUTE FUNCTION r.report_combined_comment_insert ();
+-- report_combined_comment_update
+CREATE FUNCTION r.report_combined_comment_update ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        report_combined
+    SET
+        resolved = NEW.resolved,
+        resolver_id = NEW.resolver_id
+    WHERE
+        comment_report_id = NEW.id;
+    RETURN NULL;
+END
+$$;
+CREATE TRIGGER report_combined_comment_update
+    AFTER UPDATE OF resolved,
+    resolver_id ON comment_report
+    FOR EACH ROW
+    EXECUTE FUNCTION r.report_combined_comment_update ();
+-- report_combined_community_insert
+CREATE FUNCTION r.report_combined_community_insert ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    INSERT INTO report_combined (published_at, community_report_id, report_creator_id, community_id)
+        VALUES (NEW.published_at, NEW.id, NEW.creator_id, NEW.community_id);
+    RETURN NEW;
+END
+$$;
+CREATE TRIGGER report_combined_community_insert
+    AFTER INSERT ON community_report
+    FOR EACH ROW
+    EXECUTE FUNCTION r.report_combined_community_insert ();
+-- report_combined_community_update
+CREATE FUNCTION r.report_combined_community_update ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        report_combined
+    SET
+        resolved = NEW.resolved,
+        resolver_id = NEW.resolver_id
+    WHERE
+        community_report_id = NEW.id;
+    RETURN NULL;
+END
+$$;
+CREATE TRIGGER report_combined_community_update
+    AFTER UPDATE OF resolved,
+    resolver_id ON community_report
+    FOR EACH ROW
+    EXECUTE FUNCTION r.report_combined_community_update ();
+-- report_combined_private_message_insert
+CREATE FUNCTION r.report_combined_private_message_insert ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    INSERT INTO report_combined (published_at, private_message_report_id, report_creator_id, item_creator_id, private_message_id)
+    SELECT
+        NEW.published_at,
+        NEW.id,
+        NEW.creator_id,
+        p.creator_id,
+        p.id
+    FROM
+        private_message p
+    WHERE
+        NEW.private_message_id = p.id;
+    RETURN NEW;
+END
+$$;
+CREATE TRIGGER report_combined_private_message_insert
+    AFTER INSERT ON private_message_report
+    FOR EACH ROW
+    EXECUTE FUNCTION r.report_combined_private_message_insert ();
+-- report_combined_private_message_update
+CREATE FUNCTION r.report_combined_private_message_update ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        report_combined
+    SET
+        resolved = NEW.resolved,
+        resolver_id = NEW.resolver_id
+    WHERE
+        private_message_report_id = NEW.id;
+    RETURN NULL;
+END
+$$;
+CREATE TRIGGER report_combined_private_message_update
+    AFTER UPDATE OF resolved,
+    resolver_id ON private_message_report
+    FOR EACH ROW
+    EXECUTE FUNCTION r.report_combined_private_message_update ();
 -- person_content_combined_post
 CREATE FUNCTION r.person_content_combined_post_insert ()
     RETURNS TRIGGER
