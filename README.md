@@ -24,9 +24,9 @@
   <a href="https://join-lemmy.org/" rel="noopener">
  <img width=200px height=200px src="https://raw.githubusercontent.com/LemmyNet/lemmy-ui/main/src/assets/icons/favicon.svg"></a>
 
- <h3 align="center"><a href="https://join-lemmy.org">Lemmy</a></h3>
+ <h3 align="center"><a href="https://join-lemmy.org">Com-Unity</a></h3>
   <p align="center">
-    A link aggregator and forum for the fediverse.
+    A platform for communities.
     <br />
     <br />
     <a href="https://join-lemmy.org">Join Lemmy</a>
