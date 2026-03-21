@@ -754,12 +754,17 @@ mod tests {
     let data = init_data(pool).await?;
     setup_private_messages(&data, &context).await?;
 
-    let timmy_messages: Vec<_> = NotificationQuery::default()
-      .list(pool, &data.timmy.person)
-      .await?
-      .into_iter()
-      .filter_map(to_pm)
-      .collect();
+    let timmy_messages: Vec<_> = NotificationQuery {
+      type_: Some(NotificationTypeFilter::Other(
+        NotificationType::PrivateMessage,
+      )),
+      ..NotificationQuery::default()
+    }
+    .list(pool, &data.timmy.person)
+    .await?
+    .into_iter()
+    .filter_map(to_pm)
+    .collect();
 
     // The read even shows timmy's sent messages
     assert_length!(3, &timmy_messages);

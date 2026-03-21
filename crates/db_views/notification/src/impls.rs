@@ -308,6 +308,6 @@ fn filter_deleted_and_removed(my_person_id: PersonId) -> _ {
     .and(
       private_message::deleted_by_recipient
         .is_distinct_from(true)
-        .and(notification::recipient_id.eq(my_person_id)),
+        .or(notification::recipient_id.ne(my_person_id)),
     )
 }
