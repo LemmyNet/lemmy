@@ -343,8 +343,7 @@ pub fn notify_mod_action(actions: Vec<Modlog>, context: &LemmyContext) {
         continue;
       };
 
-      let form =
-        NotificationInsertForm::new_mod_action(action.id, local_recipient.person.id, action.mod_id);
+      let form = NotificationInsertForm::new_mod_action(&action, local_recipient.person.id);
       let notifications = Notification::create(&mut context.pool(), &[form]).await?;
       plugin_hook_notification(notifications, &context).await?;
 

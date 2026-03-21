@@ -1,6 +1,6 @@
 use crate::{
   newtypes::{CommentId, CommunityId, ModlogId, NotificationId, PostId, PrivateMessageId},
-  source::{comment::Comment, post::Post, private_message::PrivateMessage},
+  source::{comment::Comment, modlog::Modlog, post::Post, private_message::PrivateMessage},
 };
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
@@ -82,10 +82,15 @@ impl NotificationInsertForm {
       )
     }
   }
-  pub fn new_mod_action(modlog_id: ModlogId, recipient_id: PersonId, creator_id: PersonId) -> Self {
+
+  pub fn new_mod_action(action: &Modlog, recipient_id: PersonId) -> Self {
     Self {
-      modlog_id: Some(modlog_id),
-      ..Self::new(recipient_id, creator_id, NotificationType::ModAction)
+      modlog_id: Some(action.id),
+      comment_id: action.target_comment_id,
+      post_id: action.target_post_id,
+      community_id: action.target_community_id,
+      instance_id: action.target_instance_id,
+      ..Self::new(recipient_id, action.mod_id, NotificationType::ModAction)
     }
   }
 }

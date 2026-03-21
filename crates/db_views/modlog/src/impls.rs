@@ -60,19 +60,13 @@ impl ModlogView {
         .and(community_actions::person_id.nullable().eq(my_person_id)),
     );
 
-    let comment_join = comment::table.on(comment::id.nullable().eq(modlog::target_comment_id));
-    let post_join = post::table.on(post::id.nullable().eq(modlog::target_post_id));
-    let community_join =
-      community::table.on(community::id.nullable().eq(modlog::target_community_id));
-    let instance_join = instance::table.on(instance::id.nullable().eq(modlog::target_instance_id));
-
     modlog::table
       .inner_join(moderator_join)
       .left_join(target_person_join)
-      .left_join(comment_join)
-      .left_join(post_join)
-      .left_join(community_join)
-      .left_join(instance_join)
+      .left_join(comment::table)
+      .left_join(post::table)
+      .left_join(community::table)
+      .left_join(instance::table)
       .left_join(community_actions_join)
   }
 }

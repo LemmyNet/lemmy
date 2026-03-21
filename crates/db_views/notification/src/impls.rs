@@ -5,7 +5,6 @@ use diesel::{
   PgExpressionMethods,
   QueryDsl,
   SelectableHelper,
-  dsl::not,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
@@ -21,7 +20,7 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::{
   PersonId,
   enums::NotificationType,
-  schema::{comment, notification, person, post, private_message},
+  schema::{comment, modlog, notification, person, post, private_message},
 };
 use lemmy_db_views_modlog::ModlogView;
 use lemmy_db_views_notification_sql::notification_joins;
@@ -56,18 +55,7 @@ impl NotificationView {
       .filter(notification::recipient_id.eq(my_person.id))
       // Filter unreads
       .filter(unread_filter)
-      // Filter out the deleted / removed
-      .filter(not(comment::deleted))
-      .filter(not(comment::removed))
-      .filter(not(post::deleted))
-      .filter(not(post::removed))
-      // Filter out the deleted / removed
-      .filter(not(private_message::deleted))
-      .filter(not(private_message::removed))
-      // Also hide messages deleted by the recipient, but only for them
-      .filter(not(
-        private_message::deleted_by_recipient.and(notification::recipient_id.eq(my_person.id)),
-      ))
+      .filter(filter_deleted_and_removed(my_person.id))
       // Don't count replies from blocked users
       .filter(filter_blocked())
       .select(count(notification::id))
@@ -145,18 +133,7 @@ impl NotificationQuery {
     Box::pin(async move {
       let limit = limit_fetch(self.limit, self.no_limit)?;
       let mut query = notification_joins(my_person.id, my_person.instance_id)
-        // Filter out the deleted / removed
-        .filter(not(comment::deleted))
-        .filter(not(comment::removed))
-        .filter(not(post::deleted))
-        .filter(not(post::removed))
-        // Filter out the deleted / removed
-        .filter(not(private_message::deleted))
-        .filter(not(private_message::removed))
-        // Also hide messages deleted by the recipient, but only for them
-        .filter(not(
-          private_message::deleted_by_recipient.and(notification::recipient_id.eq(my_person.id)),
-        ))
+        .filter(filter_deleted_and_removed(my_person.id))
         .limit(limit)
         .select(NotificationViewInternal::as_select())
         .into_boxed();
@@ -300,4 +277,37 @@ fn map_to_enum(
     v.notification
   };
   Some(NotificationView { notification, data })
+}
+
+/// Filter out the deleted and removed items.
+#[diesel::dsl::auto_type]
+fn filter_deleted_and_removed(my_person_id: PersonId) -> _ {
+  // Use is_distinct_from since that handles null
+  comment::deleted
+    .is_distinct_from(true)
+    .and(
+      // Only hide removed if its not a modlog item
+      modlog::id
+        .is_not_null()
+        .or(comment::removed.is_distinct_from(true)),
+    )
+    .and(post::deleted.is_distinct_from(true))
+    .and(
+      modlog::id
+        .is_not_null()
+        .or(post::removed.is_distinct_from(true)),
+    )
+    // Filter out the deleted / removed
+    .and(private_message::deleted.is_distinct_from(true))
+    .and(
+      modlog::id
+        .is_not_null()
+        .or(private_message::removed.is_distinct_from(true)),
+    )
+    // Also hide messages deleted by the recipient, but only for them
+    .and(
+      private_message::deleted_by_recipient
+        .is_distinct_from(true)
+        .and(notification::recipient_id.eq(my_person_id)),
+    )
 }
