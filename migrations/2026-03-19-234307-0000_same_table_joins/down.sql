@@ -38,7 +38,8 @@ ALTER TABLE person_saved_combined
     ADD CONSTRAINT person_saved_combined_person_id_post_id_key UNIQUE (person_id, post_id);
 
 ALTER TABLE person_liked_combined
-    ALTER COLUMN post_id DROP NOT NULL;
+    ALTER COLUMN post_id DROP NOT NULL,
+    DROP CONSTRAINT person_liked_combined_unique;
 
 UPDATE
     person_liked_combined

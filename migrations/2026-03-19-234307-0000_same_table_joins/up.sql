@@ -194,7 +194,8 @@ ALTER TABLE person_liked_combined
     ADD COLUMN community_id int REFERENCES community (id) ON UPDATE CASCADE ON DELETE CASCADE,
     DROP CONSTRAINT person_liked_combined_check,
     DROP CONSTRAINT person_liked_combined_person_id_comment_id_key,
-    DROP CONSTRAINT person_liked_combined_person_id_post_id_key;
+    DROP CONSTRAINT person_liked_combined_person_id_post_id_key,
+    ADD CONSTRAINT person_liked_combined_unique UNIQUE (person_id, comment_id, post_id);
 
 UPDATE
     person_liked_combined AS psc

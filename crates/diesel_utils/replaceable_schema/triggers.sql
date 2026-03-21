@@ -703,6 +703,7 @@ BEGIN
         WHERE
             p.id = NEW.post_id
         ON CONFLICT (person_id,
+            comment_id,
             post_id)
             DO UPDATE SET
                 voted_at = NEW.voted_at,
@@ -797,7 +798,8 @@ BEGIN
         WHERE
             c.id = NEW.comment_id
         ON CONFLICT (person_id,
-            comment_id)
+            comment_id,
+            post_id)
             DO UPDATE SET
                 voted_at = NEW.voted_at,
                 vote_is_upvote = NEW.vote_is_upvote;
