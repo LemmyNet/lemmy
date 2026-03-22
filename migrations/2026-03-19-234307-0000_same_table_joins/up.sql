@@ -195,7 +195,7 @@ ALTER TABLE person_liked_combined
     DROP CONSTRAINT person_liked_combined_check,
     DROP CONSTRAINT person_liked_combined_person_id_comment_id_key,
     DROP CONSTRAINT person_liked_combined_person_id_post_id_key,
-    ADD CONSTRAINT person_liked_combined_unique UNIQUE (person_id, comment_id, post_id);
+    ADD CONSTRAINT person_liked_combined_unique UNIQUE nulls NOT DISTINCT (person_id, comment_id, post_id);
 
 UPDATE
     person_liked_combined AS psc
