@@ -29,7 +29,6 @@ ALTER TABLE notification
 
 -- Currently the notification _id columns are only referenced by that item (ie a comment_id and not a post_id).
 -- Change this so that the post_id column is also filled for comments.
--- TODO fix triggers / inserts also
 UPDATE
     notification AS n
 SET
