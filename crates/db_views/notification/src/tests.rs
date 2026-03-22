@@ -121,7 +121,7 @@ async fn test_post() -> LemmyResult<()> {
   let mod_remove_post_form =
     ModlogInsertForm::mod_remove_post(data.bob.id, &post, true, "reason", None);
   let mod_remove_post = &Modlog::create(pool, &[mod_remove_post_form]).await?[0];
-  let notif_form = NotificationInsertForm::new_mod_action(&mod_remove_post, data.alice.id);
+  let notif_form = NotificationInsertForm::new_mod_action(mod_remove_post, data.alice.id);
   Notification::create(pool, &[notif_form]).await?;
 
   let count = NotificationView::get_unread_count(pool, &data.alice, false).await?;
@@ -183,7 +183,7 @@ async fn test_modlog() -> LemmyResult<()> {
   );
   let modlog = &Modlog::create(pool, &[form]).await?[0];
 
-  let form = NotificationInsertForm::new_mod_action(&modlog, data.bob.id);
+  let form = NotificationInsertForm::new_mod_action(modlog, data.bob.id);
   let notification = &Notification::create(pool, &[form]).await?[0];
 
   let count = NotificationView::get_unread_count(pool, &data.bob, false).await?;
