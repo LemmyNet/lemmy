@@ -83,6 +83,7 @@ pub struct GetComments {
   pub community_name: Option<String>,
   pub post_id: Option<PostId>,
   pub parent_id: Option<CommentId>,
+  pub search_term: Option<String>,
 }
 
 #[skip_serializing_none]

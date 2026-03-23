@@ -75,6 +75,19 @@ pub enum LocalUserSortType {
   Old,
 }
 
+/// The person sort type.
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
+pub enum PersonSortType {
+  #[default]
+  New,
+  Old,
+  PostScore,
+  CommentScore,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
@@ -105,21 +118,17 @@ pub enum MultiCommunityListingType {
   Subscribed,
 }
 
-#[derive(
-  EnumString, Display, Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash,
-)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
-/// The type of content returned from a search.
-pub enum SearchType {
-  #[default]
+/// A listing type for person fetches
+pub enum PersonListingType {
+  /// persons from your own site, as well as all connected / federated sites.
   All,
-  Comments,
-  Posts,
-  Communities,
-  Users,
-  MultiCommunities,
+  /// persons from your site only.
+  #[default]
+  Local,
 }
 
 #[derive(

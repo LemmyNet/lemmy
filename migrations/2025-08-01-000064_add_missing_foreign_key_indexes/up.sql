@@ -100,10 +100,6 @@ CREATE INDEX idx_mod_transfer_community_mod ON mod_transfer_community (mod_perso
 
 CREATE INDEX idx_local_site_system_account ON local_site (system_account);
 
-CREATE INDEX idx_search_combined_multi_community ON search_combined (multi_community_id)
-WHERE
-    multi_community_id IS NOT NULL;
-
 CREATE INDEX idx_mod_add_community_other_person ON mod_add_community (other_person_id);
 
 CREATE INDEX idx_mod_add_other_person ON mod_add (other_person_id);
