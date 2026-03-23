@@ -254,7 +254,7 @@ pub(crate) async fn get_site_v3(
     ..
   } = get_site(local_user_view.clone(), context.clone()).await?.0;
   let my_user = if let Some(local_user_view) = local_user_view {
-    Some(get_my_user(local_user_view, context).await?.0)
+    Some(Box::pin(get_my_user(local_user_view, context)).await?.0)
   } else {
     None
   };
@@ -396,7 +396,7 @@ pub(crate) async fn search_v3(
     limit,
     ..Default::default()
   };
-  let res = search(Query(data), context, local_user_view).await?;
+  let res = Box::pin(search(Query(data), context, local_user_view)).await?;
   Ok(Json(convert_search_response(res.0.search, type_)))
 }
 
