@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use std::{
+  fmt::Debug,
   ops::{Deref, DerefMut},
   sync::LazyLock,
 };
@@ -80,7 +81,7 @@ impl CursorData {
 
 #[cfg(feature = "full")]
 pub trait PaginationCursorConversion {
-  type PaginatedType: Send;
+  type PaginatedType: Send + Debug;
 
   fn to_cursor(&self) -> CursorData;
 
@@ -109,9 +110,11 @@ pub trait PaginationCursorConversion {
 
       if page_back.unwrap_or_default() {
         if recovery {
-          query = query.before_or_equal(page_after);
+          query = query
+            .before_or_equal(page_after)
+            .limit_and_offset_from_end();
         } else {
-          query = query.before(page_after);
+          query = query.before(page_after).limit_and_offset_from_end();
         }
       } else if recovery {
         query = query.after_or_equal(page_after);
@@ -221,7 +224,7 @@ pub fn paginate_response<#[cfg(feature = "ts-rs")] T: ts_rs::TS, #[cfg(not(featu
   request_cursor: Option<PaginationCursor>,
 ) -> LemmyResult<PagedResponse<T>>
 where
-  T: PaginationCursorConversion + Serialize + for<'a> Deserialize<'a>,
+  T: PaginationCursorConversion + Serialize + for<'a> Deserialize<'a> + std::fmt::Debug,
 {
   let make_cursor = |item: Option<&T>, back: bool| -> LemmyResult<Option<PaginationCursor>> {
     if let Some(item) = item {
