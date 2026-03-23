@@ -67,7 +67,7 @@ pub struct Comment {
   pub federation_pending: bool,
   /// Whether the comment is locked.
   pub locked: bool,
-  /// This comment is a dupe of post.community_id, but necessary for join performance.
+  /// This field is a dupe of post.community_id, but necessary for join performance.
   pub community_id: CommunityId,
 }
 
