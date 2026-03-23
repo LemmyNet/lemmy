@@ -95,7 +95,6 @@ pub struct PersonContentCombinedQuery {
 impl PersonContentCombinedQuery {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins(my_person_id: Option<PersonId>, local_instance_id: InstanceId) -> _ {
-    // TODO try just person::table?
     let item_creator_join = person::table.on(person_content_combined::creator_id.eq(person::id));
 
     let my_community_actions_join: my_community_actions_join =
