@@ -2396,7 +2396,7 @@ async fn search(data: &mut Data) -> LemmyResult<()> {
     search_term: Some("post with tags".into()),
     ..Default::default()
   }
-  .list(&data.site, pool)
+  .list(pool, &data.site, &data.local_site)
   .await?;
 
   assert_length!(1, search_by_name);
@@ -2410,7 +2410,7 @@ async fn search(data: &mut Data) -> LemmyResult<()> {
     search_title_only: Some(true),
     ..Default::default()
   }
-  .list(&data.site, pool)
+  .list(pool, &data.site, &data.local_site)
   .await?;
 
   assert!(search_title_only.is_empty());
@@ -2422,7 +2422,7 @@ async fn search(data: &mut Data) -> LemmyResult<()> {
     search_url_only: Some(true),
     ..Default::default()
   }
-  .list(&data.site, pool)
+  .list(pool, &data.site, &data.local_site)
   .await?;
   assert_length!(1, search_url_only);
   assert_eq!(POST_WITH_TAGS, search_url_only[0].post.name);
