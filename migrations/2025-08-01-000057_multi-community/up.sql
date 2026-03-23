@@ -87,12 +87,3 @@ CREATE INDEX idx_multi_community_follow_multi_id ON multi_community_follow (mult
 
 CREATE INDEX idx_multi_community_entry_community_id ON multi_community_entry (community_id);
 
-ALTER TABLE search_combined
-    ADD COLUMN multi_community_id int REFERENCES multi_community (id) ON UPDATE CASCADE ON DELETE CASCADE;
-
-ALTER TABLE search_combined
-    DROP CONSTRAINT search_combined_check;
-
-ALTER TABLE search_combined
-    ADD CONSTRAINT search_combined_check CHECK (num_nonnulls (post_id, comment_id, community_id, person_id, multi_community_id) = 1);
-
