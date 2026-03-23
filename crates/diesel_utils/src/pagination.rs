@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use std::{
+  fmt::Debug,
   ops::{Deref, DerefMut},
   sync::LazyLock,
 };
@@ -109,9 +110,11 @@ pub trait PaginationCursorConversion {
 
       if page_back.unwrap_or_default() {
         if recovery {
-          query = query.before_or_equal(page_after);
+          query = query
+            .before_or_equal(page_after)
+            .limit_and_offset_from_end();
         } else {
-          query = query.before(page_after);
+          query = query.before(page_after).limit_and_offset_from_end();
         }
       } else if recovery {
         query = query.after_or_equal(page_after);
