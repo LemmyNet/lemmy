@@ -1,5 +1,11 @@
 use crate::{CommunityView, MultiCommunityView};
-use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
+use diesel::{
+  BoolExpressionMethods,
+  ExpressionMethods,
+  PgTextExpressionMethods,
+  QueryDsl,
+  SelectableHelper,
+};
 use diesel_async::RunQueryDsl;
 use i_love_jesus::asc_if;
 use lemmy_db_schema::{
@@ -48,7 +54,7 @@ use lemmy_diesel_utils::{
     paginate_response,
   },
   traits::Crud,
-  utils::{LowerKey, now, seconds_to_pg_interval},
+  utils::{LowerKey, fuzzy_search, now, seconds_to_pg_interval},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -116,6 +122,8 @@ pub struct CommunityQuery<'a> {
   pub local_user: Option<&'a LocalUser>,
   pub show_nsfw: Option<bool>,
   pub multi_community_id: Option<MultiCommunityId>,
+  pub search_term: Option<String>,
+  pub search_title_only: Option<bool>,
   pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }
@@ -171,6 +179,24 @@ impl CommunityQuery<'_> {
       query = query.filter(community::id.eq_any(communities))
     }
 
+    // The search term
+    if let Some(search_term) = self.search_term {
+      let searcher = fuzzy_search(&search_term);
+
+      let name_or_title_filter = community::name
+        .ilike(searcher.clone())
+        .or(community::title.ilike(searcher.clone()));
+
+      query = if self.search_title_only.unwrap_or_default() {
+        query.filter(name_or_title_filter)
+      } else {
+        let body_or_description_filter = community::summary
+          .ilike(searcher.clone())
+          .or(community::sidebar.ilike(searcher.clone()));
+        query.filter(name_or_title_filter.or(body_or_description_filter))
+      }
+    }
+
     // Filter by the time range
     if let Some(time_range_seconds) = self.time_range_seconds {
       query = query
@@ -211,6 +237,7 @@ impl CommunityQuery<'_> {
   }
 }
 
+// TODO this should be its own view crate
 impl MultiCommunityView {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins(person_id: Option<PersonId>) -> _ {
@@ -253,23 +280,25 @@ impl PaginationCursorConversion for MultiCommunityView {
 }
 
 #[derive(Default)]
-pub struct MultiCommunityQuery {
+pub struct MultiCommunityQuery<'a> {
   pub listing_type: Option<MultiCommunityListingType>,
   pub sort: Option<MultiCommunitySortType>,
   pub time_range_seconds: Option<i32>,
-  pub my_person_id: Option<PersonId>,
+  pub local_user: Option<&'a LocalUser>,
   pub creator_id: Option<PersonId>,
+  pub search_term: Option<String>,
+  pub search_title_only: Option<bool>,
   pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
   pub no_limit: Option<bool>,
 }
 
-impl MultiCommunityQuery {
+impl MultiCommunityQuery<'_> {
   pub async fn list(self, pool: &mut DbPool<'_>) -> LemmyResult<PagedResponse<MultiCommunityView>> {
     use lemmy_db_schema::{MultiCommunityListingType::*, MultiCommunitySortType::*};
 
     let limit = limit_fetch(self.limit, self.no_limit)?;
-    let mut query = MultiCommunityView::joins(self.my_person_id)
+    let mut query = MultiCommunityView::joins(self.local_user.person_id())
       .select(MultiCommunityView::as_select())
       .limit(limit)
       .into_boxed();
@@ -278,7 +307,7 @@ impl MultiCommunityQuery {
       query = match listing_type {
         All => query,
         Subscribed => {
-          if let Some(my_person_id) = self.my_person_id {
+          if let Some(my_person_id) = self.local_user.person_id() {
             query.filter(multi_community_follow::person_id.eq(my_person_id))
           } else {
             query
@@ -297,6 +326,24 @@ impl MultiCommunityQuery {
       query = query.filter(
         multi_community::published_at.gt(now() - seconds_to_pg_interval(time_range_seconds)),
       );
+    }
+
+    // The search term
+    if let Some(search_term) = self.search_term {
+      let searcher = fuzzy_search(&search_term);
+
+      let name_or_title_filter = multi_community::name
+        .ilike(searcher.clone())
+        .or(multi_community::title.ilike(searcher.clone()));
+
+      query = if self.search_title_only.unwrap_or_default() {
+        query.filter(name_or_title_filter)
+      } else {
+        let body_or_description_filter = multi_community::summary
+          .ilike(searcher.clone())
+          .or(multi_community::sidebar.ilike(searcher.clone()));
+        query.filter(name_or_title_filter.or(body_or_description_filter))
+      }
     }
 
     // Only sort by ascending for Old or NameAsc sorts.
@@ -339,6 +386,7 @@ mod tests {
   };
   use lemmy_db_schema::{
     CommunitySortType,
+    assert_length,
     source::{
       community::{
         Community,
@@ -369,7 +417,10 @@ mod tests {
   struct Data {
     instance: Instance,
     local_user: LocalUser,
+    tom: Person,
     communities: [Community; 3],
+    multi_1: MultiCommunity,
+    multi_2: MultiCommunity,
     site: Site,
   }
 
@@ -384,6 +435,21 @@ mod tests {
 
     let local_user_form = LocalUserInsertForm::test_form(inserted_person.id);
     let local_user = LocalUser::create(pool, &local_user_form, vec![]).await?;
+
+    let tom_form = PersonInsertForm::test_form(instance.id, "tom");
+    let tom = Person::create(pool, &tom_form).await?;
+
+    let multi_1_form = MultiCommunityInsertForm::new(
+      local_user.person_id,
+      instance.id,
+      "multi1".to_string(),
+      String::new(),
+    );
+    let multi_1 = MultiCommunity::create(pool, &multi_1_form).await?;
+
+    let multi_2_form =
+      MultiCommunityInsertForm::new(tom.id, tom.instance_id, "multi2".to_string(), String::new());
+    let multi_2 = MultiCommunity::create(pool, &multi_2_form).await?;
 
     let communities = [
       Community::create(
@@ -408,12 +474,15 @@ mod tests {
       .await?,
       Community::create(
         pool,
-        &CommunityInsertForm::new(
-          instance.id,
-          "test_community_3".to_string(),
-          "nada3".to_owned(),
-          "pubkey".to_string(),
-        ),
+        &CommunityInsertForm {
+          sidebar: Some("sidebar here".to_string()),
+          ..CommunityInsertForm::new(
+            instance.id,
+            "test_community_3".to_string(),
+            "nada3".to_owned(),
+            "pubkey".to_string(),
+          )
+        },
       )
       .await?,
     ];
@@ -440,8 +509,11 @@ mod tests {
     Ok(Data {
       instance,
       local_user,
+      tom,
       communities,
       site,
+      multi_1,
+      multi_2,
     })
   }
 
@@ -656,21 +728,6 @@ mod tests {
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
-    let tom_form = PersonInsertForm::test_form(data.instance.id, "tom");
-    let tom = Person::create(pool, &tom_form).await?;
-
-    let multi_1_form = MultiCommunityInsertForm::new(
-      data.local_user.person_id,
-      data.instance.id,
-      "multi2".to_string(),
-      String::new(),
-    );
-    let multi = MultiCommunity::create(pool, &multi_1_form).await?;
-
-    let multi_2_form =
-      MultiCommunityInsertForm::new(tom.id, tom.instance_id, "multi2".to_string(), String::new());
-    let multi2 = MultiCommunity::create(pool, &multi_2_form).await?;
-
     // list all multis
     let list_all = MultiCommunityQuery::default()
       .list(pool)
@@ -679,23 +736,23 @@ mod tests {
       .map(|m| m.multi.id)
       .collect::<HashSet<_>>();
 
-    assert_eq!(list_all, HashSet::from([multi.id, multi2.id]));
+    assert_eq!(list_all, HashSet::from([data.multi_1.id, data.multi_2.id]));
 
     // list multis by owner
     let list_owner = MultiCommunityQuery {
       creator_id: Some(data.local_user.person_id),
-      my_person_id: Some(data.local_user.person_id),
+      local_user: Some(&data.local_user),
       ..Default::default()
     }
     .list(pool)
     .await?;
     assert_eq!(list_owner.len(), 1);
-    assert_eq!(list_owner[0].multi.id, multi.id);
+    assert_eq!(list_owner[0].multi.id, data.multi_1.id);
     assert_eq!(list_owner[0].follow_state, None);
 
     // Tegan follows multi2
     let follow_form = MultiCommunityFollowForm {
-      multi_community_id: multi2.id,
+      multi_community_id: data.multi_2.id,
       person_id: data.local_user.person_id,
       follow_state: CommunityFollowerState::Accepted,
     };
@@ -703,30 +760,105 @@ mod tests {
 
     // list multis followed by user, followed_only
     let list_followed = MultiCommunityQuery {
-      my_person_id: Some(data.local_user.person_id),
+      local_user: Some(&data.local_user),
       listing_type: Some(MultiCommunityListingType::Subscribed),
       ..Default::default()
     }
     .list(pool)
     .await?;
     assert_eq!(list_followed.len(), 1);
-    assert_eq!(list_followed[0].multi.id, multi2.id);
-    assert_eq!(list_followed[0].owner.id, tom.id);
+    assert_eq!(list_followed[0].multi.id, data.multi_2.id);
+    assert_eq!(list_followed[0].owner.id, data.tom.id);
     assert_eq!(
       list_followed[0].follow_state,
       Some(CommunityFollowerState::Accepted)
     );
 
     // Unfollow, and make sure its removed
-    MultiCommunity::unfollow(pool, data.local_user.person_id, multi2.id).await?;
+    MultiCommunity::unfollow(pool, data.local_user.person_id, data.multi_2.id).await?;
     let list_followed = MultiCommunityQuery {
-      my_person_id: Some(data.local_user.person_id),
+      local_user: Some(&data.local_user),
       listing_type: Some(MultiCommunityListingType::Subscribed),
       ..Default::default()
     }
     .list(pool)
     .await?;
     assert_eq!(list_followed.len(), 0);
+
+    cleanup(data, pool).await?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn search() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // Using a term
+    let community_search_by_name = CommunityQuery {
+      search_term: Some("test_community_2".into()),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+
+    assert_length!(1, community_search_by_name);
+    assert_eq!(
+      data.communities[1].id,
+      community_search_by_name[0].community.id
+    );
+
+    // Searching the sidebar
+    let community_search_body = CommunityQuery {
+      search_term: Some("sidebar".into()),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+
+    assert_length!(1, community_search_body);
+    assert_eq!(
+      data.communities[2].id,
+      community_search_body[0].community.id
+    );
+
+    // Test title only search to make sure sidebar doesn't get returned
+    // Using a term
+    let community_search_title_only = CommunityQuery {
+      search_term: Some("sidebar".into()),
+      search_title_only: Some(true),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+
+    assert!(community_search_title_only.is_empty());
+
+    cleanup(data, pool).await?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn multi_community_search() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // Using a term
+    let search_by_name = MultiCommunityQuery {
+      search_term: Some("multi1".into()),
+      ..Default::default()
+    }
+    .list(pool)
+    .await?;
+
+    assert_length!(1, search_by_name);
+    assert_eq!(data.multi_1.id, search_by_name[0].multi.id);
 
     cleanup(data, pool).await?;
 

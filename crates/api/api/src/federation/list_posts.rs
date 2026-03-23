@@ -46,13 +46,19 @@ pub async fn list_posts(
   )
   .await?;
 
-  let show_hidden = data.show_hidden;
-  let show_read = data.show_read;
-  // Show nsfw content if param is true, or if content_warning exists
-  let show_nsfw = data.show_nsfw;
-  let hide_media = data.hide_media;
-  let no_comments_only = data.no_comments_only;
-  let page_cursor = data.page_cursor;
+  let GetPosts {
+    show_hidden,
+    show_read,
+    // Show nsfw content if param is true, or if content_warning exists
+    show_nsfw,
+    hide_media,
+    no_comments_only,
+    search_term,
+    search_title_only,
+    search_url_only,
+    page_cursor,
+    ..
+  } = data;
 
   let local_user = local_user_view.as_ref().map(|u| &u.local_user);
   let listing_type = Some(listing_type_with_default(
@@ -92,6 +98,9 @@ pub async fn list_posts(
     hide_media,
     no_comments_only,
     keyword_blocks,
+    search_term,
+    search_title_only,
+    search_url_only,
     page_cursor,
   }
   .list(&mut context.pool(), site, local_site)

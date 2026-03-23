@@ -19,10 +19,9 @@ import {
   MultiCommunitySortType,
   NotificationTypeFilter,
   PersonContentType,
+  PersonSortType,
   PostId,
   PostSortType,
-  SearchSortType,
-  SearchType,
 } from "lemmy-js-client";
 import { fetchFunction } from "./shared";
 import * as fs from "fs";
@@ -49,6 +48,55 @@ const postWithLotsOfComments: PostId = 3192572;
 
 const sampleComment: CommentId = 24109064;
 
+const commentSortTypes: CommentSortType[] = [
+  "hot",
+  "new",
+  "old",
+  "top",
+  "controversial",
+];
+
+const postSortTypes: PostSortType[] = [
+  "active",
+  "hot",
+  "new",
+  "top",
+  "old",
+  "controversial",
+];
+
+const communitySortTypes: CommunitySortType[] = [
+  "active_six_months",
+  "active_monthly",
+  "active_weekly",
+  "active_daily",
+  "hot",
+  "new",
+  "old",
+  "name_asc",
+  "name_desc",
+  "comments",
+  "posts",
+  "subscribers",
+  "subscribers_local",
+];
+
+const multiCommunitySortTypes: MultiCommunitySortType[] = [
+  "new",
+  "old",
+  "name_asc",
+  "name_desc",
+  "communities",
+  "subscribers",
+  "subscribers_local",
+];
+
+const personSortTypes: PersonSortType[] = [
+  "new",
+  "old",
+  "post_score",
+  "comment_score",
+];
 let api: LemmyHttp;
 let report: string[] = [];
 
@@ -73,15 +121,7 @@ test("List posts with different sorts", async () => {
   report.push("\n# List posts with different sorts \n");
   report.push("sort | time");
   report.push("--- | ---");
-  const sortTypes: PostSortType[] = [
-    "active",
-    "hot",
-    "new",
-    "old",
-    "top",
-    "controversial",
-  ];
-  for (let sort of sortTypes) {
+  for (let sort of postSortTypes) {
     const time = await timeApiCalls(() => api.getPosts({ sort }));
     report.push(`${sort} | ${formatMs(time)}`);
   }
@@ -91,15 +131,7 @@ test("List posts for a community with different sorts", async () => {
   report.push("\n# List posts for a community with different sorts \n");
   report.push("sort | time");
   report.push("--- | ---");
-  const sortTypes: PostSortType[] = [
-    "active",
-    "hot",
-    "new",
-    "old",
-    "top",
-    "controversial",
-  ];
-  for (let sort of sortTypes) {
+  for (let sort of postSortTypes) {
     const time = await timeApiCalls(() =>
       api.getPosts({ sort, community_name: sampleCommunity }),
     );
@@ -160,14 +192,7 @@ test("List posts for a multi-community with different sorts", async () => {
   report.push("\n# List posts for a multi-community with different sorts \n");
   report.push("sort | time");
   report.push("--- | ---");
-  const sortTypes: PostSortType[] = [
-    "active",
-    "hot",
-    "new",
-    "top",
-    "controversial",
-  ];
-  for (let sort of sortTypes) {
+  for (let sort of postSortTypes) {
     const time = await timeApiCalls(() =>
       api.getPosts({ sort, multi_community_name: sampleMultiCommunity }),
     );
@@ -179,22 +204,7 @@ test("List communities with different sorts", async () => {
   report.push("\n# List communities with different sorts \n");
   report.push("sort | time");
   report.push("--- | ---");
-  const sortTypes: CommunitySortType[] = [
-    "active_six_months",
-    "active_monthly",
-    "active_weekly",
-    "active_daily",
-    "hot",
-    "new",
-    "old",
-    "name_asc",
-    "name_desc",
-    "comments",
-    "posts",
-    "subscribers",
-    "subscribers_local",
-  ];
-  for (let sort of sortTypes) {
+  for (let sort of communitySortTypes) {
     const time = await timeApiCalls(() => api.listCommunities({ sort }));
     report.push(`${sort} | ${formatMs(time)}`);
   }
@@ -221,16 +231,7 @@ test("List multi-communities with different sorts", async () => {
   report.push("\n# List multi-communities with different sorts \n");
   report.push("sort | time");
   report.push("--- | ---");
-  const sortTypes: MultiCommunitySortType[] = [
-    "new",
-    "old",
-    "name_asc",
-    "name_desc",
-    "communities",
-    "subscribers",
-    "subscribers_local",
-  ];
-  for (let sort of sortTypes) {
+  for (let sort of multiCommunitySortTypes) {
     const time = await timeApiCalls(() => api.listMultiCommunities({ sort }));
     report.push(`${sort} | ${formatMs(time)}`);
   }
@@ -261,15 +262,7 @@ test("Get comments for a post with different sorts", async () => {
   report.push("sort | time");
   report.push("--- | ---");
 
-  const sortTypes: CommentSortType[] = [
-    "hot",
-    "new",
-    "old",
-    "top",
-    "controversial",
-  ];
-
-  for (let sort of sortTypes) {
+  for (let sort of commentSortTypes) {
     const time = await timeApiCalls(() =>
       api.getComments({
         post_id: postWithLotsOfComments,
@@ -299,15 +292,7 @@ test("Get all comments with different sorts", async () => {
   report.push("sort | time");
   report.push("--- | ---");
 
-  const sortTypes: CommentSortType[] = [
-    "hot",
-    "new",
-    "old",
-    "top",
-    "controversial",
-  ];
-
-  for (let sort of sortTypes) {
+  for (let sort of commentSortTypes) {
     const time = await timeApiCalls(() => api.getComments({ sort }));
     report.push(`${sort} | ${formatMs(time)}`);
   }
@@ -420,36 +405,46 @@ test("List reports", async () => {
   report.push(`all | ${formatMs(all)}`);
 });
 
-test.skip("Search with types", async () => {
+test("Search with sort types", async () => {
   report.push("\n# Search with types\n");
-  report.push("type | time");
-  report.push("--- | ---");
+  report.push("type | sort | time");
+  report.push("--- | --- | ---");
 
-  const searchTypes: SearchType[] = [
-    "all",
-    "comments",
-    "posts",
-    "communities",
-    "users",
-    "multi_communities",
-  ];
+  const search_term = searchTerm;
 
-  for (let type_ of searchTypes) {
-    const time = await timeApiCalls(() => api.search({ q: searchTerm, type_ }));
-    report.push(`${type_} | ${formatMs(time)}`);
+  for (let sort of postSortTypes) {
+    const postTime = await timeApiCalls(() =>
+      api.getPosts({ sort, search_term }),
+    );
+    report.push(`post | ${sort} | ${formatMs(postTime)}`);
   }
-});
 
-test.skip("Search with sorts", async () => {
-  report.push("\n# Search with sorts\n");
-  report.push("sort | time");
-  report.push("--- | ---");
+  for (let sort of commentSortTypes) {
+    const commentTime = await timeApiCalls(() =>
+      api.getComments({ sort, search_term }),
+    );
+    report.push(`comment | ${sort} | ${formatMs(commentTime)}`);
+  }
 
-  const sortTypes: SearchSortType[] = ["new", "old", "top"];
+  for (let sort of communitySortTypes) {
+    const communityTime = await timeApiCalls(() =>
+      api.listCommunities({ sort, search_term }),
+    );
+    report.push(`community | ${sort} | ${formatMs(communityTime)}`);
+  }
 
-  for (let sort of sortTypes) {
-    const time = await timeApiCalls(() => api.search({ q: searchTerm, sort }));
-    report.push(`${sort} | ${formatMs(time)}`);
+  for (let sort of multiCommunitySortTypes) {
+    const multiCommunityTime = await timeApiCalls(() =>
+      api.listMultiCommunities({ sort, search_term }),
+    );
+    report.push(`multi community | ${sort} | ${formatMs(multiCommunityTime)}`);
+  }
+
+  for (let sort of personSortTypes) {
+    const personTime = await timeApiCalls(() =>
+      api.listPersons({ sort, search_term }),
+    );
+    report.push(`person | ${sort} | ${formatMs(personTime)}`);
   }
 });
 

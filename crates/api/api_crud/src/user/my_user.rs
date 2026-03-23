@@ -28,6 +28,7 @@ pub async fn get_my_user(
   // Build the local user with parallel queries and add it to site response
   let person_id = local_user_view.person.id;
   let local_user_id = local_user_view.local_user.id;
+  let local_user = &local_user_view.local_user;
   let pool = &mut context.pool();
 
   let (
@@ -46,9 +47,9 @@ pub async fn get_my_user(
     |pool| InstanceActions::read_communities_block_for_person(pool, person_id),
     |pool| InstanceActions::read_persons_block_for_person(pool, person_id),
     |pool| PersonActions::read_blocks_for_person(pool, person_id),
-    |pool| CommunityModeratorView::for_person(pool, person_id, Some(&local_user_view.local_user)),
+    |pool| CommunityModeratorView::for_person(pool, person_id, Some(local_user)),
     |pool| MultiCommunityQuery {
-      my_person_id: Some(person_id),
+      local_user: Some(local_user),
       listing_type: Some(MultiCommunityListingType::Subscribed),
       sort: Some(MultiCommunitySortType::NameAsc),
       no_limit: Some(true),

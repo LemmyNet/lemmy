@@ -900,19 +900,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    search_combined (id) {
-        published_at -> Timestamptz,
-        score -> Int4,
-        post_id -> Nullable<Int4>,
-        comment_id -> Nullable<Int4>,
-        community_id -> Nullable<Int4>,
-        person_id -> Nullable<Int4>,
-        id -> Int4,
-        multi_community_id -> Nullable<Int4>,
-    }
-}
-
-diesel::table! {
     secret (id) {
         id -> Int4,
         jwt_secret -> Varchar,
@@ -1007,6 +994,10 @@ diesel::joinable!(local_user_keyword_block -> local_user (local_user_id));
 diesel::joinable!(local_user_language -> language (language_id));
 diesel::joinable!(local_user_language -> local_user (local_user_id));
 diesel::joinable!(login_token -> local_user (user_id));
+diesel::joinable!(modlog -> comment (target_comment_id));
+diesel::joinable!(modlog -> community (target_community_id));
+diesel::joinable!(modlog -> instance (target_instance_id));
+diesel::joinable!(modlog -> post (target_post_id));
 diesel::joinable!(multi_community -> instance (instance_id));
 diesel::joinable!(multi_community -> person (creator_id));
 diesel::joinable!(multi_community_entry -> community (community_id));
@@ -1043,11 +1034,6 @@ diesel::joinable!(report_combined -> comment_report (comment_report_id));
 diesel::joinable!(report_combined -> community_report (community_report_id));
 diesel::joinable!(report_combined -> post_report (post_report_id));
 diesel::joinable!(report_combined -> private_message_report (private_message_report_id));
-diesel::joinable!(search_combined -> comment (comment_id));
-diesel::joinable!(search_combined -> community (community_id));
-diesel::joinable!(search_combined -> multi_community (multi_community_id));
-diesel::joinable!(search_combined -> person (person_id));
-diesel::joinable!(search_combined -> post (post_id));
 diesel::joinable!(site -> instance (instance_id));
 diesel::joinable!(site_language -> language (language_id));
 diesel::joinable!(site_language -> site (site_id));
@@ -1095,7 +1081,6 @@ diesel::allow_tables_to_appear_in_same_query!(
   private_message_report,
   registration_application,
   report_combined,
-  search_combined,
   site,
   site_language,
   person_actions,

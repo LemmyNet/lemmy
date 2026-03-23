@@ -5,6 +5,7 @@ use chrono::{DateTime, Days, Utc};
 use diesel_async::SimpleAsyncConnection;
 use diesel_uplete::UpleteCount;
 use lemmy_db_schema::{
+  assert_length,
   impls::actor_language::UNDETERMINED_ID,
   newtypes::{LanguageId, PostId},
   source::{
@@ -68,6 +69,7 @@ const POST_BY_BOT: &str = "post by bot";
 const POST: &str = "post";
 const POST_WITH_TAGS: &str = "post with tags";
 const POST_KEYWORD_BLOCKED: &str = "blocked_keyword";
+const SAMPLE_URL: &str = "https://google.com";
 
 fn names(post_views: &[PostView]) -> Vec<&str> {
   post_views.iter().map(|i| i.post.name.as_str()).collect()
@@ -214,6 +216,8 @@ impl Data {
     // A sample post with tags
     let new_post = PostInsertForm {
       language_id: Some(LanguageId(47)),
+      body: Some("post with tags body".to_string()),
+      url: Some(Url::parse(SAMPLE_URL)?.into()),
       ..PostInsertForm::new(
         POST_WITH_TAGS.to_string(),
         inserted_tegan_person.id,
@@ -2376,6 +2380,52 @@ async fn post_listing_multi_community(data: &mut Data) -> LemmyResult<()> {
   .list(pool, &data.site, &updated_local_site)
   .await?;
   assert_eq!(listing.items, suggested.items);
+
+  Ok(())
+}
+
+#[test_context(Data)]
+#[tokio::test]
+#[serial]
+async fn search(data: &mut Data) -> LemmyResult<()> {
+  let pool = &data.pool();
+  let pool = &mut pool.into();
+
+  // Using a term
+  let search_by_name = PostQuery {
+    search_term: Some("post with tags".into()),
+    ..Default::default()
+  }
+  .list(&data.site, pool)
+  .await?;
+
+  assert_length!(1, search_by_name);
+  assert_eq!(POST_WITH_TAGS, search_by_name[0].post.name);
+
+  // Test title only search to make sure the body one doesn't show up
+  // Using a term
+  let search_title_only = PostQuery {
+    search_term: Some("post with tags body".into()),
+
+    search_title_only: Some(true),
+    ..Default::default()
+  }
+  .list(&data.site, pool)
+  .await?;
+
+  assert!(search_title_only.is_empty());
+
+  // Test title only search to make sure 'postbody' doesn't show up
+  // Using a term
+  let search_url_only = PostQuery {
+    search_term: Some(SAMPLE_URL.to_string()),
+    search_url_only: Some(true),
+    ..Default::default()
+  }
+  .list(&data.site, pool)
+  .await?;
+  assert_length!(1, search_url_only);
+  assert_eq!(POST_WITH_TAGS, search_url_only[0].post.name);
 
   Ok(())
 }

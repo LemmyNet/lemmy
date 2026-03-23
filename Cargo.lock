@@ -10,8 +10,9 @@ checksum = "8f27d075294830fcab6f66e320dab524bc6d048f4a151698e153205559113772"
 
 [[package]]
 name = "activitypub_federation"
-version = "0.7.0-beta.8"
-source = "git+https://github.com/LemmyNet/activitypub-federation-rust.git#11f95ff384ff8e857e6d660976b7cd3b82159f2e"
+version = "0.7.0-beta.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d96e75ef9abd9215050b04ac90729f893da9cf290d4e6946385db40ab61763b6"
 dependencies = [
  "activitystreams-kinds",
  "actix-web",
@@ -3200,7 +3201,6 @@ dependencies = [
  "lemmy_db_views_post_comment_combined",
  "lemmy_db_views_registration_applications",
  "lemmy_db_views_report_combined",
- "lemmy_db_views_search_combined",
  "lemmy_db_views_site",
  "lemmy_db_views_vote",
  "lemmy_diesel_utils",
@@ -3268,7 +3268,6 @@ dependencies = [
  "lemmy_db_views_private_message",
  "lemmy_db_views_registration_applications",
  "lemmy_db_views_report_combined",
- "lemmy_db_views_search_combined",
  "lemmy_db_views_site",
  "lemmy_db_views_vote",
  "lemmy_diesel_utils",
@@ -3302,7 +3301,6 @@ dependencies = [
  "lemmy_db_views_post",
  "lemmy_db_views_private_message",
  "lemmy_db_views_registration_applications",
- "lemmy_db_views_search_combined",
  "lemmy_db_views_site",
  "lemmy_diesel_utils",
  "lemmy_email",
@@ -3346,7 +3344,6 @@ dependencies = [
  "lemmy_db_views_post",
  "lemmy_db_views_registration_applications",
  "lemmy_db_views_report_combined",
- "lemmy_db_views_search_combined",
  "lemmy_db_views_site",
  "lemmy_diesel_utils",
  "lemmy_utils 1.0.0-test-arm-qemu.0",
@@ -3845,6 +3842,7 @@ dependencies = [
  "chrono",
  "diesel",
  "diesel-async",
+ "i-love-jesus",
  "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_schema_file",
  "lemmy_db_views_community",
@@ -3863,7 +3861,6 @@ dependencies = [
 name = "lemmy_db_views_person_content_combined"
 version = "1.0.0-test-arm-qemu.0"
 dependencies = [
- "derive-new",
  "diesel",
  "diesel-async",
  "i-love-jesus",
@@ -3934,6 +3931,7 @@ dependencies = [
  "i-love-jesus",
  "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_schema_file",
+ "lemmy_db_views_community",
  "lemmy_db_views_local_user",
  "lemmy_diesel_utils",
  "lemmy_utils 1.0.0-test-arm-qemu.0",
@@ -4027,32 +4025,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "lemmy_db_views_search_combined"
-version = "1.0.0-test-arm-qemu.0"
-dependencies = [
- "chrono",
- "diesel",
- "diesel-async",
- "i-love-jesus",
- "lemmy_db_schema 1.0.0-test-arm-qemu.0",
- "lemmy_db_schema_file",
- "lemmy_db_views_comment",
- "lemmy_db_views_community",
- "lemmy_db_views_local_user",
- "lemmy_db_views_person",
- "lemmy_db_views_post",
- "lemmy_diesel_utils",
- "lemmy_utils 1.0.0-test-arm-qemu.0",
- "pretty_assertions",
- "serde",
- "serde_with",
- "serial_test",
- "tokio",
- "ts-rs",
- "url",
-]
-
-[[package]]
 name = "lemmy_db_views_site"
 version = "1.0.0-test-arm-qemu.0"
 dependencies = [
@@ -4064,11 +4036,13 @@ dependencies = [
  "i-love-jesus",
  "lemmy_db_schema 1.0.0-test-arm-qemu.0",
  "lemmy_db_schema_file",
+ "lemmy_db_views_comment",
  "lemmy_db_views_community",
  "lemmy_db_views_community_follower",
  "lemmy_db_views_community_moderator",
  "lemmy_db_views_local_user",
  "lemmy_db_views_person",
+ "lemmy_db_views_post",
  "lemmy_diesel_utils",
  "lemmy_utils 1.0.0-test-arm-qemu.0",
  "serde",
@@ -4193,6 +4167,7 @@ dependencies = [
  "strum 0.28.0",
  "tokio",
  "tracing",
+ "ts-rs",
  "url",
 ]
 

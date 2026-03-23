@@ -3,19 +3,16 @@ use lemmy_api_utils::{
   context::LemmyContext,
   utils::{check_private_instance, is_mod_or_admin_opt, update_read_comments},
 };
-use lemmy_db_schema::{
-  SearchType,
-  source::{
-    comment::Comment,
-    post::{Post, PostActions},
-  },
+use lemmy_db_schema::source::{
+  comment::Comment,
+  post::{Post, PostActions},
 };
 use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_post::PostView;
-use lemmy_db_views_search_combined::{
+use lemmy_db_views_post::{
+  PostView,
   api::{GetPost, GetPostResponse},
-  impls::SearchCombinedQuery,
+  impls::PostQuery,
 };
 use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::traits::Crud;
@@ -26,9 +23,10 @@ pub async fn get_post(
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<GetPostResponse>> {
-  let site_view = SiteView::read_local(&mut context.pool()).await?;
-  let local_site = site_view.local_site;
-  let local_instance_id = site_view.site.instance_id;
+  let SiteView {
+    site, local_site, ..
+  } = SiteView::read_local(&mut context.pool()).await?;
+  let local_instance_id = site.instance_id;
 
   check_private_instance(&local_user_view, &local_site)?;
 
@@ -89,17 +87,14 @@ pub async fn get_post(
 
   // Fetch the cross_posts
   let cross_posts = if let Some(url) = &post_view.post.url {
-    SearchCombinedQuery {
+    PostQuery {
       search_term: Some(url.inner().as_str().into()),
-      post_url_only: Some(true),
-      type_: Some(SearchType::Posts),
+      search_url_only: Some(true),
       ..Default::default()
     }
-    .list(&mut context.pool(), &local_user_view, &site_view.site)
+    .list(&mut context.pool(), &site, &local_site)
     .await?
     .iter()
-    // Filter map to collect posts
-    .filter_map(|f| f.to_post_view())
     // Don't return this post as one of the cross_posts
     .filter(|x| x.post.id != post_id)
     .cloned()
