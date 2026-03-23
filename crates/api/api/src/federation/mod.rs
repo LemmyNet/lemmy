@@ -8,6 +8,7 @@ use lemmy_db_schema_file::enums::{CommentSortType, ListingType, PostSortType};
 mod fetcher;
 pub mod list_comments;
 pub mod list_person_content;
+pub mod list_persons;
 pub mod list_posts;
 pub mod read_community;
 pub mod read_multi_community;

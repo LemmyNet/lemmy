@@ -4,6 +4,7 @@ use diesel::{
   ExpressionMethods,
   JoinOnDsl,
   NullableExpressionMethods,
+  PgTextExpressionMethods,
   QueryDsl,
   SelectableHelper,
   dsl::exists,
@@ -57,7 +58,7 @@ use lemmy_diesel_utils::{
     paginate_response,
   },
   traits::Crud,
-  utils::{Subpath, now, seconds_to_pg_interval},
+  utils::{Subpath, fuzzy_search, now, seconds_to_pg_interval},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
@@ -166,6 +167,7 @@ pub struct CommentQuery<'a> {
   pub parent_path: Option<Ltree>,
   pub local_user: Option<&'a LocalUser>,
   pub max_depth: Option<i32>,
+  pub search_term: Option<String>,
   pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }
@@ -232,6 +234,12 @@ impl CommentQuery<'_> {
 
       query = query.filter(filter_blocked());
     };
+
+    // The search term
+    if let Some(search_term) = o.search_term {
+      let searcher = fuzzy_search(&search_term);
+      query = query.filter(comment::content.ilike(searcher));
+    }
 
     if !o.local_user.show_nsfw(site) {
       query = query
@@ -1082,5 +1090,28 @@ mod tests {
     assert_eq!(data.comment_0.content, comment_listing[0].comment.content);
 
     cleanup(data, pool).await
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn search() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    // Using a term
+    let comment_search_by_name = CommentQuery {
+      search_term: Some("comment 2".into()),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+
+    assert_length!(1, comment_search_by_name);
+    assert_eq!(data.comment_2.id, comment_search_by_name[0].comment.id);
+
+    cleanup(data, pool).await?;
+
+    Ok(())
   }
 }

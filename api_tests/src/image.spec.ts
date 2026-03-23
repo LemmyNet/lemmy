@@ -288,15 +288,15 @@ test("No image proxying if setting is disabled", async () => {
   let betaPost = await waitForPost(beta, post.post_view.post, res => {
     return res?.post.alt_text != null;
   });
-  expect(betaPost.post).toBeDefined();
+  expect(betaPost!.post).toBeDefined();
 
   // remote image doesn't get proxied after federation
   expect(
-    betaPost.post.url?.startsWith("http://lemmy-beta:8551/api/v4/image/"),
+    betaPost!.post.url?.startsWith("http://lemmy-beta:8551/api/v4/image/"),
   ).toBeTruthy();
-  expect(betaPost.post.body).toBe(`![](${sampleImage})`);
+  expect(betaPost!.post.body).toBe(`![](${sampleImage})`);
   // Make sure the alt text got federated
-  expect(post.post_view.post.alt_text).toBe(betaPost.post.alt_text);
+  expect(post.post_view.post.alt_text).toBe(betaPost!.post.alt_text);
 });
 
 test("Make regular post, and give it a custom thumbnail", async () => {

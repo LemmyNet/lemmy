@@ -91,16 +91,12 @@ impl PaginationCursorConversion for PostCommentCombinedViewWrapper {
   }
 }
 
-#[derive(derive_new::new)]
+#[derive(Default)]
 pub struct PersonContentCombinedQuery {
   pub creator_id: PersonId,
-  #[new(default)]
   pub type_: Option<PersonContentType>,
-  #[new(default)]
   pub page_cursor: Option<PaginationCursor>,
-  #[new(default)]
   pub limit: Option<i64>,
-  #[new(default)]
   pub no_limit: Option<bool>,
 }
 
@@ -364,9 +360,12 @@ mod tests {
     let data = init_data(pool).await?;
 
     // Do a batch read of timmy
-    let timmy_content = PersonContentCombinedQuery::new(data.timmy.id)
-      .list(pool, None, data.instance.id)
-      .await?;
+    let timmy_content = PersonContentCombinedQuery {
+      creator_id: data.timmy.id,
+      ..Default::default()
+    }
+    .list(pool, None, data.instance.id)
+    .await?;
     assert_eq!(3, timmy_content.len());
 
     // Make sure the types are correct
@@ -390,9 +389,12 @@ mod tests {
     }
 
     // Do a batch read of sara
-    let sara_content = PersonContentCombinedQuery::new(data.sara.id)
-      .list(pool, None, data.instance.id)
-      .await?;
+    let sara_content = PersonContentCombinedQuery {
+      creator_id: data.sara.id,
+      ..Default::default()
+    }
+    .list(pool, None, data.instance.id)
+    .await?;
     assert_eq!(3, sara_content.len());
 
     // Make sure the report types are correct
@@ -433,9 +435,12 @@ mod tests {
     let data = init_data(pool).await?;
 
     // Make sure timmy can't see private content
-    let timmy_content = PersonContentCombinedQuery::new(data.timmy.id)
-      .list(pool, Some(&data.timmy_view), data.instance.id)
-      .await?;
+    let timmy_content = PersonContentCombinedQuery {
+      creator_id: data.timmy.id,
+      ..Default::default()
+    }
+    .list(pool, Some(&data.timmy_view), data.instance.id)
+    .await?;
     assert_eq!(3, timmy_content.len());
 
     // Approve timmy to the community
@@ -456,9 +461,12 @@ mod tests {
     .await?;
 
     // Make sure timmy can now see the content
-    let timmy_content_after_approved = PersonContentCombinedQuery::new(data.timmy.id)
-      .list(pool, Some(&data.timmy_view), data.instance.id)
-      .await?;
+    let timmy_content_after_approved = PersonContentCombinedQuery {
+      creator_id: data.timmy.id,
+      ..Default::default()
+    }
+    .list(pool, Some(&data.timmy_view), data.instance.id)
+    .await?;
     assert_eq!(5, timmy_content_after_approved.len());
 
     cleanup(data, pool).await?;
