@@ -81,7 +81,7 @@ impl CursorData {
 
 #[cfg(feature = "full")]
 pub trait PaginationCursorConversion {
-  type PaginatedType: Send + Debug;
+  type PaginatedType: Send;
 
   fn to_cursor(&self) -> CursorData;
 
@@ -224,7 +224,7 @@ pub fn paginate_response<#[cfg(feature = "ts-rs")] T: ts_rs::TS, #[cfg(not(featu
   request_cursor: Option<PaginationCursor>,
 ) -> LemmyResult<PagedResponse<T>>
 where
-  T: PaginationCursorConversion + Serialize + for<'a> Deserialize<'a> + std::fmt::Debug,
+  T: PaginationCursorConversion + Serialize + for<'a> Deserialize<'a>,
 {
   let make_cursor = |item: Option<&T>, back: bool| -> LemmyResult<Option<PaginationCursor>> {
     if let Some(item) = item {
