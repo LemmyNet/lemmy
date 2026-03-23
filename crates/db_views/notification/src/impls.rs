@@ -171,6 +171,10 @@ impl NotificationQuery {
         }
       }
 
+      if let Some(creator_id) = self.creator_id {
+        query = query.filter(notification::creator_id.eq(creator_id));
+      }
+
       if !self.show_bot_accounts.unwrap_or_default() {
         query = query.filter(person::bot_account.is_distinct_from(true));
       };
