@@ -255,7 +255,7 @@ pub(crate) async fn get_site_v3(
     ..
   } = get_site(local_user_view.clone(), context.clone()).await?.0;
   let my_user = if let Some(local_user_view) = local_user_view {
-    Some(get_my_user(local_user_view, context).await?.0)
+    Some(Box::pin(get_my_user(local_user_view, context)).await?.0)
   } else {
     None
   };
