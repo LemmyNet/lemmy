@@ -171,7 +171,7 @@ pub async fn create_post(
   PostActions::like(&mut context.pool(), &like_form).await?;
 
   NotifyData {
-    do_send_email: !local_site.disable_email_notifications,
+    do_send_email: !local_site.email_notifications_disabled,
     ..NotifyData::new(
       inserted_post.clone(),
       local_user_view.person.clone(),

@@ -209,7 +209,7 @@ pub fn check_email_verified(
   site_view: &SiteView,
 ) -> LemmyResult<()> {
   if !local_user_view.local_user.admin
-    && site_view.local_site.require_email_verification
+    && site_view.local_site.email_verification_required
     && !local_user_view.local_user.email_verified
   {
     return Err(LemmyErrorType::EmailNotVerified.into());
@@ -357,7 +357,7 @@ pub fn check_private_instance(
 
 /// If private messages are disabled, dont allow them to be sent / received
 pub fn check_private_messages_enabled(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
-  if !local_user_view.local_user.enable_private_messages {
+  if !local_user_view.local_user.private_messages_enabled {
     Err(LemmyErrorType::CouldntCreate.into())
   } else {
     Ok(())
@@ -449,7 +449,7 @@ pub async fn get_url_blocklist(context: &LemmyContext) -> LemmyResult<RegexSet> 
 // `local_site` is optional so that tests work easily
 pub fn check_nsfw_allowed(nsfw: Option<bool>, local_site: Option<&LocalSite>) -> LemmyResult<()> {
   let is_nsfw = nsfw.unwrap_or_default();
-  let nsfw_disallowed = local_site.is_some_and(|s| s.disallow_nsfw_content);
+  let nsfw_disallowed = local_site.is_some_and(|s| s.nsfw_content_disallowed);
 
   if nsfw_disallowed && is_nsfw {
     return Err(LemmyErrorType::NsfwNotAllowed.into());

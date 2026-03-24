@@ -107,7 +107,7 @@ pub async fn edit_site(
     federation_signed_fetch: data.federation_signed_fetch,
     registration_mode: data.registration_mode,
     community_creation_admin_only: data.community_creation_admin_only,
-    require_email_verification: data.require_email_verification,
+    email_verification_required: data.email_verification_required,
     application_question: diesel_string_update(data.application_question.as_deref()),
     private_instance: data.private_instance,
     default_theme: data.default_theme.clone(),
@@ -128,8 +128,8 @@ pub async fn edit_site(
     post_downvotes: data.post_downvotes,
     comment_upvotes: data.comment_upvotes,
     comment_downvotes: data.comment_downvotes,
-    disallow_nsfw_content: data.disallow_nsfw_content,
-    disable_email_notifications: data.disable_email_notifications,
+    nsfw_content_disallowed: data.nsfw_content_disallowed,
+    email_notifications_disabled: data.email_notifications_disabled,
     suggested_multi_community_id,
     image_mode: data.image_mode,
     image_proxy_bypass_domains: diesel_string_update(data.image_proxy_bypass_domains.as_deref()),
@@ -195,9 +195,9 @@ pub async fn edit_site(
 
   let new_require_email_verification = update_local_site
     .as_ref()
-    .map(|ols| ols.require_email_verification)
+    .map(|ols| ols.email_verification_required)
     .unwrap_or(false);
-  if !local_site.require_email_verification && new_require_email_verification {
+  if !local_site.email_verification_required && new_require_email_verification {
     LocalUser::set_all_users_email_verified(&mut context.pool()).await?;
   }
 
