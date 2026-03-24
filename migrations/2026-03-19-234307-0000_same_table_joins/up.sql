@@ -171,7 +171,7 @@ FROM
     private_message_report AS pr,
     private_message p
 WHERE
-    rc.community_report_id = pr.id
+    rc.private_message_report_id = pr.id
     AND pr.private_message_id = p.id;
 
 ALTER TABLE report_combined
