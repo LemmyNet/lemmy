@@ -1,6 +1,7 @@
+pub mod feed;
+pub(crate) mod feed_moderators;
 pub mod group;
 pub mod instance;
-pub mod multi_community;
 pub mod note;
 pub mod page;
 pub mod person;
@@ -10,6 +11,7 @@ pub mod tags;
 #[cfg(test)]
 mod tests {
   use super::{
+    feed::Feed,
     group::Group,
     instance::Instance,
     note::Note,
@@ -131,6 +133,14 @@ mod tests {
   #[test]
   fn test_parse_object_mbin() -> LemmyResult<()> {
     test_json::<Instance>("../apub/assets/mbin/objects/instance.json")?;
+    Ok(())
+  }
+
+  #[test]
+  fn test_parse_object_piefed() -> LemmyResult<()> {
+    test_json::<Feed>("../apub/assets/piefed/objects/feed.json")?;
+    test_json::<Page>("../apub/assets/piefed/objects/page.json")?;
+    test_json::<Group>("../apub/assets/piefed/objects/group.json")?;
     Ok(())
   }
 }

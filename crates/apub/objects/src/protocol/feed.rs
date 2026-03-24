@@ -1,9 +1,6 @@
 use crate::{
   objects::{
-    community::ApubCommunity,
-    multi_community::ApubMultiCommunity,
-    multi_community_collection::ApubFeedCollection,
-    person::ApubPerson,
+    community::ApubCommunity, feed_moderators::ApubFeedModerators, multi_community::ApubMultiCommunity, multi_community_collection::ApubFeedCollection
   },
   utils::protocol::Source,
 };
@@ -35,7 +32,7 @@ pub struct Feed {
   pub(crate) media_type: Option<MediaTypeHtml>,
   // sidebar
   pub summary: Option<String>,
-  pub attributed_to: ObjectId<ApubPerson>,
+  pub attributed_to: CollectionId<ApubFeedModerators>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, Default)]

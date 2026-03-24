@@ -1,0 +1,32 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/v1"
+  ],
+  "attributedTo": "https://piefed.social/f/environment/moderators",
+  "childFeeds": [
+    "https://piefed.social/f/transport",
+    "https://piefed.social/f/climate"
+  ],
+  "endpoints": {
+    "sharedInbox": "https://piefed.social/inbox"
+  },
+  "followers": "https://piefed.social/f/environment/followers",
+  "following": "https://piefed.social/f/environment/following",
+  "id": "https://piefed.social/f/environment",
+  "inbox": "https://piefed.social/f/environment/inbox",
+  "moderators": "https://piefed.social/f/environment/moderators",
+  "name": "Environment",
+  "outbox": "https://piefed.social/f/environment/outbox",
+  "preferredUsername": "environment",
+  "publicKey": {
+    "id": "https://piefed.social/f/environment#main-key",
+    "owner": "https://piefed.social/f/environment",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAt4rfwkddTt65tptIkq8c\nmEo8Le7LEvXHLJSjSjxlNGrEbQQO8Qumxix+9l4jdqhQ0bMZ6bI19GkTqobUKU4e\nqh4hyonZSxkVeddsuNQ9otL51rLoEiQ8y/RLHBstlMtEbasZHebMRdVY21Juhyws\n4dXzqmkRFJl4Nx9iHRKTcJa02iIhuMRRTZ4yZ6KORm1rNSVzPHDZoSTDN9Zdwd7c\ntDF2vXBlbPS5TOR1gq6fAAocbOfPWkpapliXsd07aIXXzKbpVyTOToS//oX7TdJu\nfFn4yaYV0xXeOZLb49M2e9Qx9MMDrH3tCecwMs8Gw7+OZbahoc8renJLouh4WU8X\nhQIDAQAB\n-----END PUBLIC KEY-----\n"
+  },
+  "published": "2025-03-01T02:51:31.392518+00:00",
+  "sensitive": false,
+  "type": "Feed",
+  "updated": "2025-03-01T02:51:31.392520+00:00",
+  "url": "https://piefed.social/f/environment"
+}

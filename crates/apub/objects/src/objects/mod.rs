@@ -1,5 +1,6 @@
 pub mod comment;
 pub mod community;
+pub mod feed_moderators;
 pub mod instance;
 pub mod multi_community;
 pub mod multi_community_collection;

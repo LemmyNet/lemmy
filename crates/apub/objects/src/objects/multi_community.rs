@@ -1,6 +1,6 @@
 use crate::{
   objects::ApubSite,
-  protocol::multi_community::Feed,
+  protocol::feed::Feed,
   utils::{
     functions::{
       GetActorType,
@@ -22,18 +22,15 @@ use activitypub_federation::{
 use chrono::{DateTime, Utc};
 use lemmy_api_utils::{
   context::LemmyContext,
-  utils::{process_markdown_opt, slur_regex},
+  utils::{generate_moderators_url, process_markdown_opt, slur_regex},
 };
 use lemmy_db_schema::{
-  source::{
-    multi_community::{MultiCommunity, MultiCommunityInsertForm},
-    person::Person,
-  },
+  source::multi_community::{MultiCommunity, MultiCommunityInsertForm},
   traits::ApubActor,
 };
 use lemmy_db_schema_file::enums::ActorType;
 use lemmy_db_views_site::SiteView;
-use lemmy_diesel_utils::{sensitive::SensitiveString, traits::Crud};
+use lemmy_diesel_utils::sensitive::SensitiveString;
 use lemmy_utils::{
   error::{LemmyError, LemmyErrorType, LemmyResult},
   utils::{
@@ -104,7 +101,6 @@ impl Object for ApubMultiCommunity {
   async fn into_json(self, context: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
     let site_view = SiteView::read_local(&mut context.pool()).await?;
     let site = ApubSite(site_view.site.clone());
-    let creator = Person::read(&mut context.pool(), self.creator_id).await?;
     Ok(Feed {
       r#type: Default::default(),
       id: self.ap_id.clone().into(),
@@ -118,7 +114,7 @@ impl Object for ApubMultiCommunity {
       source: self.sidebar.clone().map(Source::new),
       description: self.summary.clone(),
       media_type: self.sidebar.as_ref().map(|_| MediaTypeHtml::Html),
-      attributed_to: creator.ap_id.into(),
+      attributed_to: generate_moderators_url(&self.ap_id)?.into(),
     })
   }
 
@@ -135,7 +131,8 @@ impl Object for ApubMultiCommunity {
   }
 
   async fn from_json(json: Self::Kind, context: &Data<LemmyContext>) -> LemmyResult<Self> {
-    let creator = json.attributed_to.dereference(context).await?;
+    let moderators = json.attributed_to.dereference(&None, context).await?;
+    let creator = moderators.0;
     let slur_regex = slur_regex(context).await?;
     let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
 

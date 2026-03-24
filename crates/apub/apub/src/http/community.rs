@@ -24,6 +24,7 @@ use lemmy_apub_objects::{
   objects::{
     SiteOrMultiOrCommunityOrUser,
     community::ApubCommunity,
+    feed_moderators::ApubFeedModerators,
     multi_community::ApubMultiCommunity,
     multi_community_collection::ApubFeedCollection,
   },
@@ -194,6 +195,17 @@ pub(crate) async fn get_apub_person_multi_community_follows(
     .into();
 
   let collection = ApubFeedCollection::read_local(&multi, &context).await?;
+  Ok(create_http_response(collection, &FEDERATION_CONTEXT)?)
+}
+pub(crate) async fn get_apub_person_multi_community_moderators(
+  query: Path<MultiCommunityQuery>,
+  context: Data<LemmyContext>,
+) -> LemmyResult<HttpResponse> {
+  let multi = MultiCommunity::read_from_name(&mut context.pool(), &query.multi_name, None, false)
+    .await?
+    .ok_or(LemmyErrorType::NotFound)?
+    .into();
+  let collection = ApubFeedModerators::read_local(&multi, &context).await?;
   Ok(create_http_response(collection, &FEDERATION_CONTEXT)?)
 }
 

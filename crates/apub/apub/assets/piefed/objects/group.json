@@ -1,0 +1,57 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/v1"
+  ],
+  "attributedTo": "https://piefed.social/c/historyruins/moderators",
+  "defaultPostType": "image",
+  "endpoints": {
+    "sharedInbox": "https://piefed.social/inbox"
+  },
+  "featured": "https://piefed.social/c/historyruins/featured",
+  "followers": "https://piefed.social/c/historyruins/followers",
+  "genAI": null,
+  "icon": {
+    "type": "Image",
+    "url": "https://media.piefed.social/communities/9l/jL/9ljLcoPLiT0Z6p5.webp"
+  },
+  "id": "https://piefed.social/c/historyruins",
+  "inbox": "https://piefed.social/c/historyruins/inbox",
+  "language": [
+    {
+      "identifier": "en",
+      "name": "English"
+    },
+    {
+      "identifier": "und",
+      "name": "Undetermined"
+    }
+  ],
+  "lemmy:tagsForPosts": [],
+  "moderators": "https://piefed.social/c/historyruins/moderators",
+  "name": "HistoryRuins",
+  "newModsWanted": false,
+  "outbox": "https://piefed.social/c/historyruins/outbox",
+  "postUrlType": "friendly",
+  "postingRestrictedToMods": false,
+  "postingWarning": "",
+  "preferredUsername": "historyruins",
+  "privateMods": false,
+  "publicKey": {
+    "id": "https://piefed.social/c/historyruins#main-key",
+    "owner": "https://piefed.social/c/historyruins",
+    "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwkfnC5LyD6+vniZCQtbF\nDGC03xwrOlzo+/MaRg5Ei6O0luBdjnfP09R1dv/xtglg11ZBI/VmtvG/3o21h2l8\nqeelInI36x1VcoM2bzLaFfEej3BAvuVzGkFAy6xx4nQGqDE28PLNVxz7NmyV1OCm\nyjyP2Dirxj8sV49XSKcH0JJVEzuO8ost22E5T1+fFhV3uDJ5JPZZ8vwmE8xTycD5\nHJkFmfBbJxAOS6DNmeE/l99J2dvh0XIuFyrp0AvJDHsptnkGh54fDYx/4tccDOyc\n0iPAwelaG69gaxL+M1EiFdMNvvp7Tu55CrvSO9+wCwy2odNjLqsALySRLRjb/HGX\nCQIDAQAB\n-----END PUBLIC KEY-----\n"
+  },
+  "published": "2025-07-08T03:06:49.919798+00:00",
+  "questionAnswer": false,
+  "sensitive": false,
+  "source": {
+    "content": "What is a ruin? We’re running off of “You know it when you see it” at the moment. Ruins should be non-functioning structures of some age, or their function reduced to tourism and the like. \r\n\r\nOTHER COMMS IN THE HISTORYVERSE:  \r\n\r\n* !historymusic@quokk.au  \r\n* !historygallery@quokk.au  \r\n* !historymemes@piefed.social  \r\n* !historyart@piefed.social  \r\n* !historyartifacts@piefed.social  \r\n* !historyphotos@piefed.social  \r\n",
+    "mediaType": "text/markdown"
+  },
+  "summary": "<p>What is a ruin? We’re running off of “You know it when you see it” at the moment. Ruins should be non-functioning structures of some age, ortheir function reduced to tourism and the like. </p>\n<p>OTHER COMMS IN THE HISTORYVERSE:</p>\n<ul>\n<li>!historymusic@quokk.au  </li>\n<li>!historygallery@quokk.au  </li>\n<li>!historymemes@piefed.social  </li>\n<li>!historyart@piefed.social  </li>\n<li>!historyartifacts@piefed.social  </li>\n<li>!historyphotos@piefed.social  </li>\n</ul>\n",
+  "tag": [],
+  "type": "Group",
+  "updated": "2026-03-24T03:31:13.958588+00:00",
+  "url": "https://piefed.social/c/historyruins"
+}

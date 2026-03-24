@@ -1,5 +1,5 @@
 use super::multi_community::ApubMultiCommunity;
-use crate::protocol::multi_community::FeedCollection;
+use crate::protocol::feed::FeedCollection;
 use activitypub_federation::{
   config::Data,
   protocol::verification::verify_domains_match,

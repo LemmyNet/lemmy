@@ -8,7 +8,7 @@ use crate::http::{
     get_apub_community_outbox,
     get_apub_community_tag_http,
     get_apub_person_multi_community,
-    get_apub_person_multi_community_follows,
+    get_apub_person_multi_community_follows, get_apub_person_multi_community_moderators,
   },
   get_activity,
   person::{get_apub_person_http, get_apub_person_outbox},
@@ -62,6 +62,10 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     .route(
       "/m/{multi_name}/following",
       web::get().to(get_apub_person_multi_community_follows),
+    )
+    .route(
+      "/m/{multi_name}/moderators",
+      web::get().to(get_apub_person_multi_community_moderators),
     )
     .route("/post/{post_id}", web::get().to(get_apub_post))
     .route(

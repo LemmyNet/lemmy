@@ -1,0 +1,75 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/v1"
+  ],
+  "attachment": [
+    {
+      "name": "",
+      "type": "Image",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/2011-Belovo_Basilica.jpg/1280px-2011-Belovo_Basilica.jpg"
+    }
+  ],
+  "attributedTo": "https://piefed.social/u/PugJesus",
+  "audience": "https://piefed.social/c/historyruins",
+  "cc": [],
+  "commentsEnabled": true,
+  "content": "",
+  "contentMap": {
+    "en": ""
+  },
+  "context": "https://piefed.social/post/1910360/context",
+  "genAI": false,
+  "id": "https://piefed.social/c/historyruins/p/1910360/the-belovo-basilica-in-bulgaria",
+  "image": {
+    "type": "Image",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/2011-Belovo_Basilica.jpg/1280px-2011-Belovo_Basilica.jpg"
+  },
+  "interactionPolicy": {
+    "canQuote": {
+      "automaticApproval": ["https://www.w3.org/ns/activitystreams#Public"]
+    }
+  },
+  "language": {
+    "identifier": "en",
+    "name": "English"
+  },
+  "mediaType": "text/html",
+  "name": "The Belovo Basilica in Bulgaria",
+  "published": "2026-03-24T02:38:48.856130+00:00",
+  "replies": "https://piefed.social/post/1910360/replies",
+  "searchableBy": "https://www.w3.org/ns/activitystreams#Public",
+  "sensitive": false,
+  "source": {
+    "content": "",
+    "mediaType": "text/markdown"
+  },
+  "stickied": false,
+  "tag": [
+    {
+      "href": "https://piefed.social/tag/religion",
+      "name": "#religion",
+      "type": "Hashtag"
+    },
+    {
+      "href": "https://piefed.social/tag/christianity",
+      "name": "#christianity",
+      "type": "Hashtag"
+    },
+    {
+      "href": "https://piefed.social/tag/bulgaria",
+      "name": "#bulgaria",
+      "type": "Hashtag"
+    },
+    {
+      "href": "https://piefed.social/tag/ruins",
+      "name": "#ruins",
+      "type": "Hashtag"
+    }
+  ],
+  "to": [
+    "https://piefed.social/c/historyruins",
+    "https://www.w3.org/ns/activitystreams#Public"
+  ],
+  "type": "Page"
+}

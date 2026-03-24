@@ -8,7 +8,7 @@ use either::Either;
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
   objects::{community::ApubCommunity, person::ApubPerson},
-  protocol::{group::Group, multi_community::Feed},
+  protocol::{group::Group, feed::Feed},
   utils::protocol::InCommunity,
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
