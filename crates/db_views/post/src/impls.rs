@@ -10,7 +10,7 @@ use diesel::{
   SelectableHelper,
   TextExpressionMethods,
   debug_query,
-  dsl::{exists, not},
+  dsl::not,
   pg::Pg,
   query_builder::AsQuery,
 };
@@ -20,20 +20,18 @@ use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommunityId, MultiCommunityId, PostId},
   source::{
+    actor_language::LocalUserLanguage,
     community::CommunityActions,
+    local_site::LocalSite,
     local_user::LocalUser,
+    multi_community::MultiCommunityEntry,
     person::Person,
     post::{Post, PostActions, post_actions_keys as pa_key, post_keys as key},
     site::Site,
   },
   utils::{
     limit_fetch,
-    queries::filters::{
-      filter_blocked,
-      filter_is_subscribed,
-      filter_not_unlisted_or_is_subscribed,
-      filter_suggested_communities,
-    },
+    queries::filters::{filter_blocked, filter_not_unlisted},
   },
 };
 use lemmy_db_schema_file::{
@@ -53,15 +51,7 @@ use lemmy_db_schema_file::{
     my_person_actions_join,
     my_post_actions_join,
   },
-  schema::{
-    community,
-    community_actions,
-    local_user_language,
-    multi_community_entry,
-    person,
-    post,
-    post_actions,
-  },
+  schema::{community, community_actions, person, post, post_actions},
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
@@ -255,12 +245,11 @@ impl PostView {
       .into_boxed();
 
     // Sorting by the read date
-    let paginated_query =
-      PostViewDummy::paginate(query, &page_cursor, SortDirection::Desc, pool, None)
-        .await?
-        .then_order_by(pa_key::read_at)
-        // Tie breaker
-        .then_order_by(pa_key::post_id);
+    let paginated_query = PostViewDummy::paginate(query, &page_cursor, SortDirection::Desc, pool)
+      .await?
+      .then_order_by(pa_key::read_at)
+      // Tie breaker
+      .then_order_by(pa_key::post_id);
 
     let conn = &mut get_conn(pool).await?;
     let res = paginated_query
@@ -288,12 +277,11 @@ impl PostView {
       .into_boxed();
 
     // Sorting by the hidden date
-    let paginated_query =
-      PostViewDummy::paginate(query, &page_cursor, SortDirection::Desc, pool, None)
-        .await?
-        .then_order_by(pa_key::hidden_at)
-        // Tie breaker
-        .then_order_by(pa_key::post_id);
+    let paginated_query = PostViewDummy::paginate(query, &page_cursor, SortDirection::Desc, pool)
+      .await?
+      .then_order_by(pa_key::hidden_at)
+      // Tie breaker
+      .then_order_by(pa_key::post_id);
 
     let conn = &mut get_conn(pool).await?;
     let res = paginated_query
@@ -328,85 +316,83 @@ pub struct PostQuery<'a> {
 }
 
 impl PostQuery<'_> {
-  async fn prefetch_cursor_before_data(
+  /// A special function which pre-fetches a list of community_ids, that can be used for a sql
+  /// `post::community_id.eq_any` query.
+  ///
+  /// Used for the following cases:
+  /// - Subscribed
+  /// - Multicommunities
+  /// - Moderator view
+  /// - Suggested
+  ///
+  ///  A return value of None means ignore, empty vec means filter out everything (IE empty
+  /// subscribed, moderated,  suggested)
+  async fn prefetch_community_ids(
     &self,
-    site: &Site,
     pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Option<Post>> {
-    // first get one page for the most popular community to get an upper bound for the page end for
-    // the real query. the reason this is needed is that when fetching posts for a single
-    // community PostgreSQL can optimize the query to use an index on e.g. (=, >=, >=, >=) and
-    // fetch only LIMIT rows but for the followed-communities query it has to query the index on
-    // (IN, >=, >=, >=) which it currently can't do at all (as of PG 16). see the discussion
-    // here: https://github.com/LemmyNet/lemmy/issues/2877#issuecomment-1673597190
-    //
-    // the results are correct no matter which community we fetch these for, since it basically
-    // covers the "worst case" of the whole page consisting of posts from one community
-    // but using the largest community decreases the pagination-frame so make the real query more
-    // efficient.
-
-    // If its a subscribed type, you need to prefetch both the largest community, and the upper
-    // bound post for the cursor.
-    Ok(if self.listing_type == Some(ListingType::Subscribed) {
-      if let Some(person_id) = self.local_user.person_id() {
-        let largest_subscribed =
-          CommunityActions::fetch_largest_subscribed_community(pool, person_id).await?;
-
-        let upper_bound_results: Vec<PostView> = self
-          .clone()
-          .list_inner(site, None, largest_subscribed, pool)
-          .await?
-          .items;
-
-        let limit = limit_fetch(self.limit, None)?;
-
-        // take last element of array. if this query returned less than LIMIT elements,
-        // the heuristic is invalid since we can't guarantee the full query will return >= LIMIT
-        // results (return original query)
-        let len: i64 = upper_bound_results.len().try_into()?;
-        if len < limit {
-          None
-        } else {
-          if self
-            .page_cursor
-            .clone()
-            .and_then(|c| c.is_back().ok())
-            .unwrap_or_default()
-          {
-            // for backward pagination, get first element instead
-            upper_bound_results.into_iter().next()
-          } else {
-            upper_bound_results.into_iter().next_back()
-          }
-          .map(|pv| pv.post)
-        }
-      } else {
-        None
+    local_site: &LocalSite,
+  ) -> LemmyResult<Option<Vec<CommunityId>>> {
+    // First, check the given community or multi community id, then if both are none, check the
+    // listing types
+    let community_ids = match (self.community_id, self.multi_community_id) {
+      (Some(id), None) => Some(vec![id]),
+      (None, Some(id)) => Some(MultiCommunityEntry::list_community_ids(pool, id).await?),
+      (Some(_), Some(_)) => {
+        return Err(LemmyErrorType::CannotCombineCommunityIdAndMultiCommunityId.into());
       }
-    } else {
-      None
-    })
+      (None, None) => {
+        // If no community or multi_community is given, then parse the listing_types
+        match self.listing_type.unwrap_or_default() {
+          ListingType::Local | ListingType::All => None,
+          ListingType::Subscribed => {
+            if let Some(my_person_id) = self.local_user.person_id() {
+              Some(CommunityActions::list_subscribed_community_ids(pool, my_person_id).await?)
+            } else {
+              // If you have no subscriptions, then return an empty list
+              Some(vec![])
+            }
+          }
+          ListingType::ModeratorView => {
+            if let Some(my_person_id) = self.local_user.person_id() {
+              Some(CommunityActions::get_person_moderated_communities(pool, my_person_id).await?)
+            } else {
+              // If you don't moderate anything, then return an empty list
+              Some(vec![])
+            }
+          }
+          ListingType::Suggested => {
+            if let Some(suggested_multi_id) = local_site.suggested_multi_community_id {
+              Some(MultiCommunityEntry::list_community_ids(pool, suggested_multi_id).await?)
+            } else {
+              Some(vec![])
+            }
+          }
+        }
+      }
+    };
+
+    Ok(community_ids)
   }
 
-  async fn list_inner(
+  pub async fn list(
     self,
-    site: &Site,
-    cursor_before_data: Option<Post>,
-    largest_subscribed_for_prefetch: Option<CommunityId>,
     pool: &mut DbPool<'_>,
+    site: &Site,
+    local_site: &LocalSite,
   ) -> LemmyResult<PagedResponse<PostView>> {
-    let o = self;
-    let limit = limit_fetch(o.limit, None)?;
+    // Pre-fetching some important items, to prevent costly joins.
+    let community_ids = self.prefetch_community_ids(pool, local_site).await?;
+    let language_ids = LocalUserLanguage::read_opt(pool, self.local_user.map(|l| l.id)).await?;
 
-    let my_person_id = o.local_user.person_id();
-    let my_local_user_id = o.local_user.local_user_id();
+    let limit = limit_fetch(self.limit, None)?;
+    let my_person_id = self.local_user.person_id();
 
     let mut query = PostView::joins(my_person_id, site.instance_id)
       .select(PostView::as_select())
       .limit(limit)
       .into_boxed();
 
-    if let Some(page) = o.page {
+    if let Some(page) = self.page {
       query = query.offset(limit * (page - 1));
     }
 
@@ -427,57 +413,31 @@ impl PostQuery<'_> {
         .filter(post::scheduled_publish_time_at.is_null());
     }
 
-    match (o.community_id, o.multi_community_id) {
-      (Some(id), None) => {
-        query = query.filter(post::community_id.eq(id));
-      }
-      (None, Some(id)) => {
-        let communities = multi_community_entry::table
-          .filter(multi_community_entry::multi_community_id.eq(id))
-          .select(multi_community_entry::community_id);
-        query = query.filter(post::community_id.eq_any(communities))
-      }
-      (Some(_), Some(_)) => {
-        return Err(LemmyErrorType::CannotCombineCommunityIdAndMultiCommunityId.into());
-      }
-      (None, None) => {
-        if let (Some(ListingType::Subscribed), Some(id)) =
-          (o.listing_type, largest_subscribed_for_prefetch)
-        {
-          query = query.filter(post::community_id.eq(id));
-        }
-      }
+    //  Filter by the given community ids, prefetched above
+    if let Some(community_ids) = community_ids {
+      query = query.filter(post::community_id.eq_any(community_ids));
     }
 
-    match o.listing_type.unwrap_or_default() {
-      // TODO we might have much better performance by using post::community_id.eq_any()
-      ListingType::Subscribed => query = query.filter(filter_is_subscribed()),
-      ListingType::Local => {
-        query = query
-          .filter(community::local.eq(true))
-          .filter(filter_not_unlisted_or_is_subscribed());
-      }
-      ListingType::All => query = query.filter(filter_not_unlisted_or_is_subscribed()),
-      ListingType::ModeratorView => {
-        query = query.filter(community_actions::became_moderator_at.is_not_null());
-      }
-      ListingType::Suggested => query = query.filter(filter_suggested_communities()),
+    // Although the other listing types pre-fetched the communities, you still need to filter by
+    // local if necessary.
+    if self.listing_type.unwrap_or_default() == ListingType::Local {
+      query = query.filter(community::local.eq(true));
     }
 
     // The search term
-    if let Some(search_term) = o.search_term {
+    if let Some(search_term) = self.search_term {
       let searcher = fuzzy_search(&search_term);
 
       let name_or_title_filter = post::name.ilike(searcher.clone());
 
       // A url / cross-post search
-      query = if o.search_url_only.unwrap_or_default() {
+      query = if self.search_url_only.unwrap_or_default() {
         // Parse and normalize the url, removing tracking parameters (same logic which is used
         // when creating a new post).
         let normalized_url = Url::parse(&search_term).map(|u| clean_url(&u).to_string())?;
 
         query.filter(post::url.eq(normalized_url))
-      } else if o.search_title_only.unwrap_or_default() {
+      } else if self.search_title_only.unwrap_or_default() {
         query.filter(name_or_title_filter)
       } else {
         let body_or_description_filter = post::body.ilike(searcher.clone());
@@ -485,31 +445,36 @@ impl PostQuery<'_> {
       }
     }
 
-    if !o.show_nsfw.unwrap_or(o.local_user.show_nsfw(site)) {
+    // Hide the unlisted communities for the general types. Subscribed will still show them
+    if [ListingType::Local, ListingType::All].contains(&self.listing_type.unwrap_or_default()) {
+      query = query.filter(filter_not_unlisted());
+    }
+
+    if !self.show_nsfw.unwrap_or(self.local_user.show_nsfw(site)) {
       query = query
         .filter(post::nsfw.eq(false))
         .filter(community::nsfw.eq(false));
     };
 
-    if !o.local_user.show_bot_accounts() {
+    if !self.local_user.show_bot_accounts() {
       query = query.filter(person::bot_account.eq(false));
     };
 
     // Filter to show only posts with no comments
-    if o.no_comments_only.unwrap_or_default() {
+    if self.no_comments_only.unwrap_or_default() {
       query = query.filter(post::comments.eq(0));
     };
 
-    if !o.show_read.unwrap_or(o.local_user.show_read_posts()) {
+    if !self.show_read.unwrap_or(self.local_user.show_read_posts()) {
       query = query.filter(post_actions::read_at.is_null());
     }
 
     // Hide the hidden posts
-    if !o.show_hidden.unwrap_or_default() {
+    if !self.show_hidden.unwrap_or_default() {
       query = query.filter(post_actions::hidden_at.is_null());
     }
 
-    if o.hide_media.unwrap_or(o.local_user.hide_media()) {
+    if self.hide_media.unwrap_or(self.local_user.hide_media()) {
       query = query.filter(not(
         post::url_content_type.is_not_null().and(
           post::url_content_type
@@ -519,14 +484,14 @@ impl PostQuery<'_> {
       ));
     }
 
-    query = o.local_user.visible_communities_only(query);
+    query = self.local_user.visible_communities_only(query);
     query = query.filter(
       post::federation_pending
         .eq(false)
         .or(post::creator_id.nullable().eq(my_person_id)),
     );
 
-    if !o.local_user.is_admin() {
+    if !self.local_user.is_admin() {
       query = query
         .filter(
           community::visibility
@@ -540,23 +505,15 @@ impl PostQuery<'_> {
     }
 
     // Dont filter blocks or missing languages for moderator view type
-    if o.listing_type.unwrap_or_default() != ListingType::ModeratorView {
+    if self.listing_type.unwrap_or_default() != ListingType::ModeratorView {
       // Filter out the rows with missing languages if user is logged in
-      if o.local_user.is_some() {
-        query = query.filter(exists(
-          local_user_language::table.filter(
-            post::language_id.eq(local_user_language::language_id).and(
-              local_user_language::local_user_id
-                .nullable()
-                .eq(my_local_user_id),
-            ),
-          ),
-        ));
+      if let Some(language_ids) = language_ids {
+        query = query.filter(post::language_id.eq_any(language_ids));
       }
 
       query = query.filter(filter_blocked());
 
-      if let Some(keyword_blocks) = o.keyword_blocks {
+      if let Some(keyword_blocks) = self.keyword_blocks {
         for keyword in keyword_blocks {
           let pattern = format!("%{}%", keyword);
           query = query.filter(post::name.not_ilike(pattern.clone()));
@@ -571,28 +528,21 @@ impl PostQuery<'_> {
     }
 
     // Filter by the time range
-    if let Some(time_range_seconds) = o.time_range_seconds {
+    if let Some(time_range_seconds) = self.time_range_seconds {
       query =
         query.filter(post::published_at.gt(now() - seconds_to_pg_interval(time_range_seconds)));
     }
 
     // Only sort by ascending for Old
-    let sort = o.sort.unwrap_or(PostSortType::Hot);
+    let sort = self.sort.unwrap_or(PostSortType::Hot);
     let sort_direction = asc_if(sort == PostSortType::Old);
 
-    let mut pq = PostView::paginate(
-      query,
-      &o.page_cursor,
-      sort_direction,
-      pool,
-      cursor_before_data,
-    )
-    .await?;
+    let mut pq = PostView::paginate(query, &self.page_cursor, sort_direction, pool).await?;
 
     // featured posts first
     // Don't do for new / old sorts
     if sort != PostSortType::New && sort != PostSortType::Old {
-      pq = if o.community_id.is_none() || largest_subscribed_for_prefetch.is_some() {
+      pq = if self.community_id.is_none() {
         pq.then_order_by(key::featured_local)
       } else {
         pq.then_order_by(key::featured_community)
@@ -634,19 +584,6 @@ impl PostQuery<'_> {
       .load::<PostView>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)?;
-    paginate_response(res, limit, o.page_cursor)
-  }
-
-  pub async fn list(
-    &self,
-    site: &Site,
-    pool: &mut DbPool<'_>,
-  ) -> LemmyResult<PagedResponse<PostView>> {
-    let cursor_before_data = self.prefetch_cursor_before_data(site, pool).await?;
-
-    self
-      .clone()
-      .list_inner(site, cursor_before_data, None, pool)
-      .await
+    paginate_response(res, limit, self.page_cursor)
   }
 }

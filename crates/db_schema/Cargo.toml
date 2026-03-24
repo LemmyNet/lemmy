@@ -30,7 +30,6 @@ full = [
   "diesel-uplete",
   "tokio",
   "i-love-jesus",
-  "moka",
   "lemmy_db_schema_file/full",
   "lemmy_diesel_utils/full",
 ]
@@ -56,8 +55,6 @@ ts-rs = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
 i-love-jesus = { workspace = true, optional = true }
 derive-new.workspace = true
-moka = { workspace = true, optional = true }
-
 
 [dev-dependencies]
 serial_test = { workspace = true }

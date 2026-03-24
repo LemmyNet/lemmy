@@ -3644,7 +3644,6 @@ dependencies = [
  "lemmy_db_schema_file",
  "lemmy_diesel_utils",
  "lemmy_utils 1.0.0-test-arm-qemu.0",
- "moka",
  "pretty_assertions",
  "serde",
  "serde_json",
