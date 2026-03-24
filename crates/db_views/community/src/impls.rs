@@ -22,11 +22,7 @@ use lemmy_db_schema::{
   },
   utils::{
     limit_fetch,
-    queries::filters::{
-      filter_is_subscribed,
-      filter_not_unlisted_or_is_subscribed,
-      filter_suggested_communities,
-    },
+    queries::filters::{filter_is_subscribed, filter_not_unlisted, filter_suggested_communities},
   },
 };
 use lemmy_db_schema_file::{
@@ -92,7 +88,7 @@ impl CommunityView {
     if !is_mod_or_admin {
       query = query
         .filter(Community::hide_removed_and_deleted())
-        .filter(filter_not_unlisted_or_is_subscribed());
+        .filter(filter_not_unlisted());
     }
 
     query = my_local_user.visible_communities_only(query);
@@ -139,29 +135,26 @@ impl CommunityQuery<'_> {
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<PagedResponse<CommunityView>> {
     use lemmy_db_schema::CommunitySortType::*;
-    let o = self;
-    let limit = limit_fetch(o.limit, None)?;
+    let limit = limit_fetch(self.limit, None)?;
 
-    let mut query = CommunityView::joins(o.local_user.person_id())
+    let mut query = CommunityView::joins(self.local_user.person_id())
       .select(CommunityView::as_select())
       .limit(limit)
       .into_boxed();
 
     // Hide deleted and removed for non-admins
-    let is_admin = o.local_user.map(|l| l.admin).unwrap_or_default();
+    let is_admin = self.local_user.map(|l| l.admin).unwrap_or_default();
     if !is_admin {
-      query = query
-        .filter(Community::hide_removed_and_deleted())
-        .filter(filter_not_unlisted_or_is_subscribed());
+      query = query.filter(Community::hide_removed_and_deleted());
     }
 
-    if let Some(listing_type) = o.listing_type {
+    if let Some(listing_type) = self.listing_type {
       query = match listing_type {
-        ListingType::All => query.filter(filter_not_unlisted_or_is_subscribed()),
+        ListingType::All => query.filter(filter_not_unlisted()),
         ListingType::Subscribed => query.filter(filter_is_subscribed()),
         ListingType::Local => query
           .filter(community::local.eq(true))
-          .filter(filter_not_unlisted_or_is_subscribed()),
+          .filter(filter_not_unlisted()),
         ListingType::ModeratorView => {
           query.filter(community_actions::became_moderator_at.is_not_null())
         }
@@ -173,13 +166,13 @@ impl CommunityQuery<'_> {
     // also hidden (based on profile setting)
     query = query.filter(instance_actions::blocked_communities_at.is_null());
     query = query.filter(community_actions::blocked_at.is_null());
-    if !(o.local_user.show_nsfw(site) || o.show_nsfw.unwrap_or_default()) {
+    if !(self.local_user.show_nsfw(site) || self.show_nsfw.unwrap_or_default()) {
       query = query.filter(community::nsfw.eq(false));
     }
 
-    query = o.local_user.visible_communities_only(query);
+    query = self.local_user.visible_communities_only(query);
 
-    if let Some(multi_community_id) = o.multi_community_id {
+    if let Some(multi_community_id) = self.multi_community_id {
       let communities = multi_community_entry::table
         .filter(multi_community_entry::multi_community_id.eq(multi_community_id))
         .select(multi_community_entry::community_id);
@@ -187,14 +180,14 @@ impl CommunityQuery<'_> {
     }
 
     // The search term
-    if let Some(search_term) = o.search_term {
+    if let Some(search_term) = self.search_term {
       let searcher = fuzzy_search(&search_term);
 
       let name_or_title_filter = community::name
         .ilike(searcher.clone())
         .or(community::title.ilike(searcher.clone()));
 
-      query = if o.search_title_only.unwrap_or_default() {
+      query = if self.search_title_only.unwrap_or_default() {
         query.filter(name_or_title_filter)
       } else {
         let body_or_description_filter = community::summary
@@ -205,16 +198,16 @@ impl CommunityQuery<'_> {
     }
 
     // Filter by the time range
-    if let Some(time_range_seconds) = o.time_range_seconds {
+    if let Some(time_range_seconds) = self.time_range_seconds {
       query = query
         .filter(community::published_at.gt(now() - seconds_to_pg_interval(time_range_seconds)));
     }
 
     // Only sort by ascending for Old or NameAsc sorts.
-    let sort = o.sort.unwrap_or_default();
+    let sort = self.sort.unwrap_or_default();
     let sort_direction = asc_if(sort == Old || sort == NameAsc);
 
-    let mut pq = CommunityView::paginate(query, &o.page_cursor, sort_direction, pool, None).await?;
+    let mut pq = CommunityView::paginate(query, &self.page_cursor, sort_direction, pool).await?;
 
     pq = match sort {
       Hot => pq.then_order_by(key::hot_rank),
@@ -240,7 +233,7 @@ impl CommunityQuery<'_> {
       .load::<CommunityView>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)?;
-    paginate_response(res, limit, o.page_cursor)
+    paginate_response(res, limit, self.page_cursor)
   }
 }
 
@@ -303,19 +296,18 @@ pub struct MultiCommunityQuery<'a> {
 impl MultiCommunityQuery<'_> {
   pub async fn list(self, pool: &mut DbPool<'_>) -> LemmyResult<PagedResponse<MultiCommunityView>> {
     use lemmy_db_schema::{MultiCommunityListingType::*, MultiCommunitySortType::*};
-    let o = self;
 
-    let limit = limit_fetch(o.limit, o.no_limit)?;
-    let mut query = MultiCommunityView::joins(o.local_user.person_id())
+    let limit = limit_fetch(self.limit, self.no_limit)?;
+    let mut query = MultiCommunityView::joins(self.local_user.person_id())
       .select(MultiCommunityView::as_select())
       .limit(limit)
       .into_boxed();
 
-    if let Some(listing_type) = o.listing_type {
+    if let Some(listing_type) = self.listing_type {
       query = match listing_type {
         All => query,
         Subscribed => {
-          if let Some(my_person_id) = o.local_user.person_id() {
+          if let Some(my_person_id) = self.local_user.person_id() {
             query.filter(multi_community_follow::person_id.eq(my_person_id))
           } else {
             query
@@ -325,26 +317,26 @@ impl MultiCommunityQuery<'_> {
       };
     }
 
-    if let Some(creator_id) = o.creator_id {
+    if let Some(creator_id) = self.creator_id {
       query = query.filter(multi_community::creator_id.eq(creator_id));
     }
 
     // Filter by the time range
-    if let Some(time_range_seconds) = o.time_range_seconds {
+    if let Some(time_range_seconds) = self.time_range_seconds {
       query = query.filter(
         multi_community::published_at.gt(now() - seconds_to_pg_interval(time_range_seconds)),
       );
     }
 
     // The search term
-    if let Some(search_term) = o.search_term {
+    if let Some(search_term) = self.search_term {
       let searcher = fuzzy_search(&search_term);
 
       let name_or_title_filter = multi_community::name
         .ilike(searcher.clone())
         .or(multi_community::title.ilike(searcher.clone()));
 
-      query = if o.search_title_only.unwrap_or_default() {
+      query = if self.search_title_only.unwrap_or_default() {
         query.filter(name_or_title_filter)
       } else {
         let body_or_description_filter = multi_community::summary
@@ -355,11 +347,11 @@ impl MultiCommunityQuery<'_> {
     }
 
     // Only sort by ascending for Old or NameAsc sorts.
-    let sort = o.sort.unwrap_or_default();
+    let sort = self.sort.unwrap_or_default();
     let sort_direction = asc_if(sort == Old || sort == NameAsc);
 
     let mut pq =
-      MultiCommunityView::paginate(query, &o.page_cursor, sort_direction, pool, None).await?;
+      MultiCommunityView::paginate(query, &self.page_cursor, sort_direction, pool).await?;
 
     pq = match sort {
       New => pq.then_order_by(mkey::published_at),
@@ -380,7 +372,7 @@ impl MultiCommunityQuery<'_> {
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)?;
 
-    paginate_response(res, limit, o.page_cursor)
+    paginate_response(res, limit, self.page_cursor)
   }
 }
 

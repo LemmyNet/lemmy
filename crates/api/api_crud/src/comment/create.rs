@@ -120,7 +120,7 @@ pub async fn create_comment(
 
   NotifyData {
     comment: Some(inserted_comment.clone()),
-    do_send_email: !local_site.disable_email_notifications,
+    do_send_email: !local_site.email_notifications_disabled,
     ..NotifyData::new(
       post.clone(),
       local_user_view.person.clone(),

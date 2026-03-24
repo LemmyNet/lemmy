@@ -20,6 +20,11 @@
       "href": "https://enterprise.lemmy.ml/u/picard",
       "type": "Mention",
       "name": "@picard@enterprise.lemmy.ml"
+    },
+    {
+      "href": "https://enterprise.lemmy.ml/c/tenforward",
+      "type": "Mention",
+      "name": "@tenforward@enterprise.lemmy.ml"
     }
   ],
   "distinguished": false,

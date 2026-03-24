@@ -88,6 +88,7 @@ struct Data {
   tag_1: CommunityTag,
   tag_2: CommunityTag,
   site: Site,
+  local_site: LocalSite,
 }
 
 impl Data {
@@ -260,6 +261,7 @@ impl Data {
       tag_1,
       tag_2,
       site: data.site,
+      local_site: data.local_site,
     })
   }
   async fn teardown_inner(data: Data) -> LemmyResult<()> {
@@ -303,7 +305,7 @@ async fn post_listing_with_person(data: &mut Data) -> LemmyResult<()> {
     community_id: Some(data.community.id),
     ..data.default_post_query()
   }
-  .list(&data.site, pool)
+  .list(pool, &data.site, &data.local_site)
   .await?
   .items;
   // remove tags post
@@ -335,7 +337,7 @@ async fn post_listing_with_person(data: &mut Data) -> LemmyResult<()> {
     community_id: Some(data.community.id),
     ..data.default_post_query()
   }
-  .list(&data.site, pool)
+  .list(pool, &data.site, &data.local_site)
   .await?;
   // should include bot post which has "undetermined" language
   assert_eq!(
@@ -357,7 +359,7 @@ async fn post_listing_no_person(data: &mut Data) -> LemmyResult<()> {
     local_user: None,
     ..data.default_post_query()
   }
-  .list(&data.site, pool)
+  .list(pool, &data.site, &data.local_site)
   .await?;
 
   let read_post_listing_single_no_person =
@@ -392,7 +394,7 @@ async fn post_listing_block_community(data: &mut Data) -> LemmyResult<()> {
     community_id: Some(data.community.id),
     ..data.default_post_query()
   }
-  .list(&data.site, pool)
+  .list(pool, &data.site, &data.local_site)
   .await?;
   // Should be 0 posts after the community block
   assert_eq!(read_post_listings_with_person_after_block.items, vec![]);
@@ -455,7 +457,7 @@ async fn post_listing_like(data: &mut Data) -> LemmyResult<()> {
     community_id: Some(data.community.id),
     ..data.default_post_query()
   }
-  .list(&data.site, pool)
+  .list(pool, &data.site, &data.local_site)
   .await?
   .items;
   read_post_listing.remove(0);
@@ -728,7 +730,7 @@ async fn creator_info(data: &mut Data) -> LemmyResult<()> {
     community_id: Some(community_id),
     ..data.default_post_query()
   }
-  .list(&data.site, pool)
+  .list(pool, &data.site, &data.local_site)
   .await?
   .into_iter()
   .map(|p| (p.creator.name, p.creator_is_moderator, p.can_mod))
@@ -754,7 +756,7 @@ async fn creator_info(data: &mut Data) -> LemmyResult<()> {
     local_user: Some(&data.john.local_user),
     ..Default::default()
   }
-  .list(&data.site, pool)
+  .list(pool, &data.site, &data.local_site)
   .await?
   .into_iter()
   .map(|p| (p.creator.name, p.creator_is_moderator, p.can_mod))
@@ -775,7 +777,7 @@ async fn creator_info(data: &mut Data) -> LemmyResult<()> {
     local_user: Some(&data.bot.local_user),
     ..Default::default()
   }
-  .list(&data.site, pool)
+  .list(pool, &data.site, &data.local_site)
   .await?
   .into_iter()
   .map(|p| (p.creator.name, p.creator_is_moderator, p.can_mod))
@@ -797,7 +799,7 @@ async fn creator_info(data: &mut Data) -> LemmyResult<()> {
     local_user: Some(&data.bot.local_user),
     ..Default::default()
   }
-  .list(&data.site, pool)
+  .list(pool, &data.site, &data.local_site)
   .await?
   .into_iter()
   .map(|p| (p.creator.name, p.creator_is_moderator, p.can_mod))
@@ -820,7 +822,7 @@ async fn creator_info(data: &mut Data) -> LemmyResult<()> {
     local_user: Some(&data.john.local_user),
     ..Default::default()
   }
-  .list(&data.site, pool)
+  .list(pool, &data.site, &data.local_site)
   .await?
   .into_iter()
   .map(|p| (p.creator.name, p.creator_is_moderator, p.can_mod))
@@ -862,7 +864,10 @@ async fn post_listing_person_language(data: &mut Data) -> LemmyResult<()> {
   };
   Post::create(pool, &post_spanish).await?;
 
-  let post_listings_all = data.default_post_query().list(&data.site, pool).await?;
+  let post_listings_all = data
+    .default_post_query()
+    .list(pool, &data.site, &data.local_site)
+    .await?;
 
   // no language filters specified, all posts should be returned
   assert_eq!(
@@ -872,7 +877,10 @@ async fn post_listing_person_language(data: &mut Data) -> LemmyResult<()> {
 
   LocalUserLanguage::update(pool, vec![french_id], data.tegan.local_user.id).await?;
 
-  let post_listing_french = data.default_post_query().list(&data.site, pool).await?;
+  let post_listing_french = data
+    .default_post_query()
+    .list(pool, &data.site, &data.local_site)
+    .await?;
 
   // only one post in french and one undetermined should be returned
   assert_eq!(vec![POST_WITH_TAGS, POST], names(&post_listing_french));
@@ -889,7 +897,7 @@ async fn post_listing_person_language(data: &mut Data) -> LemmyResult<()> {
   .await?;
   let post_listings_french_und = data
     .default_post_query()
-    .list(&data.site, pool)
+    .list(pool, &data.site, &data.local_site)
     .await?
     .into_iter()
     .map(|p| (p.post.name, p.post.language_id))
@@ -926,12 +934,18 @@ async fn post_listings_removed(data: &mut Data) -> LemmyResult<()> {
 
   // Make sure you don't see the removed post in the results
   data.tegan.local_user.admin = false;
-  let post_listings_no_admin = data.default_post_query().list(&data.site, pool).await?;
+  let post_listings_no_admin = data
+    .default_post_query()
+    .list(pool, &data.site, &data.local_site)
+    .await?;
   assert_eq!(vec![POST_WITH_TAGS, POST], names(&post_listings_no_admin));
 
   // Removed bot post is shown to admins
   data.tegan.local_user.admin = true;
-  let post_listings_is_admin = data.default_post_query().list(&data.site, pool).await?;
+  let post_listings_is_admin = data
+    .default_post_query()
+    .list(pool, &data.site, &data.local_site)
+    .await?;
   assert_eq!(
     vec![POST_WITH_TAGS, POST_BY_BOT, POST],
     names(&post_listings_is_admin)
@@ -968,7 +982,7 @@ async fn post_listings_deleted(data: &mut Data) -> LemmyResult<()> {
       local_user,
       ..data.default_post_query()
     }
-    .list(&data.site, pool)
+    .list(pool, &data.site, &data.local_site)
     .await?
     .iter()
     .any(|p| p.post.id == data.post.id);
@@ -996,10 +1010,15 @@ async fn post_listings_hidden_community(data: &mut Data) -> LemmyResult<()> {
   )
   .await?;
 
-  let posts = PostQuery::default().list(&data.site, pool).await?;
+  let posts = PostQuery::default()
+    .list(pool, &data.site, &data.local_site)
+    .await?;
   assert!(posts.is_empty());
 
-  let posts = data.default_post_query().list(&data.site, pool).await?;
+  let posts = data
+    .default_post_query()
+    .list(pool, &data.site, &data.local_site)
+    .await?;
   assert!(posts.is_empty());
 
   // Follow the community
@@ -1010,7 +1029,12 @@ async fn post_listings_hidden_community(data: &mut Data) -> LemmyResult<()> {
   );
   CommunityActions::follow(pool, &form).await?;
 
-  let posts = data.default_post_query().list(&data.site, pool).await?;
+  let posts = PostQuery {
+    listing_type: Some(ListingType::Subscribed),
+    ..data.default_post_query()
+  }
+  .list(pool, &data.site, &data.local_site)
+  .await?;
   assert!(!posts.is_empty());
 
   Ok(())
@@ -1065,7 +1089,10 @@ async fn post_listing_instance_block_communities(data: &mut Data) -> LemmyResult
   let _post_from_blocked_instance_user = Post::create(pool, &howard_post_form).await?;
 
   // no instance block, should return all posts
-  let post_listings_all = data.default_post_query().list(&data.site, pool).await?;
+  let post_listings_all = data
+    .default_post_query()
+    .list(pool, &data.site, &data.local_site)
+    .await?;
   assert_eq!(POST_LISTING_WITH_BLOCKED, *names(&post_listings_all));
 
   // block the instance communities
@@ -1074,7 +1101,10 @@ async fn post_listing_instance_block_communities(data: &mut Data) -> LemmyResult
   InstanceActions::block_communities(pool, &block_form).await?;
 
   // now posts from communities on that instance should be hidden
-  let post_listings_blocked = data.default_post_query().list(&data.site, pool).await?;
+  let post_listings_blocked = data
+    .default_post_query()
+    .list(pool, &data.site, &data.local_site)
+    .await?;
   assert_eq!(
     vec![HOWARD_POST, POST_WITH_TAGS, POST_BY_BOT, POST],
     names(&post_listings_blocked)
@@ -1092,13 +1122,19 @@ async fn post_listing_instance_block_communities(data: &mut Data) -> LemmyResult
     CommunityFollowerState::Accepted,
   );
   CommunityActions::follow(pool, &follow_form).await?;
-  let post_listings_bypass = data.default_post_query().list(&data.site, pool).await?;
+  let post_listings_bypass = data
+    .default_post_query()
+    .list(pool, &data.site, &data.local_site)
+    .await?;
   assert_eq!(POST_LISTING_WITH_BLOCKED, *names(&post_listings_bypass));
   CommunityActions::unfollow(pool, data.tegan.person.id, inserted_community.id).await?;
 
   // after unblocking it should return all posts again
   InstanceActions::unblock_communities(pool, &block_form).await?;
-  let post_listings_blocked = data.default_post_query().list(&data.site, pool).await?;
+  let post_listings_blocked = data
+    .default_post_query()
+    .list(pool, &data.site, &data.local_site)
+    .await?;
   assert_eq!(POST_LISTING_WITH_BLOCKED, *names(&post_listings_blocked));
 
   Instance::delete(pool, blocked_instance_comms.id).await?;
@@ -1158,7 +1194,10 @@ async fn post_listing_instance_block_persons(data: &mut Data) -> LemmyResult<()>
   let _post_to_unblocked_comm = Post::create(pool, &unblocked_post_form).await?;
 
   // no instance block, should return all posts
-  let post_listings_all = data.default_post_query().list(&data.site, pool).await?;
+  let post_listings_all = data
+    .default_post_query()
+    .list(pool, &data.site, &data.local_site)
+    .await?;
   assert_eq!(POST_LISTING_WITH_BLOCKED, *names(&post_listings_all));
 
   // block the instance communities
@@ -1166,7 +1205,10 @@ async fn post_listing_instance_block_persons(data: &mut Data) -> LemmyResult<()>
   InstanceActions::block_persons(pool, &block_form).await?;
 
   // now posts from users on that instance should be hidden
-  let post_listings_blocked = data.default_post_query().list(&data.site, pool).await?;
+  let post_listings_blocked = data
+    .default_post_query()
+    .list(pool, &data.site, &data.local_site)
+    .await?;
   assert_eq!(
     vec![POST_TO_UNBLOCKED_COMM, POST_WITH_TAGS, POST_BY_BOT, POST],
     names(&post_listings_blocked)
@@ -1179,7 +1221,10 @@ async fn post_listing_instance_block_persons(data: &mut Data) -> LemmyResult<()>
 
   // after unblocking it should return all posts again
   InstanceActions::unblock_persons(pool, &block_form).await?;
-  let post_listings_blocked = data.default_post_query().list(&data.site, pool).await?;
+  let post_listings_blocked = data
+    .default_post_query()
+    .list(pool, &data.site, &data.local_site)
+    .await?;
   assert_eq!(POST_LISTING_WITH_BLOCKED, *names(&post_listings_blocked));
 
   Instance::delete(pool, blocked_instance_persons.id).await?;
@@ -1222,7 +1267,7 @@ async fn pagination_includes_each_post_once(data: &mut Data) -> LemmyResult<()> 
 
   let options = PostQuery {
     community_id: Some(inserted_community.id),
-    sort: Some(PostSortType::Hot),
+    sort: Some(PostSortType::New),
     limit: Some(3),
     ..Default::default()
   };
@@ -1235,7 +1280,7 @@ async fn pagination_includes_each_post_once(data: &mut Data) -> LemmyResult<()> 
       page_cursor,
       ..options.clone()
     }
-    .list(&data.site, pool)
+    .list(pool, &data.site, &data.local_site)
     .await?;
 
     listed_post_ids_forward.extend(post_listings.iter().map(|p| p.post.id));
@@ -1262,7 +1307,7 @@ async fn pagination_includes_each_post_once(data: &mut Data) -> LemmyResult<()> 
       page_cursor: page_cursor_back,
       ..options.clone()
     }
-    .list(&data.site, pool)
+    .list(pool, &data.site, &data.local_site)
     .await?;
 
     let listed_post_ids = post_listings.iter().map(|p| p.post.id).collect::<Vec<_>>();
@@ -1331,7 +1376,7 @@ async fn pagination_hidden_cursors(data: &mut Data) -> LemmyResult<()> {
       page_cursor: cursor.clone(),
       ..options.clone()
     }
-    .list(&data.site, pool)
+    .list(pool, &data.site, &data.local_site)
     .await
   };
 
@@ -1438,7 +1483,7 @@ async fn pagination_recovery_cursors(data: &mut Data) -> LemmyResult<()> {
 
   let options = PostQuery {
     community_id: Some(inserted_community.id),
-    sort: Some(PostSortType::Hot),
+    sort: Some(PostSortType::New),
     limit: Some(page_size.try_into()?),
     ..Default::default()
   };
@@ -1448,7 +1493,7 @@ async fn pagination_recovery_cursors(data: &mut Data) -> LemmyResult<()> {
       page_cursor: cursor.clone(),
       ..options.clone()
     }
-    .list(&data.site, pool)
+    .list(pool, &data.site, &data.local_site)
     .await
   };
 
@@ -1553,7 +1598,10 @@ async fn post_listings_hide_read(data: &mut Data) -> LemmyResult<()> {
   PostActions::mark_as_read(pool, data.tegan.person.id, &[data.bot_post.id]).await?;
 
   // Make sure you don't see the read post in the results
-  let post_listings_hide_read = data.default_post_query().list(&data.site, pool).await?;
+  let post_listings_hide_read = data
+    .default_post_query()
+    .list(pool, &data.site, &data.local_site)
+    .await?;
   assert_eq!(vec![POST_WITH_TAGS, POST], names(&post_listings_hide_read));
 
   // Test with the show_read override as true
@@ -1561,7 +1609,7 @@ async fn post_listings_hide_read(data: &mut Data) -> LemmyResult<()> {
     show_read: Some(true),
     ..data.default_post_query()
   }
-  .list(&data.site, pool)
+  .list(pool, &data.site, &data.local_site)
   .await?;
   assert_eq!(
     vec![POST_WITH_TAGS, POST_BY_BOT, POST],
@@ -1573,7 +1621,7 @@ async fn post_listings_hide_read(data: &mut Data) -> LemmyResult<()> {
     show_read: Some(false),
     ..data.default_post_query()
   }
-  .list(&data.site, pool)
+  .list(pool, &data.site, &data.local_site)
   .await?;
   assert_eq!(
     vec![POST_WITH_TAGS, POST],
@@ -1594,7 +1642,10 @@ async fn post_listings_hide_hidden(data: &mut Data) -> LemmyResult<()> {
   PostActions::hide(pool, &hide_form).await?;
 
   // Make sure you don't see the hidden post in the results
-  let post_listings_hide_hidden = data.default_post_query().list(&data.site, pool).await?;
+  let post_listings_hide_hidden = data
+    .default_post_query()
+    .list(pool, &data.site, &data.local_site)
+    .await?;
   assert_eq!(
     vec![POST_WITH_TAGS, POST],
     names(&post_listings_hide_hidden)
@@ -1607,7 +1658,7 @@ async fn post_listings_hide_hidden(data: &mut Data) -> LemmyResult<()> {
     show_hidden: Some(true),
     ..Default::default()
   }
-  .list(&data.site, pool)
+  .list(pool, &data.site, &data.local_site)
   .await?;
   assert_eq!(
     vec![POST_WITH_TAGS, POST_BY_BOT, POST],
@@ -1644,7 +1695,10 @@ async fn post_listings_hide_nsfw(data: &mut Data) -> LemmyResult<()> {
   Post::update(pool, data.post_with_tags.id, &update_form).await?;
 
   // Make sure you don't see the nsfw post in the regular results
-  let post_listings_hide_nsfw = data.default_post_query().list(&data.site, pool).await?;
+  let post_listings_hide_nsfw = data
+    .default_post_query()
+    .list(pool, &data.site, &data.local_site)
+    .await?;
   assert_eq!(vec![POST_BY_BOT, POST], names(&post_listings_hide_nsfw));
 
   // Make sure it does come back with the show_nsfw option
@@ -1654,7 +1708,7 @@ async fn post_listings_hide_nsfw(data: &mut Data) -> LemmyResult<()> {
     local_user: Some(&data.tegan.local_user),
     ..Default::default()
   }
-  .list(&data.site, pool)
+  .list(pool, &data.site, &data.local_site)
   .await?;
   assert_eq!(
     vec![POST_WITH_TAGS, POST_BY_BOT, POST],
@@ -1693,7 +1747,7 @@ async fn local_only_instance(data: &mut Data) -> LemmyResult<()> {
   let unauthenticated_query = PostQuery {
     ..Default::default()
   }
-  .list(&data.site, pool)
+  .list(pool, &data.site, &data.local_site)
   .await?;
   assert_eq!(0, unauthenticated_query.len());
 
@@ -1701,7 +1755,7 @@ async fn local_only_instance(data: &mut Data) -> LemmyResult<()> {
     local_user: Some(&data.tegan.local_user),
     ..Default::default()
   }
-  .list(&data.site, pool)
+  .list(pool, &data.site, &data.local_site)
   .await?;
   assert_eq!(3, authenticated_query.len());
 
@@ -1936,7 +1990,7 @@ async fn speed_check(data: &mut Data) -> LemmyResult<()> {
     local_user: Some(&data.tegan.local_user),
     ..Default::default()
   }
-  .list(&data.site, pool)
+  .list(pool, &data.site, &data.local_site)
   .await?;
 
   let elapsed = now.elapsed();
@@ -1975,7 +2029,7 @@ async fn post_listings_no_comments_only(data: &mut Data) -> LemmyResult<()> {
     local_user: Some(&data.tegan.local_user),
     ..Default::default()
   }
-  .list(&data.site, pool)
+  .list(pool, &data.site, &data.local_site)
   .await?;
 
   assert_eq!(
@@ -2009,7 +2063,7 @@ async fn post_listing_private_community(data: &mut Data) -> LemmyResult<()> {
     community_id: Some(data.community.id),
     ..Default::default()
   }
-  .list(&data.site, pool)
+  .list(pool, &data.site, &data.local_site)
   .await?;
   assert_eq!(0, read_post_listing.len());
   let post_view = PostView::read(pool, data.post.id, None, data.instance.id, false).await;
@@ -2022,7 +2076,7 @@ async fn post_listing_private_community(data: &mut Data) -> LemmyResult<()> {
     local_user: Some(&data.tegan.local_user),
     ..Default::default()
   }
-  .list(&data.site, pool)
+  .list(pool, &data.site, &data.local_site)
   .await?;
   assert_eq!(0, read_post_listing.len());
   let post_view = PostView::read(
@@ -2042,7 +2096,7 @@ async fn post_listing_private_community(data: &mut Data) -> LemmyResult<()> {
     local_user: Some(&data.tegan.local_user),
     ..Default::default()
   }
-  .list(&data.site, pool)
+  .list(pool, &data.site, &data.local_site)
   .await?;
   assert_eq!(3, read_post_listing.len());
   let post_view = PostView::read(
@@ -2069,7 +2123,7 @@ async fn post_listing_private_community(data: &mut Data) -> LemmyResult<()> {
     local_user: Some(&data.tegan.local_user),
     ..Default::default()
   }
-  .list(&data.site, pool)
+  .list(pool, &data.site, &data.local_site)
   .await?;
   assert_eq!(3, read_post_listing.len());
   let post_view = PostView::read(
@@ -2109,7 +2163,7 @@ async fn post_listings_hide_media(data: &mut Data) -> LemmyResult<()> {
     local_user: Some(&data.tegan.local_user),
     ..Default::default()
   }
-  .list(&data.site, pool)
+  .list(pool, &data.site, &data.local_site)
   .await?;
   assert_eq!(3, hide_media_listing.len());
 
@@ -2127,7 +2181,7 @@ async fn post_listings_hide_media(data: &mut Data) -> LemmyResult<()> {
     local_user: Some(&data.tegan.local_user),
     ..Default::default()
   }
-  .list(&data.site, pool)
+  .list(pool, &data.site, &data.local_site)
   .await?;
   assert_eq!(2, hide_media_listing.len());
 
@@ -2138,7 +2192,7 @@ async fn post_listings_hide_media(data: &mut Data) -> LemmyResult<()> {
     hide_media: Some(false),
     ..Default::default()
   }
-  .list(&data.site, pool)
+  .list(pool, &data.site, &data.local_site)
   .await?;
   assert_eq!(3, hide_media_listing.len());
 
@@ -2204,7 +2258,7 @@ async fn post_with_blocked_keywords(data: &mut Data) -> LemmyResult<()> {
     keyword_blocks,
     ..Default::default()
   }
-  .list(&data.site, pool)
+  .list(pool, &data.site, &data.local_site)
   .await?;
 
   // Should not have any of the posts
@@ -2240,7 +2294,10 @@ async fn post_tags_present(data: &mut Data) -> LemmyResult<()> {
   assert_eq!(data.tag_1.color, post_view.tags.0[0].color);
   assert_eq!(data.tag_2.color, post_view.tags.0[1].color);
 
-  let all_posts = data.default_post_query().list(&data.site, pool).await?;
+  let all_posts = data
+    .default_post_query()
+    .list(pool, &data.site, &data.local_site)
+    .await?;
   assert_eq!(2, all_posts[0].tags.0.len()); // post with tags
   assert_eq!(0, all_posts[1].tags.0.len()); // bot post
   assert_eq!(0, all_posts[2].tags.0.len()); // normal post
@@ -2291,7 +2348,7 @@ async fn post_listing_multi_community(data: &mut Data) -> LemmyResult<()> {
     multi_community_id: Some(multi.id),
     ..Default::default()
   }
-  .list(&data.site, pool)
+  .list(pool, &data.site, &data.local_site)
   .await?;
 
   let listing_communities = listing
@@ -2310,7 +2367,7 @@ async fn post_listing_multi_community(data: &mut Data) -> LemmyResult<()> {
     listing_type: Some(ListingType::Suggested),
     ..Default::default()
   }
-  .list(&data.site, pool)
+  .list(pool, &data.site, &data.local_site)
   .await?;
   assert!(suggested.is_empty());
 
@@ -2318,13 +2375,13 @@ async fn post_listing_multi_community(data: &mut Data) -> LemmyResult<()> {
     suggested_multi_community_id: Some(Some(multi.id)),
     ..Default::default()
   };
-  LocalSite::update(pool, &form).await?;
+  let updated_local_site = LocalSite::update(pool, &form).await?;
 
   let suggested = PostQuery {
     listing_type: Some(ListingType::Suggested),
     ..Default::default()
   }
-  .list(&data.site, pool)
+  .list(pool, &data.site, &updated_local_site)
   .await?;
   assert_eq!(listing.items, suggested.items);
 
@@ -2343,7 +2400,7 @@ async fn search(data: &mut Data) -> LemmyResult<()> {
     search_term: Some("post with tags".into()),
     ..Default::default()
   }
-  .list(&data.site, pool)
+  .list(pool, &data.site, &data.local_site)
   .await?;
 
   assert_length!(1, search_by_name);
@@ -2357,7 +2414,7 @@ async fn search(data: &mut Data) -> LemmyResult<()> {
     search_title_only: Some(true),
     ..Default::default()
   }
-  .list(&data.site, pool)
+  .list(pool, &data.site, &data.local_site)
   .await?;
 
   assert!(search_title_only.is_empty());
@@ -2369,7 +2426,7 @@ async fn search(data: &mut Data) -> LemmyResult<()> {
     search_url_only: Some(true),
     ..Default::default()
   }
-  .list(&data.site, pool)
+  .list(pool, &data.site, &data.local_site)
   .await?;
   assert_length!(1, search_url_only);
   assert_eq!(POST_WITH_TAGS, search_url_only[0].post.name);

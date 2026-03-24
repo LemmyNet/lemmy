@@ -134,17 +134,15 @@ impl PersonQuery<'_> {
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<PagedResponse<PersonView>> {
     use PersonSortType::*;
+    let limit = limit_fetch(self.limit, None)?;
 
-    let o = self;
-    let limit = limit_fetch(o.limit, None)?;
-
-    let mut query = PersonView::joins(o.local_user.person_id(), site.instance_id)
+    let mut query = PersonView::joins(self.local_user.person_id(), site.instance_id)
       .select(PersonView::as_select())
       .limit(limit)
       .filter(person::deleted.eq(false))
       .into_boxed();
 
-    if let Some(listing_type) = o.listing_type {
+    if let Some(listing_type) = self.listing_type {
       query = match listing_type {
         PersonListingType::All => query,
         PersonListingType::Local => query.filter(person::local),
@@ -152,14 +150,14 @@ impl PersonQuery<'_> {
     }
 
     // The search term
-    if let Some(search_term) = o.search_term {
+    if let Some(search_term) = self.search_term {
       let searcher = fuzzy_search(&search_term);
 
       let name_or_title_filter = person::name
         .ilike(searcher.clone())
         .or(person::display_name.ilike(searcher.clone()));
 
-      query = if o.search_title_only.unwrap_or_default() {
+      query = if self.search_title_only.unwrap_or_default() {
         query.filter(name_or_title_filter)
       } else {
         let body_or_description_filter = person::bio.ilike(searcher.clone());
@@ -168,11 +166,11 @@ impl PersonQuery<'_> {
     }
 
     // Only sort by ascending for Old
-    let sort = o.sort.unwrap_or_default();
+    let sort = self.sort.unwrap_or_default();
     let sort_direction = asc_if(sort == Old);
 
-    let mut pq = PersonView::paginate(query, &o.page_cursor, sort_direction, pool, None).await?;
-    pq = match o.sort.unwrap_or_default() {
+    let mut pq = PersonView::paginate(query, &self.page_cursor, sort_direction, pool).await?;
+    pq = match self.sort.unwrap_or_default() {
       New | Old => pq.then_order_by(key::published_at),
       PostScore => pq.then_order_by(key::post_score),
       CommentScore => pq.then_order_by(key::comment_score),
@@ -185,7 +183,7 @@ impl PersonQuery<'_> {
       .load::<PersonView>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)?;
-    paginate_response(res, limit, o.page_cursor)
+    paginate_response(res, limit, self.page_cursor)
   }
 }
 

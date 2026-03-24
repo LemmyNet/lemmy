@@ -973,14 +973,14 @@ test("Rewrite markdown links", async () => {
 test("Don't allow NSFW posts on instances that disable it", async () => {
   // Disallow NSFW on gamma
   let editSiteForm: EditSite = {
-    disallow_nsfw_content: true,
+    nsfw_content_disallowed: true,
   };
   await gamma.editSite(editSiteForm);
 
   // Wait for cache on Gamma's LocalSite
   await waitUntil(
     () => getSite(gamma),
-    s => s.site_view.local_site.disallow_nsfw_content,
+    s => s.site_view.local_site.nsfw_content_disallowed,
   );
 
   if (!betaCommunity) {

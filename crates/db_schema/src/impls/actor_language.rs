@@ -14,14 +14,7 @@ use crate::{
     site::Site,
   },
 };
-use diesel::{
-  ExpressionMethods,
-  QueryDsl,
-  delete,
-  dsl::{count, exists},
-  insert_into,
-  select,
-};
+use diesel::{ExpressionMethods, QueryDsl, delete, dsl::exists, insert_into, select};
 use diesel_async::{AsyncPgConnection, RunQueryDsl, scoped_futures::ScopedFutureExt};
 use lemmy_db_schema_file::{
   InstanceId,
@@ -29,7 +22,6 @@ use lemmy_db_schema_file::{
 };
 use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
-use tokio::sync::OnceCell;
 
 pub const UNDETERMINED_ID: LanguageId = LanguageId(0);
 
@@ -40,13 +32,26 @@ impl LocalUserLanguage {
   ) -> LemmyResult<Vec<LanguageId>> {
     let conn = &mut get_conn(pool).await?;
 
-    let langs = local_user_language::table
+    local_user_language::table
       .filter(local_user_language::local_user_id.eq(for_local_user_id))
       .order(local_user_language::language_id)
       .select(local_user_language::language_id)
       .get_results(conn)
-      .await?;
-    convert_read_languages(conn, langs).await
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  /// A helpful wrapper function for pre-fetching language ids.
+  /// A return value of None means don't filter for languages
+  pub async fn read_opt(
+    pool: &mut DbPool<'_>,
+    for_local_user_id: Option<LocalUserId>,
+  ) -> LemmyResult<Option<Vec<LanguageId>>> {
+    Ok(if let Some(local_user_id) = for_local_user_id {
+      Some(Self::read(pool, local_user_id).await?)
+    } else {
+      None
+    })
   }
 
   /// Update the user's languages.
@@ -118,14 +123,13 @@ impl SiteLanguage {
 
   pub async fn read(pool: &mut DbPool<'_>, for_site_id: SiteId) -> LemmyResult<Vec<LanguageId>> {
     let conn = &mut get_conn(pool).await?;
-    let langs = site_language::table
+    site_language::table
       .filter(site_language::site_id.eq(for_site_id))
       .order(site_language::language_id)
       .select(site_language::language_id)
       .load(conn)
-      .await?;
-
-    convert_read_languages(conn, langs).await
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
   pub async fn update(
@@ -245,13 +249,13 @@ impl CommunityLanguage {
       language_id,
     };
     let conn = &mut get_conn(pool).await?;
-    let langs = community_language
+    community_language
       .filter(community_id.eq(for_community_id))
       .order(language_id)
       .select(language_id)
       .get_results(conn)
-      .await?;
-    convert_read_languages(conn, langs).await
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
   pub async fn update(
@@ -337,33 +341,6 @@ async fn convert_update_languages(
   }
 }
 
-/// If all languages are returned, return empty vec instead
-#[expect(clippy::expect_used)]
-async fn convert_read_languages(
-  conn: &mut AsyncPgConnection,
-  language_ids: Vec<LanguageId>,
-) -> LemmyResult<Vec<LanguageId>> {
-  static ALL_LANGUAGES_COUNT: OnceCell<i64> = OnceCell::const_new();
-  let count: usize = (*ALL_LANGUAGES_COUNT
-    .get_or_init(|| async {
-      use lemmy_db_schema_file::schema::language::dsl::{id, language};
-      let count: i64 = language
-        .select(count(id))
-        .first(conn)
-        .await
-        .expect("read number of languages");
-      count
-    })
-    .await)
-    .try_into()?;
-
-  if language_ids.len() == count {
-    Ok(vec![])
-  } else {
-    Ok(language_ids)
-  }
-}
-
 #[cfg(test)]
 #[expect(clippy::indexing_slicing)]
 mod tests {
@@ -414,26 +391,6 @@ mod tests {
 
     Ok(())
   }
-  #[tokio::test]
-  #[serial]
-  async fn test_convert_read_languages() -> LemmyResult<()> {
-    use lemmy_db_schema_file::schema::language::dsl::{id, language};
-    let pool = &build_db_pool_for_tests();
-    let pool = &mut pool.into();
-
-    // call with all languages, returns empty vec
-    let conn = &mut get_conn(pool).await?;
-    let all_langs = language.select(id).get_results(conn).await?;
-    let converted1: Vec<LanguageId> = convert_read_languages(conn, all_langs).await?;
-    assert_eq!(0, converted1.len());
-
-    // call with nonempty vec, returns same vec
-    let test_langs = test_langs1(&mut conn.into()).await?;
-    let converted2 = convert_read_languages(conn, test_langs.clone()).await?;
-    assert_eq!(test_langs, converted2);
-
-    Ok(())
-  }
 
   #[tokio::test]
   #[serial]
@@ -474,7 +431,7 @@ mod tests {
     let local_user_langs1 = LocalUserLanguage::read(pool, local_user.id).await?;
 
     // new user should be initialized with all languages
-    assert_eq!(0, local_user_langs1.len());
+    assert_eq!(184, local_user_langs1.len());
 
     // update user languages
     let test_langs2 = test_langs2(pool).await?;

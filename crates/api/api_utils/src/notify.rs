@@ -304,7 +304,7 @@ async fn notify_private_message_internal(
   if is_create {
     plugin_hook_notification(notifications, context).await?;
     let site_view = SiteView::read_local(&mut context.pool()).await?;
-    if !site_view.local_site.disable_email_notifications {
+    if !site_view.local_site.email_notifications_disabled {
       let d = NotificationEmailData::PrivateMessage {
         sender: &view.creator,
         content: &view.private_message.content,

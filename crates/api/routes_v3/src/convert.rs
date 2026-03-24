@@ -135,7 +135,7 @@ pub(crate) fn convert_local_user(local_user: LocalUser) -> LocalUserV3 {
     blur_nsfw,
     infinite_scroll_enabled,
     totp_2fa_enabled,
-    enable_animated_images,
+    animated_images_enabled: enable_animated_images,
     collapse_bot_comments,
     last_donation_notification_at,
     ..
@@ -618,7 +618,7 @@ pub(crate) fn convert_local_site(local_site: LocalSite) -> LocalSiteV3 {
     site_id,
     site_setup,
     community_creation_admin_only,
-    require_email_verification,
+    email_verification_required: require_email_verification,
     application_question,
     private_instance,
     default_theme,

@@ -6,22 +6,22 @@ use diesel::{
   PgTextExpressionMethods,
   QueryDsl,
   SelectableHelper,
-  dsl::exists,
 };
 use diesel_async::RunQueryDsl;
 use diesel_ltree::{Ltree, LtreeExtensions, nlevel};
 use i_love_jesus::asc_if;
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommentId, CommunityId, PostId},
+  newtypes::{CommentId, CommunityId, LanguageId, PostId},
   source::{
+    actor_language::LocalUserLanguage,
     comment::{Comment, comment_keys as key},
     local_user::LocalUser,
     site::Site,
   },
   utils::{
     limit_fetch,
-    queries::filters::{filter_blocked, filter_suggested_communities},
+    queries::filters::{filter_blocked, filter_is_subscribed, filter_suggested_communities},
   },
 };
 use lemmy_db_schema_file::{
@@ -45,7 +45,7 @@ use lemmy_db_schema_file::{
     my_local_user_admin_join,
     my_person_actions_join,
   },
-  schema::{comment, community, community_actions, local_user_language, person, post},
+  schema::{comment, community, community_actions, person, post},
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
@@ -154,7 +154,7 @@ impl CommentView {
   }
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct CommentQuery<'a> {
   pub listing_type: Option<ListingType>,
   pub sort: Option<CommentSortType>,
@@ -170,39 +170,35 @@ pub struct CommentQuery<'a> {
 }
 
 impl CommentQuery<'_> {
-  pub async fn list(
+  async fn list_inner(
     self,
     site: &Site,
+    language_ids: Option<Vec<LanguageId>>,
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<PagedResponse<CommentView>> {
-    let o = self;
-
     // The left join below will return None in this case
-    let my_person_id = o.local_user.person_id();
-    let local_user_id = o.local_user.local_user_id();
+    let my_person_id = self.local_user.person_id();
 
     let mut query = CommentView::joins(my_person_id, site.instance_id)
       .select(CommentView::as_select())
       .into_boxed();
 
-    if let Some(post_id) = o.post_id {
+    if let Some(post_id) = self.post_id {
       query = query.filter(comment::post_id.eq(post_id));
     };
 
-    if let Some(parent_path) = o.parent_path.as_ref() {
+    if let Some(parent_path) = self.parent_path.as_ref() {
       query = query.filter(comment::path.contained_by(parent_path));
     };
 
-    if let Some(community_id) = o.community_id {
+    if let Some(community_id) = self.community_id {
       query = query.filter(comment::community_id.eq(community_id));
     }
 
-    let is_subscribed = community_actions::followed_at.is_not_null();
-
     // For posts, we only show hidden if its subscribed, but for comments,
     // we ignore hidden.
-    query = match o.listing_type.unwrap_or_default() {
-      ListingType::Subscribed => query.filter(is_subscribed),
+    query = match self.listing_type.unwrap_or_default() {
+      ListingType::Subscribed => query.filter(filter_is_subscribed()),
       ListingType::Local => query.filter(community::local.eq(true)),
       ListingType::All => query,
       ListingType::ModeratorView => {
@@ -211,47 +207,38 @@ impl CommentQuery<'_> {
       ListingType::Suggested => query.filter(filter_suggested_communities()),
     };
 
-    if !o.local_user.show_bot_accounts() {
+    if !self.local_user.show_bot_accounts() {
       query = query.filter(person::bot_account.eq(false));
     };
 
-    if o.local_user.is_some() && o.listing_type.unwrap_or_default() != ListingType::ModeratorView {
-      // Filter out the rows with missing languages
-      query = query.filter(exists(
-        local_user_language::table.filter(
-          comment::language_id
-            .eq(local_user_language::language_id)
-            .and(
-              local_user_language::local_user_id
-                .nullable()
-                .eq(local_user_id),
-            ),
-        ),
-      ));
+    if self.listing_type.unwrap_or_default() != ListingType::ModeratorView {
+      if let Some(language_ids) = language_ids {
+        query = query.filter(comment::language_id.eq_any(language_ids));
+      }
 
       query = query.filter(filter_blocked());
     };
 
     // The search term
-    if let Some(search_term) = o.search_term {
+    if let Some(search_term) = self.search_term {
       let searcher = fuzzy_search(&search_term);
       query = query.filter(comment::content.ilike(searcher));
     }
 
-    if !o.local_user.show_nsfw(site) {
+    if !self.local_user.show_nsfw(site) {
       query = query
         .filter(post::nsfw.eq(false))
         .filter(community::nsfw.eq(false));
     };
 
-    query = o.local_user.visible_communities_only(query);
+    query = self.local_user.visible_communities_only(query);
     query = query.filter(
       comment::federation_pending
         .eq(false)
         .or(comment::creator_id.nullable().eq(my_person_id)),
     );
 
-    if !o.local_user.is_admin() {
+    if !self.local_user.is_admin() {
       query = query.filter(
         community::visibility
           .ne(CommunityVisibility::Private)
@@ -260,14 +247,14 @@ impl CommentQuery<'_> {
     }
 
     // Filter by the time range
-    if let Some(time_range_seconds) = o.time_range_seconds {
+    if let Some(time_range_seconds) = self.time_range_seconds {
       query =
         query.filter(comment::published_at.gt(now() - seconds_to_pg_interval(time_range_seconds)));
     }
 
     // A Max depth given means its a tree fetch
-    let limit = if let Some(max_depth) = o.max_depth {
-      let depth_limit = if let Some(parent_path) = o.parent_path.as_ref() {
+    let limit = if let Some(max_depth) = self.max_depth {
+      let depth_limit = if let Some(parent_path) = self.parent_path.as_ref() {
         let count: i32 = parent_path.0.split('.').count().try_into()?;
         count + max_depth
         // Add one because of root "0"
@@ -289,27 +276,27 @@ impl CommentQuery<'_> {
       // (i64::MAX, 0)
       300
     } else {
-      limit_fetch(o.limit, None)?
+      limit_fetch(self.limit, None)?
     };
     query = query.limit(limit);
 
     // Only sort by ascending for Old
-    let sort = o.sort.unwrap_or(Hot);
+    let sort = self.sort.unwrap_or(Hot);
     let sort_direction = asc_if(sort == Old);
 
-    let mut pq = CommentView::paginate(query, &o.page_cursor, sort_direction, pool, None).await?;
+    let mut pq = CommentView::paginate(query, &self.page_cursor, sort_direction, pool).await?;
 
     // Order by a subpath for max depth queries
     // Only order if filtering by a post id, or parent_path. DOS potential otherwise and max_depth
     // + !post_id isn't used anyways (afaik)
-    if o.max_depth.is_some() && (o.post_id.is_some() || o.parent_path.is_some()) {
+    if self.max_depth.is_some() && (self.post_id.is_some() || self.parent_path.is_some()) {
       // Always order by the parent path first
       pq = pq.then_order_by(Subpath(key::path));
     }
 
     // Distinguished comments should go first when viewing post
     // Don't do for new / old sorts
-    if sort != New && sort != Old && (o.post_id.is_some() || o.parent_path.is_some()) {
+    if sort != New && sort != Old && (self.post_id.is_some() || self.parent_path.is_some()) {
       pq = pq.then_order_by(key::distinguished);
     }
 
@@ -323,7 +310,17 @@ impl CommentQuery<'_> {
     let conn = &mut get_conn(pool).await?;
     let res = pq.load::<CommentView>(conn).await?;
 
-    paginate_response(res, limit, o.page_cursor)
+    paginate_response(res, limit, self.page_cursor)
+  }
+
+  pub async fn list(
+    &self,
+    site: &Site,
+    pool: &mut DbPool<'_>,
+  ) -> LemmyResult<PagedResponse<CommentView>> {
+    let language_ids = LocalUserLanguage::read_opt(pool, self.local_user.map(|l| l.id)).await?;
+
+    self.clone().list_inner(site, language_ids, pool).await
   }
 }
 

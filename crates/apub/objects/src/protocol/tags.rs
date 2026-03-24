@@ -1,4 +1,4 @@
-use crate::objects::person::ApubPerson;
+use crate::objects::UserOrCommunity;
 use activitypub_federation::{fetch::object_id::ObjectId, kinds::link::MentionType};
 use lemmy_db_schema::{
   newtypes::CommunityId,
@@ -28,7 +28,7 @@ impl ApubTag {
       _ => None,
     }
   }
-  pub fn mention_id(&self) -> Option<&ObjectId<ApubPerson>> {
+  pub fn mention_id(&self) -> Option<&ObjectId<UserOrCommunity>> {
     match self {
       ApubTag::Mention(m) => Some(&m.href),
       _ => None,
@@ -38,7 +38,7 @@ impl ApubTag {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Mention {
-  pub href: ObjectId<ApubPerson>,
+  pub href: ObjectId<UserOrCommunity>,
   pub(crate) name: Option<String>,
   #[serde(rename = "type")]
   pub kind: MentionType,

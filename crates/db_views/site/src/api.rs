@@ -116,7 +116,7 @@ pub struct CreateSite {
   pub sidebar: Option<String>,
   pub summary: Option<String>,
   pub community_creation_admin_only: Option<bool>,
-  pub require_email_verification: Option<bool>,
+  pub email_verification_required: Option<bool>,
   pub application_question: Option<String>,
   pub private_instance: Option<bool>,
   pub default_theme: Option<String>,
@@ -154,8 +154,8 @@ pub struct CreateSite {
   pub post_downvotes: Option<FederationMode>,
   pub comment_upvotes: Option<FederationMode>,
   pub comment_downvotes: Option<FederationMode>,
-  pub disallow_nsfw_content: Option<bool>,
-  pub disable_email_notifications: Option<bool>,
+  pub nsfw_content_disallowed: Option<bool>,
+  pub email_notifications_disabled: Option<bool>,
   pub suggested_multi_community_id: Option<MultiCommunityId>,
   pub image_mode: Option<ImageMode>,
   pub image_proxy_bypass_domains: Option<String>,
@@ -210,7 +210,7 @@ pub struct EditSite {
   /// Limits community creation to admins only.
   pub community_creation_admin_only: Option<bool>,
   /// Whether to require email verification.
-  pub require_email_verification: Option<bool>,
+  pub email_verification_required: Option<bool>,
   /// Your application question form. This is in markdown, and can be many questions.
   pub application_question: Option<String>,
   /// Whether your instance is public, or private.
@@ -282,9 +282,9 @@ pub struct EditSite {
   /// What kind of comment downvotes your site allows.
   pub comment_downvotes: Option<FederationMode>,
   /// Block NSFW content being created
-  pub disallow_nsfw_content: Option<bool>,
+  pub nsfw_content_disallowed: Option<bool>,
   /// Dont send email notifications to users for new replies, mentions etc
-  pub disable_email_notifications: Option<bool>,
+  pub email_notifications_disabled: Option<bool>,
   /// A multicommunity with suggested communities which is shown on the homepage. Sending a zero
   /// erases this field.
   pub suggested_multi_community_id: Option<MultiCommunityId>,
@@ -549,9 +549,9 @@ pub struct SaveUserSettings {
   pub infinite_scroll_enabled: Option<bool>,
   /// Whether user avatars or inline images in the UI that are gifs should be allowed to play or
   /// should be paused
-  pub enable_animated_images: Option<bool>,
+  pub animated_images_enabled: Option<bool>,
   /// Whether a user can send / receive private messages
-  pub enable_private_messages: Option<bool>,
+  pub private_messages_enabled: Option<bool>,
   /// Whether to auto-collapse bot comments.
   pub collapse_bot_comments: Option<bool>,
   /// Some vote display mode settings
