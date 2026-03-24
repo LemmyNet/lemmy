@@ -133,6 +133,8 @@ impl NotificationQuery {
     Box::pin(async move {
       let limit = limit_fetch(self.limit, self.no_limit)?;
       let mut query = notification_joins(my_person.id, my_person.instance_id)
+        // Dont show replies from blocked users or instances
+        .filter(filter_blocked())
         .filter(filter_deleted_and_removed(my_person.id))
         .limit(limit)
         .select(NotificationViewInternal::as_select())
@@ -178,9 +180,6 @@ impl NotificationQuery {
       if !self.show_bot_accounts.unwrap_or_default() {
         query = query.filter(person::bot_account.is_distinct_from(true));
       };
-
-      // Dont show replies from blocked users or instances
-      query = query.filter(filter_blocked());
 
       // Sorting by published
       let paginated_query =
