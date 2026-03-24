@@ -49,6 +49,7 @@ use lemmy_utils::{
   utils::markdown::markdown_to_html,
 };
 use std::ops::Deref;
+use tokio::spawn;
 use url::Url;
 
 #[derive(Clone, Debug)]
@@ -180,7 +181,17 @@ impl Object for ApubComment {
     ))
     .await?;
 
-    let (post, parent_comment) = Box::pin(note.get_parents(context)).await?;
+    // When fetching a deeply nested comment we may have also have to fetch dozens of parent
+    // comments which can easily result in stack overflow. So we launch a new task instead
+    // which gives a new stack and avoids overflow. This was successfully tested with a comment
+    // nested 200 deep (max in production is 50).
+    let note2 = note.clone();
+    let context2 = context.clone();
+    let (post, parent_comment) = spawn(async move { note2.get_parents(&context2).await }).await??;
+    if let Some(c) = &parent_comment {
+      check_comment_depth(c)?;
+    }
+
     let creator = Box::pin(note.attributed_to.dereference(context)).await?;
 
     let is_mod_or_admin = check_is_mod_or_admin(&mut context.pool(), creator.id, community.id)
@@ -199,10 +210,8 @@ impl Object for ApubComment {
   /// If the parent community, post and comment(s) are not known locally, these are also fetched.
   async fn from_json(note: Note, context: &Data<LemmyContext>) -> LemmyResult<ApubComment> {
     let creator = note.attributed_to.dereference(context).await?;
+    // Parent comment is already fetched in verify method, no risk of stack overflow here.
     let (post, parent_comment) = note.get_parents(context).await?;
-    if let Some(c) = &parent_comment {
-      check_comment_depth(c)?;
-    }
 
     let content = read_from_string_or_source(&note.content, &note.media_type, &note.source);
 
