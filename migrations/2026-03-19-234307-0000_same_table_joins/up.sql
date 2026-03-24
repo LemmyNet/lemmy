@@ -1,4 +1,61 @@
 -- This adds (sometimes redundant) id columns to source tables, so that views can be built without needing to cascade joins to multiple tables.
+-- Add a redundant community_id back to the comment table
+ALTER TABLE comment
+    ADD COLUMN community_id int REFERENCES community (id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+-- Disable the triggers temporarily
+ALTER TABLE comment DISABLE TRIGGER ALL;
+
+-- disable all table indexes
+UPDATE
+    pg_index
+SET
+    indisready = FALSE
+WHERE
+    indrelid = (
+        SELECT
+            oid
+        FROM
+            pg_class
+        WHERE
+            relname = 'comment');
+
+-- Fill the rows
+UPDATE
+    comment AS c
+SET
+    community_id = p.community_id
+FROM
+    post AS p
+WHERE
+    c.post_id = p.id;
+
+-- Set it to not null
+ALTER TABLE comment
+    ALTER COLUMN community_id SET NOT NULL;
+
+-- Re-enable triggers after update
+ALTER TABLE comment ENABLE TRIGGER ALL;
+
+-- Re-enable indexes
+UPDATE
+    pg_index
+SET
+    indisready = TRUE
+WHERE
+    indrelid = (
+        SELECT
+            oid
+        FROM
+            pg_class
+        WHERE
+            relname = 'comment');
+
+-- reindex
+REINDEX TABLE comment;
+
+CREATE INDEX idx_comment_community ON comment (community_id);
+
 -- Notification
 -- Add an optional instance_id (for modlog view)
 ALTER TABLE notification
@@ -241,61 +298,4 @@ CREATE INDEX idx_person_content_combined_community ON person_content_combined (c
 
 -- Adding a faster index on notification
 CREATE INDEX idx_notification_published_id_recipient ON notification (published_at DESC, id DESC, recipient_id);
-
--- Add a redundant community_id back to the comment table
-ALTER TABLE comment
-    ADD COLUMN community_id int REFERENCES community (id) ON UPDATE CASCADE ON DELETE CASCADE;
-
--- Disable the triggers temporarily
-ALTER TABLE comment DISABLE TRIGGER ALL;
-
--- disable all table indexes
-UPDATE
-    pg_index
-SET
-    indisready = FALSE
-WHERE
-    indrelid = (
-        SELECT
-            oid
-        FROM
-            pg_class
-        WHERE
-            relname = 'comment');
-
--- Fill the rows
-UPDATE
-    comment AS c
-SET
-    community_id = p.community_id
-FROM
-    post AS p
-WHERE
-    c.post_id = p.id;
-
--- Set it to not null
-ALTER TABLE comment
-    ALTER COLUMN community_id SET NOT NULL;
-
--- Re-enable triggers after update
-ALTER TABLE comment ENABLE TRIGGER ALL;
-
--- Re-enable indexes
-UPDATE
-    pg_index
-SET
-    indisready = TRUE
-WHERE
-    indrelid = (
-        SELECT
-            oid
-        FROM
-            pg_class
-        WHERE
-            relname = 'comment');
-
--- reindex
-REINDEX TABLE comment;
-
-CREATE INDEX idx_comment_community ON comment (community_id);
 
