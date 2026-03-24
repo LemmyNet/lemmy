@@ -3,6 +3,23 @@
 ALTER TABLE comment
     ADD COLUMN community_id int REFERENCES community (id) ON UPDATE CASCADE ON DELETE CASCADE;
 
+-- Disable the triggers temporarily
+ALTER TABLE comment DISABLE TRIGGER ALL;
+
+-- disable all table indexes
+UPDATE
+    pg_index
+SET
+    indisready = FALSE
+WHERE
+    indrelid = (
+        SELECT
+            oid
+        FROM
+            pg_class
+        WHERE
+            relname = 'comment');
+
 -- Fill the rows
 UPDATE
     comment AS c
@@ -16,6 +33,26 @@ WHERE
 -- Set it to not null
 ALTER TABLE comment
     ALTER COLUMN community_id SET NOT NULL;
+
+-- Re-enable triggers after update
+ALTER TABLE comment ENABLE TRIGGER ALL;
+
+-- Re-enable indexes
+UPDATE
+    pg_index
+SET
+    indisready = TRUE
+WHERE
+    indrelid = (
+        SELECT
+            oid
+        FROM
+            pg_class
+        WHERE
+            relname = 'comment');
+
+-- reindex
+REINDEX TABLE comment;
 
 CREATE INDEX idx_comment_community ON comment (community_id);
 
