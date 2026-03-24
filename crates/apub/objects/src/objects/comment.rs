@@ -123,7 +123,8 @@ impl Object for ApubComment {
     let parent_creator = get_comment_parent_creator(&mut context.pool(), &self)
       .await
       .ok();
-    let maa = collect_non_local_mentions(Some(&self.content), parent_creator, context).await?;
+    let maa =
+      collect_non_local_mentions(Some(&self.content), parent_creator, &community, context).await?;
 
     let note = Note {
       r#type: NoteType::Note,
