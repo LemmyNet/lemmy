@@ -78,7 +78,7 @@ pub async fn send_verification_email_if_required(
   settings: &'static Settings,
 ) -> LemmyResult<bool> {
   if !user.local_user.admin
-    && local_site.require_email_verification
+    && local_site.email_verification_required
     && !user.local_user.email_verified
   {
     let email = user_email(user)?;
