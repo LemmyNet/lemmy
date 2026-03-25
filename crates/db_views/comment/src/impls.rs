@@ -394,19 +394,21 @@ mod tests {
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
     Instance::read_all(pool).await?;
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
+    let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
+    let system_acct =
+      Person::create(pool, &PersonInsertForm::test_form(instance.id, "langs")).await?;
 
-    let timmy_person_form = PersonInsertForm::test_form(inserted_instance.id, "timmy");
+    let timmy_person_form = PersonInsertForm::test_form(instance.id, "timmy");
     let inserted_timmy_person = Person::create(pool, &timmy_person_form).await?;
     let timmy_local_user_form = LocalUserInsertForm::test_form_admin(inserted_timmy_person.id);
 
     let inserted_timmy_local_user = LocalUser::create(pool, &timmy_local_user_form, vec![]).await?;
 
-    let sara_person_form = PersonInsertForm::test_form(inserted_instance.id, "sara");
+    let sara_person_form = PersonInsertForm::test_form(instance.id, "sara");
     let sara_person = Person::create(pool, &sara_person_form).await?;
 
     let new_community = CommunityInsertForm::new(
-      inserted_instance.id,
+      instance.id,
       "test community 5".to_string(),
       "nada".to_owned(),
       "pubkey".to_string(),
@@ -515,13 +517,13 @@ mod tests {
       banned: false,
       ban_expires_at: None,
     };
-    let site_form = SiteInsertForm::new("test site".to_string(), inserted_instance.id);
+    let site_form = SiteInsertForm::new("test site".to_string(), instance.id);
     let site = Site::create(pool, &site_form).await?;
-    let local_site_form = LocalSiteInsertForm::new(site.id);
+    let local_site_form = LocalSiteInsertForm::new(site.id, system_acct.id);
     let local_site = LocalSite::create(pool, &local_site_form).await?;
 
     Ok(Data {
-      instance: inserted_instance,
+      instance,
       comment_0,
       comment_1,
       comment_2,

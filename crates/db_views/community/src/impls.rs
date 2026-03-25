@@ -520,7 +520,9 @@ mod tests {
       instance_id: Default::default(),
       content_warning: None,
     };
-    let local_site_form = LocalSiteInsertForm::new(site.id);
+    let system_acct =
+      Person::create(pool, &PersonInsertForm::test_form(instance.id, "langs")).await?;
+    let local_site_form = LocalSiteInsertForm::new(site.id, system_acct.id);
     let local_site = LocalSite::create(pool, &local_site_form).await?;
 
     Ok(Data {

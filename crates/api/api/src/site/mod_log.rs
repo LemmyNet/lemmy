@@ -82,6 +82,8 @@ mod tests {
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
     let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
+    let system_acct =
+      Person::create(pool, &PersonInsertForm::test_form(instance.id, "langs")).await?;
     let url = Url::parse("http://example.com")?;
     let site = Site {
       id: Default::default(),
@@ -100,7 +102,7 @@ mod tests {
       instance_id: Default::default(),
       content_warning: None,
     };
-    let local_site_form = LocalSiteInsertForm::new(site.id);
+    let local_site_form = LocalSiteInsertForm::new(site.id, system_acct.id);
     let local_site = LocalSite::create(pool, &local_site_form).await?;
 
     Ok(Data {
