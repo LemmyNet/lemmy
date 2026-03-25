@@ -787,7 +787,7 @@ mod tests {
       mod_person_id: Some(data.jessica.id),
       ..Default::default()
     }
-      .list(pool, &data.local_site)
+    .list(pool, &data.local_site)
     .await?;
     assert_eq!(5, modlog_mod_jessica_filter.len());
 
@@ -799,7 +799,7 @@ mod tests {
       target_person_id: Some(data.timmy.id),
       ..Default::default()
     }
-      .list(pool, &data.local_site)
+    .list(pool, &data.local_site)
     .await?;
     assert_eq!(5, modlog_modded_timmy_filter.len());
 
@@ -807,7 +807,7 @@ mod tests {
       target_person_id: Some(data.jessica.id),
       ..Default::default()
     }
-      .list(pool, &data.local_site)
+    .list(pool, &data.local_site)
     .await?;
     assert_eq!(6, modlog_modded_jessica_filter.len());
 
@@ -815,7 +815,7 @@ mod tests {
       target_person_id: Some(data.sara.id),
       ..Default::default()
     }
-      .list(pool, &data.local_site)
+    .list(pool, &data.local_site)
     .await?;
     assert_eq!(3, modlog_modded_sara_filter.len());
 
@@ -824,7 +824,7 @@ mod tests {
       community_id: Some(data.community.id),
       ..Default::default()
     }
-      .list(pool, &data.local_site)
+    .list(pool, &data.local_site)
     .await?;
     assert_eq!(11, modlog_community_filter.len());
 
@@ -832,7 +832,7 @@ mod tests {
       community_id: Some(data.community_2.id),
       ..Default::default()
     }
-      .list(pool, &data.local_site)
+    .list(pool, &data.local_site)
     .await?;
     assert_eq!(4, modlog_community_2_filter.len());
 
@@ -841,7 +841,7 @@ mod tests {
       post_id: Some(data.post.id),
       ..Default::default()
     }
-      .list(pool, &data.local_site)
+    .list(pool, &data.local_site)
     .await?;
     assert_eq!(7, modlog_post_filter.len());
 
@@ -849,7 +849,7 @@ mod tests {
       post_id: Some(data.post_2.id),
       ..Default::default()
     }
-      .list(pool, &data.local_site)
+    .list(pool, &data.local_site)
     .await?;
     assert_eq!(3, modlog_post_2_filter.len());
 
@@ -858,7 +858,7 @@ mod tests {
       comment_id: Some(data.comment.id),
       ..Default::default()
     }
-      .list(pool, &data.local_site)
+    .list(pool, &data.local_site)
     .await?;
     assert_eq!(3, modlog_comment_filter.len());
 
@@ -866,7 +866,7 @@ mod tests {
       comment_id: Some(data.comment_2.id),
       ..Default::default()
     }
-      .list(pool, &data.local_site)
+    .list(pool, &data.local_site)
     .await?;
     assert_eq!(1, modlog_comment_2_filter.len());
 
@@ -875,7 +875,7 @@ mod tests {
       type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemoveComment)),
       ..Default::default()
     }
-      .list(pool, &data.local_site)
+    .list(pool, &data.local_site)
     .await?;
     assert_eq!(2, modlog_type_filter.len());
 
@@ -919,7 +919,7 @@ mod tests {
       hide_modlog_names: Some(true),
       ..Default::default()
     }
-      .list(pool, &data.local_site)
+    .list(pool, &data.local_site)
     .await?;
     assert_eq!(1, modlog_hide_names_filter.len());
 
@@ -949,7 +949,7 @@ mod tests {
       type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemovePost)),
       ..Default::default()
     }
-      .list(pool, &data.local_site)
+    .list(pool, &data.local_site)
     .await?
     .items;
     assert_eq!(1, modlog.len());
@@ -1002,7 +1002,7 @@ mod tests {
       show_bulk: Some(true),
       ..Default::default()
     }
-      .list(pool, &data.local_site)
+    .list(pool, &data.local_site)
     .await?
     .items;
     // parent-linked two bulk + one individual = 3 total
@@ -1013,7 +1013,7 @@ mod tests {
       bulk_action_parent_id: Some(parent_id),
       ..Default::default()
     }
-      .list(pool, &data.local_site)
+    .list(pool, &data.local_site)
     .await?
     .items;
     assert_eq!(2, children.len());
@@ -1024,7 +1024,7 @@ mod tests {
       show_bulk: Some(false),
       ..Default::default()
     }
-      .list(pool, &data.local_site)
+    .list(pool, &data.local_site)
     .await?
     .items;
     assert_eq!(1, non_bulk.len());
@@ -1034,7 +1034,7 @@ mod tests {
       type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemovePost)),
       ..Default::default()
     }
-      .list(pool, &data.local_site)
+    .list(pool, &data.local_site)
     .await?
     .items;
     assert_eq!(1, none_behaviour.len());
@@ -1103,7 +1103,7 @@ mod tests {
       bulk_action_parent_id: Some(parent_a_id),
       ..Default::default()
     }
-      .list(pool, &data.local_site)
+    .list(pool, &data.local_site)
     .await?
     .items;
     assert_eq!(2, children_of_a.len());
@@ -1118,7 +1118,7 @@ mod tests {
       bulk_action_parent_id: Some(parent_b_id),
       ..Default::default()
     }
-      .list(pool, &data.local_site)
+    .list(pool, &data.local_site)
     .await?
     .items;
     assert_eq!(2, children_of_b.len());
