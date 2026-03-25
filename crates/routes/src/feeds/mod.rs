@@ -394,7 +394,7 @@ async fn get_feed_modlog(
     hide_modlog_names: Some(false),
     ..Default::default()
   }
-  .list(&mut context.pool())
+  .list(&mut context.pool(), &site_view.local_site)
   .await?
   .items;
 

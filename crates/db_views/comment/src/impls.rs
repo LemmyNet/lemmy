@@ -12,16 +12,19 @@ use diesel_ltree::{Ltree, LtreeExtensions, nlevel};
 use i_love_jesus::asc_if;
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommentId, CommunityId, LanguageId, PostId},
+  newtypes::{CommentId, CommunityId, PostId},
   source::{
     actor_language::LocalUserLanguage,
     comment::{Comment, comment_keys as key},
+    community::CommunityActions,
+    local_site::LocalSite,
     local_user::LocalUser,
+    multi_community::MultiCommunityEntry,
     site::Site,
   },
   utils::{
     limit_fetch,
-    queries::filters::{filter_blocked, filter_is_subscribed, filter_suggested_communities},
+    queries::filters::{filter_blocked, filter_is_subscribed},
   },
 };
 use lemmy_db_schema_file::{
@@ -170,12 +173,15 @@ pub struct CommentQuery<'a> {
 }
 
 impl CommentQuery<'_> {
-  async fn list_inner(
+  pub async fn list(
     self,
-    site: &Site,
-    language_ids: Option<Vec<LanguageId>>,
     pool: &mut DbPool<'_>,
+    site: &Site,
+    local_site: &LocalSite,
   ) -> LemmyResult<PagedResponse<CommentView>> {
+    // Pre-fetch the language ids if necessary
+    let language_ids = LocalUserLanguage::read_opt(pool, self.local_user.map(|l| l.id)).await?;
+
     // The left join below will return None in this case
     let my_person_id = self.local_user.person_id();
 
@@ -202,9 +208,25 @@ impl CommentQuery<'_> {
       ListingType::Local => query.filter(community::local.eq(true)),
       ListingType::All => query,
       ListingType::ModeratorView => {
-        query.filter(community_actions::became_moderator_at.is_not_null())
+        // Pre-fetch the moderator view community ids, since the join is too costly
+        let community_ids = if let Some(my_person_id) = self.local_user.person_id() {
+          CommunityActions::get_person_moderated_communities(pool, my_person_id).await?
+        } else {
+          // If you don't moderate anything, then return an empty list
+          vec![]
+        };
+        query.filter(comment::community_id.eq_any(community_ids))
       }
-      ListingType::Suggested => query.filter(filter_suggested_communities()),
+      ListingType::Suggested => {
+        // Pre-fetch the suggested community ids, since the join is too costly
+        let community_ids =
+          if let Some(suggested_multi_id) = local_site.suggested_multi_community_id {
+            MultiCommunityEntry::list_community_ids(pool, suggested_multi_id).await?
+          } else {
+            vec![]
+          };
+        query.filter(comment::community_id.eq_any(community_ids))
+      }
     };
 
     if !self.local_user.show_bot_accounts() {
@@ -312,16 +334,6 @@ impl CommentQuery<'_> {
 
     paginate_response(res, limit, self.page_cursor)
   }
-
-  pub async fn list(
-    &self,
-    site: &Site,
-    pool: &mut DbPool<'_>,
-  ) -> LemmyResult<PagedResponse<CommentView>> {
-    let language_ids = LocalUserLanguage::read_opt(pool, self.local_user.map(|l| l.id)).await?;
-
-    self.clone().list_inner(site, language_ids, pool).await
-  }
 }
 
 #[cfg(test)]
@@ -348,6 +360,7 @@ mod tests {
       },
       instance::Instance,
       language::Language,
+      local_site::{LocalSite, LocalSiteInsertForm},
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
       person::{Person, PersonActions, PersonBlockForm, PersonInsertForm},
       post::{Post, PostInsertForm, PostUpdateForm},
@@ -376,6 +389,7 @@ mod tests {
     sara_person: Person,
     community: Community,
     site: Site,
+    local_site: LocalSite,
   }
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
@@ -503,6 +517,9 @@ mod tests {
     };
     let site_form = SiteInsertForm::new("test site".to_string(), inserted_instance.id);
     let site = Site::create(pool, &site_form).await?;
+    let local_site_form = LocalSiteInsertForm::new(site.id);
+    let local_site = LocalSite::create(pool, &local_site_form).await?;
+
     Ok(Data {
       instance: inserted_instance,
       comment_0,
@@ -514,6 +531,7 @@ mod tests {
       sara_person,
       community,
       site,
+      local_site,
     })
   }
 
@@ -529,7 +547,7 @@ mod tests {
       post_id: (Some(data.post.id)),
       ..Default::default()
     }
-    .list(&data.site, pool)
+    .list(pool, &data.site, &data.local_site)
     .await?;
 
     assert!(read_comment_views_no_person[0].comment_actions.is_none());
@@ -541,7 +559,7 @@ mod tests {
       local_user: (Some(&data.timmy_local_user_view.local_user)),
       ..Default::default()
     }
-    .list(&data.site, pool)
+    .list(pool, &data.site, &data.local_site)
     .await?;
 
     assert!(
@@ -586,7 +604,7 @@ mod tests {
       parent_path: (Some(top_path)),
       ..Default::default()
     }
-    .list(&data.site, pool)
+    .list(pool, &data.site, &data.local_site)
     .await?;
 
     let child_path = data.comment_1.path.clone();
@@ -595,7 +613,7 @@ mod tests {
       parent_path: (Some(child_path)),
       ..Default::default()
     }
-    .list(&data.site, pool)
+    .list(pool, &data.site, &data.local_site)
     .await?;
 
     // Make sure the comment parent-limited fetch is correct
@@ -615,7 +633,7 @@ mod tests {
       max_depth: (Some(1)),
       ..Default::default()
     }
-    .list(&data.site, pool)
+    .list(pool, &data.site, &data.local_site)
     .await?;
 
     // Make sure a depth limited one only has the top comment
@@ -629,7 +647,7 @@ mod tests {
       sort: (Some(CommentSortType::Old)),
       ..Default::default()
     }
-    .list(&data.site, pool)
+    .list(pool, &data.site, &data.local_site)
     .await?;
 
     // Make sure a depth limited one, and given child comment 1, has 3
@@ -665,7 +683,7 @@ mod tests {
       local_user: (Some(&data.timmy_local_user_view.local_user)),
       ..Default::default()
     }
-    .list(&data.site, pool)
+    .list(pool, &data.site, &data.local_site)
     .await?;
     assert_length!(5, all_languages);
 
@@ -681,7 +699,7 @@ mod tests {
       local_user: (Some(&data.timmy_local_user_view.local_user)),
       ..Default::default()
     }
-    .list(&data.site, pool)
+    .list(pool, &data.site, &data.local_site)
     .await?;
     assert_length!(1, finnish_comments);
     let finnish_comment = finnish_comments
@@ -704,7 +722,7 @@ mod tests {
       local_user: (Some(&data.timmy_local_user_view.local_user)),
       ..Default::default()
     }
-    .list(&data.site, pool)
+    .list(pool, &data.site, &data.local_site)
     .await?;
     assert_length!(1, undetermined_comment);
 
@@ -728,7 +746,7 @@ mod tests {
       post_id: Some(data.comment_2.post_id),
       ..Default::default()
     }
-    .list(&data.site, pool)
+    .list(pool, &data.site, &data.local_site)
     .await?;
     assert_eq!(comments[0].comment.id, data.comment_2.id);
     assert!(comments[0].comment.distinguished);
@@ -754,7 +772,7 @@ mod tests {
       sort: (Some(CommentSortType::Old)),
       ..Default::default()
     }
-    .list(&data.site, pool)
+    .list(pool, &data.site, &data.local_site)
     .await?;
 
     assert_eq!(comments[1].creator.name, "sara");
@@ -776,7 +794,7 @@ mod tests {
       sort: (Some(CommentSortType::Old)),
       ..Default::default()
     }
-    .list(&data.site, pool)
+    .list(pool, &data.site, &data.local_site)
     .await?;
 
     // Timmy is an admin, and make sure that field is true
@@ -821,7 +839,7 @@ mod tests {
     let unauthenticated_query = CommentQuery {
       ..Default::default()
     }
-    .list(&data.site, pool)
+    .list(pool, &data.site, &data.local_site)
     .await?;
     assert_eq!(0, unauthenticated_query.len());
 
@@ -829,7 +847,7 @@ mod tests {
       local_user: Some(&data.timmy_local_user_view.local_user),
       ..Default::default()
     }
-    .list(&data.site, pool)
+    .list(pool, &data.site, &data.local_site)
     .await?;
     assert_eq!(5, authenticated_query.len());
 
@@ -927,7 +945,9 @@ mod tests {
     Post::update(pool, data.post.id, &update_form).await?;
 
     // Make sure comments of this post are not returned
-    let comments = CommentQuery::default().list(&data.site, pool).await?;
+    let comments = CommentQuery::default()
+      .list(pool, &data.site, &data.local_site)
+      .await?;
     assert_eq!(0, comments.len());
 
     // Mark site as nsfw
@@ -935,7 +955,9 @@ mod tests {
     site.content_warning = Some("nsfw".to_string());
 
     // Now comments of nsfw post are returned
-    let comments = CommentQuery::default().list(&site, pool).await?;
+    let comments = CommentQuery::default()
+      .list(pool, &site, &data.local_site)
+      .await?;
     assert_eq!(6, comments.len());
 
     cleanup(data, pool).await
@@ -960,7 +982,9 @@ mod tests {
     .await?;
 
     // No comments returned without auth
-    let read_comment_listing = CommentQuery::default().list(&data.site, pool).await?;
+    let read_comment_listing = CommentQuery::default()
+      .list(pool, &data.site, &data.local_site)
+      .await?;
     assert_eq!(0, read_comment_listing.len());
     let comment_view = CommentView::read(pool, data.comment_0.id, None, data.instance.id).await;
     assert!(comment_view.is_err());
@@ -972,7 +996,7 @@ mod tests {
       local_user: Some(&data.timmy_local_user_view.local_user),
       ..Default::default()
     }
-    .list(&data.site, pool)
+    .list(pool, &data.site, &data.local_site)
     .await?;
     assert_eq!(0, read_comment_listing.len());
     let comment_view = CommentView::read(
@@ -991,7 +1015,7 @@ mod tests {
       local_user: Some(&data.timmy_local_user_view.local_user),
       ..Default::default()
     }
-    .list(&data.site, pool)
+    .list(pool, &data.site, &data.local_site)
     .await?;
     assert_eq!(5, read_comment_listing.len());
     let comment_view = CommentView::read(
@@ -1019,7 +1043,7 @@ mod tests {
       local_user: Some(&data.timmy_local_user_view.local_user),
       ..Default::default()
     }
-    .list(&data.site, pool)
+    .list(pool, &data.site, &data.local_site)
     .await?;
     assert_eq!(5, read_comment_listing.len());
     let comment_view = CommentView::read(
@@ -1074,7 +1098,7 @@ mod tests {
       sort: Some(CommentSortType::Old),
       ..Default::default()
     }
-    .list(&data.site, pool)
+    .list(pool, &data.site, &data.local_site)
     .await?;
     assert_eq!("", comment_listing[0].comment.content);
 
@@ -1103,7 +1127,7 @@ mod tests {
       sort: Some(CommentSortType::Old),
       ..Default::default()
     }
-    .list(&data.site, pool)
+    .list(pool, &data.site, &data.local_site)
     .await?;
     assert_eq!(data.comment_0.content, comment_listing[0].comment.content);
 
@@ -1122,7 +1146,7 @@ mod tests {
       search_term: Some("comment 2".into()),
       ..Default::default()
     }
-    .list(&data.site, pool)
+    .list(pool, &data.site, &data.local_site)
     .await?;
 
     assert_length!(1, comment_search_by_name);

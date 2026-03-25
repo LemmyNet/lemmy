@@ -87,7 +87,7 @@ async fn list_comments_common(
     page_cursor,
     limit,
   }
-  .list(&site, &mut context.pool())
+  .list(&mut context.pool(), &site, &local_site)
   .await
 }
 

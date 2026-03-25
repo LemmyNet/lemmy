@@ -16,13 +16,14 @@ use lemmy_db_schema::{
   newtypes::{CommunityId, MultiCommunityId},
   source::{
     community::{Community, community_keys as key},
+    local_site::LocalSite,
     local_user::LocalUser,
-    multi_community::{MultiCommunity, multi_community_keys as mkey},
+    multi_community::{MultiCommunity, MultiCommunityEntry, multi_community_keys as mkey},
     site::Site,
   },
   utils::{
     limit_fetch,
-    queries::filters::{filter_is_subscribed, filter_not_unlisted, filter_suggested_communities},
+    queries::filters::{filter_is_subscribed, filter_not_unlisted},
   },
 };
 use lemmy_db_schema_file::{
@@ -131,10 +132,12 @@ pub struct CommunityQuery<'a> {
 impl CommunityQuery<'_> {
   pub async fn list(
     self,
-    site: &Site,
     pool: &mut DbPool<'_>,
+    site: &Site,
+    local_site: &LocalSite,
   ) -> LemmyResult<PagedResponse<CommunityView>> {
     use lemmy_db_schema::CommunitySortType::*;
+
     let limit = limit_fetch(self.limit, None)?;
 
     let mut query = CommunityView::joins(self.local_user.person_id())
@@ -158,7 +161,17 @@ impl CommunityQuery<'_> {
         ListingType::ModeratorView => {
           query.filter(community_actions::became_moderator_at.is_not_null())
         }
-        ListingType::Suggested => query.filter(filter_suggested_communities()),
+        ListingType::Suggested => {
+          // Pre-fetch the suggested community ids, since the join is too costly
+          let community_ids =
+            if let Some(suggested_multi_id) = local_site.suggested_multi_community_id {
+              MultiCommunityEntry::list_community_ids(pool, suggested_multi_id).await?
+            } else {
+              vec![]
+            };
+
+          query.filter(community::id.eq_any(community_ids))
+        }
       };
     }
 
@@ -397,6 +410,7 @@ mod tests {
         CommunityUpdateForm,
       },
       instance::Instance,
+      local_site::{LocalSite, LocalSiteInsertForm},
       local_user::{LocalUser, LocalUserInsertForm},
       multi_community::{MultiCommunity, MultiCommunityFollowForm, MultiCommunityInsertForm},
       person::{Person, PersonInsertForm},
@@ -422,6 +436,7 @@ mod tests {
     multi_1: MultiCommunity,
     multi_2: MultiCommunity,
     site: Site,
+    local_site: LocalSite,
   }
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
@@ -505,6 +520,8 @@ mod tests {
       instance_id: Default::default(),
       content_warning: None,
     };
+    let local_site_form = LocalSiteInsertForm::new(site.id);
+    let local_site = LocalSite::create(pool, &local_site_form).await?;
 
     Ok(Data {
       instance,
@@ -512,6 +529,7 @@ mod tests {
       tom,
       communities,
       site,
+      local_site,
       multi_1,
       multi_2,
     })
@@ -620,7 +638,7 @@ mod tests {
       sort: Some(CommunitySortType::New),
       ..Default::default()
     }
-    .list(&data.site, pool)
+    .list(pool, &data.site, &data.local_site)
     .await?;
     assert_eq!(data.communities.len() - 1, unauthenticated_query.len());
 
@@ -629,7 +647,7 @@ mod tests {
       sort: Some(CommunitySortType::New),
       ..Default::default()
     }
-    .list(&data.site, pool)
+    .list(pool, &data.site, &data.local_site)
     .await?;
     assert_eq!(data.communities.len(), authenticated_query.len());
 
@@ -655,7 +673,7 @@ mod tests {
       sort: Some(CommunitySortType::NameAsc),
       ..Default::default()
     };
-    let communities = query.list(&data.site, pool).await?;
+    let communities = query.list(pool, &data.site, &data.local_site).await?;
     for (i, c) in communities.iter().enumerate().skip(1) {
       let prev = communities.get(i - 1).ok_or(LemmyErrorType::NotFound)?;
       assert!(c.community.title.cmp(&prev.community.title).is_ge());
@@ -665,7 +683,7 @@ mod tests {
       sort: Some(CommunitySortType::NameDesc),
       ..Default::default()
     };
-    let communities = query.list(&data.site, pool).await?;
+    let communities = query.list(pool, &data.site, &data.local_site).await?;
     for (i, c) in communities.iter().enumerate().skip(1) {
       let prev = communities.get(i - 1).ok_or(LemmyErrorType::NotFound)?;
       assert!(c.community.title.cmp(&prev.community.title).is_le());
@@ -687,7 +705,7 @@ mod tests {
       sort: Some(CommunitySortType::New),
       ..Default::default()
     }
-    .list(&data.site, pool)
+    .list(pool, &data.site, &data.local_site)
     .await?
     .iter()
     .for_each(|c| assert!(!c.can_mod));
@@ -705,7 +723,7 @@ mod tests {
       local_user: Some(&data.local_user),
       ..Default::default()
     }
-    .list(&data.site, pool)
+    .list(pool, &data.site, &data.local_site)
     .await?
     .iter()
     .map(|c| (c.community.name.clone(), c.can_mod))
@@ -802,7 +820,7 @@ mod tests {
       search_term: Some("test_community_2".into()),
       ..Default::default()
     }
-    .list(&data.site, pool)
+    .list(pool, &data.site, &data.local_site)
     .await?;
 
     assert_length!(1, community_search_by_name);
@@ -816,7 +834,7 @@ mod tests {
       search_term: Some("sidebar".into()),
       ..Default::default()
     }
-    .list(&data.site, pool)
+    .list(pool, &data.site, &data.local_site)
     .await?;
 
     assert_length!(1, community_search_body);
@@ -832,7 +850,7 @@ mod tests {
       search_title_only: Some(true),
       ..Default::default()
     }
-    .list(&data.site, pool)
+    .list(pool, &data.site, &data.local_site)
     .await?;
 
     assert!(community_search_title_only.is_empty());

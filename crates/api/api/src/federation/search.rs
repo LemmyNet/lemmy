@@ -56,7 +56,7 @@ pub async fn search(
     sort: Some(CommentSortType::New),
     ..Default::default()
   }
-  .list(&site, &mut context.pool())
+  .list(&mut context.pool(), &site, &local_site)
   .await?
   .items;
 
@@ -80,7 +80,7 @@ pub async fn search(
     sort: Some(CommunitySortType::New),
     ..Default::default()
   }
-  .list(&site, &mut context.pool())
+  .list(&mut context.pool(), &site, &local_site)
   .await?
   .items;
 

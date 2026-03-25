@@ -40,7 +40,7 @@ pub async fn get_mod_log(
     page_cursor: data.page_cursor,
     limit: data.limit,
   }
-  .list(&mut context.pool())
+  .list(&mut context.pool(), &local_site)
   .await?;
 
   Ok(Json(modlog))
@@ -56,10 +56,12 @@ mod tests {
       comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm},
       community::{Community, CommunityInsertForm},
       instance::Instance,
+      local_site::{LocalSite, LocalSiteInsertForm},
       local_user::{LocalUser, LocalUserInsertForm},
       modlog::{Modlog, ModlogInsertForm},
       person::{Person, PersonInsertForm},
       post::{Post, PostActions, PostInsertForm, PostLikeForm},
+      site::Site,
     },
     traits::Likeable,
   };
@@ -67,18 +69,54 @@ mod tests {
   use lemmy_db_views_comment::CommentView;
   use lemmy_db_views_modlog::ModlogView;
   use lemmy_db_views_post::PostView;
-  use lemmy_diesel_utils::traits::Crud;
+  use lemmy_diesel_utils::{connection::DbPool, traits::Crud};
   use lemmy_utils::error::LemmyErrorType;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
+  use url::Url;
 
+  struct Data {
+    instance: Instance,
+    local_site: LocalSite,
+  }
+
+  async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
+    let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
+    let url = Url::parse("http://example.com")?;
+    let site = Site {
+      id: Default::default(),
+      name: String::new(),
+      sidebar: None,
+      published_at: Default::default(),
+      updated_at: None,
+      icon: None,
+      banner: None,
+      summary: None,
+      ap_id: url.clone().into(),
+      last_refreshed_at: Default::default(),
+      inbox_url: url.into(),
+      private_key: None,
+      public_key: String::new(),
+      instance_id: Default::default(),
+      content_warning: None,
+    };
+    let local_site_form = LocalSiteInsertForm::new(site.id);
+    let local_site = LocalSite::create(pool, &local_site_form).await?;
+
+    Ok(Data {
+      instance,
+      local_site,
+    })
+  }
   #[tokio::test]
   #[serial]
   async fn test_mod_remove_or_restore_data() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();
-
-    let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
+    let Data {
+      instance,
+      local_site,
+    } = init_data(pool).await?;
 
     // John is the mod
     let john = PersonInsertForm::test_form(instance.id, "john the modder");
@@ -160,7 +198,7 @@ mod tests {
       show_bulk: Some(true),
       ..Default::default()
     }
-    .list(pool)
+    .list(pool, &local_site)
     .await?
     .items;
     assert_eq!(2, post_modlog.len());
@@ -195,7 +233,7 @@ mod tests {
       show_bulk: Some(true),
       ..Default::default()
     }
-    .list(pool)
+    .list(pool, &local_site)
     .await?
     .items;
     assert_eq!(2, comment_modlog.len());
@@ -265,7 +303,7 @@ mod tests {
       show_bulk: Some(true),
       ..Default::default()
     }
-    .list(pool)
+    .list(pool, &local_site)
     .await?
     .items;
     assert_eq!(4, post_modlog.len());
@@ -318,7 +356,7 @@ mod tests {
       show_bulk: Some(true),
       ..Default::default()
     }
-    .list(pool)
+    .list(pool, &local_site)
     .await?
     .items;
     assert_eq!(4, comment_modlog.len());
@@ -377,8 +415,10 @@ mod tests {
   async fn test_bulk_parent_id_propagated() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();
-
-    let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
+    let Data {
+      instance,
+      local_site,
+    } = init_data(pool).await?;
 
     let person_a_form = PersonInsertForm::test_form(instance.id, "person_a_bulk_test");
     let person_a = Person::create(pool, &person_a_form).await?;
@@ -430,7 +470,7 @@ mod tests {
       show_bulk: Some(true),
       ..Default::default()
     }
-    .list(pool)
+    .list(pool, &local_site)
     .await?
     .items;
     assert_eq!(2, post_modlog.len());
@@ -446,7 +486,7 @@ mod tests {
       show_bulk: Some(true),
       ..Default::default()
     }
-    .list(pool)
+    .list(pool, &local_site)
     .await?
     .items;
     assert_eq!(1, comment_modlog.len());
