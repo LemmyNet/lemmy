@@ -299,3 +299,6 @@ CREATE INDEX idx_person_content_combined_community ON person_content_combined (c
 -- Adding a faster index on notification
 CREATE INDEX idx_notification_published_id_recipient ON notification (published_at DESC, id DESC, recipient_id);
 
+-- Adding a faster modlog index (needs the bulk_action parent for the most common query)
+CREATE INDEX idx_modlog_published_id_bulk_action_parent ON modlog (published_at DESC, id DESC, bulk_action_parent_id);
+

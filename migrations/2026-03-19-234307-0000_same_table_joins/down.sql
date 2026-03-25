@@ -74,3 +74,5 @@ DROP INDEX idx_person_content_combined_post, idx_person_content_combined_comment
 
 DROP INDEX idx_notification_published_id_recipient;
 
+DROP INDEX idx_modlog_published_id_bulk_action_parent;
+
