@@ -7,6 +7,7 @@ use lemmy_db_schema::source::{
   comment::Comment,
   post::{Post, PostActions},
 };
+use lemmy_db_schema_file::enums::PostSortType;
 use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::{
@@ -90,6 +91,7 @@ pub async fn get_post(
     PostQuery {
       search_term: Some(url.inner().as_str().into()),
       search_url_only: Some(true),
+      sort: Some(PostSortType::New),
       ..Default::default()
     }
     .list(&mut context.pool(), &site, &local_site)
