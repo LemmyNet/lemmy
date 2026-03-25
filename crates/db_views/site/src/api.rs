@@ -1,4 +1,4 @@
-use crate::SiteView;
+use crate::{ResolveObjectView, SiteView};
 #[cfg(feature = "full")]
 use extism::FromBytes;
 use extism_convert::Json;
@@ -697,6 +697,12 @@ pub struct Search {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// The search response, containing lists of the return type possibilities
 pub struct SearchResponse {
+  /**
+   * If `Search.q` contains an ActivityPub ID (eg `https://lemmy.world/comment/1`) or an
+   * identifier (eg `!fediverse@lemmy.ml`) then this field contains the resolved object.
+   * It should always be shown above other search results.
+   */
+  pub resolve: Option<ResolveObjectView>,
   pub comments: Vec<CommentView>,
   pub posts: Vec<PostView>,
   pub communities: Vec<CommunityView>,

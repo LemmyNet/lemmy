@@ -1,3 +1,4 @@
+use crate::federation::resolve_object::resolve_object_internal;
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
@@ -29,11 +30,15 @@ pub async fn search(
     local_site, site, ..
   } = SiteView::read_local(&mut context.pool()).await?;
 
+  check_private_instance(&local_user_view, &local_site)?;
+
+  let resolve = resolve_object_internal(&data.search_term, &local_user_view, &context)
+    .await
+    .ok();
+
   let search_term = Some(data.search_term);
   let listing_type = Some(ListingType::All);
   let search_title_only = data.search_title_only;
-
-  check_private_instance(&local_user_view, &local_site)?;
 
   let local_user = local_user_view.as_ref().map(|u| &u.local_user);
 
@@ -97,6 +102,7 @@ pub async fn search(
   .items;
 
   let res = SearchResponse {
+    resolve,
     comments,
     posts,
     communities,
