@@ -22,6 +22,7 @@ import {
   PersonSortType,
   PostId,
   PostSortType,
+  ReportType,
 } from "lemmy-js-client";
 import { fetchFunction } from "./shared";
 import * as fs from "fs";
@@ -267,8 +268,26 @@ test("Get a post", async () => {
 });
 
 // TODO SLOW
-test("Get comments for a post with different sorts", async () => {
-  report.push("\n# Get comments for a post with different sorts\n");
+test("Get comments for a post with different sorts, tree", async () => {
+  report.push("\n# Get comments for a post with different sorts, tree\n");
+  report.push("sort | time");
+  report.push("--- | ---");
+
+  for (let sort of commentSortTypes) {
+    const time = await timeApiCalls(() =>
+      api.getComments({
+        post_id: postWithLotsOfComments,
+        max_depth: postCommentsMaxDepth,
+        sort,
+      }),
+    );
+    report.push(`${sort} | ${formatMs(time)}`);
+  }
+});
+
+// TODO SLOW
+test("Get comments for a post with different sorts, flat", async () => {
+  report.push("\n# Get comments for a post with different sorts, flat\n");
   report.push("sort | time");
   report.push("--- | ---");
 
@@ -277,7 +296,6 @@ test("Get comments for a post with different sorts", async () => {
       api.getComments({
         post_id: postWithLotsOfComments,
         sort,
-        max_depth: postCommentsMaxDepth,
       }),
     );
     report.push(`${sort} | ${formatMs(time)}`);
@@ -402,6 +420,25 @@ test("List reports", async () => {
   report.push(`all | ${formatMs(all)}`);
 });
 
+// TODO slow
+test("List reports with type", async () => {
+  const reportTypes: ReportType[] = [
+    "all",
+    "posts",
+    "comments",
+    "private_messages",
+    "communities",
+  ];
+  report.push("\n# List reports with type\n");
+  report.push("type | time");
+  report.push("--- | ---");
+
+  for (let type_ of reportTypes) {
+    const time = await timeApiCalls(() => api.listReports({ type_ }));
+    report.push(`${type_} | ${formatMs(time)}`);
+  }
+});
+
 test("Search with sort types", async () => {
   report.push("\n# Search with types\n");
   report.push("type | sort | time");
@@ -445,7 +482,7 @@ test("Search with sort types", async () => {
   }
 });
 
-// TODO slow
+// TODO a bit slow, ~200ms
 test("Notifications with types", async () => {
   report.push("\n# Notifications with types\n");
   report.push("type | time");
@@ -485,7 +522,6 @@ test("Liking a comment / post", async () => {
   report.push(`post | ${formatMs(postLike.diff)}`);
 });
 
-// TODO Many are slow
 test("Get modlog with types", async () => {
   report.push("\n# Get modlog with types\n");
   report.push("type | time");
