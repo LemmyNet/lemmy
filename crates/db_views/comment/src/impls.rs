@@ -234,12 +234,12 @@ impl CommentQuery<'_> {
     };
 
     if self.listing_type.unwrap_or_default() != ListingType::ModeratorView {
-      if let Some(language_ids) = language_ids {
-        query = query.filter(comment::language_id.eq_any(language_ids));
-      }
-
       query = query.filter(filter_blocked());
     };
+
+    if let Some(language_ids) = language_ids {
+      query = query.filter(comment::language_id.eq_any(language_ids));
+    }
 
     // The search term
     if let Some(search_term) = self.search_term {
@@ -312,14 +312,11 @@ impl CommentQuery<'_> {
     // Only order if filtering by a post id, or parent_path. DOS potential otherwise and max_depth
     // + !post_id isn't used anyways (afaik)
     if self.max_depth.is_some() && (self.post_id.is_some() || self.parent_path.is_some()) {
-      // Always order by the parent path first
-      pq = pq.then_order_by(Subpath(key::path));
-    }
-
-    // Distinguished comments should go first when viewing post
-    // Don't do for new / old sorts
-    if sort != New && sort != Old && (self.post_id.is_some() || self.parent_path.is_some()) {
-      pq = pq.then_order_by(key::distinguished);
+      pq = pq
+        // Always order by the parent path first
+        .then_order_by(Subpath(key::path))
+        // Distinguished comments should go first when viewing post
+        .then_order_by(key::distinguished);
     }
 
     pq = match sort {

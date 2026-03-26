@@ -35,17 +35,11 @@ use lemmy_db_schema::{
   traits::InternalToCombinedView,
   utils::limit_fetch,
 };
-use lemmy_db_schema_file::{
-  aliases,
-  schema::{
-    comment_report,
-    community,
-    community_actions,
-    person,
-    post,
-    post_report,
-    report_combined,
-  },
+use lemmy_db_schema_file::schema::{
+  comment_report,
+  community_actions,
+  post_report,
+  report_combined,
 };
 use lemmy_db_views_report_combined_sql::report_combined_joins;
 use lemmy_diesel_utils::{
@@ -219,19 +213,13 @@ impl ReportCombinedQuery {
   ) -> LemmyResult<PagedResponse<ReportCombinedView>> {
     let limit = limit_fetch(self.limit, None)?;
 
-    let report_creator = aliases::person1.field(person::id);
-
     let mut query = report_combined_joins(user.person.id, user.person.instance_id)
       .select(ReportCombinedViewInternal::as_select())
       .limit(limit)
       .into_boxed();
 
     if let Some(community_id) = self.community_id {
-      query = query.filter(
-        community::id
-          .eq(community_id)
-          .and(report_combined::community_report_id.is_null()),
-      );
+      query = query.filter(report_combined::community_id.eq(community_id));
     }
 
     if user.local_user.admin {
@@ -244,11 +232,11 @@ impl ReportCombinedQuery {
     }
 
     if let Some(post_id) = self.post_id {
-      query = query.filter(post::id.eq(post_id));
+      query = query.filter(report_combined::post_id.eq(post_id));
     }
 
     if self.my_reports_only.unwrap_or_default() {
-      query = query.filter(report_creator.eq(user.person.id));
+      query = query.filter(report_combined::report_creator_id.eq(user.person.id));
     }
 
     if let Some(type_) = self.type_ {
