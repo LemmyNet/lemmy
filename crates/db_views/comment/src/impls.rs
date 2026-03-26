@@ -322,8 +322,12 @@ impl CommentQuery<'_> {
       pq = pq
         // Always order by the parent path first
         .then_order_by(Subpath(key::path))
-        // Distinguished comments should go first when viewing post
-        .then_order_by(key::distinguished);
+    }
+
+    // Distinguished comments should go first when viewing post
+    // Don't do for new / old sorts
+    if sort != New && sort != Old && (self.post_id.is_some() || self.parent_path.is_some()) {
+      pq = pq.then_order_by(key::distinguished);
     }
 
     pq = match sort {
