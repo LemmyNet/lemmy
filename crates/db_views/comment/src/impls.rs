@@ -205,7 +205,14 @@ impl CommentQuery<'_> {
     // we ignore hidden.
     query = match self.listing_type.unwrap_or_default() {
       ListingType::Subscribed => query.filter(filter_is_subscribed()),
-      ListingType::Local => query.filter(community::local.eq(true)),
+      ListingType::Local => {
+        // Only filter by local when there's no post or community given
+        if self.post_id.is_none() && self.community_id.is_none() {
+          query.filter(community::local.eq(true))
+        } else {
+          query
+        }
+      }
       ListingType::All => query,
       ListingType::ModeratorView => {
         // Pre-fetch the moderator view community ids, since the join is too costly

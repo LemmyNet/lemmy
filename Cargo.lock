@@ -3733,7 +3733,6 @@ dependencies = [
  "serial_test",
  "tokio",
  "ts-rs",
- "url",
 ]
 
 [[package]]
@@ -3865,7 +3864,6 @@ dependencies = [
  "serial_test",
  "tokio",
  "ts-rs",
- "url",
 ]
 
 [[package]]
