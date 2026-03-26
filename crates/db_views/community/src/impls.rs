@@ -414,7 +414,7 @@ mod tests {
       local_user::{LocalUser, LocalUserInsertForm},
       multi_community::{MultiCommunity, MultiCommunityFollowForm, MultiCommunityInsertForm},
       person::{Person, PersonInsertForm},
-      site::Site,
+      site::{Site, SiteInsertForm},
     },
     traits::Followable,
   };
@@ -426,7 +426,6 @@ mod tests {
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use serial_test::serial;
   use std::collections::HashSet;
-  use url::Url;
 
   struct Data {
     instance: Instance,
@@ -502,24 +501,8 @@ mod tests {
       .await?,
     ];
 
-    let url = Url::parse("http://example.com")?;
-    let site = Site {
-      id: Default::default(),
-      name: String::new(),
-      sidebar: None,
-      published_at: Default::default(),
-      updated_at: None,
-      icon: None,
-      banner: None,
-      summary: None,
-      ap_id: url.clone().into(),
-      last_refreshed_at: Default::default(),
-      inbox_url: url.into(),
-      private_key: None,
-      public_key: String::new(),
-      instance_id: Default::default(),
-      content_warning: None,
-    };
+    let site_form = SiteInsertForm::new("test site".to_string(), instance.id);
+    let site = Site::create(pool, &site_form).await?;
     let system_acct =
       Person::create(pool, &PersonInsertForm::test_form(instance.id, "langs")).await?;
     let local_site_form = LocalSiteInsertForm::new(site.id, system_acct.id);

@@ -229,7 +229,7 @@ mod tests {
     modlog::{Modlog, ModlogInsertForm},
     person::{Person, PersonInsertForm},
     post::{Post, PostInsertForm},
-    site::Site,
+    site::{Site, SiteInsertForm},
   };
   use lemmy_db_schema_file::enums::ModlogKind;
   use lemmy_diesel_utils::{
@@ -239,7 +239,6 @@ mod tests {
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
-  use url::Url;
 
   struct Data {
     instance: Instance,
@@ -257,24 +256,8 @@ mod tests {
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
     let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
-    let url = Url::parse("http://example.com")?;
-    let site = Site {
-      id: Default::default(),
-      name: String::new(),
-      sidebar: None,
-      published_at: Default::default(),
-      updated_at: None,
-      icon: None,
-      banner: None,
-      summary: None,
-      ap_id: url.clone().into(),
-      last_refreshed_at: Default::default(),
-      inbox_url: url.into(),
-      private_key: None,
-      public_key: String::new(),
-      instance_id: Default::default(),
-      content_warning: None,
-    };
+    let site_form = SiteInsertForm::new("test site".to_string(), instance.id);
+    let site = Site::create(pool, &site_form).await?;
     let system_acct =
       Person::create(pool, &PersonInsertForm::test_form(instance.id, "langs")).await?;
     let local_site_form = LocalSiteInsertForm::new(site.id, system_acct.id);

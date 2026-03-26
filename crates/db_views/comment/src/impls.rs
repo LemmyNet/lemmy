@@ -209,7 +209,7 @@ impl CommentQuery<'_> {
       ListingType::All => query,
       ListingType::ModeratorView => {
         // Pre-fetch the moderator view community ids, since the join is too costly
-        let community_ids = if let Some(my_person_id) = self.local_user.person_id() {
+        let community_ids = if let Some(my_person_id) = my_person_id {
           CommunityActions::get_person_moderated_communities(pool, my_person_id).await?
         } else {
           // If you don't moderate anything, then return an empty list
