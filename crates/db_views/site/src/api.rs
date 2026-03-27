@@ -3,7 +3,8 @@ use crate::{ResolveObjectView, SiteView};
 use extism::FromBytes;
 use extism_convert::Json;
 use lemmy_db_schema::{
-  newtypes::{LanguageId, MultiCommunityId, OAuthProviderId, TaglineId},
+  SearchType,
+  newtypes::{CommunityId, LanguageId, MultiCommunityId, OAuthProviderId, TaglineId},
   source::{
     comment::Comment,
     community::Community,
@@ -680,16 +681,33 @@ pub struct ResolveObject {
   pub q: String,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// An *all* type search that returns many objects sorted by new.
-///
-/// This will likely be deprecated, and you should use the list endpoints with `search_term`
-/// instead.
+/// Searches the site, given a search term, and some optional filters.
 pub struct Search {
+  /// The search query. Can be a plain text, or an object ID which will be resolved
+  /// (eg `https://lemmy.world/comment/1` or `!fediverse@lemmy.ml`).
   pub search_term: String,
-  pub search_title_only: Option<bool>,
+  pub community_id: Option<CommunityId>,
+  pub community_name: Option<String>,
+  pub type_: Option<SearchType>,
+  /// Filter to within a given time range, in seconds.
+  /// IE 60 would give results for the past minute.
+  pub time_range_seconds: Option<i32>,
+  pub listing_type: Option<ListingType>,
+  pub title_only: Option<bool>,
+  pub post_url_only: Option<bool>,
+  /// If true, then show the nsfw posts (even if your user setting is to hide them)
+  pub show_nsfw: Option<bool>,
+  pub limit: Option<i64>,
+  // TODO: all these are currently not available from db views
+  //pub page_cursor: Option<PaginationCursor>,
+  //pub creator_id: Option<PersonId>,
+  //pub sort: Option<SearchSortType>,
+  //pub liked_only: Option<bool>,
+  //pub disliked_only: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
