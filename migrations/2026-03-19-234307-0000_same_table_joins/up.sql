@@ -114,6 +114,8 @@ ALTER TABLE notification
 
 CREATE INDEX idx_notification_community ON notification (community_id);
 
+CREATE INDEX idx_notification_instance ON notification (instance_id);
+
 -- Report combined needs all the items added, item_creator, report_creator (required), resolver, post, comment, community, private message
 ALTER TABLE report_combined
     ADD COLUMN item_creator_id int REFERENCES person (id) ON UPDATE CASCADE ON DELETE CASCADE,
