@@ -100,7 +100,17 @@ FROM
 WHERE
     n.modlog_id = m.id;
 
-CREATE INDEX idx_notification_instance ON notification (instance_id);
+-- Add back in a constraint check
+ALTER TABLE notification
+    ADD CHECK (((kind = 'Mention'
+        OR kind = 'Reply')
+        AND num_nonnulls (post_id, comment_id, community_id) >= 2)
+        OR (kind = 'PrivateMessage'
+        AND num_nonnulls (private_message_id) = 1)
+        OR (kind = 'Subscribed'
+        AND num_nonnulls (post_id) = 1)
+        OR (kind = 'ModAction'
+        AND num_nonnulls (modlog_id, post_id, comment_id, community_id, instance_id) >= 2));
 
 CREATE INDEX idx_notification_community ON notification (community_id);
 

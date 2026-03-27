@@ -15,7 +15,12 @@ WHERE
 
 ALTER TABLE notification
     DROP COLUMN instance_id,
-    DROP COLUMN community_id,
+    DROP COLUMN community_id;
+
+ALTER TABLE notification
+    DROP CONSTRAINT IF EXISTS notification_check;
+
+ALTER TABLE notification
     ADD CONSTRAINT notification_check CHECK (num_nonnulls (post_id, comment_id, private_message_id, modlog_id) = 1);
 
 ALTER TABLE comment
