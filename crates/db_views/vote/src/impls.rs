@@ -65,7 +65,7 @@ impl VoteView {
       .into_boxed();
 
     // Sorting by like score
-    let query = VoteViewPost::paginate(query, &page_cursor, SortDirection::Asc, pool, None)
+    let query = VoteViewPost::paginate(query, &page_cursor, SortDirection::Asc, pool)
       .await?
       .then_order_by(key::vote_is_upvote)
       // Tie breaker
@@ -116,7 +116,7 @@ impl VoteView {
       .into_boxed();
 
     // Sorting by like score
-    let query = VoteViewComment::paginate(query, &page_cursor, SortDirection::Asc, pool, None)
+    let query = VoteViewComment::paginate(query, &page_cursor, SortDirection::Asc, pool)
       .await?
       .then_order_by(key::vote_is_upvote)
       // Tie breaker

@@ -144,7 +144,7 @@ impl Activity for CreateOrUpdatePage {
     Post::update_ranks(&mut context.pool(), post.id).await?;
 
     let do_send_email =
-      self.kind == CreateOrUpdateType::Create && !site_view.local_site.disable_email_notifications;
+      self.kind == CreateOrUpdateType::Create && !site_view.local_site.email_notifications_disabled;
     let actor = self.actor.dereference(context).await?;
 
     NotifyData {

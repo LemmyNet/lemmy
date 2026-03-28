@@ -23,6 +23,7 @@ use lemmy_api::{
   federation::{
     list_comments::{list_comments, list_comments_slim},
     list_person_content::list_person_content,
+    list_persons::list_persons,
     list_posts::list_posts,
     read_community::get_community,
     read_multi_community::read_multi_community,
@@ -406,10 +407,11 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
               .route(get().to(export_data)),
           ),
       )
-      // User actions
+      // Person / User actions
       .service(
         scope("/person")
           .route("", get().to(read_person))
+          .route("/list", get().to(list_persons))
           .route("/content", get().to(list_person_content))
           .route("/note", post().to(user_note_person)),
       )

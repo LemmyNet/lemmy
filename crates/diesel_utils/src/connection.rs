@@ -51,13 +51,15 @@ pub enum DbPool<'a> {
 }
 
 pub enum DbConn<'a> {
-  Pool(PooledConnection<AsyncPgConnection>),
+  Pool(Box<PooledConnection<AsyncPgConnection>>),
   Conn(&'a mut AsyncPgConnection),
 }
 
 pub async fn get_conn<'a, 'b: 'a>(pool: &'a mut DbPool<'b>) -> Result<DbConn<'a>, DieselError> {
   Ok(match pool {
-    DbPool::Pool(pool) => DbConn::Pool(pool.get().await.map_err(|e| QueryBuilderError(e.into()))?),
+    DbPool::Pool(pool) => DbConn::Pool(Box::new(
+      pool.get().await.map_err(|e| QueryBuilderError(e.into()))?,
+    )),
     DbPool::Conn(conn) => DbConn::Conn(conn),
   })
 }

@@ -14,7 +14,6 @@ pub mod plugin;
 pub mod post;
 pub mod private_message;
 pub mod report;
-pub mod search;
 pub mod site;
 pub mod tagline;
 

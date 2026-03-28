@@ -274,7 +274,7 @@ impl ReportCombinedQuery {
 
     // Sorting by published
     let paginated_query =
-      ReportCombinedView::paginate(query, &self.page_cursor, sort_direction, pool, None)
+      ReportCombinedView::paginate(query, &self.page_cursor, sort_direction, pool)
         .await?
         .then_order_by(key::published_at)
         // Tie breaker
