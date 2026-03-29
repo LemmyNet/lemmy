@@ -14,7 +14,7 @@ use lemmy_db_views_site::{
 };
 use lemmy_utils::{self, error::LemmyResult};
 
-pub async fn export_data(
+pub async fn export_user_data(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<ExportDataResponse>> {

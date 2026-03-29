@@ -30,7 +30,7 @@ use lemmy_api::{
     read_person::read_person,
     resolve_object::resolve_object,
     search::search,
-    user_settings_backup::{export_settings, import_settings},
+    user_settings_backup::{export_user_settings, import_user_settings},
   },
   local_user::{
     add_admin::add_admin,
@@ -38,8 +38,8 @@ use lemmy_api::{
     block::user_block_person,
     change_password::change_password,
     change_password_after_reset::change_password_after_reset,
-    donation_dialog_shown::donation_dialog_shown,
-    export_data::export_data,
+    donation_dialog_shown::mark_donation_dialog_shown,
+    export_data::export_user_data,
     generate_totp_secret::generate_totp_secret,
     get_captcha::get_captcha,
     list_hidden::list_person_hidden,
@@ -374,7 +374,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("", delete().to(delete_account))
           .route("/login/list", get().to(list_logins))
           .route("/validate_auth", get().to(validate_auth))
-          .route("/donation_dialog_shown", post().to(donation_dialog_shown))
+          .route("/donation_dialog_shown", post().to(mark_donation_dialog_shown))
           .route("/avatar", post().to(upload_user_avatar))
           .route("/avatar", delete().to(delete_user_avatar))
           .route("/banner", post().to(upload_user_banner))
@@ -398,13 +398,13 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .service(
             scope("/settings")
               .wrap(rate_limit.import_user_settings())
-              .route("/export", get().to(export_settings))
-              .route("/import", post().to(import_settings)),
+              .route("/export", get().to(export_user_settings))
+              .route("/import", post().to(import_user_settings)),
           )
           .service(
             resource("/data/export")
               .wrap(rate_limit.import_user_settings())
-              .route(get().to(export_data)),
+              .route(get().to(export_user_data)),
           ),
       )
       // Person / User actions
