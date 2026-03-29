@@ -38,7 +38,6 @@ use lemmy_api::{
     block::user_block_person,
     change_password::change_password,
     change_password_after_reset::change_password_after_reset,
-    mark_donation_dialog_shown::mark_donation_dialog_shown,
     export_data::export_user_data,
     generate_totp_secret::generate_totp_secret,
     get_captcha::get_captcha,
@@ -50,6 +49,7 @@ use lemmy_api::{
     list_saved::list_person_saved,
     login::login,
     logout::logout,
+    mark_donation_dialog_shown::mark_donation_dialog_shown,
     note_person::user_note_person,
     notifications::{
       list::list_notifications,
@@ -374,7 +374,10 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("", delete().to(delete_account))
           .route("/login/list", get().to(list_logins))
           .route("/validate_auth", get().to(validate_auth))
-          .route("/donation_dialog_shown", post().to(mark_donation_dialog_shown))
+          .route(
+            "/donation_dialog_shown",
+            post().to(mark_donation_dialog_shown),
+          )
           .route("/avatar", post().to(upload_user_avatar))
           .route("/avatar", delete().to(delete_user_avatar))
           .route("/banner", post().to(upload_user_banner))

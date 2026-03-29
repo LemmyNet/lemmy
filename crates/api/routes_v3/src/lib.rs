@@ -105,7 +105,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route(post().to(register_v3)),
       )
       .service(
-          scope("/user")
+        scope("/user")
           .wrap(rate_limit.message())
           .route("/logout", post().to(logout_v3))
           .route("/unread_count", get().to(unread_count_v3))
@@ -114,7 +114,10 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
             "/mark_all_as_read",
             post().to(mark_all_notifications_read_v3),
           )
-          .route("/donation_dialog_shown", post().to(mark_donation_dialog_shown)),
+          .route(
+            "/donation_dialog_shown",
+            post().to(mark_donation_dialog_shown),
+          ),
       ),
   );
 }
