@@ -29,7 +29,7 @@ use crate::handlers::{
   update_post_v3,
 };
 use actix_web::{guard, web::*};
-use lemmy_api::local_user::donation_dialog_shown::mark_donation_dialog_shown;
+use lemmy_api::local_user::mark_donation_dialog_shown::mark_donation_dialog_shown;
 use lemmy_utils::rate_limit::RateLimit;
 
 mod convert;

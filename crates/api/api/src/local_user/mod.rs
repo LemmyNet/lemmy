@@ -3,7 +3,7 @@ pub mod ban_person;
 pub mod block;
 pub mod change_password;
 pub mod change_password_after_reset;
-pub mod donation_dialog_shown;
+pub mod mark_donation_dialog_shown;
 pub mod export_data;
 pub mod generate_totp_secret;
 pub mod get_captcha;

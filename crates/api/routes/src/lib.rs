@@ -38,7 +38,7 @@ use lemmy_api::{
     block::user_block_person,
     change_password::change_password,
     change_password_after_reset::change_password_after_reset,
-    donation_dialog_shown::mark_donation_dialog_shown,
+    mark_donation_dialog_shown::mark_donation_dialog_shown,
     export_data::export_user_data,
     generate_totp_secret::generate_totp_secret,
     get_captcha::get_captcha,
