@@ -12,6 +12,7 @@ publish = false
 
 [lib]
 doctest = false
+test = false
 
 [lints]
 workspace = true

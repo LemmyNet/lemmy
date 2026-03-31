@@ -10,7 +10,6 @@ repository.workspace = true
 rust-version.workspace = true
 
 [lib]
-doctest = false
 
 [lints]
 workspace = true
@@ -23,6 +22,7 @@ full = [
   "i-love-jesus",
   "lemmy_db_schema/full",
   "lemmy_db_schema_file/full",
+  "lemmy_db_views_community/full",
   "lemmy_diesel_utils/full",
 ]
 ts-rs = ["dep:ts-rs", "lemmy_db_schema/ts-rs", "lemmy_db_schema_file/ts-rs"]
@@ -40,12 +40,13 @@ i-love-jesus = { workspace = true, optional = true }
 chrono = { workspace = true }
 tracing = { workspace = true }
 lemmy_diesel_utils = { workspace = true }
+lemmy_db_views_community = { workspace = true }
+url = { workspace = true }
 
 [dev-dependencies]
 lemmy_db_views_local_user = { workspace = true }
 tokio = { workspace = true }
 tokio-shared-rt = { workspace = true }
 pretty_assertions = { workspace = true }
-url = { workspace = true }
 test-context = "0.5.5"
 diesel-uplete.workspace = true

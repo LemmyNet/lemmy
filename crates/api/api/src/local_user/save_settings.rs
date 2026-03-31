@@ -81,7 +81,7 @@ pub async fn save_user_settings(
   // value
   if let Some(email) = &email
     && email.is_none()
-    && local_site.require_email_verification
+    && local_site.email_verification_required
   {
     return Err(LemmyErrorType::EmailRequired.into());
   }
@@ -99,7 +99,7 @@ pub async fn save_user_settings(
   }
 
   if let Some(send_notifications_to_email) = data.send_notifications_to_email
-    && local_site.disable_email_notifications
+    && local_site.email_notifications_disabled
     && send_notifications_to_email
   {
     return Err(LemmyErrorType::EmailNotificationsDisabled.into());
@@ -169,8 +169,8 @@ pub async fn save_user_settings(
     open_links_in_new_tab: data.open_links_in_new_tab,
     infinite_scroll_enabled: data.infinite_scroll_enabled,
     post_listing_mode: data.post_listing_mode,
-    enable_animated_images: data.enable_animated_images,
-    enable_private_messages: data.enable_private_messages,
+    animated_images_enabled: data.animated_images_enabled,
+    private_messages_enabled: data.private_messages_enabled,
     collapse_bot_comments: data.collapse_bot_comments,
     auto_mark_fetched_posts_as_read: data.auto_mark_fetched_posts_as_read,
     hide_media: data.hide_media,

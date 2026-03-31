@@ -12,6 +12,7 @@ publish = false
 default-run = "lemmy_server"
 
 [lib]
+test = false
 doctest = false
 
 [lints]

@@ -13,6 +13,7 @@ rust-version.workspace = true
 name = "lemmy_api_common"
 path = "src/lib.rs"
 doctest = false
+test = false
 
 [lints]
 workspace = true
@@ -41,7 +42,6 @@ ts-rs = [
   "lemmy_db_views_private_message/ts-rs",
   "lemmy_db_views_registration_applications/ts-rs",
   "lemmy_db_views_report_combined/ts-rs",
-  "lemmy_db_views_search_combined/ts-rs",
   "lemmy_db_views_site/ts-rs",
   "lemmy_db_views_vote/ts-rs",
 ]
@@ -69,7 +69,6 @@ lemmy_db_views_post.workspace = true
 lemmy_db_views_private_message.workspace = true
 lemmy_db_views_registration_applications.workspace = true
 lemmy_db_views_report_combined.workspace = true
-lemmy_db_views_search_combined.workspace = true
 lemmy_db_views_site.workspace = true
 lemmy_db_views_vote.workspace = true
 lemmy_diesel_utils.workspace = true

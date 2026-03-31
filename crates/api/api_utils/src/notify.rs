@@ -304,7 +304,7 @@ async fn notify_private_message_internal(
   if is_create {
     plugin_hook_notification(notifications, context).await?;
     let site_view = SiteView::read_local(&mut context.pool()).await?;
-    if !site_view.local_site.disable_email_notifications {
+    if !site_view.local_site.email_notifications_disabled {
       let d = NotificationEmailData::PrivateMessage {
         sender: &view.creator,
         content: &view.private_message.content,
@@ -461,7 +461,7 @@ mod tests {
   ) -> LemmyResult<()> {
     let pool = &mut context.pool();
     let pm = PrivateMessage::create(pool, &form).await?;
-    let view = PrivateMessageView::read(pool, pm.id).await?;
+    let view = PrivateMessageView::read(pool, pm.id, None).await?;
     notify_private_message_internal(&view, false, context).await?;
     Ok(())
   }
@@ -896,7 +896,7 @@ mod tests {
     assert_ne!(pm, None);
 
     if let Some(pm) = pm {
-      let view = PrivateMessageView::read(pool, pm.id).await?;
+      let view = PrivateMessageView::read(pool, pm.id, None).await?;
       let num_sender_messages_before = NotificationQuery::default()
         .list(pool, &view.creator)
         .await?

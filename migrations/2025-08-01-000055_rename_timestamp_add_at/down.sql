@@ -196,8 +196,6 @@ ALTER TABLE remote_image RENAME COLUMN published_at TO published;
 
 ALTER TABLE report_combined RENAME COLUMN published_at TO published;
 
-ALTER TABLE search_combined RENAME COLUMN published_at TO published;
-
 ALTER TABLE sent_activity RENAME COLUMN published_at TO published;
 
 ALTER TABLE site RENAME COLUMN published_at TO published;

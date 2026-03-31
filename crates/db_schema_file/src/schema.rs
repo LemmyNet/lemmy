@@ -382,7 +382,7 @@ diesel::table! {
         site_id -> Int4,
         site_setup -> Bool,
         community_creation_admin_only -> Bool,
-        require_email_verification -> Bool,
+        email_verification_required -> Bool,
         application_question -> Nullable<Text>,
         private_instance -> Bool,
         default_theme -> Text,
@@ -405,7 +405,7 @@ diesel::table! {
         comment_upvotes -> FederationModeEnum,
         comment_downvotes -> FederationModeEnum,
         default_post_time_range_seconds -> Nullable<Int4>,
-        disallow_nsfw_content -> Bool,
+        nsfw_content_disallowed -> Bool,
         users -> Int4,
         posts -> Int4,
         comments -> Int4,
@@ -414,7 +414,7 @@ diesel::table! {
         users_active_week -> Int4,
         users_active_month -> Int4,
         users_active_half_year -> Int4,
-        disable_email_notifications -> Bool,
+        email_notifications_disabled -> Bool,
         suggested_multi_community_id -> Nullable<Int4>,
         system_account -> Int4,
         default_items_per_page -> Int4,
@@ -493,10 +493,10 @@ diesel::table! {
         admin -> Bool,
         post_listing_mode -> PostListingModeEnum,
         totp_2fa_enabled -> Bool,
-        enable_animated_images -> Bool,
+        animated_images_enabled -> Bool,
         collapse_bot_comments -> Bool,
         last_donation_notification_at -> Timestamptz,
-        enable_private_messages -> Bool,
+        private_messages_enabled -> Bool,
         default_comment_sort_type -> CommentSortTypeEnum,
         auto_mark_fetched_posts_as_read -> Bool,
         hide_media -> Bool,
@@ -900,19 +900,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    search_combined (id) {
-        published_at -> Timestamptz,
-        score -> Int4,
-        post_id -> Nullable<Int4>,
-        comment_id -> Nullable<Int4>,
-        community_id -> Nullable<Int4>,
-        person_id -> Nullable<Int4>,
-        id -> Int4,
-        multi_community_id -> Nullable<Int4>,
-    }
-}
-
-diesel::table! {
     secret (id) {
         id -> Int4,
         jwt_secret -> Varchar,
@@ -1007,6 +994,10 @@ diesel::joinable!(local_user_keyword_block -> local_user (local_user_id));
 diesel::joinable!(local_user_language -> language (language_id));
 diesel::joinable!(local_user_language -> local_user (local_user_id));
 diesel::joinable!(login_token -> local_user (user_id));
+diesel::joinable!(modlog -> comment (target_comment_id));
+diesel::joinable!(modlog -> community (target_community_id));
+diesel::joinable!(modlog -> instance (target_instance_id));
+diesel::joinable!(modlog -> post (target_post_id));
 diesel::joinable!(multi_community -> instance (instance_id));
 diesel::joinable!(multi_community -> person (creator_id));
 diesel::joinable!(multi_community_entry -> community (community_id));
@@ -1043,11 +1034,6 @@ diesel::joinable!(report_combined -> comment_report (comment_report_id));
 diesel::joinable!(report_combined -> community_report (community_report_id));
 diesel::joinable!(report_combined -> post_report (post_report_id));
 diesel::joinable!(report_combined -> private_message_report (private_message_report_id));
-diesel::joinable!(search_combined -> comment (comment_id));
-diesel::joinable!(search_combined -> community (community_id));
-diesel::joinable!(search_combined -> multi_community (multi_community_id));
-diesel::joinable!(search_combined -> person (person_id));
-diesel::joinable!(search_combined -> post (post_id));
 diesel::joinable!(site -> instance (instance_id));
 diesel::joinable!(site_language -> language (language_id));
 diesel::joinable!(site_language -> site (site_id));
@@ -1095,7 +1081,6 @@ diesel::allow_tables_to_appear_in_same_query!(
   private_message_report,
   registration_application,
   report_combined,
-  search_combined,
   site,
   site_language,
   person_actions,

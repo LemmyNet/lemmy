@@ -46,10 +46,9 @@ type IsNotUnlistedType =
   NotEq<lemmy_db_schema_file::schema::community::visibility, CommunityVisibility>;
 
 #[diesel::dsl::auto_type]
-pub fn filter_not_unlisted_or_is_subscribed() -> _ {
+pub fn filter_not_unlisted() -> _ {
   let not_unlisted: IsNotUnlistedType = community::visibility.ne(CommunityVisibility::Unlisted);
-  let is_subscribed: IsSubscribedType = filter_is_subscribed();
-  not_unlisted.or(is_subscribed)
+  not_unlisted
 }
 
 #[diesel::dsl::auto_type]

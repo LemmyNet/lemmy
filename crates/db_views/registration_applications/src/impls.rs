@@ -122,14 +122,13 @@ impl RegistrationApplicationQuery {
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<PagedResponse<RegistrationApplicationView>> {
     let limit = limit_fetch(self.limit, None)?;
-    let o = self;
 
     let mut query = RegistrationApplicationView::joins()
       .select(RegistrationApplicationView::as_select())
       .limit(limit)
       .into_boxed();
 
-    if o.unread_only.unwrap_or_default() {
+    if self.unread_only.unwrap_or_default() {
       query = query
         .filter(RegistrationApplication::is_unread())
         .order_by(registration_application::published_at.asc());
@@ -137,13 +136,13 @@ impl RegistrationApplicationQuery {
       query = query.order_by(registration_application::published_at.desc());
     }
 
-    if o.verified_email_only.unwrap_or_default() {
+    if self.verified_email_only.unwrap_or_default() {
       query = query.filter(local_user::email_verified.eq(true))
     }
 
     // Sorting by published
     let paginated_query =
-      RegistrationApplicationView::paginate(query, &o.page_cursor, SortDirection::Desc, pool, None)
+      RegistrationApplicationView::paginate(query, &self.page_cursor, SortDirection::Desc, pool)
         .await?
         .then_order_by(key::published_at);
 
@@ -152,7 +151,7 @@ impl RegistrationApplicationQuery {
       .load::<RegistrationApplicationView>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)?;
-    paginate_response(res, limit, o.page_cursor)
+    paginate_response(res, limit, self.page_cursor)
   }
 }
 
@@ -252,8 +251,8 @@ mod tests {
         infinite_scroll_enabled: sara_local_user.infinite_scroll_enabled,
         post_listing_mode: sara_local_user.post_listing_mode,
         totp_2fa_enabled: sara_local_user.totp_2fa_enabled,
-        enable_animated_images: sara_local_user.enable_animated_images,
-        enable_private_messages: sara_local_user.enable_private_messages,
+        animated_images_enabled: sara_local_user.animated_images_enabled,
+        private_messages_enabled: sara_local_user.private_messages_enabled,
         collapse_bot_comments: sara_local_user.collapse_bot_comments,
         last_donation_notification_at: sara_local_user.last_donation_notification_at,
         show_upvotes: sara_local_user.show_upvotes,

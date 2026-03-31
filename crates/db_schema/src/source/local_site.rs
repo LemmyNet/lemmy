@@ -34,7 +34,7 @@ pub struct LocalSite {
   /// Whether only admins can create communities.
   pub community_creation_admin_only: bool,
   /// Whether emails are required.
-  pub require_email_verification: bool,
+  pub email_verification_required: bool,
   /// An optional registration application questionnaire in markdown.
   pub application_question: Option<String>,
   /// Whether the instance is private or public.
@@ -77,7 +77,7 @@ pub struct LocalSite {
   /// A default time range limit to apply to post sorts, in seconds.
   pub default_post_time_range_seconds: Option<i32>,
   /// Block NSFW content being created
-  pub disallow_nsfw_content: bool,
+  pub nsfw_content_disallowed: bool,
   pub users: i32,
   pub posts: i32,
   pub comments: i32,
@@ -91,7 +91,7 @@ pub struct LocalSite {
   /// The number of users with any activity in the last half year.
   pub users_active_half_year: i32,
   /// Dont send email notifications to users for new replies, mentions etc
-  pub disable_email_notifications: bool,
+  pub email_notifications_disabled: bool,
   pub suggested_multi_community_id: Option<MultiCommunityId>,
   #[serde(skip)]
   pub system_account: PersonId,
@@ -125,7 +125,7 @@ pub struct LocalSiteInsertForm {
   #[new(default)]
   pub community_creation_admin_only: Option<bool>,
   #[new(default)]
-  pub require_email_verification: Option<bool>,
+  pub email_verification_required: Option<bool>,
   #[new(default)]
   pub application_question: Option<String>,
   #[new(default)]
@@ -167,9 +167,9 @@ pub struct LocalSiteInsertForm {
   #[new(default)]
   pub default_post_time_range_seconds: Option<i32>,
   #[new(default)]
-  pub disallow_nsfw_content: bool,
+  pub nsfw_content_disallowed: bool,
   #[new(default)]
-  pub disable_email_notifications: bool,
+  pub email_notifications_disabled: bool,
   #[new(default)]
   pub suggested_multi_community_id: Option<MultiCommunityId>,
   #[new(default)]
@@ -200,7 +200,7 @@ pub struct LocalSiteInsertForm {
 pub struct LocalSiteUpdateForm {
   pub site_setup: Option<bool>,
   pub community_creation_admin_only: Option<bool>,
-  pub require_email_verification: Option<bool>,
+  pub email_verification_required: Option<bool>,
   pub application_question: Option<Option<String>>,
   pub private_instance: Option<bool>,
   pub default_theme: Option<String>,
@@ -222,8 +222,8 @@ pub struct LocalSiteUpdateForm {
   pub comment_upvotes: Option<FederationMode>,
   pub comment_downvotes: Option<FederationMode>,
   pub default_post_time_range_seconds: Option<Option<i32>>,
-  pub disallow_nsfw_content: Option<bool>,
-  pub disable_email_notifications: Option<bool>,
+  pub nsfw_content_disallowed: Option<bool>,
+  pub email_notifications_disabled: Option<bool>,
   pub suggested_multi_community_id: Option<Option<MultiCommunityId>>,
   pub default_items_per_page: Option<i32>,
   pub image_mode: Option<ImageMode>,

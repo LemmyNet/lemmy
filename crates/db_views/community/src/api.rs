@@ -211,6 +211,9 @@ pub struct ListCommunities {
   /// IE 60 would give results for the past minute.
   pub time_range_seconds: Option<i32>,
   pub show_nsfw: Option<bool>,
+  pub multi_community_id: Option<MultiCommunityId>,
+  pub search_term: Option<String>,
+  pub search_title_only: Option<bool>,
   pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }
@@ -284,6 +287,8 @@ pub struct ListMultiCommunities {
   /// Filter to within a given time range, in seconds.
   /// IE 60 would give results for the past minute.
   pub time_range_seconds: Option<i32>,
+  pub search_term: Option<String>,
+  pub search_title_only: Option<bool>,
   pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }

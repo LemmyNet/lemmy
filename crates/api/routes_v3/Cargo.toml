@@ -12,6 +12,7 @@ publish = false
 
 [lib]
 doctest = false
+test = false
 
 [lints]
 workspace = true
@@ -33,10 +34,9 @@ lemmy_db_views_registration_applications = { workspace = true }
 actix-web = { workspace = true }
 chrono = { workspace = true }
 url = { workspace = true }
-lemmy_api_019 = { package = "lemmy_api_common", version = "0.19.12" }
+lemmy_api_019 = { package = "lemmy_api_common", version = "0.19.16" }
 lemmy_db_views_comment = { workspace = true, features = ["full"] }
 lemmy_db_views_community = { workspace = true, features = ["full"] }
-lemmy_db_views_search_combined = { workspace = true, features = ["full"] }
 lemmy_db_views_person = { workspace = true, features = ["full"] }
 lemmy_db_schema_file = { workspace = true }
 lemmy_db_views_report_combined = { workspace = true, features = ["full"] }

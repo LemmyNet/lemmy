@@ -19,11 +19,7 @@ use lemmy_db_schema::{
   },
   utils::{
     limit_fetch,
-    queries::filters::{
-      filter_is_subscribed,
-      filter_not_unlisted_or_is_subscribed,
-      filter_suggested_communities,
-    },
+    queries::filters::{filter_is_subscribed, filter_not_unlisted, filter_suggested_communities},
   },
 };
 use lemmy_db_schema_file::{
@@ -162,7 +158,7 @@ impl ModlogQuery<'_> {
       ListingType::Subscribed => query.filter(filter_is_subscribed()),
       ListingType::Local => query
         .filter(community::local.eq(true))
-        .filter(filter_not_unlisted_or_is_subscribed()),
+        .filter(filter_not_unlisted()),
       ListingType::ModeratorView => {
         query.filter(community_actions::became_moderator_at.is_not_null())
       }
@@ -170,12 +166,11 @@ impl ModlogQuery<'_> {
     };
 
     // Sorting by published
-    let paginated_query =
-      ModlogView::paginate(query, &self.page_cursor, SortDirection::Desc, pool, None)
-        .await?
-        .then_order_by(key::published_at)
-        // Tie breaker
-        .then_order_by(key::id);
+    let paginated_query = ModlogView::paginate(query, &self.page_cursor, SortDirection::Desc, pool)
+      .await?
+      .then_order_by(key::published_at)
+      // Tie breaker
+      .then_order_by(key::id);
 
     let conn = &mut get_conn(pool).await?;
     let res = paginated_query.load::<ModlogView>(conn).await?;
