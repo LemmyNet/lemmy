@@ -2386,11 +2386,11 @@ async fn post_listing_multi_community(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio::test]
-#[serial]
+#[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
 async fn search(data: &mut Data) -> LemmyResult<()> {
-  let pool = &data.pool();
-  let pool = &mut pool.into();
+  let pool_arc = data.pool();
+  let pool_ref = &***pool_arc;
+  let pool = &mut pool_ref.into();
 
   // Using a term
   let search_by_name = PostQuery {
