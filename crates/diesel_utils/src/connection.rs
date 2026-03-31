@@ -93,7 +93,7 @@ pub async fn get_conn<'a, 'b: 'a>(pool: &'a mut DbPool<'b>) -> Result<DbConn<'a>
     )),
     DbPool::Conn(conn) => DbConn::Conn(conn),
     DbPool::ReusablePool(pool) => {
-      DbConn::Pool(pool.get().await.map_err(|e| QueryBuilderError(e.into()))?)
+      DbConn::Pool(Box::new(pool.get().await.map_err(|e| QueryBuilderError(e.into()))?))
     }
   })
 }
