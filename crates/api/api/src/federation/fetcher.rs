@@ -92,7 +92,7 @@ pub(crate) async fn resolve_person_identifier(
   username: &Option<String>,
   context: &Data<LemmyContext>,
   local_user_view: &Option<LocalUserView>,
-) -> LemmyResult<PersonId> {
+) -> LemmyResult<Option<PersonId>> {
   Ok(
     if let Some(name) = username {
       Some(
@@ -103,7 +103,6 @@ pub(crate) async fn resolve_person_identifier(
     } else {
       id
     }
-    .ok_or(LemmyErrorType::NoIdGiven)?,
   )
 }
 
