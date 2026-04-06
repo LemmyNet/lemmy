@@ -245,7 +245,7 @@ steps:
       - "# If you can't see all output, then use the download button"
     when:
       - event: pull_request
-        status: failure
+        status: [failure]
 
   publish_release_docker:
     image: woodpeckerci/plugin-docker-buildx
