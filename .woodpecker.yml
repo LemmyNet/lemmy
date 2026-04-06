@@ -354,3 +354,5 @@ services:
       POSTGRES_DB: lemmy
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
+    when:
+      - event: pull_request
