@@ -183,6 +183,7 @@ async fn get_feed_user(
   let content = PersonContentCombinedQuery {
     creator_id: person.id,
     type_: Some(PersonContentType::Posts),
+    community_id: None,
     page_cursor: None,
     limit: Some(info.get_limit()),
     no_limit: None,
