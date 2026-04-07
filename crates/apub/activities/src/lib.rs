@@ -84,7 +84,7 @@ pub(crate) fn check_community_deleted_or_removed(community: &Community) -> Lemmy
 /// `http(s)://example.com/receive/create/202daf0a-1489-45df-8d2e-c8a3173fed36`
 fn generate_activity_id<T>(
   kind: T,
-  object_id: Option<&str>,
+  object_id: Option<&Url>,
   context: &LemmyContext,
 ) -> Result<Url, ParseError>
 where
@@ -94,7 +94,7 @@ where
   let kind_str = kind.to_string().to_lowercase();
 
   let uuid_str = if let Some(o) = object_id {
-    let input = format!("{}:{}", kind_str, o);
+    let input = format!("{}:{}", kind_str, o.as_str());
     Uuid::from_bytes(md5::compute(input).0).to_string()
   } else {
     Uuid::new_v4().to_string()
@@ -108,13 +108,13 @@ where
 fn generate_announce_activity_id(
   inner_kind: &str,
   protocol_and_hostname: &str,
-  object_id: Option<&str>,
+  object_id: Option<&Url>,
 ) -> Result<Url, ParseError> {
   let inner_kind_str = inner_kind.to_lowercase();
 
   let uuid_str = if let Some(o) = object_id {
     // add "announce:" in front to avoid collision with generate_activity_id
-    let input = format!("announce:{}:{}", inner_kind_str, o);
+    let input = format!("announce:{}:{}", inner_kind_str, o.as_str());
     Uuid::from_bytes(md5::compute(input).0).to_string()
   } else {
     Uuid::new_v4().to_string()

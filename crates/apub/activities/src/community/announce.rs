@@ -82,7 +82,7 @@ impl AnnounceActivity {
   pub fn new(
     object: RawAnnouncableActivities,
     community: &ApubCommunity,
-    object_id: Option<&str>,
+    object_id: Option<&Url>,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<AnnounceActivity> {
     let inner_kind = object

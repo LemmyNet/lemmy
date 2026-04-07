@@ -44,7 +44,7 @@ impl CreateOrUpdatePage {
     actor: &ApubPerson,
     community: &ApubCommunity,
     kind: CreateOrUpdateType,
-    object_id: Option<&str>,
+    object_id: Option<&Url>,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<CreateOrUpdatePage> {
     let id = generate_activity_id(kind.clone(), object_id, context)?;
