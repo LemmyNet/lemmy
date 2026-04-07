@@ -71,8 +71,22 @@ impl CreateOrUpdatePage {
       .await?
       .into();
 
+    // get object_id for activity id generation
+    let post_ap_id = (*post.ap_id.0).clone();
+    let object_id = match kind {
+      // for Create, use the post's ap id
+      CreateOrUpdateType::Create => Some(&post_ap_id),
+      // for Update, use a timestamp to ensure each Update activity is unique
+      CreateOrUpdateType::Update => {
+        let timestamp = post.updated_at.unwrap_or(post.published_at); // use the latest timestamp
+        let mut seed_url = post_ap_id;
+        seed_url.set_fragment(Some(&timestamp.to_rfc3339()));
+        Some(&seed_url.clone())
+      }
+    };
+
     let create_or_update =
-      CreateOrUpdatePage::new(post.into(), &person, &community, kind, None, &context).await?;
+      CreateOrUpdatePage::new(post.into(), &person, &community, kind, object_id, &context).await?;
     let inboxes = tagged_user_inboxes(&create_or_update.object.tag, &context).await?;
     let activity = AnnouncableActivities::CreateOrUpdatePost(create_or_update);
     send_activity_in_community(activity, &person, &community, inboxes, false, &context).await?;
