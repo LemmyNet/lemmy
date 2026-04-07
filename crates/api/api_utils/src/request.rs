@@ -163,7 +163,7 @@ pub async fn fetch_link_metadata(
   })
 }
 
-fn v4_is_invalid(v4: Ipv4Addr) -> bool {
+pub fn v4_is_invalid(v4: Ipv4Addr) -> bool {
   v4.is_private()
     || v4.is_loopback()
     || v4.is_link_local()
@@ -173,7 +173,7 @@ fn v4_is_invalid(v4: Ipv4Addr) -> bool {
     || v4.is_broadcast()
 }
 
-fn v6_is_invalid(v6: Ipv6Addr) -> bool {
+pub fn v6_is_invalid(v6: Ipv6Addr) -> bool {
   let is_documentation = matches!(
     v6.segments(),
     [0x2001, 0xdb8, ..] | [0x3fff, 0..=0x0fff, ..]

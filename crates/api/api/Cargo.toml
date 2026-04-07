@@ -71,10 +71,10 @@ itertools = { workspace = true }
 serde_json = { workspace = true }
 diesel = { workspace = true }
 lemmy_diesel_utils = { workspace = true }
+tokio = { workspace = true }
 
 [dev-dependencies]
 serial_test = { workspace = true }
-tokio = { workspace = true }
 elementtree = "1.2.3"
 pretty_assertions = { workspace = true }
 lemmy_api_crud = { workspace = true }

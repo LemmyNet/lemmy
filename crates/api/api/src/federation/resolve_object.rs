@@ -16,8 +16,11 @@ use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_site::{ResolveObjectView, SiteView, api::ResolveObject};
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorType, LemmyResult, UntranslatedError};
 use url::Url;
+use lemmy_api_utils::request::{v4_is_invalid, v6_is_invalid};
+use std::net::IpAddr;
+use tokio::net::lookup_host;
 
 pub async fn resolve_object(
   Query(data): Query<ResolveObject>,
@@ -86,11 +89,22 @@ async fn search_query_to_object_id(
 ) -> LemmyResult<SearchableObjects> {
   Ok(match Url::parse(&query) {
     Ok(url) => {
-      // its already an url, just go with it
+      // resolve the domain and throw an error if it points to any internal IP
+      if !cfg!(debug_assertions) {
+        let domain = url.domain().ok_or(UntranslatedError::UrlWithoutDomain)?;
+        let invalid_ip = lookup_host((domain.to_owned(), 80))
+          .await?
+          .any(|addr: std::net::SocketAddr| match addr.ip() {
+            IpAddr::V4(addr) => v4_is_invalid(addr),
+            IpAddr::V6(addr) => v6_is_invalid(addr),
+          });
+        if invalid_ip {
+          return Err(LemmyErrorType::InvalidUrl.into());
+        }
+      }
       ObjectId::from(url).dereference(context).await?
     }
     Err(_) => {
-      // not an url, try to resolve via webfinger
       if query.starts_with('!') || query.starts_with('@') {
         query.remove(0);
       }
