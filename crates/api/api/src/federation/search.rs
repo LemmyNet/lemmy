@@ -1,5 +1,5 @@
 use crate::federation::{
-  fetcher::resolve_community_identifier,
+  fetcher::{resolve_community_identifier, resolve_person_identifier},
   resolve_object::resolve_object_internal,
 };
 use activitypub_federation::config::Data;
@@ -56,6 +56,14 @@ pub async fn search(
   )
   .await?;
 
+  let creator_id = resolve_person_identifier(
+    data.creator_id,
+    &data.creator_username,
+    &context,
+    &local_user_view,
+  )
+  .await?;
+
   let local_user = local_user_view.as_ref().map(|u| &u.local_user);
 
   let posts_query = PostQuery {
@@ -64,6 +72,7 @@ pub async fn search(
     local_user,
     listing_type,
     community_id,
+    creator_id,
     time_range_seconds,
     search_url_only,
     show_nsfw,
@@ -76,6 +85,7 @@ pub async fn search(
     local_user,
     listing_type,
     community_id,
+    creator_id,
     time_range_seconds,
     limit,
     sort: Some(CommentSortType::New),
@@ -107,6 +117,7 @@ pub async fn search(
   let multi_communities_query = MultiCommunityQuery {
     search_term,
     search_title_only,
+    creator_id,
     local_user,
     time_range_seconds,
     limit,

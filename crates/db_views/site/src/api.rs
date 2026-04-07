@@ -22,6 +22,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::{
   InstanceId,
+  PersonId,
   enums::{
     CommentSortType,
     FederationMode,
@@ -692,6 +693,8 @@ pub struct Search {
   pub search_term: String,
   pub community_id: Option<CommunityId>,
   pub community_name: Option<String>,
+  pub creator_id: Option<PersonId>,
+  pub creator_username: Option<String>,
   pub type_: Option<SearchType>,
   /// Filter to within a given time range, in seconds.
   /// IE 60 would give results for the past minute.

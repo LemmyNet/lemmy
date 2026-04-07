@@ -223,6 +223,8 @@ pub(crate) async fn list_comments_v3(
     parent_id: parent_id.map(|p| CommentId(p.0)),
     time_range_seconds: None,
     search_term: None,
+    creator_id: None,
+    creator_username: None,
   };
   let comments = list_comments(Query(data), context, local_user_view)
     .await?
