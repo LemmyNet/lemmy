@@ -245,7 +245,7 @@ steps:
       - "# If you can't see all output, then use the download button"
     when:
       - event: pull_request
-        status: failure
+        status: [failure]
 
   publish_release_docker:
     image: woodpeckerci/plugin-docker-buildx
@@ -354,3 +354,8 @@ services:
       POSTGRES_DB: lemmy
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
+    when:
+      - event: pull_request
+    # Woodpecker's services ending is now causing pipeline failures:
+    # https://github.com/woodpecker-ci/woodpecker/issues/6372
+    failure: ignore
