@@ -705,12 +705,6 @@ pub struct Search {
   /// If true, then show the nsfw posts (even if your user setting is to hide them)
   pub show_nsfw: Option<bool>,
   pub limit: Option<i64>,
-  // TODO: all these are currently not available from db views
-  //pub page_cursor: Option<PaginationCursor>,
-  //pub creator_id: Option<PersonId>,
-  //pub sort: Option<SearchSortType>,
-  //pub liked_only: Option<bool>,
-  //pub disliked_only: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
