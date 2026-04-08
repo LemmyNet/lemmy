@@ -138,7 +138,7 @@ fn generate_hash(input: &str) -> LemmyResult<Uuid> {
   let digest = hasher.finalize(); // 32 bytes
   Ok(Uuid::from_bytes(
     digest
-      .get(..16)
+      .get(..16) // should not fail
       .ok_or(UntranslatedError::CouldntGenerateHash)?
       .try_into()?,
   ))
