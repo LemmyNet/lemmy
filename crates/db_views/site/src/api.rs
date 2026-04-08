@@ -475,7 +475,7 @@ pub struct MyUserInfo {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Change your password after receiving a reset request.
-pub struct PasswordChangeAfterReset {
+pub struct ChangePasswordAfterReset {
   pub token: SensitiveString,
   pub password: SensitiveString,
   pub password_verify: SensitiveString,
@@ -485,7 +485,7 @@ pub struct PasswordChangeAfterReset {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Reset your password via email.
-pub struct PasswordReset {
+pub struct ResetPassword {
   pub email: SensitiveString,
 }
 
