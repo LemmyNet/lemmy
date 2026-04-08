@@ -114,7 +114,6 @@ fn generate_announce_activity_id(
   let inner_kind_str = inner_kind.to_lowercase();
 
   let uuid = if let Some(o) = object_id {
-    // add "announce:" in front to avoid collision with generate_activity_id
     let input = format!("announce:{}", o.as_str());
     generate_hash(&input)?
   } else {
