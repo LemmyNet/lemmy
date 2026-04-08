@@ -1,4 +1,4 @@
-use crate::federation::fetcher::resolve_person_identifier;
+use crate::federation::fetcher::{resolve_community_identifier, resolve_person_identifier};
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
@@ -10,7 +10,7 @@ use lemmy_db_views_person_content_combined::{
 use lemmy_db_views_post_comment_combined::PostCommentCombinedView;
 use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::pagination::PagedResponse;
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn list_person_content(
   Query(data): Query<ListPersonContent>,
@@ -23,11 +23,22 @@ pub async fn list_person_content(
 
   check_private_instance(&local_user_view, &local_site)?;
 
-  let person_details_id =
-    resolve_person_identifier(data.person_id, &data.username, &context, &local_user_view).await?;
+  let creator_id =
+    resolve_person_identifier(data.person_id, &data.username, &context, &local_user_view)
+      .await?
+      .ok_or(LemmyErrorType::NoIdGiven)?;
+
+  let community_id = resolve_community_identifier(
+    &data.community_name,
+    data.community_id,
+    &context,
+    &local_user_view,
+  )
+  .await?;
 
   let res = PersonContentCombinedQuery {
-    creator_id: person_details_id,
+    creator_id,
+    community_id,
     type_: data.type_,
     page_cursor: data.page_cursor,
     limit: data.limit,

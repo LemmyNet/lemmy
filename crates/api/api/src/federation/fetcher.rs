@@ -92,19 +92,16 @@ pub(crate) async fn resolve_person_identifier(
   username: &Option<String>,
   context: &Data<LemmyContext>,
   local_user_view: &Option<LocalUserView>,
-) -> LemmyResult<PersonId> {
-  Ok(
-    if let Some(name) = username {
-      Some(
-        resolve_ap_identifier::<ApubPerson, Person>(name, context, local_user_view, true)
-          .await?
-          .id,
-      )
-    } else {
-      id
-    }
-    .ok_or(LemmyErrorType::NoIdGiven)?,
-  )
+) -> LemmyResult<Option<PersonId>> {
+  Ok(if let Some(name) = username {
+    Some(
+      resolve_ap_identifier::<ApubPerson, Person>(name, context, local_user_view, true)
+        .await?
+        .id,
+    )
+  } else {
+    id
+  })
 }
 
 pub(crate) async fn resolve_multi_community_identifier(

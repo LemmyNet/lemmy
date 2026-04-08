@@ -163,6 +163,7 @@ pub struct CommentQuery<'a> {
   pub sort: Option<CommentSortType>,
   pub time_range_seconds: Option<i32>,
   pub community_id: Option<CommunityId>,
+  pub creator_id: Option<PersonId>,
   pub post_id: Option<PostId>,
   pub parent_path: Option<Ltree>,
   pub local_user: Option<&'a LocalUser>,
@@ -194,8 +195,14 @@ impl CommentQuery<'_> {
       query = query.filter(comment::path.contained_by(parent_path));
     };
 
+    // Filter by the community id
     if let Some(community_id) = self.community_id {
       query = query.filter(post::community_id.eq(community_id));
+    }
+
+    // Filter by the creator id
+    if let Some(creator_id) = self.creator_id {
+      query = query.filter(comment::creator_id.eq(creator_id));
     }
 
     // For posts, we only show hidden if its subscribed, but for comments,
