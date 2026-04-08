@@ -115,7 +115,7 @@ fn generate_announce_activity_id(
 
   let uuid = if let Some(o) = object_id {
     // add "announce:" in front to avoid collision with generate_activity_id
-    let input = format!("announce:{}:{}", inner_kind_str, o.as_str());
+    let input = format!("announce:{}", o.as_str());
     generate_hash(&input)?
   } else {
     Uuid::new_v4()
