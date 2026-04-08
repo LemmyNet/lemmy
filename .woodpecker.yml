@@ -356,4 +356,6 @@ services:
       POSTGRES_PASSWORD: password
     when:
       - event: pull_request
+    # Woodpecker's services ending is now causing pipeline failures:
+    # https://github.com/woodpecker-ci/woodpecker/issues/6372
     failure: ignore
