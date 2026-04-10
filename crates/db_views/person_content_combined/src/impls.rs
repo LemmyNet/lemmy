@@ -13,6 +13,7 @@ use lemmy_db_schema::{
   self,
   PersonContentType,
   impls::local_user::LocalUserOptionHelper,
+  newtypes::CommunityId,
   source::combined::person_content::{PersonContentCombined, person_content_combined_keys as key},
   traits::InternalToCombinedView,
   utils::limit_fetch,
@@ -95,6 +96,7 @@ impl PaginationCursorConversion for PostCommentCombinedViewWrapper {
 pub struct PersonContentCombinedQuery {
   pub creator_id: PersonId,
   pub type_: Option<PersonContentType>,
+  pub community_id: Option<CommunityId>,
   pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
   pub no_limit: Option<bool>,
@@ -170,6 +172,11 @@ impl PersonContentCombinedQuery {
         }
         PersonContentType::Posts => query.filter(person_content_combined::post_id.is_not_null()),
       }
+    }
+
+    // Filter by the community id
+    if let Some(community_id) = self.community_id {
+      query = query.filter(community::id.eq(community_id));
     }
 
     // Check permissions to view private community content.

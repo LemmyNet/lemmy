@@ -298,6 +298,7 @@ pub struct PostQuery<'a> {
   pub sort: Option<PostSortType>,
   pub time_range_seconds: Option<i32>,
   pub community_id: Option<CommunityId>,
+  pub creator_id: Option<PersonId>,
   pub multi_community_id: Option<MultiCommunityId>,
   pub local_user: Option<&'a LocalUser>,
   pub show_hidden: Option<bool>,
@@ -416,6 +417,11 @@ impl PostQuery<'_> {
     //  Filter by the given community ids, prefetched above
     if let Some(community_ids) = community_ids {
       query = query.filter(post::community_id.eq_any(community_ids));
+    }
+
+    // Filter by the creator id
+    if let Some(creator_id) = self.creator_id {
+      query = query.filter(post::creator_id.eq(creator_id));
     }
 
     // Although the other listing types pre-fetched the communities, you still need to filter by

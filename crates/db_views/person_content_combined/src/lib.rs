@@ -1,4 +1,4 @@
-use lemmy_db_schema::PersonContentType;
+use lemmy_db_schema::{PersonContentType, newtypes::CommunityId};
 use lemmy_db_schema_file::PersonId;
 #[cfg(feature = "full")]
 use lemmy_db_views_local_user::LocalUserView;
@@ -22,6 +22,8 @@ pub struct ListPersonContent {
   pub person_id: Option<PersonId>,
   /// Example: dessalines , or dessalines@xyz.tld
   pub username: Option<String>,
+  pub community_id: Option<CommunityId>,
+  pub community_name: Option<String>,
   pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }
