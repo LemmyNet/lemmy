@@ -1,7 +1,7 @@
 use crate::{
   MOD_ACTION_DEFAULT_REASON,
   deletion::{DeletableObjects, receive_delete_action, verify_delete_activity},
-  generate_activity_id,
+  generate_activity_id_with_object_id,
   protocol::{IdOrNestedObject, deletion::delete::Delete},
 };
 use activitypub_federation::{config::Data, kinds::activity::DeleteType, traits::Activity};
@@ -82,7 +82,7 @@ impl Delete {
     with_replies: Option<bool>,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<Delete> {
-    let id = generate_activity_id(DeleteType::Delete, None, context)?;
+    let id = generate_activity_id_with_object_id(DeleteType::Delete, context)?;
     let cc: Option<Url> = community.map(|c| c.ap_id.clone().into());
     Ok(Delete {
       actor: actor.ap_id.clone().into(),

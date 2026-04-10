@@ -1,7 +1,7 @@
 use super::{local_community, report_inboxes, verify_mod_or_admin_action};
 use crate::{
   activity_lists::AnnouncableActivities,
-  generate_activity_id,
+  generate_activity_id_with_object_id,
   protocol::community::{
     announce::AnnounceActivity,
     report::Report,
@@ -47,7 +47,7 @@ impl ResolveReport {
     context: Data<LemmyContext>,
   ) -> LemmyResult<()> {
     let kind = ResolveType::Resolve;
-    let id = generate_activity_id(kind.clone(), None, &context)?;
+    let id = generate_activity_id_with_object_id(kind.clone(), &context)?;
     let object = Report::new(&object_id, report_creator, receiver, None, &context)?;
     let resolve = ResolveReport {
       actor: actor.id().clone().into(),

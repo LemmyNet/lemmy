@@ -3,7 +3,7 @@ use crate::{
   activity_lists::AnnouncableActivities,
   check_community_deleted_or_removed,
   community::send_activity_in_community,
-  generate_activity_id,
+  generate_activity_id_with_object_id,
   post_or_comment_community,
   protocol::community::lock::{LockPageOrNote, LockType, UndoLockPageOrNote},
 };
@@ -155,7 +155,7 @@ pub(crate) async fn send_lock(
   context: Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let community: ApubCommunity = post_or_comment_community(&object, &context).await?.into();
-  let id = generate_activity_id(LockType::Lock, None, &context)?;
+  let id = generate_activity_id_with_object_id(LockType::Lock, &context)?;
   let community_id = community.ap_id.inner().clone();
   let ap_id = match object {
     PostOrComment::Left(p) => p.ap_id.clone(),
@@ -175,7 +175,7 @@ pub(crate) async fn send_lock(
   let activity = if locked {
     AnnouncableActivities::Lock(lock)
   } else {
-    let id = generate_activity_id(UndoType::Undo, None, &context)?;
+    let id = generate_activity_id_with_object_id(UndoType::Undo, &context)?;
     let undo = UndoLockPageOrNote {
       actor: lock.actor.clone(),
       to: generate_to(&community)?,

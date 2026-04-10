@@ -1,7 +1,7 @@
 use super::send_activity_from_user_or_community_or_multi;
 use crate::{
   check_community_deleted_or_removed,
-  generate_activity_id,
+  generate_activity_id_with_object_id,
   protocol::following::{follow::Follow, reject::RejectFollow},
 };
 use activitypub_federation::{
@@ -27,7 +27,7 @@ impl RejectFollow {
       to: Some([person.id().clone().into()]),
       object: follow,
       kind: RejectType::Reject,
-      id: generate_activity_id(RejectType::Reject, None, context)?,
+      id: generate_activity_id_with_object_id(RejectType::Reject, context)?,
     };
     let inbox = ActivitySendTargets::to_inbox(person.shared_inbox_or_inbox());
     send_activity_from_user_or_community_or_multi(context, reject, user_or_community, inbox).await

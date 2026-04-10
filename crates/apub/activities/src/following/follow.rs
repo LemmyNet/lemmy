@@ -1,6 +1,6 @@
 use crate::{
   check_community_deleted_or_removed,
-  generate_activity_id,
+  generate_activity_id_with_object_id,
   protocol::following::{accept::AcceptFollow, follow::Follow},
   send_lemmy_activity,
 };
@@ -40,7 +40,7 @@ impl Follow {
       object: target.id().clone().into(),
       to: Some([target.id().clone().into()]),
       kind: FollowType::Follow,
-      id: generate_activity_id(FollowType::Follow, None, context)?,
+      id: generate_activity_id_with_object_id(FollowType::Follow, context)?,
     })
   }
 

@@ -5,7 +5,7 @@ use crate::{
   block::{SiteOrCommunity, generate_cc},
   check_community_deleted_or_removed,
   community::send_activity_in_community,
-  generate_activity_id,
+  generate_activity_id_with_object_id,
   protocol::block::block_user::BlockUser,
   send_lemmy_activity,
 };
@@ -56,7 +56,7 @@ impl BlockUser {
       kind: BlockType::Block,
       remove_data,
       summary: Some(reason),
-      id: generate_activity_id(BlockType::Block, None, context)?,
+      id: generate_activity_id_with_object_id(BlockType::Block, context)?,
       end_time: expires,
       audience: target.as_ref().right().map(|c| c.ap_id.clone().into()),
     })

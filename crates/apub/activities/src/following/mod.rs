@@ -1,4 +1,4 @@
-use super::{generate_activity_id, send_lemmy_activity};
+use super::{generate_activity_id_with_object_id, send_lemmy_activity};
 use crate::protocol::following::{
   accept::AcceptFollow,
   follow::Follow,
@@ -51,7 +51,7 @@ pub async fn send_accept_or_reject_follow(
     to: Some([community.ap_id.clone().into()]),
     object: community.ap_id.into(),
     kind: FollowType::Follow,
-    id: generate_activity_id(FollowType::Follow, None, context)?,
+    id: generate_activity_id_with_object_id(FollowType::Follow, context)?,
   };
   if accepted {
     AcceptFollow::send(follow, context).await

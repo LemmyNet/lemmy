@@ -1,6 +1,6 @@
 use crate::{
   check_community_deleted_or_removed,
-  generate_activity_id,
+  generate_activity_id_with_object_id,
   protocol::following::{follow::Follow, undo_follow::UndoFollow},
   send_lemmy_activity,
 };
@@ -39,7 +39,7 @@ impl UndoFollow {
       to: Some([target.id().clone().into()]),
       object,
       kind: UndoType::Undo,
-      id: generate_activity_id(UndoType::Undo, None, context)?,
+      id: generate_activity_id_with_object_id(UndoType::Undo, context)?,
     };
     let inbox = ActivitySendTargets::to_inbox(target.shared_inbox_or_inbox());
     send_lemmy_activity(context, undo, actor, inbox, true).await

@@ -2,7 +2,7 @@ use super::{local_community, report_inboxes};
 use crate::{
   activity_lists::AnnouncableActivities,
   check_community_deleted_or_removed,
-  generate_activity_id,
+  generate_activity_id_with_object_id,
   protocol::community::{
     announce::AnnounceActivity,
     report::{Report, ReportObject},
@@ -57,7 +57,7 @@ impl Report {
     context: &Data<LemmyContext>,
   ) -> LemmyResult<Self> {
     let kind = FlagType::Flag;
-    let id = generate_activity_id(kind.clone(), None, context)?;
+    let id = generate_activity_id_with_object_id(kind.clone(), context)?;
     Ok(Report {
       actor: actor.id().clone().into(),
       to: [receiver.id().clone().into()],

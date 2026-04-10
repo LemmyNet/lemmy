@@ -81,6 +81,14 @@ pub(crate) fn check_community_deleted_or_removed(community: &Community) -> Lemmy
   }
 }
 
+/// convenient function for generate_activity_id
+fn generate_activity_id_with_object_id<T>(kind: T, context: &LemmyContext) -> LemmyResult<Url>
+where
+  T: ToString,
+{
+  generate_activity_id::<T>(kind, None, context)
+}
+
 /// Generate a unique ID for an activity, in the format:
 /// `http(s)://example.com/receive/create/202daf0a-1489-45df-8d2e-c8a3173fed36`
 fn generate_activity_id<T>(
@@ -111,8 +119,6 @@ fn generate_announce_activity_id(
   protocol_and_hostname: &str,
   object_id: Option<&Url>,
 ) -> LemmyResult<Url> {
-  let inner_kind_str = inner_kind.to_lowercase();
-
   let uuid = if let Some(o) = object_id {
     let input = format!("announce:{}", o.as_str());
     generate_hash(&input)?
@@ -124,7 +130,7 @@ fn generate_announce_activity_id(
     "{}/activities/{}/{}/{}",
     protocol_and_hostname,
     AnnounceType::Announce.to_string().to_lowercase(),
-    inner_kind_str,
+    inner_kind.to_lowercase(),
     uuid
   );
   Url::parse(&id).map_err(|e| LemmyError::from(anyhow::anyhow!(e)))

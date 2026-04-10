@@ -2,7 +2,7 @@ use crate::{
   activity_lists::AnnouncableActivities,
   check_community_deleted_or_removed,
   community::send_activity_in_community,
-  generate_activity_id,
+  generate_activity_id_with_object_id,
   protocol::community::collection_remove::CollectionRemove,
 };
 use activitypub_federation::{
@@ -43,7 +43,7 @@ impl CollectionRemove {
     actor: &ApubPerson,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    let id = generate_activity_id(RemoveType::Remove, None, context)?;
+    let id = generate_activity_id_with_object_id(RemoveType::Remove, context)?;
     let remove = CollectionRemove {
       actor: actor.id().clone().into(),
       to: generate_to(community)?,
@@ -66,7 +66,7 @@ impl CollectionRemove {
     actor: &ApubPerson,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    let id = generate_activity_id(RemoveType::Remove, None, context)?;
+    let id = generate_activity_id_with_object_id(RemoveType::Remove, context)?;
     let remove = CollectionRemove {
       actor: actor.id().clone().into(),
       to: generate_to(community)?,
