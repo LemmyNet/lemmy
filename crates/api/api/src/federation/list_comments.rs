@@ -1,7 +1,7 @@
 use crate::federation::{
   comment_sort_type_with_default,
   fetch_limit_with_default,
-  fetcher::resolve_community_identifier,
+  fetcher::{resolve_community_identifier, resolve_person_identifier},
   listing_type_with_default,
   post_time_range_seconds_with_default,
 };
@@ -42,6 +42,15 @@ async fn list_comments_common(
     &local_user_view,
   )
   .await?;
+
+  let creator_id = resolve_person_identifier(
+    data.creator_id,
+    &data.creator_username,
+    &context,
+    &local_user_view,
+  )
+  .await?;
+
   let local_user = local_user_view.as_ref().map(|u| &u.local_user);
   let sort = Some(comment_sort_type_with_default(
     data.sort,
@@ -80,6 +89,7 @@ async fn list_comments_common(
     time_range_seconds,
     max_depth,
     community_id,
+    creator_id,
     parent_path,
     post_id,
     local_user,
