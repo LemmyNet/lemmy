@@ -40,6 +40,14 @@ afterAll(async () => {
   await Promise.allSettled([unfollows(), deleteAllMedia(alpha)]);
 });
 
+function inlineContentDisposition(filename: string): string {
+  return `inline; filename="${filename}"`;
+}
+
+function filenameFromUrl(url: string): string {
+  return decodeURIComponent(new URL(url).pathname.split("/").pop() ?? "");
+}
+
 test("Upload image and delete it", async () => {
   const health = await alpha.imageHealth();
   expect(health.success).toBeTruthy();
@@ -166,6 +174,8 @@ test("Purge post, linked image removed", async () => {
 });
 
 test("Images in remote image post are proxied if setting enabled", async () => {
+  const expectedFilename = filenameFromUrl(sampleImage);
+
   let community = await createCommunity(gamma);
   let postRes = await createPost(
     gamma,
@@ -192,6 +202,14 @@ test("Images in remote image post are proxied if setting enabled", async () => {
   // Make sure that it contains `jpg`, to be sure its an image
   expect(post.thumbnail_url?.includes(".jpg")).toBeTruthy();
 
+  // Proxied image should include a Content-Disposition: inline header
+  if (post.thumbnail_url) {
+    const proxyResponse = await fetch(post.thumbnail_url);
+    const cd = proxyResponse.headers.get("content-disposition");
+    expect(cd).not.toBeNull();
+    expect(cd).toBe(inlineContentDisposition(expectedFilename));
+  }
+
   let epsilonPostRes = await resolvePost(epsilon, postRes.post_view.post);
   expect(epsilonPostRes?.post).toBeDefined();
 
@@ -216,6 +234,13 @@ test("Images in remote image post are proxied if setting enabled", async () => {
 
   // Make sure that it contains `jpg`, to be sure its an image
   expect(epsilonPost.thumbnail_url?.includes(".jpg")).toBeTruthy();
+
+  if (epsilonPost.thumbnail_url) {
+    const proxyResponse = await fetch(epsilonPost.thumbnail_url);
+    const cd = proxyResponse.headers.get("content-disposition");
+    expect(cd).not.toBeNull();
+    expect(cd).toBe(inlineContentDisposition(expectedFilename));
+  }
 });
 
 test("Thumbnail of remote image link is proxied if setting enabled", async () => {
