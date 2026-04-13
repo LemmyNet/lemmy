@@ -38,13 +38,11 @@ impl Activity for Delete {
   }
 
   async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    dbg!("verify", &self);
     verify_delete_activity(self, self.summary.is_some(), context).await?;
     Ok(())
   }
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    dbg!("receive", &self);
     if let Some(reason) = self.summary {
       // We set reason to empty string if it doesn't exist, to distinguish between delete and
       // remove. Here we change it back to option, so we don't write it to db.

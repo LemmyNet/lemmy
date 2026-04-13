@@ -1045,7 +1045,7 @@ test("Plugin test", async () => {
   );
 });
 
-test.only("Admin removes post from local user in remote community", async () => {
+test("Admin removes post from local user in remote community", async () => {
   if (!betaCommunity) {
     throw "Missing beta community";
   }

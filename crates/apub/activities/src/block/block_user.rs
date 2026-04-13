@@ -116,7 +116,7 @@ impl Activity for BlockUser {
       }
       SiteOrCommunity::Right(community) => {
         verify_visibility(&self.to, &self.cc, &community)?;
-        verify_mod_action(&self.actor, self.object.inner(),&community, context).await?;
+        verify_mod_action(&self.actor, self.object.inner(), &community, context).await?;
         check_community_deleted_or_removed(&community)?;
       }
     }

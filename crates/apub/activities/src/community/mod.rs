@@ -25,6 +25,7 @@ use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
+use url::Url;
 
 pub mod announce;
 pub mod collection_add;
