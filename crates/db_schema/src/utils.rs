@@ -438,9 +438,9 @@ pub async fn build_db_pool() -> LemmyResult<ActualDbPool> {
     .max_size(pool_size)
     .runtime(Runtime::Tokio1)
     .timeouts(Timeouts {
-      wait: Some(Duration::from_secs(1)),
-      create: Some(Duration::from_secs(5)),
-      recycle: Some(Duration::from_secs(5)),
+      wait: Some(Duration::from_secs(30)),
+      create: Some(Duration::from_secs(60)),
+      recycle: Some(Duration::from_secs(60)),
     })
     // Limit connection age to prevent use of prepared statements that have query plans based on
     // very old statistics
