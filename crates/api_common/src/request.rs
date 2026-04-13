@@ -37,7 +37,7 @@ use serde::{Deserialize, Serialize};
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use tokio::net::lookup_host;
 use tracing::{info, warn};
-use url::Url;
+use url::{Host, Url};
 use urlencoding::encode;
 use webpage::HTML;
 
@@ -64,24 +64,7 @@ pub async fn fetch_link_metadata(
     return Err(LemmyErrorType::InvalidUrl.into());
   }
 
-  // Resolve the domain and throw an error if it points to any internal IP,
-  // using logic from nightly IpAddr::is_global.
-  if !cfg!(debug_assertions) {
-    // TODO: Replace with IpAddr::is_global() once stabilized
-    //       https://doc.rust-lang.org/std/net/enum.IpAddr.html#method.is_global
-    let domain = url.domain().ok_or(LemmyErrorType::UrlWithoutDomain)?;
-    let invalid_ip =
-      lookup_host((domain.to_owned(), 80))
-        .await?
-        .any(|addr| match addr.ip().to_canonical() {
-          IpAddr::V4(addr) => v4_is_invalid(addr),
-          IpAddr::V6(addr) => v6_is_invalid(addr),
-        });
-    if invalid_ip {
-      return Err(LemmyErrorType::InvalidUrl.into());
-    }
-  }
-
+  validate_link_ip(url).await?;
   info!("Fetching site metadata for url: {}", url);
   // We only fetch the first MB of data in order to not waste bandwidth especially for large
   // binary files. This high limit is particularly needed for youtube, which includes a lot of
@@ -159,6 +142,37 @@ pub async fn fetch_link_metadata(
     opengraph_data,
     content_type: content_type.map(|c| c.to_string()),
   })
+}
+
+/// Resolve the domain and throw an error if it points to any internal IP.
+pub async fn validate_link_ip(url: &Url) -> LemmyResult<()> {
+  if cfg!(debug_assertions) {
+    return Ok(());
+  }
+  // Resolve the domain and throw an error if it points to any internal IP,
+  // using logic from nightly IpAddr::is_global.
+
+  // TODO: Replace with IpAddr::is_global() once stabilized
+  //       https://doc.rust-lang.org/std/net/enum.IpAddr.html#method.is_global
+  let mut ip = vec![];
+  match url.host().ok_or(LemmyErrorType::UrlWithoutDomain)? {
+    Host::Domain(domain) => ip.extend(
+      lookup_host((domain.to_owned(), 80))
+        .await?
+        .map(|s| s.ip().to_canonical()),
+    ),
+    Host::Ipv4(ipv4) => ip.push(ipv4.into()),
+    Host::Ipv6(ipv6) => ip.push(ipv6.into()),
+  };
+
+  let invalid_ip = ip.into_iter().any(|addr| match addr {
+    IpAddr::V4(addr) => v4_is_invalid(addr),
+    IpAddr::V6(addr) => v6_is_invalid(addr),
+  });
+  if invalid_ip {
+    return Err(LemmyErrorType::InvalidUrl.into());
+  }
+  Ok(())
 }
 
 fn v4_is_invalid(v4: Ipv4Addr) -> bool {
