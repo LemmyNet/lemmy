@@ -129,6 +129,7 @@ fn local_community(site_or_community: &Either<ApubSite, ApubCommunity>) -> Optio
 
 async fn verify_mod_or_admin_action(
   person_id: &ObjectId<ApubPerson>,
+  object_id: &Url,
   site_or_community: &Either<ApubSite, ApubCommunity>,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
@@ -144,6 +145,6 @@ async fn verify_mod_or_admin_action(
       let local_user_view = LocalUserView::read_person(&mut context.pool(), admin.id).await?;
       is_admin(&local_user_view)
     }
-    Either::Right(community) => verify_mod_action(person_id, community, context).await,
+    Either::Right(community) => verify_mod_action(person_id, object_id, community, context).await,
   }
 }

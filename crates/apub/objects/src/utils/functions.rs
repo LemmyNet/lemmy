@@ -299,13 +299,16 @@ pub fn context_url(id: &Url) -> String {
 /// * `community` - The community inside which moderation is happening
 pub async fn verify_mod_action(
   mod_id: &ObjectId<ApubPerson>,
+  object_id: &Url,
   community: &Community,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
-  // mod action comes from the same instance as the community, so it was presumably done
-  // by an instance admin.
+  // Mod action comes from the same instance as the community, or same instance as the object
+  // creator. Presumably it was done by an instance admin so we accept it.
   // TODO: federate instance admin status and check it here
-  if mod_id.inner().domain() == community.ap_id.domain() {
+  if mod_id.inner().domain() == community.ap_id.domain()
+    || mod_id.inner().domain() == object_id.domain()
+  {
     return Ok(());
   }
 
