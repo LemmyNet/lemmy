@@ -312,3 +312,6 @@ services:
     environment:
       POSTGRES_USER: lemmy
       POSTGRES_PASSWORD: password
+    # Woodpecker's services ending is now causing pipeline failures:
+    # https://github.com/woodpecker-ci/woodpecker/issues/6372
+    failure: ignore
