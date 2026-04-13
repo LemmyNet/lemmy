@@ -239,7 +239,7 @@ steps:
       - "# If you can't see all output, then use the download button"
     when:
       - event: pull_request
-        status: failure
+        status: [failure]
 
   publish_release_docker:
     image: woodpeckerci/plugin-docker-buildx
@@ -295,7 +295,7 @@ steps:
       - "curl -d'Lemmy CI build failed: ${CI_PIPELINE_URL}' ntfy.sh/lemmy_drone_ci"
     when:
       - event: [pull_request, tag]
-        status: failure
+        status: [failure]
 
   notify_on_tag_deploy:
     image: alpine:3
