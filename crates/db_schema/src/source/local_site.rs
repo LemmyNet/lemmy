@@ -115,6 +115,13 @@ pub struct LocalSite {
   pub image_upload_disabled: bool,
 }
 
+impl LocalSite {
+  /// Checks if the instance is private with federation disabled
+  pub fn is_instance_private_federation_disabled(&self) -> bool {
+    self.private_instance && !self.federation_enabled
+  }
+}
+
 #[derive(Clone, derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable))]
 #[cfg_attr(feature = "full", diesel(table_name = local_site))]
