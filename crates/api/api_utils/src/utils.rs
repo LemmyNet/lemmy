@@ -3,6 +3,7 @@ use crate::{
   context::LemmyContext,
   request::{delete_image_alias, fetch_pictrs_proxied_image_details, purge_image_from_pictrs_url},
 };
+use activitypub_federation::config::Data;
 use actix_web::{HttpRequest, http::header::Header};
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
@@ -980,11 +981,14 @@ pub fn read_auth_token(req: &HttpRequest) -> LemmyResult<Option<String>> {
   }
 }
 
-pub fn send_webmention(post: Post, community: &Community) {
+pub fn send_webmention(post: Post, community: &Community, context: Data<LemmyContext>) {
   if let Some(url) = post.url.clone()
     && community.visibility.can_view_without_login()
   {
     spawn_try_task(async move {
+      if context.is_valid_ip(&url).await.is_err() {
+        return Ok(());
+      }
       let mut webmention = Webmention::new::<Url>(post.ap_id.clone().into(), url.clone().into())?;
       webmention.set_checked(true);
       match webmention
