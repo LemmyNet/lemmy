@@ -171,9 +171,9 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
   let pool = Pool::builder(manager)
     .runtime(Runtime::Tokio1)
     .max_size(pool_size)
-    .wait_timeout(Some(Duration::from_secs(1)))
-    .create_timeout(Some(Duration::from_secs(5)))
-    .recycle_timeout(Some(Duration::from_secs(5)))
+    .wait_timeout(Some(Duration::from_secs(30)))
+    .create_timeout(Some(Duration::from_secs(60)))
+    .recycle_timeout(Some(Duration::from_secs(60)))
     // Limit connection age to prevent use of prepared statements that have query plans based on
     // very old statistics
     .pre_recycle(Hook::sync_fn(|_conn, metrics| {
