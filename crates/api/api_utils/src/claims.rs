@@ -119,6 +119,8 @@ mod tests {
     let num_deleted = Person::delete(pool, inserted_person.id).await?;
     assert_eq!(1, num_deleted);
 
+    Instance::delete(pool, inserted_instance.id).await?;
+
     Ok(())
   }
 }

@@ -978,6 +978,8 @@ mod tests {
     let after_delete = Community::read(pool, inserted_community.id).await;
     assert!(after_delete.is_err());
 
+    Instance::delete(pool, inserted_instance.id).await?;
+
     Ok(())
   }
 }
