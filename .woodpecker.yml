@@ -264,10 +264,9 @@ steps:
         - CI_PIPELINE_EVENT
       tag: ${CI_COMMIT_TAG=nightly}
     when:
-      - event: tag
-      - event: cron
-      # Ensures that its a full semver release, and not a pre-release one like 1.0.0-alpha.1
-      - evaluate: '"${CI_COMMIT_TAG}" matches ''^([0-9]\\\d*).([0-9]\\\d*).([0-9]\\\d*)$'''
+      - event: [tag, cron]
+        # Ensures that its a full semver release, and not a pre-release one like 1.0.0-alpha.1
+        evaluate: '"${CI_COMMIT_TAG}" matches ''^([0-9]\\\d*).([0-9]\\\d*).([0-9]\\\d*)$'''
 
   # Only publish arm builds on non-pre-release builds
   publish_release_docker_amd64:
@@ -286,8 +285,7 @@ steps:
         - CI_PIPELINE_EVENT
       tag: ${CI_COMMIT_TAG=nightly}
     when:
-      - event: tag
-      - event: cron
+      - event: [tag, cron]
 
   # lemmy container doesnt run as root so we need to change permissions to let it copy the binary
   chmod_for_native_binary:
