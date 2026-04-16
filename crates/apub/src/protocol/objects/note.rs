@@ -19,7 +19,7 @@ use activitypub_federation::{
   },
 };
 use chrono::{DateTime, Utc};
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{context::LemmyContext, utils::check_comment_depth};
 use lemmy_db_schema::{
   source::{community::Community, post::Post},
   traits::Crud,
@@ -27,6 +27,7 @@ use lemmy_db_schema::{
 use lemmy_utils::{error::LemmyResult, LemmyErrorType, MAX_COMMENT_DEPTH_LIMIT};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
+use tokio::spawn;
 use url::Url;
 
 #[skip_serializing_none]
@@ -63,21 +64,18 @@ impl Note {
     &self,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<(ApubPost, Option<ApubComment>)> {
-    // We use recursion here to fetch the entire comment chain up to the top-level parent. This is
-    // necessary because we need to know the post and parent comment in order to insert a new
-    // comment. However it can also lead to stack overflow when fetching many comments recursively.
-    // To avoid this we check the request count against max comment depth, which based on testing
-    // can be handled without risking stack overflow. This is not a perfect solution, because in
-    // some cases we have to fetch user profiles too, and reach the limit after only 25 comments
-    // or so.
-    // A cleaner solution would be converting the recursion into a loop, but that is tricky.
-    if context.request_count() > MAX_COMMENT_DEPTH_LIMIT as u32 {
-      Err(LemmyErrorType::MaxCommentDepthReached)?;
-    }
-    let parent = self.in_reply_to.dereference(context).await?;
+    // When fetching a deeply nested comment we may have also have to fetch dozens of parent
+    // comments which can easily result in stack overflow. So we launch a new task instead
+    // which gives a new stack and avoids overflow. This was successfully tested with a comment
+    // nested 200 deep (max in production is 50).
+    let self2 = self.clone();
+    let context2 = context.reset_request_count();
+    let parent = spawn(async move { self2.in_reply_to.dereference(&context2).await }).await??;
+
     match parent {
       PostOrComment::Post(p) => Ok((p.clone(), None)),
       PostOrComment::Comment(c) => {
+        check_comment_depth(&c)?;
         let post_id = c.post_id;
         let post = Post::read(&mut context.pool(), post_id)
           .await?
