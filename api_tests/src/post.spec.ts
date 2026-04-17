@@ -43,6 +43,7 @@ import {
   statusBadRequest,
   getSite,
   jestLemmyError,
+  gammaUrl,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
 import { AdminBlockInstanceParams } from "lemmy-js-client/dist/types/AdminBlockInstanceParams";
@@ -1041,6 +1042,49 @@ test("Plugin test", async () => {
         "Java",
       ),
     new LemmyError("plugin_error", statusBadRequest, "We dont talk about Java"),
+  );
+});
+
+test("Admin removes post from local user in remote community", async () => {
+  if (!betaCommunity) {
+    throw "Missing beta community";
+  }
+
+  // Register new user and make a post
+  let user = await registerUser(gamma, gammaUrl);
+  let gammaCommunity = (
+    await resolveCommunity(gamma, betaCommunity.community.ap_id)
+  )?.community;
+  if (!gammaCommunity) {
+    throw "Missing gamma community";
+  }
+  let postRes = await createPost(user, gammaCommunity.id);
+
+  // Wait for federation
+  await waitUntil(
+    () => resolvePost(beta, postRes.post_view.post),
+    p => p !== undefined,
+  );
+
+  // Admin on same instance as user removes it
+  let removedPost = await removePost(gamma, true, postRes.post_view.post);
+  expect(removedPost.post_view.post.removed).toBe(true);
+  expect(removedPost.post_view.post.name).toBe(postRes.post_view.post.name);
+
+  // Make sure post is also removed in the community
+  await waitUntil(
+    () => resolvePost(beta, postRes.post_view.post),
+    p => p !== undefined && p.post.removed,
+  );
+
+  // Restore post
+  let undeletedPost = await removePost(gamma, false, postRes.post_view.post);
+  expect(undeletedPost.post_view.post.removed).toBe(false);
+
+  // Make sure post is also restored in community
+  await waitUntil(
+    () => resolvePost(beta, postRes.post_view.post),
+    p => p !== undefined && !p.post.removed,
   );
 });
 

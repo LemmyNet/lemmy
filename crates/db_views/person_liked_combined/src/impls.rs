@@ -430,8 +430,6 @@ mod tests {
       panic!("wrong type");
     }
 
-    cleanup(data, pool).await?;
-
-    Ok(())
+    cleanup(data, pool).await
   }
 }

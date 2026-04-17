@@ -163,6 +163,7 @@ pub struct CommentQuery<'a> {
   pub sort: Option<CommentSortType>,
   pub time_range_seconds: Option<i32>,
   pub community_id: Option<CommunityId>,
+  pub creator_id: Option<PersonId>,
   pub post_id: Option<PostId>,
   pub parent_path: Option<Ltree>,
   pub local_user: Option<&'a LocalUser>,
@@ -197,8 +198,14 @@ impl CommentQuery<'_> {
       query = query.filter(comment::path.contained_by(parent_path));
     };
 
+    // Filter by the community id
     if let Some(community_id) = self.community_id {
       query = query.filter(comment::community_id.eq(community_id));
+    }
+
+    // Filter by the creator id
+    if let Some(creator_id) = self.creator_id {
+      query = query.filter(comment::creator_id.eq(creator_id));
     }
 
     // For posts, we only show hidden if its subscribed, but for comments,
@@ -385,7 +392,6 @@ mod tests {
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
-  // TODO rename these
   struct Data {
     instance: Instance,
     comment_0: Comment,
@@ -401,7 +407,6 @@ mod tests {
   }
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
-    Instance::read_all(pool).await?;
     let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
     let system_acct =
       Person::create(pool, &PersonInsertForm::test_form(instance.id, "langs")).await?;
@@ -819,12 +824,7 @@ mod tests {
   }
 
   async fn cleanup(data: Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
-    Community::delete(pool, data.community.id).await?;
-    Person::delete(pool, data.timmy_local_user_view.person.id).await?;
-    LocalUser::delete(pool, data.timmy_local_user_view.local_user.id).await?;
-    Person::delete(pool, data.sara_person.id).await?;
     Instance::delete(pool, data.instance.id).await?;
-    Site::delete(pool, data.site.id).await?;
 
     Ok(())
   }
@@ -1162,8 +1162,6 @@ mod tests {
     assert_length!(1, comment_search_by_name);
     assert_eq!(data.comment_2.id, comment_search_by_name[0].comment.id);
 
-    cleanup(data, pool).await?;
-
-    Ok(())
+    cleanup(data, pool).await
   }
 }

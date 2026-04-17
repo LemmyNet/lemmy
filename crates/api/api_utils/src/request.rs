@@ -32,8 +32,6 @@ use reqwest::{
 };
 use reqwest_middleware::ClientWithMiddleware;
 use serde::{Deserialize, Serialize};
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
-use tokio::net::lookup_host;
 use tracing::{info, warn};
 use url::Url;
 use urlencoding::encode;
@@ -59,29 +57,13 @@ pub fn client_builder(settings: &Settings) -> ClientBuilder {
 /// Fetches metadata for the given link and optionally generates thumbnail.
 pub async fn fetch_link_metadata(
   url: &Url,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
   recursion: bool,
 ) -> LemmyResult<LinkMetadata> {
   if url.scheme() != "http" && url.scheme() != "https" {
     return Err(LemmyErrorType::InvalidUrl.into());
   }
-
-  // Resolve the domain and throw an error if it points to any internal IP,
-  // using logic from nightly IpAddr::is_global.
-  if !cfg!(debug_assertions) {
-    // TODO: Replace with IpAddr::is_global() once stabilized
-    //       https://doc.rust-lang.org/std/net/enum.IpAddr.html#method.is_global
-    let domain = url.domain().ok_or(UntranslatedError::UrlWithoutDomain)?;
-    let invalid_ip = lookup_host((domain.to_owned(), 80))
-      .await?
-      .any(|addr| match addr.ip() {
-        IpAddr::V4(addr) => v4_is_invalid(addr),
-        IpAddr::V6(addr) => v6_is_invalid(addr),
-      });
-    if invalid_ip {
-      return Err(LemmyErrorType::InvalidUrl.into());
-    }
-  }
+  context.is_valid_ip(url).await?;
 
   info!("Fetching site metadata for url: {}", url);
   // We only fetch the first MB of data in order to not waste bandwidth especially for large
@@ -161,30 +143,6 @@ pub async fn fetch_link_metadata(
     opengraph_data,
     content_type: content_type.map(|c| c.to_string()),
   })
-}
-
-fn v4_is_invalid(v4: Ipv4Addr) -> bool {
-  v4.is_private()
-    || v4.is_loopback()
-    || v4.is_link_local()
-    || v4.is_multicast()
-    || v4.is_documentation()
-    || v4.is_unspecified()
-    || v4.is_broadcast()
-}
-
-fn v6_is_invalid(v6: Ipv6Addr) -> bool {
-  let is_documentation = matches!(
-    v6.segments(),
-    [0x2001, 0xdb8, ..] | [0x3fff, 0..=0x0fff, ..]
-  );
-  is_documentation
-    || v6.is_loopback()
-    || v6.is_multicast()
-    || v6.is_unique_local()
-    || v6.is_unicast_link_local()
-    || v6.is_unspecified()
-    || v6.to_ipv4_mapped().is_some_and(v4_is_invalid)
 }
 
 async fn collect_bytes_until_limit(

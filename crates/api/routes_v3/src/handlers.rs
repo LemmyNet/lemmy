@@ -223,6 +223,8 @@ pub(crate) async fn list_comments_v3(
     parent_id: parent_id.map(|p| CommentId(p.0)),
     time_range_seconds: None,
     search_term: None,
+    creator_id: None,
+    creator_username: None,
   };
   let comments = list_comments(Query(data), context, local_user_view)
     .await?
@@ -383,12 +385,13 @@ pub(crate) async fn search_v3(
   let SearchV3 {
     type_,
     q: search_term,
-    post_title_only: search_title_only,
+    post_title_only: title_only,
     ..
   } = data;
   let form = Search {
     search_term,
-    search_title_only,
+    title_only,
+    ..Default::default()
   };
   let data = search(Query(form), context, local_user_view).await?;
   Ok(Json(convert_search_response(data.0, type_)))
