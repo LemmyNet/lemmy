@@ -174,7 +174,7 @@ impl Object for ApubComment {
     ))
     .await?;
 
-    let (post, parent_comment) = note.get_parents(&context).await?;
+    let (post, parent_comment) = note.get_parents(context).await?;
 
     let creator = Box::pin(note.attributed_to.dereference(context)).await?;
 
