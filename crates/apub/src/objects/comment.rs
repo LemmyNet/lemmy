@@ -164,7 +164,7 @@ impl Object for ApubComment {
     ))
     .await?;
 
-    let (post, _) = note.get_parents(&context).await?;
+    let (post, _) = note.get_parents(context).await?;
 
     let creator = Box::pin(note.attributed_to.dereference(context)).await?;
     let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), &creator, community.id)
