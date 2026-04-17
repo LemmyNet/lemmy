@@ -19,6 +19,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::asc_if;
 use lemmy_db_schema::{
+  ReportSortType,
   ReportType,
   newtypes::{
     CommentReportId,
@@ -206,8 +207,9 @@ pub struct ReportCombinedQuery {
   pub unresolved_only: Option<bool>,
   /// For admins, also show reports with `violates_instance_rules=false`
   pub show_community_rule_violations: Option<bool>,
-  pub page_cursor: Option<PaginationCursor>,
   pub my_reports_only: Option<bool>,
+  pub sort: Option<ReportSortType>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }
 
@@ -263,13 +265,17 @@ impl ReportCombinedQuery {
       }
     }
 
-    // If viewing all reports, order by newest, but if viewing unresolved only, show the oldest
-    // first (FIFO)
     let unresolved_only = self.unresolved_only.unwrap_or_default();
-    let sort_direction = asc_if(unresolved_only);
-
     if unresolved_only {
       query = query.filter(not(report_combined::resolved));
+    };
+
+    let sort_direction = if let Some(sort) = self.sort {
+      asc_if(sort == ReportSortType::Old)
+    } else {
+      // By default, if viewing all reports, order by newest, but if viewing unresolved only, show
+      // the oldest first (FIFO)
+      asc_if(unresolved_only)
     };
 
     // Sorting by published
