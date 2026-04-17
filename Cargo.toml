@@ -227,7 +227,6 @@ extism = { version = "1.20.0", default-features = false, features = [
 extism-convert = "1.20.0"
 unified-diff = "0.2.1"
 diesel-uplete = { version = "0.2.0" }
-cfg-if = "1"
 
 # Speedup RSA key generation
 # https://github.com/RustCrypto/RSA/blob/master/README.md#example

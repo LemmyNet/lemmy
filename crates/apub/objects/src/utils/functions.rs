@@ -119,19 +119,14 @@ pub async fn check_apub_id_valid_with_strictness(
   if is_strict && !local_site_data.allowed_instances.is_empty() {
     // need to allow this explicitly because apub receive might contain objects from our local
     // instance.
-    let mut allowed_and_local = local_site_data
+    let is_allowed_or_local = local_site_data
       .allowed_instances
       .iter()
       .map(|i| i.domain.clone())
-      .collect::<Vec<String>>();
-    let local_instance = context.settings().get_hostname_without_port()?;
-    allowed_and_local.push(local_instance);
+      .chain([local_instance])
+      .any(|x| x == domain);
 
-    let domain = apub_id
-      .domain()
-      .ok_or(UntranslatedError::UrlWithoutDomain)?
-      .to_string();
-    if !allowed_and_local.contains(&domain) {
+    if !is_allowed_or_local {
       return Err(UntranslatedError::FederationDisabledByStrictAllowList.into());
     }
   }
