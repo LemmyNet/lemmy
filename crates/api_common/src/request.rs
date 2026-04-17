@@ -404,6 +404,7 @@ struct PictrsPurgeResponse {
 /// - It might not be an image
 /// - Pictrs might not be set up
 pub async fn purge_image_from_pictrs(image_url: &Url, context: &LemmyContext) -> LemmyResult<()> {
+  validate_link_ip(image_url).await?;
   is_image_content_type(context.client(), image_url).await?;
 
   let alias = image_url
@@ -457,6 +458,7 @@ pub async fn delete_image_from_pictrs(
 /// Retrieves the image with local pict-rs and generates a thumbnail. Returns the thumbnail url.
 #[tracing::instrument(skip_all)]
 async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> LemmyResult<Url> {
+  validate_link_ip(image_url).await?;
   let pictrs_config = context.settings().pictrs_config()?;
 
   match pictrs_config.image_mode() {
@@ -516,6 +518,7 @@ pub async fn fetch_pictrs_proxied_image_details(
   image_url: &Url,
   context: &LemmyContext,
 ) -> LemmyResult<PictrsFileDetails> {
+  validate_link_ip(image_url).await?;
   let pictrs_url = context.settings().pictrs_config()?.url;
   let encoded_image_url = encode(image_url.as_str());
 

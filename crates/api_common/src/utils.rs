@@ -1,6 +1,6 @@
 use crate::{
   context::LemmyContext,
-  request::{delete_image_from_pictrs, fetch_pictrs_proxied_image_details},
+  request::{delete_image_from_pictrs, fetch_pictrs_proxied_image_details, validate_link_ip},
   site::{FederatedInstances, InstanceWithFederationState},
 };
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
@@ -913,6 +913,7 @@ async fn proxy_image_link_internal(
   image_mode: PictrsImageMode,
   context: &LemmyContext,
 ) -> LemmyResult<DbUrl> {
+  validate_link_ip(&link).await?;
   // Dont rewrite links pointing to local domain.
   if link.domain() == Some(&context.settings().hostname) {
     Ok(link.into())
