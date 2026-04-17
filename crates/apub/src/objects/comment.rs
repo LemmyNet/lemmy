@@ -18,13 +18,7 @@ use activitypub_federation::{
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{
-    check_comment_depth,
-    get_url_blocklist,
-    is_mod_or_admin,
-    local_site_opt_to_slur_regex,
-    process_markdown,
-  },
+  utils::{get_url_blocklist, is_mod_or_admin, local_site_opt_to_slur_regex, process_markdown},
 };
 use lemmy_db_schema::{
   source::{
@@ -42,7 +36,6 @@ use lemmy_utils::{
   utils::markdown::markdown_to_html,
 };
 use std::ops::Deref;
-use tokio::spawn;
 use url::Url;
 
 #[derive(Clone, Debug)]
@@ -171,16 +164,7 @@ impl Object for ApubComment {
     ))
     .await?;
 
-    // When fetching a deeply nested comment we may have also have to fetch dozens of parent
-    // comments which can easily result in stack overflow. So we launch a new task instead
-    // which gives a new stack and avoids overflow. This was successfully tested with a comment
-    // nested 200 deep (max in production is 50).
-    let note2 = note.clone();
-    let context2 = context.reset_request_count();
-    let (post, parent_comment) = spawn(async move { note2.get_parents(&context2).await }).await??;
-    if let Some(c) = &parent_comment {
-      check_comment_depth(c)?;
-    }
+    let (post, _) = note.get_parents(context).await?;
 
     let creator = Box::pin(note.attributed_to.dereference(context)).await?;
     let is_mod_or_admin = is_mod_or_admin(&mut context.pool(), &creator, community.id)
