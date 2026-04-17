@@ -19,7 +19,7 @@ use activitypub_federation::{
   },
 };
 use chrono::{DateTime, Utc};
-use lemmy_api_utils::context::LemmyContext;
+use lemmy_api_utils::{context::LemmyContext, utils::check_comment_depth};
 use lemmy_db_schema::source::{community::Community, post::Post};
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::{
@@ -80,9 +80,6 @@ impl Note {
     // `async fn foo(...) -> T` to `fn foo(...) -> impl Future<Output = T>`. Between each level of
     // recursion, there must be the beginning of at least one `async` block or `async fn`,
     // otherwise there might be multiple levels of recursion before the first poll.
-    if context.request_count() > MAX_COMMENT_DEPTH_LIMIT.try_into()? {
-      return Err(LemmyErrorType::MaxCommentDepthReached.into());
-    }
     let parent = tokio::spawn({
       let in_reply_to = self.in_reply_to.clone();
       let context = context.clone();
@@ -94,6 +91,7 @@ impl Note {
     match parent {
       PostOrComment::Left(p) => Ok((p.clone(), None)),
       PostOrComment::Right(c) => {
+        check_comment_depth(&c)?;
         let post_id = c.post_id;
         let post = Post::read(&mut context.pool(), post_id).await?;
         Ok((post.into(), Some(c.clone())))
