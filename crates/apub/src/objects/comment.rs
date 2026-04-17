@@ -18,13 +18,7 @@ use activitypub_federation::{
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{
   context::LemmyContext,
-  utils::{
-    check_comment_depth,
-    get_url_blocklist,
-    is_mod_or_admin,
-    local_site_opt_to_slur_regex,
-    process_markdown,
-  },
+  utils::{get_url_blocklist, is_mod_or_admin, local_site_opt_to_slur_regex, process_markdown},
 };
 use lemmy_db_schema::{
   source::{
@@ -42,7 +36,6 @@ use lemmy_utils::{
   utils::markdown::markdown_to_html,
 };
 use std::ops::Deref;
-use tokio::spawn;
 use url::Url;
 
 #[derive(Clone, Debug)]
