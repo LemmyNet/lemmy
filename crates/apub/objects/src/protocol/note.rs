@@ -22,10 +22,7 @@ use chrono::{DateTime, Utc};
 use lemmy_api_utils::{context::LemmyContext, utils::check_comment_depth};
 use lemmy_db_schema::source::{community::Community, post::Post};
 use lemmy_diesel_utils::traits::Crud;
-use lemmy_utils::{
-  MAX_COMMENT_DEPTH_LIMIT,
-  error::{LemmyErrorType, LemmyResult},
-};
+use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
