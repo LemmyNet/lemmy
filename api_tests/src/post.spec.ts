@@ -1062,8 +1062,8 @@ test("Admin removes post from local user in remote community", async () => {
 
   // Wait for federation
   await waitUntil(
-    () => getPost(beta, postRes.post_view.post.id),
-    p => p.post_view.post !== null,
+    () => resolvePost(beta, postRes.post_view.post),
+    p => p !== undefined,
   );
 
   // Admin on same instance as user removes it
@@ -1073,8 +1073,8 @@ test("Admin removes post from local user in remote community", async () => {
 
   // Make sure post is also removed in the community
   await waitUntil(
-    () => getPost(beta, postRes.post_view.post.id),
-    p => p.post_view.post.removed,
+    () => resolvePost(beta, postRes.post_view.post),
+    p => p !== undefined && p.post.removed,
   );
 
   // Restore post
@@ -1083,8 +1083,8 @@ test("Admin removes post from local user in remote community", async () => {
 
   // Make sure post is also restored in community
   await waitUntil(
-    () => getPost(beta, postRes.post_view.post.id),
-    p => !p.post_view.post.removed,
+    () => resolvePost(beta, postRes.post_view.post),
+    p => p !== undefined && !p.post.removed,
   );
 });
 
