@@ -374,7 +374,6 @@ mod tests {
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
-  // TODO rename these
   struct Data {
     instance: Instance,
     comment_0: Comment,
@@ -389,20 +388,19 @@ mod tests {
   }
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
-    Instance::read_all(pool).await?;
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
+    let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
 
-    let timmy_person_form = PersonInsertForm::test_form(inserted_instance.id, "timmy");
+    let timmy_person_form = PersonInsertForm::test_form(instance.id, "timmy");
     let inserted_timmy_person = Person::create(pool, &timmy_person_form).await?;
     let timmy_local_user_form = LocalUserInsertForm::test_form_admin(inserted_timmy_person.id);
 
     let inserted_timmy_local_user = LocalUser::create(pool, &timmy_local_user_form, vec![]).await?;
 
-    let sara_person_form = PersonInsertForm::test_form(inserted_instance.id, "sara");
+    let sara_person_form = PersonInsertForm::test_form(instance.id, "sara");
     let sara_person = Person::create(pool, &sara_person_form).await?;
 
     let new_community = CommunityInsertForm::new(
-      inserted_instance.id,
+      instance.id,
       "test community 5".to_string(),
       "nada".to_owned(),
       "pubkey".to_string(),
@@ -487,10 +485,10 @@ mod tests {
       banned: false,
       ban_expires_at: None,
     };
-    let site_form = SiteInsertForm::new("test site".to_string(), inserted_instance.id);
+    let site_form = SiteInsertForm::new("test site".to_string(), instance.id);
     let site = Site::create(pool, &site_form).await?;
     Ok(Data {
-      instance: inserted_instance,
+      instance,
       comment_0,
       comment_1,
       comment_2,
@@ -777,12 +775,7 @@ mod tests {
   }
 
   async fn cleanup(data: Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
-    Community::delete(pool, data.community.id).await?;
-    Person::delete(pool, data.timmy_local_user_view.person.id).await?;
-    LocalUser::delete(pool, data.timmy_local_user_view.local_user.id).await?;
-    Person::delete(pool, data.sara_person.id).await?;
     Instance::delete(pool, data.instance.id).await?;
-    Site::delete(pool, data.site.id).await?;
 
     Ok(())
   }
@@ -1114,8 +1107,6 @@ mod tests {
     assert_length!(1, comment_search_by_name);
     assert_eq!(data.comment_2.id, comment_search_by_name[0].comment.id);
 
-    cleanup(data, pool).await?;
-
-    Ok(())
+    cleanup(data, pool).await
   }
 }

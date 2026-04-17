@@ -44,7 +44,6 @@ impl TestData {
 
   pub async fn delete(self, pool: &mut DbPool<'_>) -> LemmyResult<()> {
     Instance::delete(pool, self.instance.id).await?;
-    Site::delete(pool, self.site.id).await?;
     Ok(())
   }
 }

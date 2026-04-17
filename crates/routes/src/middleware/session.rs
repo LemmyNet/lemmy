@@ -116,17 +116,17 @@ mod tests {
   #[serial]
   async fn test_session_auth() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
+    let pool = &mut context.pool();
 
-    let inserted_instance = Instance::read_or_create(&mut context.pool(), "my_domain.tld").await?;
+    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
 
     let new_person = PersonInsertForm::test_form(inserted_instance.id, "Gerry9812");
 
-    let inserted_person = Person::create(&mut context.pool(), &new_person).await?;
+    let inserted_person = Person::create(pool, &new_person).await?;
 
     let local_user_form = LocalUserInsertForm::test_form(inserted_person.id);
 
-    let inserted_local_user =
-      LocalUser::create(&mut context.pool(), &local_user_form, vec![]).await?;
+    let inserted_local_user = LocalUser::create(pool, &local_user_form, vec![]).await?;
 
     let req = TestRequest::default().to_http_request();
     let jwt = Claims::generate(inserted_local_user.id, None, req, &context).await?;
@@ -134,8 +134,10 @@ mod tests {
     let valid = Claims::validate(&jwt, &context).await;
     assert!(valid.is_ok());
 
-    let num_deleted = Person::delete(&mut context.pool(), inserted_person.id).await?;
+    let num_deleted = Person::delete(pool, inserted_person.id).await?;
     assert_eq!(1, num_deleted);
+
+    Instance::delete(pool, inserted_instance.id).await?;
 
     Ok(())
   }
