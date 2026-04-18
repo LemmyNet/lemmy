@@ -31,6 +31,11 @@ impl LocalSite {
       .await
       .with_lemmy_type(LemmyErrorType::Deleted)
   }
+
+  /// Checks if the instance is private with federation disabled
+  pub fn is_instance_private_federation_disabled(&self) -> bool {
+    self.private_instance && !self.federation_enabled
+  }
 }
 
 #[cfg(test)]
