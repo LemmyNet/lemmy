@@ -102,15 +102,19 @@ where
   let hostname = context.settings().get_protocol_and_hostname();
   let kind_str = kind.to_string().to_lowercase();
 
-  let uuid = if let Some(o) = object_id {
+  let uuid_str = if let Some(o) = object_id {
     let input = format!("{}:{}", kind_str, o.as_str());
-    generate_hash(&input)?
+    // hash
+    let mut hasher = Sha256::new();
+    hasher.update(input);
+    let digest = hasher.finalize(); // 32 bytes
+    format!("{:x}", digest)
   } else {
-    Uuid::new_v4()
+    Uuid::new_v4().to_string()
   };
 
-  let id = format!("{}/activities/{}/{}", hostname, kind_str, uuid);
-  Url::parse(&id).map_err(|e| LemmyError::from(anyhow::anyhow!(e)))
+  let id = format!("{}/activities/{}/{}", hostname, kind_str, uuid_str);
+  Ok(Url::parse(&id)?)
 }
 
 /// like generate_activity_id but also add the inner kind for easier debugging
@@ -119,11 +123,15 @@ fn generate_announce_activity_id(
   protocol_and_hostname: &str,
   object_id: Option<&Url>,
 ) -> LemmyResult<Url> {
-  let uuid = if let Some(o) = object_id {
+  let uuid_str = if let Some(o) = object_id {
     let input = format!("announce:{}", o.as_str());
-    generate_hash(&input)?
+    // hash
+    let mut hasher = Sha256::new();
+    hasher.update(input);
+    let digest = hasher.finalize();
+    format!("{:x}", digest)
   } else {
-    Uuid::new_v4()
+    Uuid::new_v4().to_string()
   };
 
   let id = format!(
@@ -131,22 +139,9 @@ fn generate_announce_activity_id(
     protocol_and_hostname,
     AnnounceType::Announce.to_string().to_lowercase(),
     inner_kind.to_lowercase(),
-    uuid
+    uuid_str
   );
-  Url::parse(&id).map_err(|e| LemmyError::from(anyhow::anyhow!(e)))
-}
-
-/// generate a hash from input string, returning first 16 bytes as UUID
-fn generate_hash(input: &str) -> LemmyResult<Uuid> {
-  let mut hasher = Sha256::new();
-  hasher.update(input);
-  let digest = hasher.finalize(); // 32 bytes
-  Ok(Uuid::from_bytes(
-    digest
-      .get(..16) // should not fail
-      .ok_or(UntranslatedError::CouldntGenerateHash)?
-      .try_into()?,
-  ))
+  Ok(Url::parse(&id)?)
 }
 
 async fn send_lemmy_activity<A, ActorT>(
