@@ -138,7 +138,7 @@ pub(super) async fn do_get_image(
 
 /// Auth required if instance is private with federation disabled
 fn is_auth_required(local_user_view: Option<&LocalUserView>, local_site: &LocalSite) -> bool {
-  local_user_view.is_none() && local_site.is_instance_private_federation_disabled()
+  local_user_view.is_none() && local_site.private_instance && !local_site.federation_enabled
 }
 
 #[derive(EnumString, Display, PartialEq, Debug, Default)]
