@@ -215,6 +215,7 @@ impl Object for ApubComment {
     let mut form = CommentInsertForm {
       creator_id: creator.id,
       post_id: post.id,
+      community_id: post.community_id,
       content,
       removed: None,
       published_at: note.published,

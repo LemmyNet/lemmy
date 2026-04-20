@@ -22,6 +22,7 @@ import {
   PersonSortType,
   PostId,
   PostSortType,
+  ReportType,
 } from "lemmy-js-client";
 import { fetchFunction } from "./shared";
 import * as fs from "fs";
@@ -50,9 +51,9 @@ const sampleComment: CommentId = 24109064;
 
 const commentSortTypes: CommentSortType[] = [
   "hot",
+  "top",
   "new",
   "old",
-  "top",
   "controversial",
 ];
 
@@ -60,9 +61,20 @@ const postSortTypes: PostSortType[] = [
   "active",
   "hot",
   "new",
-  "top",
   "old",
+  "top",
+  "most_comments",
+  "new_comments",
   "controversial",
+  "scaled",
+];
+
+const listingTypes: ListingType[] = [
+  "all",
+  "local",
+  "subscribed",
+  "moderator_view",
+  "suggested",
 ];
 
 const communitySortTypes: CommunitySortType[] = [
@@ -97,6 +109,18 @@ const personSortTypes: PersonSortType[] = [
   "post_score",
   "comment_score",
 ];
+
+const notificationTypes: NotificationTypeFilter[] = [
+  "all",
+  "mention",
+  "reply",
+  "subscribed",
+  "private_message",
+  "mod_action",
+];
+
+const personContentTypes: PersonContentType[] = ["all", "comments", "posts"];
+
 let api: LemmyHttp;
 let report: string[] = [];
 
@@ -143,13 +167,6 @@ test("List posts with different listing types", async () => {
   report.push("\n# List posts with different listing types \n");
   report.push("type | time");
   report.push("--- | ---");
-  const listingTypes: ListingType[] = [
-    "all",
-    "local",
-    "subscribed",
-    "moderator_view",
-    "suggested",
-  ];
   for (let type_ of listingTypes) {
     const time = await timeApiCalls(() => api.getPosts({ type_ }));
     report.push(`${type_} | ${formatMs(time)}`);
@@ -214,13 +231,6 @@ test("List communities with different listing types", async () => {
   report.push("\n# List communities with different listing types \n");
   report.push("type | time");
   report.push("--- | ---");
-  const listingTypes: ListingType[] = [
-    "all",
-    "local",
-    "subscribed",
-    "moderator_view",
-    "suggested",
-  ];
   for (let type_ of listingTypes) {
     const time = await timeApiCalls(() => api.listCommunities({ type_ }));
     report.push(`${type_} | ${formatMs(time)}`);
@@ -245,7 +255,7 @@ test("Get a community", async () => {
   report.push(`get community: ${formatMs(time)}`);
 });
 
-test.skip("Get a post", async () => {
+test("Get a post", async () => {
   report.push("\n# Get a post\n");
   report.push("type | time");
   report.push("--- | ---");
@@ -257,8 +267,27 @@ test.skip("Get a post", async () => {
   report.push(`text post | ${formatMs(getTextPost)}`);
 });
 
-test("Get comments for a post with different sorts", async () => {
-  report.push("\n# Get comments for a post with different sorts\n");
+// TODO SLOW
+test("Get comments for a post with different sorts, tree", async () => {
+  report.push("\n# Get comments for a post with different sorts, tree\n");
+  report.push("sort | time");
+  report.push("--- | ---");
+
+  for (let sort of commentSortTypes) {
+    const time = await timeApiCalls(() =>
+      api.getComments({
+        post_id: postWithLotsOfComments,
+        max_depth: postCommentsMaxDepth,
+        sort,
+      }),
+    );
+    report.push(`${sort} | ${formatMs(time)}`);
+  }
+});
+
+// TODO SLOW
+test("Get comments for a post with different sorts, flat", async () => {
+  report.push("\n# Get comments for a post with different sorts, flat\n");
   report.push("sort | time");
   report.push("--- | ---");
 
@@ -267,7 +296,6 @@ test("Get comments for a post with different sorts", async () => {
       api.getComments({
         post_id: postWithLotsOfComments,
         sort,
-        max_depth: postCommentsMaxDepth,
       }),
     );
     report.push(`${sort} | ${formatMs(time)}`);
@@ -303,14 +331,6 @@ test("Get comments with different types", async () => {
   report.push("type | time");
   report.push("--- | ---");
 
-  const listingTypes: ListingType[] = [
-    "all",
-    "local",
-    "subscribed",
-    "moderator_view",
-    "suggested",
-  ];
-
   for (let type_ of listingTypes) {
     const time = await timeApiCalls(() => api.getComments({ type_ }));
     report.push(`${type_} | ${formatMs(time)}`);
@@ -322,9 +342,7 @@ test("List person content with types", async () => {
   report.push("type | time");
   report.push("--- | ---");
 
-  const contentTypes: PersonContentType[] = ["all", "comments", "posts"];
-
-  for (let type_ of contentTypes) {
+  for (let type_ of personContentTypes) {
     const time = await timeApiCalls(() =>
       api.listPersonContent({ username: samplePerson, type_ }),
     );
@@ -337,9 +355,7 @@ test("List person saved with types", async () => {
   report.push("type | time");
   report.push("--- | ---");
 
-  const contentTypes: PersonContentType[] = ["all", "comments", "posts"];
-
-  for (let type_ of contentTypes) {
+  for (let type_ of personContentTypes) {
     const time = await timeApiCalls(() => api.listPersonSaved({ type_ }));
     report.push(`${type_} | ${formatMs(time)}`);
   }
@@ -350,9 +366,7 @@ test("List person liked with types", async () => {
   report.push("type | time");
   report.push("--- | ---");
 
-  const contentTypes: PersonContentType[] = ["all", "comments", "posts"];
-
-  for (let type_ of contentTypes) {
+  for (let type_ of personContentTypes) {
     const time = await timeApiCalls(() => api.listPersonLiked({ type_ }));
     report.push(`${type_} | ${formatMs(time)}`);
   }
@@ -392,6 +406,7 @@ test("List registration applications", async () => {
   report.push(`all | ${formatMs(all)}`);
 });
 
+// TODO slow
 test("List reports", async () => {
   report.push("\n# List reports\n");
   report.push("type | time");
@@ -403,6 +418,25 @@ test("List reports", async () => {
   const all = await timeApiCalls(() => api.listReports({}));
   report.push(`unresolved only | ${formatMs(unresolvedOnly)}`);
   report.push(`all | ${formatMs(all)}`);
+});
+
+// TODO slow
+test("List reports with type", async () => {
+  const reportTypes: ReportType[] = [
+    "all",
+    "posts",
+    "comments",
+    "private_messages",
+    "communities",
+  ];
+  report.push("\n# List reports with type\n");
+  report.push("type | time");
+  report.push("--- | ---");
+
+  for (let type_ of reportTypes) {
+    const time = await timeApiCalls(() => api.listReports({ type_ }));
+    report.push(`${type_} | ${formatMs(time)}`);
+  }
 });
 
 test("Search with sort types", async () => {
@@ -448,19 +482,11 @@ test("Search with sort types", async () => {
   }
 });
 
+// TODO a bit slow, ~200ms
 test("Notifications with types", async () => {
   report.push("\n# Notifications with types\n");
   report.push("type | time");
   report.push("--- | ---");
-
-  const notificationTypes: NotificationTypeFilter[] = [
-    "all",
-    "mention",
-    "reply",
-    "subscribed",
-    "private_message",
-    "mod_action",
-  ];
 
   for (let type_ of notificationTypes) {
     const time = await timeApiCalls(() => api.listNotifications({ type_ }));
@@ -496,11 +522,6 @@ test("Liking a comment / post", async () => {
   report.push(`post | ${formatMs(postLike.diff)}`);
 });
 
-type Result<T> = {
-  diff: number;
-  res: T;
-};
-
 test("Get modlog with types", async () => {
   report.push("\n# Get modlog with types\n");
   report.push("type | time");
@@ -534,6 +555,11 @@ test("Get modlog with types", async () => {
     report.push(`${type_} | ${formatMs(time)}`);
   }
 });
+
+type Result<T> = {
+  diff: number;
+  res: T;
+};
 
 async function timeApiCall<T>(promise: () => Promise<T>): Promise<Result<T>> {
   const start = performance.now();

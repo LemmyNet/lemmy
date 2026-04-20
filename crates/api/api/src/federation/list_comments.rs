@@ -73,13 +73,11 @@ async fn list_comments_common(
   ));
 
   // If a parent_id is given, fetch the comment to get the path
-  let parent_path_ = if let Some(parent_id) = parent_id {
+  let parent_path = if let Some(parent_id) = parent_id {
     Some(Comment::read(&mut context.pool(), parent_id).await?.path)
   } else {
     None
   };
-
-  let parent_path = parent_path_.clone();
 
   let local_user = local_user_view.as_ref().map(|l| &l.local_user);
 
@@ -97,7 +95,7 @@ async fn list_comments_common(
     page_cursor,
     limit,
   }
-  .list(&site, &mut context.pool())
+  .list(&mut context.pool(), &site, &local_site)
   .await
 }
 
