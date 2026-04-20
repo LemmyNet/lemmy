@@ -1,13 +1,13 @@
 use crate::{
-  newtypes::{CommentId, ModlogId, NotificationId, PostId, PrivateMessageId},
-  source::{comment::Comment, post::Post, private_message::PrivateMessage},
+  newtypes::{CommentId, CommunityId, ModlogId, NotificationId, PostId, PrivateMessageId},
+  source::{comment::Comment, modlog::Modlog, post::Post, private_message::PrivateMessage},
 };
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::notification;
-use lemmy_db_schema_file::{PersonId, enums::NotificationType};
+use lemmy_db_schema_file::{InstanceId, PersonId, enums::NotificationType};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -31,6 +31,8 @@ pub struct Notification {
   pub private_message_id: Option<PrivateMessageId>,
   pub modlog_id: Option<ModlogId>,
   pub creator_id: PersonId,
+  pub instance_id: Option<InstanceId>,
+  pub community_id: Option<CommunityId>,
 }
 
 #[derive(derive_new::new)]
@@ -48,18 +50,25 @@ pub struct NotificationInsertForm {
   pub private_message_id: Option<PrivateMessageId>,
   #[new(default)]
   pub modlog_id: Option<ModlogId>,
+  #[new(default)]
+  pub instance_id: Option<InstanceId>,
+  #[new(default)]
+  pub community_id: Option<CommunityId>,
 }
 
 impl NotificationInsertForm {
   pub fn new_post(post: &Post, recipient_id: PersonId, kind: NotificationType) -> Self {
     Self {
       post_id: Some(post.id),
+      community_id: Some(post.community_id),
       ..Self::new(recipient_id, post.creator_id, kind)
     }
   }
   pub fn new_comment(comment: &Comment, recipient_id: PersonId, kind: NotificationType) -> Self {
     Self {
       comment_id: Some(comment.id),
+      post_id: Some(comment.post_id),
+      community_id: Some(comment.community_id),
       ..Self::new(recipient_id, comment.creator_id, kind)
     }
   }
@@ -73,10 +82,15 @@ impl NotificationInsertForm {
       )
     }
   }
-  pub fn new_mod_action(modlog_id: ModlogId, recipient_id: PersonId, creator_id: PersonId) -> Self {
+
+  pub fn new_mod_action(action: &Modlog, recipient_id: PersonId) -> Self {
     Self {
-      modlog_id: Some(modlog_id),
-      ..Self::new(recipient_id, creator_id, NotificationType::ModAction)
+      modlog_id: Some(action.id),
+      comment_id: action.target_comment_id,
+      post_id: action.target_post_id,
+      community_id: action.target_community_id,
+      instance_id: action.target_instance_id,
+      ..Self::new(recipient_id, action.mod_id, NotificationType::ModAction)
     }
   }
 }

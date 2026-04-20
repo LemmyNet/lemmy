@@ -1,12 +1,5 @@
 use crate::LocalUserView;
-use diesel::{
-  BoolExpressionMethods,
-  ExpressionMethods,
-  JoinOnDsl,
-  NullableExpressionMethods,
-  QueryDsl,
-  SelectableHelper,
-};
+use diesel::{BoolExpressionMethods, ExpressionMethods, JoinOnDsl, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
@@ -23,7 +16,6 @@ use lemmy_db_schema_file::{
   PersonId,
   enums::{CommunityFollowerState, CommunityVisibility},
   joins::{
-    community_join,
     creator_community_actions_join,
     creator_community_instance_actions_join,
     creator_home_instance_actions_join,
@@ -105,15 +97,6 @@ pub struct PersonContentCombinedQuery {
 impl PersonContentCombinedQuery {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins(my_person_id: Option<PersonId>, local_instance_id: InstanceId) -> _ {
-    let comment_join =
-      comment::table.on(person_content_combined::comment_id.eq(comment::id.nullable()));
-
-    let post_join = post::table.on(
-      person_content_combined::post_id
-        .eq(post::id.nullable())
-        .or(comment::post_id.eq(post::id)),
-    );
-
     let item_creator_join = person::table.on(person_content_combined::creator_id.eq(person::id));
 
     let my_community_actions_join: my_community_actions_join =
@@ -126,10 +109,10 @@ impl PersonContentCombinedQuery {
       creator_local_instance_actions_join(local_instance_id);
 
     person_content_combined::table
-      .left_join(comment_join)
-      .inner_join(post_join)
+      .left_join(comment::table)
+      .inner_join(community::table)
+      .inner_join(post::table)
       .inner_join(item_creator_join)
-      .inner_join(community_join())
       .left_join(image_details_join())
       .left_join(creator_community_actions_join())
       .left_join(creator_local_user_admin_join())
@@ -313,21 +296,34 @@ mod tests {
     );
     let timmy_private_comm_post = Post::create(pool, &timmy_private_comm_post_form).await?;
 
-    let timmy_comment_form =
-      CommentInsertForm::new(timmy.id, timmy_post.id, "timmy comment prv".into());
+    let timmy_comment_form = CommentInsertForm::new(
+      timmy.id,
+      timmy_post.id,
+      community.id,
+      "timmy comment prv".into(),
+    );
     let timmy_comment = Comment::create(pool, &timmy_comment_form, None).await?;
 
-    let sara_comment_form =
-      CommentInsertForm::new(sara.id, timmy_post.id, "sara comment prv".into());
+    let sara_comment_form = CommentInsertForm::new(
+      sara.id,
+      timmy_post.id,
+      community.id,
+      "sara comment prv".into(),
+    );
     let sara_comment = Comment::create(pool, &sara_comment_form, None).await?;
 
-    let sara_comment_form_2 =
-      CommentInsertForm::new(sara.id, timmy_post_2.id, "sara comment prv 2".into());
+    let sara_comment_form_2 = CommentInsertForm::new(
+      sara.id,
+      timmy_post_2.id,
+      community.id,
+      "sara comment prv 2".into(),
+    );
     let sara_comment_2 = Comment::create(pool, &sara_comment_form_2, None).await?;
 
     let timmy_private_comm_comment_form = CommentInsertForm::new(
       timmy.id,
       timmy_private_comm_post.id,
+      private_community.id,
       "timmy private comment prv".into(),
     );
     let _timmy_private_comm_comment =

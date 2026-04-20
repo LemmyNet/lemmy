@@ -140,11 +140,14 @@ pub async fn search(
         .items;
     }
     SearchType::Comments => {
-      comments = comments_query.list(&site, &mut context.pool()).await?.items;
+      comments = comments_query
+        .list(&mut context.pool(), &site, &local_site)
+        .await?
+        .items;
     }
     SearchType::Communities => {
       communities = communities_query
-        .list(&site, &mut context.pool())
+        .list(&mut context.pool(), &site, &local_site)
         .await?
         .items;
     }
@@ -167,11 +170,14 @@ pub async fn search(
         .await?
         .items;
 
-      comments = comments_query.list(&site, &mut context.pool()).await?.items;
+      comments = comments_query
+        .list(&mut context.pool(), &site, &local_site)
+        .await?
+        .items;
 
       if !community_or_creator_included {
         communities = communities_query
-          .list(&site, &mut context.pool())
+          .list(&mut context.pool(), &site, &local_site)
           .await?
           .items;
         persons = persons_query.list(&site, &mut context.pool()).await?.items;

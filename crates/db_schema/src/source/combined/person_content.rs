@@ -1,4 +1,4 @@
-use crate::newtypes::{CommentId, PersonContentCombinedId, PostId};
+use crate::newtypes::{CommentId, CommunityId, PersonContentCombinedId, PostId};
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;
@@ -21,7 +21,8 @@ use serde_with::skip_serializing_none;
 pub struct PersonContentCombined {
   pub published_at: DateTime<Utc>,
   pub creator_id: PersonId,
-  pub post_id: Option<PostId>,
+  pub post_id: PostId,
   pub comment_id: Option<CommentId>,
   pub id: PersonContentCombinedId,
+  pub community_id: CommunityId,
 }
