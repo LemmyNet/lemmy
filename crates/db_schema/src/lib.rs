@@ -68,6 +68,9 @@ pub enum LocalUserSortType {
 #[cfg_attr(feature = "ts-rs", ts(export))]
 pub enum ReportSortType {
   #[default]
+  /// By default, if viewing all reports, order by newest, but if viewing unresolved only, show
+  /// the oldest first (FIFO)
+  Default,
   New,
   Old,
 }

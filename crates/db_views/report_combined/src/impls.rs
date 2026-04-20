@@ -17,7 +17,7 @@ use diesel::{
   dsl::not,
 };
 use diesel_async::RunQueryDsl;
-use i_love_jesus::asc_if;
+use i_love_jesus::{SortDirection, asc_if};
 use lemmy_db_schema::{
   ReportSortType,
   ReportType,
@@ -270,12 +270,12 @@ impl ReportCombinedQuery {
       query = query.filter(not(report_combined::resolved));
     };
 
-    let sort_direction = if let Some(sort) = self.sort {
-      asc_if(sort == ReportSortType::Old)
-    } else {
+    let sort_direction = match self.sort.unwrap_or_default() {
       // By default, if viewing all reports, order by newest, but if viewing unresolved only, show
       // the oldest first (FIFO)
-      asc_if(unresolved_only)
+      ReportSortType::Default => asc_if(unresolved_only),
+      ReportSortType::New => SortDirection::Desc,
+      ReportSortType::Old => SortDirection::Asc,
     };
 
     // Sorting by published
