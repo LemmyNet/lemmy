@@ -132,10 +132,10 @@ pub trait PaginationCursorConversion {
 ///
 /// Do not attempt to parse or modify the cursor string. The format is internal and may change in
 /// minor Lemmy versions.
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-pub struct PaginationCursor(String);
+pub struct PaginationCursor(pub String);
 
 #[cfg(feature = "full")]
 impl PaginationCursor {
@@ -151,6 +151,20 @@ impl PaginationCursor {
   // only used for PostView optimization
   pub fn is_back(self) -> LemmyResult<bool> {
     Ok(self.into_internal()?.back)
+  }
+}
+
+impl From<&str> for PaginationCursor {
+  fn from(value: &str) -> Self {
+    PaginationCursor(value.to_string())
+  }
+}
+
+impl Debug for PaginationCursor {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_tuple("PaginationCursor")
+      .field(&self.clone().into_internal())
+      .finish()
   }
 }
 
