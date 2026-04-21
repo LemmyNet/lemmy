@@ -44,6 +44,7 @@ import {
   getSite,
   jestLemmyError,
   gammaUrl,
+  sampleSite,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
 import { AdminBlockInstanceParams } from "lemmy-js-client/dist/types/AdminBlockInstanceParams";
@@ -128,7 +129,7 @@ test("Create a post", async () => {
   let postRes = await createPost(
     alpha,
     betaCommunity.community.id,
-    "https://example.com/",
+    sampleSite,
     "აშშ ითხოვს ირანს დაუყოვნებლივ გაანთავისუფლოს დაკავებული ნავთობის ტანკერი",
   );
   expect(postRes.post_view.post).toBeDefined();
@@ -956,7 +957,7 @@ test("Rewrite markdown links", async () => {
   let postRes2 = await createPost(
     beta,
     community!.community.id,
-    "https://example.com/",
+    sampleSite,
     `[link](${postRes1.post_view.post.ap_id})`,
   );
   expect(postRes2.post_view.post).toBeDefined();
@@ -1026,7 +1027,7 @@ test("Plugin test", async () => {
   let postRes1 = await createPost(
     epsilon,
     community.community_view.community.id,
-    "https://example.com/",
+    sampleSite,
     randomString(10),
     "Rust",
   );
@@ -1037,7 +1038,7 @@ test("Plugin test", async () => {
       createPost(
         epsilon,
         community.community_view.community.id,
-        "https://example.com/",
+        sampleSite,
         randomString(10),
         "Java",
       ),

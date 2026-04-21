@@ -229,9 +229,9 @@ export async function allowInstance(api: LemmyHttp, instance: string) {
 export async function createPost(
   api: LemmyHttp,
   community_id: number,
-  url: string = "https://example.com/",
+  // Use the sample site for consistent title and embed description
+  url: string = sampleSite,
   body = randomString(10),
-  // use example.com for consistent title and embed description
   name: string = randomString(5),
   alt_text = randomString(10),
   custom_thumbnail: string | undefined = undefined,
