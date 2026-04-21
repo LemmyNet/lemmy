@@ -385,8 +385,9 @@ struct PictrsPurgeResponse {
 /// - Pictrs might not be set up
 pub async fn purge_image_from_pictrs_url(
   image_url: &Url,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
+  context.is_valid_ip(&image_url).await?;
   is_image_content_type(context.pictrs_client(), image_url).await?;
 
   let alias = image_url
@@ -463,8 +464,9 @@ async fn generate_pictrs_thumbnail(
   post: &Post,
   image_url: &Url,
   local_site: &LocalSite,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
 ) -> LemmyResult<Url> {
+  context.is_valid_ip(&image_url).await?;
   match local_site.image_mode {
     ImageMode::None => return Ok(image_url.clone()),
     ImageMode::ProxyAllImages => {
@@ -521,8 +523,9 @@ async fn generate_pictrs_thumbnail(
 /// We don't need to check for image mode, as that's already been done
 pub async fn fetch_pictrs_proxied_image_details(
   image_url: &Url,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
 ) -> LemmyResult<PictrsFileDetails> {
+  context.is_valid_ip(&image_url).await?;
   let pictrs_url = context.settings().pictrs()?.url;
   let encoded_image_url = encode(image_url.as_str());
 

@@ -58,6 +58,7 @@ use lemmy_utils::{
 use reqwest_middleware::ClientWithMiddleware;
 use std::time::Duration;
 use tracing::{info, warn};
+use url::Url;
 
 /// Schedules various cleanup tasks for lemmy in a background thread
 pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
@@ -133,7 +134,7 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
         .await
         .inspect_err(|e| warn!("Failed to delete old denied users: {e}"))
         .ok();
-      update_instance_software(&mut context.pool(), context.client())
+      update_instance_software(&mut context.pool(), &context)
         .await
         .inspect_err(|e| warn!("Failed to update instance software: {e}"))
         .ok();
@@ -608,7 +609,7 @@ async fn publish_scheduled_posts(context: &Data<LemmyContext>) -> LemmyResult<()
 /// TODO: if instance has been dead for a long time, it should be checked less frequently
 async fn update_instance_software(
   pool: &mut DbPool<'_>,
-  client: &ClientWithMiddleware,
+  context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   info!("Updating instances software and versions...");
   let conn = &mut get_conn(pool).await?;
@@ -616,7 +617,7 @@ async fn update_instance_software(
   let instances = instance::table.get_results::<Instance>(conn).await?;
 
   for instance in instances {
-    if let Some(form) = build_update_instance_form(&instance.domain, client).await {
+    if let Some(form) = build_update_instance_form(&instance.domain, context).await {
       Instance::update(pool, instance.id, form).await?;
     }
   }
@@ -629,7 +630,7 @@ async fn update_instance_software(
 /// Then return a default form with only the updated field.
 async fn build_update_instance_form(
   domain: &str,
-  client: &ClientWithMiddleware,
+  context: &Data<LemmyContext>,
 ) -> Option<InstanceForm> {
   // The `updated` column is used to check if instances are alive. If it is more than three
   // days in the past, no outgoing activities will be sent to that instance. However
@@ -642,9 +643,10 @@ async fn build_update_instance_form(
   };
 
   // First, fetch their /.well-known/nodeinfo, then extract the correct nodeinfo link from it
-  let well_known_url = format!("https://{}/.well-known/nodeinfo", domain);
+  let well_known_url = Url::parse(&format!("https://{}/.well-known/nodeinfo", domain)).ok()?;
+  context.is_valid_ip(&well_known_url).await.ok()?;
 
-  let Ok(res) = client.get(&well_known_url).send().await else {
+  let Ok(res) = context.client().get(well_known_url).send().await else {
     // This is the only kind of error that means the instance is dead
     return None;
   };
@@ -669,7 +671,8 @@ async fn build_update_instance_form(
       })?
       .href;
 
-    let software = client
+    let software = context
+      .client()
       .get(node_info_url)
       .send()
       .await
@@ -693,7 +696,6 @@ async fn build_update_instance_form(
 mod tests {
 
   use super::*;
-  use lemmy_api_utils::request::client_builder;
   use lemmy_db_schema::{
     source::{
       community::{Community, CommunityInsertForm},
@@ -704,18 +706,14 @@ mod tests {
     traits::Likeable,
   };
   use lemmy_diesel_utils::traits::Crud;
-  use lemmy_utils::{
-    error::{LemmyErrorType, LemmyResult},
-    settings::structs::Settings,
-  };
+  use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use pretty_assertions::assert_eq;
-  use reqwest_middleware::ClientBuilder;
   use serial_test::serial;
 
   #[tokio::test]
   async fn test_nodeinfo_lemmy_ml() -> LemmyResult<()> {
-    let client = ClientBuilder::new(client_builder(&Settings::default()).build()?).build();
-    let form = build_update_instance_form("lemmy.ml", &client)
+    let context = LemmyContext::init_test_context().await;
+    let form = build_update_instance_form("lemmy.ml", &context)
       .await
       .ok_or(LemmyErrorType::NotFound)?;
     assert_eq!(form.software.ok_or(LemmyErrorType::NotFound)?, "lemmy");
@@ -724,8 +722,8 @@ mod tests {
 
   #[tokio::test]
   async fn test_nodeinfo_mastodon_social() -> LemmyResult<()> {
-    let client = ClientBuilder::new(client_builder(&Settings::default()).build()?).build();
-    let form = build_update_instance_form("mastodon.social", &client)
+    let context = LemmyContext::init_test_context().await;
+    let form = build_update_instance_form("mastodon.social", &context)
       .await
       .ok_or(LemmyErrorType::NotFound)?;
     assert_eq!(form.software.ok_or(LemmyErrorType::NotFound)?, "mastodon");
@@ -770,7 +768,7 @@ mod tests {
     clear_old_activities(pool).await?;
     overwrite_deleted_posts_and_comments(pool).await?;
     delete_old_denied_users(pool).await?;
-    update_instance_software(pool, context.client()).await?;
+    update_instance_software(pool, &context).await?;
     publish_scheduled_posts(&context).await?;
 
     let community_after = Community::read(pool, community.id).await?;
