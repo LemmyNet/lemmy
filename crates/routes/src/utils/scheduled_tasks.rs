@@ -55,7 +55,6 @@ use lemmy_utils::{
   DB_BATCH_SIZE,
   error::{LemmyErrorType, LemmyResult},
 };
-use reqwest_middleware::ClientWithMiddleware;
 use std::time::Duration;
 use tracing::{info, warn};
 use url::Url;
