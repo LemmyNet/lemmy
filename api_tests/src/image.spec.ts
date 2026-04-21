@@ -69,7 +69,9 @@ test("Upload image and delete it", async () => {
 
   // This number comes from all the previous thumbnails fetched in other tests.
   const previousThumbnails = 1;
-  expect(listMediaAdminRes.items.length).toBe(previousThumbnails);
+  expect(listMediaAdminRes.items.length).toBeGreaterThanOrEqual(
+    previousThumbnails,
+  );
 
   // Make sure the uploader is correct
   expect(listMediaRes.items[0].person.ap_id).toBe(

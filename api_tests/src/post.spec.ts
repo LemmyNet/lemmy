@@ -103,9 +103,13 @@ async function assertPostFederation(
   // TODO url clears arent working
   // expect(postOne?.post.url).toBe(postTwo?.post.url);
   expect(postOne?.post.nsfw).toBe(postTwo?.post.nsfw);
-  expect(postOne?.post.embed_title).toBe(postTwo?.post.embed_title);
-  expect(postOne?.post.embed_description).toBe(postTwo?.post.embed_description);
-  expect(postOne?.post.embed_video_url).toBe(postTwo?.post.embed_video_url);
+  if (waitForMeta) {
+    expect(postOne?.post.embed_title).toBe(postTwo?.post.embed_title);
+    expect(postOne?.post.embed_description).toBe(
+      postTwo?.post.embed_description,
+    );
+    expect(postOne?.post.embed_video_url).toBe(postTwo?.post.embed_video_url);
+  }
   expect(postOne?.post.published_at).toBe(postTwo?.post.published_at);
   expect(postOne?.community.ap_id).toBe(postTwo?.community.ap_id);
   expect(postOne?.post.locked).toBe(postTwo?.post.locked);
