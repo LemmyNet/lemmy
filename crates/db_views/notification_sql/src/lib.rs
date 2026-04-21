@@ -1,11 +1,4 @@
-use diesel::{
-  BoolExpressionMethods,
-  ExpressionMethods,
-  JoinOnDsl,
-  NullableExpressionMethods,
-  QueryDsl,
-  dsl::not,
-};
+use diesel::{ExpressionMethods, JoinOnDsl, QueryDsl};
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
@@ -36,45 +29,6 @@ pub fn notification_joins(person_id: PersonId, instance_id: InstanceId) -> _ {
   let recipient_person = aliases::person1.field(person::id);
   let recipient_join = aliases::person1.on(notification::recipient_id.eq(recipient_person));
 
-  let comment_join = comment::table.on(
-    notification::comment_id
-      .eq(comment::id.nullable())
-      // Filter out the deleted / removed
-      .and(not(comment::deleted))
-      .and(not(comment::removed))
-      .or(modlog::target_comment_id.eq(comment::id.nullable())),
-  );
-
-  let post_join = post::table.on(
-    notification::post_id
-      .eq(post::id.nullable())
-      .or(comment::post_id.eq(post::id))
-      // Filter out the deleted / removed
-      .and(not(post::deleted))
-      .and(not(post::removed))
-      .or(modlog::target_post_id.eq(post::id.nullable())),
-  );
-
-  let community_join = community::table.on(
-    post::community_id
-      .eq(community::id)
-      .or(modlog::target_community_id.eq(community::id.nullable())),
-  );
-
-  let private_message_join = private_message::table.on(
-    notification::private_message_id
-      .eq(private_message::id.nullable())
-      // Filter out the deleted / removed
-      .and(not(private_message::deleted))
-      // Also hide messages deleted by the recipient, but only for them
-      .and(not(
-        private_message::deleted_by_recipient.and(recipient_person.eq(person_id)),
-      ))
-      .and(not(private_message::removed)),
-  );
-
-  let instance_join = instance::table.on(modlog::target_instance_id.eq(instance::id.nullable()));
-
   let my_community_actions_join: my_community_actions_join =
     my_community_actions_join(Some(person_id));
   let my_post_actions_join: my_post_actions_join = my_post_actions_join(Some(person_id));
@@ -91,17 +45,15 @@ pub fn notification_joins(person_id: PersonId, instance_id: InstanceId) -> _ {
 
   // Note: avoid adding any more joins here as it will significantly slow down compilation.
   notification::table
-    .left_join(modlog::table)
-    .left_join(comment_join)
-    .left_join(post_join)
-    .left_join(community_join)
-    .left_join(instance_join)
-    .left_join(image_details_join())
-    .inner_join(item_creator_join)
     .inner_join(recipient_join)
-    // The private message join must come after recipient, as it uses it to filter out deleted by
-    // recipient.
-    .left_join(private_message_join)
+    .inner_join(item_creator_join)
+    .left_join(modlog::table)
+    .left_join(comment::table)
+    .left_join(post::table)
+    .left_join(community::table)
+    .left_join(instance::table)
+    .left_join(image_details_join())
+    .left_join(private_message::table)
     .left_join(creator_community_actions_join())
     .left_join(creator_local_user_admin_join())
     .left_join(creator_home_instance_actions_join())

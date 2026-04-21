@@ -533,16 +533,24 @@ mod tests {
     let post_like = PostLikeForm::new(inserted_post.id, data.person.id, Some(true));
     let _inserted_post_like = PostActions::like(pool, &post_like).await?;
 
-    let comment_form =
-      CommentInsertForm::new(data.person.id, inserted_post.id, "A test comment".into());
+    let comment_form = CommentInsertForm::new(
+      data.person.id,
+      inserted_post.id,
+      inserted_community.id,
+      "A test comment".into(),
+    );
     let inserted_comment = Comment::create(pool, &comment_form, None).await?;
 
     let comment_like = CommentLikeForm::new(inserted_comment.id, data.person.id, Some(true));
 
     CommentActions::like(pool, &comment_like).await?;
 
-    let child_comment_form =
-      CommentInsertForm::new(data.person.id, inserted_post.id, "A test comment".into());
+    let child_comment_form = CommentInsertForm::new(
+      data.person.id,
+      inserted_post.id,
+      inserted_community.id,
+      "A test comment".into(),
+    );
     let inserted_child_comment =
       Comment::create(pool, &child_comment_form, Some(&inserted_comment.path)).await?;
 

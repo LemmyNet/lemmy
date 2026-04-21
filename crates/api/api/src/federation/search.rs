@@ -152,22 +152,30 @@ pub async fn search(
   let search_all_no_community_or_creator = search_all && !community_or_creator_included;
 
   if search_type == SearchType::Posts || search_all {
-    let x = posts_query
+    if let Ok(x) = posts_query
       .list(&mut context.pool(), &site, &local_site)
-      .await?;
-    posts = x.items;
-    next_page.push(x.next_page);
-    prev_page.push(x.prev_page);
+      .await
+    {
+      posts = x.items;
+      next_page.push(x.next_page);
+      prev_page.push(x.prev_page);
+    }
   }
   if search_type == SearchType::Comments || search_all {
-    if let Ok(x) = comments_query.list(&site, &mut context.pool()).await {
+    if let Ok(x) = comments_query
+      .list(&mut context.pool(), &site, &local_site)
+      .await
+    {
       comments = x.items;
       next_page.push(x.next_page);
       prev_page.push(x.prev_page);
     }
   }
   if search_type == SearchType::Communities || search_all_no_community_or_creator {
-    if let Ok(x) = communities_query.list(&site, &mut context.pool()).await {
+    if let Ok(x) = communities_query
+      .list(&mut context.pool(), &site, &local_site)
+      .await
+    {
       communities = x.items;
       next_page.push(x.next_page);
       prev_page.push(x.prev_page);

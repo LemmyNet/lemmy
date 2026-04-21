@@ -23,12 +23,14 @@ pub async fn read_multi_community(
   let multi_community_view =
     MultiCommunityView::read(&mut context.pool(), id, my_person_id).await?;
 
-  let local_site = SiteView::read_local(&mut context.pool()).await?;
+  let SiteView {
+    site, local_site, ..
+  } = SiteView::read_local(&mut context.pool()).await?;
   let communities = CommunityQuery {
     multi_community_id: Some(id),
     ..Default::default()
   }
-  .list(&local_site.site, &mut context.pool())
+  .list(&mut context.pool(), &site, &local_site)
   .await?
   .items;
 
