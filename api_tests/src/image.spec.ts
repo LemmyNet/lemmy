@@ -231,6 +231,12 @@ test("Thumbnail of remote image link is proxied if setting enabled", async () =>
   const post = postRes.post_view.post;
   expect(post).toBeDefined();
 
+  // Wait for the thumbnail (since its backgrounded)
+  await waitUntil(
+    () => getPost(gamma, post.id),
+    p => p.post_view.post.thumbnail_url != undefined,
+  );
+
   // remote image gets proxied after upload
   expect(
     post.thumbnail_url?.startsWith(
