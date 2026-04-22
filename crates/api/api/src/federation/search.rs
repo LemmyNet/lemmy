@@ -48,7 +48,7 @@ pub async fn search(
   let time_range_seconds = data.time_range_seconds;
   let search_url_only = data.post_url_only;
   let show_nsfw = data.show_nsfw;
-  let mut page_cursors = data.page_cursor.iter().map(|c| c.split(",")).flatten();
+  let mut page_cursors = data.page_cursor.iter().flat_map(|c| c.split(","));
   let limit = data.limit;
 
   let community_id = resolve_community_identifier(
@@ -105,7 +105,6 @@ pub async fn search(
     sort: Some(PersonSortType::New),
     page_cursor: page_cursors.next().map(Into::into),
     limit,
-    ..Default::default()
   };
 
   let communities_query = CommunityQuery {
@@ -151,49 +150,46 @@ pub async fn search(
     data.community_id.is_some() || data.community_name.is_some() || data.creator_id.is_some();
   let search_all_no_community_or_creator = search_all && !community_or_creator_included;
 
-  if search_type == SearchType::Posts || search_all {
-    if let Ok(x) = posts_query
+  if (search_type == SearchType::Posts || search_all)
+    && let Ok(x) = posts_query
       .list(&mut context.pool(), &site, &local_site)
       .await
-    {
-      posts = x.items;
-      next_page.push(x.next_page);
-      prev_page.push(x.prev_page);
-    }
+  {
+    posts = x.items;
+    next_page.push(x.next_page);
+    prev_page.push(x.prev_page);
   }
-  if search_type == SearchType::Comments || search_all {
-    if let Ok(x) = comments_query
+  if (search_type == SearchType::Comments || search_all)
+    && let Ok(x) = comments_query
       .list(&mut context.pool(), &site, &local_site)
       .await
-    {
-      comments = x.items;
-      next_page.push(x.next_page);
-      prev_page.push(x.prev_page);
-    }
+  {
+    comments = x.items;
+    next_page.push(x.next_page);
+    prev_page.push(x.prev_page);
   }
-  if search_type == SearchType::Communities || search_all_no_community_or_creator {
-    if let Ok(x) = communities_query
+  if (search_type == SearchType::Communities || search_all_no_community_or_creator)
+    && let Ok(x) = communities_query
       .list(&mut context.pool(), &site, &local_site)
       .await
-    {
-      communities = x.items;
-      next_page.push(x.next_page);
-      prev_page.push(x.prev_page);
-    }
+  {
+    communities = x.items;
+    next_page.push(x.next_page);
+    prev_page.push(x.prev_page);
   }
-  if search_type == SearchType::Users || search_all_no_community_or_creator {
-    if let Ok(x) = persons_query.list(&site, &mut context.pool()).await {
-      persons = x.items;
-      next_page.push(x.next_page);
-      prev_page.push(x.prev_page);
-    }
+  if (search_type == SearchType::Users || search_all_no_community_or_creator)
+    && let Ok(x) = persons_query.list(&site, &mut context.pool()).await
+  {
+    persons = x.items;
+    next_page.push(x.next_page);
+    prev_page.push(x.prev_page);
   }
-  if search_type == SearchType::MultiCommunities || search_all_no_community_or_creator {
-    if let Ok(x) = multi_communities_query.list(&mut context.pool()).await {
-      multi_communities = x.items;
-      next_page.push(x.next_page);
-      prev_page.push(x.prev_page);
-    }
+  if (search_type == SearchType::MultiCommunities || search_all_no_community_or_creator)
+    && let Ok(x) = multi_communities_query.list(&mut context.pool()).await
+  {
+    multi_communities = x.items;
+    next_page.push(x.next_page);
+    prev_page.push(x.prev_page);
   }
 
   let res = SearchResponse {
