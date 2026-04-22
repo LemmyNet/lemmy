@@ -16,7 +16,17 @@ pub async fn list_reports(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PagedResponse<ReportCombinedView>>> {
-  let my_reports_only = data.my_reports_only;
+  let ListReports {
+    unresolved_only,
+    type_,
+    post_id,
+    community_id,
+    sort,
+    page_cursor,
+    limit,
+    show_community_rule_violations,
+    my_reports_only,
+  } = data;
 
   // Only check mod or admin status when not viewing my reports
   if !my_reports_only.unwrap_or_default() {
@@ -24,14 +34,15 @@ pub async fn list_reports(
   }
 
   let reports = ReportCombinedQuery {
-    community_id: data.community_id,
-    post_id: data.post_id,
-    type_: data.type_,
-    unresolved_only: data.unresolved_only,
-    show_community_rule_violations: data.show_community_rule_violations,
+    community_id,
+    post_id,
+    type_,
+    unresolved_only,
+    show_community_rule_violations,
     my_reports_only,
-    page_cursor: data.page_cursor,
-    limit: data.limit,
+    sort,
+    page_cursor,
+    limit,
   }
   .list(&mut context.pool(), &local_user_view)
   .await?;
