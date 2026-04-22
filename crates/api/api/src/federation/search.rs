@@ -234,8 +234,11 @@ fn from_single_cursor(
         .collect::<Vec<_>>();
       if vec.len() == 2 {
         // if `community_or_creator_included` there are only two cursors
-        res[0] = vec[0].clone();
-        res[1] = vec[1].clone();
+        let v: Result<[Option<PaginationCursor>; 2], _> = vec.try_into();
+        if let Ok(v) = v {
+          res[0] = v[0].clone();
+          res[1] = v[1].clone();
+        }
       } else {
         // otherwise there should be 5 cursors
         let v: Result<[Option<PaginationCursor>; 5], _> = vec.try_into();
