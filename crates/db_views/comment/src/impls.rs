@@ -993,7 +993,7 @@ mod tests {
 
     // No comments returned without auth
     let read_comment_listing = CommentQuery {
-      community_id: data.community_id,
+      community_id: data.community.id,
       ..Default::default()
     }
     .list(pool, &data.site, &data.local_site)
