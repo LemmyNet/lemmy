@@ -144,6 +144,16 @@ steps:
       - psql -c "CREATE USER lemmy WITH PASSWORD 'password' SUPERUSER;"
     when: *slow_check_paths
 
+  cargo_clippy:
+    image: *rust_image
+    environment:
+      CARGO_HOME: .cargo_home
+      RUSTUP_HOME: .rustup_home
+    commands:
+      - rustup component add clippy
+      - cargo clippy --workspace --tests --all-targets --all-features -- -D warnings
+    when: *slow_check_paths
+
   cargo_test:
     image: *rust_image
     environment:
@@ -161,16 +171,6 @@ steps:
       - apt update && apt install -y postgresql-client-18
       # Run tests (if they fail, try again)
       - cargo test --workspace || cargo test --workspace
-    when: *slow_check_paths
-
-  cargo_clippy:
-    image: *rust_image
-    environment:
-      CARGO_HOME: .cargo_home
-      RUSTUP_HOME: .rustup_home
-    commands:
-      - rustup component add clippy
-      - cargo clippy --workspace --tests --all-targets --all-features -- -D warnings
     when: *slow_check_paths
 
   # make sure api builds with default features (used by other crates relying on lemmy api)
