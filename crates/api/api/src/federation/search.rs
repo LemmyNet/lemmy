@@ -43,12 +43,13 @@ pub async fn search(
     .ok();
 
   let search_term = Some(data.search_term);
+  let search_type = data.type_.unwrap_or_default();
   let listing_type = Some(ListingType::All);
   let search_title_only = data.title_only;
   let time_range_seconds = data.time_range_seconds;
   let search_url_only = data.post_url_only;
   let show_nsfw = data.show_nsfw;
-  let mut page_cursors = data.page_cursor.iter().flat_map(|c| c.split(","));
+  let page_cursors = from_single_cursor(data.page_cursor, search_type);
   let limit = data.limit;
 
   let community_id = resolve_community_identifier(
@@ -79,7 +80,7 @@ pub async fn search(
     time_range_seconds,
     search_url_only,
     show_nsfw,
-    page_cursor: page_cursors.next().map(Into::into),
+    page_cursor: page_cursors[0].clone(),
     limit,
     ..Default::default()
   };
@@ -92,7 +93,7 @@ pub async fn search(
     creator_id,
     time_range_seconds,
     sort: Some(CommentSortType::New),
-    page_cursor: page_cursors.next().map(Into::into),
+    page_cursor: page_cursors[1].clone(),
     limit,
     ..Default::default()
   };
@@ -103,7 +104,7 @@ pub async fn search(
     local_user,
     listing_type: Some(PersonListingType::All),
     sort: Some(PersonSortType::New),
-    page_cursor: page_cursors.next().map(Into::into),
+    page_cursor: page_cursors[2].clone(),
     limit,
   };
 
@@ -115,7 +116,7 @@ pub async fn search(
     time_range_seconds,
     show_nsfw,
     sort: Some(CommunitySortType::New),
-    page_cursor: page_cursors.next().map(Into::into),
+    page_cursor: page_cursors[3].clone(),
     limit,
     ..Default::default()
   };
@@ -128,7 +129,7 @@ pub async fn search(
     time_range_seconds,
     listing_type: Some(MultiCommunityListingType::All),
     sort: Some(MultiCommunitySortType::New),
-    page_cursor: page_cursors.next().map(Into::into),
+    page_cursor: page_cursors[4].clone(),
     limit,
     ..Default::default()
   };
@@ -142,7 +143,6 @@ pub async fn search(
   let mut next_page = vec![];
   let mut prev_page = vec![];
 
-  let search_type = data.type_.unwrap_or_default();
   let search_all = search_type == SearchType::All;
 
   // If the community or creator is included and it's All search, only search posts and comments
@@ -206,11 +206,49 @@ pub async fn search(
   Ok(Json(res))
 }
 
-fn to_single_cursor(c: Vec<Option<PaginationCursor>>) -> Option<String> {
-  let x = c.into_iter().flatten().collect::<Vec<_>>();
+fn to_single_cursor(cursors: Vec<Option<PaginationCursor>>) -> Option<String> {
+  let x = cursors.into_iter().flatten().collect::<Vec<_>>();
   if x.is_empty() {
     None
   } else {
     Some(x.into_iter().map(|c| c.0).join(","))
   }
+}
+
+fn from_single_cursor(
+  cursor: Option<String>,
+  search_type: SearchType,
+) -> [Option<PaginationCursor>; 5] {
+  use SearchType::*;
+  let mut res = [None, None, None, None, None];
+  if cursor.is_none() {
+    return res;
+  };
+
+  match search_type {
+    All => {
+      let vec = cursor
+        .iter()
+        .flat_map(|c| c.split(","))
+        .map(|c| Some(c.to_string().into()))
+        .collect::<Vec<_>>();
+      if vec.len() == 2 {
+        // if `community_or_creator_included` there are only two cursors
+        res[0] = vec[0].clone();
+        res[1] = vec[1].clone();
+      } else {
+        // otherwise there should be 5 cursors
+        let v: Result<[Option<PaginationCursor>; 5], _> = vec.try_into();
+        if let Ok(v) = v {
+          res = v;
+        }
+      }
+    }
+    Posts => res[0] = cursor.map(Into::into),
+    Comments => res[1] = cursor.map(Into::into),
+    Users => res[2] = cursor.map(Into::into),
+    Communities => res[3] = cursor.map(Into::into),
+    MultiCommunities => res[4] = cursor.map(Into::into),
+  };
+  res
 }

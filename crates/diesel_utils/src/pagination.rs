@@ -154,9 +154,9 @@ impl PaginationCursor {
   }
 }
 
-impl From<&str> for PaginationCursor {
-  fn from(value: &str) -> Self {
-    PaginationCursor(value.to_string())
+impl From<String> for PaginationCursor {
+  fn from(value: String) -> Self {
+    PaginationCursor(value)
   }
 }
 
