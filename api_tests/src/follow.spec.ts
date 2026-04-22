@@ -116,7 +116,8 @@ test("Follow federated community", async () => {
   let communityOnBeta2 = await waitUntil(
     () => resolveBetaCommunity(beta),
     c =>
-      c?.community.subscribers === betaCommunityInitial.community.subscribers,
+      (c?.community.subscribers ?? 0) >=
+      betaCommunityInitial.community.subscribers,
   );
   expect(communityOnBeta2?.community.subscribers).toBe(
     betaCommunityInitial.community.subscribers,
