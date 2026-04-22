@@ -992,9 +992,12 @@ mod tests {
     .await?;
 
     // No comments returned without auth
-    let read_comment_listing = CommentQuery::default()
-      .list(pool, &data.site, &data.local_site)
-      .await?;
+    let read_comment_listing = CommentQuery {
+      community_id: data.community_id,
+      ..Default::default()
+    }
+    .list(pool, &data.site, &data.local_site)
+    .await?;
     assert_eq!(0, read_comment_listing.len());
     let comment_view = CommentView::read(pool, data.comment_0.id, None, data.instance.id).await;
     assert!(comment_view.is_err());
