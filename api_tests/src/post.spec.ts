@@ -44,6 +44,7 @@ import {
   getSite,
   jestLemmyError,
   gammaUrl,
+  sampleSite,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
 import { AdminBlockInstanceParams } from "lemmy-js-client/dist/types/AdminBlockInstanceParams";
@@ -102,9 +103,13 @@ async function assertPostFederation(
   // TODO url clears arent working
   // expect(postOne?.post.url).toBe(postTwo?.post.url);
   expect(postOne?.post.nsfw).toBe(postTwo?.post.nsfw);
-  expect(postOne?.post.embed_title).toBe(postTwo?.post.embed_title);
-  expect(postOne?.post.embed_description).toBe(postTwo?.post.embed_description);
-  expect(postOne?.post.embed_video_url).toBe(postTwo?.post.embed_video_url);
+  if (waitForMeta) {
+    expect(postOne?.post.embed_title).toBe(postTwo?.post.embed_title);
+    expect(postOne?.post.embed_description).toBe(
+      postTwo?.post.embed_description,
+    );
+    expect(postOne?.post.embed_video_url).toBe(postTwo?.post.embed_video_url);
+  }
   expect(postOne?.post.published_at).toBe(postTwo?.post.published_at);
   expect(postOne?.community.ap_id).toBe(postTwo?.community.ap_id);
   expect(postOne?.post.locked).toBe(postTwo?.post.locked);
@@ -128,7 +133,7 @@ test("Create a post", async () => {
   let postRes = await createPost(
     alpha,
     betaCommunity.community.id,
-    "https://example.com/",
+    sampleSite,
     "აშშ ითხოვს ირანს დაუყოვნებლივ გაანთავისუფლოს დაკავებული ნავთობის ტანკერი",
   );
   expect(postRes.post_view.post).toBeDefined();
@@ -956,7 +961,7 @@ test("Rewrite markdown links", async () => {
   let postRes2 = await createPost(
     beta,
     community!.community.id,
-    "https://example.com/",
+    sampleSite,
     `[link](${postRes1.post_view.post.ap_id})`,
   );
   expect(postRes2.post_view.post).toBeDefined();
@@ -1026,7 +1031,7 @@ test("Plugin test", async () => {
   let postRes1 = await createPost(
     epsilon,
     community.community_view.community.id,
-    "https://example.com/",
+    sampleSite,
     randomString(10),
     "Rust",
   );
@@ -1037,7 +1042,7 @@ test("Plugin test", async () => {
       createPost(
         epsilon,
         community.community_view.community.id,
-        "https://example.com/",
+        sampleSite,
         randomString(10),
         "Java",
       ),
@@ -1079,6 +1084,10 @@ test("Admin removes post from local user in remote community", async () => {
 
   // Restore post
   let undeletedPost = await removePost(gamma, false, postRes.post_view.post);
+  await waitUntil(
+    () => getPost(gamma, postRes.post_view.post.id),
+    p => p !== undefined && !p.post_view.post.removed,
+  );
   expect(undeletedPost.post_view.post.removed).toBe(false);
 
   // Make sure post is also restored in community
