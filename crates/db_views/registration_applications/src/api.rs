@@ -61,6 +61,8 @@ pub struct Register {
   pub answer: Option<String>,
   /// If this is true the login is valid forever, otherwise it expires after one week.
   pub stay_logged_in: Option<bool>,
+  /// Invitation token
+  pub token: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]

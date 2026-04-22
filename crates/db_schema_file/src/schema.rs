@@ -62,6 +62,10 @@ pub mod sql_types {
   pub struct RegistrationModeEnum;
 
   #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+  #[diesel(postgres_type(name = "local_user_invite_status_enum"))]
+  pub struct LocalUserInviteStatus;
+
+  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
   #[diesel(postgres_type(name = "tag_color_enum"))]
   pub struct TagColorEnum;
 
@@ -351,6 +355,22 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::LocalUserInviteStatus;
+
+    local_user_invite (id) {
+        id -> Int4,
+        token -> Varchar,
+        local_user_id -> Int4,
+        max_uses -> Nullable<Int4>,
+        uses_count -> Int4,
+        expires_at -> Nullable<Timestamptz>,
+        status -> LocalUserInviteStatus,
+        published_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     language (id) {
         id -> Int4,
         #[max_length = 3]
@@ -508,6 +528,7 @@ diesel::table! {
         show_upvote_percentage -> Bool,
         show_person_votes -> Bool,
         default_items_per_page -> Int4,
+        invited_by_local_user_id -> Nullable<Int4>,
     }
 }
 

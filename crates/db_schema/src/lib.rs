@@ -148,6 +148,17 @@ pub enum PersonListingType {
   Local,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
+pub enum InvitationListingType {
+  /// only the caller's invitations
+  #[default]
+  Own,
+  /// all invitations, admin only
+  All,
+}
 #[derive(
   EnumString, Display, Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash,
 )]

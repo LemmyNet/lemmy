@@ -127,6 +127,7 @@ use lemmy_api_crud::{
     list::list_custom_emojis,
     update::edit_custom_emoji,
   },
+  invite::{create::create_invitation, list::list_invitations, revoke::revoke_invitation},
   multi_community::{
     create::create_multi_community,
     create_entry::create_multi_community_entry,
@@ -408,7 +409,13 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
             resource("/data/export")
               .wrap(rate_limit.import_user_settings())
               .route(get().to(export_user_data)),
-          ),
+          )
+          .service(
+            scope("/invite")
+              .route("", post().to(create_invitation))
+              .route("/revoke", post().to(revoke_invitation)),
+          )
+          .route("/invites", get().to(list_invitations)),
       )
       // Person / User actions
       .service(

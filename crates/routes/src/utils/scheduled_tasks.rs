@@ -30,20 +30,24 @@ use lemmy_db_schema::{
   },
   utils::DELETED_REPLACEMENT_TEXT,
 };
-use lemmy_db_schema_file::schema::{
-  comment,
-  community,
-  community_actions,
-  federation_blocklist,
-  instance,
-  instance_actions,
-  local_site,
-  local_user,
-  person,
-  post,
-  received_activity,
-  sent_activity,
-  site,
+use lemmy_db_schema_file::{
+  enums::LocalUserInviteStatus,
+  schema::{
+    comment,
+    community,
+    community_actions,
+    federation_blocklist,
+    instance,
+    instance_actions,
+    local_site,
+    local_user,
+    local_user_invite,
+    person,
+    post,
+    received_activity,
+    sent_activity,
+    site,
+  },
 };
 use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::{
@@ -86,6 +90,7 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
   // - Update active daily counts
   // - Expired bans
   // - Expired instance blocks
+  // - Expired invitations
   scheduler.every(CTimeUnits::hour(1)).run(move || {
     let context = context_1.clone();
 
@@ -101,6 +106,10 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
       delete_instance_block_when_expired(&mut context.pool())
         .await
         .inspect_err(|e| warn!("Failed to delete expired instance bans: {e}"))
+        .ok();
+      update_invitations_when_expired(&mut context.pool())
+        .await
+        .inspect_err(|e| warn!("Failed to update expired invitations: {e}"))
         .ok();
     }
   });
@@ -547,6 +556,20 @@ async fn delete_instance_block_when_expired(pool: &mut DbPool<'_>) -> LemmyResul
   diesel::delete(
     federation_blocklist::table.filter(federation_blocklist::expires_at.lt(now().nullable())),
   )
+  .execute(conn)
+  .await?;
+  Ok(())
+}
+
+/// Set invitations to Expired
+async fn update_invitations_when_expired(pool: &mut DbPool<'_>) -> LemmyResult<()> {
+  let conn = &mut get_conn(pool).await?;
+  diesel::update(
+    local_user_invite::table
+      .filter(local_user_invite::expires_at.lt(now().nullable()))
+      .filter(local_user_invite::status.eq(LocalUserInviteStatus::Active)),
+  )
+  .set(local_user_invite::status.eq(LocalUserInviteStatus::Expired))
   .execute(conn)
   .await?;
   Ok(())

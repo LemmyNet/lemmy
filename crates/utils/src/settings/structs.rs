@@ -54,6 +54,8 @@ pub struct Settings {
   pub json_logging: bool,
   /// Data for loading Lemmy plugins
   pub plugins: Vec<PluginSettings>,
+  /// How many active invite links a user can have
+  pub max_invites_per_user_allowed: Option<u16>,
 }
 
 impl Settings {
