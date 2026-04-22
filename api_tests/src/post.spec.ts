@@ -1084,6 +1084,10 @@ test("Admin removes post from local user in remote community", async () => {
 
   // Restore post
   let undeletedPost = await removePost(gamma, false, postRes.post_view.post);
+  await waitUntil(
+    () => getPost(gamma, postRes.post_view.post.id),
+    p => p !== undefined && !p.post_view.post.removed,
+  );
   expect(undeletedPost.post_view.post.removed).toBe(false);
 
   // Make sure post is also restored in community
