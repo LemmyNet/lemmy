@@ -144,6 +144,7 @@ async fn check_community_content_fetchable(
         )
       } else if let Some(followers_url) = community.followers_url.clone() {
         let mut followers_url = followers_url.inner().clone();
+        context.is_valid_ip(&followers_url).await?;
         followers_url
           .query_pairs_mut()
           .append_pair("is_follower", signing_actor.id().as_str());
