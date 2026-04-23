@@ -1,5 +1,12 @@
 use crate::LocalUserView;
-use diesel::{ExpressionMethods, JoinOnDsl, QueryDsl, SelectableHelper};
+use diesel::{
+  BoolExpressionMethods,
+  ExpressionMethods,
+  JoinOnDsl,
+  PgTextExpressionMethods,
+  QueryDsl,
+  SelectableHelper,
+};
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
@@ -39,6 +46,7 @@ use lemmy_diesel_utils::{
     PaginationCursorConversion,
     paginate_response,
   },
+  utils::fuzzy_search,
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use serde::{Deserialize, Serialize};
@@ -46,6 +54,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Default)]
 pub struct PersonSavedCombinedQuery {
   pub type_: Option<PersonContentType>,
+  pub search_term: Option<String>,
   pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
   pub no_limit: Option<bool>,
@@ -146,6 +155,15 @@ impl PersonSavedCombinedQuery {
         }
         PersonContentType::Posts => query.filter(person_saved_combined::post_id.is_not_null()),
       }
+    }
+
+    // The search term
+    if let Some(search_term) = self.search_term {
+      let searcher = fuzzy_search(&search_term);
+
+      let post_name_filter = post::name.ilike(searcher.clone());
+      let comment_content_filter = post::name.ilike(searcher.clone());
+      query = query.filter(post_name_filter.or(comment_content_filter));
     }
 
     // Sorting by saved desc
