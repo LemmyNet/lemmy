@@ -133,6 +133,7 @@ pub trait PaginationCursorConversion {
 /// Do not attempt to parse or modify the cursor string. The format is internal and may change in
 /// minor Lemmy versions.
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(not(feature = "full"), derive(Debug))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct PaginationCursor(pub String);
@@ -160,6 +161,7 @@ impl From<String> for PaginationCursor {
   }
 }
 
+#[cfg(feature = "full")]
 impl Debug for PaginationCursor {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_tuple("PaginationCursor")
