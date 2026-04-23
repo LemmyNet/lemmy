@@ -104,12 +104,11 @@ impl LocalUserInvite {
   pub fn is_active(&self) -> bool {
     self.status == LocalUserInviteStatus::Active && !self.is_exhausted() && !self.is_expired()
   }
-  pub fn get_invite_url(&self, settings: &Settings) -> Url {
+  pub fn get_invite_url(&self, settings: &Settings) -> LemmyResult<Url> {
     let protocol_and_hostname = settings.get_protocol_and_hostname();
-    Url::parse(&format!(
+    Ok(Url::parse(&format!(
       "{}/signup?token={}",
       protocol_and_hostname, self.token
-    ))
-    .unwrap()
+    ))?)
   }
 }

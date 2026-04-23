@@ -32,10 +32,11 @@ pub async fn create_invitation(
   .count(pool)
   .await?;
 
-  if let Some(max) = context.settings().max_invites_per_user_allowed {
-    if !is_admin(&local_user_view).is_ok() && active_invite_count >= max as i64 {
-      return Err(LemmyErrorType::TooManyInvites.into());
-    }
+  if let Some(max) = context.settings().max_invites_per_user_allowed
+    && is_admin(&local_user_view).is_err()
+    && active_invite_count >= i64::from(max)
+  {
+    return Err(LemmyErrorType::TooManyInvites.into());
   }
 
   let token = generate_invite_token();
@@ -51,7 +52,7 @@ pub async fn create_invitation(
   let invite = LocalUserInvite::create(pool, &insert).await?;
 
   Ok(Json(CreateInvitationResponse {
-    invite_link: invite.get_invite_url(&context.settings()),
+    invite_link: invite.get_invite_url(context.settings())?,
   }))
 }
 

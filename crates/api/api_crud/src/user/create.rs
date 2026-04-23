@@ -96,7 +96,7 @@ pub async fn register(
     let token = token.ok_or(LemmyErrorType::MissingInviteToken)?;
     let inv = LocalUserInvite::read_by_token(pool, token)
       .await
-      .map_err(|_| LemmyError::from(LemmyErrorType::InvalidInviteToken))?;
+      .map_err(|_e| LemmyError::from(LemmyErrorType::InvalidInviteToken))?;
     if !inv.is_active() {
       return Err(LemmyErrorType::InvalidInviteToken.into());
     }

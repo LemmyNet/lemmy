@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 )]
 #[cfg_attr(feature = "full", diesel(table_name = local_user_invite))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "full", cursor_keys_module(name = invitation_keys))]
 pub struct LocalUserInvite {
   #[serde(skip_serializing)]

@@ -35,13 +35,13 @@ pub async fn list_invitations(
     .items
     .into_iter()
     .map(|invite| {
-      let invite_link = invite.get_invite_url(&settings);
-      LocalUserInviteView {
+      let invite_link = invite.get_invite_url(settings)?;
+      Ok(LocalUserInviteView {
         invite,
         invite_link,
-      }
+      })
     })
-    .collect();
+    .collect::<LemmyResult<Vec<LocalUserInviteView>>>()?;
 
   Ok(Json(PagedResponse {
     items,
