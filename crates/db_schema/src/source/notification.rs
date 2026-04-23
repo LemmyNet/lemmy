@@ -31,7 +31,9 @@ pub struct Notification {
   pub private_message_id: Option<PrivateMessageId>,
   pub modlog_id: Option<ModlogId>,
   pub creator_id: PersonId,
+  #[serde(skip)]
   pub instance_id: Option<InstanceId>,
+  #[serde(skip)]
   pub community_id: Option<CommunityId>,
 }
 
