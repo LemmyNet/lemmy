@@ -263,76 +263,80 @@ fn from_single_cursor(
   res
 }
 
-#[test]
-fn test_from_single_cursor() {
-  let a = None;
-  let a_res = [None, None, None, None, None];
-  assert_eq!(a_res, from_single_cursor(a, SearchType::All));
+#[cfg(test)]
+mod test {
+  use super::*;
+  #[test]
+  fn test_from_single_cursor() {
+    let a = None;
+    let a_res = [None, None, None, None, None];
+    assert_eq!(a_res, from_single_cursor(a, SearchType::All));
 
-  let b = Some("a,b,c,d,e".to_string());
-  let b_res = [
-    Some(PaginationCursor("a".to_string())),
-    Some(PaginationCursor("b".to_string())),
-    Some(PaginationCursor("c".to_string())),
-    Some(PaginationCursor("d".to_string())),
-    Some(PaginationCursor("e".to_string())),
-  ];
-  assert_eq!(b_res, from_single_cursor(b, SearchType::All));
+    let b = Some("a,b,c,d,e".to_string());
+    let b_res = [
+      Some(PaginationCursor("a".to_string())),
+      Some(PaginationCursor("b".to_string())),
+      Some(PaginationCursor("c".to_string())),
+      Some(PaginationCursor("d".to_string())),
+      Some(PaginationCursor("e".to_string())),
+    ];
+    assert_eq!(b_res, from_single_cursor(b, SearchType::All));
 
-  let c = Some("none,b,none,none,none".to_string());
-  let c_res = [
-    None,
-    Some(PaginationCursor("b".to_string())),
-    None,
-    None,
-    None,
-  ];
-  assert_eq!(c_res, from_single_cursor(c, SearchType::All));
+    let c = Some("none,b,none,none,none".to_string());
+    let c_res = [
+      None,
+      Some(PaginationCursor("b".to_string())),
+      None,
+      None,
+      None,
+    ];
+    assert_eq!(c_res, from_single_cursor(c, SearchType::All));
 
-  let d = Some("p".to_string());
-  let d_res = [
-    Some(PaginationCursor("p".to_string())),
-    None,
-    None,
-    None,
-    None,
-  ];
-  assert_eq!(d_res, from_single_cursor(d, SearchType::Posts));
-}
+    let d = Some("p".to_string());
+    let d_res = [
+      Some(PaginationCursor("p".to_string())),
+      None,
+      None,
+      None,
+      None,
+    ];
+    assert_eq!(d_res, from_single_cursor(d, SearchType::Posts));
+  }
 
-#[test]
-fn test_to_single_cursor() {
-  let a = [None, None, None, None, None];
-  let a_res = Some("none,none,none,none,none".to_string());
-  assert_eq!(a_res, to_single_cursor(a, SearchType::All));
+  #[test]
+  fn test_to_single_cursor() {
+    let a = [None, None, None, None, None];
+    let a_res = Some("none,none,none,none,none".to_string());
+    assert_eq!(a_res, to_single_cursor(a, SearchType::All));
 
-  let b = [
-    Some(PaginationCursor("a".to_string())),
-    Some(PaginationCursor("b".to_string())),
-    Some(PaginationCursor("c".to_string())),
-    Some(PaginationCursor("d".to_string())),
-    Some(PaginationCursor("e".to_string())),
-  ];
-  let b_res = Some("a,b,c,d,e".to_string());
-  assert_eq!(b_res, to_single_cursor(b, SearchType::All));
+    let b = [
+      Some(PaginationCursor("a".to_string())),
+      Some(PaginationCursor("b".to_string())),
+      Some(PaginationCursor("c".to_string())),
+      Some(PaginationCursor("d".to_string())),
+      Some(PaginationCursor("e".to_string())),
+    ];
+    let b_res = Some("a,b,c,d,e".to_string());
+    assert_eq!(b_res, to_single_cursor(b, SearchType::All));
 
-  let c = [
-    None,
-    Some(PaginationCursor("b".to_string())),
-    None,
-    None,
-    None,
-  ];
-  let c_res = Some("none,b,none,none,none".to_string());
-  assert_eq!(c_res, to_single_cursor(c, SearchType::All));
+    let c = [
+      None,
+      Some(PaginationCursor("b".to_string())),
+      None,
+      None,
+      None,
+    ];
+    let c_res = Some("none,b,none,none,none".to_string());
+    assert_eq!(c_res, to_single_cursor(c, SearchType::All));
 
-  let d = [
-    Some(PaginationCursor("p".to_string())),
-    None,
-    None,
-    None,
-    None,
-  ];
-  let d_res = Some("p".to_string());
-  assert_eq!(d_res, to_single_cursor(d, SearchType::Posts));
+    let d = [
+      Some(PaginationCursor("p".to_string())),
+      None,
+      None,
+      None,
+      None,
+    ];
+    let d_res = Some("p".to_string());
+    assert_eq!(d_res, to_single_cursor(d, SearchType::Posts));
+  }
 }
