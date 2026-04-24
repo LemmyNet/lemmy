@@ -442,6 +442,7 @@ diesel::table! {
         image_max_upload_size -> Int4,
         image_allow_video_uploads -> Bool,
         image_upload_disabled -> Bool,
+        max_invites_per_user_allowed -> Int4
     }
 }
 

@@ -7,6 +7,7 @@ use lemmy_db_views_local_user_invite::{
   api::{CreateInvitation, CreateInvitationResponse},
   impls::LocalUserInviteQuery,
 };
+use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use uuid::Uuid;
 
@@ -18,6 +19,7 @@ pub async fn create_invitation(
   let pool = &mut context.pool();
 
   let local_user_id = local_user_view.local_user.id;
+  let local_site = SiteView::read_local(pool).await?.local_site;
 
   let active_invite_count = LocalUserInviteQuery {
     local_user_id,
@@ -26,9 +28,8 @@ pub async fn create_invitation(
   .count(pool)
   .await?;
 
-  if let Some(max) = context.settings().max_invites_per_user_allowed
-    && is_admin(&local_user_view).is_err()
-    && active_invite_count >= i64::from(max)
+  if is_admin(&local_user_view).is_err()
+    && active_invite_count >= i64::from(local_site.max_invites_per_user_allowed)
   {
     return Err(LemmyErrorType::TooManyInvites.into());
   }

@@ -168,6 +168,7 @@ pub struct CreateSite {
   pub image_max_upload_size: Option<i32>,
   pub image_allow_video_uploads: Option<bool>,
   pub image_upload_disabled: Option<bool>,
+  pub max_invites_per_user_allowed: Option<i32>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -304,6 +305,7 @@ pub struct EditSite {
   pub image_max_upload_size: Option<i32>,
   pub image_allow_video_uploads: Option<bool>,
   pub image_upload_disabled: Option<bool>,
+  pub max_invites_per_user_allowed: Option<i32>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]

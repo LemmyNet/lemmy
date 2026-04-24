@@ -14,3 +14,6 @@ CREATE TABLE local_user_invite (
 ALTER TABLE local_user
     ADD COLUMN invited_by_local_user_id int REFERENCES local_user (id) ON DELETE SET NULL;
 
+ALTER TABLE local_site
+    ADD COLUMN max_invites_per_user_allowed int NOT NULL DEFAULT 10;
+
