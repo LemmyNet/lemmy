@@ -413,9 +413,9 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .service(
             scope("/invite")
               .route("", post().to(create_invitation))
-              .route("/revoke", post().to(revoke_invitation)),
-          )
-          .route("/invites", get().to(list_invitations)),
+              .route("", delete().to(revoke_invitation))
+              .route("/list", get().to(list_invitations)),
+          ),
       )
       // Person / User actions
       .service(

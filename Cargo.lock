@@ -3347,6 +3347,7 @@ dependencies = [
  "activitypub_federation",
  "actix-web",
  "anyhow",
+ "base64 0.22.1",
  "bcrypt",
  "chrono",
  "diesel-async",
@@ -3362,6 +3363,7 @@ dependencies = [
  "lemmy_db_views_community_moderator",
  "lemmy_db_views_custom_emoji",
  "lemmy_db_views_local_user",
+ "lemmy_db_views_local_user_invite",
  "lemmy_db_views_person",
  "lemmy_db_views_post",
  "lemmy_db_views_private_message",
@@ -3376,6 +3378,7 @@ dependencies = [
  "serde_with",
  "tracing",
  "url",
+ "uuid",
 ]
 
 [[package]]
@@ -3833,6 +3836,23 @@ dependencies = [
  "serde_with",
  "serial_test",
  "tokio",
+ "ts-rs",
+]
+
+[[package]]
+name = "lemmy_db_views_local_user_invite"
+version = "1.0.0-test-arm-qemu.0"
+dependencies = [
+ "chrono",
+ "diesel",
+ "diesel-async",
+ "i-love-jesus",
+ "lemmy_db_schema 1.0.0-test-arm-qemu.0",
+ "lemmy_db_schema_file",
+ "lemmy_diesel_utils",
+ "lemmy_utils 1.0.0-test-arm-qemu.0",
+ "serde",
+ "serde_with",
  "ts-rs",
 ]
 
