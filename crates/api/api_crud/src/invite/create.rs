@@ -44,9 +44,7 @@ pub async fn create_invitation(
 
   let invite = LocalUserInvite::create(pool, &insert).await?;
 
-  Ok(Json(CreateInvitationResponse {
-    invite_link: invite.get_invite_url(context.settings())?,
-  }))
+  Ok(Json(CreateInvitationResponse { invite }))
 }
 
 fn generate_invite_token() -> String {
