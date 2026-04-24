@@ -95,27 +95,6 @@ pub enum RegistrationMode {
   Open,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash)]
-#[serde(rename_all = "snake_case")]
-#[cfg_attr(feature = "full", derive(DbEnum))]
-#[cfg_attr(
-  feature = "full",
-  ExistingTypePath = "crate::schema::sql_types::LocalUserInviteStatus"
-)]
-#[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
-/// The status of an invitation link.
-pub enum LocalUserInviteStatus {
-  #[default]
-  Active,
-  /// Manually revoked by the creator or an admin.
-  Revoked,
-  /// All uses have been consumed.
-  Exhausted,
-  Expired,
-}
-
 #[derive(Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "full", derive(DbEnum))]

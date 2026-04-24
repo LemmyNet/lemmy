@@ -1,11 +1,7 @@
 use actix_web::web::{Data, Json};
 use base64::{Engine, engine::general_purpose};
 use lemmy_api_utils::{context::LemmyContext, utils::is_admin};
-use lemmy_db_schema::{
-  InvitationListingType,
-  source::local_user_invite::{LocalUserInvite, LocalUserInviteInsertForm},
-};
-use lemmy_db_schema_file::enums::LocalUserInviteStatus;
+use lemmy_db_schema::source::local_user_invite::{LocalUserInvite, LocalUserInviteInsertForm};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_local_user_invite::{
   api::{CreateInvitation, CreateInvitationResponse},
@@ -24,9 +20,7 @@ pub async fn create_invitation(
   let local_user_id = local_user_view.local_user.id;
 
   let active_invite_count = LocalUserInviteQuery {
-    local_user_id: Some(local_user_id),
-    listing_type: Some(InvitationListingType::Own),
-    status: Some(LocalUserInviteStatus::Active),
+    local_user_id,
     ..Default::default()
   }
   .count(pool)
@@ -46,7 +40,6 @@ pub async fn create_invitation(
     local_user_id,
     max_uses: data.max_uses,
     expires_at: data.expires_at,
-    status: LocalUserInviteStatus::default(),
   };
 
   let invite = LocalUserInvite::create(pool, &insert).await?;

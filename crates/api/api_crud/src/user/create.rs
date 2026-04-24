@@ -40,7 +40,7 @@ use lemmy_db_schema::{
   },
   traits::{ApubActor, Likeable},
 };
-use lemmy_db_schema_file::enums::{LocalUserInviteStatus, RegistrationMode};
+use lemmy_db_schema_file::enums::RegistrationMode;
 use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
@@ -197,19 +197,18 @@ pub async fn register(
 
         if let Some(inv) = local_user_invite {
           let new_uses_count = inv.uses_count + 1;
-          let status = inv
-            .max_uses
-            .filter(|&m| new_uses_count >= m)
-            .map(|_| LocalUserInviteStatus::Exhausted);
-          LocalUserInvite::update(
-            &mut conn.into(),
-            inv.id,
-            &LocalUserInviteUpdateForm {
-              uses_count: Some(new_uses_count),
-              status,
-            },
-          )
-          .await?;
+          if inv.max_uses.map(|m| new_uses_count >= m).unwrap_or(false) {
+            LocalUserInvite::delete_by_token(&mut conn.into(), &inv.token).await?;
+          } else {
+            LocalUserInvite::update(
+              &mut conn.into(),
+              inv.id,
+              &LocalUserInviteUpdateForm {
+                uses_count: Some(new_uses_count),
+              },
+            )
+            .await?;
+          }
         }
 
         Ok(LocalUserView {

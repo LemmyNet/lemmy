@@ -1,6 +1,5 @@
 use chrono::{DateTime, Utc};
-use lemmy_db_schema::{InvitationListingType, source::local_user_invite::LocalUserInvite};
-use lemmy_db_schema_file::enums::LocalUserInviteStatus;
+use lemmy_db_schema::source::local_user_invite::LocalUserInvite;
 use lemmy_diesel_utils::pagination::PaginationCursor;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -46,8 +45,6 @@ pub struct CreateInvitationResponse {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct ListInvitations {
   #[serde(rename = "type")]
-  pub type_: Option<InvitationListingType>,
-  pub status: Option<LocalUserInviteStatus>,
   pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }

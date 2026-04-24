@@ -9,7 +9,7 @@ use crate::{
 use chrono::Utc;
 use diesel::{ExpressionMethods, QueryDsl, insert_into};
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::{enums::LocalUserInviteStatus, schema::local_user_invite};
+use lemmy_db_schema_file::schema::local_user_invite;
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   pagination::{CursorData, PaginationCursorConversion},
@@ -77,6 +77,30 @@ impl LocalUserInvite {
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
+
+  pub async fn delete_by_token(pool: &mut DbPool<'_>, token: &str) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+    diesel::delete(local_user_invite::table.filter(local_user_invite::token.eq(token)))
+      .get_result::<Self>(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
+  pub async fn delete_by_token_and_user(
+    pool: &mut DbPool<'_>,
+    local_user_id: &LocalUserId,
+    token: &str,
+  ) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+    diesel::delete(
+      local_user_invite::table
+        .filter(local_user_invite::local_user_id.eq(local_user_id))
+        .filter(local_user_invite::token.eq(token)),
+    )
+    .get_result::<Self>(conn)
+    .await
+    .with_lemmy_type(LemmyErrorType::NotFound)
+  }
 }
 
 impl PaginationCursorConversion for LocalUserInvite {
@@ -102,7 +126,7 @@ impl LocalUserInvite {
     self.expires_at.map(|d| d < Utc::now()).unwrap_or(false)
   }
   pub fn is_active(&self) -> bool {
-    self.status == LocalUserInviteStatus::Active && !self.is_exhausted() && !self.is_expired()
+    !self.is_exhausted() && !self.is_expired()
   }
   pub fn get_invite_url(&self, settings: &Settings) -> LemmyResult<Url> {
     let protocol_and_hostname = settings.get_protocol_and_hostname();

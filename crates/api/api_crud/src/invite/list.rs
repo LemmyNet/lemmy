@@ -1,6 +1,5 @@
 use actix_web::web::{Data, Json, Query};
-use lemmy_api_utils::{context::LemmyContext, utils::is_admin};
-use lemmy_db_schema::InvitationListingType;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_local_user_invite::{
   api::{ListInvitations, LocalUserInviteView},
@@ -14,17 +13,11 @@ pub async fn list_invitations(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PagedResponse<LocalUserInviteView>>> {
-  if let Some(InvitationListingType::All) = data.type_ {
-    is_admin(&local_user_view)?
-  }
-
   let pool = &mut context.pool();
   let settings = context.settings();
 
   let paged = LocalUserInviteQuery {
-    local_user_id: Some(local_user_view.local_user.id),
-    listing_type: data.type_,
-    status: data.status,
+    local_user_id: local_user_view.local_user.id,
     page_cursor: data.page_cursor.clone(),
     limit: data.limit,
   }

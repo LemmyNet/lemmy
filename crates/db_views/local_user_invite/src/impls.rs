@@ -2,12 +2,11 @@ use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  InvitationListingType,
   newtypes::LocalUserId,
   source::local_user_invite::{LocalUserInvite, invitation_keys as key},
   utils::limit_fetch,
 };
-use lemmy_db_schema_file::{enums::LocalUserInviteStatus, schema::local_user_invite};
+use lemmy_db_schema_file::schema::local_user_invite;
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   pagination::{PagedResponse, PaginationCursor, PaginationCursorConversion, paginate_response},
@@ -16,9 +15,7 @@ use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 #[derive(Default)]
 pub struct LocalUserInviteQuery {
-  pub local_user_id: Option<LocalUserId>,
-  pub listing_type: Option<InvitationListingType>,
-  pub status: Option<LocalUserInviteStatus>,
+  pub local_user_id: LocalUserId,
   pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }
@@ -32,23 +29,11 @@ impl LocalUserInviteQuery {
       .limit(limit)
       .into_boxed();
 
-    match self.listing_type.unwrap_or_default() {
-      InvitationListingType::Own => {
-        if let Some(local_user_id) = self.local_user_id {
-          query = query.filter(local_user_invite::local_user_id.eq(local_user_id));
-        }
-      }
-      InvitationListingType::All => {}
-    }
-
-    if let Some(status) = self.status {
-      query = query.filter(local_user_invite::status.eq(status));
-    }
+    query = query.filter(local_user_invite::local_user_id.eq(self.local_user_id));
 
     let paginated_query =
       LocalUserInvite::paginate(query, &self.page_cursor, SortDirection::Asc, pool)
         .await?
-        .then_order_by(key::status)
         .then_order_by(key::published_at)
         .then_order_by(key::id);
 
@@ -66,18 +51,7 @@ impl LocalUserInviteQuery {
     let conn = &mut get_conn(pool).await?;
     let mut query = local_user_invite::table.select(count_star()).into_boxed();
 
-    match self.listing_type.unwrap_or_default() {
-      InvitationListingType::Own => {
-        if let Some(local_user_id) = self.local_user_id {
-          query = query.filter(local_user_invite::local_user_id.eq(local_user_id));
-        }
-      }
-      InvitationListingType::All => {}
-    }
-
-    if let Some(status) = self.status {
-      query = query.filter(local_user_invite::status.eq(status));
-    }
+    query = query.filter(local_user_invite::local_user_id.eq(self.local_user_id));
 
     query
       .get_result(conn)

@@ -2,7 +2,7 @@ use crate::newtypes::{InvitationId, LocalUserId};
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;
-use lemmy_db_schema_file::{enums::LocalUserInviteStatus, schema::local_user_invite};
+use lemmy_db_schema_file::schema::local_user_invite;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
@@ -23,7 +23,6 @@ pub struct LocalUserInvite {
   pub max_uses: Option<i32>,
   pub uses_count: i32,
   pub expires_at: Option<DateTime<Utc>>,
-  pub status: LocalUserInviteStatus,
   pub published_at: DateTime<Utc>,
 }
 
@@ -34,12 +33,10 @@ pub struct LocalUserInviteInsertForm {
   pub local_user_id: LocalUserId,
   pub max_uses: Option<i32>,
   pub expires_at: Option<DateTime<Utc>>,
-  pub status: LocalUserInviteStatus,
 }
 
 #[cfg_attr(feature = "full", derive(AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = local_user_invite))]
 pub struct LocalUserInviteUpdateForm {
   pub uses_count: Option<i32>,
-  pub status: Option<LocalUserInviteStatus>,
 }
