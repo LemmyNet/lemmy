@@ -68,6 +68,7 @@ pub struct Comment {
   /// Whether the comment is locked.
   pub locked: bool,
   /// This field is a dupe of post.community_id, but necessary for join performance.
+  #[serde(skip)]
   pub community_id: CommunityId,
 }
 
