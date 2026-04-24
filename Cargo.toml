@@ -174,9 +174,10 @@ url = { version = "2.5.8", features = ["serde"] }
 reqwest = { version = "0.13.2", default-features = false, features = [
   "gzip",
   "json",
+  "form",
   "rustls-no-provider",
 ] }
-reqwest-middleware = "0.5.1"
+reqwest-middleware = { version = "0.5.1", features = ["form", "query"] }
 reqwest-tracing = "0.7.0"
 clokwerk = "0.4.0"
 doku = { version = "0.21.1", features = ["url-2"] }
