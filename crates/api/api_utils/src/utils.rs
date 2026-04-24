@@ -474,7 +474,7 @@ pub async fn read_site_for_actor(
 pub async fn purge_post_images(
   url: Option<DbUrl>,
   thumbnail_url: Option<DbUrl>,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
 ) {
   if let Some(url) = url {
     purge_image_from_pictrs_url(&url, context).await.ok();
@@ -838,7 +838,7 @@ pub async fn process_markdown(
   slur_regex: &Regex,
   url_blocklist: &RegexSet,
   local_site: &LocalSite,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
 ) -> LemmyResult<String> {
   let text = remove_slurs(text, slur_regex);
   let text = clean_urls_in_text(&text);
@@ -870,7 +870,7 @@ pub async fn process_markdown_opt(
   slur_regex: &Regex,
   url_blocklist: &RegexSet,
   local_site: &LocalSite,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
 ) -> LemmyResult<Option<String>> {
   match text {
     Some(t) => process_markdown(t, slur_regex, url_blocklist, local_site, context)
@@ -888,8 +888,9 @@ async fn proxy_image_link_internal(
   link: Url,
   local_site: &LocalSite,
   is_thumbnail: bool,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
 ) -> LemmyResult<DbUrl> {
+  context.is_valid_ip(&link).await?;
   // Dont rewrite links pointing to local domain.
   if link.domain() == Some(&context.settings().hostname) {
     Ok(link.into())
@@ -917,7 +918,7 @@ pub async fn proxy_image_link(
   link: Url,
   local_site: &LocalSite,
   is_thumbnail: bool,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
 ) -> LemmyResult<DbUrl> {
   proxy_image_link_internal(link, local_site, is_thumbnail, context).await
 }
@@ -925,7 +926,7 @@ pub async fn proxy_image_link(
 pub async fn proxy_image_link_opt_apub(
   link: Option<Url>,
   local_site: &LocalSite,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
 ) -> LemmyResult<Option<DbUrl>> {
   if let Some(l) = link {
     proxy_image_link(l, local_site, false, context)

@@ -96,7 +96,7 @@ export const statusBadRequest = 400;
 export const statusUnauthorized = 401;
 export const sampleImage =
   "https://i.pinimg.com/originals/df/5f/5b/df5f5b1b174a2b4b6026cc6c8f9395c1.jpg";
-export const sampleSite = "https://w3.org";
+export const sampleSite = "https://www.wikipedia.org";
 
 export const alphaUrl = "http://127.0.0.1:8541";
 export const betaUrl = "http://127.0.0.1:8551";
@@ -229,9 +229,9 @@ export async function allowInstance(api: LemmyHttp, instance: string) {
 export async function createPost(
   api: LemmyHttp,
   community_id: number,
-  url: string = "https://example.com/",
+  // Use the sample site for consistent title and embed description
+  url: string = sampleSite,
   body = randomString(10),
-  // use example.com for consistent title and embed description
   name: string = randomString(5),
   alt_text = randomString(10),
   custom_thumbnail: string | undefined = undefined,
