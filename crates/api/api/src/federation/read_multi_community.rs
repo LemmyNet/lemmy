@@ -16,6 +16,16 @@ pub async fn read_multi_community(
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<GetMultiCommunityResponse>> {
+  let SiteView {
+    site, local_site, ..
+  } = SiteView::read_local(&mut context.pool()).await?;
+
+  if data.name.is_none() && data.id.is_none() {
+    return Err(LemmyErrorType::NoIdGiven.into());
+  }
+
+  check_private_instance(&local_user_view, &local_site)?;
+
   let my_person_id = local_user_view.as_ref().map(|l| l.person.id);
   let id = resolve_multi_community_identifier(&data.name, data.id, &context, &local_user_view)
     .await?
@@ -23,9 +33,6 @@ pub async fn read_multi_community(
   let multi_community_view =
     MultiCommunityView::read(&mut context.pool(), id, my_person_id).await?;
 
-  let SiteView {
-    site, local_site, ..
-  } = SiteView::read_local(&mut context.pool()).await?;
   let communities = CommunityQuery {
     multi_community_id: Some(id),
     ..Default::default()
