@@ -14,9 +14,12 @@ use lemmy_api_utils::{
     slur_regex,
   },
 };
-use lemmy_db_schema::source::{
-  person::PersonActions,
-  private_message::{PrivateMessage, PrivateMessageUpdateForm},
+use lemmy_db_schema::{
+  source::{
+    person::PersonActions,
+    private_message::{PrivateMessage, PrivateMessageUpdateForm},
+  },
+  traits::Blockable,
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_private_message::{
