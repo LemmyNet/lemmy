@@ -327,7 +327,7 @@ impl PostQuery<'_> {
   /// - Suggested
   ///
   ///  A return value of None means ignore, empty vec means filter out everything (IE empty
-  /// subscribed, moderated,  suggested)
+  /// subscribed, moderated, suggested)
   async fn prefetch_community_ids(
     &self,
     pool: &mut DbPool<'_>,
@@ -415,7 +415,7 @@ impl PostQuery<'_> {
     }
 
     //  Filter by the given community ids, prefetched above
-    if let Some(community_ids) = community_ids {
+    if let Some(community_ids) = &community_ids {
       query = query.filter(post::community_id.eq_any(community_ids));
     }
 
@@ -548,7 +548,7 @@ impl PostQuery<'_> {
     // featured posts first
     // Don't do for new / old sorts
     if sort != PostSortType::New && sort != PostSortType::Old {
-      pq = if self.community_id.is_none() {
+      pq = if community_ids.is_none() {
         pq.then_order_by(key::featured_local)
       } else {
         pq.then_order_by(key::featured_community)
