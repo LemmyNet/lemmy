@@ -140,8 +140,8 @@ pub async fn search(
   let mut persons = Vec::new();
   let mut multi_communities = Vec::new();
 
-  let mut next_page = vec![];
-  let mut prev_page = vec![];
+  let mut next_page: [_; 5] = Default::default();
+  let mut prev_page: [_; 5] = Default::default();
 
   let search_all = search_type == SearchType::All;
 
@@ -156,8 +156,8 @@ pub async fn search(
       .await
   {
     posts = x.items;
-    next_page.push(x.next_page);
-    prev_page.push(x.prev_page);
+    next_page[0] = x.next_page;
+    prev_page[0] = x.prev_page;
   }
   if (search_type == SearchType::Comments || search_all)
     && let Ok(x) = comments_query
@@ -165,8 +165,8 @@ pub async fn search(
       .await
   {
     comments = x.items;
-    next_page.push(x.next_page);
-    prev_page.push(x.prev_page);
+    next_page[1] = x.next_page;
+    prev_page[1] = x.prev_page;
   }
   if (search_type == SearchType::Communities || search_all_no_community_or_creator)
     && let Ok(x) = communities_query
@@ -174,22 +174,22 @@ pub async fn search(
       .await
   {
     communities = x.items;
-    next_page.push(x.next_page);
-    prev_page.push(x.prev_page);
+    next_page[2] = x.next_page;
+    prev_page[2] = x.prev_page;
   }
   if (search_type == SearchType::Users || search_all_no_community_or_creator)
     && let Ok(x) = persons_query.list(&site, &mut context.pool()).await
   {
     persons = x.items;
-    next_page.push(x.next_page);
-    prev_page.push(x.prev_page);
+    next_page[3] = x.next_page;
+    prev_page[3] = x.prev_page;
   }
   if (search_type == SearchType::MultiCommunities || search_all_no_community_or_creator)
     && let Ok(x) = multi_communities_query.list(&mut context.pool()).await
   {
     multi_communities = x.items;
-    next_page.push(x.next_page);
-    prev_page.push(x.prev_page);
+    next_page[4] = x.next_page;
+    prev_page[4] = x.prev_page;
   }
 
   let res = SearchResponse {
@@ -199,19 +199,30 @@ pub async fn search(
     communities,
     multi_communities,
     persons,
-    prev_page: to_single_cursor(prev_page),
-    next_page: to_single_cursor(next_page),
+    prev_page: to_single_cursor(prev_page, search_type),
+    next_page: to_single_cursor(next_page, search_type),
   };
 
   Ok(Json(res))
 }
 
-fn to_single_cursor(cursors: Vec<Option<PaginationCursor>>) -> Option<String> {
-  let x = cursors.into_iter().flatten().collect::<Vec<_>>();
-  if x.is_empty() {
-    None
+fn to_single_cursor(
+  cursors: [Option<PaginationCursor>; 5],
+  search_type: SearchType,
+) -> Option<String> {
+  if search_type == SearchType::All {
+    Some(
+      cursors
+        .into_iter()
+        .map(|c| c.map(|c| c.0).unwrap_or("none".to_string()))
+        .join(","),
+    )
   } else {
-    Some(x.into_iter().map(|c| c.0).join(","))
+    cursors
+      .into_iter()
+      .find(Option::is_some)
+      .flatten()
+      .map(|c| c.0)
   }
 }
 
@@ -230,21 +241,17 @@ fn from_single_cursor(
       let vec = cursor
         .iter()
         .flat_map(|c| c.split(","))
-        .map(|c| Some(c.to_string().into()))
-        .collect::<Vec<_>>();
-      if vec.len() == 2 {
-        // if `community_or_creator_included` there are only two cursors
-        let v: Result<[Option<PaginationCursor>; 2], _> = vec.try_into();
-        if let Ok(v) = v {
-          res[0] = v[0].clone();
-          res[1] = v[1].clone();
-        }
-      } else {
-        // otherwise there should be 5 cursors
-        let v: Result<[Option<PaginationCursor>; 5], _> = vec.try_into();
-        if let Ok(v) = v {
-          res = v;
-        }
+        .map(|c| {
+          if c == "none" {
+            None
+          } else {
+            Some(PaginationCursor(c.to_string()))
+          }
+        })
+        .collect::<Vec<Option<PaginationCursor>>>();
+      let v: Result<[Option<PaginationCursor>; 5], _> = vec.try_into();
+      if let Ok(v) = v {
+        res = v;
       }
     }
     Posts => res[0] = cursor.map(Into::into),
@@ -254,4 +261,82 @@ fn from_single_cursor(
     MultiCommunities => res[4] = cursor.map(Into::into),
   };
   res
+}
+
+#[cfg(test)]
+mod test {
+  use super::*;
+  #[test]
+  fn test_from_single_cursor() {
+    let a = None;
+    let a_res = [None, None, None, None, None];
+    assert_eq!(a_res, from_single_cursor(a, SearchType::All));
+
+    let b = Some("a,b,c,d,e".to_string());
+    let b_res = [
+      Some(PaginationCursor("a".to_string())),
+      Some(PaginationCursor("b".to_string())),
+      Some(PaginationCursor("c".to_string())),
+      Some(PaginationCursor("d".to_string())),
+      Some(PaginationCursor("e".to_string())),
+    ];
+    assert_eq!(b_res, from_single_cursor(b, SearchType::All));
+
+    let c = Some("none,b,none,none,none".to_string());
+    let c_res = [
+      None,
+      Some(PaginationCursor("b".to_string())),
+      None,
+      None,
+      None,
+    ];
+    assert_eq!(c_res, from_single_cursor(c, SearchType::All));
+
+    let d = Some("p".to_string());
+    let d_res = [
+      Some(PaginationCursor("p".to_string())),
+      None,
+      None,
+      None,
+      None,
+    ];
+    assert_eq!(d_res, from_single_cursor(d, SearchType::Posts));
+  }
+
+  #[test]
+  fn test_to_single_cursor() {
+    let a = [None, None, None, None, None];
+    let a_res = Some("none,none,none,none,none".to_string());
+    assert_eq!(a_res, to_single_cursor(a, SearchType::All));
+
+    let b = [
+      Some(PaginationCursor("a".to_string())),
+      Some(PaginationCursor("b".to_string())),
+      Some(PaginationCursor("c".to_string())),
+      Some(PaginationCursor("d".to_string())),
+      Some(PaginationCursor("e".to_string())),
+    ];
+    let b_res = Some("a,b,c,d,e".to_string());
+    assert_eq!(b_res, to_single_cursor(b, SearchType::All));
+
+    let c = [
+      None,
+      Some(PaginationCursor("b".to_string())),
+      None,
+      None,
+      None,
+    ];
+    let c_res = Some("none,b,none,none,none".to_string());
+    assert_eq!(c_res, to_single_cursor(c, SearchType::All));
+
+    let d = [
+      Some(PaginationCursor("p".to_string())),
+      None,
+      None,
+      None,
+      None,
+    ];
+    let d_res = Some("p".to_string());
+    assert_eq!(d_res, to_single_cursor(d, SearchType::Posts));
+  }
 }
