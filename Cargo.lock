@@ -3347,7 +3347,6 @@ dependencies = [
  "activitypub_federation",
  "actix-web",
  "anyhow",
- "base64 0.22.1",
  "bcrypt",
  "chrono",
  "diesel-async",
@@ -3379,7 +3378,6 @@ dependencies = [
  "serde_with",
  "tracing",
  "url",
- "uuid",
 ]
 
 [[package]]

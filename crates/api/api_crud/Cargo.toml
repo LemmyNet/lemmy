@@ -46,8 +46,6 @@ futures = { workspace = true }
 futures-util = { workspace = true }
 anyhow.workspace = true
 chrono.workspace = true
-uuid = { workspace = true }
-base64 = { workspace = true }
 rand = { workspace = true }
 accept-language = "3.1.0"
 regex = { workspace = true }
