@@ -184,7 +184,7 @@ pub async fn edit_post(
     // schedule was removed, send create activity and webmention
     (Some(_), None) => {
       let community = Community::read(&mut context.pool(), orig_post.community.id).await?;
-      send_webmention(updated_post.clone(), &community);
+      send_webmention(updated_post.clone(), &community, context.clone());
       generate_post_link_metadata(
         updated_post.clone(),
         custom_thumbnail.flatten().map(Into::into),

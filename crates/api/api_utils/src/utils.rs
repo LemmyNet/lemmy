@@ -3,6 +3,7 @@ use crate::{
   context::LemmyContext,
   request::{delete_image_alias, fetch_pictrs_proxied_image_details, purge_image_from_pictrs_url},
 };
+use activitypub_federation::config::Data;
 use actix_web::{HttpRequest, http::header::Header};
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
@@ -473,7 +474,7 @@ pub async fn read_site_for_actor(
 pub async fn purge_post_images(
   url: Option<DbUrl>,
   thumbnail_url: Option<DbUrl>,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
 ) {
   if let Some(url) = url {
     purge_image_from_pictrs_url(&url, context).await.ok();
@@ -837,7 +838,7 @@ pub async fn process_markdown(
   slur_regex: &Regex,
   url_blocklist: &RegexSet,
   local_site: &LocalSite,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
 ) -> LemmyResult<String> {
   let text = remove_slurs(text, slur_regex);
   let text = clean_urls_in_text(&text);
@@ -869,7 +870,7 @@ pub async fn process_markdown_opt(
   slur_regex: &Regex,
   url_blocklist: &RegexSet,
   local_site: &LocalSite,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
 ) -> LemmyResult<Option<String>> {
   match text {
     Some(t) => process_markdown(t, slur_regex, url_blocklist, local_site, context)
@@ -887,8 +888,9 @@ async fn proxy_image_link_internal(
   link: Url,
   local_site: &LocalSite,
   is_thumbnail: bool,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
 ) -> LemmyResult<DbUrl> {
+  context.is_valid_ip(&link).await?;
   // Dont rewrite links pointing to local domain.
   if link.domain() == Some(&context.settings().hostname) {
     Ok(link.into())
@@ -916,7 +918,7 @@ pub async fn proxy_image_link(
   link: Url,
   local_site: &LocalSite,
   is_thumbnail: bool,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
 ) -> LemmyResult<DbUrl> {
   proxy_image_link_internal(link, local_site, is_thumbnail, context).await
 }
@@ -924,7 +926,7 @@ pub async fn proxy_image_link(
 pub async fn proxy_image_link_opt_apub(
   link: Option<Url>,
   local_site: &LocalSite,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
 ) -> LemmyResult<Option<DbUrl>> {
   if let Some(l) = link {
     proxy_image_link(l, local_site, false, context)
@@ -980,11 +982,14 @@ pub fn read_auth_token(req: &HttpRequest) -> LemmyResult<Option<String>> {
   }
 }
 
-pub fn send_webmention(post: Post, community: &Community) {
+pub fn send_webmention(post: Post, community: &Community, context: Data<LemmyContext>) {
   if let Some(url) = post.url.clone()
     && community.visibility.can_view_without_login()
   {
     spawn_try_task(async move {
+      if context.is_valid_ip(&url).await.is_err() {
+        return Ok(());
+      }
       let mut webmention = Webmention::new::<Url>(post.ap_id.clone().into(), url.clone().into())?;
       webmention.set_checked(true);
       match webmention
@@ -1119,6 +1124,7 @@ mod tests {
       id: CommentId(0),
       creator_id: PersonId(0),
       post_id: PostId(0),
+      community_id: CommunityId(0),
       content: String::new(),
       removed: false,
       published_at: Utc::now(),

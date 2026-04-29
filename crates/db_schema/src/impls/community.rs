@@ -907,6 +907,7 @@ mod tests {
     let comment_form = CommentInsertForm::new(
       inserted_person.id,
       inserted_post.id,
+      inserted_community.id,
       "A test comment".into(),
     );
     let inserted_comment = Comment::create(pool, &comment_form, None).await?;
@@ -914,6 +915,7 @@ mod tests {
     let child_comment_form = CommentInsertForm::new(
       inserted_person.id,
       inserted_post.id,
+      inserted_community.id,
       "A test comment".into(),
     );
     let _inserted_child_comment =
@@ -977,6 +979,8 @@ mod tests {
     // Should be none found, since the creator was deleted
     let after_delete = Community::read(pool, inserted_community.id).await;
     assert!(after_delete.is_err());
+
+    Instance::delete(pool, inserted_instance.id).await?;
 
     Ok(())
   }

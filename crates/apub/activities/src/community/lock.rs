@@ -49,7 +49,7 @@ impl Activity for LockPageOrNote {
     let community = self.community(context).await?;
     verify_visibility(&self.to, &self.cc, &community)?;
     check_community_deleted_or_removed(&community)?;
-    verify_mod_action(&self.actor, &community, context).await?;
+    verify_mod_action(&self.actor, self.object.inner(), &community, context).await?;
     Ok(())
   }
 
@@ -105,7 +105,7 @@ impl Activity for UndoLockPageOrNote {
     let community = self.object.community(context).await?;
     verify_visibility(&self.to, &self.cc, &community)?;
     check_community_deleted_or_removed(&community)?;
-    verify_mod_action(&self.actor, &community, context).await?;
+    verify_mod_action(&self.actor, self.object.object.inner(), &community, context).await?;
     Ok(())
   }
 

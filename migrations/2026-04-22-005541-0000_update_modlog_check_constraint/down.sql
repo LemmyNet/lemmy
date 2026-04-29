@@ -1,4 +1,3 @@
--- add ModWarn to constraint checks
 ALTER TABLE modlog
     DROP CONSTRAINT IF EXISTS modlog_check;
 

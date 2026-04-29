@@ -10,9 +10,9 @@ checksum = "8f27d075294830fcab6f66e320dab524bc6d048f4a151698e153205559113772"
 
 [[package]]
 name = "activitypub_federation"
-version = "0.7.0-beta.9"
+version = "0.7.0-beta.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d96e75ef9abd9215050b04ac90729f893da9cf290d4e6946385db40ab61763b6"
+checksum = "20222f29f14358d3baeb0ffdec08f99bd0f56b6b59504f33556d97db720de748"
 dependencies = [
  "activitystreams-kinds",
  "actix-web",
@@ -3734,7 +3734,6 @@ dependencies = [
  "serial_test",
  "tokio",
  "ts-rs",
- "url",
 ]
 
 [[package]]
@@ -4288,7 +4287,6 @@ dependencies = [
  "actix-extensible-rate-limit",
  "actix-web",
  "anyhow",
- "cfg-if",
  "chrono",
  "clearurls",
  "dashmap",

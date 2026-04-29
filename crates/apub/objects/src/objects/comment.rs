@@ -28,13 +28,7 @@ use chrono::{DateTime, Utc};
 use lemmy_api_utils::{
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
-  utils::{
-    check_comment_depth,
-    check_is_mod_or_admin,
-    get_url_blocklist,
-    process_markdown,
-    slur_regex,
-  },
+  utils::{check_is_mod_or_admin, get_url_blocklist, process_markdown, slur_regex},
 };
 use lemmy_db_schema::source::{
   comment::{Comment, CommentInsertForm, CommentUpdateForm},
@@ -49,7 +43,6 @@ use lemmy_utils::{
   utils::markdown::markdown_to_html,
 };
 use std::ops::Deref;
-use tokio::spawn;
 use url::Url;
 
 #[derive(Clone, Debug)]
@@ -181,16 +174,7 @@ impl Object for ApubComment {
     ))
     .await?;
 
-    // When fetching a deeply nested comment we may have also have to fetch dozens of parent
-    // comments which can easily result in stack overflow. So we launch a new task instead
-    // which gives a new stack and avoids overflow. This was successfully tested with a comment
-    // nested 200 deep (max in production is 50).
-    let note2 = note.clone();
-    let context2 = context.clone();
-    let (post, parent_comment) = spawn(async move { note2.get_parents(&context2).await }).await??;
-    if let Some(c) = &parent_comment {
-      check_comment_depth(c)?;
-    }
+    let (post, parent_comment) = note.get_parents(context).await?;
 
     let creator = Box::pin(note.attributed_to.dereference(context)).await?;
 
@@ -231,6 +215,7 @@ impl Object for ApubComment {
     let mut form = CommentInsertForm {
       creator_id: creator.id,
       post_id: post.id,
+      community_id: post.community_id,
       content,
       removed: None,
       published_at: note.published,

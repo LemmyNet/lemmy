@@ -61,6 +61,20 @@ pub enum LocalUserSortType {
   Old,
 }
 
+/// The Report sort type.
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
+pub enum ReportSortType {
+  #[default]
+  /// By default, if viewing all reports, order by newest, but if viewing unresolved only, show
+  /// the oldest first (FIFO)
+  Default,
+  New,
+  Old,
+}
+
 /// The person sort type.
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]

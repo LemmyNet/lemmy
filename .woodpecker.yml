@@ -7,7 +7,7 @@ variables:
   # features. In particular the ARM builder image needs to be updated manually in the repo below:
   # https://github.com/raskyld/lemmy-cross-toolchains
   # Also be sure to change the version in `rust-toolchain.toml`
-  - &rust_image "rust:1.94"
+  - &rust_image "rust:1.95"
   - &rust_nightly_image "rustlang/rust:nightly"
   - &install_pnpm "npm install -g corepack@latest && corepack enable pnpm"
   - &install_binstall "wget -q -O- https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz | tar -xvz -C /usr/local/cargo/bin"
@@ -144,6 +144,16 @@ steps:
       - psql -c "CREATE USER lemmy WITH PASSWORD 'password' SUPERUSER;"
     when: *slow_check_paths
 
+  cargo_clippy:
+    image: *rust_image
+    environment:
+      CARGO_HOME: .cargo_home
+      RUSTUP_HOME: .rustup_home
+    commands:
+      - rustup component add clippy
+      - cargo clippy --workspace --tests --all-targets --all-features -- -D warnings
+    when: *slow_check_paths
+
   cargo_test:
     image: *rust_image
     environment:
@@ -161,16 +171,6 @@ steps:
       - apt update && apt install -y postgresql-client-18
       # Run tests (if they fail, try again)
       - cargo test --workspace || cargo test --workspace
-    when: *slow_check_paths
-
-  cargo_clippy:
-    image: *rust_image
-    environment:
-      CARGO_HOME: .cargo_home
-      RUSTUP_HOME: .rustup_home
-    commands:
-      - rustup component add clippy
-      - cargo clippy --workspace --tests --all-targets --all-features -- -D warnings
     when: *slow_check_paths
 
   # make sure api builds with default features (used by other crates relying on lemmy api)
@@ -247,7 +247,8 @@ steps:
       - event: pull_request
         status: [failure]
 
-  publish_release_docker:
+  # Only publish arm builds on non-pre-release builds
+  publish_release_docker_arm64:
     image: woodpeckerci/plugin-docker-buildx
     settings:
       repo: dessalines/lemmy
@@ -256,18 +257,35 @@ steps:
         from_secret: docker_username
       password:
         from_secret: docker_password
-      # On release builds, switch these comment lines to also do arm64 qemu builds.
-      # This takes 8 hours, so its not a good idea to do it for any other release.
-      platforms: linux/amd64
-      # platforms: linux/amd64,linux/arm64
+      platforms: linux/arm64
       build_args:
         RUST_RELEASE_MODE: release
       build_args_from_env:
         - CI_PIPELINE_EVENT
       tag: ${CI_COMMIT_TAG=nightly}
     when:
-      - event: tag
-      - event: cron
+      - event: [tag, cron]
+        # Ensures that its a full semver release, and not a pre-release one like 1.0.0-alpha.1
+        evaluate: '"${CI_COMMIT_TAG}" matches ''^([0-9]\\\d*).([0-9]\\\d*).([0-9]\\\d*)$'''
+
+  # Only publish arm builds on non-pre-release builds
+  publish_release_docker_amd64:
+    image: woodpeckerci/plugin-docker-buildx
+    settings:
+      repo: dessalines/lemmy
+      dockerfile: docker/Dockerfile
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+      platforms: linux/amd64
+      build_args:
+        RUST_RELEASE_MODE: release
+      build_args_from_env:
+        - CI_PIPELINE_EVENT
+      tag: ${CI_COMMIT_TAG=nightly}
+    when:
+      - event: [tag, cron]
 
   # lemmy container doesnt run as root so we need to change permissions to let it copy the binary
   chmod_for_native_binary:

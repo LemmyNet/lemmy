@@ -1,4 +1,5 @@
-use actix_web::web::{Data, Json, Query};
+use activitypub_federation::config::Data;
+use actix_web::web::{Json, Query};
 use lemmy_api_utils::{context::LemmyContext, request::fetch_link_metadata};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::api::{GetSiteMetadata, GetSiteMetadataResponse};

@@ -17,8 +17,9 @@ use diesel::{
   dsl::not,
 };
 use diesel_async::RunQueryDsl;
-use i_love_jesus::asc_if;
+use i_love_jesus::{SortDirection, asc_if};
 use lemmy_db_schema::{
+  ReportSortType,
   ReportType,
   newtypes::{
     CommentReportId,
@@ -35,17 +36,11 @@ use lemmy_db_schema::{
   traits::InternalToCombinedView,
   utils::limit_fetch,
 };
-use lemmy_db_schema_file::{
-  aliases,
-  schema::{
-    comment_report,
-    community,
-    community_actions,
-    person,
-    post,
-    post_report,
-    report_combined,
-  },
+use lemmy_db_schema_file::schema::{
+  comment_report,
+  community_actions,
+  post_report,
+  report_combined,
 };
 use lemmy_db_views_report_combined_sql::report_combined_joins;
 use lemmy_diesel_utils::{
@@ -206,8 +201,9 @@ pub struct ReportCombinedQuery {
   pub unresolved_only: Option<bool>,
   /// For admins, also show reports with `violates_instance_rules=false`
   pub show_community_rule_violations: Option<bool>,
-  pub page_cursor: Option<PaginationCursor>,
   pub my_reports_only: Option<bool>,
+  pub sort: Option<ReportSortType>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }
 
@@ -219,19 +215,13 @@ impl ReportCombinedQuery {
   ) -> LemmyResult<PagedResponse<ReportCombinedView>> {
     let limit = limit_fetch(self.limit, None)?;
 
-    let report_creator = aliases::person1.field(person::id);
-
     let mut query = report_combined_joins(user.person.id, user.person.instance_id)
       .select(ReportCombinedViewInternal::as_select())
       .limit(limit)
       .into_boxed();
 
     if let Some(community_id) = self.community_id {
-      query = query.filter(
-        community::id
-          .eq(community_id)
-          .and(report_combined::community_report_id.is_null()),
-      );
+      query = query.filter(report_combined::community_id.eq(community_id));
     }
 
     if user.local_user.admin {
@@ -244,11 +234,11 @@ impl ReportCombinedQuery {
     }
 
     if let Some(post_id) = self.post_id {
-      query = query.filter(post::id.eq(post_id));
+      query = query.filter(report_combined::post_id.eq(post_id));
     }
 
     if self.my_reports_only.unwrap_or_default() {
-      query = query.filter(report_creator.eq(user.person.id));
+      query = query.filter(report_combined::report_creator_id.eq(user.person.id));
     }
 
     if let Some(type_) = self.type_ {
@@ -263,13 +253,17 @@ impl ReportCombinedQuery {
       }
     }
 
-    // If viewing all reports, order by newest, but if viewing unresolved only, show the oldest
-    // first (FIFO)
     let unresolved_only = self.unresolved_only.unwrap_or_default();
-    let sort_direction = asc_if(unresolved_only);
-
     if unresolved_only {
       query = query.filter(not(report_combined::resolved));
+    };
+
+    let sort_direction = match self.sort.unwrap_or_default() {
+      // By default, if viewing all reports, order by newest, but if viewing unresolved only, show
+      // the oldest first (FIFO)
+      ReportSortType::Default => asc_if(unresolved_only),
+      ReportSortType::New => SortDirection::Desc,
+      ReportSortType::Old => SortDirection::Asc,
     };
 
     // Sorting by published
@@ -541,6 +535,7 @@ mod tests {
     let comment_form = CommentInsertForm::new(
       inserted_timmy.id,
       inserted_post.id,
+      inserted_community.id,
       "A test comment rv".into(),
     );
     let inserted_comment = Comment::create(pool, &comment_form, None).await?;
