@@ -4,7 +4,7 @@ use lemmy_db_schema::source::local_user_invite::LocalUserInvite;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_local_user_invite::api::RevokeInvitation;
 use lemmy_db_views_site::api::SuccessResponse;
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn revoke_invitation(
   Json(data): Json<RevokeInvitation>,
@@ -15,7 +15,13 @@ pub async fn revoke_invitation(
 
   let local_user_id = local_user_view.local_user.id;
 
-  LocalUserInvite::delete_by_token_and_user(pool, &local_user_id, &data.token).await?;
+  let invite = LocalUserInvite::read_by_token(pool, &data.token).await?;
+
+  if local_user_id != invite.local_user_id {
+    return Err(LemmyErrorType::InvalidInviteToken.into());
+  }
+
+  LocalUserInvite::delete_by_token(pool, &data.token).await?;
 
   Ok(Json(SuccessResponse::default()))
 }

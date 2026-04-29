@@ -1,5 +1,4 @@
 use actix_web::web::{Data, Json};
-use base64::{Engine, engine::general_purpose};
 use lemmy_api_utils::{context::LemmyContext, utils::is_admin};
 use lemmy_db_schema::source::local_user_invite::{LocalUserInvite, LocalUserInviteInsertForm};
 use lemmy_db_views_local_user::LocalUserView;
@@ -9,7 +8,7 @@ use lemmy_db_views_local_user_invite::{
 };
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
-use uuid::Uuid;
+use rand::{RngExt, distr::Alphanumeric};
 
 pub async fn create_invitation(
   Json(data): Json<CreateInvitation>,
@@ -49,7 +48,9 @@ pub async fn create_invitation(
 }
 
 fn generate_invite_token() -> String {
-  let id = Uuid::new_v4();
-  // Convert to base64 for a more compact URL-friendly string
-  general_purpose::URL_SAFE_NO_PAD.encode(id.as_bytes())
+  rand::rng()
+    .sample_iter(Alphanumeric)
+    .take(12)
+    .map(char::from)
+    .collect()
 }

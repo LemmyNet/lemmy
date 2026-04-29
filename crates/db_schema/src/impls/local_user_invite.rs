@@ -64,20 +64,6 @@ impl LocalUserInvite {
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
-  pub async fn read_by_token_and_user(
-    pool: &mut DbPool<'_>,
-    local_user_id: &LocalUserId,
-    token: &str,
-  ) -> LemmyResult<Self> {
-    let conn = &mut get_conn(pool).await?;
-    local_user_invite::table
-      .filter(local_user_invite::local_user_id.eq(local_user_id))
-      .filter(local_user_invite::token.eq(token))
-      .first(conn)
-      .await
-      .with_lemmy_type(LemmyErrorType::NotFound)
-  }
-
   pub async fn delete_by_token(pool: &mut DbPool<'_>, token: &str) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     diesel::delete(local_user_invite::table.filter(local_user_invite::token.eq(token)))

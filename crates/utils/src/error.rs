@@ -46,7 +46,6 @@ pub enum LemmyErrorType {
   /// Password must be between 10 and 60 characters
   InvalidPassword,
   InvalidInviteToken,
-  InviteAlreadyRevokedOrExhausted,
   SiteDescriptionLengthOverflow,
   HoneypotFailed,
   RegistrationApplicationIsPending,

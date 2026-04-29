@@ -3372,6 +3372,7 @@ dependencies = [
  "lemmy_diesel_utils",
  "lemmy_email",
  "lemmy_utils 1.0.0-test-arm-qemu.0",
+ "rand 0.10.0",
  "regex",
  "serde",
  "serde_json",
@@ -3851,8 +3852,11 @@ dependencies = [
  "lemmy_db_schema_file",
  "lemmy_diesel_utils",
  "lemmy_utils 1.0.0-test-arm-qemu.0",
+ "pretty_assertions",
  "serde",
  "serde_with",
+ "serial_test",
+ "tokio",
  "ts-rs",
 ]
 
