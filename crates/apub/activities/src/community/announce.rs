@@ -156,9 +156,18 @@ impl Activity for AnnounceActivity {
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     let object: AnnouncableActivities = self.object.object(context).await?.try_into()?;
 
-    // This is only for sending, not receiving so we reject it.
-    if let AnnouncableActivities::Page(_) = object {
-      return Err(UntranslatedError::CannotReceivePage.into());
+    match &object {
+      AnnouncableActivities::BlockUser(block) => {
+        // Site bans must not be announced, but sent directly.
+        if block.target.dereference(&context).await?.is_left() {
+          return Err(UntranslatedError::CannotAnnounceSiteBan.into());
+        }
+      }
+      // This is only for sending, not receiving so we reject it.
+      AnnouncableActivities::Page(_) => {
+        return Err(UntranslatedError::CannotReceivePage.into());
+      }
+      _ => {}
     }
 
     let community = object.community(context).await?;
