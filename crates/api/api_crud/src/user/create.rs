@@ -31,6 +31,7 @@ use lemmy_db_schema::{
     language::Language,
     local_site::LocalSite,
     local_user::{LocalUser, LocalUserInsertForm},
+    local_user_invite::{LocalUserInvite, LocalUserInviteUpdateForm},
     oauth_account::{OAuthAccount, OAuthAccountInsertForm},
     oauth_provider::AdminOAuthProvider,
     person::{Person, PersonInsertForm},
@@ -89,6 +90,20 @@ pub async fn register(
   let local_site = site_view.local_site.clone();
   let require_registration_application =
     local_site.registration_mode == RegistrationMode::RequireApplication;
+  let token = data.token.as_deref();
+
+  let local_user_invite = if local_site.registration_mode == RegistrationMode::RequireInvitation {
+    let token = token.ok_or(LemmyErrorType::MissingInviteToken)?;
+    let inv = LocalUserInvite::read_by_token(pool, token)
+      .await
+      .map_err(|_e| LemmyError::from(LemmyErrorType::InvalidInviteToken))?;
+    if !inv.is_active() {
+      return Err(LemmyErrorType::InvalidInviteToken.into());
+    }
+    Some(inv)
+  } else {
+    None
+  };
 
   if local_site.registration_mode == RegistrationMode::Closed {
     return Err(LemmyErrorType::RegistrationClosed.into());
@@ -154,6 +169,7 @@ pub async fn register(
           email: tx_data.email.as_deref().map(str::to_lowercase),
           show_nsfw: Some(show_nsfw),
           accepted_application,
+          invited_by_local_user_id: local_user_invite.as_ref().map(|inv| inv.local_user_id),
           ..LocalUserInsertForm::new(person.id, Some(tx_data.password.to_string()))
         };
 
@@ -177,6 +193,22 @@ pub async fn register(
           };
 
           RegistrationApplication::create(&mut conn.into(), &form).await?;
+        }
+
+        if let Some(inv) = local_user_invite {
+          let new_uses_count = inv.uses_count + 1;
+          if inv.max_uses.map(|m| new_uses_count >= m).unwrap_or(false) {
+            LocalUserInvite::delete_by_token(&mut conn.into(), &inv.token).await?;
+          } else {
+            LocalUserInvite::update(
+              &mut conn.into(),
+              inv.id,
+              &LocalUserInviteUpdateForm {
+                uses_count: Some(new_uses_count),
+              },
+            )
+            .await?;
+          }
         }
 
         Ok(LocalUserView {

@@ -33,6 +33,7 @@ members = [
   "crates/db_views/private_message",
   "crates/db_views/local_user",
   "crates/db_views/local_image",
+  "crates/db_views/local_user_invite",
   "crates/db_views/person",
   "crates/db_views/post",
   "crates/db_views/vote",
@@ -128,6 +129,7 @@ lemmy_db_views_community_follower = { version = "=1.0.0-test-arm-qemu.0", path =
 lemmy_db_views_community_follower_approval = { version = "=1.0.0-test-arm-qemu.0", path = "./crates/db_views/community_follower_approval" }
 lemmy_db_views_community_moderator = { version = "=1.0.0-test-arm-qemu.0", path = "./crates/db_views/community_moderator" }
 lemmy_db_views_custom_emoji = { version = "=1.0.0-test-arm-qemu.0", path = "./crates/db_views/custom_emoji" }
+lemmy_db_views_local_user_invite = { version = "=1.0.0-test-arm-qemu.0", path = "./crates/db_views/local_user_invite" }
 lemmy_db_views_notification = { version = "=1.0.0-test-arm-qemu.0", path = "./crates/db_views/notification" }
 lemmy_db_views_notification_sql = { version = "=1.0.0-test-arm-qemu.0", path = "./crates/db_views/notification_sql" }
 lemmy_db_views_local_image = { version = "=1.0.0-test-arm-qemu.0", path = "./crates/db_views/local_image" }
@@ -187,6 +189,7 @@ chrono = { version = "0.4.44", features = [
 ], default-features = false }
 serde_json = { version = "1.0.149", features = ["preserve_order"] }
 base64 = "0.22.1"
+rand = "0.10.0"
 uuid = { version = "1.22.0", features = ["serde"] }
 anyhow = { version = "1.0.102", features = ["backtrace"] }
 diesel_ltree = "0.4.0"

@@ -78,6 +78,7 @@ pub struct LocalUser {
   pub show_upvote_percentage: bool,
   pub show_person_votes: bool,
   pub default_items_per_page: i32,
+  pub invited_by_local_user_id: Option<LocalUserId>,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -150,6 +151,8 @@ pub struct LocalUserInsertForm {
   pub show_upvote_percentage: Option<bool>,
   #[new(default)]
   pub show_person_votes: Option<bool>,
+  #[new(default)]
+  pub invited_by_local_user_id: Option<LocalUserId>,
 }
 
 #[derive(Clone, Default)]
