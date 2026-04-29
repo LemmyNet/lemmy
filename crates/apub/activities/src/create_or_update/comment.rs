@@ -55,21 +55,12 @@ impl CreateOrUpdateNote {
       .await?
       .into();
 
-    // get object_id for activity id generation
-    let ap_id = (*comment.ap_id.0).clone();
-    let object_id = match kind {
-      // for Create, use the comment's ap id
-      CreateOrUpdateType::Create => Some(&ap_id),
-      // for Update, use a timestamp to ensure each Update activity is unique
-      CreateOrUpdateType::Update => {
-        let timestamp = comment.updated_at.unwrap_or(comment.published_at); // use the latest timestamp
-        let mut seed_url = ap_id;
-        seed_url.set_fragment(Some(&timestamp.to_rfc3339()));
-        Some(&seed_url.clone())
-      }
-    };
+    // get object_id
+    let timestamp = comment.updated_at.unwrap_or(comment.published_at);
+    let mut object_id = (*comment.ap_id.0).clone();
+    object_id.set_fragment(Some(&timestamp.to_rfc3339()));
 
-    let id = generate_activity_id(kind.clone(), object_id, &context)?;
+    let id = generate_activity_id(kind.clone(), Some(&object_id), &context)?;
     let note = ApubComment(comment).into_json(&context).await?;
 
     let create_or_update = CreateOrUpdateNote {
