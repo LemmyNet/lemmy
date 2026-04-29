@@ -1,5 +1,5 @@
 use crate::{
-  generate_activity_id_with_object_id,
+  generate_activity_id,
   protocol::{CreateOrUpdateType, create_or_update::private_message::CreateOrUpdatePrivateMessage},
   send_lemmy_activity,
   verify_person,
@@ -24,7 +24,13 @@ pub(crate) async fn send_create_or_update_pm(
   let actor: ApubPerson = pm_view.creator.into();
   let recipient: ApubPerson = pm_view.recipient.into();
 
-  let id = generate_activity_id_with_object_id(kind.clone(), &context)?;
+  // get object_id
+  let pm = &pm_view.private_message;
+  let timestamp = pm.updated_at.unwrap_or(pm.published_at);
+  let mut object_id = (*pm.ap_id.0).clone();
+  object_id.set_fragment(Some(&timestamp.to_rfc3339()));
+
+  let id = generate_activity_id(kind.clone(), Some(&object_id), &context)?;
   let create_or_update = CreateOrUpdatePrivateMessage {
     id: id.clone(),
     actor: actor.id().clone().into(),
