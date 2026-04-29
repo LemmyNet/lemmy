@@ -161,9 +161,11 @@ impl ModlogQuery<'_> {
 
     if !self.local_user.is_admin() {
       query = query.filter(
-        community::visibility
-          .ne(CommunityVisibility::Private)
-          .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
+        community::id.is_null().or(
+          community::visibility
+            .ne(CommunityVisibility::Private)
+            .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
+        ),
       );
     }
 
