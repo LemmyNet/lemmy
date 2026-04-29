@@ -12,6 +12,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   kinds::activity::BlockType,
+  protocol::verification::verify_domains_match,
   traits::{Activity, Actor, Object},
 };
 use chrono::{DateTime, Utc};
@@ -111,8 +112,9 @@ impl Activity for BlockUser {
 
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     match self.target.dereference(context).await? {
-      SiteOrCommunity::Left(_site) => {
+      SiteOrCommunity::Left(site) => {
         verify_is_public(&self.to, &self.cc)?;
+        verify_domains_match(self.actor.inner(), &site.ap_id)?;
       }
       SiteOrCommunity::Right(community) => {
         verify_visibility(&self.to, &self.cc, &community)?;

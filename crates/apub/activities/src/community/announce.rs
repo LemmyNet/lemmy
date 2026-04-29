@@ -11,6 +11,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   kinds::activity::AnnounceType,
+  protocol::verification::verify_urls_match,
   traits::{Activity, Object},
 };
 use lemmy_api_utils::context::LemmyContext;
@@ -154,14 +155,30 @@ impl Activity for AnnounceActivity {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
+    use AnnouncableActivities::*;
     let object: AnnouncableActivities = self.object.object(context).await?.try_into()?;
 
-    // This is only for sending, not receiving so we reject it.
-    if let AnnouncableActivities::Page(_) = object {
-      return Err(UntranslatedError::CannotReceivePage.into());
+    match &object {
+      // Site bans must not be announced, but sent directly.
+      BlockUser(block) => {
+        if block.target.dereference(&context).await?.is_left() {
+          return Err(UntranslatedError::CannotAnnounceSiteBan.into());
+        }
+      }
+      UndoBlockUser(block) => {
+        if block.object.target.dereference(&context).await?.is_left() {
+          return Err(UntranslatedError::CannotAnnounceSiteBan.into());
+        }
+      }
+      // This is only for sending, not receiving so we reject it.
+      Page(_) => {
+        return Err(UntranslatedError::CannotReceivePage.into());
+      }
+      _ => {}
     }
 
     let community = object.community(context).await?;
+    verify_urls_match(community.ap_id.inner(), self.actor.inner())?;
     verify_visibility(&self.to, &self.cc, &community)?;
     can_accept_activity_in_community(&Some(community), context).await?;
 
