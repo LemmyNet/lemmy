@@ -11,6 +11,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   kinds::activity::AnnounceType,
+  protocol::verification::verify_urls_match,
   traits::{Activity, Object},
 };
 use lemmy_api_utils::context::LemmyContext;
@@ -177,6 +178,7 @@ impl Activity for AnnounceActivity {
     }
 
     let community = object.community(context).await?;
+    verify_urls_match(community.ap_id.inner(), self.actor.inner())?;
     verify_visibility(&self.to, &self.cc, &community)?;
     can_accept_activity_in_community(&Some(community), context).await?;
 
