@@ -1,6 +1,6 @@
 use crate::{
   check_community_deleted_or_removed,
-  generate_activity_id,
+  generate_activity_id_with_object_id,
   protocol::following::{accept::AcceptFollow, follow::Follow},
   send_lemmy_activity,
 };
@@ -27,7 +27,7 @@ impl AcceptFollow {
       to: Some([person.id().clone().into()]),
       object: follow,
       kind: AcceptType::Accept,
-      id: generate_activity_id(AcceptType::Accept, context)?,
+      id: generate_activity_id_with_object_id(AcceptType::Accept, context)?,
     };
     let inbox = ActivitySendTargets::to_inbox(person.shared_inbox_or_inbox());
     send_lemmy_activity(context, accept, &target, inbox, true).await

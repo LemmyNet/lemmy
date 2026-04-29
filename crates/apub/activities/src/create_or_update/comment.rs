@@ -55,7 +55,12 @@ impl CreateOrUpdateNote {
       .await?
       .into();
 
-    let id = generate_activity_id(kind.clone(), &context)?;
+    // get object_id
+    let timestamp = comment.updated_at.unwrap_or(comment.published_at);
+    let mut object_id = (*comment.ap_id.0).clone();
+    object_id.set_fragment(Some(&timestamp.to_rfc3339()));
+
+    let id = generate_activity_id(kind.clone(), Some(&object_id), &context)?;
     let note = ApubComment(comment).into_json(&context).await?;
 
     let create_or_update = CreateOrUpdateNote {

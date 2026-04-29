@@ -1,6 +1,6 @@
 use crate::{
   deletion::{DeletableObjects, receive_delete_action, verify_delete_activity},
-  generate_activity_id,
+  generate_activity_id_with_object_id,
   protocol::deletion::{delete::Delete, undo_delete::UndoDelete},
 };
 use activitypub_federation::{config::Data, kinds::activity::UndoType, traits::Activity};
@@ -72,7 +72,7 @@ impl UndoDelete {
       context,
     )?;
 
-    let id = generate_activity_id(UndoType::Undo, context)?;
+    let id = generate_activity_id_with_object_id(UndoType::Undo, context)?;
     let cc: Option<Url> = community.map(|c| c.ap_id.clone().into());
     Ok(UndoDelete {
       actor: actor.ap_id.clone().into(),

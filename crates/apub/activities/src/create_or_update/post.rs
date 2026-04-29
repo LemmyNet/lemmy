@@ -46,7 +46,12 @@ impl CreateOrUpdatePage {
     kind: CreateOrUpdateType,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<CreateOrUpdatePage> {
-    let id = generate_activity_id(kind.clone(), context)?;
+    // get object_id
+    let timestamp = post.updated_at.unwrap_or(post.published_at); // use the latest timestamp
+    let mut object_id = (*post.ap_id.0).clone();
+    object_id.set_fragment(Some(&timestamp.to_rfc3339()));
+
+    let id = generate_activity_id(kind.clone(), Some(&object_id), context)?;
     Ok(CreateOrUpdatePage {
       actor: actor.id().clone().into(),
       to: generate_to(community)?,
@@ -69,6 +74,20 @@ impl CreateOrUpdatePage {
     let community: ApubCommunity = Community::read(&mut context.pool(), community_id)
       .await?
       .into();
+
+    // get object_id for activity id generation
+    let ap_id = (*post.ap_id.0).clone();
+    let _object_id = match kind {
+      // for Create, use the post's ap id
+      CreateOrUpdateType::Create => Some(&ap_id),
+      // for Update, use a timestamp to ensure each Update activity is unique
+      CreateOrUpdateType::Update => {
+        let timestamp = post.updated_at.unwrap_or(post.published_at); // use the latest timestamp
+        let mut seed_url = ap_id;
+        seed_url.set_fragment(Some(&timestamp.to_rfc3339()));
+        Some(&seed_url.clone())
+      }
+    };
 
     let create_or_update =
       CreateOrUpdatePage::new(post.into(), &person, &community, kind, &context).await?;
