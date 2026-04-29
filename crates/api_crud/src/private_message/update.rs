@@ -43,6 +43,15 @@ pub async fn update_private_message(
   let content = process_markdown(&data.content, &slur_regex, &url_blocklist, &context).await?;
   is_valid_body_field(&content, false)?;
 
+  PersonActions::read_block(
+    &mut context.pool(),
+    orig_private_message.recipient_id,
+    local_user_view.person.id,
+  )
+  .await?;
+
+  check_private_messages_enabled(&local_user_view)?;
+
   let private_message_id = data.private_message_id;
   PrivateMessage::update(
     &mut context.pool(),
