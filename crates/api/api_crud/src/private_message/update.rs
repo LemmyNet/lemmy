@@ -6,9 +6,21 @@ use lemmy_api_utils::{
   notify::notify_private_message,
   plugins::{plugin_hook_after, plugin_hook_before},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_local_user_valid, get_url_blocklist, process_markdown, slur_regex},
+  utils::{
+    check_local_user_valid,
+    check_private_messages_enabled,
+    get_url_blocklist,
+    process_markdown,
+    slur_regex,
+  },
 };
-use lemmy_db_schema::source::private_message::{PrivateMessage, PrivateMessageUpdateForm};
+use lemmy_db_schema::{
+  source::{
+    person::PersonActions,
+    private_message::{PrivateMessage, PrivateMessageUpdateForm},
+  },
+  traits::Blockable,
+};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_private_message::{
   PrivateMessageView,
@@ -47,6 +59,15 @@ pub async fn edit_private_message(
   )
   .await?;
   is_valid_body_field(&content, false)?;
+
+  PersonActions::read_block(
+    &mut context.pool(),
+    orig_private_message.recipient_id,
+    local_user_view.person.id,
+  )
+  .await?;
+
+  check_private_messages_enabled(&local_user_view)?;
 
   let private_message_id = data.private_message_id;
   let mut form = PrivateMessageUpdateForm {

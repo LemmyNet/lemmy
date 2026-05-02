@@ -487,6 +487,7 @@ mod tests {
     let comment_form = CommentInsertForm::new(
       inserted_person.id,
       inserted_post.id,
+      inserted_community.id,
       "A test comment".into(),
     );
     let inserted_comment = Comment::create(pool, &comment_form, None).await?;
@@ -496,6 +497,7 @@ mod tests {
       content: "A test comment".into(),
       creator_id: inserted_person.id,
       post_id: inserted_post.id,
+      community_id: inserted_community.id,
       removed: false,
       deleted: false,
       path: Ltree(format!("0.{}", inserted_comment.id)),
@@ -524,6 +526,7 @@ mod tests {
     let child_comment_form = CommentInsertForm::new(
       inserted_person.id,
       inserted_post.id,
+      inserted_community.id,
       "A child comment".into(),
     );
     let inserted_child_comment =
@@ -604,6 +607,7 @@ mod tests {
     let comment_form = CommentInsertForm::new(
       inserted_person.id,
       inserted_post.id,
+      inserted_community.id,
       "A test comment".into(),
     );
     let inserted_comment = Comment::create(pool, &comment_form, None).await?;
@@ -611,6 +615,7 @@ mod tests {
     let child_comment_form = CommentInsertForm::new(
       inserted_person.id,
       inserted_post.id,
+      inserted_community.id,
       "A test comment".into(),
     );
     let _inserted_child_comment =
@@ -693,12 +698,17 @@ mod tests {
     let parent_comment_form = CommentInsertForm::new(
       inserted_person.id,
       inserted_post.id,
+      inserted_community.id,
       "Top level".to_string(),
     );
     let inserted_parent_comment = Comment::create(pool, &parent_comment_form, None).await?;
 
-    let child_comment_form =
-      CommentInsertForm::new(inserted_person.id, inserted_post.id, "Child".to_string());
+    let child_comment_form = CommentInsertForm::new(
+      inserted_person.id,
+      inserted_post.id,
+      inserted_community.id,
+      "Child".to_string(),
+    );
     let inserted_child_comment = Comment::create(
       pool,
       &child_comment_form,
@@ -709,6 +719,7 @@ mod tests {
     let grandchild_comment_form = CommentInsertForm::new(
       inserted_person.id,
       inserted_post.id,
+      inserted_community.id,
       "Grandchild".to_string(),
     );
     let _inserted_grandchild_comment = Comment::create(
@@ -758,12 +769,17 @@ mod tests {
     let comment_toplevel1_form = CommentInsertForm::new(
       inserted_person.id,
       inserted_post.id,
+      inserted_community.id,
       "Top level".to_string(),
     );
     let inserted_comment_toplevel1 = Comment::create(pool, &comment_toplevel1_form, None).await?;
 
-    let child_comment_form =
-      CommentInsertForm::new(inserted_person.id, inserted_post.id, "Child".to_string());
+    let child_comment_form = CommentInsertForm::new(
+      inserted_person.id,
+      inserted_post.id,
+      inserted_community.id,
+      "Child".to_string(),
+    );
     let _inserted_child_comment = Comment::create(
       pool,
       &child_comment_form,
@@ -774,6 +790,7 @@ mod tests {
     let comment_toplevel2_form = CommentInsertForm::new(
       inserted_person.id,
       inserted_post.id,
+      inserted_community.id,
       "Top level 2".to_string(),
     );
     let _inserted_comment_toplevel2 = Comment::create(pool, &comment_toplevel2_form, None).await?;

@@ -19,6 +19,7 @@ pub async fn list_person_saved(
 
   let saved = PersonSavedCombinedQuery {
     type_: data.type_,
+    search_term: data.search_term,
     page_cursor: data.page_cursor,
     limit: data.limit,
     no_limit: None,

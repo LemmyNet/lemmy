@@ -36,57 +36,27 @@ use lemmy_db_schema_file::{
 
 #[diesel::dsl::auto_type(no_type_alias)]
 pub fn report_combined_joins(my_person_id: PersonId, local_instance_id: InstanceId) -> _ {
-  // The item creator needs to be person::id, otherwise all the creator actions like
-  // creator_banned will be wrong.
+  // The item_creator_id, report_creator_id, resolver_id, post_id, comment_id,
+  // community_id, are all copied in the triggers from their source tables.
+  //
+  // The item creator needs to be person::id, otherwise all the creator actions like creator_banned
+  // will be wrong.
   let item_creator = person::id;
   let report_creator = aliases::person1.field(person::id);
-
   let resolver = aliases::person2.field(person::id).nullable();
-
-  let comment_join = comment::table.on(comment_report::comment_id.eq(comment::id));
-  let private_message_join =
-    private_message::table.on(private_message_report::private_message_id.eq(private_message::id));
-
-  let post_join = post::table.on(
-    post_report::post_id
-      .eq(post::id)
-      .or(comment::post_id.eq(post::id)),
-  );
 
   let community_actions_join = community_actions::table.on(
     community_actions::community_id
-      .eq(community::id)
+      .nullable()
+      .eq(report_combined::community_id)
       .and(community_actions::person_id.eq(my_person_id)),
   );
 
-  let report_creator_join = aliases::person1.on(
-    post_report::creator_id
-      .eq(report_creator)
-      .or(comment_report::creator_id.eq(report_creator))
-      .or(private_message_report::creator_id.eq(report_creator))
-      .or(community_report::creator_id.eq(report_creator)),
-  );
-
-  let item_creator_join = person::table.on(
-    post::creator_id
-      .eq(item_creator)
-      .or(comment::creator_id.eq(item_creator))
-      .or(private_message::creator_id.eq(item_creator)),
-  );
-
-  let resolver_join = aliases::person2.on(
-    private_message_report::resolver_id
-      .eq(resolver)
-      .or(post_report::resolver_id.eq(resolver))
-      .or(comment_report::resolver_id.eq(resolver))
-      .or(community_report::resolver_id.eq(resolver)),
-  );
-
-  let community_join = community::table.on(
-    community_report::community_id
-      .eq(community::id)
-      .or(post::community_id.eq(community::id)),
-  );
+  let item_creator_join =
+    person::table.on(item_creator.nullable().eq(report_combined::item_creator_id));
+  let report_creator_join =
+    aliases::person1.on(report_creator.eq(report_combined::report_creator_id));
+  let resolver_join = aliases::person2.on(resolver.eq(report_combined::resolver_id));
 
   let local_user_join = local_user::table.on(
     item_creator
@@ -97,7 +67,8 @@ pub fn report_combined_joins(my_person_id: PersonId, local_instance_id: Instance
   let creator_community_actions_join = creator_community_actions.on(
     creator_community_actions
       .field(community_actions::community_id)
-      .eq(post::community_id)
+      .nullable()
+      .eq(report_combined::community_id)
       .and(
         creator_community_actions
           .field(community_actions::person_id)
@@ -109,7 +80,8 @@ pub fn report_combined_joins(my_person_id: PersonId, local_instance_id: Instance
 
   let post_actions_join = post_actions::table.on(
     post_actions::post_id
-      .eq(post::id)
+      .nullable()
+      .eq(report_combined::post_id)
       .and(post_actions::person_id.eq(my_person_id)),
   );
 
@@ -121,7 +93,8 @@ pub fn report_combined_joins(my_person_id: PersonId, local_instance_id: Instance
 
   let comment_actions_join = comment_actions::table.on(
     comment_actions::comment_id
-      .eq(comment::id)
+      .nullable()
+      .eq(report_combined::comment_id)
       .and(comment_actions::person_id.eq(my_person_id)),
   );
 
@@ -131,12 +104,12 @@ pub fn report_combined_joins(my_person_id: PersonId, local_instance_id: Instance
     .left_join(private_message_report::table)
     .left_join(community_report::table)
     .inner_join(report_creator_join)
-    .left_join(comment_join)
-    .left_join(private_message_join)
-    .left_join(post_join)
+    .left_join(comment::table)
+    .left_join(private_message::table)
+    .left_join(post::table)
     .left_join(item_creator_join)
     .left_join(resolver_join)
-    .left_join(community_join)
+    .left_join(community::table)
     .left_join(creator_community_actions_join)
     .left_join(creator_home_instance_actions_join())
     .left_join(creator_local_instance_actions_join)

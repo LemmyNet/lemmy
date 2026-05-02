@@ -120,6 +120,7 @@ pub struct LocalSite {
 #[cfg_attr(feature = "full", diesel(table_name = local_site))]
 pub struct LocalSiteInsertForm {
   pub site_id: SiteId,
+  pub system_account: PersonId,
   #[new(default)]
   pub site_setup: Option<bool>,
   #[new(default)]
@@ -172,8 +173,6 @@ pub struct LocalSiteInsertForm {
   pub email_notifications_disabled: bool,
   #[new(default)]
   pub suggested_multi_community_id: Option<MultiCommunityId>,
-  #[new(default)]
-  pub system_account: Option<PersonId>,
   #[new(default)]
   pub image_mode: Option<ImageMode>,
   #[new(default)]

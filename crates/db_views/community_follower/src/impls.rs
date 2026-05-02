@@ -27,9 +27,9 @@ impl CommunityFollowerView {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins() -> _ {
     community_actions::table
-      .filter(community_actions::followed_at.is_not_null())
       .inner_join(community::table)
       .inner_join(person::table.on(community_actions::person_id.eq(person::id)))
+      .filter(community_actions::followed_at.is_not_null())
   }
   /// return a list of local community ids and remote inboxes that at least one user of the given
   /// instance has followed

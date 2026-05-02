@@ -28,6 +28,7 @@ use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
     community::{Community, CommunityActions, CommunityModeratorForm},
+    local_user::LocalUser,
     modlog::{Modlog, ModlogInsertForm},
     post::{Post, PostUpdateForm},
   },
@@ -106,7 +107,7 @@ impl Activity for CollectionRemove {
   async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     let community = self.community(context).await?;
     verify_visibility(&self.to, &self.cc, &community)?;
-    verify_mod_action(&self.actor, &community, context).await?;
+    verify_mod_action(&self.actor, &self.object, &community, context).await?;
     check_community_deleted_or_removed(&community)?;
     Ok(())
   }
@@ -117,9 +118,23 @@ impl Activity for CollectionRemove {
 
     match collection_type {
       CollectionType::Moderators => {
+        let actor = self.actor.dereference(context).await?;
         let remove_mod = ObjectId::<ApubPerson>::from(self.object)
           .dereference(context)
           .await?;
+
+        // If it's a local community, check if the actor is a higher mod than the removed mod.
+        // For remote communities we trust that the mod info is correct (because we may not have
+        // complete info to validate it).
+        if community.local {
+          LocalUser::is_higher_mod_or_admin_check(
+            &mut context.pool(),
+            community.id,
+            actor.id,
+            vec![remove_mod.id],
+          )
+          .await?;
+        }
 
         let form = CommunityModeratorForm::new(community.id, remove_mod.id);
         CommunityActions::leave(&mut context.pool(), &form).await?;

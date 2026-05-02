@@ -15,6 +15,7 @@ pub mod impls;
 /// Gets your saved posts and comments
 pub struct ListPersonSaved {
   pub type_: Option<PersonContentType>,
+  pub search_term: Option<String>,
   pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }

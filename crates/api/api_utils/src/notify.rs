@@ -343,8 +343,7 @@ pub fn notify_mod_action(actions: Vec<Modlog>, context: &LemmyContext) {
         continue;
       };
 
-      let form =
-        NotificationInsertForm::new_mod_action(action.id, local_recipient.person.id, action.mod_id);
+      let form = NotificationInsertForm::new_mod_action(&action, local_recipient.person.id);
       let notifications = Notification::create(&mut context.pool(), &[form]).await?;
       plugin_hook_notification(notifications, &context).await?;
 
@@ -439,8 +438,12 @@ mod tests {
       PostInsertForm::new("jessica post prv".into(), jessica.id, community.id);
     let jessica_post = Post::create(pool, &jessica_post_form).await?;
 
-    let timmy_comment_form =
-      CommentInsertForm::new(timmy.person.id, timmy_post.id, "timmy comment prv".into());
+    let timmy_comment_form = CommentInsertForm::new(
+      timmy.person.id,
+      timmy_post.id,
+      community.id,
+      "timmy comment prv".into(),
+    );
     let timmy_comment = Comment::create(pool, &timmy_comment_form, None).await?;
 
     Ok(Data {
@@ -514,6 +517,7 @@ mod tests {
     let sara_comment_form = CommentInsertForm::new(
       data.sara.person.id,
       data.timmy_post.id,
+      data.community.id,
       "@timmy_notify@lemmy-alpha".into(),
     );
     let sara_comment =
@@ -746,12 +750,17 @@ mod tests {
     let data = init_data(pool).await?;
     setup_private_messages(&data, &context).await?;
 
-    let timmy_messages: Vec<_> = NotificationQuery::default()
-      .list(pool, &data.timmy.person)
-      .await?
-      .into_iter()
-      .filter_map(to_pm)
-      .collect();
+    let timmy_messages: Vec<_> = NotificationQuery {
+      type_: Some(NotificationTypeFilter::Other(
+        NotificationType::PrivateMessage,
+      )),
+      ..NotificationQuery::default()
+    }
+    .list(pool, &data.timmy.person)
+    .await?
+    .into_iter()
+    .filter_map(to_pm)
+    .collect();
 
     // The read even shows timmy's sent messages
     assert_length!(3, &timmy_messages);

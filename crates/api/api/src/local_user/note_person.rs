@@ -1,4 +1,5 @@
-use actix_web::web::{Data, Json};
+use activitypub_federation::config::Data;
+use actix_web::web::Json;
 use lemmy_api_utils::{
   context::LemmyContext,
   utils::{check_local_user_valid, get_url_blocklist, process_markdown, slur_regex},

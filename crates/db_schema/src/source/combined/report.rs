@@ -1,13 +1,18 @@
 use crate::newtypes::{
+  CommentId,
   CommentReportId,
+  CommunityId,
   CommunityReportId,
+  PostId,
   PostReportId,
+  PrivateMessageId,
   PrivateMessageReportId,
   ReportCombinedId,
 };
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;
+use lemmy_db_schema_file::PersonId;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::report_combined;
 use serde::{Deserialize, Serialize};
@@ -31,4 +36,11 @@ pub struct ReportCombined {
   pub private_message_report_id: Option<PrivateMessageReportId>,
   pub community_report_id: Option<CommunityReportId>,
   pub resolved: bool,
+  pub item_creator_id: Option<PersonId>,
+  pub report_creator_id: PersonId,
+  pub resolver_id: Option<PersonId>,
+  pub post_id: Option<PostId>,
+  pub comment_id: Option<CommentId>,
+  pub community_id: Option<CommunityId>,
+  pub private_message_id: Option<PrivateMessageId>,
 }

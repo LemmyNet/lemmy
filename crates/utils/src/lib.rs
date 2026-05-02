@@ -1,15 +1,15 @@
-use cfg_if::cfg_if;
 use chrono::Utc;
 use std::{cmp::min, sync::LazyLock};
 
-cfg_if! {
-  if #[cfg(feature = "full")] {
+cfg_select! {
+  feature = "full" => {
     pub mod cache_header;
     pub mod rate_limit;
     pub mod response;
     pub mod settings;
     pub mod utils;
   }
+  _ => {}
 }
 
 pub mod error;
@@ -73,54 +73,53 @@ macro_rules! location_info {
   };
 }
 
-cfg_if! {
-  if #[cfg(feature = "full")] {
-use moka::future::Cache;use std::fmt::Debug;use std::hash::Hash;
-use serde_json::Value;
+cfg_select! {
+  feature = "full" => {
+    use moka::future::Cache;use std::fmt::Debug;use std::hash::Hash;
+    use serde_json::Value;
 
-/// Only include a basic context to save space and bandwidth. The main context is hosted statically
-/// on join-lemmy.org. Include activitystreams explicitly for better compat, but this could
-/// theoretically also be moved.
-pub static FEDERATION_CONTEXT: LazyLock<Value> = LazyLock::new(|| {
-  Value::Array(vec![
-    Value::String("https://join-lemmy.org/context.json".to_string()),
-    Value::String("https://www.w3.org/ns/activitystreams".to_string()),
-  ])
-});
+    /// Only include a basic context to save space and bandwidth. The main context is hosted statically
+    /// on join-lemmy.org. Include activitystreams explicitly for better compat, but this could
+    /// theoretically also be moved.
+    pub static FEDERATION_CONTEXT: LazyLock<Value> = LazyLock::new(|| {
+      Value::Array(vec![
+        Value::String("https://join-lemmy.org/context.json".to_string()),
+        Value::String("https://www.w3.org/ns/activitystreams".to_string()),
+      ])
+    });
 
-/// tokio::spawn, but accepts a future that may fail and also
-/// * logs errors
-/// * attaches the spawned task to the tracing span of the caller for better logging
-pub fn spawn_try_task(
-  task: impl futures::Future<Output = Result<(), error::LemmyError>> + Send + 'static,
-) {
-  use tracing::Instrument;
-  tokio::spawn(
-    async {
-      if let Err(e) = task.await {
-        tracing::warn!("error in spawn: {e}");
-      }
+    /// tokio::spawn, but accepts a future that may fail and also
+    /// * logs errors
+    /// * attaches the spawned task to the tracing span of the caller for better logging
+    pub fn spawn_try_task(
+      task: impl futures::Future<Output = Result<(), error::LemmyError>> + Send + 'static,
+    ) {
+      use tracing::Instrument;
+      tokio::spawn(
+        async {
+          if let Err(e) = task.await {
+            tracing::warn!("error in spawn: {e}");
+          }
+        }
+        .in_current_span(), /* this makes sure the inner tracing gets the same context as where
+                            * spawn was called */
+      );
     }
-    .in_current_span(), /* this makes sure the inner tracing gets the same context as where
-                         * spawn was called */
-  );
-}
 
-pub fn build_cache<K, V>() -> Cache<K, V>
-where
-  K: Debug + Eq + Hash + Send + Sync + 'static,
-  V: Debug + Clone + Send + Sync + 'static,
-{
-  Cache::<K, V>::builder()
-    .max_capacity(1)
-    .time_to_live(CACHE_DURATION_API)
-    .build()
-}
+    pub fn build_cache<K, V>() -> Cache<K, V>
+    where
+      K: Debug + Eq + Hash + Send + Sync + 'static,
+      V: Debug + Clone + Send + Sync + 'static,
+    {
+      Cache::<K, V>::builder()
+        .max_capacity(1)
+        .time_to_live(CACHE_DURATION_API)
+        .build()
+    }
 
-#[cfg(feature = "full")]
-pub type CacheLock<T> = std::sync::LazyLock<Cache<(), T>>;
-
+    pub type CacheLock<T> = std::sync::LazyLock<Cache<(), T>>;
   }
+  _ => {}
 }
 
 /// Calculate how long to sleep until next federation send based on how many

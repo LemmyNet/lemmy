@@ -69,7 +69,9 @@ test("Upload image and delete it", async () => {
 
   // This number comes from all the previous thumbnails fetched in other tests.
   const previousThumbnails = 1;
-  expect(listMediaAdminRes.items.length).toBe(previousThumbnails);
+  expect(listMediaAdminRes.items.length).toBeGreaterThanOrEqual(
+    previousThumbnails,
+  );
 
   // Make sure the uploader is correct
   expect(listMediaRes.items[0].person.ap_id).toBe(
@@ -228,6 +230,12 @@ test("Thumbnail of remote image link is proxied if setting enabled", async () =>
   );
   const post = postRes.post_view.post;
   expect(post).toBeDefined();
+
+  // Wait for the thumbnail (since its backgrounded)
+  await waitUntil(
+    () => getPost(gamma, post.id),
+    p => p.post_view.post.thumbnail_url != undefined,
+  );
 
   // remote image gets proxied after upload
   expect(

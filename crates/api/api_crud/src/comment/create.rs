@@ -107,7 +107,7 @@ pub async fn create_comment(
   let mut comment_form = CommentInsertForm {
     language_id: data.language_id,
     federation_pending: Some(community_use_pending(&post_view.community, &context).await),
-    ..CommentInsertForm::new(my_person_id, data.post_id, content.clone())
+    ..CommentInsertForm::new(my_person_id, post_id, community_id, content.clone())
   };
   comment_form = plugin_hook_before("local_comment_before_create", comment_form).await?;
   validate_post_language(&mut context.pool(), comment_form.language_id, community_id).await?;
