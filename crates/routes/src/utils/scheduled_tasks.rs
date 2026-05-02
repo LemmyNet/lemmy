@@ -707,7 +707,6 @@ mod tests {
   use lemmy_diesel_utils::traits::Crud;
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use pretty_assertions::assert_eq;
-  use reqwest_middleware::ClientBuilder;
 
   #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
   async fn test_nodeinfo_lemmy_ml() -> LemmyResult<()> {
