@@ -40,25 +40,25 @@ pub fn creator_local_user_admin_join() -> _ {
 pub fn creator_home_instance_actions_join() -> _ {
   creator_home_instance_actions.on(
     creator_home_instance_actions
-      .field(instance_actions::instance_id)
-      .eq(person::instance_id)
+      .field(instance_actions::person_id)
+      .eq(person::id)
       .and(
         creator_home_instance_actions
-          .field(instance_actions::person_id)
-          .eq(person::id),
+          .field(instance_actions::instance_id)
+          .eq(person::instance_id),
       ),
   )
 }
 #[diesel::dsl::auto_type]
 pub fn creator_community_instance_actions_join() -> _ {
   creator_community_instance_actions.on(
-    creator_home_instance_actions
-      .field(instance_actions::instance_id)
-      .eq(community::instance_id)
+    creator_community_instance_actions
+      .field(instance_actions::person_id)
+      .eq(person::id)
       .and(
-        creator_community_instance_actions
-          .field(instance_actions::person_id)
-          .eq(person::id),
+        creator_home_instance_actions
+          .field(instance_actions::instance_id)
+          .eq(community::instance_id),
       ),
   )
 }
@@ -70,12 +70,12 @@ pub fn creator_community_instance_actions_join() -> _ {
 pub fn creator_local_instance_actions_join(local_instance_id: InstanceId) -> _ {
   creator_local_instance_actions.on(
     creator_local_instance_actions
-      .field(instance_actions::instance_id)
-      .eq(local_instance_id)
+      .field(instance_actions::person_id)
+      .eq(person::id)
       .and(
         creator_local_instance_actions
-          .field(instance_actions::person_id)
-          .eq(person::id),
+          .field(instance_actions::instance_id)
+          .eq(local_instance_id),
       ),
   )
 }
@@ -84,9 +84,10 @@ pub fn creator_local_instance_actions_join(local_instance_id: InstanceId) -> _ {
 #[diesel::dsl::auto_type]
 pub fn my_instance_communities_actions_join(my_person_id: Option<PersonId>) -> _ {
   instance_actions::table.on(
-    instance_actions::instance_id
-      .eq(community::instance_id)
-      .and(instance_actions::person_id.nullable().eq(my_person_id)),
+    instance_actions::person_id
+      .nullable()
+      .eq(my_person_id)
+      .and(instance_actions::instance_id.eq(community::instance_id)),
   )
 }
 
@@ -94,9 +95,10 @@ pub fn my_instance_communities_actions_join(my_person_id: Option<PersonId>) -> _
 #[diesel::dsl::auto_type]
 pub fn my_instance_persons_actions_join(my_person_id: Option<PersonId>) -> _ {
   instance_actions::table.on(
-    instance_actions::instance_id
-      .eq(person::instance_id)
-      .and(instance_actions::person_id.nullable().eq(my_person_id)),
+    instance_actions::person_id
+      .nullable()
+      .eq(my_person_id)
+      .and(instance_actions::instance_id.eq(person::instance_id)),
   )
 }
 
@@ -106,13 +108,13 @@ pub fn my_instance_persons_actions_join(my_person_id: Option<PersonId>) -> _ {
 pub fn my_instance_persons_actions_join_1(my_person_id: Option<PersonId>) -> _ {
   my_instance_persons_actions.on(
     my_instance_persons_actions
-      .field(instance_actions::instance_id)
-      .eq(person::instance_id)
+      .field(instance_actions::person_id)
+      .nullable()
+      .eq(my_person_id)
       .and(
         my_instance_persons_actions
-          .field(instance_actions::person_id)
-          .nullable()
-          .eq(my_person_id),
+          .field(instance_actions::instance_id)
+          .eq(person::instance_id),
       ),
   )
 }
@@ -125,36 +127,40 @@ pub fn image_details_join() -> _ {
 #[diesel::dsl::auto_type]
 pub fn my_community_actions_join(my_person_id: Option<PersonId>) -> _ {
   community_actions::table.on(
-    community_actions::community_id
-      .eq(community::id)
-      .and(community_actions::person_id.nullable().eq(my_person_id)),
+    community_actions::person_id
+      .nullable()
+      .eq(my_person_id)
+      .and(community_actions::community_id.eq(community::id)),
   )
 }
 
 #[diesel::dsl::auto_type]
 pub fn my_post_actions_join(my_person_id: Option<PersonId>) -> _ {
   post_actions::table.on(
-    post_actions::post_id
-      .eq(post::id)
-      .and(post_actions::person_id.nullable().eq(my_person_id)),
+    post_actions::person_id
+      .nullable()
+      .eq(my_person_id)
+      .and(post_actions::post_id.eq(post::id)),
   )
 }
 
 #[diesel::dsl::auto_type]
 pub fn my_comment_actions_join(my_person_id: Option<PersonId>) -> _ {
   comment_actions::table.on(
-    comment_actions::comment_id
-      .eq(comment::id)
-      .and(comment_actions::person_id.nullable().eq(my_person_id)),
+    comment_actions::person_id
+      .nullable()
+      .eq(my_person_id)
+      .and(comment_actions::comment_id.eq(comment::id)),
   )
 }
 
 #[diesel::dsl::auto_type]
 pub fn my_person_actions_join(my_person_id: Option<PersonId>) -> _ {
   person_actions::table.on(
-    person_actions::target_id
-      .eq(person::id)
-      .and(person_actions::person_id.nullable().eq(my_person_id)),
+    person_actions::person_id
+      .nullable()
+      .eq(my_person_id)
+      .and(person_actions::target_id.eq(person::id)),
   )
 }
 
@@ -185,12 +191,12 @@ pub fn my_multi_community_follower_join(my_person_id: Option<PersonId>) -> _ {
 pub fn creator_community_actions_join() -> _ {
   creator_community_actions.on(
     creator_community_actions
-      .field(community_actions::community_id)
-      .eq(community::id)
+      .field(community_actions::person_id)
+      .eq(person::id)
       .and(
         creator_community_actions
-          .field(community_actions::person_id)
-          .eq(person::id),
+          .field(community_actions::community_id)
+          .eq(community::id),
       ),
   )
 }

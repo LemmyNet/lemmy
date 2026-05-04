@@ -266,7 +266,7 @@ steps:
     when:
       - event: [tag, cron]
         # Ensures that its a full semver release, and not a pre-release one like 1.0.0-alpha.1
-        evaluate: '"${CI_COMMIT_TAG}" matches ''^([0-9]\\\d*).([0-9]\\\d*).([0-9]\\\d*)$'''
+        evaluate: '"${CI_COMMIT_TAG}" matches ''^([0-9]+)\\\.([0-9]+)\\\.([0-9]+)(-beta\\\.[0-9]+)?$'''
 
   # Only publish arm builds on non-pre-release builds
   publish_release_docker_amd64:
