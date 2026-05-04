@@ -1,4 +1,4 @@
-use crate::utils::validation::clean_urls_in_text;
+use super::clean_urls_in_text;
 use markdown_it::{
   MarkdownIt,
   plugins::cmark::{
@@ -50,7 +50,7 @@ pub fn clean_urls_skip_code_links(src: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-  use super::*;
+  use super::clean_urls_skip_code_links;
   use pretty_assertions::assert_eq;
 
   const SOURCE: &str = "https://example.com/path/123?utm_content=buffercf3b2&utm_medium=social&user+name=random+user&id=123\n\n[link](https://example.com/path/123?utm_content=buffercf3b2&utm_medium=social&user+name=random+user&id=123)\n\n```javascript\nconst url = `https://example.com?foo=${bar}`\n```\n`const url = \"https://example.com?foo=${bar}\"`\n\n    const url = `https://example.com/?foo=${bar}`    \n";
