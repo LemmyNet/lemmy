@@ -49,7 +49,7 @@ pub async fn search(
   let time_range_seconds = data.time_range_seconds;
   let search_url_only = data.post_url_only;
   let show_nsfw = data.show_nsfw;
-  let page_cursors = from_single_cursor(data.page_cursor, search_type);
+  let page_cursors = from_single_cursor(data.page_cursor.clone(), search_type);
   let limit = data.limit;
 
   let community_id = resolve_community_identifier(
@@ -70,6 +70,7 @@ pub async fn search(
 
   let local_user = local_user_view.as_ref().map(|u| &u.local_user);
 
+  let pool = &mut context.pool();
   let posts_query = PostQuery {
     search_term: search_term.clone(),
     search_title_only,
@@ -83,8 +84,10 @@ pub async fn search(
     page_cursor: page_cursors[0].clone(),
     limit,
     ..Default::default()
-  };
+  }
+  .list(pool, &site, &local_site);
 
+  let pool = &mut context.pool();
   let comments_query = CommentQuery {
     search_term: search_term.clone(),
     local_user,
@@ -96,8 +99,10 @@ pub async fn search(
     page_cursor: page_cursors[1].clone(),
     limit,
     ..Default::default()
-  };
+  }
+  .list(pool, &site, &local_site);
 
+  let pool = &mut context.pool();
   let persons_query = PersonQuery {
     search_term: search_term.clone(),
     search_title_only,
@@ -106,8 +111,10 @@ pub async fn search(
     sort: Some(PersonSortType::New),
     page_cursor: page_cursors[2].clone(),
     limit,
-  };
+  }
+  .list(&site, pool);
 
+  let pool = &mut context.pool();
   let communities_query = CommunityQuery {
     search_term: search_term.clone(),
     search_title_only,
@@ -119,8 +126,10 @@ pub async fn search(
     page_cursor: page_cursors[3].clone(),
     limit,
     ..Default::default()
-  };
+  }
+  .list(pool, &site, &local_site);
 
+  let pool = &mut context.pool();
   let multi_communities_query = MultiCommunityQuery {
     search_term,
     search_title_only,
@@ -132,7 +141,8 @@ pub async fn search(
     page_cursor: page_cursors[4].clone(),
     limit,
     ..Default::default()
-  };
+  }
+  .list(pool);
 
   let mut posts = Vec::new();
   let mut comments = Vec::new();
@@ -151,41 +161,40 @@ pub async fn search(
   let search_all_no_community_or_creator = search_all && !community_or_creator_included;
 
   if (search_type == SearchType::Posts || search_all)
-    && let Ok(x) = posts_query
-      .list(&mut context.pool(), &site, &local_site)
-      .await
+    && (data.page_cursor.is_none() || page_cursors[0].is_some())
+    && let Ok(x) = posts_query.await
   {
     posts = x.items;
     next_page[0] = x.next_page;
     prev_page[0] = x.prev_page;
   }
   if (search_type == SearchType::Comments || search_all)
-    && let Ok(x) = comments_query
-      .list(&mut context.pool(), &site, &local_site)
-      .await
+    && (data.page_cursor.is_none() || page_cursors[1].is_some())
+    && let Ok(x) = comments_query.await
   {
     comments = x.items;
     next_page[1] = x.next_page;
     prev_page[1] = x.prev_page;
   }
-  if (search_type == SearchType::Communities || search_all_no_community_or_creator)
-    && let Ok(x) = communities_query
-      .list(&mut context.pool(), &site, &local_site)
-      .await
+  if (search_type == SearchType::Users || search_all_no_community_or_creator)
+    && (data.page_cursor.is_none() || page_cursors[2].is_some())
+    && let Ok(x) = persons_query.await
   {
-    communities = x.items;
+    persons = x.items;
     next_page[2] = x.next_page;
     prev_page[2] = x.prev_page;
   }
-  if (search_type == SearchType::Users || search_all_no_community_or_creator)
-    && let Ok(x) = persons_query.list(&site, &mut context.pool()).await
+  if (search_type == SearchType::Communities || search_all_no_community_or_creator)
+    && (data.page_cursor.is_none() || page_cursors[3].is_some())
+    && let Ok(x) = communities_query.await
   {
-    persons = x.items;
+    communities = x.items;
     next_page[3] = x.next_page;
     prev_page[3] = x.prev_page;
   }
   if (search_type == SearchType::MultiCommunities || search_all_no_community_or_creator)
-    && let Ok(x) = multi_communities_query.list(&mut context.pool()).await
+    && (data.page_cursor.is_none() || page_cursors[4].is_some())
+    && let Ok(x) = multi_communities_query.await
   {
     multi_communities = x.items;
     next_page[4] = x.next_page;
