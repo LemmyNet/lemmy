@@ -43,15 +43,13 @@ pub struct BlockUser {
 
 impl InCommunity for BlockUser {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
-    if let Some(audience) = &self.audience {
-      verify_urls_match(audience.inner(), self.target.inner())?;
-      return audience.dereference(context).await;
-    }
     let target = self.target.dereference(context).await?;
-    let community = match target {
-      SiteOrCommunity::Right(c) => c,
-      SiteOrCommunity::Left(_) => return Err(anyhow!("activity is not in community").into()),
+    let SiteOrCommunity::Right(community) = target else {
+      return Err(anyhow!("activity is not in community").into());
     };
+    if let Some(audience) = &self.audience {
+      verify_urls_match(audience.inner(), community.ap_id.inner())?;
+    }
     Ok(community)
   }
 }

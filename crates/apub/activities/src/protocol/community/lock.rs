@@ -3,7 +3,7 @@ use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
   kinds::activity::UndoType,
-  protocol::helpers::deserialize_one_or_many,
+  protocol::{helpers::deserialize_one_or_many, verification::verify_urls_match},
 };
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
@@ -56,11 +56,11 @@ pub struct UndoLockPageOrNote {
 
 impl InCommunity for LockPageOrNote {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
-    if let Some(audience) = &self.audience {
-      return audience.dereference(context).await;
-    }
     let post_or_comment = self.object.dereference(context).await?;
     let community = post_or_comment_community(&post_or_comment, context).await?;
+    if let Some(audience) = &self.audience {
+      verify_urls_match(audience.inner(), community.ap_id.inner())?;
+    }
     Ok(community.into())
   }
 }
