@@ -26,9 +26,7 @@ pub(crate) async fn send_create_or_update_pm(
 
   // get object_id
   let pm = &pm_view.private_message;
-  let timestamp = pm.updated_at.unwrap_or(pm.published_at);
-  let mut object_id = (*pm.ap_id.0).clone();
-  object_id.set_fragment(Some(&timestamp.to_rfc3339()));
+  let object_id = pm.activity_object_id();
 
   let id = generate_activity_id(kind.clone(), Some(&object_id), &context)?;
   let create_or_update = CreateOrUpdatePrivateMessage {
