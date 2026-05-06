@@ -27,6 +27,7 @@ pub async fn create_invitation(
   .count(pool)
   .await?;
 
+  // admins bypass the max invite per user limit
   if is_admin(&local_user_view).is_err()
     && active_invite_count >= i64::from(local_site.max_invites_per_user_allowed)
   {
