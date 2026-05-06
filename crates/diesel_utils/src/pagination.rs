@@ -23,7 +23,7 @@ use {
 /// with randomized character order, to prevent clients from parsing or modifying cursor data.
 #[cfg(feature = "full")]
 #[expect(clippy::expect_used)]
-static BASE64_ENGINE: LazyLock<GeneralPurpose> = LazyLock::new(|| {
+pub static BASE64_ENGINE: LazyLock<GeneralPurpose> = LazyLock::new(|| {
   let alphabet = Alphabet::new("AphruVFwvCetlckdZ2g-foxXBGNbyHnD96qUj3KL_YsE7P1OQiaIR0z4T58mMWJS")
     .expect("create base64 alphabet");
   GeneralPurpose::new(&alphabet, NO_PAD)

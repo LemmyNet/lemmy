@@ -2,7 +2,7 @@ use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
   kinds::activity::FlagType,
-  protocol::helpers::deserialize_one,
+  protocol::{helpers::deserialize_one, verification::verify_urls_match},
 };
 use either::Either;
 use lemmy_api_utils::context::LemmyContext;
@@ -94,12 +94,13 @@ impl ReportObject {
 
 impl InCommunity for Report {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
+    let to = self.to[0].dereference(context).await?;
+    let Either::Right(community) = to else {
+      return Err(LemmyErrorType::NotFound.into());
+    };
     if let Some(audience) = &self.audience {
-      return audience.dereference(context).await;
+      verify_urls_match(audience.inner(), community.ap_id.inner())?;
     }
-    match self.to[0].dereference(context).await? {
-      Either::Left(_) => Err(LemmyErrorType::NotFound.into()),
-      Either::Right(c) => Ok(c),
-    }
+    Ok(community)
   }
 }

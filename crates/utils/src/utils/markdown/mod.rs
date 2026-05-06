@@ -1,11 +1,17 @@
 use crate::error::{LemmyErrorType, LemmyResult};
+use clearurls::UrlCleaner;
 use markdown_it::MarkdownIt;
 use regex::RegexSet;
 use std::sync::LazyLock;
-
+pub mod code_links;
 mod identifier_rule;
 pub mod image_links;
 mod link_rule;
+use url::Url;
+
+#[expect(clippy::expect_used)]
+static URL_CLEANER: LazyLock<UrlCleaner> =
+  LazyLock::new(|| UrlCleaner::from_embedded_rules().expect("compile clearurls"));
 
 static MARKDOWN_PARSER: LazyLock<MarkdownIt> = LazyLock::new(|| {
   let mut parser = MarkdownIt::new();
@@ -31,6 +37,24 @@ pub fn markdown_check_for_blocked_urls(text: &str, blocklist: &RegexSet) -> Lemm
     return Err(LemmyErrorType::BlockedUrl.into());
   }
   Ok(())
+}
+
+/// Cleans a url of tracking parameters.
+pub fn clean_url(url: &Url) -> Url {
+  match URL_CLEANER.clear_single_url(url) {
+    Ok(res) => res.into_owned(),
+    // If there are any errors, just return the original url
+    Err(_) => url.clone(),
+  }
+}
+
+/// Cleans all the links in a string of tracking parameters.
+fn clean_urls_in_text(text: &str) -> String {
+  match URL_CLEANER.clear_text(text) {
+    Ok(res) => res.into_owned(),
+    // If there are any errors, just return the original text
+    Err(_) => text.to_owned(),
+  }
 }
 
 #[cfg(test)]
@@ -234,6 +258,37 @@ mod tests {
     assert!(markdown_check_for_blocked_urls("check out rt.computer", &set).is_ok());
     // TODO: the following should not be matched, scunthorpe problem.
     assert!(markdown_check_for_blocked_urls("rt.com.example.com", &set).is_err());
+
+    Ok(())
+  }
+
+  const URL_WITH_TRACKING: &str = "https://example.com/path/123?utm_content=buffercf3b2&utm_medium=social&user+name=random+user&id=123";
+  const URL_TRACKING_REMOVED: &str = "https://example.com/path/123?user+name=random+user&id=123";
+
+  #[test]
+  fn test_clean_url_params() -> LemmyResult<()> {
+    let url = Url::parse(URL_WITH_TRACKING)?;
+    let cleaned = clean_url(&url);
+    let expected = Url::parse(URL_TRACKING_REMOVED)?;
+    assert_eq!(expected.to_string(), cleaned.to_string());
+
+    let url = Url::parse("https://example.com/path/123")?;
+    let cleaned = clean_url(&url);
+    assert_eq!(url.to_string(), cleaned.to_string());
+
+    Ok(())
+  }
+
+  #[test]
+  fn test_clean_body() -> LemmyResult<()> {
+    let text = format!("[a link]({URL_WITH_TRACKING})");
+    let cleaned = clean_urls_in_text(&text);
+    let expected = format!("[a link]({URL_TRACKING_REMOVED})");
+    assert_eq!(expected.clone(), cleaned.clone());
+
+    let text = "[a link](https://example.com/path/123)";
+    let cleaned = clean_urls_in_text(text);
+    assert_eq!(text.to_string(), cleaned);
 
     Ok(())
   }

@@ -27,7 +27,7 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::{
   PersonId,
   aliases,
-  enums::ListingType,
+  enums::{CommunityFollowerState, CommunityVisibility, ListingType},
   schema::{comment, community, community_actions, instance, modlog, person, post},
 };
 use lemmy_diesel_utils::{
@@ -157,6 +157,16 @@ impl ModlogQuery<'_> {
         ModlogKindFilter::All => query,
         ModlogKindFilter::Other(kind) => query.filter(modlog::kind.eq(kind)),
       };
+    }
+
+    if !self.local_user.is_admin() {
+      query = query.filter(
+        community::id.is_null().or(
+          community::visibility
+            .ne(CommunityVisibility::Private)
+            .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
+        ),
+      );
     }
 
     query = match self.listing_type.unwrap_or(ListingType::All) {

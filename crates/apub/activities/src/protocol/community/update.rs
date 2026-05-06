@@ -2,7 +2,7 @@ use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
   kinds::activity::UpdateType,
-  protocol::helpers::deserialize_one_or_many,
+  protocol::{helpers::deserialize_one_or_many, verification::verify_urls_match},
 };
 use either::Either;
 use lemmy_api_utils::context::LemmyContext;
@@ -35,15 +35,13 @@ pub struct Update {
 
 impl InCommunity for Update {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
+    let Either::Left(group) = &self.object else {
+      return Err(LemmyErrorType::NotFound.into());
+    };
+    let community = group.id.dereference(context).await?;
     if let Some(audience) = &self.audience {
-      return audience.dereference(context).await;
+      verify_urls_match(audience.inner(), community.ap_id.inner())?;
     }
-    match &self.object {
-      Either::Left(c) => {
-        let community: ApubCommunity = c.id.clone().dereference(context).await?;
-        Ok(community)
-      }
-      Either::Right(_) => Err(LemmyErrorType::NotFound.into()),
-    }
+    Ok(community)
   }
 }

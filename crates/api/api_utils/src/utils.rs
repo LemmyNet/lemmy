@@ -56,9 +56,13 @@ use lemmy_utils::{
   settings::SETTINGS,
   spawn_try_task,
   utils::{
-    markdown::{image_links::markdown_rewrite_image_links, markdown_check_for_blocked_urls},
+    markdown::{
+      code_links::clean_urls_skip_code_links,
+      image_links::markdown_rewrite_image_links,
+      markdown_check_for_blocked_urls,
+    },
     slurs::remove_slurs,
-    validation::{build_and_check_regex, clean_urls_in_text},
+    validation::build_and_check_regex,
   },
 };
 use moka::future::Cache;
@@ -841,7 +845,7 @@ pub async fn process_markdown(
   context: &Data<LemmyContext>,
 ) -> LemmyResult<String> {
   let text = remove_slurs(text, slur_regex);
-  let text = clean_urls_in_text(&text);
+  let text = clean_urls_skip_code_links(&text);
 
   markdown_check_for_blocked_urls(&text, url_blocklist)?;
 

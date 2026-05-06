@@ -27,6 +27,8 @@ import {
 import { fetchFunction } from "./shared";
 import * as fs from "fs";
 
+const TIMES = 5;
+
 const defaultServerUrl = "http://localhost:8536";
 const defaultLogin = "lemmy";
 const defaultPassword = "lemmylemmy";
@@ -572,7 +574,7 @@ async function timeApiCall<T>(promise: () => Promise<T>): Promise<Result<T>> {
   };
 }
 
-async function timeApiCalls<T>(promise: () => Promise<T>, times = 10) {
+async function timeApiCalls<T>(promise: () => Promise<T>, times = TIMES) {
   let diffs = [];
   for (let i = 0; i < times; i++) {
     const diff = (await timeApiCall(promise)).diff;
