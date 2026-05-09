@@ -822,3 +822,12 @@ pub struct UnreadCountsResponse {
   pub pending_follow_count: Option<i64>,
   pub registration_application_count: Option<i64>,
 }
+
+/// Used for delete user plugin hooks
+#[derive(Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+pub struct DeleteUserForm {
+  pub person_id: PersonId,
+  pub delete_content: bool,
+}
