@@ -40,8 +40,25 @@ afterAll(async () => {
   await Promise.allSettled([unfollows(), deleteAllMedia(alpha)]);
 });
 
+function percentEncodeNonAlphanumeric(str: string): string {
+  const bytes = new TextEncoder().encode(str);
+  let result = "";
+  for (const byte of bytes) {
+    if (
+      (byte >= 0x41 && byte <= 0x5a) || // A-Z
+      (byte >= 0x61 && byte <= 0x7a) || // a-z
+      (byte >= 0x30 && byte <= 0x39)    // 0-9
+    ) {
+      result += String.fromCharCode(byte);
+    } else {
+      result += "%" + byte.toString(16).toUpperCase().padStart(2, "0");
+    }
+  }
+  return result;
+}
+
 function inlineContentDisposition(filename: string): string {
-  return `inline; filename="${filename}"`;
+  return `inline; filename="${percentEncodeNonAlphanumeric(filename)}"`;
 }
 
 function filenameFromUrl(url: string): string {

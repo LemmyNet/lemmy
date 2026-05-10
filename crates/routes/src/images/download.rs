@@ -118,11 +118,11 @@ pub(super) async fn do_get_image(
     client_res.insert_header(convert_header(name, value));
   }
 
-  if let Some(disposition) = download_filename
-    .as_deref()
-    .and_then(inline_content_disposition)
-  {
-    client_res.insert_header((actix_web::http::header::CONTENT_DISPOSITION, disposition));
+  if let Some(filename) = download_filename {
+    client_res.insert_header((
+      actix_web::http::header::CONTENT_DISPOSITION,
+      inline_content_disposition(&filename),
+    ));
   }
 
   Ok(client_res.body(BodyStream::new(res.bytes_stream())))
@@ -142,89 +142,29 @@ enum PictrsFileType {
 }
 
 /// Format a `Content-Disposition: inline` header value for the given filename.
-fn inline_content_disposition(name: &str) -> Option<String> {
-  let sanitized = sanitize_download_filename(name)?;
-
-  if sanitized.is_ascii() {
-    Some(format!("inline; filename=\"{}\"", sanitized))
-  } else {
-    // use filename* for non-ASCII names.
-    // Also provide a plain ASCII fallback (non-ASCII chars replaced with '_')
-    // for older clients that don't understand filename*.
-    let ascii_fallback: String = sanitized
-      .chars()
-      .map(|c| if c.is_ascii() { c } else { '_' })
-      .collect();
-    let encoded = utf8_percent_encode(&sanitized, NON_ALPHANUMERIC).to_string();
-    Some(format!(
-      "inline; filename=\"{}\"; filename*=UTF-8''{}",
-      ascii_fallback, encoded
-    ))
-  }
-}
-
-fn sanitize_download_filename(name: &str) -> Option<String> {
-  let mut sanitized = name.to_string();
-  sanitized.retain(|c| !is_unsafe_download_filename_char(c));
-
-  if sanitized.is_empty() {
-    None
-  } else {
-    Some(sanitized)
-  }
-}
-
-fn is_unsafe_download_filename_char(c: char) -> bool {
-  c.is_control()
-    || matches!(
-      c,
-      '"'
-        | '\\'
-        | '/'
-        | '\u{00AD}'
-        | '\u{061C}'
-        | '\u{180E}'
-        | '\u{200B}'..='\u{200F}'
-        | '\u{202A}'..='\u{202E}'
-        | '\u{2060}'..='\u{2064}'
-        | '\u{2066}'..='\u{206F}'
-        | '\u{FEFF}'
-    )
-}
-
-/// Extract the last path segment from a URL path string for use as a download filename
-fn filename_from_url(url: &str) -> Option<String> {
-  let raw = url
-    .rsplit('/')
-    .next()
-    .filter(|s| !s.is_empty())
-    // Strip any query-string that may be present
-    .map(|s| s.split_once('?').map_or(s, |(before, _)| before))?;
-
-  let decoded = percent_decode_str(raw).decode_utf8_lossy();
-  sanitize_download_filename(decoded.as_ref())
+fn inline_content_disposition(name: &str) -> String {
+  let encoded = utf8_percent_encode(name, NON_ALPHANUMERIC).to_string();
+  format!("inline; filename=\"{}\"", encoded)
 }
 
 fn download_filename_from_url(
-  url: &str,
+  path: &str,
   output_file_type: Option<PictrsFileType>,
 ) -> Option<String> {
-  let filename = filename_from_url(url)?;
+  let raw = path.rsplit('/').next()?.split('?').next()?;
+  let decoded = percent_decode_str(raw).decode_utf8_lossy();
+  let name = decoded.as_ref();
 
-  if let Some(file_type) = output_file_type {
-    Some(filename_with_extension(&filename, file_type))
-  } else {
-    Some(filename)
-  }
-}
-
-fn filename_with_extension(filename: &str, file_type: PictrsFileType) -> String {
-  let stem = match filename.rsplit_once('.') {
-    Some((stem, _)) if !stem.is_empty() => stem,
-    _ => filename,
-  };
-
-  format!("{stem}.{}", file_type)
+  output_file_type.map_or_else(
+    || Some(name.to_string()),
+    |ft| {
+      let stem = match name.rsplit_once('.') {
+        Some((stem, _)) if !stem.is_empty() => stem,
+        _ => name,
+      };
+      Some(format!("{stem}.{ft}"))
+    },
+  )
 }
 
 /// Take file type from param, name, or use jpg if nothing is given
@@ -238,10 +178,7 @@ fn file_type(file_type: Option<String>, name: &str) -> LemmyResult<PictrsFileTyp
 
 #[cfg(test)]
 mod tests {
-  use super::{
-    PictrsFileType, download_filename_from_url, filename_from_url, inline_content_disposition,
-    sanitize_download_filename,
-  };
+  use super::{PictrsFileType, download_filename_from_url, inline_content_disposition};
   use crate::images::download::file_type;
   use lemmy_utils::error::LemmyResult;
 
@@ -294,92 +231,6 @@ mod tests {
   }
 
   #[test]
-  fn test_filename_from_url() {
-    // Simple path segment
-    assert_eq!(
-      filename_from_url("/media/photo.jpg"),
-      Some("photo.jpg".to_string())
-    );
-
-    // pict-rs style UUID filename
-    assert_eq!(
-      filename_from_url("/pictrs/image/6d3b2f3f-7b29-4d9a-868e-b269423f4d6c.webp"),
-      Some("6d3b2f3f-7b29-4d9a-868e-b269423f4d6c.webp".to_string())
-    );
-
-    // Query string is stripped
-    assert_eq!(
-      filename_from_url("/img.png?size=large"),
-      Some("img.png".to_string())
-    );
-
-    // Percent-encoded spaces are decoded
-    assert_eq!(
-      filename_from_url("/media/holiday%20photo.jpg"),
-      Some("holiday photo.jpg".to_string())
-    );
-
-    // Header-injection characters are stripped
-    assert_eq!(
-      filename_from_url("/media/evil\"inject.jpg"),
-      Some("evilinject.jpg".to_string())
-    );
-
-    // Root-only path returns None
-    assert_eq!(filename_from_url("/"), None);
-
-    // Empty string input returns None
-    assert_eq!(filename_from_url(""), None);
-    // Backslash is stripped
-    assert_eq!(
-      filename_from_url("/media/evil\\inject.jpg"),
-      Some("evilinject.jpg".to_string())
-    );
-
-    // Encoded slash is stripped from the suggested download name
-    assert_eq!(
-      filename_from_url("/media/evil%2Finject.jpg"),
-      Some("evilinject.jpg".to_string())
-    );
-
-    // CR/LF injection characters are stripped
-    assert_eq!(
-      filename_from_url("/media/evil\rHeader\nInjected.jpg"),
-      Some("evilHeaderInjected.jpg".to_string())
-    );
-
-    // Bidi override and zero-width characters are stripped to prevent spoofed names
-    assert_eq!(
-      filename_from_url("/images/evil%E2%80%AEgpj%E2%80%8B.exe"),
-      Some("evilgpj.exe".to_string())
-    );
-
-    // Non-ASCII percent-encoded path decodes correctly
-    assert_eq!(
-      filename_from_url("/images/%C3%A9l%C3%A9phant.png"),
-      Some("éléphant.png".to_string())
-    );
-
-    // Segment that becomes empty after stripping returns None
-    assert_eq!(filename_from_url("/media/%22"), None);
-  }
-
-  #[test]
-  fn test_sanitize_download_filename() {
-    assert_eq!(
-      sanitize_download_filename("safe file.jpg"),
-      Some("safe file.jpg".to_string())
-    );
-
-    assert_eq!(
-      sanitize_download_filename("evil\u{202E}gpj\u{200B}.exe"),
-      Some("evilgpj.exe".to_string())
-    );
-
-    assert_eq!(sanitize_download_filename("\"\\/\r\n\u{202E}"), None);
-  }
-
-  #[test]
   fn test_download_filename_from_url() {
     assert_eq!(
       download_filename_from_url("/images/photo.png", Some(PictrsFileType::Avif)),
@@ -401,51 +252,31 @@ mod tests {
       Some("éléphant.jxl".to_string())
     );
 
+    // Without output file type, original extension is preserved
     assert_eq!(
-      download_filename_from_url("/images/evil%E2%80%AEgpj.exe", Some(PictrsFileType::Webp)),
-      Some("evilgpj.webp".to_string())
+      download_filename_from_url("/images/photo.png", None),
+      Some("photo.png".to_string())
     );
   }
 
   #[test]
   fn test_inline_content_disposition() {
-    // ASCII filename: simple quoted form
+    // ASCII filename: all non-alphanumeric characters are percent-encoded
     assert_eq!(
       inline_content_disposition("photo.jpg"),
-      Some("inline; filename=\"photo.jpg\"".to_string())
+      "inline; filename=\"photo%2Ejpg\""
     );
 
-    // ASCII UUID filename (as produced by pictrs)
-    assert_eq!(
-      inline_content_disposition("6d3b2f3f-7b29-4d9a-868e-b269423f4d6c.webp"),
-      Some("inline; filename=\"6d3b2f3f-7b29-4d9a-868e-b269423f4d6c.webp\"".to_string())
-    );
-
-    // ASCII filename with spaces
+    // Spaces are encoded
     assert_eq!(
       inline_content_disposition("my photo.jpg"),
-      Some("inline; filename=\"my photo.jpg\"".to_string())
+      "inline; filename=\"my%20photo%2Ejpg\""
     );
 
-    // Non-ASCII filename: RFC 6266 dual form
-    let result = inline_content_disposition("héron.jpg").expect("sanitized filename");
-    // Must contain the ASCII fallback with underscores for the non-ASCII char
-    assert!(result.contains("filename=\"h_ron.jpg\""), "got: {result}");
-    // Must contain the UTF-8 encoded filename* parameter
-    assert!(result.contains("filename*=UTF-8''"), "got: {result}");
-    assert!(result.starts_with("inline; "), "got: {result}");
-
-    // Fully non-ASCII name: fallback is all underscores
-    let result2 = inline_content_disposition("写真.jpg").expect("sanitized filename");
-    assert!(result2.contains("filename=\"__"), "got: {result2}");
-    assert!(result2.contains(".jpg\""), "got: {result2}");
-    assert!(result2.contains("filename*=UTF-8''"), "got: {result2}");
-
-    // Direct callers also get hardened output.
-    let hardened =
-      inline_content_disposition("evil\u{202E}\r\nname.jpg").expect("sanitized filename");
-    assert_eq!(hardened, "inline; filename=\"evilname.jpg\"");
-
-    assert_eq!(inline_content_disposition("\"\\/\r\n\u{202E}"), None);
+    // Non-ASCII characters are UTF-8 percent-encoded
+    assert_eq!(
+      inline_content_disposition("héron.jpg"),
+      "inline; filename=\"h%C3%A9ron%2Ejpg\""
+    );
   }
 }
