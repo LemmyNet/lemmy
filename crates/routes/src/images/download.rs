@@ -1,6 +1,6 @@
 use super::utils::{adapt_request, convert_header};
 use actix_web::{
-  HttpRequest, HttpResponse, Responder,
+  HttpRequest, HttpResponse, HttpResponseBuilder, Responder,
   body::{BodyStream, BoxBody},
   http::StatusCode,
   web::{Data, *},
@@ -70,7 +70,7 @@ pub async fn image_proxy(
   let output_file_type = (params.file_type.is_some() || params.max_size.is_some())
     .then(|| file_type(params.file_type.clone(), url.path()).unwrap_or_default());
 
-  let processed_url = if let Some(file_type) = output_file_type {
+  let processed_url = if let Some(ref file_type) = output_file_type {
     let mut url = format!(
       "{}image/process.{}?proxy={}",
       pictrs_config.url, file_type, encoded_url
@@ -131,12 +131,7 @@ pub(super) async fn do_get_image(
     client_res.insert_header(convert_header(name, value));
   }
 
-  if let Some(filename) = download_filename {
-    client_res.insert_header((
-      actix_web::http::header::CONTENT_DISPOSITION,
-      inline_content_disposition(&filename),
-    ));
-  }
+  set_content_disposition(&mut client_res, download_filename.as_deref());
 
   Ok(client_res.body(BodyStream::new(res.bytes_stream())))
 }
@@ -159,22 +154,42 @@ enum PictrsFileType {
   Webp,
 }
 
-/// Format a `Content-Disposition: inline` header value for the given filename.
-fn inline_content_disposition(name: &str) -> String {
-  let encoded = utf8_percent_encode(name, NON_ALPHANUMERIC).to_string();
-  format!("inline; filename=\"{}\"", encoded)
+fn set_content_disposition(client_res: &mut HttpResponseBuilder, filename: Option<&str>) {
+  if let Some(name) = filename {
+    let encoded = utf8_percent_encode(name, NON_ALPHANUMERIC).to_string();
+    client_res.insert_header((
+      actix_web::http::header::CONTENT_DISPOSITION,
+      format!("inline; filename=\"{}\"", encoded),
+    ));
+  }
 }
 
 fn download_filename_from_url(
   path: &str,
   output_file_type: Option<PictrsFileType>,
 ) -> Option<String> {
-  let raw = path.rsplit('/').next()?.split('?').next()?;
+  let raw = path
+    .rsplit('/')
+    .next()?
+    .split('?')
+    .next()
+    .filter(|s| !s.is_empty())?;
   let decoded = percent_decode_str(raw).decode_utf8_lossy();
   let name = decoded.as_ref();
 
   output_file_type.map_or_else(
-    || Some(name.to_string()),
+    || {
+      let has_extension = name
+        .rsplit_once('.')
+        .map(|(stem, _)| !stem.is_empty())
+        .unwrap_or(false);
+      let filename = if has_extension {
+        name.to_string()
+      } else {
+        format!("{name}.jpg")
+      };
+      Some(filename)
+    },
     |ft| {
       let stem = match name.rsplit_once('.') {
         Some((stem, _)) if !stem.is_empty() => stem,
@@ -196,7 +211,8 @@ fn file_type(file_type: Option<String>, name: &str) -> LemmyResult<PictrsFileTyp
 
 #[cfg(test)]
 mod tests {
-  use super::{PictrsFileType, download_filename_from_url, inline_content_disposition};
+  use super::{PictrsFileType, download_filename_from_url, set_content_disposition};
+  use actix_web::{HttpResponse, http::StatusCode};
   use crate::images::download::file_type;
   use lemmy_utils::error::LemmyResult;
 
@@ -275,26 +291,56 @@ mod tests {
       download_filename_from_url("/images/photo.png", None),
       Some("photo.png".to_string())
     );
+
+    // Without output file type and no extension, falls back to .jpg
+    assert_eq!(
+      download_filename_from_url("/images/noextension", None),
+      Some("noextension.jpg".to_string())
+    );
   }
 
   #[test]
-  fn test_inline_content_disposition() {
+  fn test_set_content_disposition() {
+    let mut builder = HttpResponse::build(StatusCode::OK);
+
     // ASCII filename: all non-alphanumeric characters are percent-encoded
-    assert_eq!(
-      inline_content_disposition("photo.jpg"),
-      "inline; filename=\"photo%2Ejpg\""
-    );
+    set_content_disposition(&mut builder, Some("photo.jpg"));
+    let res = builder.finish();
+    let header = res
+      .headers()
+      .get(actix_web::http::header::CONTENT_DISPOSITION)
+      .unwrap();
+    assert_eq!(header, "inline; filename=\"photo%2Ejpg\"");
 
     // Spaces are encoded
-    assert_eq!(
-      inline_content_disposition("my photo.jpg"),
-      "inline; filename=\"my%20photo%2Ejpg\""
-    );
+    let mut builder2 = HttpResponse::build(StatusCode::OK);
+    set_content_disposition(&mut builder2, Some("my photo.jpg"));
+    let res2 = builder2.finish();
+    let header2 = res2
+      .headers()
+      .get(actix_web::http::header::CONTENT_DISPOSITION)
+      .unwrap();
+    assert_eq!(header2, "inline; filename=\"my%20photo%2Ejpg\"");
 
     // Non-ASCII characters are UTF-8 percent-encoded
-    assert_eq!(
-      inline_content_disposition("héron.jpg"),
-      "inline; filename=\"h%C3%A9ron%2Ejpg\""
+    let mut builder3 = HttpResponse::build(StatusCode::OK);
+    set_content_disposition(&mut builder3, Some("héron.jpg"));
+    let res3 = builder3.finish();
+    let header3 = res3
+      .headers()
+      .get(actix_web::http::header::CONTENT_DISPOSITION)
+      .unwrap();
+    assert_eq!(header3, "inline; filename=\"h%C3%A9ron%2Ejpg\"");
+
+    // None sets no header
+    let mut builder4 = HttpResponse::build(StatusCode::OK);
+    set_content_disposition(&mut builder4, None);
+    let res4 = builder4.finish();
+    assert!(
+      res4
+        .headers()
+        .get(actix_web::http::header::CONTENT_DISPOSITION)
+        .is_none()
     );
   }
 }
