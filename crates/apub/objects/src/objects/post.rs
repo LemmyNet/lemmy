@@ -154,7 +154,7 @@ impl Object for ApubPost {
     };
     tags.push(ApubTag::Hashtag(hashtag));
 
-    let maa = collect_non_local_mentions(self.body.as_deref(), None, context).await?;
+    let maa = collect_non_local_mentions(self.body.as_deref(), None, &community, context).await?;
     tags.extend(maa.mentions);
 
     let page = Page {

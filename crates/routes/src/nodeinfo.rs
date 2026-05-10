@@ -91,6 +91,8 @@ pub(crate) struct NodeInfoWellKnownLinks {
 /// Nodeinfo spec: http://nodeinfo.diaspora.software/docson/index.html#/ns/schema/2.1
 #[derive(Serialize, Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase", default)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub(crate) struct NodeInfo {
   pub version: Option<String>,
   pub software: Option<NodeInfoSoftware>,
@@ -104,6 +106,8 @@ pub(crate) struct NodeInfo {
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 #[serde(default)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub(crate) struct NodeInfoSoftware {
   pub name: Option<String>,
   pub version: Option<String>,
@@ -113,6 +117,8 @@ pub(crate) struct NodeInfoSoftware {
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase", default)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub(crate) struct NodeInfoUsage {
   pub users: Option<NodeInfoUsers>,
   pub local_posts: Option<i32>,
@@ -121,6 +127,8 @@ pub(crate) struct NodeInfoUsage {
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase", default)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub(crate) struct NodeInfoUsers {
   pub total: Option<i32>,
   pub active_halfyear: Option<i32>,
@@ -129,6 +137,8 @@ pub(crate) struct NodeInfoUsers {
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase", default)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub(crate) struct NodeInfoServices {
   pub inbound: Option<Vec<String>>,
   pub outbound: Option<Vec<String>>,

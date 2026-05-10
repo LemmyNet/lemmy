@@ -162,7 +162,7 @@ impl FederatedInstanceView {
       }
     };
 
-    let mut pq = Self::paginate(query, &data.page_cursor, SortDirection::Desc, pool, None).await?;
+    let mut pq = Self::paginate(query, &data.page_cursor, SortDirection::Desc, pool).await?;
 
     // Show recently updated instances and those with valid metadata first
     pq = pq

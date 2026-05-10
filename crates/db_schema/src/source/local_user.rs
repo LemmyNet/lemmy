@@ -57,14 +57,14 @@ pub struct LocalUser {
   pub totp_2fa_enabled: bool,
   /// Whether user avatars and inline images in the UI that are gifs should be allowed to play or
   /// should be paused
-  pub enable_animated_images: bool,
+  pub animated_images_enabled: bool,
   /// Whether to auto-collapse bot comments.
   pub collapse_bot_comments: bool,
   /// The last time a donation request was shown to this user. If this is more than a year ago,
   /// a new notification request should be shown.
   pub last_donation_notification_at: DateTime<Utc>,
   /// Whether a user can send / receive private messages
-  pub enable_private_messages: bool,
+  pub private_messages_enabled: bool,
   pub default_comment_sort_type: CommentSortType,
   /// Whether to automatically mark fetched posts as read.
   pub auto_mark_fetched_posts_as_read: bool,
@@ -125,13 +125,13 @@ pub struct LocalUserInsertForm {
   #[new(default)]
   pub totp_2fa_enabled: Option<bool>,
   #[new(default)]
-  pub enable_animated_images: Option<bool>,
+  pub animated_images_enabled: Option<bool>,
   #[new(default)]
   pub collapse_bot_comments: Option<bool>,
   #[new(default)]
   pub last_donation_notification_at: Option<DateTime<Utc>>,
   #[new(default)]
-  pub enable_private_messages: Option<bool>,
+  pub private_messages_enabled: Option<bool>,
   #[new(default)]
   pub default_comment_sort_type: Option<CommentSortType>,
   #[new(default)]
@@ -176,10 +176,10 @@ pub struct LocalUserUpdateForm {
   pub admin: Option<bool>,
   pub post_listing_mode: Option<PostListingMode>,
   pub totp_2fa_enabled: Option<bool>,
-  pub enable_animated_images: Option<bool>,
+  pub animated_images_enabled: Option<bool>,
   pub collapse_bot_comments: Option<bool>,
   pub last_donation_notification_at: Option<DateTime<Utc>>,
-  pub enable_private_messages: Option<bool>,
+  pub private_messages_enabled: Option<bool>,
   pub default_comment_sort_type: Option<CommentSortType>,
   pub auto_mark_fetched_posts_as_read: Option<bool>,
   pub hide_media: Option<bool>,

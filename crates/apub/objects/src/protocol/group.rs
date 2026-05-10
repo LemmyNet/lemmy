@@ -33,7 +33,7 @@ pub struct Group {
   /// title / display name
   pub name: Option<String>,
   // short description
-  pub(crate) content: Option<String>,
+  pub(crate) description: Option<String>,
   /// sidebar
   #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub source: Option<Source>,

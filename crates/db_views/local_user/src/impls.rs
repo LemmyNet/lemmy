@@ -200,12 +200,11 @@ impl LocalUserQuery {
     let sort = self.sort.unwrap_or_default();
     let sort_direction = asc_if(sort == LocalUserSortType::Old);
 
-    let paginated_query =
-      LocalUserView::paginate(query, &self.page_cursor, sort_direction, pool, None)
-        .await?
-        .then_order_by(person_keys::published_at)
-        // Tie breaker
-        .then_order_by(person_keys::id);
+    let paginated_query = LocalUserView::paginate(query, &self.page_cursor, sort_direction, pool)
+      .await?
+      .then_order_by(person_keys::published_at)
+      // Tie breaker
+      .then_order_by(person_keys::id);
 
     let conn = &mut get_conn(pool).await?;
     let res = paginated_query.load::<LocalUserView>(conn).await?;

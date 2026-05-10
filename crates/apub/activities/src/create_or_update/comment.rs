@@ -133,7 +133,7 @@ impl Activity for CreateOrUpdateNote {
     Comment::update_hot_rank(&mut context.pool(), comment.id).await?;
 
     let do_send_email =
-      self.kind == CreateOrUpdateType::Create && !site_view.local_site.disable_email_notifications;
+      self.kind == CreateOrUpdateType::Create && !site_view.local_site.email_notifications_disabled;
     let actor = self.actor.dereference(context).await?;
 
     let community = Community::read(&mut context.pool(), post.community_id).await?;

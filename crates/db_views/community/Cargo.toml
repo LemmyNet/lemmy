@@ -48,4 +48,3 @@ i-love-jesus = { workspace = true, optional = true }
 [dev-dependencies]
 serial_test = { workspace = true }
 tokio = { workspace = true }
-url = { workspace = true }

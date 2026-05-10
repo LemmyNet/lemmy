@@ -32,8 +32,6 @@ use reqwest::{
 };
 use reqwest_middleware::ClientWithMiddleware;
 use serde::{Deserialize, Serialize};
-use std::net::IpAddr;
-use tokio::net::lookup_host;
 use tracing::{info, warn};
 use url::Url;
 use urlencoding::encode;
@@ -59,36 +57,13 @@ pub fn client_builder(settings: &Settings) -> ClientBuilder {
 /// Fetches metadata for the given link and optionally generates thumbnail.
 pub async fn fetch_link_metadata(
   url: &Url,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
   recursion: bool,
 ) -> LemmyResult<LinkMetadata> {
   if url.scheme() != "http" && url.scheme() != "https" {
     return Err(LemmyErrorType::InvalidUrl.into());
   }
-
-  // Resolve the domain and throw an error if it points to any internal IP,
-  // using logic from nightly IpAddr::is_global.
-  if !cfg!(debug_assertions) {
-    // TODO: Replace with IpAddr::is_global() once stabilized
-    //       https://doc.rust-lang.org/std/net/enum.IpAddr.html#method.is_global
-    let domain = url.domain().ok_or(UntranslatedError::UrlWithoutDomain)?;
-    let invalid_ip = lookup_host((domain.to_owned(), 80))
-      .await?
-      .any(|addr| match addr.ip() {
-        IpAddr::V4(addr) => {
-          addr.is_private() || addr.is_link_local() || addr.is_loopback() || addr.is_multicast()
-        }
-        IpAddr::V6(addr) => {
-          addr.is_loopback()
-                        || addr.is_multicast()
-                        || ((addr.segments()[0] & 0xfe00) == 0xfc00) // is_unique_local
-                        || ((addr.segments()[0] & 0xffc0) == 0xfe80) // is_unicast_link_local
-        }
-      });
-    if invalid_ip {
-      return Err(LemmyErrorType::InvalidUrl.into());
-    }
-  }
+  context.is_valid_ip(url).await?;
 
   info!("Fetching site metadata for url: {}", url);
   // We only fetch the first MB of data in order to not waste bandwidth especially for large
@@ -410,8 +385,9 @@ struct PictrsPurgeResponse {
 /// - Pictrs might not be set up
 pub async fn purge_image_from_pictrs_url(
   image_url: &Url,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
+  context.is_valid_ip(image_url).await?;
   is_image_content_type(context.pictrs_client(), image_url).await?;
 
   let alias = image_url
@@ -488,8 +464,9 @@ async fn generate_pictrs_thumbnail(
   post: &Post,
   image_url: &Url,
   local_site: &LocalSite,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
 ) -> LemmyResult<Url> {
+  context.is_valid_ip(image_url).await?;
   match local_site.image_mode {
     ImageMode::None => return Ok(image_url.clone()),
     ImageMode::ProxyAllImages => {
@@ -546,8 +523,9 @@ async fn generate_pictrs_thumbnail(
 /// We don't need to check for image mode, as that's already been done
 pub async fn fetch_pictrs_proxied_image_details(
   image_url: &Url,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
 ) -> LemmyResult<PictrsFileDetails> {
+  context.is_valid_ip(image_url).await?;
   let pictrs_url = context.settings().pictrs()?.url;
   let encoded_image_url = encode(image_url.as_str());
 

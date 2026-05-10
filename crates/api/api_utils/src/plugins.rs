@@ -92,7 +92,7 @@ async fn call_captcha_plugin<
   };
 
   spawn_blocking(move || {
-    if let Some(p) = captcha_plugin.pool.get(GET_PLUGIN_TIMEOUT)? {
+    if let Some(mut p) = captcha_plugin.pool.get(GET_PLUGIN_TIMEOUT)? {
       let res = p
         .call(name, params)
         .map_err(|e| LemmyErrorType::PluginError(e.to_string()))?;
@@ -113,7 +113,7 @@ where
 {
   let plugins = LemmyPlugins::get_or_init();
   for p in plugins.plugins {
-    if let Some(plugin) = p.get(name)? {
+    if let Some(mut plugin) = p.get(name)? {
       let params: Json<T> = data.clone().into();
       plugin
         .call::<Json<T>, ()>(name, params)
@@ -136,7 +136,7 @@ where
   spawn_blocking(move || {
     let mut res: Json<T> = data.into();
     for p in plugins.plugins {
-      if let Some(plugin) = p.get(name)? {
+      if let Some(mut plugin) = p.get(name)? {
         let r = plugin
           .call(name, res)
           .map_err(|e| LemmyErrorType::PluginError(e.to_string()))?;
@@ -166,7 +166,7 @@ pub fn plugin_metadata() -> Vec<PluginMetadata> {
               continue;
             }
           };
-          let m = run.and_then(|run| run.call("metadata", 0).ok());
+          let m = run.and_then(|mut run| run.call("metadata", 0).ok());
           if let Some(m) = m {
             metadata.push(m);
           } else {
@@ -253,7 +253,7 @@ impl LemmyPlugin {
       .get(GET_PLUGIN_TIMEOUT)?
       .ok_or(anyhow!("plugin timeout"))?;
 
-    Ok(if p.plugin().function_exists(name) {
+    Ok(if p.function_exists(name) {
       Some(p)
     } else {
       None

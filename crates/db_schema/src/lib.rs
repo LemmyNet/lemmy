@@ -28,20 +28,6 @@ use {
   },
 };
 
-#[derive(
-  EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
-)]
-#[serde(rename_all = "snake_case")]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
-/// The search sort types.
-pub enum SearchSortType {
-  #[default]
-  New,
-  Top,
-  Old,
-}
-
 /// The community sort types. See here for descriptions: https://join-lemmy.org/docs/en/users/03-votes-and-ranking.html
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
@@ -73,6 +59,33 @@ pub enum LocalUserSortType {
   #[default]
   New,
   Old,
+}
+
+/// The Report sort type.
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
+pub enum ReportSortType {
+  #[default]
+  /// By default, if viewing all reports, order by newest, but if viewing unresolved only, show
+  /// the oldest first (FIFO)
+  Default,
+  New,
+  Old,
+}
+
+/// The person sort type.
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
+pub enum PersonSortType {
+  #[default]
+  New,
+  Old,
+  PostScore,
+  CommentScore,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
@@ -120,6 +133,19 @@ pub enum SearchType {
   Communities,
   Users,
   MultiCommunities,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
+/// A listing type for person fetches
+pub enum PersonListingType {
+  /// persons from your own site, as well as all connected / federated sites.
+  All,
+  /// persons from your site only.
+  #[default]
+  Local,
 }
 
 #[derive(

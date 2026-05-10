@@ -1,4 +1,3 @@
-use cfg_if::cfg_if;
 use serde::{Deserialize, Serialize};
 use std::{fmt::Debug, panic::Location};
 use strum::{Display, EnumIter};
@@ -160,8 +159,8 @@ pub enum UntranslatedError {
   CommunityHasNoFollowers(String),
 }
 
-cfg_if! {
-  if #[cfg(feature = "full")] {
+cfg_select! {
+  feature = "full" => {
 
     use std::fmt;
     use serde_with::serde_as;
@@ -348,4 +347,5 @@ cfg_if! {
       }
     }
   }
+  _ => {}
 }

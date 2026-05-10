@@ -14,7 +14,7 @@ use futures_util::future::BoxFuture;
 use i_love_jesus::CursorKey;
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
-  utils::validation::clean_url,
+  utils::markdown::clean_url,
 };
 use url::Url;
 

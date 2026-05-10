@@ -14,7 +14,7 @@ use lemmy_db_views_site::{
 };
 use lemmy_utils::{self, error::LemmyResult};
 
-pub async fn export_data(
+pub async fn export_user_data(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<ExportDataResponse>> {
@@ -29,7 +29,10 @@ pub async fn export_data(
 
   let content = PersonContentCombinedQuery {
     no_limit: Some(true),
-    ..PersonContentCombinedQuery::new(my_person_id)
+    ..PersonContentCombinedQuery {
+      creator_id: my_person_id,
+      ..Default::default()
+    }
   }
   .list(pool, Some(&local_user_view), local_instance_id)
   .await?

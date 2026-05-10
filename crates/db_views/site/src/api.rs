@@ -1,9 +1,10 @@
-use crate::SiteView;
+use crate::{ResolveObjectView, SiteView};
 #[cfg(feature = "full")]
 use extism::FromBytes;
 use extism_convert::Json;
 use lemmy_db_schema::{
-  newtypes::{LanguageId, MultiCommunityId, OAuthProviderId, TaglineId},
+  SearchType,
+  newtypes::{CommunityId, LanguageId, MultiCommunityId, OAuthProviderId, TaglineId},
   source::{
     comment::Comment,
     community::Community,
@@ -21,6 +22,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::{
   InstanceId,
+  PersonId,
   enums::{
     CommentSortType,
     FederationMode,
@@ -32,11 +34,13 @@ use lemmy_db_schema_file::{
     VoteShow,
   },
 };
-use lemmy_db_views_community::MultiCommunityView;
+use lemmy_db_views_comment::CommentView;
+use lemmy_db_views_community::{CommunityView, MultiCommunityView};
 use lemmy_db_views_community_follower::CommunityFollowerView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
+use lemmy_db_views_post::PostView;
 use lemmy_diesel_utils::{pagination::PaginationCursor, sensitive::SensitiveString};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -114,7 +118,7 @@ pub struct CreateSite {
   pub sidebar: Option<String>,
   pub summary: Option<String>,
   pub community_creation_admin_only: Option<bool>,
-  pub require_email_verification: Option<bool>,
+  pub email_verification_required: Option<bool>,
   pub application_question: Option<String>,
   pub private_instance: Option<bool>,
   pub default_theme: Option<String>,
@@ -152,8 +156,8 @@ pub struct CreateSite {
   pub post_downvotes: Option<FederationMode>,
   pub comment_upvotes: Option<FederationMode>,
   pub comment_downvotes: Option<FederationMode>,
-  pub disallow_nsfw_content: Option<bool>,
-  pub disable_email_notifications: Option<bool>,
+  pub nsfw_content_disallowed: Option<bool>,
+  pub email_notifications_disabled: Option<bool>,
   pub suggested_multi_community_id: Option<MultiCommunityId>,
   pub image_mode: Option<ImageMode>,
   pub image_proxy_bypass_domains: Option<String>,
@@ -208,7 +212,7 @@ pub struct EditSite {
   /// Limits community creation to admins only.
   pub community_creation_admin_only: Option<bool>,
   /// Whether to require email verification.
-  pub require_email_verification: Option<bool>,
+  pub email_verification_required: Option<bool>,
   /// Your application question form. This is in markdown, and can be many questions.
   pub application_question: Option<String>,
   /// Whether your instance is public, or private.
@@ -280,9 +284,9 @@ pub struct EditSite {
   /// What kind of comment downvotes your site allows.
   pub comment_downvotes: Option<FederationMode>,
   /// Block NSFW content being created
-  pub disallow_nsfw_content: Option<bool>,
+  pub nsfw_content_disallowed: Option<bool>,
   /// Dont send email notifications to users for new replies, mentions etc
-  pub disable_email_notifications: Option<bool>,
+  pub email_notifications_disabled: Option<bool>,
   /// A multicommunity with suggested communities which is shown on the homepage. Sending a zero
   /// erases this field.
   pub suggested_multi_community_id: Option<MultiCommunityId>,
@@ -471,7 +475,7 @@ pub struct MyUserInfo {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Change your password after receiving a reset request.
-pub struct PasswordChangeAfterReset {
+pub struct ChangePasswordAfterReset {
   pub token: SensitiveString,
   pub password: SensitiveString,
   pub password_verify: SensitiveString,
@@ -481,7 +485,7 @@ pub struct PasswordChangeAfterReset {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Reset your password via email.
-pub struct PasswordReset {
+pub struct ResetPassword {
   pub email: SensitiveString,
 }
 
@@ -547,9 +551,9 @@ pub struct SaveUserSettings {
   pub infinite_scroll_enabled: Option<bool>,
   /// Whether user avatars or inline images in the UI that are gifs should be allowed to play or
   /// should be paused
-  pub enable_animated_images: Option<bool>,
+  pub animated_images_enabled: Option<bool>,
   /// Whether a user can send / receive private messages
-  pub enable_private_messages: Option<bool>,
+  pub private_messages_enabled: Option<bool>,
   /// Whether to auto-collapse bot comments.
   pub collapse_bot_comments: Option<bool>,
   /// Some vote display mode settings
@@ -678,6 +682,52 @@ pub struct ResolveObject {
   pub q: String,
 }
 
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+/// Searches the site, given a search term, and some optional filters.
+pub struct Search {
+  /// The search query. Can be a plain text, or an object ID which will be resolved
+  /// (eg `https://lemmy.world/comment/1` or `!fediverse@lemmy.ml`).
+  pub search_term: String,
+  pub community_id: Option<CommunityId>,
+  pub community_name: Option<String>,
+  pub creator_id: Option<PersonId>,
+  pub creator_username: Option<String>,
+  pub type_: Option<SearchType>,
+  /// Filter to within a given time range, in seconds.
+  /// IE 60 would give results for the past minute.
+  pub time_range_seconds: Option<i32>,
+  pub listing_type: Option<ListingType>,
+  pub title_only: Option<bool>,
+  pub post_url_only: Option<bool>,
+  /// If true, then show the nsfw posts (even if your user setting is to hide them)
+  pub show_nsfw: Option<bool>,
+  pub page_cursor: Option<String>,
+  pub limit: Option<i64>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+/// The search response, containing lists of the return type possibilities
+pub struct SearchResponse {
+  /**
+   * If `Search.q` contains an ActivityPub ID (eg `https://lemmy.world/comment/1`) or an
+   * identifier (eg `!fediverse@lemmy.ml`) then this field contains the resolved object.
+   * It should always be shown above other search results.
+   */
+  pub resolve: Option<ResolveObjectView>,
+  pub comments: Vec<CommentView>,
+  pub posts: Vec<PostView>,
+  pub communities: Vec<CommunityView>,
+  pub persons: Vec<PersonView>,
+  pub multi_communities: Vec<MultiCommunityView>,
+  pub prev_page: Option<String>,
+  pub next_page: Option<String>,
+}
+
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
@@ -771,4 +821,13 @@ pub struct UnreadCountsResponse {
   pub report_count: Option<i64>,
   pub pending_follow_count: Option<i64>,
   pub registration_application_count: Option<i64>,
+}
+
+/// Used for delete user plugin hooks
+#[derive(Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+pub struct DeleteUserForm {
+  pub person_id: PersonId,
+  pub delete_content: bool,
 }

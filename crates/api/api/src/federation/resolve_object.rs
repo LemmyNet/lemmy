@@ -15,8 +15,7 @@ use lemmy_db_views_community::{CommunityView, MultiCommunityView};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
 use lemmy_db_views_post::PostView;
-use lemmy_db_views_search_combined::{SearchCombinedView, SearchResponse};
-use lemmy_db_views_site::{SiteView, api::ResolveObject};
+use lemmy_db_views_site::{ResolveObjectView, SiteView, api::ResolveObject};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use url::Url;
 
@@ -24,24 +23,20 @@ pub async fn resolve_object(
   Query(data): Query<ResolveObject>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
-) -> LemmyResult<Json<SearchResponse>> {
+) -> LemmyResult<Json<ResolveObjectView>> {
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   check_private_instance(&local_user_view, &local_site)?;
 
-  let resolve = Some(resolve_object_internal(&data.q, &local_user_view, &context).await?);
-  Ok(Json(SearchResponse {
-    resolve,
-    ..Default::default()
-  }))
+  let resolve = resolve_object_internal(&data.q, &local_user_view, &context).await?;
+  Ok(Json(resolve))
 }
 
 pub(super) async fn resolve_object_internal(
   query: &str,
   local_user_view: &Option<LocalUserView>,
   context: &Data<LemmyContext>,
-) -> LemmyResult<SearchCombinedView> {
-  use SearchCombinedView::*;
-
+) -> LemmyResult<ResolveObjectView> {
+  use ResolveObjectView::*;
   let is_authenticated = local_user_view.as_ref().is_some_and(|l| !l.banned);
 
   let object = if is_authenticated || cfg!(debug_assertions) {
@@ -200,8 +195,8 @@ mod tests {
     Ok(())
   }
 
-  fn assert_response(res: SearchCombinedView, expected_post: &Post) {
-    if let SearchCombinedView::Post(v) = res {
+  fn assert_response(res: ResolveObjectView, expected_post: &Post) {
+    if let ResolveObjectView::Post(v) = res {
       assert_eq!(expected_post.ap_id, v.post.ap_id);
     } else {
       panic!("invalid resolve object response");

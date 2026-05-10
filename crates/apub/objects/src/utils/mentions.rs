@@ -9,7 +9,7 @@ use activitypub_federation::{
   traits::Object,
 };
 use lemmy_api_utils::context::LemmyContext;
-use lemmy_db_schema::source::{comment::Comment, person::Person, post::Post};
+use lemmy_db_schema::source::{comment::Comment, community::Community, person::Person, post::Post};
 use lemmy_diesel_utils::{connection::DbPool, traits::Crud};
 use lemmy_utils::{
   error::{LemmyResult, UntranslatedError},
@@ -28,10 +28,12 @@ pub(crate) struct MentionsAndAddresses {
 pub(crate) async fn collect_non_local_mentions(
   content: Option<&str>,
   parent_creator: Option<ApubPerson>,
+  community: &Community,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<MentionsAndAddresses> {
   let mut addressed_ccs: Vec<Url> = vec![];
   let mut mentions = vec![];
+
   if let Some(parent_creator) = parent_creator {
     addressed_ccs.push(parent_creator.id().clone());
     mentions.push(Mention {
@@ -70,6 +72,24 @@ pub(crate) async fn collect_non_local_mentions(
       mentions.push(mention_tag);
     }
   }
+
+  // HACK: Mastodon replies are only sent to the parent by default, not to the community. This
+  //       means they are not visible to most Lemmy instances. This workaround adds a community
+  //       mention which automatically gets copied into Mastodon replies, and ensures correct
+  //       federation.
+  //       https://lemmy.ml/post/44552705/24563597
+  mentions.push(Mention {
+    href: community.ap_id.clone().into(),
+    name: Some(format!(
+      "@{}@{}",
+      &community.name,
+      &community
+        .ap_id
+        .domain()
+        .ok_or(UntranslatedError::UrlWithoutDomain)?
+    )),
+    kind: MentionType::Mention,
+  });
 
   Ok(MentionsAndAddresses {
     ccs: addressed_ccs,

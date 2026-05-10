@@ -55,7 +55,7 @@ tracing = { workspace = true }
 lemmy_utils = { workspace = true }
 extism = { workspace = true }
 extism-convert = { workspace = true }
-extism-manifest = "1.13.0"
+extism-manifest = "1.20.0"
 reqwest-middleware = { workspace = true }
 activitypub_federation = { workspace = true }
 mime = { version = "0.3.17" }

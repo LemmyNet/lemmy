@@ -19,6 +19,7 @@ workspace = true
 # dummy to make `./scripts/test.sh lemmy_routes` work
 [features]
 full = []
+ts-rs = ["dep:ts-rs"]
 
 [dependencies]
 lemmy_db_views_community = { workspace = true, features = ["full"] }
@@ -41,7 +42,7 @@ actix-web = { workspace = true, features = ["cookies"] }
 chrono = { workspace = true }
 futures = { workspace = true }
 reqwest = { workspace = true, features = ["stream"] }
-reqwest-middleware = { workspace = true, features = ["form", "query"] }
+reqwest-middleware = { workspace = true }
 serde = { workspace = true }
 url = { workspace = true }
 tracing = { workspace = true }
@@ -64,6 +65,7 @@ lemmy_diesel_utils = { workspace = true }
 rosetta-i18n = { workspace = true }
 strum = { workspace = true }
 serde_json = { workspace = true }
+ts-rs = { workspace = true, optional = true }
 
 [dev-dependencies]
 pretty_assertions.workspace = true

@@ -9,6 +9,7 @@ pub mod auth {
   pub use lemmy_db_views_site::api::{
     CaptchaResponse,
     ChangePassword,
+    ChangePasswordAfterReset,
     EditTotp,
     EditTotpResponse,
     ExportDataResponse,
@@ -17,9 +18,8 @@ pub mod auth {
     ListLoginsResponse,
     Login,
     LoginResponse,
-    PasswordChangeAfterReset,
-    PasswordReset,
     ResendVerificationEmail,
+    ResetPassword,
     UserSettingsBackup,
     VerifyEmail,
   };

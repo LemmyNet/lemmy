@@ -25,9 +25,9 @@ impl CommunityModeratorView {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins() -> _ {
     community_actions::table
-      .filter(community_actions::became_moderator_at.is_not_null())
       .inner_join(community::table)
       .inner_join(person::table.on(person::id.eq(community_actions::person_id)))
+      .filter(community_actions::became_moderator_at.is_not_null())
   }
 
   pub async fn check_is_community_moderator(

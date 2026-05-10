@@ -15,7 +15,6 @@ pub use lemmy_db_views_post::{
     PostResponse,
   },
 };
-pub use lemmy_db_views_search_combined::api::{GetPost, GetPostResponse};
 pub mod actions {
   pub use lemmy_db_views_post::api::{
     CreatePost,

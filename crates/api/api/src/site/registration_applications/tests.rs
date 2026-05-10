@@ -35,7 +35,7 @@ async fn create_test_site(context: &Data<LemmyContext>) -> LemmyResult<(TestData
 
   // Enable some local site settings
   let local_site_form = LocalSiteUpdateForm {
-    require_email_verification: Some(true),
+    email_verification_required: Some(true),
     application_question: Some(Some(".".to_string())),
     registration_mode: Some(RegistrationMode::RequireApplication),
     site_setup: Some(true),
@@ -230,7 +230,7 @@ async fn test_application_approval() -> LemmyResult<()> {
 
   Box::pin(edit_site(
     Json(EditSite {
-      require_email_verification: Some(false),
+      email_verification_required: Some(false),
       ..Default::default()
     }),
     context.clone(),

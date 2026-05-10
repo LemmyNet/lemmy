@@ -105,6 +105,7 @@ mod tests {
     let comment_form = CommentInsertForm::new(
       inserted_person.id,
       inserted_post.id,
+      inserted_community.id,
       "A test comment".into(),
     );
 
@@ -114,6 +115,7 @@ mod tests {
     let child_comment_form = CommentInsertForm::new(
       inserted_person.id,
       inserted_post.id,
+      inserted_community.id,
       "A test comment".into(),
     );
     let _inserted_child_comment =

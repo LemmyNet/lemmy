@@ -1,8 +1,9 @@
 use crate::PersonView;
-use lemmy_db_schema::source::site::Site;
+use lemmy_db_schema::{PersonListingType, PersonSortType, source::site::Site};
 use lemmy_db_schema_file::PersonId;
 use lemmy_db_views_community::MultiCommunityView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
+use lemmy_diesel_utils::pagination::PaginationCursor;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -102,4 +103,17 @@ pub struct PurgePerson {
 pub struct NotePerson {
   pub person_id: PersonId,
   pub note: String,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+pub struct ListPersons {
+  pub type_: Option<PersonListingType>,
+  pub sort: Option<PersonSortType>,
+  pub search_term: Option<String>,
+  pub search_title_only: Option<bool>,
+  pub page_cursor: Option<PaginationCursor>,
+  pub limit: Option<i64>,
 }

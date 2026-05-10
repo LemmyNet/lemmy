@@ -23,13 +23,14 @@ use lemmy_api::{
   federation::{
     list_comments::{list_comments, list_comments_slim},
     list_person_content::list_person_content,
+    list_persons::list_persons,
     list_posts::list_posts,
     read_community::get_community,
     read_multi_community::read_multi_community,
     read_person::read_person,
     resolve_object::resolve_object,
     search::search,
-    user_settings_backup::{export_settings, import_settings},
+    user_settings_backup::{export_user_settings, import_user_settings},
   },
   local_user::{
     add_admin::add_admin,
@@ -37,8 +38,7 @@ use lemmy_api::{
     block::user_block_person,
     change_password::change_password,
     change_password_after_reset::change_password_after_reset,
-    donation_dialog_shown::donation_dialog_shown,
-    export_data::export_data,
+    export_data::export_user_data,
     generate_totp_secret::generate_totp_secret,
     get_captcha::get_captcha,
     list_hidden::list_person_hidden,
@@ -49,6 +49,7 @@ use lemmy_api::{
     list_saved::list_person_saved,
     login::login,
     logout::logout,
+    mark_donation_dialog_shown::mark_donation_dialog_shown,
     note_person::user_note_person,
     notifications::{
       list::list_notifications,
@@ -243,7 +244,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("/tag", post().to(create_community_tag))
           .route("/tag", put().to(edit_community_tag))
           .route("/tag", delete().to(delete_community_tag))
-          .route("/notifications", post().to(edit_community_notifications))
+          .route("/notifications", put().to(edit_community_notifications))
           .service(
             scope("/pending_follows")
               .route("/list", get().to(get_pending_follows_list))
@@ -291,7 +292,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("/save", put().to(save_post))
           .route("/report", post().to(create_post_report))
           .route("/report/resolve", put().to(resolve_post_report))
-          .route("/notifications", post().to(edit_post_notifications))
+          .route("/notifications", put().to(edit_post_notifications))
           .route("/mod_edit", put().to(mod_edit_post))
           .route("/warn", post().to(create_post_warning)),
       )
@@ -373,7 +374,10 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("", delete().to(delete_account))
           .route("/login/list", get().to(list_logins))
           .route("/validate_auth", get().to(validate_auth))
-          .route("/donation_dialog_shown", post().to(donation_dialog_shown))
+          .route(
+            "/donation_dialog_shown",
+            post().to(mark_donation_dialog_shown),
+          )
           .route("/avatar", post().to(upload_user_avatar))
           .route("/avatar", delete().to(delete_user_avatar))
           .route("/banner", post().to(upload_user_banner))
@@ -397,19 +401,20 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .service(
             scope("/settings")
               .wrap(rate_limit.import_user_settings())
-              .route("/export", get().to(export_settings))
-              .route("/import", post().to(import_settings)),
+              .route("/export", get().to(export_user_settings))
+              .route("/import", post().to(import_user_settings)),
           )
           .service(
             resource("/data/export")
               .wrap(rate_limit.import_user_settings())
-              .route(get().to(export_data)),
+              .route(get().to(export_user_data)),
           ),
       )
-      // User actions
+      // Person / User actions
       .service(
         scope("/person")
           .route("", get().to(read_person))
+          .route("/list", get().to(list_persons))
           .route("/content", get().to(list_person_content))
           .route("/note", post().to(user_note_person)),
       )

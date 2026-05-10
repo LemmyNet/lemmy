@@ -42,7 +42,7 @@ pub async fn get_unread_counts(
   // Admins also get the number of unread registration applications.
   let registration_application_count = if is_admin(&local_user_view).is_ok() {
     let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
-    let verified_email_only = local_site.require_email_verification;
+    let verified_email_only = local_site.email_verification_required;
     Some(
       RegistrationApplicationView::get_unread_count(&mut context.pool(), verified_email_only)
         .await?,

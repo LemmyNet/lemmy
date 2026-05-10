@@ -28,13 +28,7 @@ use chrono::{DateTime, Utc};
 use lemmy_api_utils::{
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
-  utils::{
-    check_comment_depth,
-    check_is_mod_or_admin,
-    get_url_blocklist,
-    process_markdown,
-    slur_regex,
-  },
+  utils::{check_is_mod_or_admin, get_url_blocklist, process_markdown, slur_regex},
 };
 use lemmy_db_schema::source::{
   comment::{Comment, CommentInsertForm, CommentUpdateForm},
@@ -123,7 +117,8 @@ impl Object for ApubComment {
     let parent_creator = get_comment_parent_creator(&mut context.pool(), &self)
       .await
       .ok();
-    let maa = collect_non_local_mentions(Some(&self.content), parent_creator, context).await?;
+    let maa =
+      collect_non_local_mentions(Some(&self.content), parent_creator, &community, context).await?;
 
     let note = Note {
       r#type: NoteType::Note,
@@ -179,7 +174,8 @@ impl Object for ApubComment {
     ))
     .await?;
 
-    let (post, parent_comment) = Box::pin(note.get_parents(context)).await?;
+    let (post, parent_comment) = note.get_parents(context).await?;
+
     let creator = Box::pin(note.attributed_to.dereference(context)).await?;
 
     let is_mod_or_admin = check_is_mod_or_admin(&mut context.pool(), creator.id, community.id)
@@ -198,10 +194,8 @@ impl Object for ApubComment {
   /// If the parent community, post and comment(s) are not known locally, these are also fetched.
   async fn from_json(note: Note, context: &Data<LemmyContext>) -> LemmyResult<ApubComment> {
     let creator = note.attributed_to.dereference(context).await?;
+    // Parent comment is already fetched in verify method, no risk of stack overflow here.
     let (post, parent_comment) = note.get_parents(context).await?;
-    if let Some(c) = &parent_comment {
-      check_comment_depth(c)?;
-    }
 
     let content = read_from_string_or_source(&note.content, &note.media_type, &note.source);
 
@@ -221,6 +215,7 @@ impl Object for ApubComment {
     let mut form = CommentInsertForm {
       creator_id: creator.id,
       post_id: post.id,
+      community_id: post.community_id,
       content,
       removed: None,
       published_at: note.published,

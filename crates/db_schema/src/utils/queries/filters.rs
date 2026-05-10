@@ -1,22 +1,12 @@
 use diesel::{
   BoolExpressionMethods,
   ExpressionMethods,
-  NullableExpressionMethods,
-  QueryDsl,
   helper_types::{Eq, NotEq},
 };
 use lemmy_db_schema_file::{
   aliases::my_instance_persons_actions,
   enums::{CommunityFollowerState, CommunityVisibility},
-  schema::{
-    community,
-    community_actions,
-    instance_actions,
-    local_site,
-    multi_community,
-    multi_community_entry,
-    person_actions,
-  },
+  schema::{community, community_actions, instance_actions, person_actions},
 };
 
 /// Hide all content from blocked communities and persons. Content from blocked instances is also
@@ -46,18 +36,7 @@ type IsNotUnlistedType =
   NotEq<lemmy_db_schema_file::schema::community::visibility, CommunityVisibility>;
 
 #[diesel::dsl::auto_type]
-pub fn filter_not_unlisted_or_is_subscribed() -> _ {
+pub fn filter_not_unlisted() -> _ {
   let not_unlisted: IsNotUnlistedType = community::visibility.ne(CommunityVisibility::Unlisted);
-  let is_subscribed: IsSubscribedType = filter_is_subscribed();
-  not_unlisted.or(is_subscribed)
-}
-
-#[diesel::dsl::auto_type]
-pub fn filter_suggested_communities() -> _ {
-  community::id.eq_any(
-    local_site::table
-      .left_join(multi_community::table.inner_join(multi_community_entry::table))
-      .filter(multi_community_entry::community_id.is_not_null())
-      .select(multi_community_entry::community_id.assume_not_null()),
-  )
+  not_unlisted
 }

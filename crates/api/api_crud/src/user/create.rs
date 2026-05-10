@@ -97,7 +97,7 @@ pub async fn register(
   password_length_check(&data.password)?;
   honeypot_check(&data.honeypot)?;
 
-  if local_site.require_email_verification && data.email.is_none() {
+  if local_site.email_verification_required && data.email.is_none() {
     return Err(LemmyErrorType::EmailRequired.into());
   }
 
@@ -191,7 +191,7 @@ pub async fn register(
     .await?;
 
   // Email the admins, only if email verification is not required
-  if local_site.application_email_admins && !local_site.require_email_verification {
+  if local_site.application_email_admins && !local_site.email_verification_required {
     send_new_applicant_email_to_admins(&data.username, pool, context.settings()).await?;
   }
 
@@ -204,7 +204,7 @@ pub async fn register(
   // Log the user in directly if the site is not setup, or email verification and application aren't
   // required
   if !local_site.site_setup
-    || (!require_registration_application && !local_site.require_email_verification)
+    || (!require_registration_application && !local_site.email_verification_required)
   {
     let jwt = Claims::generate(user.local_user.id, data.stay_logged_in, req, &context).await?;
     login_response.jwt = Some(jwt);
@@ -340,7 +340,8 @@ pub async fn authenticate_with_oauth(
 
       // we only allow linking by email when email_verification is required otherwise emails cannot
       // be trusted
-      if oauth_provider.account_linking_enabled && site_view.local_site.require_email_verification {
+      if oauth_provider.account_linking_enabled && site_view.local_site.email_verification_required
+      {
         // WARNING:
         // If an admin switches the require_email_verification config from false to true,
         // users who signed up before the switch could have accounts with unverified emails falsely

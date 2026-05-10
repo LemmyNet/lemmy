@@ -2,7 +2,7 @@ use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
   kinds::activity::RemoveType,
-  protocol::helpers::deserialize_one_or_many,
+  protocol::{helpers::deserialize_one_or_many, verification::verify_urls_match},
 };
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
@@ -32,11 +32,11 @@ pub struct CollectionRemove {
 
 impl InCommunity for CollectionRemove {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
-    if let Some(audience) = &self.audience {
-      return audience.dereference(context).await;
-    }
     let (community, _) =
       Community::get_by_collection_url(&mut context.pool(), &self.clone().target.into()).await?;
+    if let Some(audience) = &self.audience {
+      verify_urls_match(audience.inner(), community.ap_id.inner())?;
+    }
     Ok(community.into())
   }
 }

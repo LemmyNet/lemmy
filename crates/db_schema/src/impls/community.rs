@@ -16,7 +16,7 @@ use crate::{
     post::Post,
   },
   traits::{ApubActor, Bannable, Blockable, Followable},
-  utils::format_actor_url,
+  utils::{format_actor_url, queries::filters::filter_is_subscribed},
 };
 use chrono::{DateTime, Utc};
 use diesel::{
@@ -43,12 +43,9 @@ use lemmy_diesel_utils::{
   utils::functions::{coalesce, coalesce_2_nullable, lower, random_smallint},
 };
 use lemmy_utils::{
-  CACHE_DURATION_LARGEST_COMMUNITY,
-  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult, UntranslatedError},
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult, UntranslatedError},
   settings::structs::Settings,
 };
-use moka::future::Cache;
-use std::sync::{Arc, LazyLock};
 use url::Url;
 
 impl Crud for Community {
@@ -332,7 +329,7 @@ impl CommunityActions {
       .filter(community_actions::became_moderator_at.is_not_null())
       .filter(community_actions::person_id.eq(for_person_id))
       .select(community_actions::community_id)
-      .load::<CommunityId>(conn)
+      .get_results(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
@@ -386,32 +383,19 @@ impl CommunityActions {
     Ok(())
   }
 
-  pub async fn fetch_largest_subscribed_community(
+  pub async fn list_subscribed_community_ids(
     pool: &mut DbPool<'_>,
     person_id: PersonId,
-  ) -> LemmyResult<Option<CommunityId>> {
-    static CACHE: LazyLock<Cache<PersonId, Option<CommunityId>>> = LazyLock::new(|| {
-      Cache::builder()
-        .max_capacity(1000)
-        .time_to_live(CACHE_DURATION_LARGEST_COMMUNITY)
-        .build()
-    });
-    CACHE
-      .try_get_with(person_id, async move {
-        let conn = &mut get_conn(pool).await?;
-        community_actions::table
-          .filter(community_actions::followed_at.is_not_null())
-          .filter(community_actions::person_id.eq(person_id))
-          .inner_join(community::table.on(community::id.eq(community_actions::community_id)))
-          .order_by(community::users_active_month.desc())
-          .select(community::id)
-          .first::<CommunityId>(conn)
-          .await
-          .optional()
-          .with_lemmy_type(LemmyErrorType::NotFound)
-      })
+  ) -> LemmyResult<Vec<CommunityId>> {
+    let conn = &mut get_conn(pool).await?;
+
+    community_actions::table
+      .filter(filter_is_subscribed())
+      .filter(community_actions::person_id.eq(person_id))
+      .select(community_actions::community_id)
+      .get_results(conn)
       .await
-      .map_err(|_e: Arc<LemmyError>| LemmyErrorType::NotFound.into())
+      .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
   pub async fn update_notification_state(
@@ -923,6 +907,7 @@ mod tests {
     let comment_form = CommentInsertForm::new(
       inserted_person.id,
       inserted_post.id,
+      inserted_community.id,
       "A test comment".into(),
     );
     let inserted_comment = Comment::create(pool, &comment_form, None).await?;
@@ -930,6 +915,7 @@ mod tests {
     let child_comment_form = CommentInsertForm::new(
       inserted_person.id,
       inserted_post.id,
+      inserted_community.id,
       "A test comment".into(),
     );
     let _inserted_child_comment =
@@ -993,6 +979,8 @@ mod tests {
     // Should be none found, since the creator was deleted
     let after_delete = Community::read(pool, inserted_community.id).await;
     assert!(after_delete.is_err());
+
+    Instance::delete(pool, inserted_instance.id).await?;
 
     Ok(())
   }

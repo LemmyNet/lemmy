@@ -205,7 +205,7 @@ test("Remote mod creates and updates post tag", async () => {
   );
   alphaCommunity = communityRes.community_view;
   let updateRes = await alpha.modEditPost({
-    post_id: alphaPost.post.id,
+    post_id: alphaPost!.post.id,
     tags: [alphaCommunity!.tags[0].id],
   });
   expect(updateRes.post_view.post.ap_id).toBe(postRes.post_view.post.ap_id);

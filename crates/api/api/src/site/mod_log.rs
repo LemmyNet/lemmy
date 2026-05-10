@@ -40,7 +40,7 @@ pub async fn get_mod_log(
     page_cursor: data.page_cursor,
     limit: data.limit,
   }
-  .list(&mut context.pool())
+  .list(&mut context.pool(), &local_site)
   .await?;
 
   Ok(Json(modlog))
@@ -56,10 +56,12 @@ mod tests {
       comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm},
       community::{Community, CommunityInsertForm},
       instance::Instance,
+      local_site::{LocalSite, LocalSiteInsertForm},
       local_user::{LocalUser, LocalUserInsertForm},
       modlog::{Modlog, ModlogInsertForm},
       person::{Person, PersonInsertForm},
       post::{Post, PostActions, PostInsertForm, PostLikeForm},
+      site::{Site, SiteInsertForm},
     },
     traits::Likeable,
   };
@@ -67,18 +69,39 @@ mod tests {
   use lemmy_db_views_comment::CommentView;
   use lemmy_db_views_modlog::ModlogView;
   use lemmy_db_views_post::PostView;
-  use lemmy_diesel_utils::traits::Crud;
+  use lemmy_diesel_utils::{connection::DbPool, traits::Crud};
   use lemmy_utils::error::LemmyErrorType;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
+  struct Data {
+    instance: Instance,
+    local_site: LocalSite,
+  }
+
+  async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
+    let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
+    let system_acct =
+      Person::create(pool, &PersonInsertForm::test_form(instance.id, "langs")).await?;
+    let site_form = SiteInsertForm::new("test site".to_string(), instance.id);
+    let site = Site::create(pool, &site_form).await?;
+    let local_site_form = LocalSiteInsertForm::new(site.id, system_acct.id);
+    let local_site = LocalSite::create(pool, &local_site_form).await?;
+
+    Ok(Data {
+      instance,
+      local_site,
+    })
+  }
   #[tokio::test]
   #[serial]
   async fn test_mod_remove_or_restore_data() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();
-
-    let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
+    let Data {
+      instance,
+      local_site,
+    } = init_data(pool).await?;
 
     // John is the mod
     let john = PersonInsertForm::test_form(instance.id, "john the modder");
@@ -107,15 +130,23 @@ mod tests {
     let post_form_2 = PostInsertForm::new("A test post radical".into(), sara.id, community.id);
     let post_2 = Post::create(pool, &post_form_2).await?;
 
-    let comment_form_1 =
-      CommentInsertForm::new(sara.id, post_1.id, "A test comment tubular".into());
+    let comment_form_1 = CommentInsertForm::new(
+      sara.id,
+      post_1.id,
+      community.id,
+      "A test comment tubular".into(),
+    );
     let comment_1 = Comment::create(pool, &comment_form_1, None).await?;
 
     let comment_like_form_1 = CommentLikeForm::new(comment_1.id, sara.id, Some(true));
     CommentActions::like(pool, &comment_like_form_1).await?;
 
-    let comment_form_2 =
-      CommentInsertForm::new(sara.id, post_2.id, "A test comment radical".into());
+    let comment_form_2 = CommentInsertForm::new(
+      sara.id,
+      post_2.id,
+      community.id,
+      "A test comment radical".into(),
+    );
     Comment::create(pool, &comment_form_2, None).await?;
 
     // Read saras post to make sure it has a like
@@ -152,7 +183,7 @@ mod tests {
       show_bulk: Some(true),
       ..Default::default()
     }
-    .list(pool)
+    .list(pool, &local_site)
     .await?
     .items;
     assert_eq!(2, post_modlog.len());
@@ -187,7 +218,7 @@ mod tests {
       show_bulk: Some(true),
       ..Default::default()
     }
-    .list(pool)
+    .list(pool, &local_site)
     .await?
     .items;
     assert_eq!(2, comment_modlog.len());
@@ -257,7 +288,7 @@ mod tests {
       show_bulk: Some(true),
       ..Default::default()
     }
-    .list(pool)
+    .list(pool, &local_site)
     .await?
     .items;
     assert_eq!(4, post_modlog.len());
@@ -310,7 +341,7 @@ mod tests {
       show_bulk: Some(true),
       ..Default::default()
     }
-    .list(pool)
+    .list(pool, &local_site)
     .await?
     .items;
     assert_eq!(4, comment_modlog.len());
@@ -369,8 +400,10 @@ mod tests {
   async fn test_bulk_parent_id_propagated() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();
-
-    let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
+    let Data {
+      instance,
+      local_site,
+    } = init_data(pool).await?;
 
     let person_a_form = PersonInsertForm::test_form(instance.id, "person_a_bulk_test");
     let person_a = Person::create(pool, &person_a_form).await?;
@@ -392,7 +425,12 @@ mod tests {
     let post_form_2 = PostInsertForm::new("Bulk test post 2".into(), person_b.id, community.id);
     let post_2 = Post::create(pool, &post_form_2).await?;
 
-    let comment_form = CommentInsertForm::new(person_b.id, post_2.id, "Bulk test comment".into());
+    let comment_form = CommentInsertForm::new(
+      person_b.id,
+      post_2.id,
+      community.id,
+      "Bulk test comment".into(),
+    );
     Comment::create(pool, &comment_form, None).await?;
 
     // Create the ban entry first and capture its ID as the expected parent
@@ -417,7 +455,7 @@ mod tests {
       show_bulk: Some(true),
       ..Default::default()
     }
-    .list(pool)
+    .list(pool, &local_site)
     .await?
     .items;
     assert_eq!(2, post_modlog.len());
@@ -433,7 +471,7 @@ mod tests {
       show_bulk: Some(true),
       ..Default::default()
     }
-    .list(pool)
+    .list(pool, &local_site)
     .await?
     .items;
     assert_eq!(1, comment_modlog.len());

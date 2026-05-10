@@ -207,10 +207,9 @@ impl InstanceWorker {
         .context("impossible: if fail count set last retry also set")?;
       let elapsed = (Utc::now() - last_retry).to_std()?;
       let required = federate_retry_sleep_duration(self.state.fail_count);
-      if elapsed >= required {
+      let Some(remaining) = required.checked_sub(elapsed) else {
         return Ok(());
-      }
-      let remaining = required - elapsed;
+      };
       tracing::debug!(
         "{}: fail-sleeping for {:?} before starting queue",
         self.instance.domain,

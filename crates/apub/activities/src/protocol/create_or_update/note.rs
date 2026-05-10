@@ -2,7 +2,7 @@ use crate::protocol::CreateOrUpdateType;
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
-  protocol::helpers::deserialize_one_or_many,
+  protocol::{helpers::deserialize_one_or_many, verification::verify_urls_match},
 };
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
@@ -35,11 +35,11 @@ pub struct CreateOrUpdateNote {
 
 impl InCommunity for CreateOrUpdateNote {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
-    if let Some(audience) = &self.audience {
-      return audience.dereference(context).await;
-    }
     let post = self.object.get_parents(context).await?.0;
     let community = Community::read(&mut context.pool(), post.community_id).await?;
+    if let Some(audience) = &self.audience {
+      verify_urls_match(audience.inner(), community.ap_id.inner())?;
+    }
     Ok(community.into())
   }
 }

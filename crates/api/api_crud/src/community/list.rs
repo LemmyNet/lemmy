@@ -11,28 +11,42 @@ pub async fn list_communities(
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
 ) -> LemmyResult<Json<PagedResponse<CommunityView>>> {
-  let local_site = SiteView::read_local(&mut context.pool()).await?;
+  let SiteView {
+    site, local_site, ..
+  } = SiteView::read_local(&mut context.pool()).await?;
 
-  check_private_instance(&local_user_view, &local_site.local_site)?;
+  check_private_instance(&local_user_view, &local_site)?;
 
   let local_user = local_user_view.map(|l| l.local_user);
 
   // Show nsfw content if param is true, or if content_warning exists
-  let show_nsfw = data
-    .show_nsfw
-    .unwrap_or(local_site.site.content_warning.is_some());
+  let show_nsfw = data.show_nsfw.unwrap_or(site.content_warning.is_some());
+
+  let ListCommunities {
+    type_: listing_type,
+    time_range_seconds,
+    sort,
+    limit,
+    page_cursor,
+    search_term,
+    search_title_only,
+    multi_community_id,
+    ..
+  } = data;
 
   let res = CommunityQuery {
-    listing_type: data.type_,
+    listing_type,
     show_nsfw: Some(show_nsfw),
-    sort: data.sort,
-    time_range_seconds: data.time_range_seconds,
+    sort,
+    time_range_seconds,
     local_user: local_user.as_ref(),
-    page_cursor: data.page_cursor,
-    limit: data.limit,
-    ..Default::default()
+    multi_community_id,
+    search_term,
+    search_title_only,
+    page_cursor,
+    limit,
   }
-  .list(&local_site.site, &mut context.pool())
+  .list(&mut context.pool(), &site, &local_site)
   .await?;
 
   // Return the jwt

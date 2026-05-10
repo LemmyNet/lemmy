@@ -1,18 +1,12 @@
 use crate::LocalUserView;
-use diesel::{
-  BoolExpressionMethods,
-  ExpressionMethods,
-  JoinOnDsl,
-  NullableExpressionMethods,
-  QueryDsl,
-  SelectableHelper,
-};
+use diesel::{BoolExpressionMethods, ExpressionMethods, JoinOnDsl, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   self,
   PersonContentType,
   impls::local_user::LocalUserOptionHelper,
+  newtypes::CommunityId,
   source::combined::person_content::{PersonContentCombined, person_content_combined_keys as key},
   traits::InternalToCombinedView,
   utils::limit_fetch,
@@ -22,7 +16,6 @@ use lemmy_db_schema_file::{
   PersonId,
   enums::{CommunityFollowerState, CommunityVisibility},
   joins::{
-    community_join,
     creator_community_actions_join,
     creator_community_instance_actions_join,
     creator_home_instance_actions_join,
@@ -91,31 +84,19 @@ impl PaginationCursorConversion for PostCommentCombinedViewWrapper {
   }
 }
 
-#[derive(derive_new::new)]
+#[derive(Default)]
 pub struct PersonContentCombinedQuery {
   pub creator_id: PersonId,
-  #[new(default)]
   pub type_: Option<PersonContentType>,
-  #[new(default)]
+  pub community_id: Option<CommunityId>,
   pub page_cursor: Option<PaginationCursor>,
-  #[new(default)]
   pub limit: Option<i64>,
-  #[new(default)]
   pub no_limit: Option<bool>,
 }
 
 impl PersonContentCombinedQuery {
   #[diesel::dsl::auto_type(no_type_alias)]
   fn joins(my_person_id: Option<PersonId>, local_instance_id: InstanceId) -> _ {
-    let comment_join =
-      comment::table.on(person_content_combined::comment_id.eq(comment::id.nullable()));
-
-    let post_join = post::table.on(
-      person_content_combined::post_id
-        .eq(post::id.nullable())
-        .or(comment::post_id.eq(post::id)),
-    );
-
     let item_creator_join = person::table.on(person_content_combined::creator_id.eq(person::id));
 
     let my_community_actions_join: my_community_actions_join =
@@ -128,10 +109,10 @@ impl PersonContentCombinedQuery {
       creator_local_instance_actions_join(local_instance_id);
 
     person_content_combined::table
-      .left_join(comment_join)
-      .inner_join(post_join)
+      .left_join(comment::table)
+      .inner_join(community::table)
+      .inner_join(post::table)
       .inner_join(item_creator_join)
-      .inner_join(community_join())
       .left_join(image_details_join())
       .left_join(creator_community_actions_join())
       .left_join(creator_local_user_admin_join())
@@ -176,6 +157,11 @@ impl PersonContentCombinedQuery {
       }
     }
 
+    // Filter by the community id
+    if let Some(community_id) = self.community_id {
+      query = query.filter(community::id.eq(community_id));
+    }
+
     // Check permissions to view private community content.
     // Specifically, if the community is private then only accepted followers may view its
     // content, otherwise it is filtered out. Admins can view private community content
@@ -189,17 +175,12 @@ impl PersonContentCombinedQuery {
     }
 
     // Sorting by published
-    let paginated_query = PostCommentCombinedViewWrapper::paginate(
-      query,
-      &self.page_cursor,
-      SortDirection::Desc,
-      pool,
-      None,
-    )
-    .await?
-    .then_order_by(key::published_at)
-    // Tie breaker
-    .then_order_by(key::id);
+    let paginated_query =
+      PostCommentCombinedViewWrapper::paginate(query, &self.page_cursor, SortDirection::Desc, pool)
+        .await?
+        .then_order_by(key::published_at)
+        // Tie breaker
+        .then_order_by(key::id);
 
     let conn = &mut get_conn(pool).await?;
     let res = paginated_query
@@ -315,21 +296,34 @@ mod tests {
     );
     let timmy_private_comm_post = Post::create(pool, &timmy_private_comm_post_form).await?;
 
-    let timmy_comment_form =
-      CommentInsertForm::new(timmy.id, timmy_post.id, "timmy comment prv".into());
+    let timmy_comment_form = CommentInsertForm::new(
+      timmy.id,
+      timmy_post.id,
+      community.id,
+      "timmy comment prv".into(),
+    );
     let timmy_comment = Comment::create(pool, &timmy_comment_form, None).await?;
 
-    let sara_comment_form =
-      CommentInsertForm::new(sara.id, timmy_post.id, "sara comment prv".into());
+    let sara_comment_form = CommentInsertForm::new(
+      sara.id,
+      timmy_post.id,
+      community.id,
+      "sara comment prv".into(),
+    );
     let sara_comment = Comment::create(pool, &sara_comment_form, None).await?;
 
-    let sara_comment_form_2 =
-      CommentInsertForm::new(sara.id, timmy_post_2.id, "sara comment prv 2".into());
+    let sara_comment_form_2 = CommentInsertForm::new(
+      sara.id,
+      timmy_post_2.id,
+      community.id,
+      "sara comment prv 2".into(),
+    );
     let sara_comment_2 = Comment::create(pool, &sara_comment_form_2, None).await?;
 
     let timmy_private_comm_comment_form = CommentInsertForm::new(
       timmy.id,
       timmy_private_comm_post.id,
+      private_community.id,
       "timmy private comment prv".into(),
     );
     let _timmy_private_comm_comment =
@@ -364,9 +358,12 @@ mod tests {
     let data = init_data(pool).await?;
 
     // Do a batch read of timmy
-    let timmy_content = PersonContentCombinedQuery::new(data.timmy.id)
-      .list(pool, None, data.instance.id)
-      .await?;
+    let timmy_content = PersonContentCombinedQuery {
+      creator_id: data.timmy.id,
+      ..Default::default()
+    }
+    .list(pool, None, data.instance.id)
+    .await?;
     assert_eq!(3, timmy_content.len());
 
     // Make sure the types are correct
@@ -390,9 +387,12 @@ mod tests {
     }
 
     // Do a batch read of sara
-    let sara_content = PersonContentCombinedQuery::new(data.sara.id)
-      .list(pool, None, data.instance.id)
-      .await?;
+    let sara_content = PersonContentCombinedQuery {
+      creator_id: data.sara.id,
+      ..Default::default()
+    }
+    .list(pool, None, data.instance.id)
+    .await?;
     assert_eq!(3, sara_content.len());
 
     // Make sure the report types are correct
@@ -433,9 +433,12 @@ mod tests {
     let data = init_data(pool).await?;
 
     // Make sure timmy can't see private content
-    let timmy_content = PersonContentCombinedQuery::new(data.timmy.id)
-      .list(pool, Some(&data.timmy_view), data.instance.id)
-      .await?;
+    let timmy_content = PersonContentCombinedQuery {
+      creator_id: data.timmy.id,
+      ..Default::default()
+    }
+    .list(pool, Some(&data.timmy_view), data.instance.id)
+    .await?;
     assert_eq!(3, timmy_content.len());
 
     // Approve timmy to the community
@@ -456,9 +459,12 @@ mod tests {
     .await?;
 
     // Make sure timmy can now see the content
-    let timmy_content_after_approved = PersonContentCombinedQuery::new(data.timmy.id)
-      .list(pool, Some(&data.timmy_view), data.instance.id)
-      .await?;
+    let timmy_content_after_approved = PersonContentCombinedQuery {
+      creator_id: data.timmy.id,
+      ..Default::default()
+    }
+    .list(pool, Some(&data.timmy_view), data.instance.id)
+    .await?;
     assert_eq!(5, timmy_content_after_approved.len());
 
     cleanup(data, pool).await?;

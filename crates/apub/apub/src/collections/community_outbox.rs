@@ -34,7 +34,7 @@ impl Collection for ApubCommunityOutbox {
   type Error = LemmyError;
 
   async fn read_local(owner: &Self::Owner, data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
-    let site = SiteView::read_local(&mut data.pool()).await?.site;
+    let site_view = SiteView::read_local(&mut data.pool()).await?;
 
     let mut post_views = Box::pin(
       PostQuery {
@@ -43,14 +43,14 @@ impl Collection for ApubCommunityOutbox {
         limit: Some(FETCH_LIMIT_MAX.try_into()?),
         ..Default::default()
       }
-      .list(&site, &mut data.pool()),
+      .list(&mut data.pool(), &site_view.site, &site_view.local_site),
     )
     .await?
     .items;
 
     // Outbox must be sorted reverse chronological (newest items first). This is already done
     // via SQL, but featured posts are always at the top so we need to manually sort it here.
-    post_views.sort_unstable_by(|p1, p2| p2.post.published_at.cmp(&p1.post.published_at));
+    post_views.sort_unstable_by_key(|p2| std::cmp::Reverse(p2.post.published_at));
 
     let mut ordered_items = vec![];
     for post_view in post_views {

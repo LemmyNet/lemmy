@@ -32,9 +32,11 @@ async fn parse_apub_mentions(
   let mentions: Vec<_> = tags.iter().filter_map(ApubTag::mention_id).collect();
   let mut res = vec![];
   for m in mentions {
-    let person = m.dereference(context).await?.0;
+    let Some(person) = m.dereference(context).await?.left() else {
+      continue;
+    };
     if person.local {
-      res.push(person);
+      res.push(person.0);
     }
   }
   Ok(res)

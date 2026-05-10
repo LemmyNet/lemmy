@@ -34,6 +34,11 @@
       "type": "CommunityPostTag",
       "id": "https://enterprise.lemmy.ml/c/tenforward/tag/news",
       "preferredUsername": "news"
+    },
+    {
+      "href": "https://enterprise.lemmy.ml/c/tenforward",
+      "type": "Mention",
+      "name": "@tenforward@enterprise.lemmy.ml"
     }
   ],
   "context": "https://enterprise.lemmy.ml/post/55143/context",

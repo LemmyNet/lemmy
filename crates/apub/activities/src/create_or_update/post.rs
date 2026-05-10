@@ -107,7 +107,7 @@ impl Activity for CreateOrUpdatePage {
       verify_urls_match(self.actor.inner(), self.object.creator()?.inner()).is_ok();
     let original_post =
       Post::read_from_apub_id(&mut context.pool(), self.object.id.clone().into()).await;
-    let is_mod_action = verify_mod_action(&self.actor, &community, context)
+    let is_mod_action = verify_mod_action(&self.actor, self.object.id.inner(), &community, context)
       .await
       .is_ok();
     // allow mods to edit the post
@@ -144,7 +144,7 @@ impl Activity for CreateOrUpdatePage {
     Post::update_ranks(&mut context.pool(), post.id).await?;
 
     let do_send_email =
-      self.kind == CreateOrUpdateType::Create && !site_view.local_site.disable_email_notifications;
+      self.kind == CreateOrUpdateType::Create && !site_view.local_site.email_notifications_disabled;
     let actor = self.actor.dereference(context).await?;
 
     NotifyData {

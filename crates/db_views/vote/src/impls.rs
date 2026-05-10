@@ -65,7 +65,7 @@ impl VoteView {
       .into_boxed();
 
     // Sorting by like score
-    let query = VoteViewPost::paginate(query, &page_cursor, SortDirection::Asc, pool, None)
+    let query = VoteViewPost::paginate(query, &page_cursor, SortDirection::Asc, pool)
       .await?
       .then_order_by(key::vote_is_upvote)
       // Tie breaker
@@ -116,7 +116,7 @@ impl VoteView {
       .into_boxed();
 
     // Sorting by like score
-    let query = VoteViewComment::paginate(query, &page_cursor, SortDirection::Asc, pool, None)
+    let query = VoteViewComment::paginate(query, &page_cursor, SortDirection::Asc, pool)
       .await?
       .then_order_by(key::vote_is_upvote)
       // Tie breaker
@@ -236,6 +236,7 @@ mod tests {
     let comment_form = CommentInsertForm::new(
       inserted_timmy.id,
       inserted_post.id,
+      inserted_community.id,
       "A test comment vv".into(),
     );
     let inserted_comment = Comment::create(pool, &comment_form, None).await?;

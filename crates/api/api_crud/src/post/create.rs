@@ -150,7 +150,7 @@ pub async fn create_post(
 
   let community_id = community.id;
   let federate_post = if scheduled_publish_time_at.is_none() {
-    send_webmention(inserted_post.clone(), community);
+    send_webmention(inserted_post.clone(), community, context.clone());
     |post| Some(SendActivityData::CreatePost(post))
   } else {
     |_| None
@@ -171,7 +171,7 @@ pub async fn create_post(
   PostActions::like(&mut context.pool(), &like_form).await?;
 
   NotifyData {
-    do_send_email: !local_site.disable_email_notifications,
+    do_send_email: !local_site.email_notifications_disabled,
     ..NotifyData::new(
       inserted_post.clone(),
       local_user_view.person.clone(),

@@ -36,6 +36,8 @@ import {
   listReports,
   statusBadRequest,
   jestLemmyError,
+  resolveMultiCommunity,
+  searchPostLocal,
 } from "./shared";
 import { AdminAllowInstanceParams } from "lemmy-js-client/dist/types/AdminAllowInstanceParams";
 import {
@@ -45,10 +47,8 @@ import {
   FollowMultiCommunity,
   GetPosts,
   LemmyError,
-  MultiCommunityView,
   ReportCombinedView,
   ResolveCommunityReport,
-  Search,
 } from "lemmy-js-client";
 
 beforeAll(setupLogins);
@@ -554,14 +554,8 @@ test("Dont receive community activities after unsubscribe", async () => {
   expect(postRes.post_view.post.id).toBeDefined();
   // await longDelay();
 
-  let form: Search = {
-    q: postRes.post_view.post.name,
-    type_: "posts",
-    listing_type: "all",
-  };
-
-  let res = await beta.search(form);
-  expect(res.search.length).toBe(0);
+  let res = await searchPostLocal(beta, postRes.post_view.post);
+  expect(res).toBeUndefined();
 });
 
 test("Fetch community, includes posts", async () => {
@@ -744,20 +738,21 @@ test("Multi-community", async () => {
   expect(entryRes.community_view.community.id).toBe(community1.id);
 
   // resolve over federation
-  let betaMulti = (
-    await beta.resolveObject({ q: res.multi_community_view.multi.ap_id })
-  ).resolve as MultiCommunityView;
-  expect(betaMulti.multi.ap_id).toBe(res.multi_community_view.multi.ap_id);
+  let betaMulti = await resolveMultiCommunity(
+    beta,
+    res.multi_community_view.multi.ap_id,
+  );
+  expect(betaMulti!.multi.ap_id).toBe(res.multi_community_view.multi.ap_id);
 
   // follow multi over federation
   let form: FollowMultiCommunity = {
-    multi_community_id: betaMulti.multi.id,
+    multi_community_id: betaMulti!.multi.id,
     follow: true,
   };
   await beta.followMultiCommunity(form);
 
   let betaRes = await waitUntil(
-    () => beta.getMultiCommunity({ id: betaMulti.multi.id }),
+    () => beta.getMultiCommunity({ id: betaMulti!.multi.id }),
     m => m.communities.length >= 1,
   );
   expect(betaRes.communities[0].community.ap_id).toBe(community1.ap_id);
@@ -766,7 +761,7 @@ test("Multi-community", async () => {
     () => beta.listMultiCommunities({}),
     m => m.items.length >= 1,
   );
-  expect(followed.items[0].multi.ap_id).toBe(betaMulti.multi.ap_id);
+  expect(followed.items[0].multi.ap_id).toBe(betaMulti!.multi.ap_id);
 
   // add community to multi
   let community2 = await waitUntil(
@@ -785,7 +780,7 @@ test("Multi-community", async () => {
 
   // federated to beta
   betaRes = await waitUntil(
-    () => beta.getMultiCommunity({ id: betaMulti.multi.id }),
+    () => beta.getMultiCommunity({ id: betaMulti!.multi.id }),
     m => m.communities.length >= 2,
   );
   let ap_ids = betaRes.communities.map(c => c.community.ap_id);

@@ -1,12 +1,6 @@
-use cfg_if::cfg_if;
-
 fn main() {
-  cfg_if! {
-    if #[cfg(feature = "full")] {
-      println!("{}", config_to_string())
-    } else {
-    }
-  }
+  #[cfg(feature = "full")]
+  println!("{}", config_to_string())
 }
 
 #[cfg(feature = "full")]

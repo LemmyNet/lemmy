@@ -24,7 +24,7 @@ pub async fn list_registration_applications(
 
   let registration_applications = RegistrationApplicationQuery {
     unread_only: data.unread_only,
-    verified_email_only: Some(local_site.require_email_verification),
+    verified_email_only: Some(local_site.email_verification_required),
     page_cursor: data.page_cursor,
     limit: data.limit,
   }

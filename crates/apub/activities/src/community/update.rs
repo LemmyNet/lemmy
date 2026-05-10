@@ -101,7 +101,11 @@ impl Activity for Update {
       Either::Left(c) => {
         let community = self.community(context).await?;
         verify_visibility(&self.to, &self.cc, &community)?;
-        verify_mod_action(&self.actor, &community, context).await?;
+        let object_id = self
+          .object
+          .as_ref()
+          .either(|l| l.id.inner(), |r| r.id.inner());
+        verify_mod_action(&self.actor, object_id, &community, context).await?;
         check_community_deleted_or_removed(&community)?;
         ApubCommunity::verify(c, &community.ap_id.clone().into(), context).await?;
       }

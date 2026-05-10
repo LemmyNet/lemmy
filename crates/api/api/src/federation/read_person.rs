@@ -14,7 +14,7 @@ use lemmy_db_views_person::{
   api::{GetPersonDetails, GetPersonDetailsResponse},
 };
 use lemmy_db_views_site::SiteView;
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn read_person(
   Query(data): Query<GetPersonDetails>,
@@ -25,11 +25,13 @@ pub async fn read_person(
   let local_site = site_view.local_site;
   let local_instance_id = site_view.site.instance_id;
   let my_person_id = local_user_view.as_ref().map(|l| l.person.id);
-
+  let local_user = local_user_view.as_ref().map(|l| &l.local_user);
   check_private_instance(&local_user_view, &local_site)?;
 
   let person_details_id =
-    resolve_person_identifier(data.person_id, &data.username, &context, &local_user_view).await?;
+    resolve_person_identifier(data.person_id, &data.username, &context, &local_user_view)
+      .await?
+      .ok_or(LemmyErrorType::NoIdGiven)?;
 
   // You don't need to return settings for the user, since this comes back with GetSite
   // `my_user`
@@ -47,16 +49,12 @@ pub async fn read_person(
   )
   .await?;
 
-  let moderates = CommunityModeratorView::for_person(
-    &mut context.pool(),
-    person_details_id,
-    local_user_view.map(|l| l.local_user).as_ref(),
-  )
-  .await?;
+  let moderates =
+    CommunityModeratorView::for_person(&mut context.pool(), person_details_id, local_user).await?;
 
   let multi_communities_created = MultiCommunityQuery {
     creator_id: Some(person_details_id),
-    my_person_id,
+    local_user,
     sort: Some(MultiCommunitySortType::NameAsc),
     no_limit: Some(true),
     ..Default::default()

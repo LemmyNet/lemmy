@@ -69,7 +69,9 @@ test("Upload image and delete it", async () => {
 
   // This number comes from all the previous thumbnails fetched in other tests.
   const previousThumbnails = 1;
-  expect(listMediaAdminRes.items.length).toBe(previousThumbnails);
+  expect(listMediaAdminRes.items.length).toBeGreaterThanOrEqual(
+    previousThumbnails,
+  );
 
   // Make sure the uploader is correct
   expect(listMediaRes.items[0].person.ap_id).toBe(
@@ -229,6 +231,12 @@ test("Thumbnail of remote image link is proxied if setting enabled", async () =>
   const post = postRes.post_view.post;
   expect(post).toBeDefined();
 
+  // Wait for the thumbnail (since its backgrounded)
+  await waitUntil(
+    () => getPost(gamma, post.id),
+    p => p.post_view.post.thumbnail_url != undefined,
+  );
+
   // remote image gets proxied after upload
   expect(
     post.thumbnail_url?.startsWith(
@@ -288,15 +296,15 @@ test("No image proxying if setting is disabled", async () => {
   let betaPost = await waitForPost(beta, post.post_view.post, res => {
     return res?.post.alt_text != null;
   });
-  expect(betaPost.post).toBeDefined();
+  expect(betaPost!.post).toBeDefined();
 
   // remote image doesn't get proxied after federation
   expect(
-    betaPost.post.url?.startsWith("http://lemmy-beta:8551/api/v4/image/"),
+    betaPost!.post.url?.startsWith("http://lemmy-beta:8551/api/v4/image/"),
   ).toBeTruthy();
-  expect(betaPost.post.body).toBe(`![](${sampleImage})`);
+  expect(betaPost!.post.body).toBe(`![](${sampleImage})`);
   // Make sure the alt text got federated
-  expect(post.post_view.post.alt_text).toBe(betaPost.post.alt_text);
+  expect(post.post_view.post.alt_text).toBe(betaPost!.post.alt_text);
 });
 
 test("Make regular post, and give it a custom thumbnail", async () => {

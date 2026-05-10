@@ -3,6 +3,7 @@ use crate::{
   context::LemmyContext,
   request::{delete_image_alias, fetch_pictrs_proxied_image_details, purge_image_from_pictrs_url},
 };
+use activitypub_federation::config::Data;
 use actix_web::{HttpRequest, http::header::Header};
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
@@ -55,9 +56,13 @@ use lemmy_utils::{
   settings::SETTINGS,
   spawn_try_task,
   utils::{
-    markdown::{image_links::markdown_rewrite_image_links, markdown_check_for_blocked_urls},
+    markdown::{
+      code_links::clean_urls_skip_code_links,
+      image_links::markdown_rewrite_image_links,
+      markdown_check_for_blocked_urls,
+    },
     slurs::remove_slurs,
-    validation::{build_and_check_regex, clean_urls_in_text},
+    validation::build_and_check_regex,
   },
 };
 use moka::future::Cache;
@@ -209,7 +214,7 @@ pub fn check_email_verified(
   site_view: &SiteView,
 ) -> LemmyResult<()> {
   if !local_user_view.local_user.admin
-    && site_view.local_site.require_email_verification
+    && site_view.local_site.email_verification_required
     && !local_user_view.local_user.email_verified
   {
     return Err(LemmyErrorType::EmailNotVerified.into());
@@ -357,7 +362,7 @@ pub fn check_private_instance(
 
 /// If private messages are disabled, dont allow them to be sent / received
 pub fn check_private_messages_enabled(local_user_view: &LocalUserView) -> Result<(), LemmyError> {
-  if !local_user_view.local_user.enable_private_messages {
+  if !local_user_view.local_user.private_messages_enabled {
     Err(LemmyErrorType::CouldntCreate.into())
   } else {
     Ok(())
@@ -408,16 +413,15 @@ pub async fn slur_regex(context: &LemmyContext) -> LemmyResult<Regex> {
       .build()
   });
   Ok(
-    CACHE
-      .try_get_with((), async {
-        let local_site = SiteView::read_local(&mut context.pool())
-          .await
-          .ok()
-          .map(|s| s.local_site);
-        build_and_check_regex(local_site.and_then(|s| s.slur_filter_regex).as_deref())
-      })
-      .await
-      .map_err(|e| anyhow::anyhow!("Failed to construct regex: {e}"))?,
+    Box::pin(CACHE.try_get_with((), async {
+      let local_site = SiteView::read_local(&mut context.pool())
+        .await
+        .ok()
+        .map(|s| s.local_site);
+      build_and_check_regex(local_site.and_then(|s| s.slur_filter_regex).as_deref())
+    }))
+    .await
+    .map_err(|e| anyhow::anyhow!("Failed to construct regex: {e}"))?,
   )
 }
 
@@ -450,7 +454,7 @@ pub async fn get_url_blocklist(context: &LemmyContext) -> LemmyResult<RegexSet> 
 // `local_site` is optional so that tests work easily
 pub fn check_nsfw_allowed(nsfw: Option<bool>, local_site: Option<&LocalSite>) -> LemmyResult<()> {
   let is_nsfw = nsfw.unwrap_or_default();
-  let nsfw_disallowed = local_site.is_some_and(|s| s.disallow_nsfw_content);
+  let nsfw_disallowed = local_site.is_some_and(|s| s.nsfw_content_disallowed);
 
   if nsfw_disallowed && is_nsfw {
     return Err(LemmyErrorType::NsfwNotAllowed.into());
@@ -474,7 +478,7 @@ pub async fn read_site_for_actor(
 pub async fn purge_post_images(
   url: Option<DbUrl>,
   thumbnail_url: Option<DbUrl>,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
 ) {
   if let Some(url) = url {
     purge_image_from_pictrs_url(&url, context).await.ok();
@@ -838,10 +842,10 @@ pub async fn process_markdown(
   slur_regex: &Regex,
   url_blocklist: &RegexSet,
   local_site: &LocalSite,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
 ) -> LemmyResult<String> {
   let text = remove_slurs(text, slur_regex);
-  let text = clean_urls_in_text(&text);
+  let text = clean_urls_skip_code_links(&text);
 
   markdown_check_for_blocked_urls(&text, url_blocklist)?;
 
@@ -870,7 +874,7 @@ pub async fn process_markdown_opt(
   slur_regex: &Regex,
   url_blocklist: &RegexSet,
   local_site: &LocalSite,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
 ) -> LemmyResult<Option<String>> {
   match text {
     Some(t) => process_markdown(t, slur_regex, url_blocklist, local_site, context)
@@ -888,8 +892,9 @@ async fn proxy_image_link_internal(
   link: Url,
   local_site: &LocalSite,
   is_thumbnail: bool,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
 ) -> LemmyResult<DbUrl> {
+  context.is_valid_ip(&link).await?;
   // Dont rewrite links pointing to local domain.
   if link.domain() == Some(&context.settings().hostname) {
     Ok(link.into())
@@ -917,7 +922,7 @@ pub async fn proxy_image_link(
   link: Url,
   local_site: &LocalSite,
   is_thumbnail: bool,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
 ) -> LemmyResult<DbUrl> {
   proxy_image_link_internal(link, local_site, is_thumbnail, context).await
 }
@@ -925,7 +930,7 @@ pub async fn proxy_image_link(
 pub async fn proxy_image_link_opt_apub(
   link: Option<Url>,
   local_site: &LocalSite,
-  context: &LemmyContext,
+  context: &Data<LemmyContext>,
 ) -> LemmyResult<Option<DbUrl>> {
   if let Some(l) = link {
     proxy_image_link(l, local_site, false, context)
@@ -981,11 +986,14 @@ pub fn read_auth_token(req: &HttpRequest) -> LemmyResult<Option<String>> {
   }
 }
 
-pub fn send_webmention(post: Post, community: &Community) {
+pub fn send_webmention(post: Post, community: &Community, context: Data<LemmyContext>) {
   if let Some(url) = post.url.clone()
     && community.visibility.can_view_without_login()
   {
     spawn_try_task(async move {
+      if context.is_valid_ip(&url).await.is_err() {
+        return Ok(());
+      }
       let mut webmention = Webmention::new::<Url>(post.ap_id.clone().into(), url.clone().into())?;
       webmention.set_checked(true);
       match webmention
@@ -1120,6 +1128,7 @@ mod tests {
       id: CommentId(0),
       creator_id: PersonId(0),
       post_id: PostId(0),
+      community_id: CommunityId(0),
       content: String::new(),
       removed: false,
       published_at: Utc::now(),

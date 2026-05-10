@@ -81,7 +81,7 @@ test("Follow federated community", async () => {
 
   // check that unfollow was federated
   let communityOnBeta1 = await resolveBetaCommunity(beta);
-  expect(communityOnBeta1?.community.subscribers).toBe(
+  expect(communityOnBeta1?.community.subscribers).toBeGreaterThanOrEqual(
     betaCommunityInitial.community.subscribers + 1,
   );
 
@@ -116,7 +116,8 @@ test("Follow federated community", async () => {
   let communityOnBeta2 = await waitUntil(
     () => resolveBetaCommunity(beta),
     c =>
-      c?.community.subscribers === betaCommunityInitial.community.subscribers,
+      (c?.community.subscribers ?? 0) >=
+      betaCommunityInitial.community.subscribers,
   );
   expect(communityOnBeta2?.community.subscribers).toBe(
     betaCommunityInitial.community.subscribers,

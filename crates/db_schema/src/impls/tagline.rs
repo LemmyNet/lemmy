@@ -72,7 +72,7 @@ impl Tagline {
   ) -> LemmyResult<PagedResponse<Self>> {
     let limit = limit_fetch(limit, None)?;
     let query = tagline::table.limit(limit).into_boxed();
-    let paginated_query = Self::paginate(query, &page_cursor, SortDirection::Desc, pool, None)
+    let paginated_query = Self::paginate(query, &page_cursor, SortDirection::Desc, pool)
       .await?
       .then_order_by(key::published_at)
       .then_order_by(key::id);
