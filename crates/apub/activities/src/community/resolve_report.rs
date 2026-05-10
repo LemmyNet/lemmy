@@ -81,7 +81,7 @@ impl Activity for ResolveReport {
     let receiver = self.object.to[0].dereference(context).await?;
     verify_person_in_site_or_community(&self.actor, &receiver, context).await?;
     verify_urls_match(self.to[0].inner(), self.object.to[0].inner())?;
-    verify_mod_or_admin_action(&self.actor, &receiver, context).await?;
+    verify_mod_or_admin_action(&self.actor, &self.object.id, &receiver, context).await?;
     Ok(())
   }
 

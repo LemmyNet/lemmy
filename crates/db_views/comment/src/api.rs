@@ -1,6 +1,9 @@
 use crate::CommentView;
 use lemmy_db_schema::newtypes::{CommentId, CommunityId, LanguageId, PostId};
-use lemmy_db_schema_file::enums::{CommentSortType, ListingType};
+use lemmy_db_schema_file::{
+  PersonId,
+  enums::{CommentSortType, ListingType},
+};
 use lemmy_diesel_utils::pagination::PaginationCursor;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -81,6 +84,8 @@ pub struct GetComments {
   pub limit: Option<i64>,
   pub community_id: Option<CommunityId>,
   pub community_name: Option<String>,
+  pub creator_id: Option<PersonId>,
+  pub creator_username: Option<String>,
   pub post_id: Option<PostId>,
   pub parent_id: Option<CommentId>,
   pub search_term: Option<String>,

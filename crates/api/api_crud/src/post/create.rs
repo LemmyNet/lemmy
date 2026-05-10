@@ -150,7 +150,7 @@ pub async fn create_post(
 
   let community_id = community.id;
   let federate_post = if scheduled_publish_time_at.is_none() {
-    send_webmention(inserted_post.clone(), community);
+    send_webmention(inserted_post.clone(), community, context.clone());
     |post| Some(SendActivityData::CreatePost(post))
   } else {
     |_| None

@@ -279,6 +279,7 @@ pub fn comment_select_remove_deletes() -> _ {
     comment::unresolved_report_count,
     comment::federation_pending,
     comment::locked,
+    comment::community_id,
   )
 }
 

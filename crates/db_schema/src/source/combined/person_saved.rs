@@ -1,4 +1,4 @@
-use crate::newtypes::{CommentId, PersonSavedCombinedId, PostId};
+use crate::newtypes::{CommentId, CommunityId, PersonSavedCombinedId, PostId};
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;
@@ -22,7 +22,8 @@ pub struct PersonSavedCombined {
   pub saved_at: DateTime<Utc>,
   pub person_id: PersonId,
   pub creator_id: PersonId,
-  pub post_id: Option<PostId>,
+  pub post_id: PostId,
   pub comment_id: Option<CommentId>,
   pub id: PersonSavedCombinedId,
+  pub community_id: CommunityId,
 }

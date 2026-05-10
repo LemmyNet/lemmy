@@ -67,7 +67,7 @@ use lemmy_diesel_utils::{
 };
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
-  utils::validation::clean_url,
+  utils::markdown::clean_url,
 };
 use tracing::debug;
 use url::Url;
@@ -298,6 +298,7 @@ pub struct PostQuery<'a> {
   pub sort: Option<PostSortType>,
   pub time_range_seconds: Option<i32>,
   pub community_id: Option<CommunityId>,
+  pub creator_id: Option<PersonId>,
   pub multi_community_id: Option<MultiCommunityId>,
   pub local_user: Option<&'a LocalUser>,
   pub show_hidden: Option<bool>,
@@ -326,7 +327,7 @@ impl PostQuery<'_> {
   /// - Suggested
   ///
   ///  A return value of None means ignore, empty vec means filter out everything (IE empty
-  /// subscribed, moderated,  suggested)
+  /// subscribed, moderated, suggested)
   async fn prefetch_community_ids(
     &self,
     pool: &mut DbPool<'_>,
@@ -414,8 +415,13 @@ impl PostQuery<'_> {
     }
 
     //  Filter by the given community ids, prefetched above
-    if let Some(community_ids) = community_ids {
+    if let Some(community_ids) = &community_ids {
       query = query.filter(post::community_id.eq_any(community_ids));
+    }
+
+    // Filter by the creator id
+    if let Some(creator_id) = self.creator_id {
+      query = query.filter(post::creator_id.eq(creator_id));
     }
 
     // Although the other listing types pre-fetched the communities, you still need to filter by
@@ -542,7 +548,7 @@ impl PostQuery<'_> {
     // featured posts first
     // Don't do for new / old sorts
     if sort != PostSortType::New && sort != PostSortType::Old {
-      pq = if self.community_id.is_none() {
+      pq = if community_ids.is_none() {
         pq.then_order_by(key::featured_local)
       } else {
         pq.then_order_by(key::featured_community)

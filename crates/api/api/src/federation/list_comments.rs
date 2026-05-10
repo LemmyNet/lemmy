@@ -1,7 +1,7 @@
 use crate::federation::{
   comment_sort_type_with_default,
   fetch_limit_with_default,
-  fetcher::resolve_community_identifier,
+  fetcher::{resolve_community_identifier, resolve_person_identifier},
   listing_type_with_default,
   post_time_range_seconds_with_default,
 };
@@ -42,6 +42,15 @@ async fn list_comments_common(
     &local_user_view,
   )
   .await?;
+
+  let creator_id = resolve_person_identifier(
+    data.creator_id,
+    &data.creator_username,
+    &context,
+    &local_user_view,
+  )
+  .await?;
+
   let local_user = local_user_view.as_ref().map(|u| &u.local_user);
   let sort = Some(comment_sort_type_with_default(
     data.sort,
@@ -64,13 +73,11 @@ async fn list_comments_common(
   ));
 
   // If a parent_id is given, fetch the comment to get the path
-  let parent_path_ = if let Some(parent_id) = parent_id {
+  let parent_path = if let Some(parent_id) = parent_id {
     Some(Comment::read(&mut context.pool(), parent_id).await?.path)
   } else {
     None
   };
-
-  let parent_path = parent_path_.clone();
 
   let local_user = local_user_view.as_ref().map(|l| &l.local_user);
 
@@ -80,6 +87,7 @@ async fn list_comments_common(
     time_range_seconds,
     max_depth,
     community_id,
+    creator_id,
     parent_path,
     post_id,
     local_user,
@@ -87,7 +95,7 @@ async fn list_comments_common(
     page_cursor,
     limit,
   }
-  .list(&site, &mut context.pool())
+  .list(&mut context.pool(), &site, &local_site)
   .await
 }
 

@@ -1,6 +1,10 @@
 use crate::federation::{
   fetch_limit_with_default,
-  fetcher::{resolve_community_identifier, resolve_multi_community_identifier},
+  fetcher::{
+    resolve_community_identifier,
+    resolve_multi_community_identifier,
+    resolve_person_identifier,
+  },
   listing_type_with_default,
   post_sort_type_with_default,
   post_time_range_seconds_with_default,
@@ -33,6 +37,14 @@ pub async fn list_posts(
   let community_id = resolve_community_identifier(
     &data.community_name,
     data.community_id,
+    &context,
+    &local_user_view,
+  )
+  .await?;
+
+  let creator_id = resolve_person_identifier(
+    data.creator_id,
+    &data.creator_username,
     &context,
     &local_user_view,
   )
@@ -89,6 +101,7 @@ pub async fn list_posts(
     sort,
     time_range_seconds,
     community_id,
+    creator_id,
     multi_community_id,
     page,
     limit,

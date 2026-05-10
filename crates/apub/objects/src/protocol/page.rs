@@ -20,6 +20,7 @@ use activitypub_federation::{
   protocol::{
     helpers::{deserialize_one_or_many, deserialize_skip_error},
     values::MediaTypeMarkdownOrHtml,
+    verification::verify_urls_match,
   },
   traits::{Activity, Object},
 };
@@ -216,9 +217,6 @@ impl Activity for Page {
 
 impl InCommunity for Page {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
-    if let Some(audience) = &self.audience {
-      return audience.dereference(context).await;
-    }
     let community = match &self.attributed_to {
       AttributedTo::Lemmy(_) => {
         let mut iter = self.to.iter().merge(self.cc.iter());
@@ -248,6 +246,9 @@ impl InCommunity for Page {
       }
     };
 
+    if let Some(audience) = &self.audience {
+      verify_urls_match(audience.inner(), community.ap_id.inner())?;
+    }
     Ok(community)
   }
 }

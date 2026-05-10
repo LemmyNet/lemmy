@@ -19,7 +19,8 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::{
   PersonId,
-  schema::{notification, person},
+  enums::NotificationType,
+  schema::{comment, modlog, notification, person, post, private_message},
 };
 use lemmy_db_views_modlog::ModlogView;
 use lemmy_db_views_notification_sql::notification_joins;
@@ -54,6 +55,7 @@ impl NotificationView {
       .filter(notification::recipient_id.eq(my_person.id))
       // Filter unreads
       .filter(unread_filter)
+      .filter(filter_deleted_and_removed(my_person.id))
       // Don't count replies from blocked users
       .filter(filter_blocked())
       .select(count(notification::id))
@@ -131,8 +133,11 @@ impl NotificationQuery {
     Box::pin(async move {
       let limit = limit_fetch(self.limit, self.no_limit)?;
       let mut query = notification_joins(my_person.id, my_person.instance_id)
-        .select(NotificationViewInternal::as_select())
+        // Dont show replies from blocked users or instances
+        .filter(filter_blocked())
+        .filter(filter_deleted_and_removed(my_person.id))
         .limit(limit)
+        .select(NotificationViewInternal::as_select())
         .into_boxed();
 
       // Filters
@@ -141,9 +146,13 @@ impl NotificationQuery {
           // The recipient filter (IE only show replies to you)
           .filter(notification::recipient_id.eq(my_person.id))
           .filter(notification::read.eq(false));
-      } else {
+      } else if self.type_
+        == Some(NotificationTypeFilter::Other(
+          NotificationType::PrivateMessage,
+        ))
+      {
         // A special case for private messages: show messages FROM you also.
-        // Use a not-null checks to catch the others
+        // Use a not-null check to catch the others
         query = query.filter(
           notification::recipient_id.eq(my_person.id).or(
             notification::private_message_id.is_not_null().and(
@@ -153,14 +162,9 @@ impl NotificationQuery {
             ),
           ),
         );
+      } else {
+        query = query.filter(notification::recipient_id.eq(my_person.id))
       }
-
-      if !self.show_bot_accounts.unwrap_or_default() {
-        query = query.filter(person::bot_account.is_distinct_from(true));
-      };
-
-      // Dont show replies from blocked users or instances
-      query = query.filter(filter_blocked());
 
       if let Some(type_) = self.type_ {
         query = match type_ {
@@ -172,6 +176,10 @@ impl NotificationQuery {
       if let Some(creator_id) = self.creator_id {
         query = query.filter(notification::creator_id.eq(creator_id));
       }
+
+      if !self.show_bot_accounts.unwrap_or_default() {
+        query = query.filter(person::bot_account.is_distinct_from(true));
+      };
 
       // Sorting by published
       let paginated_query = Box::pin(NotificationView::paginate(
@@ -191,6 +199,7 @@ impl NotificationQuery {
         .await?;
 
       let hide_modlog_names = self.hide_modlog_names.unwrap_or_default();
+
       let res = res
         .into_iter()
         .filter_map(|r| map_to_enum(r, hide_modlog_names, my_person))
@@ -205,10 +214,10 @@ fn map_to_enum(
   hide_modlog_name: bool,
   my_person: &Person,
 ) -> Option<NotificationView> {
-  let data = if let (Some(modlog), Some(creator)) = (v.modlog.clone(), v.creator.clone()) {
+  let data = if let Some(modlog) = v.modlog {
     let m = ModlogView {
       modlog,
-      moderator: Some(creator),
+      moderator: Some(v.creator),
       target_person: Some(v.recipient),
       target_community: v.community,
       target_post: v.post,
@@ -217,17 +226,12 @@ fn map_to_enum(
     };
     let m = m.hide_mod_name(hide_modlog_name);
     NotificationData::ModAction(m)
-  } else if let (Some(comment), Some(post), Some(community), Some(creator)) = (
-    v.comment.clone(),
-    v.post.clone(),
-    v.community.clone(),
-    v.creator.clone(),
-  ) {
+  } else if let (Some(comment), Some(post), Some(community)) = (v.comment, &v.post, &v.community) {
     NotificationData::Comment(CommentView {
       comment,
-      post,
-      community,
-      creator,
+      post: post.clone(),
+      community: community.clone(),
+      creator: v.creator,
       community_actions: v.community_actions,
       person_actions: v.person_actions,
       comment_actions: v.comment_actions,
@@ -240,13 +244,11 @@ fn map_to_enum(
       creator_ban_expires_at: v.creator_ban_expires_at,
       creator_is_moderator: v.creator_is_moderator,
     })
-  } else if let (Some(post), Some(community), Some(creator)) =
-    (v.post.clone(), v.community.clone(), v.creator.clone())
-  {
+  } else if let (Some(post), Some(community)) = (v.post, v.community) {
     NotificationData::Post(PostView {
       post,
       community,
-      creator,
+      creator: v.creator,
       image_details: v.image_details,
       community_actions: v.community_actions,
       post_actions: v.post_actions,
@@ -260,13 +262,11 @@ fn map_to_enum(
       creator_ban_expires_at: v.creator_ban_expires_at,
       creator_is_moderator: v.creator_is_moderator,
     })
-  } else if let (Some(mut private_message), Some(creator)) =
-    (v.private_message.clone(), v.creator.clone())
-  {
+  } else if let Some(mut private_message) = v.private_message {
     private_message.clear_deleted_by_recipient(Some(my_person));
     NotificationData::PrivateMessage(PrivateMessageView {
       private_message,
-      creator,
+      creator: v.creator,
       recipient: v.recipient,
     })
   } else {
@@ -284,4 +284,37 @@ fn map_to_enum(
     v.notification
   };
   Some(NotificationView { notification, data })
+}
+
+/// Filter out the deleted and removed items.
+#[diesel::dsl::auto_type]
+fn filter_deleted_and_removed(my_person_id: PersonId) -> _ {
+  // Use is_distinct_from since that handles null
+  comment::deleted
+    .is_distinct_from(true)
+    .and(
+      // Only hide removed if its not a modlog item
+      modlog::id
+        .is_not_null()
+        .or(comment::removed.is_distinct_from(true)),
+    )
+    .and(post::deleted.is_distinct_from(true))
+    .and(
+      modlog::id
+        .is_not_null()
+        .or(post::removed.is_distinct_from(true)),
+    )
+    // Filter out the deleted / removed
+    .and(private_message::deleted.is_distinct_from(true))
+    .and(
+      modlog::id
+        .is_not_null()
+        .or(private_message::removed.is_distinct_from(true)),
+    )
+    // Also hide messages deleted by the recipient, but only for them
+    .and(
+      private_message::deleted_by_recipient
+        .is_distinct_from(true)
+        .or(notification::recipient_id.ne(my_person_id)),
+    )
 }

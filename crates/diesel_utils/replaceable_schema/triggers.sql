@@ -397,220 +397,556 @@ CREATE TRIGGER change_values
 -- Combined tables triggers
 -- These insert (published_at, item_id) into X_combined tables
 -- Reports (comment_report, post_report, private_message_report)
-CREATE PROCEDURE r.create_report_combined_trigger (table_name text)
-LANGUAGE plpgsql
-AS $a$
+-- report_combined_post_insert
+CREATE FUNCTION r.report_combined_post_insert ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
 BEGIN
-    EXECUTE replace($b$ CREATE FUNCTION r.report_combined_thing_insert ( )
-            RETURNS TRIGGER
-            LANGUAGE plpgsql
-            AS $$
-            BEGIN
-                INSERT INTO report_combined (published_at, thing_id)
-                    VALUES (NEW.published_at, NEW.id);
-                RETURN NEW;
-            END $$;
-    CREATE FUNCTION r.report_combined_thing_update ( )
-        RETURNS TRIGGER
-        LANGUAGE plpgsql
-        AS $$
-        BEGIN
-            UPDATE
-                report_combined
-            SET
-                resolved = NEW.resolved
-            WHERE
-                thing_id = NEW.id;
-            RETURN NULL;
-        END $$;
-    CREATE TRIGGER report_combined_insert
-        AFTER INSERT ON thing
-        FOR EACH ROW
-        EXECUTE FUNCTION r.report_combined_thing_insert ( );
-        CREATE TRIGGER report_combined_update
-            AFTER UPDATE OF resolved ON thing
-            FOR EACH ROW
-            EXECUTE FUNCTION r.report_combined_thing_update ( );
-        $b$,
-        'thing',
-        table_name);
-END;
-$a$;
-CALL r.create_report_combined_trigger ('post_report');
-CALL r.create_report_combined_trigger ('comment_report');
-CALL r.create_report_combined_trigger ('private_message_report');
-CALL r.create_report_combined_trigger ('community_report');
--- person_content (comment, post)
-CREATE PROCEDURE r.create_person_content_combined_trigger (table_name text)
-LANGUAGE plpgsql
-AS $a$
+    INSERT INTO report_combined (published_at, post_report_id, report_creator_id, item_creator_id, post_id, community_id)
+    SELECT
+        NEW.published_at,
+        NEW.id,
+        NEW.creator_id,
+        p.creator_id,
+        p.id,
+        p.community_id
+    FROM
+        post p
+    WHERE
+        NEW.post_id = p.id;
+    RETURN NEW;
+END
+$$;
+CREATE TRIGGER report_combined_post_insert
+    AFTER INSERT ON post_report
+    FOR EACH ROW
+    EXECUTE FUNCTION r.report_combined_post_insert ();
+-- report_combined_post_update
+CREATE FUNCTION r.report_combined_post_update ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
 BEGIN
-    EXECUTE replace($b$ CREATE FUNCTION r.person_content_combined_thing_insert ( )
-            RETURNS TRIGGER
-            LANGUAGE plpgsql
-            AS $$
-            BEGIN
-                INSERT INTO person_content_combined (published_at, thing_id, creator_id)
-                    VALUES (NEW.published_at, NEW.id, NEW.creator_id);
-                RETURN NEW;
-            END $$;
-    CREATE TRIGGER person_content_combined
-        AFTER INSERT ON thing
-        FOR EACH ROW
-        EXECUTE FUNCTION r.person_content_combined_thing_insert ( );
-        $b$,
-        'thing',
-        table_name);
-END;
-$a$;
-CALL r.create_person_content_combined_trigger ('post');
-CALL r.create_person_content_combined_trigger ('comment');
--- person_saved (comment, post)
+    UPDATE
+        report_combined
+    SET
+        resolved = NEW.resolved,
+        resolver_id = NEW.resolver_id
+    WHERE
+        post_report_id = NEW.id;
+    RETURN NULL;
+END
+$$;
+CREATE TRIGGER report_combined_post_update
+    AFTER UPDATE OF resolved,
+    resolver_id ON post_report
+    FOR EACH ROW
+    EXECUTE FUNCTION r.report_combined_post_update ();
+-- report_combined_comment_insert
+CREATE FUNCTION r.report_combined_comment_insert ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    INSERT INTO report_combined (published_at, comment_report_id, report_creator_id, item_creator_id, comment_id, post_id, community_id)
+    SELECT
+        NEW.published_at,
+        NEW.id,
+        NEW.creator_id,
+        c.creator_id,
+        c.id,
+        c.post_id,
+        c.community_id
+    FROM
+        comment c
+    WHERE
+        NEW.comment_id = c.id;
+    RETURN NEW;
+END
+$$;
+CREATE TRIGGER report_combined_comment_insert
+    AFTER INSERT ON comment_report
+    FOR EACH ROW
+    EXECUTE FUNCTION r.report_combined_comment_insert ();
+-- report_combined_comment_update
+CREATE FUNCTION r.report_combined_comment_update ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        report_combined
+    SET
+        resolved = NEW.resolved,
+        resolver_id = NEW.resolver_id
+    WHERE
+        comment_report_id = NEW.id;
+    RETURN NULL;
+END
+$$;
+CREATE TRIGGER report_combined_comment_update
+    AFTER UPDATE OF resolved,
+    resolver_id ON comment_report
+    FOR EACH ROW
+    EXECUTE FUNCTION r.report_combined_comment_update ();
+-- report_combined_community_insert
+CREATE FUNCTION r.report_combined_community_insert ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    INSERT INTO report_combined (published_at, community_report_id, report_creator_id, community_id)
+        VALUES (NEW.published_at, NEW.id, NEW.creator_id, NEW.community_id);
+    RETURN NEW;
+END
+$$;
+CREATE TRIGGER report_combined_community_insert
+    AFTER INSERT ON community_report
+    FOR EACH ROW
+    EXECUTE FUNCTION r.report_combined_community_insert ();
+-- report_combined_community_update
+CREATE FUNCTION r.report_combined_community_update ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        report_combined
+    SET
+        resolved = NEW.resolved,
+        resolver_id = NEW.resolver_id
+    WHERE
+        community_report_id = NEW.id;
+    RETURN NULL;
+END
+$$;
+CREATE TRIGGER report_combined_community_update
+    AFTER UPDATE OF resolved,
+    resolver_id ON community_report
+    FOR EACH ROW
+    EXECUTE FUNCTION r.report_combined_community_update ();
+-- report_combined_private_message_insert
+CREATE FUNCTION r.report_combined_private_message_insert ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    INSERT INTO report_combined (published_at, private_message_report_id, report_creator_id, item_creator_id, private_message_id)
+    SELECT
+        NEW.published_at,
+        NEW.id,
+        NEW.creator_id,
+        p.creator_id,
+        p.id
+    FROM
+        private_message p
+    WHERE
+        NEW.private_message_id = p.id;
+    RETURN NEW;
+END
+$$;
+CREATE TRIGGER report_combined_private_message_insert
+    AFTER INSERT ON private_message_report
+    FOR EACH ROW
+    EXECUTE FUNCTION r.report_combined_private_message_insert ();
+-- report_combined_private_message_update
+CREATE FUNCTION r.report_combined_private_message_update ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        report_combined
+    SET
+        resolved = NEW.resolved,
+        resolver_id = NEW.resolver_id
+    WHERE
+        private_message_report_id = NEW.id;
+    RETURN NULL;
+END
+$$;
+CREATE TRIGGER report_combined_private_message_update
+    AFTER UPDATE OF resolved,
+    resolver_id ON private_message_report
+    FOR EACH ROW
+    EXECUTE FUNCTION r.report_combined_private_message_update ();
+-- person_content_combined_post
+CREATE FUNCTION r.person_content_combined_post_insert ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    INSERT INTO person_content_combined (published_at, creator_id, post_id, community_id)
+        VALUES (NEW.published_at, NEW.creator_id, NEW.id, NEW.community_id);
+    RETURN NEW;
+END
+$$;
+CREATE TRIGGER person_content_combined_post
+    AFTER INSERT ON post
+    FOR EACH ROW
+    EXECUTE FUNCTION r.person_content_combined_post_insert ();
+-- person_content_combined_comment
+CREATE FUNCTION r.person_content_combined_comment_insert ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    INSERT INTO person_content_combined (published_at, creator_id, comment_id, post_id, community_id)
+        VALUES (NEW.published_at, NEW.creator_id, NEW.id, NEW.post_id, NEW.community_id);
+    RETURN NEW;
+END
+$$;
+CREATE TRIGGER person_content_combined_comment
+    AFTER INSERT ON comment
+    FOR EACH ROW
+    EXECUTE FUNCTION r.person_content_combined_comment_insert ();
+-- person_saved (comment_actions, post)
 -- This one is a little different, because it triggers using x_actions.saved,
 -- Rather than any row insert
 -- TODO a hack because local is not currently on the post_view table
 -- https://github.com/LemmyNet/lemmy/pull/5616#discussion_r2064219628
-CREATE PROCEDURE r.create_person_saved_combined_trigger (table_name text)
-LANGUAGE plpgsql
-AS $a$
+-- person_saved_combined_post_delete
+CREATE FUNCTION r.person_saved_combined_post_delete ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
 BEGIN
-    EXECUTE replace($b$ CREATE FUNCTION r.person_saved_combined_change_values_thing ( )
-            RETURNS TRIGGER
-            LANGUAGE plpgsql
-            AS $$
-            BEGIN
-                IF (TG_OP = 'DELETE') THEN
-                    DELETE FROM person_saved_combined AS p
-                    WHERE p.person_id = OLD.person_id
-                        AND p.thing_id = OLD.thing_id;
-                ELSIF (TG_OP = 'INSERT') THEN
-                    IF NEW.saved_at IS NOT NULL THEN
-                        INSERT INTO person_saved_combined (saved_at, person_id, thing_id, creator_id)
-                        SELECT
-                            NEW.saved_at,
-                            NEW.person_id,
-                            NEW.thing_id,
-                            t.creator_id
-                        FROM
-                            thing AS t
-                        WHERE
-                            t.id = NEW.thing_id;
-                    END IF;
-                ELSIF (TG_OP = 'UPDATE') THEN
-                    IF NEW.saved_at IS NOT NULL THEN
-                        INSERT INTO person_saved_combined (saved_at, person_id, thing_id, creator_id)
-                        SELECT
-                            NEW.saved_at,
-                            NEW.person_id,
-                            NEW.thing_id,
-                            t.creator_id
-                        FROM
-                            thing AS t
-                        WHERE
-                            t.id = NEW.thing_id;
-                        -- If saved gets set as null, delete the row
-                    ELSE
-                        DELETE FROM person_saved_combined AS p
-                        WHERE p.person_id = NEW.person_id
-                            AND p.thing_id = NEW.thing_id;
-                    END IF;
-                END IF;
-                RETURN NULL;
-            END $$;
-    CREATE TRIGGER person_saved_combined
-        AFTER INSERT OR DELETE OR UPDATE OF saved_at ON thing_actions
-        FOR EACH ROW
-        EXECUTE FUNCTION r.person_saved_combined_change_values_thing ( );
-    $b$,
-    'thing',
-    table_name);
-END;
-$a$;
-CALL r.create_person_saved_combined_trigger ('post');
-CALL r.create_person_saved_combined_trigger ('comment');
+    DELETE FROM person_saved_combined AS p
+    WHERE p.person_id = OLD.person_id
+        AND p.post_id = OLD.post_id;
+    RETURN NULL;
+END
+$$;
+CREATE TRIGGER person_saved_combined_post_delete
+    AFTER DELETE ON post_actions
+    FOR EACH ROW
+    EXECUTE FUNCTION r.person_saved_combined_post_delete ();
+-- person_saved_combined_post_insert
+CREATE FUNCTION r.person_saved_combined_post_insert ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF NEW.saved_at IS NOT NULL THEN
+        INSERT INTO person_saved_combined (saved_at, person_id, creator_id, post_id, community_id)
+        SELECT
+            NEW.saved_at,
+            NEW.person_id,
+            p.creator_id,
+            NEW.post_id,
+            p.community_id
+        FROM
+            post AS p
+        WHERE
+            p.id = NEW.post_id;
+    END IF;
+    RETURN NULL;
+END
+$$;
+CREATE TRIGGER person_saved_combined_post_insert
+    AFTER INSERT ON post_actions
+    FOR EACH ROW
+    EXECUTE FUNCTION r.person_saved_combined_post_insert ();
+-- person_saved_combined_post_update
+CREATE FUNCTION r.person_saved_combined_post_update ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF NEW.saved_at IS NOT NULL THEN
+        INSERT INTO person_saved_combined (saved_at, person_id, creator_id, post_id, community_id)
+        SELECT
+            NEW.saved_at,
+            NEW.person_id,
+            p.creator_id,
+            NEW.post_id,
+            p.community_id
+        FROM
+            post AS p
+        WHERE
+            p.id = NEW.post_id;
+        -- If saved gets set as null, delete the row
+    ELSE
+        DELETE FROM person_saved_combined AS p
+        WHERE p.person_id = NEW.person_id
+            AND p.post_id = NEW.post_id;
+    END IF;
+    RETURN NULL;
+END
+$$;
+CREATE TRIGGER person_saved_combined_post_update
+    AFTER UPDATE OF saved_at ON post_actions
+    FOR EACH ROW
+    EXECUTE FUNCTION r.person_saved_combined_post_update ();
+-- person_saved_combined_comment_delete
+CREATE FUNCTION r.person_saved_combined_comment_delete ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    DELETE FROM person_saved_combined AS p
+    WHERE p.person_id = OLD.person_id
+        AND p.comment_id = OLD.comment_id;
+    RETURN NULL;
+END
+$$;
+CREATE TRIGGER person_saved_combined_comment_delete
+    AFTER DELETE ON comment_actions
+    FOR EACH ROW
+    EXECUTE FUNCTION r.person_saved_combined_comment_delete ();
+-- person_saved_combined_comment_insert
+CREATE FUNCTION r.person_saved_combined_comment_insert ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF NEW.saved_at IS NOT NULL THEN
+        INSERT INTO person_saved_combined (saved_at, person_id, creator_id, comment_id, post_id, community_id)
+        SELECT
+            NEW.saved_at,
+            NEW.person_id,
+            c.creator_id,
+            NEW.comment_id,
+            c.post_id,
+            c.community_id
+        FROM
+            comment AS c
+        WHERE
+            c.id = NEW.comment_id;
+    END IF;
+    RETURN NULL;
+END
+$$;
+CREATE TRIGGER person_saved_combined_comment_insert
+    AFTER INSERT ON comment_actions
+    FOR EACH ROW
+    EXECUTE FUNCTION r.person_saved_combined_comment_insert ();
+-- person_saved_combined_comment_update
+CREATE FUNCTION r.person_saved_combined_comment_update ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF NEW.saved_at IS NOT NULL THEN
+        INSERT INTO person_saved_combined (saved_at, person_id, creator_id, comment_id, post_id, community_id)
+        SELECT
+            NEW.saved_at,
+            NEW.person_id,
+            c.creator_id,
+            NEW.comment_id,
+            c.post_id,
+            c.community_id
+        FROM
+            comment AS c
+        WHERE
+            c.id = NEW.comment_id;
+        -- If saved gets set as null, delete the row
+    ELSE
+        DELETE FROM person_saved_combined AS p
+        WHERE p.person_id = NEW.person_id
+            AND p.comment_id = NEW.comment_id;
+    END IF;
+    RETURN NULL;
+END
+$$;
+CREATE TRIGGER person_saved_combined_comment_update
+    AFTER UPDATE OF saved_at ON comment_actions
+    FOR EACH ROW
+    EXECUTE FUNCTION r.person_saved_combined_comment_update ();
 -- person_liked (comment, post)
 -- This one is a little different, because it triggers using x_actions.liked,
 -- Rather than any row insert
 -- TODO a hack because local is not currently on the post_view table
 -- https://github.com/LemmyNet/lemmy/pull/5616#discussion_r2064219628
-CREATE PROCEDURE r.create_person_liked_combined_trigger (table_name text)
-LANGUAGE plpgsql
-AS $a$
+-- person_saved_combined_post_delete
+CREATE FUNCTION r.person_liked_combined_post_delete ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
 BEGIN
-    EXECUTE replace($b$ CREATE FUNCTION r.person_liked_combined_change_values_thing ( )
-            RETURNS TRIGGER
-            LANGUAGE plpgsql
-            AS $$
-            BEGIN
-                IF (TG_OP = 'DELETE') THEN
-                    DELETE FROM person_liked_combined AS p
-                    WHERE p.person_id = OLD.person_id
-                        AND p.thing_id = OLD.thing_id;
-                ELSIF (TG_OP = 'INSERT') THEN
-                    IF NEW.voted_at IS NOT NULL AND (
-                        SELECT
-                            local
-                        FROM
-                            person
-                        WHERE
-                            id = NEW.person_id) = TRUE THEN
-                        INSERT INTO person_liked_combined (voted_at, vote_is_upvote, person_id, thing_id, creator_id)
-                        SELECT
-                            NEW.voted_at,
-                            NEW.vote_is_upvote,
-                            NEW.person_id,
-                            NEW.thing_id,
-                            t.creator_id
-                        FROM
-                            thing AS t
-                        WHERE
-                            t.id = NEW.thing_id;
-                    END IF;
-                ELSIF (TG_OP = 'UPDATE') THEN
-                    IF NEW.voted_at IS NOT NULL AND (
-                        SELECT
-                            local
-                        FROM
-                            person
-                        WHERE
-                            id = NEW.person_id) = TRUE THEN
-                        -- Here we have uniques on (person_id, post_id) and (person_id, comment_id)
-                        INSERT INTO person_liked_combined (voted_at, vote_is_upvote, person_id, thing_id, creator_id)
-                        SELECT
-                            NEW.voted_at,
-                            NEW.vote_is_upvote,
-                            NEW.person_id,
-                            NEW.thing_id,
-                            t.creator_id
-                        FROM
-                            thing AS t
-                        WHERE
-                            t.id = NEW.thing_id
-                        ON CONFLICT (person_id,
-                            thing_id)
-                            DO UPDATE SET
-                                voted_at = NEW.voted_at,
-                                vote_is_upvote = NEW.vote_is_upvote;
-                        -- If liked gets set as null, delete the row
-                    ELSE
-                        DELETE FROM person_liked_combined AS p
-                        WHERE p.person_id = NEW.person_id
-                            AND p.thing_id = NEW.thing_id;
-                    END IF;
-                END IF;
-                RETURN NULL;
-            END $$;
-    CREATE TRIGGER person_liked_combined
-        AFTER INSERT OR DELETE OR UPDATE OF voted_at ON thing_actions
-        FOR EACH ROW
-        EXECUTE FUNCTION r.person_liked_combined_change_values_thing ( );
-    $b$,
-    'thing',
-    table_name);
-END;
-$a$;
-CALL r.create_person_liked_combined_trigger ('post');
-CALL r.create_person_liked_combined_trigger ('comment');
+    DELETE FROM person_liked_combined AS p
+    WHERE p.person_id = OLD.person_id
+        AND p.post_id = OLD.post_id;
+    RETURN NULL;
+END
+$$;
+CREATE TRIGGER person_liked_combined_post_delete
+    AFTER DELETE ON post_actions
+    FOR EACH ROW
+    EXECUTE FUNCTION r.person_liked_combined_post_delete ();
+-- person_liked_combined_post_insert
+CREATE FUNCTION r.person_liked_combined_post_insert ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF NEW.voted_at IS NOT NULL AND (
+        SELECT
+            local
+        FROM
+            person
+        WHERE
+            id = NEW.person_id) = TRUE THEN
+        INSERT INTO person_liked_combined (person_id, creator_id, post_id, community_id, voted_at, vote_is_upvote)
+        SELECT
+            NEW.person_id,
+            p.creator_id,
+            NEW.post_id,
+            p.community_id,
+            NEW.voted_at,
+            NEW.vote_is_upvote
+        FROM
+            post AS p
+        WHERE
+            p.id = NEW.post_id;
+    END IF;
+    RETURN NULL;
+END
+$$;
+CREATE TRIGGER person_liked_combined_post_insert
+    AFTER INSERT ON post_actions
+    FOR EACH ROW
+    EXECUTE FUNCTION r.person_liked_combined_post_insert ();
+-- person_liked_combined_post_update
+CREATE FUNCTION r.person_liked_combined_post_update ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF NEW.voted_at IS NOT NULL AND (
+        SELECT
+            local
+        FROM
+            person
+        WHERE
+            id = NEW.person_id) = TRUE THEN
+        INSERT INTO person_liked_combined (person_id, creator_id, post_id, community_id, voted_at, vote_is_upvote)
+        SELECT
+            NEW.person_id,
+            p.creator_id,
+            NEW.post_id,
+            p.community_id,
+            NEW.voted_at,
+            NEW.vote_is_upvote
+        FROM
+            post AS p
+        WHERE
+            p.id = NEW.post_id
+        ON CONFLICT (person_id,
+            comment_id,
+            post_id)
+            DO UPDATE SET
+                voted_at = NEW.voted_at,
+                vote_is_upvote = NEW.vote_is_upvote;
+        -- If liked gets set as null, delete the row
+    ELSE
+        DELETE FROM person_liked_combined AS p
+        WHERE p.person_id = NEW.person_id
+            AND p.post_id = NEW.post_id;
+    END IF;
+    RETURN NULL;
+END
+$$;
+CREATE TRIGGER person_liked_combined_post_update
+    AFTER UPDATE OF voted_at ON post_actions
+    FOR EACH ROW
+    EXECUTE FUNCTION r.person_liked_combined_post_update ();
+-- person_saved_combined_comment_delete
+CREATE FUNCTION r.person_liked_combined_comment_delete ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    DELETE FROM person_liked_combined AS p
+    WHERE p.person_id = OLD.person_id
+        AND p.comment_id = OLD.comment_id;
+    RETURN NULL;
+END
+$$;
+CREATE TRIGGER person_liked_combined_comment_delete
+    AFTER DELETE ON comment_actions
+    FOR EACH ROW
+    EXECUTE FUNCTION r.person_liked_combined_comment_delete ();
+-- person_liked_combined_comment_insert
+CREATE FUNCTION r.person_liked_combined_comment_insert ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF NEW.voted_at IS NOT NULL AND (
+        SELECT
+            local
+        FROM
+            person
+        WHERE
+            id = NEW.person_id) = TRUE THEN
+        INSERT INTO person_liked_combined (person_id, creator_id, comment_id, post_id, community_id, voted_at, vote_is_upvote)
+        SELECT
+            NEW.person_id,
+            c.creator_id,
+            NEW.comment_id,
+            c.post_id,
+            c.community_id,
+            NEW.voted_at,
+            NEW.vote_is_upvote
+        FROM
+            comment AS c
+        WHERE
+            c.id = NEW.comment_id;
+    END IF;
+    RETURN NULL;
+END
+$$;
+CREATE TRIGGER person_liked_combined_comment_insert
+    AFTER INSERT ON comment_actions
+    FOR EACH ROW
+    EXECUTE FUNCTION r.person_liked_combined_comment_insert ();
+-- person_liked_combined_comment_update
+CREATE FUNCTION r.person_liked_combined_comment_update ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF NEW.voted_at IS NOT NULL AND (
+        SELECT
+            local
+        FROM
+            person
+        WHERE
+            id = NEW.person_id) = TRUE THEN
+        INSERT INTO person_liked_combined (person_id, creator_id, comment_id, post_id, community_id, voted_at, vote_is_upvote)
+        SELECT
+            NEW.person_id,
+            c.creator_id,
+            NEW.comment_id,
+            c.post_id,
+            c.community_id,
+            NEW.voted_at,
+            NEW.vote_is_upvote
+        FROM
+            comment AS c
+        WHERE
+            c.id = NEW.comment_id
+        ON CONFLICT (person_id,
+            comment_id,
+            post_id)
+            DO UPDATE SET
+                voted_at = NEW.voted_at,
+                vote_is_upvote = NEW.vote_is_upvote;
+        -- If liked gets set as null, delete the row
+    ELSE
+        DELETE FROM person_liked_combined AS p
+        WHERE p.person_id = NEW.person_id
+            AND p.comment_id = NEW.comment_id;
+    END IF;
+    RETURN NULL;
+END
+$$;
+CREATE TRIGGER person_liked_combined_comment_update
+    AFTER UPDATE OF voted_at ON comment_actions
+    FOR EACH ROW
+    EXECUTE FUNCTION r.person_liked_combined_comment_update ();
 -- Prevent using delete instead of uplete on action tables
 CREATE FUNCTION r.require_uplete ()
     RETURNS TRIGGER

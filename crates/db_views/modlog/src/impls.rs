@@ -14,18 +14,20 @@ use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
   newtypes::{CommentId, CommunityId, ModlogId, PostId},
   source::{
+    local_site::LocalSite,
     local_user::LocalUser,
     modlog::{Modlog, modlog_keys as key},
+    multi_community::MultiCommunityEntry,
   },
   utils::{
     limit_fetch,
-    queries::filters::{filter_is_subscribed, filter_not_unlisted, filter_suggested_communities},
+    queries::filters::{filter_is_subscribed, filter_not_unlisted},
   },
 };
 use lemmy_db_schema_file::{
   PersonId,
   aliases,
-  enums::ListingType,
+  enums::{CommunityFollowerState, CommunityVisibility, ListingType},
   schema::{comment, community, community_actions, instance, modlog, person, post},
 };
 use lemmy_diesel_utils::{
@@ -59,10 +61,10 @@ impl ModlogView {
     modlog::table
       .inner_join(moderator_join)
       .left_join(target_person_join)
-      .left_join(comment::table.on(comment::id.nullable().eq(modlog::target_comment_id)))
-      .left_join(post::table.on(post::id.nullable().eq(modlog::target_post_id)))
-      .left_join(community::table.on(community::id.nullable().eq(modlog::target_community_id)))
-      .left_join(instance::table.on(instance::id.nullable().eq(modlog::target_instance_id)))
+      .left_join(comment::table)
+      .left_join(post::table)
+      .left_join(community::table)
+      .left_join(instance::table)
       .left_join(community_actions_join)
   }
 }
@@ -106,7 +108,11 @@ pub struct ModlogQuery<'a> {
 }
 
 impl ModlogQuery<'_> {
-  pub async fn list(self, pool: &mut DbPool<'_>) -> LemmyResult<PagedResponse<ModlogView>> {
+  pub async fn list(
+    self,
+    pool: &mut DbPool<'_>,
+    local_site: &LocalSite,
+  ) -> LemmyResult<PagedResponse<ModlogView>> {
     let limit = limit_fetch(self.limit, None)?;
 
     let target_person = aliases::person1.field(person::id);
@@ -153,6 +159,16 @@ impl ModlogQuery<'_> {
       };
     }
 
+    if !self.local_user.is_admin() {
+      query = query.filter(
+        community::id.is_null().or(
+          community::visibility
+            .ne(CommunityVisibility::Private)
+            .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
+        ),
+      );
+    }
+
     query = match self.listing_type.unwrap_or(ListingType::All) {
       ListingType::All => query,
       ListingType::Subscribed => query.filter(filter_is_subscribed()),
@@ -162,7 +178,17 @@ impl ModlogQuery<'_> {
       ListingType::ModeratorView => {
         query.filter(community_actions::became_moderator_at.is_not_null())
       }
-      ListingType::Suggested => query.filter(filter_suggested_communities()),
+      ListingType::Suggested => {
+        // Pre-fetch the suggested community ids, since the join is too costly
+        let community_ids =
+          if let Some(suggested_multi_id) = local_site.suggested_multi_community_id {
+            MultiCommunityEntry::list_community_ids(pool, suggested_multi_id).await?
+          } else {
+            vec![]
+          };
+
+        query.filter(modlog::target_community_id.eq_any(community_ids))
+      }
     };
 
     // Sorting by published
@@ -209,9 +235,11 @@ mod tests {
     comment::{Comment, CommentInsertForm},
     community::{Community, CommunityInsertForm},
     instance::Instance,
+    local_site::LocalSiteInsertForm,
     modlog::{Modlog, ModlogInsertForm},
     person::{Person, PersonInsertForm},
     post::{Post, PostInsertForm},
+    site::{Site, SiteInsertForm},
   };
   use lemmy_db_schema_file::enums::ModlogKind;
   use lemmy_diesel_utils::{
@@ -233,10 +261,17 @@ mod tests {
     post_2: Post,
     comment: Comment,
     comment_2: Comment,
+    local_site: LocalSite,
   }
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
     let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
+    let site_form = SiteInsertForm::new("test site".to_string(), instance.id);
+    let site = Site::create(pool, &site_form).await?;
+    let system_acct =
+      Person::create(pool, &PersonInsertForm::test_form(instance.id, "langs")).await?;
+    let local_site_form = LocalSiteInsertForm::new(site.id, system_acct.id);
+    let local_site = LocalSite::create(pool, &local_site_form).await?;
 
     let timmy_form = PersonInsertForm::test_form(instance.id, "timmy_rcv");
     let timmy = Person::create(pool, &timmy_form).await?;
@@ -270,16 +305,22 @@ mod tests {
     let post_2 = Post::create(pool, &new_post_2).await?;
 
     // Timmy creates a comment
-    let comment_form = CommentInsertForm::new(timmy.id, post.id, "A test comment rv".into());
+    let comment_form =
+      CommentInsertForm::new(timmy.id, post.id, community.id, "A test comment rv".into());
     let comment = Comment::create(pool, &comment_form, None).await?;
 
     // jessica creates a comment
-    let comment_form_2 =
-      CommentInsertForm::new(jessica.id, post_2.id, "A test comment rv 2".into());
+    let comment_form_2 = CommentInsertForm::new(
+      jessica.id,
+      post_2.id,
+      community_2.id,
+      "A test comment rv 2".into(),
+    );
     let comment_2 = Comment::create(pool, &comment_form_2, None).await?;
 
     Ok(Data {
       instance,
+      local_site,
       timmy,
       sara,
       jessica,
@@ -338,7 +379,10 @@ mod tests {
       ModlogInsertForm::mod_change_community_visibility(data.jessica.id, data.community_2.id);
     Modlog::create(pool, &[form]).await?;
 
-    let modlog = ModlogQuery::default().list(pool).await?.items;
+    let modlog = ModlogQuery::default()
+      .list(pool, &data.local_site)
+      .await?
+      .items;
     assert_eq!(8, modlog.len());
 
     let v = &modlog[0];
@@ -400,7 +444,7 @@ mod tests {
       mod_person_id: Some(data.timmy.id),
       ..Default::default()
     }
-    .list(pool)
+    .list(pool, &data.local_site)
     .await?;
     // Only one is jessica
     assert_eq!(7, modlog_admin_filter.len());
@@ -410,7 +454,7 @@ mod tests {
       community_id: Some(data.community.id),
       ..Default::default()
     }
-    .list(pool)
+    .list(pool, &data.local_site)
     .await?;
 
     // Should be 2, and not jessicas
@@ -423,7 +467,7 @@ mod tests {
       )),
       ..Default::default()
     }
-    .list(pool)
+    .list(pool, &data.local_site)
     .await?;
 
     // 2 of these, one is jessicas
@@ -556,7 +600,7 @@ mod tests {
     Modlog::create(pool, &[form]).await?;
 
     // The all view
-    let modlog = ModlogQuery::default().list(pool).await?;
+    let modlog = ModlogQuery::default().list(pool, &data.local_site).await?;
     assert_eq!(17, modlog.len());
 
     let v = &modlog[0];
@@ -730,7 +774,7 @@ mod tests {
       mod_person_id: Some(data.timmy.id),
       ..Default::default()
     }
-    .list(pool)
+    .list(pool, &data.local_site)
     .await?;
     assert_eq!(12, modlog_mod_timmy_filter.len());
 
@@ -738,7 +782,7 @@ mod tests {
       mod_person_id: Some(data.jessica.id),
       ..Default::default()
     }
-    .list(pool)
+    .list(pool, &data.local_site)
     .await?;
     assert_eq!(5, modlog_mod_jessica_filter.len());
 
@@ -750,7 +794,7 @@ mod tests {
       target_person_id: Some(data.timmy.id),
       ..Default::default()
     }
-    .list(pool)
+    .list(pool, &data.local_site)
     .await?;
     assert_eq!(5, modlog_modded_timmy_filter.len());
 
@@ -758,7 +802,7 @@ mod tests {
       target_person_id: Some(data.jessica.id),
       ..Default::default()
     }
-    .list(pool)
+    .list(pool, &data.local_site)
     .await?;
     assert_eq!(6, modlog_modded_jessica_filter.len());
 
@@ -766,7 +810,7 @@ mod tests {
       target_person_id: Some(data.sara.id),
       ..Default::default()
     }
-    .list(pool)
+    .list(pool, &data.local_site)
     .await?;
     assert_eq!(3, modlog_modded_sara_filter.len());
 
@@ -775,7 +819,7 @@ mod tests {
       community_id: Some(data.community.id),
       ..Default::default()
     }
-    .list(pool)
+    .list(pool, &data.local_site)
     .await?;
     assert_eq!(11, modlog_community_filter.len());
 
@@ -783,7 +827,7 @@ mod tests {
       community_id: Some(data.community_2.id),
       ..Default::default()
     }
-    .list(pool)
+    .list(pool, &data.local_site)
     .await?;
     assert_eq!(4, modlog_community_2_filter.len());
 
@@ -792,7 +836,7 @@ mod tests {
       post_id: Some(data.post.id),
       ..Default::default()
     }
-    .list(pool)
+    .list(pool, &data.local_site)
     .await?;
     assert_eq!(7, modlog_post_filter.len());
 
@@ -800,7 +844,7 @@ mod tests {
       post_id: Some(data.post_2.id),
       ..Default::default()
     }
-    .list(pool)
+    .list(pool, &data.local_site)
     .await?;
     assert_eq!(3, modlog_post_2_filter.len());
 
@@ -809,7 +853,7 @@ mod tests {
       comment_id: Some(data.comment.id),
       ..Default::default()
     }
-    .list(pool)
+    .list(pool, &data.local_site)
     .await?;
     assert_eq!(3, modlog_comment_filter.len());
 
@@ -817,7 +861,7 @@ mod tests {
       comment_id: Some(data.comment_2.id),
       ..Default::default()
     }
-    .list(pool)
+    .list(pool, &data.local_site)
     .await?;
     assert_eq!(1, modlog_comment_2_filter.len());
 
@@ -826,7 +870,7 @@ mod tests {
       type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemoveComment)),
       ..Default::default()
     }
-    .list(pool)
+    .list(pool, &data.local_site)
     .await?;
     assert_eq!(2, modlog_type_filter.len());
 
@@ -856,7 +900,7 @@ mod tests {
       ModlogInsertForm::admin_allow_instance(data.timmy.id, data.instance.id, true, "reason");
     Modlog::create(pool, &[form]).await?;
 
-    let modlog = ModlogQuery::default().list(pool).await?;
+    let modlog = ModlogQuery::default().list(pool, &data.local_site).await?;
     assert_eq!(1, modlog.len());
 
     assert_eq!(ModlogKind::AdminAllowInstance, modlog[0].modlog.kind);
@@ -870,7 +914,7 @@ mod tests {
       hide_modlog_names: Some(true),
       ..Default::default()
     }
-    .list(pool)
+    .list(pool, &data.local_site)
     .await?;
     assert_eq!(1, modlog_hide_names_filter.len());
 
@@ -900,7 +944,7 @@ mod tests {
       type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemovePost)),
       ..Default::default()
     }
-    .list(pool)
+    .list(pool, &data.local_site)
     .await?
     .items;
     assert_eq!(1, modlog.len());
@@ -953,7 +997,7 @@ mod tests {
       show_bulk: Some(true),
       ..Default::default()
     }
-    .list(pool)
+    .list(pool, &data.local_site)
     .await?
     .items;
     // parent-linked two bulk + one individual = 3 total
@@ -964,7 +1008,7 @@ mod tests {
       bulk_action_parent_id: Some(parent_id),
       ..Default::default()
     }
-    .list(pool)
+    .list(pool, &data.local_site)
     .await?
     .items;
     assert_eq!(2, children.len());
@@ -975,7 +1019,7 @@ mod tests {
       show_bulk: Some(false),
       ..Default::default()
     }
-    .list(pool)
+    .list(pool, &data.local_site)
     .await?
     .items;
     assert_eq!(1, non_bulk.len());
@@ -985,7 +1029,7 @@ mod tests {
       type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemovePost)),
       ..Default::default()
     }
-    .list(pool)
+    .list(pool, &data.local_site)
     .await?
     .items;
     assert_eq!(1, none_behaviour.len());
@@ -1054,7 +1098,7 @@ mod tests {
       bulk_action_parent_id: Some(parent_a_id),
       ..Default::default()
     }
-    .list(pool)
+    .list(pool, &data.local_site)
     .await?
     .items;
     assert_eq!(2, children_of_a.len());
@@ -1069,7 +1113,7 @@ mod tests {
       bulk_action_parent_id: Some(parent_b_id),
       ..Default::default()
     }
-    .list(pool)
+    .list(pool, &data.local_site)
     .await?
     .items;
     assert_eq!(2, children_of_b.len());

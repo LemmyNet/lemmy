@@ -183,6 +183,7 @@ async fn get_feed_user(
   let content = PersonContentCombinedQuery {
     creator_id: person.id,
     type_: Some(PersonContentType::Posts),
+    community_id: None,
     page_cursor: None,
     limit: Some(info.get_limit()),
     no_limit: None,
@@ -394,7 +395,7 @@ async fn get_feed_modlog(
     hide_modlog_names: Some(false),
     ..Default::default()
   }
-  .list(&mut context.pool())
+  .list(&mut context.pool(), &site_view.local_site)
   .await?
   .items;
 

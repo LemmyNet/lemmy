@@ -6,8 +6,9 @@ use actix_web::{
   web::{Data, *},
 };
 use lemmy_api_utils::context::LemmyContext;
-use lemmy_db_schema::source::images::RemoteImage;
+use lemmy_db_schema::source::{images::RemoteImage, local_site::LocalSite};
 use lemmy_db_views_local_image::api::{ImageGetParams, ImageProxyParams};
+use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use percent_encoding::{NON_ALPHANUMERIC, percent_decode_str, utf8_percent_encode};
@@ -19,8 +20,14 @@ pub async fn get_image(
   filename: Path<String>,
   Query(params): Query<ImageGetParams>,
   req: HttpRequest,
+  local_user_view: Option<LocalUserView>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
+  if is_auth_required(local_user_view.as_ref(), &local_site) {
+    return Ok(HttpResponse::Unauthorized().finish());
+  }
+
   let name = &filename.into_inner();
 
   // If there are no query params, the URL is original
@@ -44,8 +51,14 @@ pub async fn get_image(
 pub async fn image_proxy(
   Query(params): Query<ImageProxyParams>,
   req: HttpRequest,
+  local_user_view: Option<LocalUserView>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Either<HttpResponse<()>, HttpResponse<BoxBody>>> {
+  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
+  if is_auth_required(local_user_view.as_ref(), &local_site) {
+    return Ok(Either::Right(HttpResponse::Unauthorized().finish()));
+  }
+
   let url = Url::parse(&params.url)?;
   let encoded_url = utf8_percent_encode(&params.url, NON_ALPHANUMERIC).to_string();
 
@@ -128,7 +141,12 @@ pub(super) async fn do_get_image(
   Ok(client_res.body(BodyStream::new(res.bytes_stream())))
 }
 
-#[derive(EnumString, Display, PartialEq, Debug, Default, Clone, Copy)]
+/// Auth required if instance is private with federation disabled
+fn is_auth_required(local_user_view: Option<&LocalUserView>, local_site: &LocalSite) -> bool {
+  local_user_view.is_none() && local_site.private_instance && !local_site.federation_enabled
+}
+
+#[derive(EnumString, Display, PartialEq, Debug, Default)]
 #[strum(ascii_case_insensitive, serialize_all = "snake_case")]
 enum PictrsFileType {
   Apng,

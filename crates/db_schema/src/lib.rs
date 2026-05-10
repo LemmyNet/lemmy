@@ -28,20 +28,6 @@ use {
   },
 };
 
-#[derive(
-  EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash,
-)]
-#[serde(rename_all = "snake_case")]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
-/// The search sort types.
-pub enum SearchSortType {
-  #[default]
-  New,
-  Top,
-  Old,
-}
-
 /// The community sort types. See here for descriptions: https://join-lemmy.org/docs/en/users/03-votes-and-ranking.html
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
@@ -71,6 +57,20 @@ pub enum CommunitySortType {
 #[cfg_attr(feature = "ts-rs", ts(export))]
 pub enum LocalUserSortType {
   #[default]
+  New,
+  Old,
+}
+
+/// The Report sort type.
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
+pub enum ReportSortType {
+  #[default]
+  /// By default, if viewing all reports, order by newest, but if viewing unresolved only, show
+  /// the oldest first (FIFO)
+  Default,
   New,
   Old,
 }
@@ -116,6 +116,23 @@ pub enum MultiCommunityListingType {
   Local,
   /// Content only from communities you've subscribed to.
   Subscribed,
+}
+
+#[derive(
+  EnumString, Display, Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash,
+)]
+#[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
+/// The type of content returned from a search.
+pub enum SearchType {
+  #[default]
+  All,
+  Comments,
+  Posts,
+  Communities,
+  Users,
+  MultiCommunities,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]

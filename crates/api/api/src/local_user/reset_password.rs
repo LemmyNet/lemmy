@@ -6,14 +6,14 @@ use lemmy_api_utils::{
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::{
   SiteView,
-  api::{PasswordReset, SuccessResponse},
+  api::{ResetPassword, SuccessResponse},
 };
 use lemmy_email::account::send_password_reset_email;
 use lemmy_utils::error::LemmyResult;
 use tracing::error;
 
 pub async fn reset_password(
-  Json(data): Json<PasswordReset>,
+  Json(data): Json<ResetPassword>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<SuccessResponse>> {
   let email = data.email.to_lowercase();

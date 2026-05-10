@@ -1,5 +1,9 @@
 use crate::post_or_comment_community;
-use activitypub_federation::{config::Data, fetch::object_id::ObjectId};
+use activitypub_federation::{
+  config::Data,
+  fetch::object_id::ObjectId,
+  protocol::verification::verify_urls_match,
+};
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
   objects::{PostOrComment, community::ApubCommunity, person::ApubPerson},
@@ -45,11 +49,11 @@ impl From<&VoteType> for bool {
 
 impl InCommunity for Vote {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
-    if let Some(audience) = &self.audience {
-      return audience.dereference(context).await;
-    }
     let post_or_comment = self.object.dereference(context).await?;
     let community = post_or_comment_community(&post_or_comment, context).await?;
+    if let Some(audience) = &self.audience {
+      verify_urls_match(audience.inner(), community.ap_id.inner())?;
+    }
     Ok(community.into())
   }
 }

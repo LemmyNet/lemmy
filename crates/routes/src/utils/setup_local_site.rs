@@ -112,8 +112,7 @@ pub async fn setup_local_site(pool: &mut DbPool<'_>, settings: &Settings) -> Lem
           // Finally create the local_site row
           let local_site_form = LocalSiteInsertForm {
             site_setup: Some(settings.setup.is_some()),
-            system_account: Some(system_account.id),
-            ..LocalSiteInsertForm::new(site.id)
+            ..LocalSiteInsertForm::new(site.id, system_account.id)
           };
           let local_site = LocalSite::create(&mut conn.into(), &local_site_form).await?;
 

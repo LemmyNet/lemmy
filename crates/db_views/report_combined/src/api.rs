@@ -1,5 +1,6 @@
 use crate::{CommentReportView, CommunityReportView, PostReportView, PrivateMessageReportView};
 use lemmy_db_schema::{
+  ReportSortType,
   ReportType,
   newtypes::{
     CommentId,
@@ -30,6 +31,9 @@ pub struct ListReports {
   pub post_id: Option<PostId>,
   /// if no community is given, it returns reports for all communities moderated by the auth user
   pub community_id: Option<CommunityId>,
+  /// If this is None, then the default sort is Old / First In First Out if viewing unresolved
+  /// reports, but new if viewing all reports. Setting this overrides the default.
+  pub sort: Option<ReportSortType>,
   pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
   /// Only for admins: also show reports with `violates_instance_rules=false`

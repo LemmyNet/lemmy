@@ -3,7 +3,10 @@ use lemmy_db_schema::{
   PostFeatureType,
   newtypes::{CommentId, CommunityId, CommunityTagId, LanguageId, MultiCommunityId, PostId},
 };
-use lemmy_db_schema_file::enums::{ListingType, PostNotificationsMode, PostSortType};
+use lemmy_db_schema_file::{
+  PersonId,
+  enums::{ListingType, PostNotificationsMode, PostSortType},
+};
 use lemmy_db_views_community::CommunityView;
 use lemmy_diesel_utils::{dburl::DbUrl, pagination::PaginationCursor};
 use serde::{Deserialize, Serialize};
@@ -118,6 +121,8 @@ pub struct GetPosts {
   pub time_range_seconds: Option<i32>,
   pub community_id: Option<CommunityId>,
   pub community_name: Option<String>,
+  pub creator_id: Option<PersonId>,
+  pub creator_username: Option<String>,
   pub multi_community_id: Option<MultiCommunityId>,
   pub multi_community_name: Option<String>,
   pub show_hidden: Option<bool>,

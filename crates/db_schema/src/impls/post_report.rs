@@ -102,13 +102,19 @@ mod tests {
   use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use serial_test::serial;
 
-  async fn init(pool: &mut DbPool<'_>) -> LemmyResult<(Person, PostReport)> {
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
-    let person_form = PersonInsertForm::test_form(inserted_instance.id, "jim");
+  struct Data {
+    instance: Instance,
+    person: Person,
+    report: PostReport,
+  }
+
+  async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
+    let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
+    let person_form = PersonInsertForm::test_form(instance.id, "jim");
     let person = Person::create(pool, &person_form).await?;
 
     let community_form = CommunityInsertForm::new(
-      inserted_instance.id,
+      instance.id,
       "test community_4".to_string(),
       "nada".to_owned(),
       "pubkey".to_string(),
@@ -126,7 +132,17 @@ mod tests {
     };
     let report = PostReport::report(pool, &report_form).await?;
 
-    Ok((person, report))
+    Ok(Data {
+      instance,
+      person,
+      report,
+    })
+  }
+
+  async fn cleanup(data: Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
+    Instance::delete(pool, data.instance.id).await?;
+
+    Ok(())
   }
 
   #[tokio::test]
@@ -134,19 +150,17 @@ mod tests {
   async fn test_resolve_post_report() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
+    let data = init_data(pool).await?;
 
-    let (person, report) = init(pool).await?;
-
-    let resolved_count = PostReport::update_resolved(pool, report.id, person.id, true).await?;
+    let resolved_count =
+      PostReport::update_resolved(pool, data.report.id, data.person.id, true).await?;
     assert_eq!(resolved_count, 1);
 
-    let unresolved_count = PostReport::update_resolved(pool, report.id, person.id, false).await?;
+    let unresolved_count =
+      PostReport::update_resolved(pool, data.report.id, data.person.id, false).await?;
     assert_eq!(unresolved_count, 1);
 
-    Person::delete(pool, person.id).await?;
-    Post::delete(pool, report.post_id).await?;
-
-    Ok(())
+    cleanup(data, pool).await
   }
 
   #[tokio::test]
@@ -154,16 +168,12 @@ mod tests {
   async fn test_resolve_all_post_reports() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
-
-    let (person, report) = init(pool).await?;
+    let data = init_data(pool).await?;
 
     let resolved_count =
-      PostReport::resolve_all_for_object(pool, report.post_id, person.id).await?;
+      PostReport::resolve_all_for_object(pool, data.report.post_id, data.person.id).await?;
     assert_eq!(resolved_count, 1);
 
-    Person::delete(pool, person.id).await?;
-    Post::delete(pool, report.post_id).await?;
-
-    Ok(())
+    cleanup(data, pool).await
   }
 }

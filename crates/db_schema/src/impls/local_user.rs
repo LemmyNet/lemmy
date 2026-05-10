@@ -473,6 +473,8 @@ mod tests {
     let passed_check = LocalUser::check_is_email_taken(pool, "not_charles@gmail.com").await;
     assert!(passed_check.is_ok());
 
+    Instance::delete(pool, inserted_instance.id).await?;
+
     Ok(())
   }
 }

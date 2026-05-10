@@ -14,7 +14,7 @@ use lemmy_db_views_person::{
   api::{GetPersonDetails, GetPersonDetailsResponse},
 };
 use lemmy_db_views_site::SiteView;
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn read_person(
   Query(data): Query<GetPersonDetails>,
@@ -29,7 +29,9 @@ pub async fn read_person(
   check_private_instance(&local_user_view, &local_site)?;
 
   let person_details_id =
-    resolve_person_identifier(data.person_id, &data.username, &context, &local_user_view).await?;
+    resolve_person_identifier(data.person_id, &data.username, &context, &local_user_view)
+      .await?
+      .ok_or(LemmyErrorType::NoIdGiven)?;
 
   // You don't need to return settings for the user, since this comes back with GetSite
   // `my_user`

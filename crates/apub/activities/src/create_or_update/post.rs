@@ -107,7 +107,7 @@ impl Activity for CreateOrUpdatePage {
       verify_urls_match(self.actor.inner(), self.object.creator()?.inner()).is_ok();
     let original_post =
       Post::read_from_apub_id(&mut context.pool(), self.object.id.clone().into()).await;
-    let is_mod_action = verify_mod_action(&self.actor, &community, context)
+    let is_mod_action = verify_mod_action(&self.actor, self.object.id.inner(), &community, context)
       .await
       .is_ok();
     // allow mods to edit the post
