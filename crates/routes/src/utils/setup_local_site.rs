@@ -58,7 +58,7 @@ pub async fn setup_local_site(pool: &mut DbPool<'_>, settings: &Settings) -> Lem
             && let Some(admin_password) = &setup.admin_password
           {
             let person_keypair = generate_actor_keypair()?;
-            let person_ap_id = Person::generate_local_actor_url(&admin_username, settings)?;
+            let person_ap_id = Person::generate_local_actor_url(admin_username, settings)?;
 
             // Register the user if there's a site setup
             let person_form = PersonInsertForm {
