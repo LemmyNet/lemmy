@@ -47,7 +47,7 @@ function percentEncodeNonAlphanumeric(str: string): string {
     if (
       (byte >= 0x41 && byte <= 0x5a) || // A-Z
       (byte >= 0x61 && byte <= 0x7a) || // a-z
-      (byte >= 0x30 && byte <= 0x39)    // 0-9
+      (byte >= 0x30 && byte <= 0x39) // 0-9
     ) {
       result += String.fromCharCode(byte);
     } else {

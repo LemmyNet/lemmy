@@ -1,6 +1,9 @@
 use super::utils::{adapt_request, convert_header};
 use actix_web::{
-  HttpRequest, HttpResponse, HttpResponseBuilder, Responder,
+  HttpRequest,
+  HttpResponse,
+  HttpResponseBuilder,
+  Responder,
   body::{BodyStream, BoxBody},
   http::StatusCode,
   web::{Data, *},
@@ -212,8 +215,8 @@ fn file_type(file_type: Option<String>, name: &str) -> LemmyResult<PictrsFileTyp
 #[cfg(test)]
 mod tests {
   use super::{PictrsFileType, download_filename_from_url, set_content_disposition};
-  use actix_web::{HttpResponse, http::StatusCode};
   use crate::images::download::file_type;
+  use actix_web::{HttpResponse, http::StatusCode};
   use lemmy_utils::error::LemmyResult;
 
   #[tokio::test]
