@@ -651,7 +651,7 @@ fn check_code_verifier(code_verifier: &str) -> LemmyResult<()> {
 fn fetch_community_list(context: Data<LemmyContext>) {
   // Only do this in release mode.
   if cfg!(debug_assertions) {
-    //return;
+    return;
   }
 
   spawn_try_task(async move {
