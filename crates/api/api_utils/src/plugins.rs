@@ -240,6 +240,9 @@ impl LemmyPlugin {
       .insert("lemmy_version".to_string(), VERSION.to_string());
     let builder = move || PluginBuilder::new(manifest.clone()).with_wasi(true).build();
     let pool = Pool::new(builder);
+    if let Some(mut p) = pool.get(GET_PLUGIN_TIMEOUT)? {
+      p.call::<_, ()>("init", ())?;
+    }
     Ok(LemmyPlugin {
       pool,
       filename: filename.unwrap_or(settings.file),
