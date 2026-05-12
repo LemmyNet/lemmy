@@ -28,7 +28,15 @@ use lemmy_db_schema_file::{
     my_person_actions_join,
     my_post_actions_join,
   },
-  schema::{comment, community, community_actions, person, person_content_combined, post},
+  schema::{
+    comment,
+    community,
+    community_actions,
+    person,
+    person_content_combined,
+    post,
+    post_actions,
+  },
 };
 use lemmy_db_views_post_comment_combined::{
   PostCommentCombinedView,
@@ -173,6 +181,9 @@ impl PersonContentCombinedQuery {
           .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
       );
     }
+
+    // Hide the hidden content
+    query = query.filter(post_actions::hidden_at.is_null());
 
     // Sorting by published
     let paginated_query =
