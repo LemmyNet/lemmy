@@ -40,12 +40,12 @@ afterAll(async () => {
   await Promise.allSettled([unfollows(), deleteAllMedia(alpha)]);
 });
 
-const percentEncodeNonAlphanumeric = (str: string): string => encodeURIComponent(str);
+const percentEncodeNonAlphanumeric = (str: string): string =>
+  encodeURIComponent(str);
 
 function inlineContentDisposition(filename: string): string {
   return `inline; filename="${percentEncodeNonAlphanumeric(filename)}"`;
 }
-
 
 test("Upload image and delete it", async () => {
   const health = await alpha.imageHealth();
@@ -175,7 +175,9 @@ test("Purge post, linked image removed", async () => {
 });
 
 test("Images in remote image post are proxied if setting enabled", async () => {
-  const expectedFilename = decodeURIComponent(new URL(sampleImage).pathname.split("/").pop() ?? "");
+  const expectedFilename = decodeURIComponent(
+    new URL(sampleImage).pathname.split("/").pop() ?? "",
+  );
 
   let community = await createCommunity(gamma);
   let postRes = await createPost(

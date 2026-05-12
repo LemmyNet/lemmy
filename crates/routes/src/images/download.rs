@@ -1,8 +1,11 @@
 use super::utils::{adapt_request, convert_header};
 use actix_web::{
-  HttpRequest, HttpResponse, HttpResponseBuilder, Responder,
+  HttpRequest,
+  HttpResponse,
+  HttpResponseBuilder,
+  Responder,
   body::{BodyStream, BoxBody},
-  http::{header::CONTENT_DISPOSITION, StatusCode},
+  http::{StatusCode, header::CONTENT_DISPOSITION},
   web::{Data, *},
 };
 use lemmy_api_utils::context::LemmyContext;
@@ -207,7 +210,10 @@ fn file_type(file_type: Option<String>, name: &str) -> LemmyResult<PictrsFileTyp
 mod tests {
   use super::{PictrsFileType, download_filename_from_url, set_content_disposition};
   use crate::images::download::file_type;
-  use actix_web::{HttpResponse, http::{header::CONTENT_DISPOSITION, StatusCode}};
+  use actix_web::{
+    HttpResponse,
+    http::{StatusCode, header::CONTENT_DISPOSITION},
+  };
   use lemmy_utils::error::LemmyResult;
 
   #[tokio::test]
@@ -300,41 +306,27 @@ mod tests {
     // ASCII filename: URL-encoded, preserving characters allowed by urlencoding::encode
     set_content_disposition(&mut builder, Some("photo.jpg"));
     let res = builder.finish();
-    let header = res
-      .headers()
-      .get(CONTENT_DISPOSITION)
-      .unwrap();
+    let header = res.headers().get(CONTENT_DISPOSITION).unwrap();
     assert_eq!(header, "inline; filename=\"photo.jpg\"");
 
     // Spaces are encoded
     let mut builder2 = HttpResponse::build(StatusCode::OK);
     set_content_disposition(&mut builder2, Some("my photo.jpg"));
     let res2 = builder2.finish();
-    let header2 = res2
-      .headers()
-      .get(CONTENT_DISPOSITION)
-      .unwrap();
+    let header2 = res2.headers().get(CONTENT_DISPOSITION).unwrap();
     assert_eq!(header2, "inline; filename=\"my%20photo.jpg\"");
 
     // Non-ASCII characters are UTF-8 percent-encoded
     let mut builder3 = HttpResponse::build(StatusCode::OK);
     set_content_disposition(&mut builder3, Some("héron.jpg"));
     let res3 = builder3.finish();
-    let header3 = res3
-      .headers()
-      .get(CONTENT_DISPOSITION)
-      .unwrap();
+    let header3 = res3.headers().get(CONTENT_DISPOSITION).unwrap();
     assert_eq!(header3, "inline; filename=\"h%C3%A9ron.jpg\"");
 
     // None sets no header
     let mut builder4 = HttpResponse::build(StatusCode::OK);
     set_content_disposition(&mut builder4, None);
     let res4 = builder4.finish();
-    assert!(
-      res4
-        .headers()
-        .get(CONTENT_DISPOSITION)
-        .is_none()
-    );
+    assert!(res4.headers().get(CONTENT_DISPOSITION).is_none());
   }
 }
