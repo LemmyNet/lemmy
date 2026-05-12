@@ -306,21 +306,30 @@ mod tests {
     // ASCII filename: URL-encoded, preserving characters allowed by urlencoding::encode
     set_content_disposition(&mut builder, Some("photo.jpg"));
     let res = builder.finish();
-    let header = res.headers().get(CONTENT_DISPOSITION).expect("header should be set");
+    let header = res
+      .headers()
+      .get(CONTENT_DISPOSITION)
+      .expect("header should be set");
     assert_eq!(header, "inline; filename=\"photo.jpg\"");
 
     // Spaces are encoded
     let mut builder2 = HttpResponse::build(StatusCode::OK);
     set_content_disposition(&mut builder2, Some("my photo.jpg"));
     let res2 = builder2.finish();
-    let header2 = res2.headers().get(CONTENT_DISPOSITION).expect("header should be set");
+    let header2 = res2
+      .headers()
+      .get(CONTENT_DISPOSITION)
+      .expect("header should be set");
     assert_eq!(header2, "inline; filename=\"my%20photo.jpg\"");
 
     // Non-ASCII characters are UTF-8 percent-encoded
     let mut builder3 = HttpResponse::build(StatusCode::OK);
     set_content_disposition(&mut builder3, Some("héron.jpg"));
     let res3 = builder3.finish();
-    let header3 = res3.headers().get(CONTENT_DISPOSITION).expect("header should be set");
+    let header3 = res3
+      .headers()
+      .get(CONTENT_DISPOSITION)
+      .expect("header should be set");
     assert_eq!(header3, "inline; filename=\"h%C3%A9ron.jpg\"");
 
     // None sets no header
