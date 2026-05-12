@@ -1,11 +1,8 @@
 use super::utils::{adapt_request, convert_header};
 use actix_web::{
-  HttpRequest,
-  HttpResponse,
-  HttpResponseBuilder,
-  Responder,
+  HttpRequest, HttpResponse, HttpResponseBuilder, Responder,
   body::{BodyStream, BoxBody},
-  http::StatusCode,
+  http::{header::CONTENT_DISPOSITION, StatusCode},
   web::{Data, *},
 };
 use lemmy_api_utils::context::LemmyContext;
@@ -14,7 +11,7 @@ use lemmy_db_views_local_image::api::{ImageGetParams, ImageProxyParams};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
-use percent_encoding::{NON_ALPHANUMERIC, percent_decode_str, utf8_percent_encode};
+use percent_encoding::{NON_ALPHANUMERIC, utf8_percent_encode};
 use std::str::FromStr;
 use strum::{Display, EnumString};
 use url::Url;
@@ -31,14 +28,14 @@ pub async fn get_image(
     return Ok(HttpResponse::Unauthorized().finish());
   }
 
-  let name = &filename.into_inner();
+  let name = filename.into_inner();
 
   // If there are no query params, the URL is original
   let pictrs_url = context.settings().pictrs()?.url;
   let processed_url = if params.file_type.is_none() && params.max_size.is_none() {
     format!("{}image/original/{}", pictrs_url, name)
   } else {
-    let file_type = file_type(params.file_type, name).unwrap_or_default();
+    let file_type = file_type(params.file_type, &name).unwrap_or_default();
 
     let mut url = format!("{}image/process.{}?src={}", pictrs_url, file_type, name);
 
@@ -48,7 +45,7 @@ pub async fn get_image(
     url
   };
 
-  do_get_image(processed_url, req, &context, None).await
+  do_get_image(processed_url, req, &context, Some(name)).await
 }
 
 pub async fn image_proxy(
@@ -159,14 +156,19 @@ enum PictrsFileType {
 
 fn set_content_disposition(client_res: &mut HttpResponseBuilder, filename: Option<&str>) {
   if let Some(name) = filename {
-    let encoded = utf8_percent_encode(name, NON_ALPHANUMERIC).to_string();
+    let encoded = urlencoding::encode(name);
     client_res.insert_header((
-      actix_web::http::header::CONTENT_DISPOSITION,
+      CONTENT_DISPOSITION,
       format!("inline; filename=\"{}\"", encoded),
     ));
   }
 }
 
+/// Extracts the final path segment from a URL, percent-decodes it, and returns a
+/// download filename.
+///
+/// If `output_file_type` is set, the extension is replaced with that type.
+/// Otherwise the original extension is preserved, or `.jpg` is added when none exists.
 fn download_filename_from_url(
   path: &str,
   output_file_type: Option<PictrsFileType>,
@@ -177,30 +179,19 @@ fn download_filename_from_url(
     .split('?')
     .next()
     .filter(|s| !s.is_empty())?;
-  let decoded = percent_decode_str(raw).decode_utf8_lossy();
+  let decoded = urlencoding::decode(raw).unwrap_or_else(|_| raw.into());
   let name = decoded.as_ref();
 
-  output_file_type.map_or_else(
-    || {
-      let has_extension = name
-        .rsplit_once('.')
-        .map(|(stem, _)| !stem.is_empty())
-        .unwrap_or(false);
-      let filename = if has_extension {
-        name.to_string()
-      } else {
-        format!("{name}.jpg")
-      };
-      Some(filename)
-    },
-    |ft| {
-      let stem = match name.rsplit_once('.') {
-        Some((stem, _)) if !stem.is_empty() => stem,
-        _ => name,
-      };
-      Some(format!("{stem}.{ft}"))
-    },
-  )
+  let has_ext = name.rsplit_once('.').is_some_and(|(s, _)| !s.is_empty());
+  let stem = name
+    .rsplit_once('.')
+    .filter(|(s, _)| !s.is_empty())
+    .map_or(name, |(s, _)| s);
+  match output_file_type {
+    None if has_ext => Some(name.into()),
+    None => Some(format!("{name}.jpg")),
+    Some(ft) => Some(format!("{stem}.{ft}")),
+  }
 }
 
 /// Take file type from param, name, or use jpg if nothing is given
@@ -216,7 +207,7 @@ fn file_type(file_type: Option<String>, name: &str) -> LemmyResult<PictrsFileTyp
 mod tests {
   use super::{PictrsFileType, download_filename_from_url, set_content_disposition};
   use crate::images::download::file_type;
-  use actix_web::{HttpResponse, http::StatusCode};
+  use actix_web::{HttpResponse, http::{header::CONTENT_DISPOSITION, StatusCode}};
   use lemmy_utils::error::LemmyResult;
 
   #[tokio::test]
@@ -306,14 +297,14 @@ mod tests {
   fn test_set_content_disposition() {
     let mut builder = HttpResponse::build(StatusCode::OK);
 
-    // ASCII filename: all non-alphanumeric characters are percent-encoded
+    // ASCII filename: URL-encoded, preserving characters allowed by urlencoding::encode
     set_content_disposition(&mut builder, Some("photo.jpg"));
     let res = builder.finish();
     let header = res
       .headers()
-      .get(actix_web::http::header::CONTENT_DISPOSITION)
+      .get(CONTENT_DISPOSITION)
       .unwrap();
-    assert_eq!(header, "inline; filename=\"photo%2Ejpg\"");
+    assert_eq!(header, "inline; filename=\"photo.jpg\"");
 
     // Spaces are encoded
     let mut builder2 = HttpResponse::build(StatusCode::OK);
@@ -321,9 +312,9 @@ mod tests {
     let res2 = builder2.finish();
     let header2 = res2
       .headers()
-      .get(actix_web::http::header::CONTENT_DISPOSITION)
+      .get(CONTENT_DISPOSITION)
       .unwrap();
-    assert_eq!(header2, "inline; filename=\"my%20photo%2Ejpg\"");
+    assert_eq!(header2, "inline; filename=\"my%20photo.jpg\"");
 
     // Non-ASCII characters are UTF-8 percent-encoded
     let mut builder3 = HttpResponse::build(StatusCode::OK);
@@ -331,9 +322,9 @@ mod tests {
     let res3 = builder3.finish();
     let header3 = res3
       .headers()
-      .get(actix_web::http::header::CONTENT_DISPOSITION)
+      .get(CONTENT_DISPOSITION)
       .unwrap();
-    assert_eq!(header3, "inline; filename=\"h%C3%A9ron%2Ejpg\"");
+    assert_eq!(header3, "inline; filename=\"h%C3%A9ron.jpg\"");
 
     // None sets no header
     let mut builder4 = HttpResponse::build(StatusCode::OK);
@@ -342,7 +333,7 @@ mod tests {
     assert!(
       res4
         .headers()
-        .get(actix_web::http::header::CONTENT_DISPOSITION)
+        .get(CONTENT_DISPOSITION)
         .is_none()
     );
   }

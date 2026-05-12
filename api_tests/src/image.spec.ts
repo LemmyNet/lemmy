@@ -40,30 +40,12 @@ afterAll(async () => {
   await Promise.allSettled([unfollows(), deleteAllMedia(alpha)]);
 });
 
-function percentEncodeNonAlphanumeric(str: string): string {
-  const bytes = new TextEncoder().encode(str);
-  let result = "";
-  for (const byte of bytes) {
-    if (
-      (byte >= 0x41 && byte <= 0x5a) || // A-Z
-      (byte >= 0x61 && byte <= 0x7a) || // a-z
-      (byte >= 0x30 && byte <= 0x39) // 0-9
-    ) {
-      result += String.fromCharCode(byte);
-    } else {
-      result += "%" + byte.toString(16).toUpperCase().padStart(2, "0");
-    }
-  }
-  return result;
-}
+const percentEncodeNonAlphanumeric = (str: string): string => encodeURIComponent(str);
 
 function inlineContentDisposition(filename: string): string {
   return `inline; filename="${percentEncodeNonAlphanumeric(filename)}"`;
 }
 
-function filenameFromUrl(url: string): string {
-  return decodeURIComponent(new URL(url).pathname.split("/").pop() ?? "");
-}
 
 test("Upload image and delete it", async () => {
   const health = await alpha.imageHealth();
@@ -193,7 +175,7 @@ test("Purge post, linked image removed", async () => {
 });
 
 test("Images in remote image post are proxied if setting enabled", async () => {
-  const expectedFilename = filenameFromUrl(sampleImage);
+  const expectedFilename = decodeURIComponent(new URL(sampleImage).pathname.split("/").pop() ?? "");
 
   let community = await createCommunity(gamma);
   let postRes = await createPost(
@@ -224,9 +206,9 @@ test("Images in remote image post are proxied if setting enabled", async () => {
   // Proxied image should include a Content-Disposition: inline header
   if (post.thumbnail_url) {
     const proxyResponse = await fetch(post.thumbnail_url);
-    const cd = proxyResponse.headers.get("content-disposition");
-    expect(cd).not.toBeNull();
-    expect(cd).toBe(inlineContentDisposition(expectedFilename));
+    const contentDisposition = proxyResponse.headers.get("content-disposition");
+    expect(contentDisposition).not.toBeNull();
+    expect(contentDisposition).toBe(inlineContentDisposition(expectedFilename));
   }
 
   let epsilonPostRes = await resolvePost(epsilon, postRes.post_view.post);
@@ -256,9 +238,9 @@ test("Images in remote image post are proxied if setting enabled", async () => {
 
   if (epsilonPost.thumbnail_url) {
     const proxyResponse = await fetch(epsilonPost.thumbnail_url);
-    const cd = proxyResponse.headers.get("content-disposition");
-    expect(cd).not.toBeNull();
-    expect(cd).toBe(inlineContentDisposition(expectedFilename));
+    const contentDisposition = proxyResponse.headers.get("content-disposition");
+    expect(contentDisposition).not.toBeNull();
+    expect(contentDisposition).toBe(inlineContentDisposition(expectedFilename));
   }
 });
 

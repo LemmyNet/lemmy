@@ -4233,6 +4233,7 @@ dependencies = [
  "tracing",
  "ts-rs",
  "url",
+ "urlencoding",
 ]
 
 [[package]]
