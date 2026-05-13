@@ -177,7 +177,7 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
   }
 
   // Initialize plugins in background
-  tokio::task::spawn_blocking(move || LemmyPlugins::get_or_init());
+  tokio::task::spawn_blocking(LemmyPlugins::get_or_init);
 
   // Set up the connection pool
   let pool = build_db_pool()?;
