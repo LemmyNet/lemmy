@@ -40,11 +40,8 @@ afterAll(async () => {
   await Promise.allSettled([unfollows(), deleteAllMedia(alpha)]);
 });
 
-const percentEncodeNonAlphanumeric = (str: string): string =>
-  encodeURIComponent(str);
-
 function inlineContentDisposition(filename: string): string {
-  return `inline; filename="${percentEncodeNonAlphanumeric(filename)}"`;
+  return `inline; filename="${encodeURIComponent(filename)}"`;
 }
 
 test("Upload image and delete it", async () => {
