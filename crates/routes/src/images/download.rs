@@ -134,7 +134,7 @@ pub(super) async fn do_get_image(
     client_res.insert_header(convert_header(name, value));
   }
 
-  if let Some(ref download_filename) = download_filename {
+  if let Some(download_filename) = &download_filename {
     set_content_disposition(&mut client_res, download_filename);
   }
 
