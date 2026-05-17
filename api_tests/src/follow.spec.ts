@@ -12,6 +12,7 @@ import {
   unfollows,
   getMyUser,
   alphaUrl,
+  expectSuccess,
 } from "./shared";
 
 beforeAll(setupLogins);
@@ -86,7 +87,7 @@ test("Follow federated community", async () => {
   );
 
   // Check it from local
-  let my_user = await getMyUser(user);
+  let my_user = await getMyUser(user).then(expectSuccess);
   let remoteCommunityId = my_user?.follows.find(
     c =>
       c.community.local == false &&
@@ -105,7 +106,7 @@ test("Follow federated community", async () => {
   ).toBeUndefined();
 
   // Make sure you are unsubbed locally
-  let siteUnfollowCheck = await getMyUser(user);
+  let siteUnfollowCheck = await getMyUser(user).then(expectSuccess);
   expect(
     siteUnfollowCheck.follows.find(
       c => c.community.id === betaCommunityInitial.community.id,

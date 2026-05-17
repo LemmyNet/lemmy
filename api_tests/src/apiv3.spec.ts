@@ -6,7 +6,7 @@ import {
   CreatePost,
   ResolveObject,
 } from "lemmy-js-client-019";
-import { beta, betaUrl, setupLogins, unfollows } from "./shared";
+import { beta, betaUrl, expectSuccess, setupLogins, unfollows } from "./shared";
 import { CreateComment } from "lemmy-js-client";
 
 beforeAll(async () => {
@@ -20,7 +20,7 @@ test("API v3", async () => {
     username_or_email: "lemmy_beta",
     password: "lemmylemmy",
   };
-  const login = await beta.login(login_form);
+  const login = await beta.login(login_form).then(expectSuccess);
   expect(login.jwt).toBeDefined();
 
   let user = new LemmyHttp(betaUrl, {

@@ -32,6 +32,7 @@ import {
   sampleImage,
   sampleSite,
   getMyUser,
+  expectSuccess,
 } from "./shared";
 
 beforeAll(setupLogins);
@@ -41,7 +42,7 @@ afterAll(async () => {
 });
 
 test("Upload image and delete it", async () => {
-  const health = await alpha.imageHealth();
+  const health = await alpha.imageHealth().then(expectSuccess);
   expect(health.success).toBeTruthy();
 
   // Upload test image. We use a simple string buffer as pictrs doesn't require an actual image
@@ -49,7 +50,7 @@ test("Upload image and delete it", async () => {
   const upload_form: UploadImage = {
     image: Buffer.from("test"),
   };
-  const upload = await alphaImage.uploadImage(upload_form);
+  const upload = await alphaImage.uploadImage(upload_form).then(expectSuccess);
   expect(upload.image_url).toBeDefined();
   expect(upload.filename).toBeDefined();
 
@@ -59,13 +60,15 @@ test("Upload image and delete it", async () => {
   expect(content.length).toBeGreaterThan(0);
 
   // Ensure that it comes back with the list_media endpoint
-  const listMediaRes = await alphaImage.listMedia();
+  const listMediaRes = await alphaImage.listMedia().then(expectSuccess);
   expect(listMediaRes.items.length).toBe(1);
 
   // Ensure that it also comes back with the admin all images
-  const listMediaAdminRes = await alpha.listMediaAdmin({
-    limit: imageFetchLimit,
-  });
+  const listMediaAdminRes = await alpha
+    .listMediaAdmin({
+      limit: imageFetchLimit,
+    })
+    .then(expectSuccess);
 
   // This number comes from all the previous thumbnails fetched in other tests.
   const previousThumbnails = 1;
@@ -82,7 +85,7 @@ test("Upload image and delete it", async () => {
   const delete_form: DeleteImageParams = {
     filename: upload.filename,
   };
-  const delete_ = await alphaImage.deleteMedia(delete_form);
+  const delete_ = await alphaImage.deleteMedia(delete_form).then(expectSuccess);
   expect(delete_.success).toBe(true);
 
   // ensure that image is deleted
@@ -91,13 +94,15 @@ test("Upload image and delete it", async () => {
   expect(content2).toBe("");
 
   // Ensure that it shows the image is deleted
-  const deletedListMediaRes = await alphaImage.listMedia();
+  const deletedListMediaRes = await alphaImage.listMedia().then(expectSuccess);
   expect(deletedListMediaRes.items.length).toBe(0);
 
   // Ensure that the admin shows its deleted
-  const deletedListAllMediaRes = await alphaImage.listMediaAdmin({
-    limit: imageFetchLimit,
-  });
+  const deletedListAllMediaRes = await alphaImage
+    .listMediaAdmin({
+      limit: imageFetchLimit,
+    })
+    .then(expectSuccess);
   expect(deletedListAllMediaRes.items.length).toBe(previousThumbnails - 1);
 });
 
@@ -108,7 +113,7 @@ test("Purge user, uploaded image removed", async () => {
   const upload_form: UploadImage = {
     image: Buffer.from("test"),
   };
-  const upload = await user.uploadImage(upload_form);
+  const upload = await user.uploadImage(upload_form).then(expectSuccess);
   expect(upload.filename).toBeDefined();
   expect(upload.image_url).toBeDefined();
 
@@ -118,12 +123,12 @@ test("Purge user, uploaded image removed", async () => {
   expect(content.length).toBeGreaterThan(0);
 
   // purge user
-  let my_user = await getMyUser(user);
+  let my_user = await getMyUser(user).then(expectSuccess);
   const purgeForm: PurgePerson = {
     person_id: my_user.local_user_view.person.id,
     reason: "purge",
   };
-  const delete_ = await alphaImage.purgePerson(purgeForm);
+  const delete_ = await alphaImage.purgePerson(purgeForm).then(expectSuccess);
   expect(delete_.success).toBe(true);
 
   // ensure that image is deleted
@@ -139,7 +144,7 @@ test("Purge post, linked image removed", async () => {
   const upload_form: UploadImage = {
     image: Buffer.from("test"),
   };
-  const upload = await user.uploadImage(upload_form);
+  const upload = await user.uploadImage(upload_form).then(expectSuccess);
   expect(upload.filename).toBeDefined();
   expect(upload.image_url).toBeDefined();
 
@@ -149,7 +154,11 @@ test("Purge post, linked image removed", async () => {
   expect(content.length).toBeGreaterThan(0);
 
   let community = await resolveBetaCommunity(user);
-  let post = await createPost(user, community!.community.id, upload.image_url);
+  let post = await createPost(
+    user,
+    community!.community.id,
+    upload.image_url,
+  ).then(expectSuccess);
   expect(post.post_view.post.url).toBe(upload.image_url);
   expect(post.post_view.image_details).toBeDefined();
 
@@ -158,7 +167,7 @@ test("Purge post, linked image removed", async () => {
     post_id: post.post_view.post.id,
     reason: "purge",
   };
-  const delete_ = await beta.purgePost(purgeForm);
+  const delete_ = await beta.purgePost(purgeForm).then(expectSuccess);
   expect(delete_.success).toBe(true);
 
   // ensure that image is deleted
@@ -168,13 +177,13 @@ test("Purge post, linked image removed", async () => {
 });
 
 test("Images in remote image post are proxied if setting enabled", async () => {
-  let community = await createCommunity(gamma);
+  let community = await createCommunity(gamma).then(expectSuccess);
   let postRes = await createPost(
     gamma,
     community.community_view.community.id,
     sampleImage,
     `![](${sampleImage})`,
-  );
+  ).then(expectSuccess);
   const post = postRes.post_view.post;
   expect(post).toBeDefined();
 
@@ -200,7 +209,7 @@ test("Images in remote image post are proxied if setting enabled", async () => {
   // Fetch the post again, the metadata should be backgrounded now
   // Wait for the metadata to get fetched, since this is backgrounded now
   let epsilonPostRes2 = await waitUntil(
-    () => getPost(epsilon, epsilonPostRes!.post.id),
+    () => getPost(epsilon, epsilonPostRes!.post.id).then(expectSuccess),
     p => p.post_view.post.thumbnail_url != undefined,
   );
   const epsilonPost = epsilonPostRes2.post_view.post;
@@ -221,19 +230,19 @@ test("Images in remote image post are proxied if setting enabled", async () => {
 });
 
 test("Thumbnail of remote image link is proxied if setting enabled", async () => {
-  let community = await createCommunity(gamma);
+  let community = await createCommunity(gamma).then(expectSuccess);
   let postRes = await createPost(
     gamma,
     community.community_view.community.id,
     // The sample site metadata thumbnail ends in png
     sampleSite,
-  );
+  ).then(expectSuccess);
   const post = postRes.post_view.post;
   expect(post).toBeDefined();
 
   // Wait for the thumbnail (since its backgrounded)
   await waitUntil(
-    () => getPost(gamma, post.id),
+    () => getPost(gamma, post.id).then(expectSuccess),
     p => p.post_view.post.thumbnail_url != undefined,
   );
 
@@ -251,7 +260,7 @@ test("Thumbnail of remote image link is proxied if setting enabled", async () =>
   expect(epsilonPostRes?.post).toBeDefined();
 
   let epsilonPostRes2 = await waitUntil(
-    () => getPost(epsilon, epsilonPostRes!.post.id),
+    () => getPost(epsilon, epsilonPostRes!.post.id).then(expectSuccess),
     p => p.post_view.post.thumbnail_url != undefined,
   );
   const epsilonPost = epsilonPostRes2.post_view.post;
@@ -268,7 +277,7 @@ test("Thumbnail of remote image link is proxied if setting enabled", async () =>
 
 test("No image proxying if setting is disabled", async () => {
   let user = await registerUser(beta, betaUrl);
-  let community = await createCommunity(alpha);
+  let community = await createCommunity(alpha).then(expectSuccess);
   let betaCommunity = await resolveCommunity(
     beta,
     community.community_view.community.ap_id,
@@ -278,13 +287,13 @@ test("No image proxying if setting is disabled", async () => {
   const upload_form: UploadImage = {
     image: Buffer.from("test"),
   };
-  const upload = await user.uploadImage(upload_form);
+  const upload = await user.uploadImage(upload_form).then(expectSuccess);
   let post = await createPost(
     alpha,
     community.community_view.community.id,
     upload.image_url,
     `![](${sampleImage})`,
-  );
+  ).then(expectSuccess);
   expect(post.post_view.post).toBeDefined();
 
   // remote image doesn't get proxied after upload
@@ -311,9 +320,9 @@ test("Make regular post, and give it a custom thumbnail", async () => {
   const uploadForm1: UploadImage = {
     image: Buffer.from("testRegular1"),
   };
-  const upload1 = await alphaImage.uploadImage(uploadForm1);
+  const upload1 = await alphaImage.uploadImage(uploadForm1).then(expectSuccess);
 
-  const community = await createCommunity(alphaImage);
+  const community = await createCommunity(alphaImage).then(expectSuccess);
 
   // Use wikipedia since it has an opengraph image
   const wikipediaUrl = "https://wikipedia.org/";
@@ -323,11 +332,11 @@ test("Make regular post, and give it a custom thumbnail", async () => {
     community.community_view.community.id,
     wikipediaUrl,
     upload1.image_url!,
-  );
+  ).then(expectSuccess);
 
   // Wait for the metadata to get fetched, since this is backgrounded now
   post = await waitUntil(
-    () => getPost(alphaImage, post.post_view.post.id),
+    () => getPost(alphaImage, post.post_view.post.id).then(expectSuccess),
     p => p.post_view.post.thumbnail_url != undefined,
   );
   expect(post.post_view.post.url).toBe(wikipediaUrl);
@@ -339,23 +348,23 @@ test("Create an image post, and make sure a custom thumbnail doesn't overwrite i
   const uploadForm1: UploadImage = {
     image: Buffer.from("test1"),
   };
-  const upload1 = await alphaImage.uploadImage(uploadForm1);
+  const upload1 = await alphaImage.uploadImage(uploadForm1).then(expectSuccess);
 
   const uploadForm2: UploadImage = {
     image: Buffer.from("test2"),
   };
-  const upload2 = await alphaImage.uploadImage(uploadForm2);
+  const upload2 = await alphaImage.uploadImage(uploadForm2).then(expectSuccess);
 
-  const community = await createCommunity(alphaImage);
+  const community = await createCommunity(alphaImage).then(expectSuccess);
 
   let post = await createPostWithThumbnail(
     alphaImage,
     community.community_view.community.id,
     upload1.image_url!,
     upload2.image_url!,
-  );
+  ).then(expectSuccess);
   post = await waitUntil(
-    () => getPost(alphaImage, post.post_view.post.id),
+    () => getPost(alphaImage, post.post_view.post.id).then(expectSuccess),
     p => p.post_view.post.thumbnail_url != undefined,
   );
   expect(post.post_view.post.url).toBe(upload1.image_url);
