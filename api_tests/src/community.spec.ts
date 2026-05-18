@@ -83,7 +83,7 @@ test("Delete community", async () => {
   const searchShort = `!${communityRes.community_view.community.name}@lemmy-beta:8551`;
   const alphaCommunity = await resolveCommunity(alpha, searchShort);
   if (!alphaCommunity) {
-    throw "Missing alpha community";
+    throw new Error("Missing alpha community");
   }
   assertCommunityFederation(alphaCommunity, communityRes.community_view);
 
@@ -139,7 +139,7 @@ test("Remove community", async () => {
   const searchShort = `!${communityRes.community_view.community.name}@lemmy-beta:8551`;
   const alphaCommunity = await resolveCommunity(alpha, searchShort);
   if (!alphaCommunity) {
-    throw "Missing alpha community";
+    throw new Error("Missing alpha community");
   }
   assertCommunityFederation(alphaCommunity, communityRes.community_view);
 
@@ -294,7 +294,7 @@ test("Admin actions in remote community are not federated to origin", async () =
     communityRes.community.ap_id,
   );
   if (!gammaCommunity) {
-    throw "Missing gamma community";
+    throw new Error("Missing gamma community");
   }
   await followCommunity(gamma, true, gammaCommunity.community.id);
   gammaCommunity = await waitUntil(
@@ -302,7 +302,7 @@ test("Admin actions in remote community are not federated to origin", async () =
     g => g?.community_actions?.follow_state == "accepted",
   );
   if (!gammaCommunity) {
-    throw "Missing gamma community";
+    throw new Error("Missing gamma community");
   }
   expect(gammaCommunity.community_actions?.follow_state).toBe("accepted");
   const gammaPost = (
@@ -317,17 +317,17 @@ test("Admin actions in remote community are not federated to origin", async () =
     communityRes.community.ap_id,
   );
   if (!betaCommunity) {
-    throw "Missing beta community";
+    throw new Error("Missing beta community");
   }
   const bannedUserInfo1 = (await getMyUser(gamma).then(expectSuccess))
     .local_user_view.person;
   if (!bannedUserInfo1) {
-    throw "Missing banned user 1";
+    throw new Error("Missing banned user 1");
   }
   const bannedUserInfo2 = await resolvePerson(beta, bannedUserInfo1.ap_id);
 
   if (!bannedUserInfo2) {
-    throw "Missing banned user 2";
+    throw new Error("Missing banned user 2");
   }
   const banRes = await banPersonFromCommunity(
     beta,
@@ -502,7 +502,7 @@ test.skip("Community follower count is federated", async () => {
   const communityActorId = community.community_view.community.ap_id;
   let resolved = await resolveCommunity(alpha, communityActorId);
   if (!resolved?.community) {
-    throw "Missing beta community";
+    throw new Error("Missing beta community");
   }
 
   await followCommunity(alpha, true, resolved.community.id);
@@ -517,7 +517,7 @@ test.skip("Community follower count is federated", async () => {
   // Follow the community from gamma
   resolved = await resolveCommunity(gamma, communityActorId);
   if (!resolved?.community) {
-    throw "Missing beta community";
+    throw new Error("Missing beta community");
   }
 
   await followCommunity(gamma, true, resolved.community.id);
@@ -532,7 +532,7 @@ test.skip("Community follower count is federated", async () => {
   // Follow the community from delta
   resolved = await resolveCommunity(delta, communityActorId);
   if (!resolved?.community) {
-    throw "Missing beta community";
+    throw new Error("Missing beta community");
   }
 
   await followCommunity(delta, true, resolved.community.id);
@@ -658,7 +658,7 @@ test("Remote mods can edit communities", async () => {
     communityRes.community_view.community.ap_id,
   );
   if (!betaCommunity?.community) {
-    throw "Missing beta community";
+    throw new Error("Missing beta community");
   }
   const betaOnAlpha = await resolvePerson(alpha, "lemmy_beta@lemmy-beta:8551");
 
@@ -667,7 +667,7 @@ test("Remote mods can edit communities", async () => {
     person_id: betaOnAlpha?.person.id as number,
     added: true,
   };
-  alpha.addModToCommunity(form);
+  await alpha.addModToCommunity(form);
 
   const form2: EditCommunity = {
     community_id: betaCommunity.community.id as number,
@@ -691,7 +691,7 @@ test("Remote mods can add mods", async () => {
     alphaCommunity.community_view.community.ap_id,
   );
   if (!betaCommunity?.community) {
-    throw "Missing beta community";
+    throw new Error("Missing beta community");
   }
   const betaOnAlpha = await resolvePerson(alpha, "lemmy_beta@lemmy-beta:8551");
   const gammaOnBeta = await resolvePerson(beta, "lemmy_gamma@lemmy-gamma:8561");
@@ -820,7 +820,7 @@ test("Multi-community", async () => {
     c => !!c?.community.instance_id,
   );
   if (!community2) {
-    throw "Missing beta community";
+    throw new Error("Missing beta community");
   }
 
   const entryRes2 = await alpha

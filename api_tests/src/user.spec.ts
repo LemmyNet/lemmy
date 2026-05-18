@@ -92,7 +92,7 @@ test("Delete user", async () => {
   // make a local post and comment
   const alphaCommunity = await resolveCommunity(user, "main@lemmy-alpha:8541");
   if (!alphaCommunity) {
-    throw "Missing alpha community";
+    throw new Error("Missing alpha community");
   }
   const localPost = (
     await createPost(user, alphaCommunity.community.id).then(expectSuccess)
@@ -106,7 +106,7 @@ test("Delete user", async () => {
   // make a remote post and comment
   const betaCommunity = await resolveBetaCommunity(user);
   if (!betaCommunity) {
-    throw "Missing beta community";
+    throw new Error("Missing beta community");
   }
   const remotePost = (
     await createPost(user, betaCommunity.community.id).then(expectSuccess)
@@ -264,7 +264,7 @@ test("Make sure banned user can delete their account", async () => {
   // make a local post
   const alphaCommunity = await resolveCommunity(user, "main@lemmy-alpha:8541");
   if (!alphaCommunity) {
-    throw "Missing alpha community";
+    throw new Error("Missing alpha community");
   }
   const localPost = (
     await createPost(user, alphaCommunity.community.id).then(expectSuccess)
@@ -303,7 +303,7 @@ test("Admins can view and ban deleted accounts", async () => {
 
   const alphaCommunity = await resolveCommunity(user, "main@lemmy-alpha:8541");
   if (!alphaCommunity) {
-    throw "Missing alpha community";
+    throw new Error("Missing alpha community");
   }
 
   // Make a post and then delete the account

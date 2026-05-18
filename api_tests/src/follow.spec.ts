@@ -58,7 +58,7 @@ test("Follow federated community", async () => {
     c => !!c?.community && c.community.subscribers >= 1,
   );
   if (!betaCommunityInitial) {
-    throw "Missing beta community";
+    throw new Error("Missing beta community");
   }
 
   const follow = await followCommunity(
@@ -96,7 +96,7 @@ test("Follow federated community", async () => {
   expect(remoteCommunityId).toBeDefined();
 
   if (!remoteCommunityId) {
-    throw "Missing remote community id";
+    throw new Error("Missing remote community id");
   }
 
   // Test an unfollow

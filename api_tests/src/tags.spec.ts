@@ -157,7 +157,7 @@ test("Remote mod creates and updates post tag", async () => {
     person_id: gammaOnAlpha?.person.id as number,
     added: true,
   };
-  alpha.addModToCommunity(form);
+  await alpha.addModToCommunity(form);
 
   const gammaCommunity = await resolveCommunity(
     gamma,

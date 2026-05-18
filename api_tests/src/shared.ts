@@ -842,7 +842,7 @@ export async function followBeta(api: LemmyHttp): Promise<CommunityResponse> {
     const follow = await followCommunity(api, true, betaCommunity.community.id);
     return follow;
   } else {
-    return Promise.reject("no community worked");
+    return Promise.reject(Error("no community worked"));
   }
 }
 
@@ -1061,7 +1061,7 @@ export async function waitUntil<T>(
   }
   console.error("result", result);
   throw Error(
-    `Failed "${fetcher}": "${checker}" did not return true after ${retries} retries (delayed ${delaySeconds}s each)`,
+    `Failed "${fetcher.toString()}": "${checker.toString()}" did not return true after ${retries} retries (delayed ${delaySeconds.toString()}s each)`,
   );
 }
 
@@ -1086,7 +1086,7 @@ export async function waitUntilSuccess<T>(
   }
   console.error("result", result);
   throw Error(
-    `Failed "${fetcher}": "${checker}" did not return true after ${retries} retries (delayed ${delaySeconds}s each)`,
+    `Failed "${fetcher.toString()}": "${checker.toString()}" did not return true after ${retries} retries (delayed ${delaySeconds.toString()}s each)`,
   );
 }
 

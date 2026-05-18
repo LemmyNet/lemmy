@@ -131,7 +131,7 @@ test("Create a post", async () => {
   await epsilon.adminBlockInstance(block_instance_params);
 
   if (!betaCommunity) {
-    throw "Missing beta community";
+    throw Error("Missing beta community");
   }
 
   const postRes = await createPost(
@@ -192,7 +192,7 @@ test("Create a post in a non-existent community", async () => {
 
 test("Unlike a post", async () => {
   if (!betaCommunity) {
-    throw "Missing beta community";
+    throw new Error("Missing beta community");
   }
   const postRes = await createPost(alpha, betaCommunity.community.id).then(
     expectSuccess,
@@ -224,7 +224,7 @@ test("Unlike a post", async () => {
 
 test("Update a post", async () => {
   if (!betaCommunity) {
-    throw "Missing beta community";
+    throw new Error("Missing beta community");
   }
   const postRes = await createPost(alpha, betaCommunity.community.id).then(
     expectSuccess,
@@ -253,7 +253,7 @@ test("Update a post", async () => {
 
 test("Sticky a post", async () => {
   if (!betaCommunity) {
-    throw "Missing beta community";
+    throw new Error("Missing beta community");
   }
   const postRes = await createPost(alpha, betaCommunity.community.id).then(
     expectSuccess,
@@ -261,7 +261,7 @@ test("Sticky a post", async () => {
 
   const betaPost1 = await waitForPost(beta, postRes.post_view.post);
   if (!betaPost1) {
-    throw "Missing beta post1";
+    throw new Error("Missing beta post1");
   }
   const stickiedPostRes = await featurePost(beta, true, betaPost1.post).then(
     expectSuccess,
@@ -289,7 +289,7 @@ test("Sticky a post", async () => {
   // Make sure that gamma cannot sticky the post on beta
   const gammaPost = await resolvePost(gamma, postRes.post_view.post);
   if (!gammaPost) {
-    throw "Missing gamma post";
+    throw new Error("Missing gamma post");
   }
   // This has been failing occasionally
   await featurePost(gamma, true, gammaPost.post);
@@ -327,7 +327,7 @@ test("Collection of featured posts gets federated", async () => {
 
 test("Lock a post", async () => {
   if (!betaCommunity) {
-    throw "Missing beta community";
+    throw new Error("Missing beta community");
   }
   await followCommunity(alpha, true, betaCommunity.community.id);
   await waitUntil(
@@ -383,7 +383,7 @@ test("Lock a post", async () => {
 
 test("Delete a post", async () => {
   if (!betaCommunity) {
-    throw "Missing beta community";
+    throw new Error("Missing beta community");
   }
 
   const postRes = await createPost(alpha, betaCommunity.community.id).then(
@@ -428,7 +428,7 @@ test("Delete a post", async () => {
   );
 
   if (!betaPost2) {
-    throw "Missing beta post 2";
+    throw new Error("Missing beta post 2");
   }
   expect(betaPost2.post.deleted).toBe(false);
   await assertPostFederation(betaPost2, undeletedPost.post_view);
@@ -442,14 +442,14 @@ test("Delete a post", async () => {
 
 test("Remove a post from admin and community on different instance", async () => {
   if (!betaCommunity) {
-    throw "Missing beta community";
+    throw new Error("Missing beta community");
   }
 
   const gammaCommunity = (
     await resolveCommunity(gamma, betaCommunity.community.ap_id)
   )?.community;
   if (!gammaCommunity) {
-    throw "Missing gamma community";
+    throw new Error("Missing gamma community");
   }
   const postRes = await createPost(gamma, gammaCommunity.id).then(
     expectSuccess,
@@ -457,7 +457,7 @@ test("Remove a post from admin and community on different instance", async () =>
 
   const alphaPost = await resolvePost(alpha, postRes.post_view.post);
   if (!alphaPost) {
-    throw "Missing alpha post";
+    throw new Error("Missing alpha post");
   }
   const removedPost = await removePost(alpha, true, alphaPost.post).then(
     expectSuccess,
@@ -468,7 +468,7 @@ test("Remove a post from admin and community on different instance", async () =>
   // Make sure lemmy beta sees post is NOT removed
   const betaPost = await resolvePost(beta, postRes.post_view.post);
   if (!betaPost) {
-    throw "Missing beta post";
+    throw new Error("Missing beta post");
   }
   expect(betaPost.post.removed).toBe(false);
 
@@ -486,7 +486,7 @@ test("Remove a post from admin and community on different instance", async () =>
 
 test("Remove a post from admin and community on same instance", async () => {
   if (!betaCommunity) {
-    throw "Missing beta community";
+    throw new Error("Missing beta community");
   }
   await followBeta(alpha);
   const gammaCommunity = await resolveCommunity(
@@ -541,7 +541,7 @@ test("Remove a post from admin and community on same instance", async () => {
 
 test("Search for a post", async () => {
   if (!betaCommunity) {
-    throw "Missing beta community";
+    throw new Error("Missing beta community");
   }
   await unfollowRemotes(alpha);
   const postRes = await createPost(alpha, betaCommunity.community.id).then(
@@ -555,7 +555,7 @@ test("Search for a post", async () => {
 
 test("Enforce site ban federation for local user", async () => {
   if (!betaCommunity) {
-    throw "Missing beta community";
+    throw new Error("Missing beta community");
   }
 
   // create a test user
@@ -564,14 +564,14 @@ test("Enforce site ban federation for local user", async () => {
     .local_user_view.person;
   const alphaUserActorId = alphaUserPerson?.ap_id;
   if (!alphaUserActorId) {
-    throw "Missing alpha user actor id";
+    throw new Error("Missing alpha user actor id");
   }
   expect(alphaUserActorId).toBeDefined();
   await followBeta(alphaUserHttp);
 
   const alphaPerson = await resolvePerson(alphaUserHttp, alphaUserActorId!);
   if (!alphaPerson) {
-    throw "Missing alpha person";
+    throw new Error("Missing alpha person");
   }
   expect(alphaPerson).toBeDefined();
 
@@ -623,7 +623,7 @@ test("Enforce site ban federation for local user", async () => {
 
   // Login gets invalidated by ban, need to login again
   if (!alphaUserPerson) {
-    throw "Missing alpha person";
+    throw new Error("Missing alpha person");
   }
   const newAlphaUserJwt = await loginUser(alpha, alphaUserPerson.name).then(
     expectSuccess,
@@ -643,7 +643,7 @@ test("Enforce site ban federation for local user", async () => {
 
 test("Enforce site ban federation for federated user", async () => {
   if (!betaCommunity) {
-    throw "Missing beta community";
+    throw new Error("Missing beta community");
   }
 
   // create a test user
@@ -652,7 +652,7 @@ test("Enforce site ban federation for federated user", async () => {
     .local_user_view.person;
   const alphaUserActorId = alphaUserPerson?.ap_id;
   if (!alphaUserActorId) {
-    throw "Missing alpha user actor id";
+    throw new Error("Missing alpha user actor id");
   }
   expect(alphaUserActorId).toBeDefined();
   await followBeta(alphaUserHttp);
@@ -661,7 +661,7 @@ test("Enforce site ban federation for federated user", async () => {
   expect(alphaUserOnBeta2?.banned).toBe(false);
 
   if (!alphaUserOnBeta2?.person) {
-    throw "Missing alpha person";
+    throw new Error("Missing alpha person");
   }
 
   // alpha makes post in beta community, it federates to beta instance
@@ -713,13 +713,13 @@ test("Enforce site ban federation for federated user", async () => {
 
 test("Enforce community ban for federated user", async () => {
   if (!betaCommunity) {
-    throw "Missing beta community";
+    throw new Error("Missing beta community");
   }
   await followBeta(alpha);
   const alphaShortname = `@lemmy_alpha@lemmy-alpha:8541`;
   const alphaPerson = await resolvePerson(beta, alphaShortname);
   if (!alphaPerson) {
-    throw "Missing alpha person";
+    throw new Error("Missing alpha person");
   }
   expect(alphaPerson).toBeDefined();
 
@@ -793,7 +793,7 @@ test("Enforce community ban for federated user", async () => {
 
 test("A and G subscribe to B (center) A posts, it gets announced to G", async () => {
   if (!betaCommunity) {
-    throw "Missing beta community";
+    throw new Error("Missing beta community");
   }
   await followBeta(alpha);
 
@@ -975,7 +975,7 @@ test("Block post that contains banned URL", async () => {
   );
 
   if (!betaCommunity) {
-    throw "Missing beta community";
+    throw new Error("Missing beta community");
   }
 
   await jestLemmyError(
@@ -1036,7 +1036,7 @@ test("Mention beta from alpha post body", async () => {
   // get beta's localized copy of the alpha post
   const betaPost = await waitForPost(beta, postOnAlphaRes.post_view.post);
   if (!betaPost) {
-    throw "unable to locate post on beta";
+    throw new Error("unable to locate post on beta");
   }
   expect(betaPost.post.ap_id).toBe(postOnAlphaRes.post_view.post.ap_id);
   expect(betaPost.post.name).toBe(postOnAlphaRes.post_view.post.name);
@@ -1095,7 +1095,7 @@ test("Don't allow NSFW posts on instances that disable it", async () => {
   );
 
   if (!betaCommunity) {
-    throw "Missing beta community";
+    throw new Error("Missing beta community");
   }
 
   // Make a NSFW post
@@ -1120,7 +1120,7 @@ test("Don't allow NSFW posts on instances that disable it", async () => {
     betaCommunity.community.ap_id,
   );
   if (!gammaCommunity) {
-    throw "Missing gamma community";
+    throw new Error("Missing gamma community");
   }
   const gammaPost = await createPost(gamma, gammaCommunity.community.id).then(
     expectSuccess,
@@ -1161,7 +1161,7 @@ test("Plugin test", async () => {
 
 test("Admin removes post from local user in remote community", async () => {
   if (!betaCommunity) {
-    throw "Missing beta community";
+    throw new Error("Missing beta community");
   }
 
   // Register new user and make a post
@@ -1170,7 +1170,7 @@ test("Admin removes post from local user in remote community", async () => {
     await resolveCommunity(gamma, betaCommunity.community.ap_id)
   )?.community;
   if (!gammaCommunity) {
-    throw "Missing gamma community";
+    throw new Error("Missing gamma community");
   }
   const postRes = await createPost(user, gammaCommunity.id).then(expectSuccess);
 

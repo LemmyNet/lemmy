@@ -3,10 +3,12 @@ import tseslint from "typescript-eslint";
 
 export default [
   pluginJs.configs.recommended,
-  ...tseslint.configs.recommended,
+  ...tseslint.configs.recommendedTypeChecked,
   {
     languageOptions: {
-      parser: tseslint.parser,
+      parserOptions: {
+        projectService: true,
+      },
     },
   },
   // For some reason this has to be in its own block
@@ -21,5 +23,8 @@ export default [
   },
   {
     files: ["src/**/*"],
+  rules: {
+    "@typescript-eslint/no-unnecessary-type-assertion": 0,
+  }
   },
 ];

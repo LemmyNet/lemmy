@@ -163,7 +163,7 @@ test("Delete a comment", async () => {
     commentRes.comment_view.comment,
   );
   if (!betaComment) {
-    throw "Missing beta comment before delete";
+    throw new Error("Missing beta comment before delete");
   }
 
   // Find the comment on remote instance gamma
@@ -174,7 +174,9 @@ test("Delete a comment", async () => {
     )
   )?.comment;
   if (!gammaComment) {
-    throw "Missing gamma comment (remote-home-remote replication) before delete";
+    throw new Error(
+      "Missing gamma comment (remote-home-remote replication) before delete",
+    );
   }
 
   const deleteCommentRes = await deleteComment(
@@ -224,7 +226,7 @@ test.skip("Remove a comment from admin and community on the same instance", asyn
   )?.comment.id;
 
   if (!betaCommentId) {
-    throw "beta comment id is missing";
+    throw new Error("beta comment id is missing");
   }
 
   // The beta admin removes it (the community lives on beta)
@@ -284,7 +286,7 @@ test("Remove a comment from admin and community on different instance", async ()
   );
 
   if (!betaComment) {
-    throw "beta comment missing";
+    throw new Error("beta comment missing");
   }
 
   const removeCommentRes = await removeComment(
@@ -378,7 +380,7 @@ test("Federated comment like", async () => {
   );
 
   if (!betaComment) {
-    throw "Missing beta comment";
+    throw new Error("Missing beta comment");
   }
 
   const like = await likeComment(beta, true, betaComment.comment).then(
@@ -402,7 +404,7 @@ test("Reply to a comment from another instance, get notification", async () => {
     c => !!c?.community.instance_id,
   );
   if (!betaCommunity) {
-    throw "Missing beta community";
+    throw new Error("Missing beta community");
   }
 
   const postOnAlphaRes = await createPost(
@@ -422,7 +424,7 @@ test("Reply to a comment from another instance, get notification", async () => {
   );
 
   if (!betaComment) {
-    throw "Missing beta comment";
+    throw new Error("Missing beta comment");
   }
 
   // Reply from beta, extending the branch
@@ -504,7 +506,7 @@ test("Bot reply notifications are filtered when bots are hidden", async () => {
   );
 
   if (!alphaCommunity) {
-    throw "Missing alpha community";
+    throw new Error("Missing alpha community");
   }
 
   await alpha.markAllNotificationsAsRead();
@@ -576,7 +578,7 @@ test("Mention beta from alpha comment", async () => {
   // get beta's localized copy of the alpha post
   const betaPost = await waitForPost(beta, postOnAlphaRes.post_view.post);
   if (!betaPost) {
-    throw "unable to locate post on beta";
+    throw new Error("unable to locate post on beta");
   }
   expect(betaPost.post.ap_id).toBe(postOnAlphaRes.post_view.post.ap_id);
   expect(betaPost.post.name).toBe(postOnAlphaRes.post_view.post.name);
@@ -637,7 +639,7 @@ test("A and G subscribe to B (center) A posts, G mentions B, it gets announced t
     "!main@lemmy-alpha:8541",
   );
   if (!alphaCommunity) {
-    throw "Missing alpha community";
+    throw new Error("Missing alpha community");
   }
 
   // follow community from beta so that it accepts the mention
@@ -656,7 +658,7 @@ test("A and G subscribe to B (center) A posts, G mentions B, it gets announced t
   const gammaPost = await resolvePost(gamma, alphaPost.post_view.post);
 
   if (!gammaPost) {
-    throw "Missing gamma post";
+    throw new Error("Missing gamma post");
   }
 
   const commentContent =
@@ -733,13 +735,13 @@ test("Check that activity from another instance is sent to third instance", asyn
   // Make sure gamma and alpha see it
   const gammaPost = await waitForPost(gamma, betaPost.post_view.post);
   if (!gammaPost) {
-    throw "Missing gamma post";
+    throw new Error("Missing gamma post");
   }
   expect(gammaPost.post).toBeDefined();
 
   const alphaPost = await waitForPost(alpha, betaPost.post_view.post);
   if (!alphaPost) {
-    throw "Missing alpha post";
+    throw new Error("Missing alpha post");
   }
   expect(alphaPost.post).toBeDefined();
 
@@ -822,7 +824,7 @@ test("Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedde
   const alphaPostB = await waitForPost(alpha, postOnBetaRes.post_view.post);
 
   if (!alphaPostB) {
-    throw "Missing alpha post B";
+    throw new Error("Missing alpha post B");
   }
 
   const alphaPost = await getPost(alpha, alphaPostB.post.id).then(
@@ -850,7 +852,7 @@ test("Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedde
 test("Report a comment", async () => {
   const betaCommunity = await resolveBetaCommunity(beta);
   if (!betaCommunity) {
-    throw "Missing beta community";
+    throw new Error("Missing beta community");
   }
   const postOnBetaRes = (
     await createPost(beta, betaCommunity.community.id).then(expectSuccess)
@@ -863,7 +865,7 @@ test("Report a comment", async () => {
 
   const alphaComment = await resolveComment(alpha, commentRes);
   if (!alphaComment) {
-    throw "Missing alpha comment";
+    throw new Error("Missing alpha comment");
   }
 
   const reason = randomString(10);
@@ -904,7 +906,7 @@ test("Dont send a comment reply to a blocked community", async () => {
 
   const alphaPost = await resolvePost(alpha, betaPost.post_view.post);
   if (!alphaPost) {
-    throw "unable to locate post on alpha";
+    throw new Error("unable to locate post on alpha");
   }
 
   // Check beta's inbox count
@@ -927,7 +929,7 @@ test("Dont send a comment reply to a blocked community", async () => {
     commentRes.comment_view.comment,
   );
   if (!alphaComment) {
-    throw "Missing alpha comment before block";
+    throw new Error("Missing alpha comment before block");
   }
 
   // Check beta's inbox count, make sure it stays the same
@@ -954,7 +956,7 @@ test("Fetch a deeply nested comment", async () => {
     "!main@lemmy-alpha:8541",
   );
   if (!alphaCommunity) {
-    throw "Missing alpha community";
+    throw new Error("Missing alpha community");
   }
   const postOnAlphaRes = await createPost(
     alpha,
@@ -1011,7 +1013,7 @@ test("Lock comment", async () => {
     "!main@lemmy-alpha:8541",
   );
   if (!alphaCommunity) {
-    throw "Missing alpha community";
+    throw new Error("Missing alpha community");
   }
 
   const post = await createPost(alpha, alphaCommunity.community.id).then(
@@ -1020,7 +1022,7 @@ test("Lock comment", async () => {
   const betaPost = await resolvePost(beta, post.post_view.post);
 
   if (!betaPost) {
-    throw "unable to locate post on beta";
+    throw new Error("unable to locate post on beta");
   }
 
   // Create a comment hierarchy like this:
@@ -1038,7 +1040,7 @@ test("Lock comment", async () => {
     comment1.comment_view.comment,
   );
   if (!betaComment1) {
-    throw "unable to locate comment on beta";
+    throw new Error("unable to locate comment on beta");
   }
   await followCommunity(newBetaApi, true, betaComment1!.community.id);
 
@@ -1052,7 +1054,7 @@ test("Lock comment", async () => {
     comment2.comment_view.comment,
   );
   if (!betaComment2) {
-    throw "unable to locate comment on beta";
+    throw new Error("unable to locate comment on beta");
   }
   const comment3 = await createComment(
     newBetaApi,
@@ -1095,7 +1097,7 @@ test("Remove children", async () => {
     "!main@lemmy-alpha:8541",
   );
   if (!alphaCommunity) {
-    throw "Missing alpha community";
+    throw new Error("Missing alpha community");
   }
 
   const post = await createPost(alpha, alphaCommunity.community.id).then(
@@ -1104,7 +1106,7 @@ test("Remove children", async () => {
   const betaPost = await resolvePost(beta, post.post_view.post);
 
   if (!betaPost) {
-    throw "unable to locate post on beta";
+    throw new Error("unable to locate post on beta");
   }
   await followCommunity(beta, true, betaPost.community.id);
 
@@ -1130,7 +1132,7 @@ test("Remove children", async () => {
     comment1.comment_view.comment,
   );
   if (!commentOnAlpha) {
-    throw "unable to locate comment on alpha";
+    throw new Error("unable to locate comment on alpha");
   }
 
   await removeComment(alpha, true, commentOnAlpha.comment.id, true);
@@ -1149,7 +1151,7 @@ test("Remove children", async () => {
   // Make sure removal federates properly
   const betaPost2 = await resolvePost(beta, post.post_view.post);
   if (!betaPost2) {
-    throw "unable to locate post on beta";
+    throw new Error("unable to locate post on beta");
   }
   expect(betaPost2.post.comments).toBe(0);
 });

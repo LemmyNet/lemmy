@@ -173,7 +173,7 @@ test("Only followers can view and interact with private community content", asyn
     follow: true,
   };
   await user.followCommunity(follow_form);
-  approveFollower(alpha, alphaCommunityId);
+  await approveFollower(alpha, alphaCommunityId);
 
   // now user can fetch posts and comments in community (using signed fetch), and create posts
   await waitUntil(
