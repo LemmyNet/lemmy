@@ -1072,8 +1072,14 @@ export async function waitUntilSuccess<T>(
   let retry = 0;
   let result;
   while (retry++ < retries) {
-    const result = await fetcher();
-    if (result.state === "success" && checker(result.data)) return result.data;
+    try {
+      result = await fetcher();
+      if (result.state === "success" && checker(result.data)) {
+        return result.data;
+      }
+    } catch (error) {
+      console.error(error);
+    }
     await delay(delaySeconds[(retry - 1) % delaySeconds.length] * 1000);
   }
   console.error("result", result);
