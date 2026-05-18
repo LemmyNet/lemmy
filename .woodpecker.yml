@@ -233,6 +233,7 @@ steps:
       - bash api_tests/prepare-drone-federation-test.sh
       - cd api_tests/
       - pnpm i
+      - pnpm lint
       # Unfortunately these tests are unstable on slower CI machines, so try it a few times.
       - pnpm api-test-multiple
     when: *slow_check_paths

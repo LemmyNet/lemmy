@@ -90,7 +90,7 @@ function assertCommentFederation(
 }
 
 test("Create a comment", async () => {
-  let commentRes = await createComment(
+  const commentRes = await createComment(
     alpha,
     postOnAlphaRes.post_view.post.id,
   ).then(expectSuccess);
@@ -100,7 +100,7 @@ test("Create a comment", async () => {
   expect(commentRes.comment_view.comment.score).toBe(1);
 
   // Make sure that comment is liked on beta
-  let betaComment = await waitUntil(
+  const betaComment = await waitUntil(
     () => resolveComment(beta, commentRes.comment_view.comment),
     c => c?.comment.score === 1,
   );
@@ -119,15 +119,18 @@ test("Create a comment in a non-existent post", async () => {
 });
 
 test("Update a comment", async () => {
-  let commentRes = await createComment(
+  const commentRes = await createComment(
     alpha,
     postOnAlphaRes.post_view.post.id,
   ).then(expectSuccess);
   // Federate the comment first
-  let betaComment = await resolveComment(beta, commentRes.comment_view.comment);
+  const betaComment = await resolveComment(
+    beta,
+    commentRes.comment_view.comment,
+  );
   assertCommentFederation(betaComment, commentRes.comment_view);
 
-  let updateCommentRes = await editComment(
+  const updateCommentRes = await editComment(
     alpha,
     commentRes.comment_view.comment.id,
   ).then(expectSuccess);
@@ -138,7 +141,7 @@ test("Update a comment", async () => {
   expect(updateCommentRes.comment_view.creator.local).toBe(true);
 
   // Make sure that post is updated on beta
-  let betaCommentUpdated = await waitUntil(
+  const betaCommentUpdated = await waitUntil(
     () => resolveComment(beta, commentRes.comment_view.comment),
     c => c?.comment.content === "A jest test federated comment update",
   );
@@ -146,32 +149,37 @@ test("Update a comment", async () => {
 });
 
 test("Delete a comment", async () => {
-  let post = await createPost(alpha, betaCommunity!.community.id).then(
+  const post = await createPost(alpha, betaCommunity!.community.id).then(
     expectSuccess,
   );
   // creating a comment on alpha (remote from home of community)
-  let commentRes = await createComment(alpha, post.post_view.post.id).then(
+  const commentRes = await createComment(alpha, post.post_view.post.id).then(
     expectSuccess,
   );
 
   // Find the comment on beta (home of community)
-  let betaComment = await resolveComment(beta, commentRes.comment_view.comment);
+  const betaComment = await resolveComment(
+    beta,
+    commentRes.comment_view.comment,
+  );
   if (!betaComment) {
-    throw "Missing beta comment before delete";
+    throw new Error("Missing beta comment before delete");
   }
 
   // Find the comment on remote instance gamma
-  let gammaComment = (
+  const gammaComment = (
     await waitUntil(
       () => resolveComment(gamma, commentRes.comment_view.comment),
       r => !!r,
     )
   )?.comment;
   if (!gammaComment) {
-    throw "Missing gamma comment (remote-home-remote replication) before delete";
+    throw new Error(
+      "Missing gamma comment (remote-home-remote replication) before delete",
+    );
   }
 
-  let deleteCommentRes = await deleteComment(
+  const deleteCommentRes = await deleteComment(
     alpha,
     true,
     commentRes.comment_view.comment.id,
@@ -191,7 +199,7 @@ test("Delete a comment", async () => {
   );
 
   // Test undeleting the comment
-  let undeleteCommentRes = await deleteComment(
+  const undeleteCommentRes = await deleteComment(
     alpha,
     false,
     commentRes.comment_view.comment.id,
@@ -199,7 +207,7 @@ test("Delete a comment", async () => {
   expect(undeleteCommentRes.comment_view.comment.deleted).toBe(false);
 
   // Make sure that comment is undeleted on beta
-  let betaComment2 = await waitUntil(
+  const betaComment2 = await waitUntil(
     () => resolveComment(beta, commentRes.comment_view.comment),
     c => c?.comment.deleted === false,
   );
@@ -207,43 +215,45 @@ test("Delete a comment", async () => {
 });
 
 test.skip("Remove a comment from admin and community on the same instance", async () => {
-  let commentRes = await createComment(
+  const commentRes = await createComment(
     alpha,
     postOnAlphaRes.post_view.post.id,
   ).then(expectSuccess);
 
   // Get the id for beta
-  let betaCommentId = (
+  const betaCommentId = (
     await resolveComment(beta, commentRes.comment_view.comment)
   )?.comment.id;
 
   if (!betaCommentId) {
-    throw "beta comment id is missing";
+    throw new Error("beta comment id is missing");
   }
 
   // The beta admin removes it (the community lives on beta)
-  let removeCommentRes = await removeComment(beta, true, betaCommentId).then(
+  const removeCommentRes = await removeComment(beta, true, betaCommentId).then(
     expectSuccess,
   );
   expect(removeCommentRes.comment_view.comment.removed).toBe(true);
 
   // Make sure that comment is removed on alpha (it gets pushed since an admin from beta removed it)
-  let refetchedPostComments = await listPersonContent(
+  const refetchedPostComments = await listPersonContent(
     alpha,
     commentRes.comment_view.comment.creator_id,
     "comments",
   ).then(expectSuccess);
-  let firstRefetchedComment = refetchedPostComments.items[0] as CommentView;
+  const firstRefetchedComment = refetchedPostComments.items[0] as CommentView;
   expect(firstRefetchedComment.comment.removed).toBe(true);
 
   // beta will unremove the comment
-  let unremoveCommentRes = await removeComment(beta, false, betaCommentId).then(
-    expectSuccess,
-  );
+  const unremoveCommentRes = await removeComment(
+    beta,
+    false,
+    betaCommentId,
+  ).then(expectSuccess);
   expect(unremoveCommentRes.comment_view.comment.removed).toBe(false);
 
   // Make sure that comment is unremoved on alpha
-  let refetchedPostComments2 = await getComments(
+  const refetchedPostComments2 = await getComments(
     alpha,
     postOnAlphaRes.post_view.post.id,
   ).then(expectSuccess);
@@ -255,31 +265,31 @@ test.skip("Remove a comment from admin and community on the same instance", asyn
 });
 
 test("Remove a comment from admin and community on different instance", async () => {
-  let newAlphaApi = await registerUser(alpha, alphaUrl);
+  const newAlphaApi = await registerUser(alpha, alphaUrl);
 
   // New alpha user creates a community, post, and comment.
-  let newCommunity = await createCommunity(newAlphaApi).then(expectSuccess);
-  let newPost = await createPost(
+  const newCommunity = await createCommunity(newAlphaApi).then(expectSuccess);
+  const newPost = await createPost(
     newAlphaApi,
     newCommunity.community_view.community.id,
   ).then(expectSuccess);
-  let commentRes = await createComment(
+  const commentRes = await createComment(
     newAlphaApi,
     newPost.post_view.post.id,
   ).then(expectSuccess);
   expect(commentRes.comment_view.comment.content).toBeDefined();
 
   // Beta searches that to cache it, then removes it
-  let betaComment = await waitUntil(
+  const betaComment = await waitUntil(
     () => resolveComment(beta, commentRes.comment_view.comment),
     c => c?.comment !== undefined,
   );
 
   if (!betaComment) {
-    throw "beta comment missing";
+    throw new Error("beta comment missing");
   }
 
-  let removeCommentRes = await removeComment(
+  const removeCommentRes = await removeComment(
     beta,
     true,
     betaComment.comment.id,
@@ -287,7 +297,7 @@ test("Remove a comment from admin and community on different instance", async ()
   expect(removeCommentRes.comment_view.comment.removed).toBe(true);
 
   // Comment text is also hidden from list
-  let listComments = await getComments(
+  const listComments = await getComments(
     beta,
     removeCommentRes.comment_view.post.id,
   ).then(expectSuccess);
@@ -295,7 +305,7 @@ test("Remove a comment from admin and community on different instance", async ()
   expect(listComments.items[0].comment.removed).toBe(true);
 
   // Make sure its not removed on alpha
-  let refetchedPostComments = await getComments(
+  const refetchedPostComments = await getComments(
     alpha,
     newPost.post_view.post.id,
   ).then(expectSuccess);
@@ -307,7 +317,7 @@ test("Remove a comment from admin and community on different instance", async ()
 });
 
 test("Unlike a comment", async () => {
-  let commentRes = await createComment(
+  const commentRes = await createComment(
     alpha,
     postOnAlphaRes.post_view.post.id,
   ).then(expectSuccess);
@@ -316,7 +326,7 @@ test("Unlike a comment", async () => {
   // Make sure that comment is liked (voted up) on gamma, downstream peer
   // This is testing replication from remote-home-remote (alpha-beta-gamma)
 
-  let gammaComment1 = await waitUntil(
+  const gammaComment1 = await waitUntil(
     () => resolveComment(gamma, commentRes.comment_view.comment),
     c => c?.comment.score === 1,
   );
@@ -325,7 +335,7 @@ test("Unlike a comment", async () => {
   expect(gammaComment1?.creator.local).toBe(false);
   expect(gammaComment1?.comment.score).toBe(1);
 
-  let unlike = await likeComment(
+  const unlike = await likeComment(
     alpha,
     undefined,
     commentRes.comment_view.comment,
@@ -333,7 +343,7 @@ test("Unlike a comment", async () => {
   expect(unlike.comment_view.comment.score).toBe(0);
 
   // Make sure that comment is unliked on beta
-  let betaComment = await waitUntil(
+  const betaComment = await waitUntil(
     () => resolveComment(beta, commentRes.comment_view.comment),
     c => c?.comment.score === 0,
   );
@@ -344,7 +354,7 @@ test("Unlike a comment", async () => {
 
   // Make sure that comment is unliked on gamma, downstream peer
   // This is testing replication from remote-home-remote (alpha-beta-gamma)
-  let gammaComment = await waitUntil(
+  const gammaComment = await waitUntil(
     () => resolveComment(gamma, commentRes.comment_view.comment),
     c => c?.comment.score === 0,
   );
@@ -355,7 +365,7 @@ test("Unlike a comment", async () => {
 });
 
 test("Federated comment like", async () => {
-  let commentRes = await createComment(
+  const commentRes = await createComment(
     alpha,
     postOnAlphaRes.post_view.post.id,
   ).then(expectSuccess);
@@ -364,19 +374,22 @@ test("Federated comment like", async () => {
     c => c?.comment.score === 1,
   );
   // Find the comment on beta
-  let betaComment = await resolveComment(beta, commentRes.comment_view.comment);
+  const betaComment = await resolveComment(
+    beta,
+    commentRes.comment_view.comment,
+  );
 
   if (!betaComment) {
-    throw "Missing beta comment";
+    throw new Error("Missing beta comment");
   }
 
-  let like = await likeComment(beta, true, betaComment.comment).then(
+  const like = await likeComment(beta, true, betaComment.comment).then(
     expectSuccess,
   );
   expect(like.comment_view.comment.score).toBe(2);
 
   // Get the post from alpha, check the likes
-  let postComments = await waitUntilSuccess(
+  const postComments = await waitUntilSuccess(
     () => getComments(alpha, postOnAlphaRes.post_view.post.id),
     c => c.items[0].comment.score === 2,
   );
@@ -386,12 +399,12 @@ test("Federated comment like", async () => {
 test("Reply to a comment from another instance, get notification", async () => {
   await alpha.markAllNotificationsAsRead();
 
-  let betaCommunity = await waitUntil(
+  const betaCommunity = await waitUntil(
     () => resolveBetaCommunity(alpha),
     c => !!c?.community.instance_id,
   );
   if (!betaCommunity) {
-    throw "Missing beta community";
+    throw new Error("Missing beta community");
   }
 
   const postOnAlphaRes = await createPost(
@@ -400,22 +413,22 @@ test("Reply to a comment from another instance, get notification", async () => {
   ).then(expectSuccess);
 
   // Create a root-level trunk-branch comment on alpha
-  let commentRes = await createComment(
+  const commentRes = await createComment(
     alpha,
     postOnAlphaRes.post_view.post.id,
   ).then(expectSuccess);
   // find that comment id on beta
-  let betaComment = await waitUntil(
+  const betaComment = await waitUntil(
     () => resolveComment(beta, commentRes.comment_view.comment),
     c => c?.comment.score === 1,
   );
 
   if (!betaComment) {
-    throw "Missing beta comment";
+    throw new Error("Missing beta comment");
   }
 
   // Reply from beta, extending the branch
-  let replyRes = await createComment(
+  const replyRes = await createComment(
     beta,
     betaComment.post.id,
     betaComment.comment.id,
@@ -429,12 +442,12 @@ test("Reply to a comment from another instance, get notification", async () => {
   expect(replyRes.comment_view.comment.score).toBe(1);
 
   // Make sure that reply comment is seen on alpha
-  let commentSearch = await waitUntil(
+  const commentSearch = await waitUntil(
     () => resolveComment(alpha, replyRes.comment_view.comment),
     c => c?.comment.score === 1,
   );
-  let alphaComment = commentSearch!;
-  let postComments = await waitUntilSuccess(
+  const alphaComment = commentSearch!;
+  const postComments = await waitUntilSuccess(
     () => getComments(alpha, postOnAlphaRes.post_view.post.id),
     pc => pc.items.length >= 2,
   );
@@ -451,14 +464,14 @@ test("Reply to a comment from another instance, get notification", async () => {
   assertCommentFederation(alphaComment, replyRes.comment_view);
 
   // Did alpha get notified of the reply from beta?
-  let alphaUnreadCountRes = await waitUntilSuccess(
+  const alphaUnreadCountRes = await waitUntilSuccess(
     () => getUnreadCounts(alpha),
     e => e.notification_count >= 1,
   );
   expect(alphaUnreadCountRes.notification_count).toBeGreaterThanOrEqual(1);
 
   // check inbox of replies on alpha, fetching read/unread both
-  let alphaRepliesRes = await waitUntilSuccess(
+  const alphaRepliesRes = await waitUntilSuccess(
     () => listNotifications(alpha, "reply"),
     r => r.items.length > 0,
   );
@@ -470,12 +483,12 @@ test("Reply to a comment from another instance, get notification", async () => {
   expect(alphaReply).toBeDefined();
   if (!alphaReply) throw Error();
   const alphaReplyData = alphaReply.data as CommentView;
-  expect(alphaReplyData.comment!.content).toBeDefined();
-  expect(alphaReplyData.community!.local).toBe(false);
+  expect(alphaReplyData.comment.content).toBeDefined();
+  expect(alphaReplyData.community.local).toBe(false);
   expect(alphaReplyData.creator.local).toBe(false);
-  expect(alphaReplyData.comment!.score).toBe(1);
+  expect(alphaReplyData.comment.score).toBe(1);
   // ToDo: interesting alphaRepliesRes.replies[0].comment_reply.id is 1, meaning? how did that come about?
-  expect(alphaReplyData.comment!.id).toBe(alphaComment.comment.id);
+  expect(alphaReplyData.comment.id).toBe(alphaComment.comment.id);
   // this is a new notification, getReplies fetch was for read/unread both, confirm it is unread.
   expect(alphaReply.notification.read).toBe(false);
 });
@@ -493,7 +506,7 @@ test("Bot reply notifications are filtered when bots are hidden", async () => {
   );
 
   if (!alphaCommunity) {
-    throw "Missing alpha community";
+    throw new Error("Missing alpha community");
   }
 
   await alpha.markAllNotificationsAsRead();
@@ -507,7 +520,7 @@ test("Bot reply notifications are filtered when bots are hidden", async () => {
   ).then(expectSuccess);
 
   // Bot reply to alpha's post
-  let commentRes = await createComment(
+  const commentRes = await createComment(
     newAlphaBot,
     postOnAlphaRes.post_view.post.id,
   ).then(expectSuccess);
@@ -527,7 +540,7 @@ test("Bot reply notifications are filtered when bots are hidden", async () => {
   alphaUnreadCountRes = await getUnreadCounts(alpha).then(expectSuccess);
   expect(alphaUnreadCountRes.notification_count).toBe(1);
 
-  let alphaUnreadRepliesRes = await listNotifications(
+  const alphaUnreadRepliesRes = await listNotifications(
     alpha,
     "reply",
     true,
@@ -545,13 +558,13 @@ test("Mention beta from alpha comment", async () => {
     betaCommunity.community.id,
   ).then(expectSuccess);
   // Create a new branch, trunk-level comment branch, from alpha instance
-  let commentRes = await createComment(
+  const commentRes = await createComment(
     alpha,
     postOnAlphaRes.post_view.post.id,
   ).then(expectSuccess);
   // Create a reply comment to previous comment, this has a mention in body
-  let mentionContent = "A test mention of @lemmy_beta@lemmy-beta:8551";
-  let mentionRes = await createComment(
+  const mentionContent = "A test mention of @lemmy_beta@lemmy-beta:8551";
+  const mentionRes = await createComment(
     alpha,
     postOnAlphaRes.post_view.post.id,
     commentRes.comment_view.comment.id,
@@ -563,21 +576,21 @@ test("Mention beta from alpha comment", async () => {
   expect(mentionRes.comment_view.comment.score).toBe(1);
 
   // get beta's localized copy of the alpha post
-  let betaPost = await waitForPost(beta, postOnAlphaRes.post_view.post);
+  const betaPost = await waitForPost(beta, postOnAlphaRes.post_view.post);
   if (!betaPost) {
-    throw "unable to locate post on beta";
+    throw new Error("unable to locate post on beta");
   }
   expect(betaPost.post.ap_id).toBe(postOnAlphaRes.post_view.post.ap_id);
   expect(betaPost.post.name).toBe(postOnAlphaRes.post_view.post.name);
 
   // Make sure that both new comments are seen on beta and have parent/child relationship
-  let betaPostComments = await waitUntilSuccess(
-    () => getComments(beta, betaPost!.post.id),
+  const betaPostComments = await waitUntilSuccess(
+    () => getComments(beta, betaPost.post.id),
     c => c.items[1]?.comment.score === 1,
   );
   expect(betaPostComments.items.length).toEqual(2);
   // the trunk-branch root comment will be older than the mention reply comment, so index 1
-  let betaRootComment = betaPostComments.items[1];
+  const betaRootComment = betaPostComments.items[1];
   // the trunk-branch root comment should not have a parent
   expect(getCommentParentId(betaRootComment.comment)).toBeUndefined();
   expect(betaRootComment.comment.content).toBeDefined();
@@ -590,61 +603,67 @@ test("Mention beta from alpha comment", async () => {
   expect(betaRootComment.comment.score).toBe(1);
   assertCommentFederation(betaRootComment, commentRes.comment_view);
 
-  let mentionsRes = await waitUntilSuccess(
+  const mentionsRes = await waitUntilSuccess(
     () => listNotifications(beta, "mention"),
     m => !!m.items[0],
   );
 
   const firstMention = mentionsRes.items[0];
-  let firstMentionData = firstMention.data as CommentView;
-  expect(firstMentionData.comment!.content).toBeDefined();
-  expect(firstMentionData.community!.local).toBe(true);
+  const firstMentionData = firstMention.data as CommentView;
+  expect(firstMentionData.comment.content).toBeDefined();
+  expect(firstMentionData.community.local).toBe(true);
   expect(firstMentionData.creator.local).toBe(false);
-  expect(firstMentionData.comment!.score).toBe(1);
+  expect(firstMentionData.comment.score).toBe(1);
   // the reply comment with mention should be the most fresh, newest, index 0
-  expect(firstMentionData.comment!.id).toBe(
+  expect(firstMentionData.comment.id).toBe(
     betaPostComments.items[0].comment.id,
   );
 });
 
 test("Comment Search", async () => {
-  let commentRes = await createComment(
+  const commentRes = await createComment(
     alpha,
     postOnAlphaRes.post_view.post.id,
   ).then(expectSuccess);
-  let betaComment = await resolveComment(beta, commentRes.comment_view.comment);
+  const betaComment = await resolveComment(
+    beta,
+    commentRes.comment_view.comment,
+  );
   assertCommentFederation(betaComment, commentRes.comment_view);
 });
 
 test("A and G subscribe to B (center) A posts, G mentions B, it gets announced to A", async () => {
   // Create a local post
-  let alphaCommunity = await resolveCommunity(alpha, "!main@lemmy-alpha:8541");
+  const alphaCommunity = await resolveCommunity(
+    alpha,
+    "!main@lemmy-alpha:8541",
+  );
   if (!alphaCommunity) {
-    throw "Missing alpha community";
+    throw new Error("Missing alpha community");
   }
 
   // follow community from beta so that it accepts the mention
-  let betaCommunity = await resolveCommunity(
+  const betaCommunity = await resolveCommunity(
     beta,
     alphaCommunity.community.ap_id,
   );
   await followCommunity(beta, true, betaCommunity!.community.id);
 
-  let alphaPost = await createPost(alpha, alphaCommunity.community.id).then(
+  const alphaPost = await createPost(alpha, alphaCommunity.community.id).then(
     expectSuccess,
   );
   expect(alphaPost.post_view.community.local).toBe(true);
 
   // Make sure gamma sees it
-  let gammaPost = await resolvePost(gamma, alphaPost.post_view.post);
+  const gammaPost = await resolvePost(gamma, alphaPost.post_view.post);
 
   if (!gammaPost) {
-    throw "Missing gamma post";
+    throw new Error("Missing gamma post");
   }
 
-  let commentContent =
+  const commentContent =
     "A jest test federated comment announce, lets mention @lemmy_beta@lemmy-beta:8551";
-  let commentRes = await createComment(
+  const commentRes = await createComment(
     gamma,
     gammaPost.post.id,
     undefined,
@@ -656,7 +675,7 @@ test("A and G subscribe to B (center) A posts, G mentions B, it gets announced t
   expect(commentRes.comment_view.comment.score).toBe(1);
 
   // Make sure alpha sees it
-  let alphaPostComments2 = await waitUntilSuccess(
+  const alphaPostComments2 = await waitUntilSuccess(
     () => getComments(alpha, alphaPost.post_view.post.id),
     e => e.items[0]?.comment.score === 1,
   );
@@ -667,13 +686,13 @@ test("A and G subscribe to B (center) A posts, G mentions B, it gets announced t
   assertCommentFederation(alphaPostComments2.items[0], commentRes.comment_view);
 
   // Make sure beta has mentions
-  let relevantMention = await waitUntil(
+  const relevantMention = await waitUntil(
     () =>
       listNotifications(beta, "mention")
         .then(expectSuccess)
         .then(m =>
           m.items.find(m => {
-            let data = m.data as CommentView;
+            const data = m.data as CommentView;
             return (
               m.notification.kind == "mention" &&
               data.comment.ap_id === commentRes.comment_view.comment.ap_id
@@ -683,9 +702,9 @@ test("A and G subscribe to B (center) A posts, G mentions B, it gets announced t
     e => !!e,
   );
   if (!relevantMention) throw Error("could not find mention");
-  let relevantMentionData = relevantMention.data as CommentView;
-  expect(relevantMentionData.comment!.content).toBe(commentContent);
-  expect(relevantMentionData.community!.local).toBe(false);
+  const relevantMentionData = relevantMention.data as CommentView;
+  expect(relevantMentionData.comment.content).toBe(commentContent);
+  expect(relevantMentionData.community.local).toBe(false);
   expect(relevantMentionData.creator.local).toBe(false);
   // TODO this is failing because fetchInReplyTos aren't getting score
   // expect(mentionsRes.mentions[0].score).toBe(1);
@@ -693,11 +712,11 @@ test("A and G subscribe to B (center) A posts, G mentions B, it gets announced t
 
 test("Check that activity from another instance is sent to third instance", async () => {
   // Alpha and gamma users follow beta community
-  let alphaFollow = await followBeta(alpha);
+  const alphaFollow = await followBeta(alpha);
   expect(alphaFollow.community_view.community.local).toBe(false);
   expect(alphaFollow.community_view.community.name).toBe("main");
 
-  let gammaFollow = await followBeta(gamma);
+  const gammaFollow = await followBeta(gamma);
   expect(gammaFollow.community_view.community.local).toBe(false);
   expect(gammaFollow.community_view.community.name).toBe("main");
   await waitUntil(
@@ -710,25 +729,25 @@ test("Check that activity from another instance is sent to third instance", asyn
   );
 
   // Create a post on beta
-  let betaPost = await createPost(beta, 2).then(expectSuccess);
+  const betaPost = await createPost(beta, 2).then(expectSuccess);
   expect(betaPost.post_view.community.local).toBe(true);
 
   // Make sure gamma and alpha see it
-  let gammaPost = await waitForPost(gamma, betaPost.post_view.post);
+  const gammaPost = await waitForPost(gamma, betaPost.post_view.post);
   if (!gammaPost) {
-    throw "Missing gamma post";
+    throw new Error("Missing gamma post");
   }
   expect(gammaPost.post).toBeDefined();
 
-  let alphaPost = await waitForPost(alpha, betaPost.post_view.post);
+  const alphaPost = await waitForPost(alpha, betaPost.post_view.post);
   if (!alphaPost) {
-    throw "Missing alpha post";
+    throw new Error("Missing alpha post");
   }
   expect(alphaPost.post).toBeDefined();
 
   // The bug: gamma comments, and alpha should see it.
-  let commentContent = "Comment from gamma";
-  let commentRes = await createComment(
+  const commentContent = "Comment from gamma";
+  const commentRes = await createComment(
     gamma,
     gammaPost.post.id,
     undefined,
@@ -740,8 +759,8 @@ test("Check that activity from another instance is sent to third instance", asyn
   expect(commentRes.comment_view.comment.score).toBe(1);
 
   // Make sure alpha sees it
-  let alphaPostComments2 = await waitUntilSuccess(
-    () => getComments(alpha, alphaPost!.post.id),
+  const alphaPostComments2 = await waitUntilSuccess(
+    () => getComments(alpha, alphaPost.post.id),
     e => e.items[0]?.comment.score === 1,
   );
   expect(alphaPostComments2.items[0].comment.content).toBe(commentContent);
@@ -755,17 +774,17 @@ test("Check that activity from another instance is sent to third instance", asyn
 
 test("Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedded comments, A subs to B, B updates the lowest level comment, A fetches both the post and all the inreplyto comments for that post.", async () => {
   // Unfollow all remote communities
-  let my_user = await unfollowRemotes(alpha).then(expectSuccess);
+  const my_user = await unfollowRemotes(alpha).then(expectSuccess);
   expect(my_user.follows.filter(c => c.community.local == false).length).toBe(
     0,
   );
 
   // B creates a post, and two comments, should be invisible to A
-  let postOnBetaRes = await createPost(beta, 2).then(expectSuccess);
+  const postOnBetaRes = await createPost(beta, 2).then(expectSuccess);
   expect(postOnBetaRes.post_view.post.name).toBeDefined();
 
-  let parentCommentContent = "An invisible top level comment from beta";
-  let parentCommentRes = await createComment(
+  const parentCommentContent = "An invisible top level comment from beta";
+  const parentCommentRes = await createComment(
     beta,
     postOnBetaRes.post_view.post.id,
     undefined,
@@ -776,8 +795,8 @@ test("Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedde
   );
 
   // B creates a comment, then a child one of that.
-  let childCommentContent = "An invisible child comment from beta";
-  let childCommentRes = await createComment(
+  const childCommentContent = "An invisible child comment from beta";
+  const childCommentRes = await createComment(
     beta,
     postOnBetaRes.post_view.post.id,
     parentCommentRes.comment_view.comment.id,
@@ -788,13 +807,13 @@ test("Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedde
   );
 
   // Follow beta again
-  let follow = await followBeta(alpha);
+  const follow = await followBeta(alpha);
   expect(follow.community_view.community.local).toBe(false);
   expect(follow.community_view.community.name).toBe("main");
 
   // An update to the child comment on beta, should push the post, parent, and child to alpha now
-  let updatedCommentContent = "An update child comment from beta";
-  let updateRes = await editComment(
+  const updatedCommentContent = "An update child comment from beta";
+  const updateRes = await editComment(
     beta,
     childCommentRes.comment_view.comment.id,
     updatedCommentContent,
@@ -802,15 +821,17 @@ test("Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedde
   expect(updateRes.comment_view.comment.content).toBe(updatedCommentContent);
 
   // Get the post from alpha
-  let alphaPostB = await waitForPost(alpha, postOnBetaRes.post_view.post);
+  const alphaPostB = await waitForPost(alpha, postOnBetaRes.post_view.post);
 
   if (!alphaPostB) {
-    throw "Missing alpha post B";
+    throw new Error("Missing alpha post B");
   }
 
-  let alphaPost = await getPost(alpha, alphaPostB.post.id).then(expectSuccess);
-  let alphaPostComments = await waitUntilSuccess(
-    () => getComments(alpha, alphaPostB!.post.id),
+  const alphaPost = await getPost(alpha, alphaPostB.post.id).then(
+    expectSuccess,
+  );
+  const alphaPostComments = await waitUntilSuccess(
+    () => getComments(alpha, alphaPostB.post.id),
     c =>
       c.items[1]?.comment.content ===
         parentCommentRes.comment_view.comment.content &&
@@ -829,32 +850,32 @@ test("Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedde
 });
 
 test("Report a comment", async () => {
-  let betaCommunity = await resolveBetaCommunity(beta);
+  const betaCommunity = await resolveBetaCommunity(beta);
   if (!betaCommunity) {
-    throw "Missing beta community";
+    throw new Error("Missing beta community");
   }
-  let postOnBetaRes = (
+  const postOnBetaRes = (
     await createPost(beta, betaCommunity.community.id).then(expectSuccess)
   ).post_view.post;
   expect(postOnBetaRes).toBeDefined();
-  let commentRes = (
+  const commentRes = (
     await createComment(beta, postOnBetaRes.id).then(expectSuccess)
   ).comment_view.comment;
   expect(commentRes).toBeDefined();
 
-  let alphaComment = await resolveComment(alpha, commentRes);
+  const alphaComment = await resolveComment(alpha, commentRes);
   if (!alphaComment) {
-    throw "Missing alpha comment";
+    throw new Error("Missing alpha comment");
   }
 
   const reason = randomString(10);
-  let alphaReport = (
+  const alphaReport = (
     await reportComment(alpha, alphaComment.comment.id, reason).then(
       expectSuccess,
     )
   ).comment_report_view.comment_report;
 
-  let betaReport = (
+  const betaReport = (
     (await waitUntil(
       () =>
         listReports(beta)
@@ -865,7 +886,7 @@ test("Report a comment", async () => {
             }),
           ),
       e => !!e,
-    )!) as CommentReportView
+    )) as CommentReportView
   ).comment_report;
   expect(betaReport).toBeDefined();
   expect(betaReport.resolved).toBe(false);
@@ -877,15 +898,15 @@ test("Report a comment", async () => {
 
 test("Dont send a comment reply to a blocked community", async () => {
   await beta.markAllNotificationsAsRead();
-  let newCommunity = await createCommunity(beta).then(expectSuccess);
-  let newCommunityId = newCommunity.community_view.community.id;
+  const newCommunity = await createCommunity(beta).then(expectSuccess);
+  const newCommunityId = newCommunity.community_view.community.id;
 
   // Create a post on beta
-  let betaPost = await createPost(beta, newCommunityId).then(expectSuccess);
+  const betaPost = await createPost(beta, newCommunityId).then(expectSuccess);
 
-  let alphaPost = await resolvePost(alpha, betaPost.post_view.post);
+  const alphaPost = await resolvePost(alpha, betaPost.post_view.post);
   if (!alphaPost) {
-    throw "unable to locate post on alpha";
+    throw new Error("unable to locate post on alpha");
   }
 
   // Check beta's inbox count
@@ -899,23 +920,23 @@ test("Dont send a comment reply to a blocked community", async () => {
   expect(blockRes.community_view.community_actions?.blocked_at).toBeDefined();
 
   // Alpha creates a comment
-  let commentRes = await createComment(alpha, alphaPost.post.id).then(
+  const commentRes = await createComment(alpha, alphaPost.post.id).then(
     expectSuccess,
   );
   expect(commentRes.comment_view.comment.content).toBeDefined();
-  let alphaComment = await resolveComment(
+  const alphaComment = await resolveComment(
     beta,
     commentRes.comment_view.comment,
   );
   if (!alphaComment) {
-    throw "Missing alpha comment before block";
+    throw new Error("Missing alpha comment before block");
   }
 
   // Check beta's inbox count, make sure it stays the same
   unreadCount = await getUnreadCounts(beta).then(expectSuccess);
   expect(unreadCount.notification_count).toBe(0);
 
-  let replies = await listNotifications(beta, "reply", true).then(
+  const replies = await listNotifications(beta, "reply", true).then(
     expectSuccess,
   );
   expect(replies.items.length).toBe(0);
@@ -935,7 +956,7 @@ test("Fetch a deeply nested comment", async () => {
     "!main@lemmy-alpha:8541",
   );
   if (!alphaCommunity) {
-    throw "Missing alpha community";
+    throw new Error("Missing alpha community");
   }
   const postOnAlphaRes = await createPost(
     alpha,
@@ -943,7 +964,7 @@ test("Fetch a deeply nested comment", async () => {
   ).then(expectSuccess);
   let lastComment: CommentResponse | undefined;
   for (let i = 1; i < 50; i++) {
-    let commentRes = await createComment(
+    const commentRes = await createComment(
       alpha,
       postOnAlphaRes.post_view.post.id,
       lastComment?.comment_view.comment.id,
@@ -952,7 +973,7 @@ test("Fetch a deeply nested comment", async () => {
     lastComment = commentRes;
   }
 
-  let betaComment = await resolveComment(
+  const betaComment = await resolveComment(
     beta,
     lastComment!.comment_view.comment,
   );
@@ -963,8 +984,8 @@ test("Fetch a deeply nested comment", async () => {
 
 test("Distinguish comment", async () => {
   const community = (await resolveBetaCommunity(beta))?.community;
-  let post = await createPost(beta, community!.id).then(expectSuccess);
-  let commentRes = await createComment(beta, post.post_view.post.id).then(
+  const post = await createPost(beta, community!.id).then(expectSuccess);
+  const commentRes = await createComment(beta, post.post_view.post.id).then(
     expectSuccess,
   );
   const form: DistinguishComment = {
@@ -973,10 +994,10 @@ test("Distinguish comment", async () => {
   };
   await beta.distinguishComment(form);
 
-  let alphaPost = await resolvePost(alpha, post.post_view.post);
+  const alphaPost = await resolvePost(alpha, post.post_view.post);
 
   // Find the comment on alpha (home of community)
-  let alphaComments = await waitUntilSuccess(
+  const alphaComments = await waitUntilSuccess(
     () => getComments(alpha, alphaPost?.post.id),
     c => c.items[0].comment.distinguished,
   );
@@ -985,23 +1006,23 @@ test("Distinguish comment", async () => {
 });
 
 test("Lock comment", async () => {
-  let newBetaApi = await registerUser(beta, betaUrl);
+  const newBetaApi = await registerUser(beta, betaUrl);
 
   const alphaCommunity = await resolveCommunity(
     alpha,
     "!main@lemmy-alpha:8541",
   );
   if (!alphaCommunity) {
-    throw "Missing alpha community";
+    throw new Error("Missing alpha community");
   }
 
-  let post = await createPost(alpha, alphaCommunity.community.id).then(
+  const post = await createPost(alpha, alphaCommunity.community.id).then(
     expectSuccess,
   );
-  let betaPost = await resolvePost(beta, post.post_view.post);
+  const betaPost = await resolvePost(beta, post.post_view.post);
 
   if (!betaPost) {
-    throw "unable to locate post on beta";
+    throw new Error("unable to locate post on beta");
   }
 
   // Create a comment hierarchy like this:
@@ -1011,25 +1032,31 @@ test("Lock comment", async () => {
   // |
   // 3
 
-  let comment1 = await createComment(alpha, post.post_view.post.id).then(
+  const comment1 = await createComment(alpha, post.post_view.post.id).then(
     expectSuccess,
   );
-  let betaComment1 = await resolveComment(beta, comment1.comment_view.comment);
+  const betaComment1 = await resolveComment(
+    beta,
+    comment1.comment_view.comment,
+  );
   if (!betaComment1) {
-    throw "unable to locate comment on beta";
+    throw new Error("unable to locate comment on beta");
   }
-  await followCommunity(newBetaApi, true, betaComment1!.community.id);
+  await followCommunity(newBetaApi, true, betaComment1.community.id);
 
-  let comment2 = await createComment(
+  const comment2 = await createComment(
     alpha,
     post.post_view.post.id,
     comment1.comment_view.comment.id,
   ).then(expectSuccess);
-  let betaComment2 = await resolveComment(beta, comment2.comment_view.comment);
+  const betaComment2 = await resolveComment(
+    beta,
+    comment2.comment_view.comment,
+  );
   if (!betaComment2) {
-    throw "unable to locate comment on beta";
+    throw new Error("unable to locate comment on beta");
   }
-  let comment3 = await createComment(
+  const comment3 = await createComment(
     newBetaApi,
     betaPost.post.id,
     betaComment2.comment.id,
@@ -1070,23 +1097,23 @@ test("Remove children", async () => {
     "!main@lemmy-alpha:8541",
   );
   if (!alphaCommunity) {
-    throw "Missing alpha community";
+    throw new Error("Missing alpha community");
   }
 
-  let post = await createPost(alpha, alphaCommunity.community.id).then(
+  const post = await createPost(alpha, alphaCommunity.community.id).then(
     expectSuccess,
   );
-  let betaPost = await resolvePost(beta, post.post_view.post);
+  const betaPost = await resolvePost(beta, post.post_view.post);
 
   if (!betaPost) {
-    throw "unable to locate post on beta";
+    throw new Error("unable to locate post on beta");
   }
   await followCommunity(beta, true, betaPost.community.id);
 
-  let comment1 = await createComment(beta, betaPost.post.id).then(
+  const comment1 = await createComment(beta, betaPost.post.id).then(
     expectSuccess,
   );
-  let comment2 = await createComment(
+  const comment2 = await createComment(
     beta,
     betaPost.post.id,
     comment1.comment_view.comment.id,
@@ -1100,17 +1127,19 @@ test("Remove children", async () => {
     p => p.post_view.post.comments == 4,
   );
 
-  let commentOnAlpha = await resolveComment(
+  const commentOnAlpha = await resolveComment(
     alpha,
     comment1.comment_view.comment,
   );
   if (!commentOnAlpha) {
-    throw "unable to locate comment on alpha";
+    throw new Error("unable to locate comment on alpha");
   }
 
   await removeComment(alpha, true, commentOnAlpha.comment.id, true);
 
-  let post2 = await getPost(alpha, post.post_view.post.id).then(expectSuccess);
+  const post2 = await getPost(alpha, post.post_view.post.id).then(
+    expectSuccess,
+  );
   expect(post2.post_view.post.comments).toBe(0);
 
   // Wait until the remove has federated
@@ -1120,9 +1149,9 @@ test("Remove children", async () => {
   );
 
   // Make sure removal federates properly
-  let betaPost2 = await resolvePost(beta, post.post_view.post);
+  const betaPost2 = await resolvePost(beta, post.post_view.post);
   if (!betaPost2) {
-    throw "unable to locate post on beta";
+    throw new Error("unable to locate post on beta");
   }
   expect(betaPost2.post.comments).toBe(0);
 });

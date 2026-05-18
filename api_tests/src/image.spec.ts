@@ -112,7 +112,7 @@ test("Upload image and delete it", async () => {
 });
 
 test("Purge user, uploaded image removed", async () => {
-  let user = await registerUser(alphaImage, alphaUrl);
+  const user = await registerUser(alphaImage, alphaUrl);
 
   // upload test image
   const upload_form: UploadImage = {
@@ -128,7 +128,7 @@ test("Purge user, uploaded image removed", async () => {
   expect(content.length).toBeGreaterThan(0);
 
   // purge user
-  let my_user = await getMyUser(user).then(expectSuccess);
+  const my_user = await getMyUser(user).then(expectSuccess);
   const purgeForm: PurgePerson = {
     person_id: my_user.local_user_view.person.id,
     reason: "purge",
@@ -143,7 +143,7 @@ test("Purge user, uploaded image removed", async () => {
 });
 
 test("Purge post, linked image removed", async () => {
-  let user = await registerUser(beta, betaUrl);
+  const user = await registerUser(beta, betaUrl);
 
   // upload test image
   const upload_form: UploadImage = {
@@ -158,8 +158,8 @@ test("Purge post, linked image removed", async () => {
   const content = await response.text();
   expect(content.length).toBeGreaterThan(0);
 
-  let community = await resolveBetaCommunity(user);
-  let post = await createPost(
+  const community = await resolveBetaCommunity(user);
+  const post = await createPost(
     user,
     community!.community.id,
     upload.image_url,
@@ -182,8 +182,8 @@ test("Purge post, linked image removed", async () => {
 });
 
 test("Images in remote image post are proxied if setting enabled", async () => {
-  let community = await createCommunity(gamma).then(expectSuccess);
-  let postRes = await createPost(
+  const community = await createCommunity(gamma).then(expectSuccess);
+  const postRes = await createPost(
     gamma,
     community.community_view.community.id,
     sampleImage,
@@ -208,12 +208,12 @@ test("Images in remote image post are proxied if setting enabled", async () => {
   // Make sure that it contains `jpg`, to be sure its an image
   expect(post.thumbnail_url?.includes(".jpg")).toBeTruthy();
 
-  let epsilonPostRes = await resolvePost(epsilon, postRes.post_view.post);
+  const epsilonPostRes = await resolvePost(epsilon, postRes.post_view.post);
   expect(epsilonPostRes?.post).toBeDefined();
 
   // Fetch the post again, the metadata should be backgrounded now
   // Wait for the metadata to get fetched, since this is backgrounded now
-  let epsilonPostRes2 = await waitUntilSuccess(
+  const epsilonPostRes2 = await waitUntilSuccess(
     () => getPost(epsilon, epsilonPostRes!.post.id),
     p => p.post_view.post.thumbnail_url != undefined,
   );
@@ -235,8 +235,8 @@ test("Images in remote image post are proxied if setting enabled", async () => {
 });
 
 test("Thumbnail of remote image link is proxied if setting enabled", async () => {
-  let community = await createCommunity(gamma).then(expectSuccess);
-  let postRes = await createPost(
+  const community = await createCommunity(gamma).then(expectSuccess);
+  const postRes = await createPost(
     gamma,
     community.community_view.community.id,
     // The sample site metadata thumbnail ends in png
@@ -261,10 +261,10 @@ test("Thumbnail of remote image link is proxied if setting enabled", async () =>
   // Make sure that it contains `png`, to be sure its an image
   expect(post.thumbnail_url?.includes(".png")).toBeTruthy();
 
-  let epsilonPostRes = await resolvePost(epsilon, postRes.post_view.post);
+  const epsilonPostRes = await resolvePost(epsilon, postRes.post_view.post);
   expect(epsilonPostRes?.post).toBeDefined();
 
-  let epsilonPostRes2 = await waitUntilSuccess(
+  const epsilonPostRes2 = await waitUntilSuccess(
     () => getPost(epsilon, epsilonPostRes!.post.id),
     p => p.post_view.post.thumbnail_url != undefined,
   );
@@ -281,9 +281,9 @@ test("Thumbnail of remote image link is proxied if setting enabled", async () =>
 });
 
 test("No image proxying if setting is disabled", async () => {
-  let user = await registerUser(beta, betaUrl);
-  let community = await createCommunity(alpha).then(expectSuccess);
-  let betaCommunity = await resolveCommunity(
+  const user = await registerUser(beta, betaUrl);
+  const community = await createCommunity(alpha).then(expectSuccess);
+  const betaCommunity = await resolveCommunity(
     beta,
     community.community_view.community.ap_id,
   );
@@ -293,7 +293,7 @@ test("No image proxying if setting is disabled", async () => {
     image: Buffer.from("test"),
   };
   const upload = await user.uploadImage(upload_form).then(expectSuccess);
-  let post = await createPost(
+  const post = await createPost(
     alpha,
     community.community_view.community.id,
     upload.image_url,
@@ -307,7 +307,7 @@ test("No image proxying if setting is disabled", async () => {
   ).toBeTruthy();
   expect(post.post_view.post.body).toBe(`![](${sampleImage})`);
 
-  let betaPost = await waitForPost(beta, post.post_view.post, res => {
+  const betaPost = await waitForPost(beta, post.post_view.post, res => {
     return res?.post.alt_text != null;
   });
   expect(betaPost!.post).toBeDefined();
@@ -336,7 +336,7 @@ test("Make regular post, and give it a custom thumbnail", async () => {
     alphaImage,
     community.community_view.community.id,
     wikipediaUrl,
-    upload1.image_url!,
+    upload1.image_url,
   ).then(expectSuccess);
 
   // Wait for the metadata to get fetched, since this is backgrounded now
@@ -365,8 +365,8 @@ test("Create an image post, and make sure a custom thumbnail doesn't overwrite i
   let post = await createPostWithThumbnail(
     alphaImage,
     community.community_view.community.id,
-    upload1.image_url!,
-    upload2.image_url!,
+    upload1.image_url,
+    upload2.image_url,
   ).then(expectSuccess);
   post = await waitUntilSuccess(
     () => getPost(alphaImage, post.post_view.post.id),

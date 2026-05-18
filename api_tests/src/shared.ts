@@ -109,37 +109,37 @@ export function expectFailure<T>(res: RequestState<T>): LemmyError {
 }
 
 export async function setupLogins() {
-  let formAlpha: Login = {
+  const formAlpha: Login = {
     username_or_email: "lemmy_alpha",
     password,
   };
-  let resAlpha = alpha.login(formAlpha).then(expectSuccess);
+  const resAlpha = alpha.login(formAlpha).then(expectSuccess);
 
-  let formBeta: Login = {
+  const formBeta: Login = {
     username_or_email: "lemmy_beta",
     password,
   };
-  let resBeta = beta.login(formBeta).then(expectSuccess);
+  const resBeta = beta.login(formBeta).then(expectSuccess);
 
-  let formGamma: Login = {
+  const formGamma: Login = {
     username_or_email: "lemmy_gamma",
     password,
   };
-  let resGamma = gamma.login(formGamma).then(expectSuccess);
+  const resGamma = gamma.login(formGamma).then(expectSuccess);
 
-  let formDelta: Login = {
+  const formDelta: Login = {
     username_or_email: "lemmy_delta",
     password,
   };
-  let resDelta = delta.login(formDelta).then(expectSuccess);
+  const resDelta = delta.login(formDelta).then(expectSuccess);
 
-  let formEpsilon: Login = {
+  const formEpsilon: Login = {
     username_or_email: "lemmy_epsilon",
     password,
   };
-  let resEpsilon = epsilon.login(formEpsilon).then(expectSuccess);
+  const resEpsilon = epsilon.login(formEpsilon).then(expectSuccess);
 
-  let res = await Promise.all([
+  const res = await Promise.all([
     resAlpha,
     resBeta,
     resGamma,
@@ -154,7 +154,7 @@ export async function setupLogins() {
   epsilon.setHeaders({ Authorization: `Bearer ${res[4].jwt ?? ""}` });
 
   // Registration applications are now enabled by default, need to disable them
-  let editSiteForm: EditSite = {
+  const editSiteForm: EditSite = {
     registration_mode: "open",
     rate_limit_message_max_requests: 999,
     rate_limit_post_max_requests: 999,
@@ -170,7 +170,7 @@ export async function setupLogins() {
   await epsilon.editSite(editSiteForm);
 
   // Alpha and beta use image_mode StoreLinkPreviews
-  let imageModeForm: EditSite = { image_mode: "store_link_previews" };
+  const imageModeForm: EditSite = { image_mode: "store_link_previews" };
   await alpha.editSite(imageModeForm);
   await beta.editSite(imageModeForm);
 
@@ -231,7 +231,7 @@ export async function createPost(
   alt_text = randomString(10),
   custom_thumbnail: string | undefined = undefined,
 ) {
-  let form: CreatePost = {
+  const form: CreatePost = {
     name,
     url,
     body,
@@ -243,8 +243,8 @@ export async function createPost(
 }
 
 export async function editPost(api: LemmyHttp, post: Post) {
-  let name = "A jest test federated post, updated";
-  let form: EditPost = {
+  const name = "A jest test federated post, updated";
+  const form: EditPost = {
     name,
     post_id: post.id,
   };
@@ -257,7 +257,7 @@ export async function createPostWithThumbnail(
   url: string,
   custom_thumbnail: string,
 ) {
-  let form: CreatePost = {
+  const form: CreatePost = {
     name: randomString(10),
     url,
     community_id,
@@ -267,7 +267,7 @@ export async function createPostWithThumbnail(
 }
 
 export async function deletePost(api: LemmyHttp, deleted: boolean, post: Post) {
-  let form: DeletePost = {
+  const form: DeletePost = {
     post_id: post.id,
     deleted: deleted,
   };
@@ -275,7 +275,7 @@ export async function deletePost(api: LemmyHttp, deleted: boolean, post: Post) {
 }
 
 export async function removePost(api: LemmyHttp, removed: boolean, post: Post) {
-  let form: RemovePost = {
+  const form: RemovePost = {
     post_id: post.id,
     removed,
     reason: "remove",
@@ -288,7 +288,7 @@ export async function featurePost(
   featured: boolean,
   post: Post,
 ) {
-  let form: FeaturePost = {
+  const form: FeaturePost = {
     post_id: post.id,
     featured,
     feature_type: "community",
@@ -297,7 +297,7 @@ export async function featurePost(
 }
 
 export async function lockPost(api: LemmyHttp, locked: boolean, post: Post) {
-  let form: LockPost = {
+  const form: LockPost = {
     post_id: post.id,
     locked,
     reason: "lock",
@@ -309,7 +309,7 @@ export async function resolvePost(
   api: LemmyHttp,
   post: Post,
 ): Promise<PostView | undefined> {
-  let form: ResolveObject = {
+  const form: ResolveObject = {
     q: post.ap_id,
   };
   return api
@@ -331,7 +331,7 @@ export async function waitForPost(
   api: LemmyHttp,
   post: Post,
   checker: (t: PostView | undefined) => boolean = p => !!p,
-) {
+): Promise<PostView | undefined> {
   return waitUntil(() => searchPostLocal(api, post), checker);
 }
 
@@ -339,7 +339,7 @@ export async function searchPostLocal(
   api: LemmyHttp,
   post: Post,
 ): Promise<PostView | undefined> {
-  let form: GetPosts = {
+  const form: GetPosts = {
     search_term: post.name,
     type_: "all",
   };
@@ -349,7 +349,7 @@ export async function searchPostLocal(
 }
 
 export async function getPost(api: LemmyHttp, post_id: number) {
-  let form: GetPost = {
+  const form: GetPost = {
     id: post_id,
   };
   return api.getPost(form);
@@ -360,7 +360,7 @@ export async function lockComment(
   locked: boolean,
   comment: Comment,
 ) {
-  let form: LockComment = {
+  const form: LockComment = {
     comment_id: comment.id,
     locked,
     reason: "lock",
@@ -369,7 +369,7 @@ export async function lockComment(
 }
 
 export async function getComment(api: LemmyHttp, comment_id: number) {
-  let form: GetComment = {
+  const form: GetComment = {
     id: comment_id,
   };
   return api.getComment(form);
@@ -380,7 +380,7 @@ export async function getComments(
   post_id?: number,
   listingType: ListingType = "all",
 ) {
-  let form: GetComments = {
+  const form: GetComments = {
     post_id: post_id,
     type_: listingType,
     sort: "new",
@@ -398,7 +398,7 @@ export async function listNotifications(
   type_?: NotificationTypeFilter,
   unread_only: boolean = false,
 ) {
-  let form: ListNotifications = {
+  const form: ListNotifications = {
     unread_only,
     type_,
   };
@@ -409,7 +409,7 @@ export async function resolveComment(
   api: LemmyHttp,
   comment: Comment,
 ): Promise<CommentView | undefined> {
-  let form: ResolveObject = {
+  const form: ResolveObject = {
     q: comment.ap_id,
   };
   return api
@@ -430,7 +430,7 @@ export async function resolveBetaCommunity(
   api: LemmyHttp,
 ): Promise<CommunityView | undefined> {
   // Use short-hand search url
-  let form: ResolveObject = {
+  const form: ResolveObject = {
     q: "!main@lemmy-beta:8551",
   };
   return api
@@ -444,7 +444,7 @@ export async function resolveCommunity(
   api: LemmyHttp,
   q: string,
 ): Promise<CommunityView | undefined> {
-  let form: ResolveObject = {
+  const form: ResolveObject = {
     q,
   };
   return api
@@ -458,7 +458,7 @@ export async function resolveMultiCommunity(
   api: LemmyHttp,
   q: string,
 ): Promise<MultiCommunityView | undefined> {
-  let form: ResolveObject = {
+  const form: ResolveObject = {
     q,
   };
   return api
@@ -474,7 +474,7 @@ export async function resolvePerson(
   api: LemmyHttp,
   apShortname: string,
 ): Promise<PersonView | undefined> {
-  let form: ResolveObject = {
+  const form: ResolveObject = {
     q: apShortname,
   };
   return api
@@ -488,7 +488,7 @@ export async function resolveFailure(
   api: LemmyHttp,
   apShortname: string,
 ): Promise<LemmyError | undefined> {
-  let form: ResolveObject = {
+  const form: ResolveObject = {
     q: apShortname,
   };
   return api
@@ -503,7 +503,7 @@ export async function banPersonFromSite(
   remove_or_restore_data: boolean,
 ) {
   // Make sure lemmy-beta/c/main is cached on lemmy_alpha
-  let form: BanPerson = {
+  const form: BanPerson = {
     person_id,
     ban,
     remove_or_restore_data,
@@ -519,7 +519,7 @@ export async function banPersonFromCommunity(
   remove_or_restore_data: boolean,
   ban: boolean,
 ) {
-  let form: BanFromCommunity = {
+  const form: BanFromCommunity = {
     person_id,
     community_id,
     remove_or_restore_data,
@@ -534,7 +534,7 @@ export async function followCommunity(
   follow: boolean,
   community_id: number,
 ): Promise<CommunityResponse> {
-  let form: FollowCommunity = {
+  const form: FollowCommunity = {
     community_id,
     follow,
   };
@@ -542,7 +542,7 @@ export async function followCommunity(
   await waitUntilSuccess(
     () => getCommunity(api, res.community_view.community.id),
     g => {
-      let followState = g.community_view.community_actions?.follow_state;
+      const followState = g.community_view.community_actions?.follow_state;
       return follow ? followState === "accepted" : followState === undefined;
     },
   );
@@ -556,7 +556,7 @@ export async function likePost(
   is_upvote: boolean | undefined,
   post: Post,
 ) {
-  let form: CreatePostLike = {
+  const form: CreatePostLike = {
     post_id: post.id,
     is_upvote: is_upvote,
   };
@@ -570,7 +570,7 @@ export async function createComment(
   parent_id?: number,
   content = "a jest test comment",
 ) {
-  let form: CreateComment = {
+  const form: CreateComment = {
     content,
     post_id,
     parent_id,
@@ -583,7 +583,7 @@ export async function editComment(
   comment_id: number,
   content = "A jest test federated comment update",
 ) {
-  let form: EditComment = {
+  const form: EditComment = {
     content,
     comment_id,
   };
@@ -595,7 +595,7 @@ export async function deleteComment(
   deleted: boolean,
   comment_id: number,
 ) {
-  let form: DeleteComment = {
+  const form: DeleteComment = {
     comment_id,
     deleted,
   };
@@ -608,7 +608,7 @@ export async function removeComment(
   comment_id: number,
   remove_children?: boolean,
 ) {
-  let form: RemoveComment = {
+  const form: RemoveComment = {
     comment_id,
     removed,
     reason: "remove",
@@ -622,7 +622,7 @@ export async function likeComment(
   is_upvote: boolean | undefined,
   comment: Comment,
 ) {
-  let form: CreateCommentLike = {
+  const form: CreateCommentLike = {
     comment_id: comment.id,
     is_upvote,
   };
@@ -634,8 +634,8 @@ export async function createCommunity(
   name_: string = randomString(10),
   visibility: CommunityVisibility = "public",
 ) {
-  let sidebar = "a sample sidebar";
-  let form: CreateCommunity = {
+  const sidebar = "a sample sidebar";
+  const form: CreateCommunity = {
     name: name_,
     title: name_,
     sidebar,
@@ -649,14 +649,14 @@ export async function editCommunity(api: LemmyHttp, form: EditCommunity) {
 }
 
 export async function getCommunity(api: LemmyHttp, id: number) {
-  let form: GetCommunity = {
+  const form: GetCommunity = {
     id,
   };
   return api.getCommunity(form);
 }
 
 export async function getCommunityByName(api: LemmyHttp, name: string) {
-  let form: GetCommunity = {
+  const form: GetCommunity = {
     name,
   };
   return api.getCommunity(form);
@@ -667,7 +667,7 @@ export async function deleteCommunity(
   deleted: boolean,
   community_id: number,
 ) {
-  let form: DeleteCommunity = {
+  const form: DeleteCommunity = {
     community_id,
     deleted,
   };
@@ -679,7 +679,7 @@ export async function removeCommunity(
   removed: boolean,
   community_id: number,
 ) {
-  let form: RemoveCommunity = {
+  const form: RemoveCommunity = {
     community_id,
     removed,
     reason: "remove",
@@ -691,8 +691,8 @@ export async function createPrivateMessage(
   api: LemmyHttp,
   recipient_id: number,
 ) {
-  let content = "A jest test federated private message";
-  let form: CreatePrivateMessage = {
+  const content = "A jest test federated private message";
+  const form: CreatePrivateMessage = {
     content,
     recipient_id,
   };
@@ -703,8 +703,8 @@ export async function editPrivateMessage(
   api: LemmyHttp,
   private_message_id: number,
 ) {
-  let updatedContent = "A jest test federated private message edited";
-  let form: EditPrivateMessage = {
+  const updatedContent = "A jest test federated private message edited";
+  const form: EditPrivateMessage = {
     content: updatedContent,
     private_message_id,
   };
@@ -716,7 +716,7 @@ export async function deletePrivateMessage(
   deleted: boolean,
   private_message_id: number,
 ) {
-  let form: DeletePrivateMessage = {
+  const form: DeletePrivateMessage = {
     deleted,
     private_message_id,
   };
@@ -728,23 +728,23 @@ export async function registerUser(
   url: string,
   username: string = randomString(5),
 ): Promise<LemmyHttp> {
-  let form: Register = {
+  const form: Register = {
     username,
     password,
     password_verify: password,
     show_nsfw: true,
   };
-  let login_response = await api.register(form).then(expectSuccess);
+  const login_response = await api.register(form).then(expectSuccess);
 
   expect(login_response.jwt).toBeDefined();
-  let lemmyHttp = new LemmyHttp(url, {
+  const lemmyHttp = new LemmyHttp(url, {
     headers: { Authorization: `Bearer ${login_response.jwt ?? ""}` },
   });
   return lemmyHttp;
 }
 
 export async function loginUser(api: LemmyHttp, username: string) {
-  let form: Login = {
+  const form: Login = {
     username_or_email: username,
     password: password,
   };
@@ -752,7 +752,7 @@ export async function loginUser(api: LemmyHttp, username: string) {
 }
 
 export async function saveUserSettingsBio(api: LemmyHttp) {
-  let form: SaveUserSettings = {
+  const form: SaveUserSettings = {
     show_nsfw: true,
     blur_nsfw: false,
     theme: "darkly",
@@ -767,8 +767,8 @@ export async function saveUserSettingsBio(api: LemmyHttp) {
 }
 
 export async function saveUserSettingsFederated(api: LemmyHttp) {
-  let bio = "a changed bio";
-  let form: SaveUserSettings = {
+  const bio = "a changed bio";
+  const form: SaveUserSettings = {
     show_nsfw: false,
     blur_nsfw: true,
     default_post_sort_type: "hot",
@@ -787,7 +787,7 @@ export async function saveUserSettings(api: LemmyHttp, form: SaveUserSettings) {
 }
 
 export async function getPersonDetails(api: LemmyHttp, person_id: number) {
-  let form: GetPersonDetails = {
+  const form: GetPersonDetails = {
     person_id: person_id,
   };
   return api.getPersonDetails(form);
@@ -798,7 +798,7 @@ export async function listPersonContent(
   person_id: number,
   type_?: PersonContentType,
 ) {
-  let form: ListPersonContent = {
+  const form: ListPersonContent = {
     person_id,
     type_,
   };
@@ -809,7 +809,7 @@ export async function deleteUser(
   api: LemmyHttp,
   delete_content: boolean = true,
 ) {
-  let form: DeleteAccount = {
+  const form: DeleteAccount = {
     delete_content,
     password,
   };
@@ -826,8 +826,8 @@ export async function getMyUser(api: LemmyHttp) {
 
 export async function unfollowRemotes(api: LemmyHttp) {
   // Unfollow all remote communities
-  let my_user = await getMyUser(api).then(expectSuccess);
-  let remoteFollowed =
+  const my_user = await getMyUser(api).then(expectSuccess);
+  const remoteFollowed =
     my_user.follows.filter(c => c.community.local == false) ?? [];
   await Promise.allSettled(
     remoteFollowed.map(cu => followCommunity(api, false, cu.community.id)),
@@ -837,12 +837,12 @@ export async function unfollowRemotes(api: LemmyHttp) {
 }
 
 export async function followBeta(api: LemmyHttp): Promise<CommunityResponse> {
-  let betaCommunity = await resolveBetaCommunity(api);
+  const betaCommunity = await resolveBetaCommunity(api);
   if (betaCommunity) {
-    let follow = await followCommunity(api, true, betaCommunity.community.id);
+    const follow = await followCommunity(api, true, betaCommunity.community.id);
     return follow;
   } else {
-    return Promise.reject("no community worked");
+    return Promise.reject(Error("no community worked"));
   }
 }
 
@@ -851,7 +851,7 @@ export async function reportPost(
   post_id: number,
   reason: string,
 ) {
-  let form: CreatePostReport = {
+  const form: CreatePostReport = {
     post_id,
     reason,
   };
@@ -863,7 +863,7 @@ export async function reportCommunity(
   community_id: number,
   reason: string,
 ) {
-  let form: CreateCommunityReport = {
+  const form: CreateCommunityReport = {
     community_id,
     reason,
   };
@@ -874,7 +874,7 @@ export async function listReports(
   api: LemmyHttp,
   show_community_rule_violations: boolean = false,
 ) {
-  let form: ListReports = { show_community_rule_violations };
+  const form: ListReports = { show_community_rule_violations };
   return api.listReports(form);
 }
 
@@ -883,7 +883,7 @@ export async function reportComment(
   comment_id: number,
   reason: string,
 ) {
-  let form: CreateCommentReport = {
+  const form: CreateCommentReport = {
     comment_id,
     reason,
   };
@@ -895,7 +895,7 @@ export async function reportPrivateMessage(
   private_message_id: number,
   reason: string,
 ) {
-  let form: CreatePrivateMessageReport = {
+  const form: CreatePrivateMessageReport = {
     private_message_id,
     reason,
   };
@@ -907,7 +907,7 @@ export function getPosts(
   listingType?: ListingType,
   community_id?: number,
 ) {
-  let form: GetPosts = {
+  const form: GetPosts = {
     type_: listingType,
     limit: 50,
     community_id,
@@ -920,7 +920,7 @@ export function userBlockInstanceCommunities(
   instance_id: InstanceId,
   block: boolean,
 ) {
-  let form: UserBlockInstanceCommunitiesParams = {
+  const form: UserBlockInstanceCommunitiesParams = {
     instance_id,
     block,
   };
@@ -932,7 +932,7 @@ export function blockCommunity(
   community_id: CommunityId,
   block: boolean,
 ) {
-  let form: BlockCommunity = {
+  const form: BlockCommunity = {
     community_id,
     block,
   };
@@ -940,7 +940,7 @@ export function blockCommunity(
 }
 
 export function listCommunityPendingFollows(api: LemmyHttp) {
-  let form: ListCommunityPendingFollows = {
+  const form: ListCommunityPendingFollows = {
     unread_only: true,
     all_communities: false,
     limit: 50,
@@ -954,7 +954,7 @@ export function approveCommunityPendingFollow(
   follower_id: PersonId,
   approve: boolean = true,
 ) {
-  let form: ApproveCommunityPendingFollower = {
+  const form: ApproveCommunityPendingFollower = {
     community_id,
     follower_id,
     approve,
@@ -962,19 +962,19 @@ export function approveCommunityPendingFollow(
   return api.approveCommunityPendingFollow(form);
 }
 export function getModlog(api: LemmyHttp) {
-  let form: GetModlog = {};
+  const form: GetModlog = {};
   return api.getModlog(form);
 }
 
-export function wrapper(form: any): string {
+export function wrapper<T>(form: T): string {
   return JSON.stringify(form);
 }
 
 export function randomString(length: number): string {
   let result = "";
-  let characters =
+  const characters =
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
-  let charactersLength = characters.length;
+  const charactersLength = characters.length;
   for (let i = 0; i < length; i++) {
     result += characters.charAt(Math.floor(Math.random() * charactersLength));
   }
@@ -1018,17 +1018,19 @@ export async function unfollows() {
 
 export async function purgeAllPosts(api: LemmyHttp) {
   // The best way to get all federated items, is to find the posts
-  let res = await api.getPosts({ type_: "all", limit: 50 }).then(expectSuccess);
+  const res = await api
+    .getPosts({ type_: "all", limit: 50 })
+    .then(expectSuccess);
   await Promise.allSettled(
     Array.from(new Set(res.items.map(p => p.post.id)))
       .map(post_id => api.purgePost({ post_id, reason: "purge" }))
       // Ignore errors
-      .map(p => p.catch(e => e)),
+      .map(p => p.catch(_e => {})),
   );
 }
 
 export function getCommentParentId(comment: Comment): number | undefined {
-  let split = comment.path.split(".");
+  const split = comment.path.split(".");
   // remove the 0
   split.shift();
 
@@ -1059,7 +1061,7 @@ export async function waitUntil<T>(
   }
   console.error("result", result);
   throw Error(
-    `Failed "${fetcher}": "${checker}" did not return true after ${retries} retries (delayed ${delaySeconds}s each)`,
+    `Failed "${fetcher.toString()}": "${checker.toString()}" did not return true after ${retries} retries (delayed ${delaySeconds.toString()}s each)`,
   );
 }
 
@@ -1084,7 +1086,7 @@ export async function waitUntilSuccess<T>(
   }
   console.error("result", result);
   throw Error(
-    `Failed "${fetcher}": "${checker}" did not return true after ${retries} retries (delayed ${delaySeconds}s each)`,
+    `Failed "${fetcher.toString()}": "${checker.toString()}" did not return true after ${retries} retries (delayed ${delaySeconds.toString()}s each)`,
   );
 }
 

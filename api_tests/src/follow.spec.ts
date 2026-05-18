@@ -20,10 +20,10 @@ beforeAll(setupLogins);
 afterAll(unfollows);
 
 test("Follow local community", async () => {
-  let user = await registerUser(beta, betaUrl);
+  const user = await registerUser(beta, betaUrl);
 
-  let community = await resolveBetaCommunity(user);
-  let follow = await followCommunity(user, true, community!.community.id);
+  const community = await resolveBetaCommunity(user);
+  const follow = await followCommunity(user, true, community!.community.id);
 
   // Make sure the follow response went through
   expect(follow.community_view.community.local).toBe(true);
@@ -38,7 +38,7 @@ test("Follow local community", async () => {
   );
 
   // Test an unfollow
-  let unfollow = await followCommunity(user, false, community!.community.id);
+  const unfollow = await followCommunity(user, false, community!.community.id);
   expect(
     unfollow.community_view.community_actions?.follow_state,
   ).toBeUndefined();
@@ -51,17 +51,17 @@ test("Follow local community", async () => {
 });
 
 test("Follow federated community", async () => {
-  let user = await registerUser(alpha, alphaUrl);
+  const user = await registerUser(alpha, alphaUrl);
 
   const betaCommunityInitial = await waitUntil(
     () => resolveBetaCommunity(user),
     c => !!c?.community && c.community.subscribers >= 1,
   );
   if (!betaCommunityInitial) {
-    throw "Missing beta community";
+    throw new Error("Missing beta community");
   }
 
-  let follow = await followCommunity(
+  const follow = await followCommunity(
     user,
     true,
     betaCommunityInitial.community.id,
@@ -81,14 +81,14 @@ test("Follow federated community", async () => {
   );
 
   // check that unfollow was federated
-  let communityOnBeta1 = await resolveBetaCommunity(beta);
+  const communityOnBeta1 = await resolveBetaCommunity(beta);
   expect(communityOnBeta1?.community.subscribers).toBeGreaterThanOrEqual(
     betaCommunityInitial.community.subscribers + 1,
   );
 
   // Check it from local
-  let my_user = await getMyUser(user).then(expectSuccess);
-  let remoteCommunityId = my_user?.follows.find(
+  const my_user = await getMyUser(user).then(expectSuccess);
+  const remoteCommunityId = my_user?.follows.find(
     c =>
       c.community.local == false &&
       c.community.id === betaCommunityInitial.community.id,
@@ -96,17 +96,17 @@ test("Follow federated community", async () => {
   expect(remoteCommunityId).toBeDefined();
 
   if (!remoteCommunityId) {
-    throw "Missing remote community id";
+    throw new Error("Missing remote community id");
   }
 
   // Test an unfollow
-  let unfollow = await followCommunity(user, false, remoteCommunityId);
+  const unfollow = await followCommunity(user, false, remoteCommunityId);
   expect(
     unfollow.community_view.community_actions?.follow_state,
   ).toBeUndefined();
 
   // Make sure you are unsubbed locally
-  let siteUnfollowCheck = await getMyUser(user).then(expectSuccess);
+  const siteUnfollowCheck = await getMyUser(user).then(expectSuccess);
   expect(
     siteUnfollowCheck.follows.find(
       c => c.community.id === betaCommunityInitial.community.id,
@@ -114,7 +114,7 @@ test("Follow federated community", async () => {
   ).toBe(undefined);
 
   // check that unfollow was federated
-  let communityOnBeta2 = await waitUntil(
+  const communityOnBeta2 = await waitUntil(
     () => resolveBetaCommunity(beta),
     c =>
       (c?.community.subscribers ?? 0) >=

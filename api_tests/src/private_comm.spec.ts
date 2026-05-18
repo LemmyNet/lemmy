@@ -76,7 +76,7 @@ test("Follow a private community", async () => {
   );
 
   // Wait for follow to federate, shown as pending
-  let pendingFollows1 = await waitUntilSuccess(
+  const pendingFollows1 = await waitUntilSuccess(
     () => listCommunityPendingFollows(alpha),
     f => f.items.length == 1,
   );
@@ -114,7 +114,7 @@ test("Follow a private community", async () => {
   // follow with another user from that instance, is_new_instance should be false now
   const user2 = await registerUser(beta, betaUrl);
   await user2.followCommunity(follow_form);
-  let pendingFollows3 = await waitUntilSuccess(
+  const pendingFollows3 = await waitUntilSuccess(
     () => listCommunityPendingFollows(alpha),
     f => f.items.length == 1,
   );
@@ -173,7 +173,7 @@ test("Only followers can view and interact with private community content", asyn
     follow: true,
   };
   await user.followCommunity(follow_form);
-  approveFollower(alpha, alphaCommunityId);
+  await approveFollower(alpha, alphaCommunityId);
 
   // now user can fetch posts and comments in community (using signed fetch), and create posts
   await waitUntil(
@@ -292,13 +292,13 @@ test("Follow a private community and receive activities", async () => {
   expect(comment_id).toBeDefined();
 
   // post and comment were federated to beta
-  let posts = await waitUntilSuccess(
+  const posts = await waitUntilSuccess(
     () => getPosts(beta, "all", betaCommunityId),
     c => c.items.length == 1,
   );
   expect(posts.items[0].post.ap_id).toBe(post.post_view.post.ap_id);
   expect(posts.items[0].post.name).toBe(post.post_view.post.name);
-  let comments = await waitUntilSuccess(
+  const comments = await waitUntilSuccess(
     () => getComments(beta, posts.items[0].post.id),
     c => c.items.length == 1,
   );
@@ -373,7 +373,7 @@ test("Fetch remote content in private community", async () => {
 
   // now user can fetch posts and comments in community (using signed fetch), and create posts.
   // for this to work, beta checks with alpha if gamma is really an approved follower.
-  let resolvedPost = await waitUntil(
+  const resolvedPost = await waitUntil(
     () => resolvePost(gamma, post.post_view.post),
     p => p?.post.id != undefined,
   );
@@ -388,7 +388,7 @@ test("Fetch remote content in private community", async () => {
 });
 
 async function approveFollower(user: LemmyHttp, community_id: number) {
-  let pendingFollows1 = await waitUntilSuccess(
+  const pendingFollows1 = await waitUntilSuccess(
     () => listCommunityPendingFollows(user),
     f => f.items.length == 1,
   );
