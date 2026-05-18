@@ -18,6 +18,7 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use diesel_uplete::uplete;
 use lemmy_api_utils::{
   context::LemmyContext,
+  plugins::plugin_hook_after,
   send_activity::{ActivityChannel, SendActivityData},
   utils::send_webmention,
 };
@@ -64,6 +65,11 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
   // https://github.com/mdsherry/clokwerk/issues/38
   let mut scheduler = AsyncScheduler::with_tz(Utc);
 
+  // Every 1 minute run plugin hooks
+  scheduler.every(CTimeUnits::minutes(1)).run(async move || {
+    plugin_hook_after("scheduled_task_1_min", &());
+  });
+
   let context_1 = context.clone();
   // Every 10 minutes update hot ranks, delete expired captchas and publish scheduled posts
   scheduler.every(CTimeUnits::minutes(10)).run(move || {
@@ -78,6 +84,7 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
         .await
         .inspect_err(|e| warn!("Failed to publish scheduled posts: {e}"))
         .ok();
+      plugin_hook_after("scheduled_task_10_mins", &());
     }
   });
 
@@ -102,6 +109,7 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
         .await
         .inspect_err(|e| warn!("Failed to delete expired instance bans: {e}"))
         .ok();
+      plugin_hook_after("scheduled_task_1_hour", &());
     }
   });
 
@@ -141,6 +149,7 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
         .await
         .inspect_err(|e| warn!("Failed to clear old activities: {e}"))
         .ok();
+      plugin_hook_after("scheduled_task_daily", &());
     }
   });
 
