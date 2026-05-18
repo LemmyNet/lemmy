@@ -24,7 +24,7 @@ import {
   PostSortType,
   ReportType,
 } from "lemmy-js-client";
-import { fetchFunction } from "./shared";
+import { expectSuccess, fetchFunction } from "./shared";
 import * as fs from "fs";
 
 const TIMES = 5;
@@ -134,7 +134,7 @@ beforeAll(async () => {
     username_or_email: process.env.LEMMY_LOGIN ?? defaultLogin,
     password: process.env.LEMMY_PASSWORD ?? defaultPassword,
   };
-  const res = await api.login(login);
+  const res = await api.login(login).then(expectSuccess);
   api.setHeaders({ Authorization: `Bearer ${res.jwt ?? ""}` });
 });
 afterAll(() => {
@@ -198,7 +198,10 @@ test("List posts with higher pages", async () => {
     const res = await timeApiCall(() =>
       api.getPosts({ sort: "new", page_cursor }),
     );
-    page_cursor = res.res.next_page;
+    if (res.res.state !== "success") {
+      throw new Error("Failed getPosts");
+    }
+    page_cursor = res.res.data.next_page;
     diffs.push(res.diff);
     report.push(`${i} | ${formatMs(res.diff)}`);
   }

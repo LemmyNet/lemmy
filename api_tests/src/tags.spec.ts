@@ -15,6 +15,8 @@ import {
   gamma,
   resolvePerson,
   getCommunity,
+  expectSuccess,
+  waitUntilSuccess,
 } from "./shared";
 import { CreateCommunityTag } from "lemmy-js-client/dist/types/CreateCommunityTag";
 import { DeleteCommunityTag } from "lemmy-js-client/dist/types/DeleteCommunityTag";
@@ -25,7 +27,7 @@ afterAll(unfollows);
 
 test("Create, delete and restore a community tag", async () => {
   // Create a community first
-  const communityRes = await createCommunity(alpha);
+  const communityRes = await createCommunity(alpha).then(expectSuccess);
   let alphaCommunity = communityRes.community_view;
   let betaCommunity = (await resolveCommunity(
     beta,
@@ -44,13 +46,16 @@ test("Create, delete and restore a community tag", async () => {
     name: tagName,
     community_id: communityId,
   };
-  let createRes = await alpha.createCommunityTag(createForm);
+  let createRes = await alpha
+    .createCommunityTag(createForm)
+    .then(expectSuccess);
   expect(createRes.id).toBeDefined();
   expect(createRes.name).toBe(tagName);
   expect(createRes.community_id).toBe(communityId);
 
-  alphaCommunity = (await alpha.getCommunity({ id: communityId }))
-    .community_view;
+  alphaCommunity = (
+    await alpha.getCommunity({ id: communityId }).then(expectSuccess)
+  ).community_view;
   expect(alphaCommunity.tags.length).toBe(1);
   // verify tag federated
 
@@ -61,8 +66,9 @@ test("Create, delete and restore a community tag", async () => {
   assertCommunityFederation(alphaCommunity, betaCommunity);
 
   // List tags
-  alphaCommunity = (await alpha.getCommunity({ id: communityId }))
-    .community_view;
+  alphaCommunity = (
+    await alpha.getCommunity({ id: communityId }).then(expectSuccess)
+  ).community_view;
   expect(alphaCommunity.tags.length).toBe(1);
   expect(alphaCommunity.tags.find(t => t.id === createRes.id)?.name).toBe(
     tagName,
@@ -80,12 +86,15 @@ test("Create, delete and restore a community tag", async () => {
     tag_id: createRes.id,
     delete: true,
   };
-  let deleteRes = await alpha.deleteCommunityTag(deleteForm);
+  let deleteRes = await alpha
+    .deleteCommunityTag(deleteForm)
+    .then(expectSuccess);
   expect(deleteRes.id).toBe(createRes.id);
 
   // Verify tag is deleted
-  alphaCommunity = (await alpha.getCommunity({ id: communityId }))
-    .community_view;
+  alphaCommunity = (
+    await alpha.getCommunity({ id: communityId }).then(expectSuccess)
+  ).community_view;
   expect(
     alphaCommunity.tags.find(t => t.id === createRes.id)!.deleted,
   ).toBeTruthy();
@@ -104,14 +113,15 @@ test("Create, delete and restore a community tag", async () => {
     tag_id: createRes.id,
     delete: false,
   };
-  let deleteRestorationRes = await alpha.deleteCommunityTag(
-    deleteFormRestoration,
-  );
+  let deleteRestorationRes = await alpha
+    .deleteCommunityTag(deleteFormRestoration)
+    .then(expectSuccess);
   expect(deleteRestorationRes.id).toBe(createRes.id);
 
   // Verify tag is restored
-  alphaCommunity = (await alpha.getCommunity({ id: communityId }))
-    .community_view;
+  alphaCommunity = (
+    await alpha.getCommunity({ id: communityId }).then(expectSuccess)
+  ).community_view;
   expect(alphaCommunity.tags.length).toBe(1);
   // verify tag federated
 
@@ -122,8 +132,9 @@ test("Create, delete and restore a community tag", async () => {
   assertCommunityFederation(alphaCommunity, betaCommunity);
 
   // List tags
-  alphaCommunity = (await alpha.getCommunity({ id: communityId }))
-    .community_view;
+  alphaCommunity = (
+    await alpha.getCommunity({ id: communityId }).then(expectSuccess)
+  ).community_view;
   expect(alphaCommunity.tags.length).toBe(1);
   expect(alphaCommunity.tags.find(t => t.id === createRes.id)?.name).toBe(
     tagName,
@@ -132,7 +143,7 @@ test("Create, delete and restore a community tag", async () => {
 
 test("Remote mod creates and updates post tag", async () => {
   // Create a community
-  let communityRes = await createCommunity(alpha);
+  let communityRes = await createCommunity(alpha).then(expectSuccess);
   let alphaCommunity = communityRes.community_view;
 
   // add gamma as remote mod
@@ -156,10 +167,10 @@ test("Remote mod creates and updates post tag", async () => {
     name: tag1Name,
     community_id: gammaCommunity!.community.id,
   };
-  let tag1Res = await gamma.createCommunityTag(createForm1);
+  let tag1Res = await gamma.createCommunityTag(createForm1).then(expectSuccess);
   expect(tag1Res.id).toBeDefined();
 
-  await waitUntil(
+  await waitUntilSuccess(
     () => getCommunity(alpha, communityRes.community_view.community.id),
     c => c.community_view.tags.length == 1,
   );
@@ -177,11 +188,13 @@ test("Remote mod creates and updates post tag", async () => {
   );
 
   // Create a post with tag
-  let postRes = await beta.createPost({
-    name: randomString(10),
-    community_id: betaCommunity!.community.id,
-    tags: [betaCommunity!.tags[0].id],
-  });
+  let postRes = await beta
+    .createPost({
+      name: randomString(10),
+      community_id: betaCommunity!.community.id,
+      tags: [betaCommunity!.tags[0].id],
+    })
+    .then(expectSuccess);
   expect(postRes.post_view.post.id).toBeDefined();
   expect(postRes.post_view.post.id).toBe(postRes.post_view.post.id);
   expect(postRes.post_view.tags?.length).toBe(1);
@@ -202,12 +215,14 @@ test("Remote mod creates and updates post tag", async () => {
   communityRes = await getCommunity(
     alpha,
     communityRes.community_view.community.id,
-  );
+  ).then(expectSuccess);
   alphaCommunity = communityRes.community_view;
-  let updateRes = await alpha.modEditPost({
-    post_id: alphaPost!.post.id,
-    tags: [alphaCommunity!.tags[0].id],
-  });
+  let updateRes = await alpha
+    .modEditPost({
+      post_id: alphaPost!.post.id,
+      tags: [alphaCommunity!.tags[0].id],
+    })
+    .then(expectSuccess);
   expect(updateRes.post_view.post.ap_id).toBe(postRes.post_view.post.ap_id);
   expect(updateRes.post_view.tags?.length).toBe(1);
   expect(updateRes.post_view.tags?.[0].id).toBe(alphaCommunity!.tags[0].id);

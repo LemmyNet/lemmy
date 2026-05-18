@@ -7,20 +7,22 @@ import {
   createPrivateMessage,
   editPrivateMessage,
   deletePrivateMessage,
-  waitUntil,
   reportPrivateMessage,
   unfollows,
   listNotifications,
   resolvePerson,
   statusBadRequest,
   jestLemmyError,
+  expectSuccess,
+  waitUntilSuccess,
+  expectFailure,
 } from "./shared";
 
 let recipient_id: number;
 
 beforeAll(async () => {
   await setupLogins();
-  let betaUser = await beta.getMyUser();
+  let betaUser = await beta.getMyUser().then(expectSuccess);
   let betaUserOnAlpha = await resolvePerson(
     alpha,
     betaUser.local_user_view.person.ap_id,
@@ -31,13 +33,15 @@ beforeAll(async () => {
 afterAll(unfollows);
 
 test("Create a private message", async () => {
-  let pmRes = await createPrivateMessage(alpha, recipient_id);
+  let pmRes = await createPrivateMessage(alpha, recipient_id).then(
+    expectSuccess,
+  );
   expect(pmRes.private_message_view.private_message.content).toBeDefined();
   expect(pmRes.private_message_view.private_message.local).toBe(true);
   expect(pmRes.private_message_view.creator.local).toBe(true);
   expect(pmRes.private_message_view.recipient.local).toBe(false);
 
-  let betaPms = await waitUntil(
+  let betaPms = await waitUntilSuccess(
     () => listNotifications(beta, "private_message"),
     e => !!e.items[0],
   );
@@ -51,16 +55,18 @@ test("Create a private message", async () => {
 test("Update a private message", async () => {
   let updatedContent = "A jest test federated private message edited";
 
-  let pmRes = await createPrivateMessage(alpha, recipient_id);
+  let pmRes = await createPrivateMessage(alpha, recipient_id).then(
+    expectSuccess,
+  );
   let pmUpdated = await editPrivateMessage(
     alpha,
     pmRes.private_message_view.private_message.id,
-  );
+  ).then(expectSuccess);
   expect(pmUpdated.private_message_view.private_message.content).toBe(
     updatedContent,
   );
 
-  let betaPms = await waitUntil(
+  let betaPms = await waitUntilSuccess(
     () => listNotifications(beta, "private_message"),
     p =>
       p.items[0].data.type_ == "private_message" &&
@@ -71,8 +77,10 @@ test("Update a private message", async () => {
 });
 
 test("Delete a private message", async () => {
-  let pmRes = await createPrivateMessage(alpha, recipient_id);
-  let betaPms1 = await waitUntil(
+  let pmRes = await createPrivateMessage(alpha, recipient_id).then(
+    expectSuccess,
+  );
+  let betaPms1 = await waitUntilSuccess(
     () => listNotifications(beta, "private_message"),
     m =>
       !!m.items.find(
@@ -86,13 +94,13 @@ test("Delete a private message", async () => {
     alpha,
     true,
     pmRes.private_message_view.private_message.id,
-  );
+  ).then(expectSuccess);
   expect(deletedPmRes.private_message_view.private_message.deleted).toBe(true);
 
   // The GetPrivateMessages filters out deleted,
   // even though they are in the actual database.
   // no reason to show them
-  let betaPms2 = await waitUntil(
+  let betaPms2 = await waitUntilSuccess(
     () => listNotifications(beta, "private_message"),
     p => p.items.length === betaPms1.items.length - 1,
   );
@@ -103,12 +111,12 @@ test("Delete a private message", async () => {
     alpha,
     false,
     pmRes.private_message_view.private_message.id,
-  );
+  ).then(expectSuccess);
   expect(undeletedPmRes.private_message_view.private_message.deleted).toBe(
     false,
   );
 
-  let betaPms3 = await waitUntil(
+  let betaPms3 = await waitUntilSuccess(
     () => listNotifications(beta, "private_message"),
     p => p.items.length === betaPms1.items.length,
   );
@@ -116,8 +124,10 @@ test("Delete a private message", async () => {
 });
 
 test("Create a private message report", async () => {
-  let pmRes = await createPrivateMessage(alpha, recipient_id);
-  let betaPms1 = await waitUntil(
+  let pmRes = await createPrivateMessage(alpha, recipient_id).then(
+    expectSuccess,
+  );
+  let betaPms1 = await waitUntilSuccess(
     () => listNotifications(beta, "private_message"),
     m =>
       !!m.items.find(
@@ -137,7 +147,7 @@ test("Create a private message report", async () => {
         alpha,
         pmRes.private_message_view.private_message.id,
         "a reason",
-      ),
+      ).then(expectFailure),
     new LemmyError("couldnt_create", statusBadRequest),
   );
 
@@ -147,7 +157,7 @@ test("Create a private message report", async () => {
     beta,
     betaPm.private_message.id,
     reason,
-  );
+  ).then(expectSuccess);
 
   expect(report.private_message_report_view.private_message.id).toBe(
     betaPm.private_message.id,

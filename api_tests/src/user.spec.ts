@@ -28,11 +28,13 @@ import {
   statusNotFound,
   statusUnauthorized,
   listPersonContent,
-  waitUntil,
   password,
   jestLemmyError,
   statusBadRequest,
   randomString,
+  expectSuccess,
+  expectFailure,
+  waitUntilSuccess,
 } from "./shared";
 import {
   EditSite,
@@ -61,7 +63,7 @@ function assertUserFederation(userOne?: PersonView, userTwo?: PersonView) {
 test("Create user", async () => {
   let user = await registerUser(alpha, alphaUrl);
 
-  let myUser = await getMyUser(user);
+  let myUser = await getMyUser(user).then(expectSuccess);
   expect(myUser).toBeDefined();
   apShortname = `${myUser.local_user_view.person.name}@lemmy-alpha:8541`;
 });
@@ -78,13 +80,13 @@ test("Set some user settings, check that they are federated", async () => {
   };
   await saveUserSettings(beta, form);
 
-  let my_user = await getMyUser(beta);
+  let my_user = await getMyUser(beta).then(expectSuccess);
   expect(my_user.local_user_view.local_user.theme).toBe("test");
 });
 
 test("Delete user", async () => {
   let user = await registerUser(alpha, alphaUrl);
-  let user_profile = await getMyUser(user);
+  let user_profile = await getMyUser(user).then(expectSuccess);
   let person_id = user_profile.local_user_view.person.id;
 
   // make a local post and comment
@@ -92,11 +94,13 @@ test("Delete user", async () => {
   if (!alphaCommunity) {
     throw "Missing alpha community";
   }
-  let localPost = (await createPost(user, alphaCommunity.community.id))
-    .post_view.post;
+  let localPost = (
+    await createPost(user, alphaCommunity.community.id).then(expectSuccess)
+  ).post_view.post;
   expect(localPost).toBeDefined();
-  let localComment = (await createComment(user, localPost.id)).comment_view
-    .comment;
+  let localComment = (
+    await createComment(user, localPost.id).then(expectSuccess)
+  ).comment_view.comment;
   expect(localComment).toBeDefined();
 
   // make a remote post and comment
@@ -104,31 +108,34 @@ test("Delete user", async () => {
   if (!betaCommunity) {
     throw "Missing beta community";
   }
-  let remotePost = (await createPost(user, betaCommunity.community.id))
-    .post_view.post;
+  let remotePost = (
+    await createPost(user, betaCommunity.community.id).then(expectSuccess)
+  ).post_view.post;
   expect(remotePost).toBeDefined();
-  let remoteComment = (await createComment(user, remotePost.id)).comment_view
-    .comment;
+  let remoteComment = (
+    await createComment(user, remotePost.id).then(expectSuccess)
+  ).comment_view.comment;
   expect(remoteComment).toBeDefined();
 
   await deleteUser(user);
 
   // Wait, in order to make sure it federates
   await jestLemmyError(
-    () => getMyUser(user),
+    () => getMyUser(user).then(expectFailure),
     new LemmyError("incorrect_login", statusUnauthorized),
   );
 
   await jestLemmyError(
-    () => getPersonDetails(user, person_id),
+    () => getPersonDetails(user, person_id).then(expectFailure),
     new LemmyError("not_found", statusNotFound),
   );
 
   // check that posts and comments are marked as deleted on other instances.
   // use get methods to avoid refetching from origin instance
-  expect((await getPost(alpha, localPost.id)).post_view.post.deleted).toBe(
-    true,
-  );
+  expect(
+    (await getPost(alpha, localPost.id).then(expectSuccess)).post_view.post
+      .deleted,
+  ).toBe(true);
   // Make sure the remote post is deleted.
   // TODO this fails occasionally
   // Probably because it could return a not_found
@@ -136,16 +143,16 @@ test("Delete user", async () => {
   //   () => getPost(alpha, remotePost.id),
   //   p => p.post_view.post.deleted === true || p.post_view.post === undefined,
   // );
-  await waitUntil(
+  await waitUntilSuccess(
     () => getComments(alpha, localComment.post_id),
     c => c.items[0].comment.deleted,
   );
-  await waitUntil(
+  await waitUntilSuccess(
     () => alpha.getComment({ id: remoteComment.id }),
     c => c.comment_view.comment.deleted,
   );
   await jestLemmyError(
-    () => getPersonDetails(user, remoteComment.creator_id),
+    () => getPersonDetails(user, remoteComment.creator_id).then(expectFailure),
     new LemmyError("not_found", statusNotFound),
   );
 });
@@ -156,14 +163,14 @@ test("Requests with invalid auth should be treated as unauthenticated", async ()
     fetchFunction,
   });
   await jestLemmyError(
-    () => getMyUser(invalid_auth),
+    () => getMyUser(invalid_auth).then(expectFailure),
     new LemmyError("incorrect_login", statusUnauthorized),
   );
-  let site = await getSite(invalid_auth);
+  let site = await getSite(invalid_auth).then(expectSuccess);
   expect(site.site_view).toBeDefined();
 
   let form: GetPosts = {};
-  let posts = invalid_auth.getPosts(form);
+  let posts = invalid_auth.getPosts(form).then(expectSuccess);
   expect((await posts).items).toBeDefined();
 });
 
@@ -172,14 +179,16 @@ test("Create user with Arabic name", async () => {
   const name = "تجريب" + Math.random().toString().slice(2, 10);
   let user = await registerUser(alpha, alphaUrl, name);
 
-  let my_user = await getMyUser(user);
+  let my_user = await getMyUser(user).then(expectSuccess);
   expect(my_user).toBeDefined();
   apShortname = `${my_user.local_user_view.person.name}@lemmy-alpha:8541`;
 
   let betaPerson1 = await resolvePerson(beta, apShortname);
   expect(betaPerson1!.person.name).toBe(name);
 
-  let betaPerson2 = await getPersonDetails(beta, betaPerson1!.person.id);
+  let betaPerson2 = await getPersonDetails(beta, betaPerson1!.person.id).then(
+    expectSuccess,
+  );
   expect(betaPerson2!.person_view.person.name).toBe(name);
 });
 
@@ -195,10 +204,10 @@ test("Create user with accept-language", async () => {
   });
   let user = await registerUser(lemmy_http, alphaUrl);
 
-  let my_user = await getMyUser(user);
+  let my_user = await getMyUser(user).then(expectSuccess);
   expect(my_user).toBeDefined();
   expect(my_user?.local_user_view.local_user.interface_language).toBe("fr");
-  let site = await getSite(user);
+  let site = await getSite(user).then(expectSuccess);
   let langs = site.all_languages
     .filter(a => my_user.discussion_languages.includes(a.id))
     .map(l => l.code)
@@ -209,16 +218,16 @@ test("Create user with accept-language", async () => {
 });
 
 test("Set a new avatar, old avatar is deleted", async () => {
-  const listMediaRes = await alphaImage.listMedia();
+  const listMediaRes = await alphaImage.listMedia().then(expectSuccess);
   expect(listMediaRes.items.length).toBe(0);
   const upload_form1: UploadImage = {
     image: Buffer.from("test1"),
   };
   await alpha.uploadUserAvatar(upload_form1);
-  const listMediaRes1 = await alphaImage.listMedia();
+  const listMediaRes1 = await alphaImage.listMedia().then(expectSuccess);
   expect(listMediaRes1.items.length).toBe(1);
 
-  let my_user1 = await alpha.getMyUser();
+  let my_user1 = await alpha.getMyUser().then(expectSuccess);
   expect(my_user1.local_user_view.person.avatar).toBeDefined();
 
   const upload_form2: UploadImage = {
@@ -226,39 +235,40 @@ test("Set a new avatar, old avatar is deleted", async () => {
   };
   await alpha.uploadUserAvatar(upload_form2);
   // make sure only the new avatar is kept
-  const listMediaRes2 = await alphaImage.listMedia();
+  const listMediaRes2 = await alphaImage.listMedia().then(expectSuccess);
   expect(listMediaRes2.items.length).toBe(1);
 
   // Upload that same form2 avatar, make sure it isn't replaced / deleted
   await alpha.uploadUserAvatar(upload_form2);
   // make sure only the new avatar is kept
-  const listMediaRes3 = await alphaImage.listMedia();
+  const listMediaRes3 = await alphaImage.listMedia().then(expectSuccess);
   expect(listMediaRes3.items.length).toBe(1);
 
   // make sure only the new avatar is kept
-  const listMediaRes4 = await alphaImage.listMedia();
+  const listMediaRes4 = await alphaImage.listMedia().then(expectSuccess);
   expect(listMediaRes4.items.length).toBe(1);
 
   // delete the avatar
   await alpha.deleteUserAvatar();
   // make sure only the new avatar is kept
-  const listMediaRes5 = await alphaImage.listMedia();
+  const listMediaRes5 = await alphaImage.listMedia().then(expectSuccess);
   expect(listMediaRes5.items.length).toBe(0);
-  let my_user2 = await alpha.getMyUser();
+  let my_user2 = await alpha.getMyUser().then(expectSuccess);
   expect(my_user2.local_user_view.person.avatar).toBeUndefined();
 });
 
 test("Make sure banned user can delete their account", async () => {
   let user = await registerUser(alpha, alphaUrl);
-  let myUser = await getMyUser(user);
+  let myUser = await getMyUser(user).then(expectSuccess);
 
   // make a local post
   let alphaCommunity = await resolveCommunity(user, "main@lemmy-alpha:8541");
   if (!alphaCommunity) {
     throw "Missing alpha community";
   }
-  let localPost = (await createPost(user, alphaCommunity.community.id))
-    .post_view.post;
+  let localPost = (
+    await createPost(user, alphaCommunity.community.id).then(expectSuccess)
+  ).post_view.post;
   let postId = localPost.id;
   expect(localPost).toBeDefined();
 
@@ -268,11 +278,11 @@ test("Make sure banned user can delete their account", async () => {
     myUser.local_user_view.person.id,
     true,
     false,
-  );
+  ).then(expectSuccess);
   expect(banUser.person_view.banned).toBe(true);
 
   // Make sure post is there
-  let postAfterBan = await getPost(alpha, postId);
+  let postAfterBan = await getPost(alpha, postId).then(expectSuccess);
   expect(postAfterBan.post_view.post.deleted).toBe(false);
 
   // Delete account
@@ -280,14 +290,14 @@ test("Make sure banned user can delete their account", async () => {
   expect(deleteAccount).toBeDefined();
 
   // Make sure post is gone
-  let postAfterDelete = await getPost(alpha, postId);
+  let postAfterDelete = await getPost(alpha, postId).then(expectSuccess);
   expect(postAfterDelete.post_view.post.deleted).toBe(true);
   expect(postAfterDelete.post_view.post.name).toBe("*Permanently Deleted*");
 });
 
 test("Admins can view and ban deleted accounts", async () => {
   let user = await registerUser(beta, betaUrl);
-  let myUser = await getMyUser(user);
+  let myUser = await getMyUser(user).then(expectSuccess);
   let apShortname = `${myUser.local_user_view.person.name}@lemmy-beta:8551`;
   let userOnAlpha = await resolvePerson(alpha, apShortname);
 
@@ -297,11 +307,15 @@ test("Admins can view and ban deleted accounts", async () => {
   }
 
   // Make a post and then delete the account
-  let postRes = await createPost(user, alphaCommunity.community.id);
+  let postRes = await createPost(user, alphaCommunity.community.id).then(
+    expectSuccess,
+  );
   let deletedUser = await deleteUser(user, false);
   expect(deletedUser).toBeDefined();
   // Make sure the post is still visible
-  let postAfterDelete = await getPost(beta, postRes.post_view.post.id);
+  let postAfterDelete = await getPost(beta, postRes.post_view.post.id).then(
+    expectSuccess,
+  );
   expect(postAfterDelete.post_view.post.deleted).toBe(false);
 
   // Ensure admins can still resolve the user
@@ -312,7 +326,7 @@ test("Admins can view and ban deleted accounts", async () => {
   expect(getDeletedUser).toBeDefined();
 
   // Make sure the delete federates
-  await waitUntil(
+  await waitUntilSuccess(
     () => getPersonDetails(alpha, userOnAlpha!.person.id),
     p => p.person_view.person.deleted,
   );
@@ -323,14 +337,16 @@ test("Admins can view and ban deleted accounts", async () => {
     myUser.local_user_view.person.id,
     true,
     true,
-  );
+  ).then(expectSuccess);
   expect(banUser.person_view.banned).toBe(true);
   // Make sure the post is removed
-  let postAfterBan = await getPost(beta, postRes.post_view.post.id);
+  let postAfterBan = await getPost(beta, postRes.post_view.post.id).then(
+    expectSuccess,
+  );
   expect(postAfterBan.post_view.post.removed).toBe(true);
 
   // Make sure the ban federates properly
-  let getDeletedUserAlpha = await waitUntil(
+  let getDeletedUserAlpha = await waitUntilSuccess(
     () => getPersonDetails(alpha, userOnAlpha!.person.id),
     p => p.person_view.banned,
   );
@@ -339,7 +355,7 @@ test("Admins can view and ban deleted accounts", async () => {
     alpha,
     getDeletedUserAlpha.person_view.person.id,
     "posts",
-  );
+  ).then(expectSuccess);
   expect(userContent.items[0].post.removed).toBe(true);
 });
 
@@ -352,31 +368,38 @@ test("Make sure a denied user is given denial reason", async () => {
   await alpha.editSite({ registration_mode: "require_application" });
 
   // Create an account with an answer
-  const login = await alpha.register({
-    username,
-    password,
-    password_verify: password,
-    show_nsfw: true,
-    answer: appAnswer,
-  });
+  const login = await alpha
+    .register({
+      username,
+      password,
+      password_verify: password,
+      show_nsfw: true,
+      answer: appAnswer,
+    })
+    .then(expectSuccess);
   expect(login.registration_created).toBeTruthy();
   expect(login.jwt).toBeUndefined();
 
   // Try to login with a bad password first
   await jestLemmyError(
     () =>
-      alpha.login({ username_or_email: username, password: "wrong_password" }),
+      alpha
+        .login({ username_or_email: username, password: "wrong_password" })
+        .then(expectFailure),
     new LemmyError("incorrect_login", statusUnauthorized),
   );
 
   // Try to login without approval yet, should return is pending
   await jestLemmyError(
-    () => alpha.login({ username_or_email: username, password }),
+    () =>
+      alpha
+        .login({ username_or_email: username, password })
+        .then(expectFailure),
     new LemmyError("registration_application_is_pending", statusBadRequest),
   );
 
   // Fetch the applications
-  const apps = await alpha.listRegistrationApplications({});
+  const apps = await alpha.listRegistrationApplications({}).then(expectSuccess);
   const app = apps.items[0];
   expect(apps.items.length).toBeGreaterThanOrEqual(1);
   expect(app.registration_application.answer).toBe(appAnswer);
@@ -390,7 +413,10 @@ test("Make sure a denied user is given denial reason", async () => {
 
   // Should give the denial reason in the error.
   await jestLemmyError(
-    () => alpha.login({ username_or_email: username, password }),
+    () =>
+      alpha
+        .login({ username_or_email: username, password })
+        .then(expectFailure),
     new LemmyError("registration_denied", statusBadRequest, denyReason),
   );
 
