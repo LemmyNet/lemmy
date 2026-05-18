@@ -189,7 +189,7 @@ test("Create user with Arabic name", async () => {
   const betaPerson2 = await getPersonDetails(beta, betaPerson1!.person.id).then(
     expectSuccess,
   );
-  expect(betaPerson2!.person_view.person.name).toBe(name);
+  expect(betaPerson2.person_view.person.name).toBe(name);
 });
 
 test("Create user with accept-language", async () => {

@@ -14,6 +14,7 @@ export default [
   // For some reason this has to be in its own block
   {
     ignores: [
+      "eslint.config.mjs",
       "putTypesInIndex.js",
       "dist/*",
       "docs/*",
@@ -23,8 +24,11 @@ export default [
   },
   {
     files: ["src/**/*"],
-  rules: {
-    "@typescript-eslint/no-unnecessary-type-assertion": 0,
-  }
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_" },
+      ],
+    }
   },
 ];

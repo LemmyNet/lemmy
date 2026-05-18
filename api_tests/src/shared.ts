@@ -1025,7 +1025,7 @@ export async function purgeAllPosts(api: LemmyHttp) {
     Array.from(new Set(res.items.map(p => p.post.id)))
       .map(post_id => api.purgePost({ post_id, reason: "purge" }))
       // Ignore errors
-      .map(p => p.catch(e => e)),
+      .map(p => p.catch(_e => {})),
   );
 }
 

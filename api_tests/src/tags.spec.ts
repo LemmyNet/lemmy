@@ -225,12 +225,12 @@ test("Remote mod creates and updates post tag", async () => {
   const updateRes = await alpha
     .modEditPost({
       post_id: alphaPost!.post.id,
-      tags: [alphaCommunity!.tags[0].id],
+      tags: [alphaCommunity.tags[0].id],
     })
     .then(expectSuccess);
   expect(updateRes.post_view.post.ap_id).toBe(postRes.post_view.post.ap_id);
   expect(updateRes.post_view.tags?.length).toBe(1);
-  expect(updateRes.post_view.tags?.[0].id).toBe(alphaCommunity!.tags[0].id);
+  expect(updateRes.post_view.tags?.[0].id).toBe(alphaCommunity.tags[0].id);
 
   // wait post tags federated
   const betaPost = await waitForPost(beta, postRes.post_view.post, p => {

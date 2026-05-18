@@ -336,7 +336,7 @@ test("Make regular post, and give it a custom thumbnail", async () => {
     alphaImage,
     community.community_view.community.id,
     wikipediaUrl,
-    upload1.image_url!,
+    upload1.image_url,
   ).then(expectSuccess);
 
   // Wait for the metadata to get fetched, since this is backgrounded now
@@ -365,8 +365,8 @@ test("Create an image post, and make sure a custom thumbnail doesn't overwrite i
   let post = await createPostWithThumbnail(
     alphaImage,
     community.community_view.community.id,
-    upload1.image_url!,
-    upload2.image_url!,
+    upload1.image_url,
+    upload2.image_url,
   ).then(expectSuccess);
   post = await waitUntilSuccess(
     () => getPost(alphaImage, post.post_view.post.id),

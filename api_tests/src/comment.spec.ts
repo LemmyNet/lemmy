@@ -483,12 +483,12 @@ test("Reply to a comment from another instance, get notification", async () => {
   expect(alphaReply).toBeDefined();
   if (!alphaReply) throw Error();
   const alphaReplyData = alphaReply.data as CommentView;
-  expect(alphaReplyData.comment!.content).toBeDefined();
-  expect(alphaReplyData.community!.local).toBe(false);
+  expect(alphaReplyData.comment.content).toBeDefined();
+  expect(alphaReplyData.community.local).toBe(false);
   expect(alphaReplyData.creator.local).toBe(false);
-  expect(alphaReplyData.comment!.score).toBe(1);
+  expect(alphaReplyData.comment.score).toBe(1);
   // ToDo: interesting alphaRepliesRes.replies[0].comment_reply.id is 1, meaning? how did that come about?
-  expect(alphaReplyData.comment!.id).toBe(alphaComment.comment.id);
+  expect(alphaReplyData.comment.id).toBe(alphaComment.comment.id);
   // this is a new notification, getReplies fetch was for read/unread both, confirm it is unread.
   expect(alphaReply.notification.read).toBe(false);
 });
@@ -585,7 +585,7 @@ test("Mention beta from alpha comment", async () => {
 
   // Make sure that both new comments are seen on beta and have parent/child relationship
   const betaPostComments = await waitUntilSuccess(
-    () => getComments(beta, betaPost!.post.id),
+    () => getComments(beta, betaPost.post.id),
     c => c.items[1]?.comment.score === 1,
   );
   expect(betaPostComments.items.length).toEqual(2);
@@ -610,12 +610,12 @@ test("Mention beta from alpha comment", async () => {
 
   const firstMention = mentionsRes.items[0];
   const firstMentionData = firstMention.data as CommentView;
-  expect(firstMentionData.comment!.content).toBeDefined();
-  expect(firstMentionData.community!.local).toBe(true);
+  expect(firstMentionData.comment.content).toBeDefined();
+  expect(firstMentionData.community.local).toBe(true);
   expect(firstMentionData.creator.local).toBe(false);
-  expect(firstMentionData.comment!.score).toBe(1);
+  expect(firstMentionData.comment.score).toBe(1);
   // the reply comment with mention should be the most fresh, newest, index 0
-  expect(firstMentionData.comment!.id).toBe(
+  expect(firstMentionData.comment.id).toBe(
     betaPostComments.items[0].comment.id,
   );
 });
@@ -703,8 +703,8 @@ test("A and G subscribe to B (center) A posts, G mentions B, it gets announced t
   );
   if (!relevantMention) throw Error("could not find mention");
   const relevantMentionData = relevantMention.data as CommentView;
-  expect(relevantMentionData.comment!.content).toBe(commentContent);
-  expect(relevantMentionData.community!.local).toBe(false);
+  expect(relevantMentionData.comment.content).toBe(commentContent);
+  expect(relevantMentionData.community.local).toBe(false);
   expect(relevantMentionData.creator.local).toBe(false);
   // TODO this is failing because fetchInReplyTos aren't getting score
   // expect(mentionsRes.mentions[0].score).toBe(1);
@@ -760,7 +760,7 @@ test("Check that activity from another instance is sent to third instance", asyn
 
   // Make sure alpha sees it
   const alphaPostComments2 = await waitUntilSuccess(
-    () => getComments(alpha, alphaPost!.post.id),
+    () => getComments(alpha, alphaPost.post.id),
     e => e.items[0]?.comment.score === 1,
   );
   expect(alphaPostComments2.items[0].comment.content).toBe(commentContent);
@@ -831,7 +831,7 @@ test("Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedde
     expectSuccess,
   );
   const alphaPostComments = await waitUntilSuccess(
-    () => getComments(alpha, alphaPostB!.post.id),
+    () => getComments(alpha, alphaPostB.post.id),
     c =>
       c.items[1]?.comment.content ===
         parentCommentRes.comment_view.comment.content &&
@@ -886,7 +886,7 @@ test("Report a comment", async () => {
             }),
           ),
       e => !!e,
-    )!) as CommentReportView
+    )) as CommentReportView
   ).comment_report;
   expect(betaReport).toBeDefined();
   expect(betaReport.resolved).toBe(false);
@@ -1042,7 +1042,7 @@ test("Lock comment", async () => {
   if (!betaComment1) {
     throw new Error("unable to locate comment on beta");
   }
-  await followCommunity(newBetaApi, true, betaComment1!.community.id);
+  await followCommunity(newBetaApi, true, betaComment1.community.id);
 
   const comment2 = await createComment(
     alpha,

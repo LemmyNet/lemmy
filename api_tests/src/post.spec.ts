@@ -569,7 +569,7 @@ test("Enforce site ban federation for local user", async () => {
   expect(alphaUserActorId).toBeDefined();
   await followBeta(alphaUserHttp);
 
-  const alphaPerson = await resolvePerson(alphaUserHttp, alphaUserActorId!);
+  const alphaPerson = await resolvePerson(alphaUserHttp, alphaUserActorId);
   if (!alphaPerson) {
     throw new Error("Missing alpha person");
   }
@@ -593,7 +593,7 @@ test("Enforce site ban federation for local user", async () => {
 
   // alpha ban should be federated to beta
   const alphaUserOnBeta1 = await waitUntil(
-    () => resolvePerson(beta, alphaUserActorId!),
+    () => resolvePerson(beta, alphaUserActorId),
     res => res?.banned == true,
   );
   expect(alphaUserOnBeta1?.banned).toBe(true);
@@ -634,7 +634,7 @@ test("Enforce site ban federation for local user", async () => {
   // alpha makes new post in beta community, it federates
   const postRes2 = await createPost(
     alphaUserHttp,
-    betaCommunity!.community.id,
+    betaCommunity.community.id,
   ).then(expectSuccess);
   await waitForPost(beta, postRes2.post_view.post);
 
@@ -657,7 +657,7 @@ test("Enforce site ban federation for federated user", async () => {
   expect(alphaUserActorId).toBeDefined();
   await followBeta(alphaUserHttp);
 
-  const alphaUserOnBeta2 = await resolvePerson(beta, alphaUserActorId!);
+  const alphaUserOnBeta2 = await resolvePerson(beta, alphaUserActorId);
   expect(alphaUserOnBeta2?.banned).toBe(false);
 
   if (!alphaUserOnBeta2?.person) {
@@ -1048,10 +1048,10 @@ test("Mention beta from alpha post body", async () => {
   );
 
   const firstMention = mentionsRes.items[0].data as PostView;
-  expect(firstMention.post!.body).toBeDefined();
-  expect(firstMention.community!.local).toBe(true);
+  expect(firstMention.post.body).toBeDefined();
+  expect(firstMention.community.local).toBe(true);
   expect(firstMention.creator.local).toBe(false);
-  expect(firstMention.post!.score).toBe(1);
+  expect(firstMention.post.score).toBe(1);
 });
 
 test("Rewrite markdown links", async () => {

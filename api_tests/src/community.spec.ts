@@ -109,7 +109,7 @@ test("Delete community", async () => {
 
   // Make sure it got deleted on A
   const communityOnAlphaDeleted = await waitUntilSuccess(
-    () => getCommunity(alpha, alphaCommunity!.community.id),
+    () => getCommunity(alpha, alphaCommunity.community.id),
     g => g.community_view.community.deleted,
   );
   expect(communityOnAlphaDeleted.community_view.community.deleted).toBe(true);
@@ -124,7 +124,7 @@ test("Delete community", async () => {
 
   // Make sure it got undeleted on A
   const communityOnAlphaUnDeleted = await waitUntilSuccess(
-    () => getCommunity(alpha, alphaCommunity!.community.id),
+    () => getCommunity(alpha, alphaCommunity.community.id),
     g => !g.community_view.community.deleted,
   );
   expect(communityOnAlphaUnDeleted.community_view.community.deleted).toBe(
@@ -165,7 +165,7 @@ test("Remove community", async () => {
 
   // Make sure it got Removed on A
   const communityOnAlphaRemoved = await waitUntilSuccess(
-    () => getCommunity(alpha, alphaCommunity!.community.id),
+    () => getCommunity(alpha, alphaCommunity.community.id),
     g => g.community_view.community.removed,
   );
   expect(communityOnAlphaRemoved.community_view.community.removed).toBe(true);
@@ -180,7 +180,7 @@ test("Remove community", async () => {
 
   // Make sure it got undeleted on A
   const communityOnAlphaUnRemoved = await waitUntilSuccess(
-    () => getCommunity(alpha, alphaCommunity!.community.id),
+    () => getCommunity(alpha, alphaCommunity.community.id),
     g => !g.community_view.community.removed,
   );
   expect(communityOnAlphaUnRemoved.community_view.community.removed).toBe(
@@ -670,7 +670,7 @@ test("Remote mods can edit communities", async () => {
   await alpha.addModToCommunity(form);
 
   const form2: EditCommunity = {
-    community_id: betaCommunity.community.id as number,
+    community_id: betaCommunity.community.id,
     sidebar: "Example sidebar",
   };
 
@@ -826,7 +826,7 @@ test("Multi-community", async () => {
   const entryRes2 = await alpha
     .createMultiCommunityEntry({
       id: res.multi_community_view.multi.id,
-      community_id: community2!.community.id,
+      community_id: community2.community.id,
     })
     .then(expectSuccess);
   expect(entryRes2.community_view.community.id).toBe(community2.community.id);
@@ -837,9 +837,9 @@ test("Multi-community", async () => {
     m => m.communities.length >= 2,
   );
   const ap_ids = betaRes.communities.map(c => c.community.ap_id);
-  expect(ap_ids.includes(community2!.community.ap_id)).toBeTruthy();
+  expect(ap_ids.includes(community2.community.ap_id)).toBeTruthy();
 
-  const post = await createPost(alpha, community2!.community.id).then(
+  const post = await createPost(alpha, community2.community.id).then(
     expectSuccess,
   );
 
