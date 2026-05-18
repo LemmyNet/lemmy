@@ -124,7 +124,7 @@ const notificationTypes: NotificationTypeFilter[] = [
 const personContentTypes: PersonContentType[] = ["all", "comments", "posts"];
 
 let api: LemmyHttp;
-let report: string[] = [];
+const report: string[] = [];
 
 beforeAll(async () => {
   api = new LemmyHttp(process.env.LEMMY_SERVER_URL ?? defaultServerUrl, {
@@ -147,7 +147,7 @@ test("List posts with different sorts", async () => {
   report.push("\n# List posts with different sorts \n");
   report.push("sort | time");
   report.push("--- | ---");
-  for (let sort of postSortTypes) {
+  for (const sort of postSortTypes) {
     const time = await timeApiCalls(() => api.getPosts({ sort }));
     report.push(`${sort} | ${formatMs(time)}`);
   }
@@ -157,7 +157,7 @@ test("List posts for a community with different sorts", async () => {
   report.push("\n# List posts for a community with different sorts \n");
   report.push("sort | time");
   report.push("--- | ---");
-  for (let sort of postSortTypes) {
+  for (const sort of postSortTypes) {
     const time = await timeApiCalls(() =>
       api.getPosts({ sort, community_name: sampleCommunity }),
     );
@@ -169,7 +169,7 @@ test("List posts with different listing types", async () => {
   report.push("\n# List posts with different listing types \n");
   report.push("type | time");
   report.push("--- | ---");
-  for (let type_ of listingTypes) {
+  for (const type_ of listingTypes) {
     const time = await timeApiCalls(() => api.getPosts({ type_ }));
     report.push(`${type_} | ${formatMs(time)}`);
   }
@@ -193,7 +193,7 @@ test("List posts with higher pages", async () => {
   report.push("--- | ---");
   let page_cursor: string | undefined = undefined;
 
-  let diffs = [];
+  const diffs = [];
   for (let i = 0; i < 10; i++) {
     const res = await timeApiCall(() =>
       api.getPosts({ sort: "new", page_cursor }),
@@ -214,7 +214,7 @@ test("List posts for a multi-community with different sorts", async () => {
   report.push("\n# List posts for a multi-community with different sorts \n");
   report.push("sort | time");
   report.push("--- | ---");
-  for (let sort of postSortTypes) {
+  for (const sort of postSortTypes) {
     const time = await timeApiCalls(() =>
       api.getPosts({ sort, multi_community_name: sampleMultiCommunity }),
     );
@@ -226,7 +226,7 @@ test("List communities with different sorts", async () => {
   report.push("\n# List communities with different sorts \n");
   report.push("sort | time");
   report.push("--- | ---");
-  for (let sort of communitySortTypes) {
+  for (const sort of communitySortTypes) {
     const time = await timeApiCalls(() => api.listCommunities({ sort }));
     report.push(`${sort} | ${formatMs(time)}`);
   }
@@ -236,7 +236,7 @@ test("List communities with different listing types", async () => {
   report.push("\n# List communities with different listing types \n");
   report.push("type | time");
   report.push("--- | ---");
-  for (let type_ of listingTypes) {
+  for (const type_ of listingTypes) {
     const time = await timeApiCalls(() => api.listCommunities({ type_ }));
     report.push(`${type_} | ${formatMs(time)}`);
   }
@@ -246,7 +246,7 @@ test("List multi-communities with different sorts", async () => {
   report.push("\n# List multi-communities with different sorts \n");
   report.push("sort | time");
   report.push("--- | ---");
-  for (let sort of multiCommunitySortTypes) {
+  for (const sort of multiCommunitySortTypes) {
     const time = await timeApiCalls(() => api.listMultiCommunities({ sort }));
     report.push(`${sort} | ${formatMs(time)}`);
   }
@@ -278,7 +278,7 @@ test("Get comments for a post with different sorts, tree", async () => {
   report.push("sort | time");
   report.push("--- | ---");
 
-  for (let sort of commentSortTypes) {
+  for (const sort of commentSortTypes) {
     const time = await timeApiCalls(() =>
       api.getComments({
         post_id: postWithLotsOfComments,
@@ -296,7 +296,7 @@ test("Get comments for a post with different sorts, flat", async () => {
   report.push("sort | time");
   report.push("--- | ---");
 
-  for (let sort of commentSortTypes) {
+  for (const sort of commentSortTypes) {
     const time = await timeApiCalls(() =>
       api.getComments({
         post_id: postWithLotsOfComments,
@@ -325,7 +325,7 @@ test("Get all comments with different sorts", async () => {
   report.push("sort | time");
   report.push("--- | ---");
 
-  for (let sort of commentSortTypes) {
+  for (const sort of commentSortTypes) {
     const time = await timeApiCalls(() => api.getComments({ sort }));
     report.push(`${sort} | ${formatMs(time)}`);
   }
@@ -336,7 +336,7 @@ test("Get comments with different types", async () => {
   report.push("type | time");
   report.push("--- | ---");
 
-  for (let type_ of listingTypes) {
+  for (const type_ of listingTypes) {
     const time = await timeApiCalls(() => api.getComments({ type_ }));
     report.push(`${type_} | ${formatMs(time)}`);
   }
@@ -347,7 +347,7 @@ test("List person content with types", async () => {
   report.push("type | time");
   report.push("--- | ---");
 
-  for (let type_ of personContentTypes) {
+  for (const type_ of personContentTypes) {
     const time = await timeApiCalls(() =>
       api.listPersonContent({ username: samplePerson, type_ }),
     );
@@ -360,7 +360,7 @@ test("List person saved with types", async () => {
   report.push("type | time");
   report.push("--- | ---");
 
-  for (let type_ of personContentTypes) {
+  for (const type_ of personContentTypes) {
     const time = await timeApiCalls(() => api.listPersonSaved({ type_ }));
     report.push(`${type_} | ${formatMs(time)}`);
   }
@@ -371,14 +371,14 @@ test("List person liked with types", async () => {
   report.push("type | time");
   report.push("--- | ---");
 
-  for (let type_ of personContentTypes) {
+  for (const type_ of personContentTypes) {
     const time = await timeApiCalls(() => api.listPersonLiked({ type_ }));
     report.push(`${type_} | ${formatMs(time)}`);
   }
 
   const likeType: LikeType[] = ["all", "liked_only", "disliked_only"];
 
-  for (let like_type of likeType) {
+  for (const like_type of likeType) {
     const time = await timeApiCalls(() => api.listPersonLiked({ like_type }));
     report.push(`${like_type} | ${formatMs(time)}`);
   }
@@ -438,7 +438,7 @@ test("List reports with type", async () => {
   report.push("type | time");
   report.push("--- | ---");
 
-  for (let type_ of reportTypes) {
+  for (const type_ of reportTypes) {
     const time = await timeApiCalls(() => api.listReports({ type_ }));
     report.push(`${type_} | ${formatMs(time)}`);
   }
@@ -451,35 +451,35 @@ test("Search with sort types", async () => {
 
   const search_term = searchTerm;
 
-  for (let sort of postSortTypes) {
+  for (const sort of postSortTypes) {
     const postTime = await timeApiCalls(() =>
       api.getPosts({ sort, search_term }),
     );
     report.push(`post | ${sort} | ${formatMs(postTime)}`);
   }
 
-  for (let sort of commentSortTypes) {
+  for (const sort of commentSortTypes) {
     const commentTime = await timeApiCalls(() =>
       api.getComments({ sort, search_term }),
     );
     report.push(`comment | ${sort} | ${formatMs(commentTime)}`);
   }
 
-  for (let sort of communitySortTypes) {
+  for (const sort of communitySortTypes) {
     const communityTime = await timeApiCalls(() =>
       api.listCommunities({ sort, search_term }),
     );
     report.push(`community | ${sort} | ${formatMs(communityTime)}`);
   }
 
-  for (let sort of multiCommunitySortTypes) {
+  for (const sort of multiCommunitySortTypes) {
     const multiCommunityTime = await timeApiCalls(() =>
       api.listMultiCommunities({ sort, search_term }),
     );
     report.push(`multi community | ${sort} | ${formatMs(multiCommunityTime)}`);
   }
 
-  for (let sort of personSortTypes) {
+  for (const sort of personSortTypes) {
     const personTime = await timeApiCalls(() =>
       api.listPersons({ sort, search_term }),
     );
@@ -493,7 +493,7 @@ test("Notifications with types", async () => {
   report.push("type | time");
   report.push("--- | ---");
 
-  for (let type_ of notificationTypes) {
+  for (const type_ of notificationTypes) {
     const time = await timeApiCalls(() => api.listNotifications({ type_ }));
     report.push(`${type_} | ${formatMs(time)}`);
   }
@@ -555,7 +555,7 @@ test("Get modlog with types", async () => {
     "mod_lock_comment",
   ];
 
-  for (let type_ of modlogKinds) {
+  for (const type_ of modlogKinds) {
     const time = await timeApiCalls(() => api.getModlog({ type_ }));
     report.push(`${type_} | ${formatMs(time)}`);
   }
@@ -578,7 +578,7 @@ async function timeApiCall<T>(promise: () => Promise<T>): Promise<Result<T>> {
 }
 
 async function timeApiCalls<T>(promise: () => Promise<T>, times = TIMES) {
-  let diffs = [];
+  const diffs = [];
   for (let i = 0; i < times; i++) {
     const diff = (await timeApiCall(promise)).diff;
     diffs.push(diff);
