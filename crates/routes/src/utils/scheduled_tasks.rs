@@ -708,7 +708,7 @@ mod tests {
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
   use pretty_assertions::assert_eq;
 
-  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
+  #[tokio_shared_rt::test(shared, flavor = "multi_thread")]
   async fn test_nodeinfo_lemmy_ml() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let form = build_update_instance_form("lemmy.ml", &context)
@@ -718,7 +718,7 @@ mod tests {
     Ok(())
   }
 
-  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
+  #[tokio_shared_rt::test(shared, flavor = "multi_thread")]
   async fn test_nodeinfo_mastodon_social() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let form = build_update_instance_form("mastodon.social", &context)
@@ -728,7 +728,7 @@ mod tests {
     Ok(())
   }
 
-  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
+  #[tokio_shared_rt::test(shared, flavor = "multi_thread")]
   async fn test_scheduled_tasks() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();
