@@ -45,6 +45,13 @@ test("Upload image and delete it", async () => {
   const health = await alpha.imageHealth().then(expectSuccess);
   expect(health.success).toBeTruthy();
 
+  const baseImageCount = await alpha
+    .listMediaAdmin({
+      limit: imageFetchLimit,
+    })
+    .then(expectSuccess)
+    .then(res => res.items.length);
+
   // Upload test image. We use a simple string buffer as pictrs doesn't require an actual image
   // in testing mode.
   const upload_form: UploadImage = {
@@ -70,10 +77,8 @@ test("Upload image and delete it", async () => {
     })
     .then(expectSuccess);
 
-  // This number comes from all the previous thumbnails fetched in other tests.
-  const previousThumbnails = 1;
   expect(listMediaAdminRes.items.length).toBeGreaterThanOrEqual(
-    previousThumbnails,
+    baseImageCount + 1,
   );
 
   // Make sure the uploader is correct
@@ -103,7 +108,7 @@ test("Upload image and delete it", async () => {
       limit: imageFetchLimit,
     })
     .then(expectSuccess);
-  expect(deletedListAllMediaRes.items.length).toBe(previousThumbnails - 1);
+  expect(deletedListAllMediaRes.items.length).toBe(baseImageCount);
 });
 
 test("Purge user, uploaded image removed", async () => {
