@@ -65,6 +65,11 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
   // https://github.com/mdsherry/clokwerk/issues/38
   let mut scheduler = AsyncScheduler::with_tz(Utc);
 
+  // Every 1 minute run plugin hooks
+  scheduler.every(CTimeUnits::minutes(1)).run(async move || {
+    plugin_hook_after("scheduled_task_1_min", &());
+  });
+
   let context_1 = context.clone();
   // Every 10 minutes update hot ranks, delete expired captchas and publish scheduled posts
   scheduler.every(CTimeUnits::minutes(10)).run(move || {
