@@ -29,6 +29,6 @@ export default [
         "error",
         { argsIgnorePattern: "^_" },
       ],
-    }
+    },
   },
 ];
