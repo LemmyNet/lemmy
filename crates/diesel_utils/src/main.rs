@@ -1,5 +1,6 @@
 /// Very minimal wrapper around `lemmy_diesel_utils::run` to allow running migrations without
 /// compiling everything.
+#[cfg(feature = "full")]
 fn main() -> anyhow::Result<()> {
   if std::env::args().len() > 1 {
     anyhow::bail!("To set parameters for running migrations, use the lemmy_server command.");
@@ -10,5 +11,10 @@ fn main() -> anyhow::Result<()> {
     &std::env::var("LEMMY_DATABASE_URL")?,
   )?;
 
+  Ok(())
+}
+
+#[cfg(not(feature = "full"))]
+fn main() -> Result<(), Box<dyn std::error::Error>> {
   Ok(())
 }

@@ -193,6 +193,15 @@ steps:
       - "! cargo tree -i aws-lc-sys"
     when: *slow_check_paths
 
+  lemmy_cargo_publish:
+    image: *rust_image
+    environment:
+      CARGO_HOME: .cargo_home
+      RUSTUP_HOME: .rustup_home
+    commands:
+      - cargo publish --workspace --dry-run --allow-dirty
+    when: *slow_check_paths
+
   lemmy_api_common_works_with_wasm:
     image: *rust_image
     environment:
