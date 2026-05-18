@@ -196,9 +196,12 @@ test("List posts with higher pages", async () => {
   let diffs = [];
   for (let i = 0; i < 10; i++) {
     const res = await timeApiCall(() =>
-      api.getPosts({ sort: "new", page_cursor }).then(expectSuccess),
+      api.getPosts({ sort: "new", page_cursor }),
     );
-    page_cursor = res.res.next_page;
+    if (res.res.state !== "success") {
+      throw new Error("Failed getPosts");
+    }
+    page_cursor = res.res.data.next_page;
     diffs.push(res.diff);
     report.push(`${i} | ${formatMs(res.diff)}`);
   }
