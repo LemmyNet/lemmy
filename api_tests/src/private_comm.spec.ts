@@ -28,6 +28,7 @@ import {
   statusBadRequest,
   getUnreadCounts,
   expectSuccess,
+  waitUntilSuccess,
   resolvePostFailure,
   resolveCommentFailure,
   expectFailure,
@@ -75,8 +76,8 @@ test("Follow a private community", async () => {
   );
 
   // Wait for follow to federate, shown as pending
-  let pendingFollows1 = await waitUntil(
-    () => listCommunityPendingFollows(alpha).then(expectSuccess),
+  let pendingFollows1 = await waitUntilSuccess(
+    () => listCommunityPendingFollows(alpha),
     f => f.items.length == 1,
   );
   expect(pendingFollows1.items[0].is_new_instance).toBe(true);
@@ -100,8 +101,8 @@ test("Follow a private community", async () => {
   expect(approve.success).toBe(true);
 
   // Follow is confirmed
-  await waitUntil(
-    () => getCommunity(user, betaCommunityId).then(expectSuccess),
+  await waitUntilSuccess(
+    () => getCommunity(user, betaCommunityId),
     c => c.community_view.community_actions?.follow_state == "accepted",
   );
   const pendingFollows2 =
@@ -113,8 +114,8 @@ test("Follow a private community", async () => {
   // follow with another user from that instance, is_new_instance should be false now
   const user2 = await registerUser(beta, betaUrl);
   await user2.followCommunity(follow_form);
-  let pendingFollows3 = await waitUntil(
-    () => listCommunityPendingFollows(alpha).then(expectSuccess),
+  let pendingFollows3 = await waitUntilSuccess(
+    () => listCommunityPendingFollows(alpha),
     f => f.items.length == 1,
   );
   expect(pendingFollows3.items[0].is_new_instance).toBe(false);
@@ -219,8 +220,8 @@ test("Reject follower", async () => {
     "approval_required",
   );
 
-  const pendingFollows1 = await waitUntil(
-    () => listCommunityPendingFollows(alpha).then(expectSuccess),
+  const pendingFollows1 = await waitUntilSuccess(
+    () => listCommunityPendingFollows(alpha),
     f => f.items.length == 1,
   );
   const approve = await approveCommunityPendingFollow(
@@ -231,8 +232,8 @@ test("Reject follower", async () => {
   ).then(expectSuccess);
   expect(approve.success).toBe(true);
 
-  await waitUntil(
-    () => getCommunity(user, betaCommunity1!.id).then(expectSuccess),
+  await waitUntilSuccess(
+    () => getCommunity(user, betaCommunity1!.id),
     c => c.community_view.community_actions?.follow_state === undefined,
   );
 });
@@ -273,12 +274,12 @@ test("Follow a private community and receive activities", async () => {
   await approveFollower(alpha, alphaCommunityId);
 
   // Follow is confirmed
-  await waitUntil(
-    () => getCommunity(beta, betaCommunityId).then(expectSuccess),
+  await waitUntilSuccess(
+    () => getCommunity(beta, betaCommunityId),
     c => c.community_view.community_actions?.follow_state == "accepted",
   );
-  await waitUntil(
-    () => getCommunity(gamma, gammaCommunityId).then(expectSuccess),
+  await waitUntilSuccess(
+    () => getCommunity(gamma, gammaCommunityId),
     c => c.community_view.community_actions?.follow_state == "accepted",
   );
 
@@ -291,14 +292,14 @@ test("Follow a private community and receive activities", async () => {
   expect(comment_id).toBeDefined();
 
   // post and comment were federated to beta
-  let posts = await waitUntil(
-    () => getPosts(beta, "all", betaCommunityId).then(expectSuccess),
+  let posts = await waitUntilSuccess(
+    () => getPosts(beta, "all", betaCommunityId),
     c => c.items.length == 1,
   );
   expect(posts.items[0].post.ap_id).toBe(post.post_view.post.ap_id);
   expect(posts.items[0].post.name).toBe(post.post_view.post.name);
-  let comments = await waitUntil(
-    () => getComments(beta, posts.items[0].post.id).then(expectSuccess),
+  let comments = await waitUntilSuccess(
+    () => getComments(beta, posts.items[0].post.id),
     c => c.items.length == 1,
   );
   expect(comments.items[0].comment.ap_id).toBe(
@@ -331,8 +332,8 @@ test("Fetch remote content in private community", async () => {
   await approveFollower(alpha, alphaCommunityId);
 
   // Follow is confirmed
-  await waitUntil(
-    () => getCommunity(beta, betaCommunityId).then(expectSuccess),
+  await waitUntilSuccess(
+    () => getCommunity(beta, betaCommunityId),
     c => c.community_view.community_actions?.follow_state == "accepted",
   );
 
@@ -387,8 +388,8 @@ test("Fetch remote content in private community", async () => {
 });
 
 async function approveFollower(user: LemmyHttp, community_id: number) {
-  let pendingFollows1 = await waitUntil(
-    () => listCommunityPendingFollows(user).then(expectSuccess),
+  let pendingFollows1 = await waitUntilSuccess(
+    () => listCommunityPendingFollows(user),
     f => f.items.length == 1,
   );
   const approve = await approveCommunityPendingFollow(

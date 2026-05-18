@@ -47,6 +47,7 @@ import {
   sampleSite,
   expectSuccess,
   expectFailure,
+  waitUntilSuccess,
   resolvePostFailure,
 } from "./shared";
 import { PostView } from "lemmy-js-client/dist/types/PostView";
@@ -396,8 +397,8 @@ test("Delete a post", async () => {
     expectSuccess,
   );
   // Make sure lemmy alpha sees post is deleted
-  await waitUntil(
-    () => getPost(alpha, postRes.post_view.post.id).then(expectSuccess),
+  await waitUntilSuccess(
+    () => getPost(alpha, postRes.post_view.post.id),
     p => p.post_view.post.deleted,
   );
   expect(deletedPost.post_view.post.name).toBe(postRes.post_view.post.name);
@@ -412,8 +413,8 @@ test("Delete a post", async () => {
     false,
     postRes.post_view.post,
   ).then(expectSuccess);
-  await waitUntil(
-    () => getPost(alpha, postRes.post_view.post.id).then(expectSuccess),
+  await waitUntilSuccess(
+    () => getPost(alpha, postRes.post_view.post.id),
     p => !p.post_view.post.deleted,
   );
 
@@ -506,8 +507,8 @@ test("Remove a post from admin and community on same instance", async () => {
   expect(removePostRes.post_view.post.removed).toBe(true);
 
   // Make sure lemmy alpha sees post is removed
-  let alphaPost = await waitUntil(
-    () => getPost(alpha, alphaPost0!.post.id).then(expectSuccess),
+  let alphaPost = await waitUntilSuccess(
+    () => getPost(alpha, alphaPost0!.post.id),
     p => p?.post_view.post.removed,
   );
   expect(alphaPost?.post_view.post.removed).toBe(true);
@@ -594,8 +595,8 @@ test("Enforce site ban federation for local user", async () => {
   expect(alphaUserOnBeta1?.banned).toBe(true);
 
   // existing alpha post should be removed on beta
-  let betaBanRes = await waitUntil(
-    () => getPost(beta, searchBeta1!.post.id).then(expectSuccess),
+  let betaBanRes = await waitUntilSuccess(
+    () => getPost(beta, searchBeta1!.post.id),
     s => s.post_view.post.removed,
   );
   expect(betaBanRes.post_view.post.removed).toBe(true);
@@ -610,8 +611,8 @@ test("Enforce site ban federation for local user", async () => {
   expect(unBanAlpha.person_view.banned).toBe(false);
 
   // existing alpha post should be restored on beta
-  betaBanRes = await waitUntil(
-    () => getPost(beta, searchBeta1!.post.id).then(expectSuccess),
+  betaBanRes = await waitUntilSuccess(
+    () => getPost(beta, searchBeta1!.post.id),
     s => !s.post_view.post.removed,
   );
   expect(betaBanRes.post_view.post.removed).toBe(false);
@@ -683,8 +684,8 @@ test("Enforce site ban federation for federated user", async () => {
   expect(betaRemovedPost.post_view.post.removed).toBe(true);
 
   // post should also be removed on alpha
-  let alphaRemovedPost = await waitUntil(
-    () => getPost(alpha, postRes1.post_view.post.id).then(expectSuccess),
+  let alphaRemovedPost = await waitUntilSuccess(
+    () => getPost(alpha, postRes1.post_view.post.id),
     s => s.post_view.post.removed,
   );
   expect(alphaRemovedPost.post_view.post.removed).toBe(true);
@@ -736,8 +737,8 @@ test("Enforce community ban for federated user", async () => {
   expect(banAlpha).toBeDefined();
 
   // ensure that the post by alpha got removed
-  let removePostRes = await waitUntil(
-    () => getPost(alpha, postRes1.post_view.post.id).then(expectSuccess),
+  let removePostRes = await waitUntilSuccess(
+    () => getPost(alpha, postRes1.post_view.post.id),
     s => s.post_view.post.removed,
   );
   expect(removePostRes.post_view.post.removed).toBe(true);
@@ -763,8 +764,8 @@ test("Enforce community ban for federated user", async () => {
   expect(unBanAlpha).toBeDefined();
 
   // Check that unban was federated to alpha
-  await waitUntil(
-    () => getModlog(alpha).then(expectSuccess),
+  await waitUntilSuccess(
+    () => getModlog(alpha),
     m =>
       m.items[0].modlog.kind == "mod_ban_from_community" &&
       m.items[0].modlog.is_revert == true,
@@ -964,8 +965,8 @@ test("Block post that contains banned URL", async () => {
 
   await epsilon.editSite(editSiteForm);
 
-  await waitUntil(
-    () => epsilon.getSite().then(expectSuccess),
+  await waitUntilSuccess(
+    () => epsilon.getSite(),
     s => s.blocked_urls.length == 1,
   );
 
@@ -1037,8 +1038,8 @@ test("Mention beta from alpha post body", async () => {
   expect(betaPost.post.name).toBe(postOnAlphaRes.post_view.post.name);
   await assertPostFederation(betaPost, postOnAlphaRes.post_view);
 
-  let mentionsRes = await waitUntil(
-    () => listNotifications(beta, "mention").then(expectSuccess),
+  let mentionsRes = await waitUntilSuccess(
+    () => listNotifications(beta, "mention"),
     m => !!m.items[0],
   );
 
@@ -1084,8 +1085,8 @@ test("Don't allow NSFW posts on instances that disable it", async () => {
   await gamma.editSite(editSiteForm);
 
   // Wait for cache on Gamma's LocalSite
-  await waitUntil(
-    () => getSite(gamma).then(expectSuccess),
+  await waitUntilSuccess(
+    () => getSite(gamma),
     s => s.site_view.local_site.nsfw_content_disallowed,
   );
 
@@ -1194,8 +1195,8 @@ test("Admin removes post from local user in remote community", async () => {
     false,
     postRes.post_view.post,
   ).then(expectSuccess);
-  await waitUntil(
-    () => getPost(gamma, postRes.post_view.post.id).then(expectSuccess),
+  await waitUntilSuccess(
+    () => getPost(gamma, postRes.post_view.post.id),
     p => p !== undefined && !p.post_view.post.removed,
   );
   expect(undeletedPost.post_view.post.removed).toBe(false);

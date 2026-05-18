@@ -44,6 +44,7 @@ import {
   getUnreadCounts,
   expectSuccess,
   expectFailure,
+  waitUntilSuccess,
 } from "./shared";
 import {
   CommentReportView,
@@ -162,11 +163,10 @@ test("Delete a comment", async () => {
   // Find the comment on remote instance gamma
   let gammaComment = (
     await waitUntil(
-      () =>
-        resolveComment(gamma, commentRes.comment_view.comment).catch(e => e),
-      r => r.message !== "not_found",
+      () => resolveComment(gamma, commentRes.comment_view.comment),
+      r => !!r,
     )
-  ).comment;
+  )?.comment;
   if (!gammaComment) {
     throw "Missing gamma comment (remote-home-remote replication) before delete";
   }
@@ -376,9 +376,8 @@ test("Federated comment like", async () => {
   expect(like.comment_view.comment.score).toBe(2);
 
   // Get the post from alpha, check the likes
-  let postComments = await waitUntil(
-    () =>
-      getComments(alpha, postOnAlphaRes.post_view.post.id).then(expectSuccess),
+  let postComments = await waitUntilSuccess(
+    () => getComments(alpha, postOnAlphaRes.post_view.post.id),
     c => c.items[0].comment.score === 2,
   );
   expect(postComments.items[0].comment.score).toBe(2);
@@ -435,9 +434,8 @@ test("Reply to a comment from another instance, get notification", async () => {
     c => c?.comment.score === 1,
   );
   let alphaComment = commentSearch!;
-  let postComments = await waitUntil(
-    () =>
-      getComments(alpha, postOnAlphaRes.post_view.post.id).then(expectSuccess),
+  let postComments = await waitUntilSuccess(
+    () => getComments(alpha, postOnAlphaRes.post_view.post.id),
     pc => pc.items.length >= 2,
   );
   // Note: this test fails when run twice and this count will differ
@@ -453,15 +451,15 @@ test("Reply to a comment from another instance, get notification", async () => {
   assertCommentFederation(alphaComment, replyRes.comment_view);
 
   // Did alpha get notified of the reply from beta?
-  let alphaUnreadCountRes = await waitUntil(
-    () => getUnreadCounts(alpha).then(expectSuccess),
+  let alphaUnreadCountRes = await waitUntilSuccess(
+    () => getUnreadCounts(alpha),
     e => e.notification_count >= 1,
   );
   expect(alphaUnreadCountRes.notification_count).toBeGreaterThanOrEqual(1);
 
   // check inbox of replies on alpha, fetching read/unread both
-  let alphaRepliesRes = await waitUntil(
-    () => listNotifications(alpha, "reply").then(expectSuccess),
+  let alphaRepliesRes = await waitUntilSuccess(
+    () => listNotifications(alpha, "reply"),
     r => r.items.length > 0,
   );
   const alphaReply = alphaRepliesRes.items.find(
@@ -573,8 +571,8 @@ test("Mention beta from alpha comment", async () => {
   expect(betaPost.post.name).toBe(postOnAlphaRes.post_view.post.name);
 
   // Make sure that both new comments are seen on beta and have parent/child relationship
-  let betaPostComments = await waitUntil(
-    () => getComments(beta, betaPost!.post.id).then(expectSuccess),
+  let betaPostComments = await waitUntilSuccess(
+    () => getComments(beta, betaPost!.post.id),
     c => c.items[1]?.comment.score === 1,
   );
   expect(betaPostComments.items.length).toEqual(2);
@@ -592,8 +590,8 @@ test("Mention beta from alpha comment", async () => {
   expect(betaRootComment.comment.score).toBe(1);
   assertCommentFederation(betaRootComment, commentRes.comment_view);
 
-  let mentionsRes = await waitUntil(
-    () => listNotifications(beta, "mention").then(expectSuccess),
+  let mentionsRes = await waitUntilSuccess(
+    () => listNotifications(beta, "mention"),
     m => !!m.items[0],
   );
 
@@ -658,8 +656,8 @@ test("A and G subscribe to B (center) A posts, G mentions B, it gets announced t
   expect(commentRes.comment_view.comment.score).toBe(1);
 
   // Make sure alpha sees it
-  let alphaPostComments2 = await waitUntil(
-    () => getComments(alpha, alphaPost.post_view.post.id).then(expectSuccess),
+  let alphaPostComments2 = await waitUntilSuccess(
+    () => getComments(alpha, alphaPost.post_view.post.id),
     e => e.items[0]?.comment.score === 1,
   );
   expect(alphaPostComments2.items[0].comment.content).toBe(commentContent);
@@ -742,8 +740,8 @@ test("Check that activity from another instance is sent to third instance", asyn
   expect(commentRes.comment_view.comment.score).toBe(1);
 
   // Make sure alpha sees it
-  let alphaPostComments2 = await waitUntil(
-    () => getComments(alpha, alphaPost!.post.id).then(expectSuccess),
+  let alphaPostComments2 = await waitUntilSuccess(
+    () => getComments(alpha, alphaPost!.post.id),
     e => e.items[0]?.comment.score === 1,
   );
   expect(alphaPostComments2.items[0].comment.content).toBe(commentContent);
@@ -811,8 +809,8 @@ test("Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedde
   }
 
   let alphaPost = await getPost(alpha, alphaPostB.post.id).then(expectSuccess);
-  let alphaPostComments = await waitUntil(
-    () => getComments(alpha, alphaPostB!.post.id).then(expectSuccess),
+  let alphaPostComments = await waitUntilSuccess(
+    () => getComments(alpha, alphaPostB!.post.id),
     c =>
       c.items[1]?.comment.content ===
         parentCommentRes.comment_view.comment.content &&
@@ -978,8 +976,8 @@ test("Distinguish comment", async () => {
   let alphaPost = await resolvePost(alpha, post.post_view.post);
 
   // Find the comment on alpha (home of community)
-  let alphaComments = await waitUntil(
-    () => getComments(alpha, alphaPost?.post.id).then(expectSuccess),
+  let alphaComments = await waitUntilSuccess(
+    () => getComments(alpha, alphaPost?.post.id),
     c => c.items[0].comment.distinguished,
   );
 
@@ -1041,8 +1039,8 @@ test("Lock comment", async () => {
   await lockComment(alpha, true, comment2.comment_view.comment);
 
   const comment_ap_id = comment3.comment_view.comment.ap_id;
-  await waitUntil(
-    () => getComments(newBetaApi, betaPost.post.id).then(expectSuccess),
+  await waitUntilSuccess(
+    () => getComments(newBetaApi, betaPost.post.id),
     c => {
       const find = c.items.find(c => c.comment.ap_id == comment_ap_id);
       return find?.comment.locked ?? false;
@@ -1097,8 +1095,8 @@ test("Remove children", async () => {
   await createComment(beta, betaPost.post.id, comment1.comment_view.comment.id);
 
   // Wait until the comments have federated
-  await waitUntil(
-    () => getPost(alpha, post.post_view.post.id).then(expectSuccess),
+  await waitUntilSuccess(
+    () => getPost(alpha, post.post_view.post.id),
     p => p.post_view.post.comments == 4,
   );
 
@@ -1116,9 +1114,8 @@ test("Remove children", async () => {
   expect(post2.post_view.post.comments).toBe(0);
 
   // Wait until the remove has federated
-  await waitUntil(
-    () =>
-      getComment(beta, comment1.comment_view.comment.id).then(expectSuccess),
+  await waitUntilSuccess(
+    () => getComment(beta, comment1.comment_view.comment.id),
     c => c.comment_view.comment.removed,
   );
 

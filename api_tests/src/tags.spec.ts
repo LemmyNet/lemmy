@@ -16,6 +16,7 @@ import {
   resolvePerson,
   getCommunity,
   expectSuccess,
+  waitUntilSuccess,
 } from "./shared";
 import { CreateCommunityTag } from "lemmy-js-client/dist/types/CreateCommunityTag";
 import { DeleteCommunityTag } from "lemmy-js-client/dist/types/DeleteCommunityTag";
@@ -169,11 +170,8 @@ test("Remote mod creates and updates post tag", async () => {
   let tag1Res = await gamma.createCommunityTag(createForm1).then(expectSuccess);
   expect(tag1Res.id).toBeDefined();
 
-  await waitUntil(
-    () =>
-      getCommunity(alpha, communityRes.community_view.community.id).then(
-        expectSuccess,
-      ),
+  await waitUntilSuccess(
+    () => getCommunity(alpha, communityRes.community_view.community.id),
     c => c.community_view.tags.length == 1,
   );
 

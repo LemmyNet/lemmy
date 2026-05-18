@@ -27,12 +27,12 @@ import {
   waitForPost,
   unfollows,
   getPost,
-  waitUntil,
   createPostWithThumbnail,
   sampleImage,
   sampleSite,
   getMyUser,
   expectSuccess,
+  waitUntilSuccess,
 } from "./shared";
 
 beforeAll(setupLogins);
@@ -208,8 +208,8 @@ test("Images in remote image post are proxied if setting enabled", async () => {
 
   // Fetch the post again, the metadata should be backgrounded now
   // Wait for the metadata to get fetched, since this is backgrounded now
-  let epsilonPostRes2 = await waitUntil(
-    () => getPost(epsilon, epsilonPostRes!.post.id).then(expectSuccess),
+  let epsilonPostRes2 = await waitUntilSuccess(
+    () => getPost(epsilon, epsilonPostRes!.post.id),
     p => p.post_view.post.thumbnail_url != undefined,
   );
   const epsilonPost = epsilonPostRes2.post_view.post;
@@ -241,8 +241,8 @@ test("Thumbnail of remote image link is proxied if setting enabled", async () =>
   expect(post).toBeDefined();
 
   // Wait for the thumbnail (since its backgrounded)
-  await waitUntil(
-    () => getPost(gamma, post.id).then(expectSuccess),
+  await waitUntilSuccess(
+    () => getPost(gamma, post.id),
     p => p.post_view.post.thumbnail_url != undefined,
   );
 
@@ -259,8 +259,8 @@ test("Thumbnail of remote image link is proxied if setting enabled", async () =>
   let epsilonPostRes = await resolvePost(epsilon, postRes.post_view.post);
   expect(epsilonPostRes?.post).toBeDefined();
 
-  let epsilonPostRes2 = await waitUntil(
-    () => getPost(epsilon, epsilonPostRes!.post.id).then(expectSuccess),
+  let epsilonPostRes2 = await waitUntilSuccess(
+    () => getPost(epsilon, epsilonPostRes!.post.id),
     p => p.post_view.post.thumbnail_url != undefined,
   );
   const epsilonPost = epsilonPostRes2.post_view.post;
@@ -335,8 +335,8 @@ test("Make regular post, and give it a custom thumbnail", async () => {
   ).then(expectSuccess);
 
   // Wait for the metadata to get fetched, since this is backgrounded now
-  post = await waitUntil(
-    () => getPost(alphaImage, post.post_view.post.id).then(expectSuccess),
+  post = await waitUntilSuccess(
+    () => getPost(alphaImage, post.post_view.post.id),
     p => p.post_view.post.thumbnail_url != undefined,
   );
   expect(post.post_view.post.url).toBe(wikipediaUrl);
@@ -363,8 +363,8 @@ test("Create an image post, and make sure a custom thumbnail doesn't overwrite i
     upload1.image_url!,
     upload2.image_url!,
   ).then(expectSuccess);
-  post = await waitUntil(
-    () => getPost(alphaImage, post.post_view.post.id).then(expectSuccess),
+  post = await waitUntilSuccess(
+    () => getPost(alphaImage, post.post_view.post.id),
     p => p.post_view.post.thumbnail_url != undefined,
   );
   expect(post.post_view.post.url).toBe(upload1.image_url);

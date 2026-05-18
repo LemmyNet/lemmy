@@ -7,7 +7,6 @@ import {
   createPrivateMessage,
   editPrivateMessage,
   deletePrivateMessage,
-  waitUntil,
   reportPrivateMessage,
   unfollows,
   listNotifications,
@@ -15,6 +14,7 @@ import {
   statusBadRequest,
   jestLemmyError,
   expectSuccess,
+  waitUntilSuccess,
   expectFailure,
 } from "./shared";
 
@@ -41,8 +41,8 @@ test("Create a private message", async () => {
   expect(pmRes.private_message_view.creator.local).toBe(true);
   expect(pmRes.private_message_view.recipient.local).toBe(false);
 
-  let betaPms = await waitUntil(
-    () => listNotifications(beta, "private_message").then(expectSuccess),
+  let betaPms = await waitUntilSuccess(
+    () => listNotifications(beta, "private_message"),
     e => !!e.items[0],
   );
   const firstPm = betaPms.items[0].data as PrivateMessageView;
@@ -66,8 +66,8 @@ test("Update a private message", async () => {
     updatedContent,
   );
 
-  let betaPms = await waitUntil(
-    () => listNotifications(beta, "private_message").then(expectSuccess),
+  let betaPms = await waitUntilSuccess(
+    () => listNotifications(beta, "private_message"),
     p =>
       p.items[0].data.type_ == "private_message" &&
       p.items[0].data.private_message.content === updatedContent,
@@ -80,8 +80,8 @@ test("Delete a private message", async () => {
   let pmRes = await createPrivateMessage(alpha, recipient_id).then(
     expectSuccess,
   );
-  let betaPms1 = await waitUntil(
-    () => listNotifications(beta, "private_message").then(expectSuccess),
+  let betaPms1 = await waitUntilSuccess(
+    () => listNotifications(beta, "private_message"),
     m =>
       !!m.items.find(
         e =>
@@ -100,8 +100,8 @@ test("Delete a private message", async () => {
   // The GetPrivateMessages filters out deleted,
   // even though they are in the actual database.
   // no reason to show them
-  let betaPms2 = await waitUntil(
-    () => listNotifications(beta, "private_message").then(expectSuccess),
+  let betaPms2 = await waitUntilSuccess(
+    () => listNotifications(beta, "private_message"),
     p => p.items.length === betaPms1.items.length - 1,
   );
   expect(betaPms2.items.length).toBe(betaPms1.items.length - 1);
@@ -116,8 +116,8 @@ test("Delete a private message", async () => {
     false,
   );
 
-  let betaPms3 = await waitUntil(
-    () => listNotifications(beta, "private_message").then(expectSuccess),
+  let betaPms3 = await waitUntilSuccess(
+    () => listNotifications(beta, "private_message"),
     p => p.items.length === betaPms1.items.length,
   );
   expect(betaPms3.items.length).toBe(betaPms1.items.length);
@@ -127,8 +127,8 @@ test("Create a private message report", async () => {
   let pmRes = await createPrivateMessage(alpha, recipient_id).then(
     expectSuccess,
   );
-  let betaPms1 = await waitUntil(
-    () => listNotifications(beta, "private_message").then(expectSuccess),
+  let betaPms1 = await waitUntilSuccess(
+    () => listNotifications(beta, "private_message"),
     m =>
       !!m.items.find(
         e =>

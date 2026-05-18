@@ -28,13 +28,13 @@ import {
   statusNotFound,
   statusUnauthorized,
   listPersonContent,
-  waitUntil,
   password,
   jestLemmyError,
   statusBadRequest,
   randomString,
   expectSuccess,
   expectFailure,
+  waitUntilSuccess,
 } from "./shared";
 import {
   EditSite,
@@ -143,12 +143,12 @@ test("Delete user", async () => {
   //   () => getPost(alpha, remotePost.id),
   //   p => p.post_view.post.deleted === true || p.post_view.post === undefined,
   // );
-  await waitUntil(
-    () => getComments(alpha, localComment.post_id).then(expectSuccess),
+  await waitUntilSuccess(
+    () => getComments(alpha, localComment.post_id),
     c => c.items[0].comment.deleted,
   );
-  await waitUntil(
-    () => alpha.getComment({ id: remoteComment.id }).then(expectSuccess),
+  await waitUntilSuccess(
+    () => alpha.getComment({ id: remoteComment.id }),
     c => c.comment_view.comment.deleted,
   );
   await jestLemmyError(
@@ -326,8 +326,8 @@ test("Admins can view and ban deleted accounts", async () => {
   expect(getDeletedUser).toBeDefined();
 
   // Make sure the delete federates
-  await waitUntil(
-    () => getPersonDetails(alpha, userOnAlpha!.person.id).then(expectSuccess),
+  await waitUntilSuccess(
+    () => getPersonDetails(alpha, userOnAlpha!.person.id),
     p => p.person_view.person.deleted,
   );
 
@@ -346,8 +346,8 @@ test("Admins can view and ban deleted accounts", async () => {
   expect(postAfterBan.post_view.post.removed).toBe(true);
 
   // Make sure the ban federates properly
-  let getDeletedUserAlpha = await waitUntil(
-    () => getPersonDetails(alpha, userOnAlpha!.person.id).then(expectSuccess),
+  let getDeletedUserAlpha = await waitUntilSuccess(
+    () => getPersonDetails(alpha, userOnAlpha!.person.id),
     p => p.person_view.banned,
   );
   // Make sure content removal also went through
