@@ -3,7 +3,7 @@ use std::path::Path;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
   let migrations_dir = Path::new("../../migrations/");
   if !migrations_dir.exists() {
-   eprintln!("Migrations dir not found");
+    eprintln!("Migrations dir not found");
   }
   println!("cargo:rerun-if-changed={}", migrations_dir.display());
   Ok(())
