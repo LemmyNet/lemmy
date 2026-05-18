@@ -198,6 +198,8 @@ impl CommunityQuery<'_> {
 
       let name_or_title_filter = community::name
         .ilike(searcher.clone())
+        // Also include the ap_id to allow for instance searching
+        .or(community::ap_id.ilike(searcher.clone()))
         .or(community::title.ilike(searcher.clone()));
 
       query = if self.search_title_only.unwrap_or_default() {
