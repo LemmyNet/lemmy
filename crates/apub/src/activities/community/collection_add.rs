@@ -30,7 +30,7 @@ use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
     community::{Community, CommunityModerator, CommunityModeratorForm},
-    moderator::{ModAddCommunity, ModAddCommunityForm},
+    moderator::{ModAddCommunity, ModAddCommunityForm, ModFeaturePost, ModFeaturePostForm},
     person::Person,
     post::{Post, PostUpdateForm},
   },
@@ -132,6 +132,8 @@ impl ActivityHandler for CollectionAdd {
       Community::get_by_collection_url(&mut context.pool(), &self.target.into())
         .await?
         .ok_or(LemmyErrorType::CouldntFindCommunity)?;
+    let actor = self.actor.dereference(context).await?;
+
     match collection_type {
       CollectionType::Moderators => {
         let new_mod = ObjectId::<ApubPerson>::from(self.object)
@@ -152,7 +154,6 @@ impl ActivityHandler for CollectionAdd {
           CommunityModerator::join(&mut context.pool(), &form).await?;
 
           // write mod log
-          let actor = self.actor.dereference(context).await?;
           let form = ModAddCommunityForm {
             mod_person_id: actor.id,
             other_person_id: new_mod.id,
@@ -167,11 +168,21 @@ impl ActivityHandler for CollectionAdd {
         let post = ObjectId::<ApubPost>::from(self.object)
           .dereference(context)
           .await?;
+        if post.community_id != community.id {
+          return Err(LemmyErrorType::InvalidCommunity.into());
+        }
         let form = PostUpdateForm {
           featured_community: Some(true),
           ..Default::default()
         };
         Post::update(&mut context.pool(), post.id, &form).await?;
+        let form = ModFeaturePostForm {
+          mod_person_id: actor.id,
+          post_id: post.id,
+          featured: true,
+          is_featured_community: true,
+        };
+        ModFeaturePost::create(&mut context.pool(), &form).await?;
       }
     }
     Ok(())
