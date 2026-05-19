@@ -8,6 +8,7 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   kinds::{activity::UpdateType, public},
+  protocol::verification::verify_urls_match,
   traits::{Activity, Object},
 };
 use either::Either;
@@ -109,7 +110,10 @@ impl Activity for Update {
         check_community_deleted_or_removed(&community)?;
         ApubCommunity::verify(c, &community.ap_id.clone().into(), context).await?;
       }
-      Either::Right(m) => ApubMultiCommunity::verify(m, &self.id, context).await?,
+      Either::Right(m) => {
+        verify_urls_match(m.attributed_to.inner(), self.actor())?;
+        ApubMultiCommunity::verify(m, &self.id, context).await?
+      }
     }
     Ok(())
   }
