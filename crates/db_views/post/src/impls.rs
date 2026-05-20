@@ -18,7 +18,7 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::{SortDirection, asc_if};
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommunityId, MultiCommunityId, PostId},
+  newtypes::{CommunityId, CommunityTagId, MultiCommunityId, PostId},
   source::{
     actor_language::LocalUserLanguage,
     community::CommunityActions,
@@ -51,7 +51,7 @@ use lemmy_db_schema_file::{
     my_person_actions_join,
     my_post_actions_join,
   },
-  schema::{community, community_actions, person, post, post_actions},
+  schema::{community, community_actions, person, post, post_actions, post_community_tag},
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
@@ -152,6 +152,8 @@ impl PostView {
     let my_person_actions_join: my_person_actions_join = my_person_actions_join(my_person_id);
     let creator_local_instance_actions_join: creator_local_instance_actions_join =
       creator_local_instance_actions_join(local_instance_id);
+    let post_community_tag_join =
+      post_community_tag::table.on(post_community_tag::post_id.eq(post_actions::post_id));
 
     post_actions::table
       .inner_join(post::table)
@@ -167,6 +169,7 @@ impl PostView {
       .left_join(my_instance_communities_actions_join)
       .left_join(my_instance_persons_actions_join_1)
       .left_join(my_local_user_admin_join)
+      .left_join(post_community_tag_join)
   }
 
   pub async fn read(
@@ -311,6 +314,7 @@ pub struct PostQuery<'a> {
   pub search_title_only: Option<bool>,
   pub search_url_only: Option<bool>,
   pub page_cursor: Option<PaginationCursor>,
+  pub tag_id: Option<CommunityTagId>,
   /// For backwards compat with API v3 (not available on API v4).
   pub page: Option<i64>,
   pub limit: Option<i64>,
@@ -537,6 +541,10 @@ impl PostQuery<'_> {
     if let Some(time_range_seconds) = self.time_range_seconds {
       query =
         query.filter(post::published_at.gt(now() - seconds_to_pg_interval(time_range_seconds)));
+    }
+
+    if let Some(tag_id) = self.tag_id {
+      query = query.filter(post_community_tag::community_tag_id.nullable().eq(tag_id));
     }
 
     // Only sort by ascending for Old
