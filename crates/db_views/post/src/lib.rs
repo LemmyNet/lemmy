@@ -64,14 +64,12 @@ pub struct PostView {
     )
   )]
   pub creator_is_admin: bool,
-  /*
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = post_community_tags_fragment()
     )
   )]
   pub tags: CommunityTagsView,
-  */
   #[cfg_attr(feature = "full",
     diesel(
       select_expression = local_user_can_mod_post()

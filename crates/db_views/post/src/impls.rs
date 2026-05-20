@@ -152,8 +152,6 @@ impl PostView {
     let my_person_actions_join: my_person_actions_join = my_person_actions_join(my_person_id);
     let creator_local_instance_actions_join: creator_local_instance_actions_join =
       creator_local_instance_actions_join(local_instance_id);
-    let post_community_tag_join =
-      post_community_tag::table.on(post_community_tag::post_id.eq(post_actions::post_id));
 
     post_actions::table
       .inner_join(post::table)
@@ -169,7 +167,6 @@ impl PostView {
       .left_join(my_instance_communities_actions_join)
       .left_join(my_instance_persons_actions_join_1)
       .left_join(my_local_user_admin_join)
-      .left_join(post_community_tag_join)
   }
 
   pub async fn read(
@@ -544,7 +541,11 @@ impl PostQuery<'_> {
     }
 
     if let Some(tag_id) = self.tag_id {
-      query = query.filter(post_community_tag::community_tag_id.nullable().eq(tag_id));
+      // This is already a subquery
+      let tags = post_community_tag::table
+        .select(post_community_tag::community_tag_id)
+        .single_value();
+      query = query.filter(tags.eq(tag_id));
     }
 
     // Only sort by ascending for Old
