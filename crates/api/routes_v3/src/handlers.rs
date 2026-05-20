@@ -393,7 +393,7 @@ pub(crate) async fn search_v3(
     title_only,
     ..Default::default()
   };
-  let data = search(Query(form), context, local_user_view).await?;
+  let data = Box::pin(search(Query(form), context, local_user_view)).await?;
   Ok(Json(convert_search_response(data.0, type_)))
 }
 

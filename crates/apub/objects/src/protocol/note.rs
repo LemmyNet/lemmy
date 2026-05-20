@@ -16,6 +16,7 @@ use activitypub_federation::{
   protocol::{
     helpers::{deserialize_one_or_many, deserialize_skip_error},
     values::MediaTypeMarkdownOrHtml,
+    verification::verify_urls_match,
   },
 };
 use chrono::{DateTime, Utc};
@@ -99,11 +100,11 @@ impl Note {
 
 impl InCommunity for Note {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
-    if let Some(audience) = &self.audience {
-      return audience.dereference(context).await;
-    }
     let (post, _) = self.get_parents(context).await?;
     let community = Community::read(&mut context.pool(), post.community_id).await?;
+    if let Some(audience) = &self.audience {
+      verify_urls_match(audience.inner(), community.ap_id.inner())?;
+    }
     Ok(community.into())
   }
 }

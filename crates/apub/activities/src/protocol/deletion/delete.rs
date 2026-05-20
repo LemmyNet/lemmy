@@ -3,7 +3,11 @@ use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
   kinds::activity::DeleteType,
-  protocol::{helpers::deserialize_one_or_many, tombstone::Tombstone},
+  protocol::{
+    helpers::deserialize_one_or_many,
+    tombstone::Tombstone,
+    verification::verify_urls_match,
+  },
 };
 use anyhow::anyhow;
 use lemmy_api_utils::context::LemmyContext;
@@ -50,9 +54,6 @@ pub struct Delete {
 
 impl InCommunity for Delete {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
-    if let Some(audience) = &self.audience {
-      return audience.dereference(context).await;
-    }
     let community_id = match DeletableObjects::read_from_db(self.object.id(), context).await? {
       DeletableObjects::Community(c) => c.id,
       DeletableObjects::Comment(c) => {
@@ -66,6 +67,9 @@ impl InCommunity for Delete {
       }
     };
     let community = Community::read(&mut context.pool(), community_id).await?;
+    if let Some(audience) = &self.audience {
+      verify_urls_match(audience.inner(), community.ap_id.inner())?;
+    }
     Ok(community.into())
   }
 }

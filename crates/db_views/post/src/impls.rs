@@ -67,7 +67,7 @@ use lemmy_diesel_utils::{
 };
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
-  utils::validation::clean_url,
+  utils::markdown::clean_url,
 };
 use tracing::debug;
 use url::Url;

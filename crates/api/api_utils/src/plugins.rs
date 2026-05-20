@@ -187,7 +187,7 @@ pub fn plugin_metadata() -> Vec<PluginMetadata> {
 }
 
 #[derive(Clone)]
-struct LemmyPlugins {
+pub struct LemmyPlugins {
   plugins: Vec<LemmyPlugin>,
   captcha_plugin: Option<LemmyPlugin>,
 }
@@ -240,6 +240,11 @@ impl LemmyPlugin {
       .insert("lemmy_version".to_string(), VERSION.to_string());
     let builder = move || PluginBuilder::new(manifest.clone()).with_wasi(true).build();
     let pool = Pool::new(builder);
+    if let Some(mut p) = pool.get(GET_PLUGIN_TIMEOUT)?
+      && p.function_exists("init")
+    {
+      p.call::<_, ()>("init", ())?;
+    }
     Ok(LemmyPlugin {
       pool,
       filename: filename.unwrap_or(settings.file),
@@ -263,7 +268,7 @@ impl LemmyPlugin {
 
 impl LemmyPlugins {
   /// Load and initialize all plugins
-  fn get_or_init() -> Self {
+  pub fn get_or_init() -> Self {
     static PLUGINS: LazyLock<LemmyPlugins> = LazyLock::new(|| {
       let mut plugins: Vec<_> = SETTINGS
         .plugins
