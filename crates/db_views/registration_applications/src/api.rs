@@ -63,8 +63,8 @@ pub struct Register {
   pub stay_logged_in: Option<bool>,
 }
 
-#[derive(Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(ToBytes,))]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "full", derive(ToBytes))]
 #[cfg_attr(feature = "full", encoding(Json))]
 pub struct CaptchaAnswer {
   pub answer: String,
