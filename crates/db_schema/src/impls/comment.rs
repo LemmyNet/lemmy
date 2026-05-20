@@ -320,6 +320,14 @@ impl Comment {
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
+
+  /// Return the comment's ap_id with a timestamp fragment appended.
+  pub fn activity_object_id(&self) -> Url {
+    let timestamp = self.updated_at.unwrap_or(self.published_at);
+    let mut object_id = (*self.ap_id.0).clone();
+    object_id.set_fragment(Some(&timestamp.to_rfc3339()));
+    object_id
+  }
 }
 
 impl Crud for Comment {

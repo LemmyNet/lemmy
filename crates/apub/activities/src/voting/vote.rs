@@ -1,6 +1,6 @@
 use crate::{
   check_community_deleted_or_removed,
-  generate_activity_id,
+  generate_activity_id_with_object_id,
   protocol::voting::vote::{Vote, VoteType},
   voting::{undo_vote_comment, undo_vote_post, vote_comment, vote_post},
 };
@@ -31,7 +31,7 @@ impl Vote {
       actor: actor.id().clone().into(),
       object: object_id,
       kind: kind.clone(),
-      id: generate_activity_id(kind, context)?,
+      id: generate_activity_id_with_object_id(kind, context)?,
       audience: Some(community.ap_id.clone().into()),
     })
   }
