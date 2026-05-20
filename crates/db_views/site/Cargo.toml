@@ -29,7 +29,7 @@ full = [
   "anyhow",
   "extism",
   "i-love-jesus",
-  "activitypub_federation"
+  "activitypub_federation",
 ]
 ts-rs = [
   "dep:ts-rs",
