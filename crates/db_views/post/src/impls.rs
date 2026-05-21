@@ -541,7 +541,7 @@ impl PostQuery<'_> {
     }
 
     if let Some(tag_id) = self.tag_id {
-      // This is already a subquery
+      // This filters the post_community_tags_fragment subquery
       let tags = post_community_tag::table
         .select(post_community_tag::community_tag_id)
         .single_value();
