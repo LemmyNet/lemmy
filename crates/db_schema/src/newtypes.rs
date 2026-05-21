@@ -29,6 +29,13 @@ impl fmt::Display for CommentId {
   }
 }
 
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "full", derive(DieselNewType))]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
+/// The invitation id.
+pub struct InvitationId(pub i32);
+
 pub enum PostOrCommentId {
   Post(PostId),
   Comment(CommentId),

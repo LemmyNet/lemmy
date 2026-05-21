@@ -351,6 +351,20 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+
+    local_user_invite (id) {
+        id -> Int4,
+        token -> Varchar,
+        local_user_id -> Int4,
+        max_uses -> Nullable<Int4>,
+        uses_count -> Int4,
+        expires_at -> Nullable<Timestamptz>,
+        published_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     language (id) {
         id -> Int4,
         #[max_length = 3]
@@ -428,6 +442,7 @@ diesel::table! {
         image_max_upload_size -> Int4,
         image_allow_video_uploads -> Bool,
         image_upload_disabled -> Bool,
+        max_invites_per_user_allowed -> Int4
     }
 }
 
@@ -508,6 +523,7 @@ diesel::table! {
         show_upvote_percentage -> Bool,
         show_person_votes -> Bool,
         default_items_per_page -> Int4,
+        invited_by_local_user_id -> Nullable<Int4>,
     }
 }
 

@@ -88,6 +88,8 @@ pub enum RegistrationMode {
   Closed,
   /// Open, but pending approval of a registration application.
   RequireApplication,
+  /// Require invite links.
+  RequireInvitation,
   /// Open to all.
   #[default]
   Open,
