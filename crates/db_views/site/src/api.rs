@@ -1,5 +1,7 @@
 use crate::{ResolveObjectView, SiteView};
 #[cfg(feature = "full")]
+use activitypub_federation::protocol::helpers::deserialize_skip_error;
+#[cfg(feature = "full")]
 use extism::FromBytes;
 use extism_convert::Json;
 use lemmy_db_schema::{
@@ -747,7 +749,6 @@ pub enum PostOrCommentOrPrivateMessage {
 /// Be careful with any changes to this struct, to avoid breaking changes which could prevent
 /// importing older backups.
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[serde(deny_unknown_fields)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct UserSettingsBackup {
@@ -757,6 +758,10 @@ pub struct UserSettingsBackup {
   pub banner: Option<Url>,
   pub matrix_id: Option<String>,
   pub bot_account: Option<bool>,
+  #[cfg_attr(
+    feature = "full",
+    serde(deserialize_with = "deserialize_skip_error", default)
+  )]
   // TODO: might be worth making a separate struct for settings backup, to avoid breakage in case
   //       fields are renamed, and to avoid storing unnecessary fields like person_id or email
   pub settings: Option<LocalUser>,
