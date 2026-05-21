@@ -1,4 +1,5 @@
 use crate::{ResolveObjectView, SiteView};
+#[cfg(feature = "full")]
 use activitypub_federation::protocol::helpers::deserialize_skip_error;
 #[cfg(feature = "full")]
 use extism::FromBytes;
@@ -757,7 +758,10 @@ pub struct UserSettingsBackup {
   pub banner: Option<Url>,
   pub matrix_id: Option<String>,
   pub bot_account: Option<bool>,
-  #[serde(deserialize_with = "deserialize_skip_error", default)]
+  #[cfg_attr(
+    feature = "full",
+    serde(deserialize_with = "deserialize_skip_error", default)
+  )]
   // TODO: might be worth making a separate struct for settings backup, to avoid breakage in case
   //       fields are renamed, and to avoid storing unnecessary fields like person_id or email
   pub settings: Option<LocalUser>,
