@@ -341,8 +341,7 @@ pub async fn authenticate_with_oauth(
     login_response.registration_created = local_site.site_setup
       && require_registration_application
       && !local_user.accepted_application
-      && !local_user.admin
-      && data.answer.is_some();
+      && !local_user.admin;
 
     check_local_user_valid(&user_view)?;
     check_email_verified(&user_view, &site_view)?;
@@ -396,9 +395,6 @@ pub async fn authenticate_with_oauth(
     } else {
       // No user was found by email => Register as new user
 
-      // make sure the registration answer is provided when the registration application is required
-      validate_registration_answer(require_registration_application, &data.answer)?;
-
       let slur_regex = slur_regex(&context).await?;
 
       // Wrap the insert person, insert local user, and create registration,
@@ -416,7 +412,6 @@ pub async fn authenticate_with_oauth(
               .ok_or(LemmyErrorType::RegistrationUsernameRequired)?;
 
             check_slurs(username, &slur_regex)?;
-            check_slurs_opt(&tx_data.answer, &slur_regex)?;
 
             Person::check_username_taken(&mut conn.into(), username).await?;
 
@@ -447,22 +442,6 @@ pub async fn authenticate_with_oauth(
 
             OAuthAccount::create(&mut conn.into(), &oauth_account_form).await?;
 
-            // prevent sign in until application is accepted
-            if login_response.registration_created {
-              // Create the registration application
-              RegistrationApplication::create(
-                &mut conn.into(),
-                &RegistrationApplicationInsertForm {
-                  local_user_id: local_user.id,
-                  // We already check earlier that this Some, however using `ok_or` is cleaner
-                  // than unwrap or expect (which also requires clippy allow).
-                  answer: data
-                    .answer
-                    .ok_or(LemmyErrorType::RegistrationApplicationAnswerRequired)?,
-                },
-              )
-              .await?;
-            }
             Ok(LocalUserView {
               person,
               local_user,
