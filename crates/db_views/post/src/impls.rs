@@ -541,6 +541,7 @@ impl PostQuery<'_> {
     }
 
     if let Some(tag_id) = self.tag_id {
+      dbg!(&tag_id);
       // This filters the post_community_tags_fragment subquery
       let tags = post_community_tag::table
         .select(post_community_tag::community_tag_id)
