@@ -1071,7 +1071,9 @@ test("Rewrite markdown links", async () => {
   ).then(expectSuccess);
   expect(postRes2.post_view.post).toBeDefined();
   const originalLink = `http://lemmy-beta:8551/post/${postRes1?.post_view.post.id}`;
-  expect(postRes2.post_view.post.body).toBe(`[link](${originalLink})\n${originalLink}\n`);
+  expect(postRes2.post_view.post.body).toBe(
+    `[link](${originalLink})\n${originalLink}\n`,
+  );
 
   // fetch post from the other instance
   const alphaPost = await resolvePost(alpha, postRes2.post_view.post);
