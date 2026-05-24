@@ -206,7 +206,6 @@ test("Images in remote image post are proxied if setting enabled", async () => {
   if (post.thumbnail_url) {
     const proxyResponse = await fetch(post.thumbnail_url);
     const contentDisposition = proxyResponse.headers.get("content-disposition");
-    expect(contentDisposition).not.toBeNull();
     expect(contentDisposition).toBe(inlineContentDisposition(expectedFilename));
   }
 
@@ -238,7 +237,6 @@ test("Images in remote image post are proxied if setting enabled", async () => {
   if (epsilonPost.thumbnail_url) {
     const proxyResponse = await fetch(epsilonPost.thumbnail_url);
     const contentDisposition = proxyResponse.headers.get("content-disposition");
-    expect(contentDisposition).not.toBeNull();
     expect(contentDisposition).toBe(inlineContentDisposition(expectedFilename));
   }
 });
