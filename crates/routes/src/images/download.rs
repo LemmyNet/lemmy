@@ -306,21 +306,35 @@ mod tests {
     // ASCII filename: URL-encoded, preserving characters allowed by urlencoding::encode
     set_content_disposition(&mut builder, "photo.jpg");
     let res = builder.finish();
-    let header = res.headers().get(CONTENT_DISPOSITION).unwrap();
-    assert_eq!(header, "inline; filename=\"photo.jpg\"");
+    assert_eq!(
+      res.headers()
+        .get(CONTENT_DISPOSITION)
+        .and_then(|header| header.to_str().ok()),
+      Some("inline; filename=\"photo.jpg\"")
+    );
 
     // Spaces are encoded
     let mut builder2 = HttpResponse::build(StatusCode::OK);
     set_content_disposition(&mut builder2, "my photo.jpg");
     let res2 = builder2.finish();
-    let header2 = res2.headers().get(CONTENT_DISPOSITION).unwrap();
-    assert_eq!(header2, "inline; filename=\"my%20photo.jpg\"");
+    assert_eq!(
+      res2
+        .headers()
+        .get(CONTENT_DISPOSITION)
+        .and_then(|header| header.to_str().ok()),
+      Some("inline; filename=\"my%20photo.jpg\"")
+    );
 
     // Non-ASCII characters are UTF-8 percent-encoded
     let mut builder3 = HttpResponse::build(StatusCode::OK);
     set_content_disposition(&mut builder3, "héron.jpg");
     let res3 = builder3.finish();
-    let header3 = res3.headers().get(CONTENT_DISPOSITION).unwrap();
-    assert_eq!(header3, "inline; filename=\"h%C3%A9ron.jpg\"");
+    assert_eq!(
+      res3
+        .headers()
+        .get(CONTENT_DISPOSITION)
+        .and_then(|header| header.to_str().ok()),
+      Some("inline; filename=\"h%C3%A9ron.jpg\"")
+    );
   }
 }
