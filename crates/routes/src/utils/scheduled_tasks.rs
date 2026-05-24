@@ -18,6 +18,7 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use diesel_uplete::uplete;
 use lemmy_api_utils::{
   context::LemmyContext,
+  plugins::plugin_hook_after,
   send_activity::{ActivityChannel, SendActivityData},
   utils::send_webmention,
 };
@@ -39,6 +40,7 @@ use lemmy_db_schema_file::schema::{
   instance_actions,
   local_site,
   local_user,
+  local_user_invite,
   person,
   post,
   received_activity,
@@ -64,6 +66,11 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
   // https://github.com/mdsherry/clokwerk/issues/38
   let mut scheduler = AsyncScheduler::with_tz(Utc);
 
+  // Every 1 minute run plugin hooks
+  scheduler.every(CTimeUnits::minutes(1)).run(async move || {
+    plugin_hook_after("scheduled_task_1_min", &());
+  });
+
   let context_1 = context.clone();
   // Every 10 minutes update hot ranks, delete expired captchas and publish scheduled posts
   scheduler.every(CTimeUnits::minutes(10)).run(move || {
@@ -78,6 +85,7 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
         .await
         .inspect_err(|e| warn!("Failed to publish scheduled posts: {e}"))
         .ok();
+      plugin_hook_after("scheduled_task_10_mins", &());
     }
   });
 
@@ -86,6 +94,7 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
   // - Update active daily counts
   // - Expired bans
   // - Expired instance blocks
+  // - Expired invitations
   scheduler.every(CTimeUnits::hour(1)).run(move || {
     let context = context_1.clone();
 
@@ -102,6 +111,11 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
         .await
         .inspect_err(|e| warn!("Failed to delete expired instance bans: {e}"))
         .ok();
+      delete_invitations_when_expired(&mut context.pool())
+        .await
+        .inspect_err(|e| warn!("Failed to delete expired invitations: {e}"))
+        .ok();
+      plugin_hook_after("scheduled_task_1_hour", &());
     }
   });
 
@@ -141,6 +155,7 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
         .await
         .inspect_err(|e| warn!("Failed to clear old activities: {e}"))
         .ok();
+      plugin_hook_after("scheduled_task_daily", &());
     }
   });
 
@@ -546,6 +561,17 @@ async fn delete_instance_block_when_expired(pool: &mut DbPool<'_>) -> LemmyResul
 
   diesel::delete(
     federation_blocklist::table.filter(federation_blocklist::expires_at.lt(now().nullable())),
+  )
+  .execute(conn)
+  .await?;
+  Ok(())
+}
+
+/// Set invitations to Expired
+async fn delete_invitations_when_expired(pool: &mut DbPool<'_>) -> LemmyResult<()> {
+  let conn = &mut get_conn(pool).await?;
+  diesel::delete(
+    local_user_invite::table.filter(local_user_invite::expires_at.lt(now().nullable())),
   )
   .execute(conn)
   .await?;

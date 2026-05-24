@@ -114,14 +114,16 @@ pub struct EmailConfig {
 pub struct SetupConfig {
   /// Username for the admin user
   #[doku(example = "admin")]
-  pub admin_username: String,
+  pub admin_username: Option<String>,
   /// Password for the admin user. It must be between 10 and 60 characters.
   #[doku(example = "tf6HHDS4RolWfFhk4Rq9")]
-  pub admin_password: String,
-  /// Name of the site, can be changed later. Maximum 20 characters.
+  pub admin_password: Option<String>,
+  /// Name of the site, can be changed later. Maximum 20 characters. Only used if `admin_username`
+  /// and `admin_password` are set.
   #[doku(example = "My Lemmy Instance")]
-  pub site_name: String,
-  /// Email for the admin user (optional, can be omitted and set later through the website)
+  pub site_name: Option<String>,
+  /// Email for the admin user (optional, can be omitted and set later through the website). Only
+  /// used if `admin_username` and `admin_password` are set.
   #[doku(example = "user@example.com")]
   pub admin_email: Option<String>,
   /// On first start Lemmy fetches the 50 most active communities from one of these instances,

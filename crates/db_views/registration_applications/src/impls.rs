@@ -263,6 +263,7 @@ mod tests {
         show_score: sara_local_user.show_score,
         show_upvote_percentage: sara_local_user.show_upvote_percentage,
         show_person_votes: sara_local_user.show_person_votes,
+        invited_by_local_user_id: sara_local_user.invited_by_local_user_id,
       },
       creator: Person {
         id: sara_person.id,
