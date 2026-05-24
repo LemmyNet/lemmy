@@ -307,7 +307,8 @@ mod tests {
     set_content_disposition(&mut builder, "photo.jpg");
     let res = builder.finish();
     assert_eq!(
-      res.headers()
+      res
+        .headers()
         .get(CONTENT_DISPOSITION)
         .and_then(|header| header.to_str().ok()),
       Some("inline; filename=\"photo.jpg\"")
