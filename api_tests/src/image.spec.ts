@@ -45,6 +45,27 @@ function inlineContentDisposition(filename: string): string {
   return `inline; filename="${encodeURIComponent(filename)}"`;
 }
 
+async function expectProxiedImageContentDisposition(
+  url: string,
+  filename: string,
+) {
+  const expectedContentDisposition = inlineContentDisposition(filename);
+  const proxyResponse = await waitUntilSuccess<Response>(
+    async () => ({
+      state: "success" as const,
+      data: await fetch(url),
+    }),
+    response =>
+      response.ok &&
+      response.headers.get("content-disposition") ===
+        expectedContentDisposition,
+  );
+
+  expect(proxyResponse.headers.get("content-disposition")).toBe(
+    expectedContentDisposition,
+  );
+}
+
 test("Upload image and delete it", async () => {
   const health = await alpha.imageHealth().then(expectSuccess);
   expect(health.success).toBeTruthy();
@@ -218,9 +239,10 @@ test("Images in remote image post are proxied if setting enabled", async () => {
 
   // Proxied image should include a Content-Disposition: inline header
   if (post.thumbnail_url) {
-    const proxyResponse = await fetch(post.thumbnail_url);
-    const contentDisposition = proxyResponse.headers.get("content-disposition");
-    expect(contentDisposition).toBe(inlineContentDisposition(expectedFilename));
+    await expectProxiedImageContentDisposition(
+      post.thumbnail_url,
+      expectedFilename,
+    );
   }
 
   const epsilonPostRes = await resolvePost(epsilon, postRes.post_view.post);
@@ -249,9 +271,10 @@ test("Images in remote image post are proxied if setting enabled", async () => {
   expect(epsilonPost.thumbnail_url?.includes(".jpg")).toBeTruthy();
 
   if (epsilonPost.thumbnail_url) {
-    const proxyResponse = await fetch(epsilonPost.thumbnail_url);
-    const contentDisposition = proxyResponse.headers.get("content-disposition");
-    expect(contentDisposition).toBe(inlineContentDisposition(expectedFilename));
+    await expectProxiedImageContentDisposition(
+      epsilonPost.thumbnail_url,
+      expectedFilename,
+    );
   }
 });
 
