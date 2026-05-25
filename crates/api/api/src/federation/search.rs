@@ -208,8 +208,8 @@ pub async fn search(
     communities,
     multi_communities,
     persons,
-    prev_page: to_single_cursor(prev_page, search_type),
-    next_page: to_single_cursor(next_page, search_type),
+    prev_page: to_single_cursor(prev_page, search_type).map(PaginationCursor),
+    next_page: to_single_cursor(next_page, search_type).map(PaginationCursor),
   };
 
   Ok(Json(res))
@@ -236,7 +236,7 @@ fn to_single_cursor(
 }
 
 fn from_single_cursor(
-  cursor: Option<String>,
+  cursor: Option<PaginationCursor>,
   search_type: SearchType,
 ) -> [Option<PaginationCursor>; 5] {
   use SearchType::*;
@@ -249,7 +249,7 @@ fn from_single_cursor(
     All => {
       let vec = cursor
         .iter()
-        .flat_map(|c| c.split(","))
+        .flat_map(|c| c.0.split(","))
         .map(|c| {
           if c == "none" {
             None

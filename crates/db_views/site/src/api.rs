@@ -708,7 +708,7 @@ pub struct Search {
   pub post_url_only: Option<bool>,
   /// If true, then show the nsfw posts (even if your user setting is to hide them)
   pub show_nsfw: Option<bool>,
-  pub page_cursor: Option<String>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }
 
@@ -728,8 +728,8 @@ pub struct SearchResponse {
   pub communities: Vec<CommunityView>,
   pub persons: Vec<PersonView>,
   pub multi_communities: Vec<MultiCommunityView>,
-  pub prev_page: Option<String>,
-  pub next_page: Option<String>,
+  pub prev_page: Option<PaginationCursor>,
+  pub next_page: Option<PaginationCursor>,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
