@@ -161,7 +161,9 @@ impl PersonContentCombinedQuery {
         PersonContentType::Comments => {
           query.filter(person_content_combined::comment_id.is_not_null())
         }
-        PersonContentType::Posts => query.filter(person_content_combined::post_id.is_not_null()),
+        // Cannot use `person_content_combined::post_id.is_not_null()` because comments also include
+        // post_id
+        PersonContentType::Posts => query.filter(person_content_combined::comment_id.is_null()),
       }
     }
 
@@ -217,8 +219,7 @@ impl PersonContentCombinedQuery {
 #[cfg(test)]
 #[expect(clippy::indexing_slicing)]
 mod tests {
-
-  use crate::impls::PersonContentCombinedQuery;
+  use super::*;
   use lemmy_db_schema::{
     source::{
       comment::{Comment, CommentInsertForm},
@@ -430,6 +431,33 @@ mod tests {
     } else {
       panic!("wrong type");
     }
+
+    let post_content = PersonContentCombinedQuery {
+      creator_id: data.timmy.id,
+      type_: Some(PersonContentType::Posts),
+      ..Default::default()
+    }
+    .list(pool, None, data.instance.id)
+    .await?;
+    assert_eq!(2, post_content.len());
+    let PostCommentCombinedView::Post(_) = &post_content[0] else {
+      panic!("wrong type");
+    };
+    let PostCommentCombinedView::Post(_) = &post_content[1] else {
+      panic!("wrong type");
+    };
+
+    let comment_content = PersonContentCombinedQuery {
+      creator_id: data.timmy.id,
+      type_: Some(PersonContentType::Comments),
+      ..Default::default()
+    }
+    .list(pool, None, data.instance.id)
+    .await?;
+    assert_eq!(1, comment_content.len());
+    let PostCommentCombinedView::Comment(_) = &comment_content[0] else {
+      panic!("wrong type");
+    };
 
     cleanup(data, pool).await?;
 
