@@ -367,11 +367,7 @@ impl LocalUserOptionHelper for Option<&LocalUser> {
         Output = Q,
       >,
   {
-    if self.is_none() {
-      query.filter(community::visibility.eq(CommunityVisibility::Public))
-    } else {
       query
-    }
   }
 }
 
