@@ -106,8 +106,7 @@ trait UrlAndTitle {
 
 impl UrlAndTitle for Image {
   fn start_offset(&self, node_offset: usize) -> usize {
-    let title_len = self.title.as_ref().map(|t| t.len() + 3).unwrap_or_default();
-    node_offset - self.url.len() - 1 - title_len
+    start_offset_impl(&self.title, &self.url, node_offset)
   }
   fn end_offset(&self, node_offset: usize) -> usize {
     node_offset - 1
@@ -115,17 +114,21 @@ impl UrlAndTitle for Image {
 }
 impl UrlAndTitle for Link {
   fn start_offset(&self, node_offset: usize) -> usize {
-    let title_len = self.title.as_ref().map(|t| t.len() + 3).unwrap_or_default();
-    node_offset - self.url.len() - 1 - title_len
+    start_offset_impl(&self.title, &self.url, node_offset)
   }
   fn end_offset(&self, node_offset: usize) -> usize {
     node_offset - 1
   }
 }
 
+fn start_offset_impl(title: &Option<String>, url: &str, node_offset: usize) -> usize {
+  let title_len = title.as_ref().map(|t| t.len() + 3).unwrap_or_default();
+  node_offset - url.len() - 1 - title_len
+}
+
 impl UrlAndTitle for Linkified {
   fn start_offset(&self, node_offset: usize) -> usize {
-    node_offset - self.url.len() +1
+    node_offset - self.url.len() + 1
   }
   fn end_offset(&self, node_offset: usize) -> usize {
     node_offset + 1
