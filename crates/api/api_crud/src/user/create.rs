@@ -338,18 +338,13 @@ pub async fn authenticate_with_oauth(
     // user found by oauth_user_id => Login user
     let local_user = user_view.clone().local_user;
 
-    login_response.registration_created = local_site.site_setup
-      && require_registration_application
-      && !local_user.accepted_application
-      && !local_user.admin
-      && data.answer.is_some();
-
     check_local_user_valid(&user_view)?;
     check_email_verified(&user_view, &site_view)?;
     check_registration_application(&user_view, &site_view.local_site, pool).await?;
     local_user
   } else {
     // user has never previously registered using oauth
+    login_response.registration_created = local_site.site_setup && require_registration_application;
 
     // prevent registration if registration is closed
     if local_site.registration_mode == RegistrationMode::Closed {
