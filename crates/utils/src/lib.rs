@@ -49,7 +49,7 @@ fn version() -> String {
     // Event cron means its a nightly build
     // https://woodpecker-ci.org/docs/usage/environment
     if option_env!("CI_PIPELINE_EVENT") == Some("cron") {
-      format!("nightly-{}", Utc::now().date_naive())
+      format!("1.0.0-nightly-{}", Utc::now().date_naive())
     } else {
       // For actual release builds use git binary for detailed version information.
       git_version::git_version!(
