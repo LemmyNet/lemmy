@@ -122,8 +122,6 @@ impl CommentView {
       .select(Self::as_select())
       .into_boxed();
 
-    query = my_local_user.visible_communities_only(query);
-
     // Check permissions to view private community content.
     // Specifically, if the community is private then only accepted followers may view its
     // content, otherwise it is filtered out. Admins can view private community content
@@ -210,14 +208,17 @@ impl CommentQuery<'_> {
 
     // For posts, we only show hidden if its subscribed, but for comments,
     // we ignore hidden.
-    query = match self.listing_type.unwrap_or_default() {
+    let listing_type = self.listing_type.unwrap_or_default();
+    query = match listing_type {
       ListingType::Subscribed => query.filter(filter_is_subscribed()),
       ListingType::Local => {
         // Only filter by local when there's no post or community given
         if self.post_id.is_none() && self.community_id.is_none() {
-          query.filter(community::local.eq(true))
-        } else {
           query
+            .filter(community::visibility.ne(CommunityVisibility::Unlisted))
+            .filter(community::local.eq(true))
+        } else {
+          query.filter(community::visibility.ne(CommunityVisibility::Unlisted))
         }
       }
       ListingType::All => query,
@@ -243,6 +244,13 @@ impl CommentQuery<'_> {
       }
     };
 
+    // Comments from unlisted communities should not be visible in Local/All feeds
+    if self.community_id.is_none()
+      && (listing_type == ListingType::All || listing_type == ListingType::Local)
+    {
+      query = query.filter(community::visibility.ne(CommunityVisibility::Unlisted));
+    }
+
     if !self.local_user.show_bot_accounts() {
       query = query.filter(person::bot_account.eq(false));
     };
@@ -267,7 +275,6 @@ impl CommentQuery<'_> {
         .filter(community::nsfw.eq(false));
     };
 
-    query = self.local_user.visible_communities_only(query);
     query = query.filter(
       comment::federation_pending
         .eq(false)

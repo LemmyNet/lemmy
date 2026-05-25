@@ -1,12 +1,8 @@
-use diesel::{
-  BoolExpressionMethods,
-  ExpressionMethods,
-  helper_types::{Eq, NotEq},
-};
+use diesel::{BoolExpressionMethods, ExpressionMethods, helper_types::Eq};
 use lemmy_db_schema_file::{
   aliases::my_instance_persons_actions,
-  enums::{CommunityFollowerState, CommunityVisibility},
-  schema::{community, community_actions, instance_actions, person_actions},
+  enums::CommunityFollowerState,
+  schema::{community_actions, instance_actions, person_actions},
 };
 
 /// Hide all content from blocked communities and persons. Content from blocked instances is also
@@ -30,13 +26,4 @@ type IsSubscribedType =
 
 pub fn filter_is_subscribed() -> IsSubscribedType {
   community_actions::follow_state.eq(Some(CommunityFollowerState::Accepted))
-}
-
-type IsNotUnlistedType =
-  NotEq<lemmy_db_schema_file::schema::community::visibility, CommunityVisibility>;
-
-#[diesel::dsl::auto_type]
-pub fn filter_not_unlisted() -> _ {
-  let not_unlisted: IsNotUnlistedType = community::visibility.ne(CommunityVisibility::Unlisted);
-  not_unlisted
 }

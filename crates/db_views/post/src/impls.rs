@@ -29,10 +29,7 @@ use lemmy_db_schema::{
     post::{Post, PostActions, post_actions_keys as pa_key, post_keys as key},
     site::Site,
   },
-  utils::{
-    limit_fetch,
-    queries::filters::{filter_blocked, filter_not_unlisted},
-  },
+  utils::{limit_fetch, queries::filters::filter_blocked},
 };
 use lemmy_db_schema_file::{
   InstanceId,
@@ -217,8 +214,6 @@ impl PostView {
             .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
         );
     }
-
-    query = my_local_user.visible_communities_only(query);
 
     Commented::new(query)
       .text("PostView::read")
@@ -426,8 +421,17 @@ impl PostQuery<'_> {
 
     // Although the other listing types pre-fetched the communities, you still need to filter by
     // local if necessary.
-    if self.listing_type.unwrap_or_default() == ListingType::Local {
+    let listing_type = self.listing_type.unwrap_or_default();
+    if listing_type == ListingType::Local {
       query = query.filter(community::local.eq(true));
+    }
+
+    // Posts from unlisted communities should not be visible in Local/All feeds
+    if self.community_id.is_none()
+      && self.multi_community_id.is_none()
+      && (listing_type == ListingType::All || listing_type == ListingType::Local)
+    {
+      query = query.filter(community::visibility.ne(CommunityVisibility::Unlisted));
     }
 
     // The search term
@@ -449,11 +453,6 @@ impl PostQuery<'_> {
         let body_or_description_filter = post::body.ilike(searcher.clone());
         query.filter(name_or_title_filter.or(body_or_description_filter))
       }
-    }
-
-    // Hide the unlisted communities for the general types. Subscribed will still show them
-    if [ListingType::Local, ListingType::All].contains(&self.listing_type.unwrap_or_default()) {
-      query = query.filter(filter_not_unlisted());
     }
 
     if !self.show_nsfw.unwrap_or(self.local_user.show_nsfw(site)) {
@@ -490,7 +489,6 @@ impl PostQuery<'_> {
       ));
     }
 
-    query = self.local_user.visible_communities_only(query);
     query = query.filter(
       post::federation_pending
         .eq(false)

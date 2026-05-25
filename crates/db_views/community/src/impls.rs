@@ -21,10 +21,7 @@ use lemmy_db_schema::{
     multi_community::{MultiCommunity, MultiCommunityEntry, multi_community_keys as mkey},
     site::Site,
   },
-  utils::{
-    limit_fetch,
-    queries::filters::{filter_is_subscribed, filter_not_unlisted},
-  },
+  utils::{limit_fetch, queries::filters::filter_is_subscribed},
 };
 use lemmy_db_schema_file::{
   PersonId,
