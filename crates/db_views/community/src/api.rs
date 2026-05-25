@@ -102,10 +102,6 @@ pub struct CreateCommunity {
   pub sidebar: Option<String>,
   /// A shorter, one line summary of your community.
   pub summary: Option<String>,
-  /// An icon URL.
-  pub icon: Option<String>,
-  /// A banner URL.
-  pub banner: Option<String>,
   /// Whether its an NSFW community.
   pub nsfw: Option<bool>,
   /// Whether to restrict posting only to moderators.
