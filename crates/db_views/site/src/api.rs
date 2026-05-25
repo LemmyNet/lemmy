@@ -718,7 +718,7 @@ pub struct Search {
 /// The search response, containing lists of the return type possibilities
 pub struct SearchResponse {
   /**
-   * If `Search.q` contains an ActivityPub ID (eg `https://lemmy.world/comment/1`) or an
+   * If `Search.search_term` contains an ActivityPub ID (eg `https://lemmy.world/comment/1`) or an
    * identifier (eg `!fediverse@lemmy.ml`) then this field contains the resolved object.
    * It should always be shown above other search results.
    */
