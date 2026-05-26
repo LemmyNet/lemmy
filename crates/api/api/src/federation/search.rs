@@ -281,7 +281,7 @@ mod test {
     let a_res = [None, None, None, None, None];
     assert_eq!(a_res, from_single_cursor(a, SearchType::All));
 
-    let b = Some("a,b,c,d,e".to_string());
+    let b = Some(PaginationCursor("a,b,c,d,e".to_string()));
     let b_res = [
       Some(PaginationCursor("a".to_string())),
       Some(PaginationCursor("b".to_string())),
@@ -291,7 +291,7 @@ mod test {
     ];
     assert_eq!(b_res, from_single_cursor(b, SearchType::All));
 
-    let c = Some("none,b,none,none,none".to_string());
+    let c = Some(PaginationCursor("none,b,none,none,none".to_string()));
     let c_res = [
       None,
       Some(PaginationCursor("b".to_string())),
@@ -301,7 +301,7 @@ mod test {
     ];
     assert_eq!(c_res, from_single_cursor(c, SearchType::All));
 
-    let d = Some("p".to_string());
+    let d = Some(PaginationCursor("p".to_string()));
     let d_res = [
       Some(PaginationCursor("p".to_string())),
       None,
