@@ -208,8 +208,8 @@ pub async fn search(
     communities,
     multi_communities,
     persons,
-    prev_page: to_single_cursor(prev_page, search_type),
-    next_page: to_single_cursor(next_page, search_type),
+    prev_page: to_single_cursor(prev_page, search_type).map(PaginationCursor),
+    next_page: to_single_cursor(next_page, search_type).map(PaginationCursor),
   };
 
   Ok(Json(res))
@@ -236,7 +236,7 @@ fn to_single_cursor(
 }
 
 fn from_single_cursor(
-  cursor: Option<String>,
+  cursor: Option<PaginationCursor>,
   search_type: SearchType,
 ) -> [Option<PaginationCursor>; 5] {
   use SearchType::*;
@@ -249,7 +249,7 @@ fn from_single_cursor(
     All => {
       let vec = cursor
         .iter()
-        .flat_map(|c| c.split(","))
+        .flat_map(|c| c.0.split(","))
         .map(|c| {
           if c == "none" {
             None
@@ -263,11 +263,11 @@ fn from_single_cursor(
         res = v;
       }
     }
-    Posts => res[0] = cursor.map(Into::into),
-    Comments => res[1] = cursor.map(Into::into),
-    Users => res[2] = cursor.map(Into::into),
-    Communities => res[3] = cursor.map(Into::into),
-    MultiCommunities => res[4] = cursor.map(Into::into),
+    Posts => res[0] = cursor,
+    Comments => res[1] = cursor,
+    Users => res[2] = cursor,
+    Communities => res[3] = cursor,
+    MultiCommunities => res[4] = cursor,
   };
   res
 }
@@ -281,7 +281,7 @@ mod test {
     let a_res = [None, None, None, None, None];
     assert_eq!(a_res, from_single_cursor(a, SearchType::All));
 
-    let b = Some("a,b,c,d,e".to_string());
+    let b = Some(PaginationCursor("a,b,c,d,e".to_string()));
     let b_res = [
       Some(PaginationCursor("a".to_string())),
       Some(PaginationCursor("b".to_string())),
@@ -291,7 +291,7 @@ mod test {
     ];
     assert_eq!(b_res, from_single_cursor(b, SearchType::All));
 
-    let c = Some("none,b,none,none,none".to_string());
+    let c = Some(PaginationCursor("none,b,none,none,none".to_string()));
     let c_res = [
       None,
       Some(PaginationCursor("b".to_string())),
@@ -301,7 +301,7 @@ mod test {
     ];
     assert_eq!(c_res, from_single_cursor(c, SearchType::All));
 
-    let d = Some("p".to_string());
+    let d = Some(PaginationCursor("p".to_string()));
     let d_res = [
       Some(PaginationCursor("p".to_string())),
       None,
