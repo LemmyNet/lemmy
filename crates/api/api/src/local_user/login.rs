@@ -28,7 +28,7 @@ pub async fn login(
   let local_user_view =
     LocalUserView::find_by_email_or_name(&mut context.pool(), &username_or_email)
       .await
-      .map_err(|_| {
+      .map_err(|_e| {
         // Dummy bcrypt verify for constant timing
         let _ = verify(
           &data.password,
