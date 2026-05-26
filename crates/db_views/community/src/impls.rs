@@ -25,7 +25,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::{
   PersonId,
-  enums::ListingType,
+  enums::{CommunityVisibility, ListingType},
   joins::{
     my_community_actions_join,
     my_instance_communities_actions_join,
@@ -81,6 +81,9 @@ impl CommunityView {
       .filter(community::id.eq(community_id))
       .select(Self::as_select())
       .into_boxed();
+    if my_local_user.is_none() {
+      query = query.filter(community::visibility.ne(CommunityVisibility::LocalOnlyPrivate));
+    }
 
     // Hide deleted and removed for non-admins or mods
     if !is_mod_or_admin {
@@ -142,6 +145,9 @@ impl CommunityQuery<'_> {
     let is_admin = self.local_user.map(|l| l.admin).unwrap_or_default();
     if !is_admin {
       query = query.filter(Community::hide_removed_and_deleted());
+    }
+    if self.local_user.is_none() {
+      query = query.filter(community::visibility.ne(CommunityVisibility::LocalOnlyPrivate));
     }
 
     if let Some(listing_type) = self.listing_type {
