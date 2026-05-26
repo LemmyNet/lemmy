@@ -181,6 +181,10 @@ impl PostView {
       .select(Self::as_select())
       .into_boxed();
 
+    if my_local_user.is_none() {
+      query = query.filter(community::visibility.ne(CommunityVisibility::LocalOnlyPrivate));
+    }
+
     // Hide deleted and removed for non-admins or mods
     if !is_mod_or_admin {
       query = query
@@ -433,6 +437,21 @@ impl PostQuery<'_> {
     {
       query = query.filter(community::visibility.ne(CommunityVisibility::Unlisted));
     }
+    if !self.local_user.is_admin() {
+      query = query
+        .filter(
+          community::visibility
+            .ne(CommunityVisibility::Private)
+            .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
+        )
+        // only show removed posts to admin
+        .filter(community::removed.eq(false))
+        .filter(community::local_removed.eq(false))
+        .filter(post::removed.eq(false));
+    }
+    if self.local_user.is_none() {
+      query = query.filter(community::visibility.ne(CommunityVisibility::LocalOnlyPrivate));
+    }
 
     // The search term
     if let Some(search_term) = self.search_term {
@@ -494,19 +513,6 @@ impl PostQuery<'_> {
         .eq(false)
         .or(post::creator_id.nullable().eq(my_person_id)),
     );
-
-    if !self.local_user.is_admin() {
-      query = query
-        .filter(
-          community::visibility
-            .ne(CommunityVisibility::Private)
-            .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
-        )
-        // only show removed posts to admin
-        .filter(community::removed.eq(false))
-        .filter(community::local_removed.eq(false))
-        .filter(post::removed.eq(false));
-    }
 
     // Dont filter blocks or missing languages for moderator view type
     if self.listing_type.unwrap_or_default() != ListingType::ModeratorView {

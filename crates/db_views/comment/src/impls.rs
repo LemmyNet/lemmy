@@ -133,6 +133,9 @@ impl CommentView {
           .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
       );
     }
+    if my_local_user.is_none() {
+      query = query.filter(community::visibility.ne(CommunityVisibility::LocalOnlyPrivate));
+    }
 
     query
       .first::<Self>(conn)
@@ -251,6 +254,17 @@ impl CommentQuery<'_> {
       query = query.filter(community::visibility.ne(CommunityVisibility::Unlisted));
     }
 
+    if !self.local_user.is_admin() {
+      query = query.filter(
+        community::visibility
+          .ne(CommunityVisibility::Private)
+          .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
+      );
+    }
+    if self.local_user.is_none() {
+      query = query.filter(community::visibility.ne(CommunityVisibility::LocalOnlyPrivate));
+    }
+
     if !self.local_user.show_bot_accounts() {
       query = query.filter(person::bot_account.eq(false));
     };
@@ -280,14 +294,6 @@ impl CommentQuery<'_> {
         .eq(false)
         .or(comment::creator_id.nullable().eq(my_person_id)),
     );
-
-    if !self.local_user.is_admin() {
-      query = query.filter(
-        community::visibility
-          .ne(CommunityVisibility::Private)
-          .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
-      );
-    }
 
     // Filter by the time range
     if let Some(time_range_seconds) = self.time_range_seconds {
