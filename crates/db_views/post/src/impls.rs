@@ -29,12 +29,15 @@ use lemmy_db_schema::{
     post::{Post, PostActions, post_actions_keys as pa_key, post_keys as key},
     site::Site,
   },
-  utils::{limit_fetch, queries::filters::filter_blocked},
+  utils::{
+    limit_fetch,
+    queries::filters::{filter_blocked, filter_private_or_followed, filter_unlisted_or_followed},
+  },
 };
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
-  enums::{CommunityFollowerState, CommunityVisibility, ListingType, PostSortType},
+  enums::{CommunityVisibility, ListingType, PostSortType},
   joins::{
     creator_community_actions_join,
     creator_community_instance_actions_join,
@@ -48,7 +51,7 @@ use lemmy_db_schema_file::{
     my_person_actions_join,
     my_post_actions_join,
   },
-  schema::{community, community_actions, person, post, post_actions},
+  schema::{community, person, post, post_actions},
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
@@ -212,11 +215,7 @@ impl PostView {
             .or(post::comments.gt(0)),
         )
         // private communities can only by browsed by accepted followers
-        .filter(
-          community::visibility
-            .ne(CommunityVisibility::Private)
-            .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
-        );
+        .filter(filter_private_or_followed());
     }
 
     Commented::new(query)
@@ -435,19 +434,11 @@ impl PostQuery<'_> {
       && self.multi_community_id.is_none()
       && (listing_type == ListingType::All || listing_type == ListingType::Local)
     {
-      query = query.filter(
-        community::visibility
-          .ne(CommunityVisibility::Unlisted)
-          .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
-      );
+      query = query.filter(filter_unlisted_or_followed());
     }
     if !self.local_user.is_admin() {
       query = query
-        .filter(
-          community::visibility
-            .ne(CommunityVisibility::Private)
-            .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
-        )
+        .filter(filter_private_or_followed())
         // only show removed posts to admin
         .filter(community::removed.eq(false))
         .filter(community::local_removed.eq(false))

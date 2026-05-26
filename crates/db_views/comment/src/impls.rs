@@ -24,7 +24,12 @@ use lemmy_db_schema::{
   },
   utils::{
     limit_fetch,
-    queries::filters::{filter_blocked, filter_is_subscribed},
+    queries::filters::{
+      filter_blocked,
+      filter_is_subscribed,
+      filter_private_or_followed,
+      filter_unlisted_or_followed,
+    },
   },
 };
 use lemmy_db_schema_file::{
@@ -32,7 +37,6 @@ use lemmy_db_schema_file::{
   PersonId,
   enums::{
     CommentSortType::{self, *},
-    CommunityFollowerState,
     CommunityVisibility,
     ListingType,
   },
@@ -48,7 +52,7 @@ use lemmy_db_schema_file::{
     my_local_user_admin_join,
     my_person_actions_join,
   },
-  schema::{comment, community, community_actions, person, post},
+  schema::{comment, community, person, post},
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
@@ -127,11 +131,7 @@ impl CommentView {
     // content, otherwise it is filtered out. Admins can view private community content
     // without restriction.
     if !my_local_user.is_admin() {
-      query = query.filter(
-        community::visibility
-          .ne(CommunityVisibility::Private)
-          .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
-      );
+      query = query.filter(filter_private_or_followed())
     }
     if my_local_user.is_none() {
       query = query.filter(community::visibility.ne(CommunityVisibility::LocalOnlyPrivate));
@@ -215,21 +215,14 @@ impl CommentQuery<'_> {
     query = match listing_type {
       ListingType::Subscribed => query.filter(filter_is_subscribed()),
       ListingType::Local => {
+        // Always filter out unlisted or followed
+        query = query.filter(filter_unlisted_or_followed());
+
         // Only filter by local when there's no post or community given
         if self.post_id.is_none() && self.community_id.is_none() {
-          query
-            .filter(
-              community::visibility
-                .ne(CommunityVisibility::Unlisted)
-                .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
-            )
-            .filter(community::local.eq(true))
+          query.filter(community::local.eq(true))
         } else {
-          query.filter(
-            community::visibility
-              .ne(CommunityVisibility::Unlisted)
-              .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
-          )
+          query
         }
       }
       ListingType::All => query,
@@ -259,19 +252,11 @@ impl CommentQuery<'_> {
     if self.community_id.is_none()
       && (listing_type == ListingType::All || listing_type == ListingType::Local)
     {
-      query = query.filter(
-        community::visibility
-          .ne(CommunityVisibility::Unlisted)
-          .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
-      );
+      query = query.filter(filter_unlisted_or_followed());
     }
 
     if !self.local_user.is_admin() {
-      query = query.filter(
-        community::visibility
-          .ne(CommunityVisibility::Private)
-          .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
-      );
+      query = query.filter(filter_private_or_followed())
     }
     if self.local_user.is_none() {
       query = query.filter(community::visibility.ne(CommunityVisibility::LocalOnlyPrivate));
@@ -408,6 +393,7 @@ mod tests {
     },
     traits::{Bannable, Blockable, Followable, Likeable},
   };
+  use lemmy_db_schema_file::enums::CommunityFollowerState;
   use lemmy_db_views_local_user::LocalUserView;
   use lemmy_diesel_utils::{
     connection::{DbPool, build_db_pool_for_tests},

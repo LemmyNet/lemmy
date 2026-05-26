@@ -1,8 +1,12 @@
-use diesel::{BoolExpressionMethods, ExpressionMethods, helper_types::Eq};
+use diesel::{
+  BoolExpressionMethods,
+  ExpressionMethods,
+  helper_types::{Eq, NotEq, Or},
+};
 use lemmy_db_schema_file::{
   aliases::my_instance_persons_actions,
-  enums::CommunityFollowerState,
-  schema::{community_actions, instance_actions, person_actions},
+  enums::{CommunityFollowerState, CommunityVisibility},
+  schema::{community, community_actions, instance_actions, person_actions},
 };
 
 /// Hide all content from blocked communities and persons. Content from blocked instances is also
@@ -21,9 +25,27 @@ pub fn filter_blocked() -> _ {
     )
 }
 
-type IsSubscribedType =
-  Eq<lemmy_db_schema_file::schema::community_actions::follow_state, Option<CommunityFollowerState>>;
+type IsSubscribedType = Eq<community_actions::follow_state, Option<CommunityFollowerState>>;
 
 pub fn filter_is_subscribed() -> IsSubscribedType {
   community_actions::follow_state.eq(Some(CommunityFollowerState::Accepted))
+}
+
+type CommunityVisibilityType = NotEq<community::visibility, CommunityVisibility>;
+
+type CommunityVisibilityOrSubscribedType = Or<CommunityVisibilityType, IsSubscribedType>;
+
+/// Show only listed or followed communities
+// #[diesel::dsl::auto_type]
+pub fn filter_unlisted_or_followed() -> CommunityVisibilityOrSubscribedType {
+  community::visibility
+    .ne(CommunityVisibility::Unlisted)
+    .or(filter_is_subscribed())
+}
+
+/// Show only non-private or followed communities
+pub fn filter_private_or_followed() -> CommunityVisibilityOrSubscribedType {
+  community::visibility
+    .ne(CommunityVisibility::Private)
+    .or(filter_is_subscribed())
 }
