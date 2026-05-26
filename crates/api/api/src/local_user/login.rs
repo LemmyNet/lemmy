@@ -26,7 +26,16 @@ pub async fn login(
   // Fetch that username / email
   let username_or_email = data.username_or_email.clone();
   let local_user_view =
-    LocalUserView::find_by_email_or_name(&mut context.pool(), &username_or_email).await?;
+    LocalUserView::find_by_email_or_name(&mut context.pool(), &username_or_email)
+      .await
+      .map_err(|_| {
+        // Dummy bcrypt verify for constant timing
+        let _ = verify(
+          &data.password,
+          "$2b$12$000000000000000000000000000000000000000000",
+        );
+        LemmyErrorType::IncorrectLogin
+      })?;
 
   // Verify the password
   let valid: bool = local_user_view
