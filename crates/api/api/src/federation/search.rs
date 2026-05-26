@@ -263,11 +263,11 @@ fn from_single_cursor(
         res = v;
       }
     }
-    Posts => res[0] = cursor.map(Into::into),
-    Comments => res[1] = cursor.map(Into::into),
-    Users => res[2] = cursor.map(Into::into),
-    Communities => res[3] = cursor.map(Into::into),
-    MultiCommunities => res[4] = cursor.map(Into::into),
+    Posts => res[0] = cursor,
+    Comments => res[1] = cursor,
+    Users => res[2] = cursor,
+    Communities => res[3] = cursor,
+    MultiCommunities => res[4] = cursor,
   };
   res
 }
