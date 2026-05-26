@@ -9,7 +9,9 @@ use i_love_jesus::CursorKeysModule;
 use lemmy_db_schema_file::schema::notification;
 use lemmy_db_schema_file::{InstanceId, PersonId, enums::NotificationType};
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 
+#[skip_serializing_none]
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[cfg_attr(
   feature = "full",
