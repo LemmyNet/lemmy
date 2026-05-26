@@ -435,7 +435,11 @@ impl PostQuery<'_> {
       && self.multi_community_id.is_none()
       && (listing_type == ListingType::All || listing_type == ListingType::Local)
     {
-      query = query.filter(community::visibility.ne(CommunityVisibility::Unlisted));
+      query = query.filter(
+        community::visibility
+          .ne(CommunityVisibility::Unlisted)
+          .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
+      );
     }
     if !self.local_user.is_admin() {
       query = query

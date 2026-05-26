@@ -218,10 +218,18 @@ impl CommentQuery<'_> {
         // Only filter by local when there's no post or community given
         if self.post_id.is_none() && self.community_id.is_none() {
           query
-            .filter(community::visibility.ne(CommunityVisibility::Unlisted))
+            .filter(
+              community::visibility
+                .ne(CommunityVisibility::Unlisted)
+                .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
+            )
             .filter(community::local.eq(true))
         } else {
-          query.filter(community::visibility.ne(CommunityVisibility::Unlisted))
+          query.filter(
+            community::visibility
+              .ne(CommunityVisibility::Unlisted)
+              .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
+          )
         }
       }
       ListingType::All => query,
@@ -251,7 +259,11 @@ impl CommentQuery<'_> {
     if self.community_id.is_none()
       && (listing_type == ListingType::All || listing_type == ListingType::Local)
     {
-      query = query.filter(community::visibility.ne(CommunityVisibility::Unlisted));
+      query = query.filter(
+        community::visibility
+          .ne(CommunityVisibility::Unlisted)
+          .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
+      );
     }
 
     if !self.local_user.is_admin() {
