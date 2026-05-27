@@ -215,7 +215,7 @@ impl CommentQuery<'_> {
     query = match listing_type {
       ListingType::Subscribed => query.filter(filter_is_subscribed()),
       ListingType::Local => {
-        // Always filter out unlisted or followed
+        // Always filter out unlisted comms unless you follow them
         query = query.filter(filter_unlisted_or_followed());
 
         // Only filter by local when there's no post or community given
@@ -225,7 +225,7 @@ impl CommentQuery<'_> {
           query
         }
       }
-      ListingType::All => query,
+      ListingType::All => query.filter(filter_unlisted_or_followed()),
       ListingType::ModeratorView => {
         // Pre-fetch the moderator view community ids, since the join is too costly
         let community_ids = if let Some(my_person_id) = my_person_id {
