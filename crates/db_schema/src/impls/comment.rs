@@ -745,6 +745,8 @@ mod tests {
 
     assert_eq!(3, locked_comments_num);
 
+    Instance::delete(pool, inserted_instance.id).await?;
+
     Ok(())
   }
 
@@ -805,6 +807,8 @@ mod tests {
     let updated_comments_num = updated_comments.iter().filter(|c| c.removed).count();
 
     assert_eq!(updated_comments_num, 3);
+
+    Instance::delete(pool, inserted_instance.id).await?;
 
     Ok(())
   }
