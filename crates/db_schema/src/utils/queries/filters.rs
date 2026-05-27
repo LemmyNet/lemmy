@@ -36,7 +36,6 @@ type CommunityVisibilityType = NotEq<community::visibility, CommunityVisibility>
 type CommunityVisibilityOrSubscribedType = Or<CommunityVisibilityType, IsSubscribedType>;
 
 /// Show only listed or followed communities
-// #[diesel::dsl::auto_type]
 pub fn filter_unlisted_or_followed() -> CommunityVisibilityOrSubscribedType {
   community::visibility
     .ne(CommunityVisibility::Unlisted)
