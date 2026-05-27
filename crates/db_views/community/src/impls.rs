@@ -21,14 +21,11 @@ use lemmy_db_schema::{
     multi_community::{MultiCommunity, MultiCommunityEntry, multi_community_keys as mkey},
     site::Site,
   },
-  utils::{
-    limit_fetch,
-    queries::filters::{filter_is_subscribed, filter_not_unlisted},
-  },
+  utils::{limit_fetch, queries::filters::filter_is_subscribed},
 };
 use lemmy_db_schema_file::{
   PersonId,
-  enums::ListingType,
+  enums::{CommunityVisibility, ListingType},
   joins::{
     my_community_actions_join,
     my_instance_communities_actions_join,
@@ -84,15 +81,14 @@ impl CommunityView {
       .filter(community::id.eq(community_id))
       .select(Self::as_select())
       .into_boxed();
+    if my_local_user.is_none() {
+      query = query.filter(community::visibility.ne(CommunityVisibility::LocalOnlyPrivate));
+    }
 
     // Hide deleted and removed for non-admins or mods
     if !is_mod_or_admin {
-      query = query
-        .filter(Community::hide_removed_and_deleted())
-        .filter(filter_not_unlisted());
+      query = query.filter(Community::hide_removed_and_deleted());
     }
-
-    query = my_local_user.visible_communities_only(query);
 
     query
       .first(conn)
@@ -150,14 +146,15 @@ impl CommunityQuery<'_> {
     if !is_admin {
       query = query.filter(Community::hide_removed_and_deleted());
     }
+    if self.local_user.is_none() {
+      query = query.filter(community::visibility.ne(CommunityVisibility::LocalOnlyPrivate));
+    }
 
     if let Some(listing_type) = self.listing_type {
       query = match listing_type {
-        ListingType::All => query.filter(filter_not_unlisted()),
+        ListingType::All => query,
         ListingType::Subscribed => query.filter(filter_is_subscribed()),
-        ListingType::Local => query
-          .filter(community::local.eq(true))
-          .filter(filter_not_unlisted()),
+        ListingType::Local => query.filter(community::local.eq(true)),
         ListingType::ModeratorView => {
           query.filter(community_actions::became_moderator_at.is_not_null())
         }
@@ -182,8 +179,6 @@ impl CommunityQuery<'_> {
     if !(self.local_user.show_nsfw(site) || self.show_nsfw.unwrap_or_default()) {
       query = query.filter(community::nsfw.eq(false));
     }
-
-    query = self.local_user.visible_communities_only(query);
 
     if let Some(multi_community_id) = self.multi_community_id {
       let communities = multi_community_entry::table
