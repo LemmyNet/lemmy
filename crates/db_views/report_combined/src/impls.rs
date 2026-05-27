@@ -350,6 +350,7 @@ impl InternalToCombinedView for ReportCombinedViewInternal {
         creator_ban_expires_at: v.creator_ban_expires_at,
         creator_banned_from_community: v.creator_banned_from_community,
         creator_community_ban_expires_at: v.creator_community_ban_expires_at,
+        tags: v.tags,
       }))
     } else if let (
       Some(comment_report),
@@ -381,6 +382,7 @@ impl InternalToCombinedView for ReportCombinedViewInternal {
         creator_ban_expires_at: v.creator_ban_expires_at,
         creator_banned_from_community: v.creator_banned_from_community,
         creator_community_ban_expires_at: v.creator_community_ban_expires_at,
+        tags: v.tags,
       }))
     } else if let (
       Some(private_message_report),
