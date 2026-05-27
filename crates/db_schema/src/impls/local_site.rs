@@ -41,7 +41,6 @@ mod tests {
     source::{
       comment::{Comment, CommentInsertForm},
       community::{Community, CommunityInsertForm, CommunityUpdateForm},
-      instance::Instance,
       person::{Person, PersonInsertForm},
       post::{Post, PostInsertForm},
       site::Site,
@@ -151,7 +150,7 @@ mod tests {
     let after_delete_site = read_local_site(pool).await;
     assert!(after_delete_site.is_err());
 
-    Instance::delete(pool, data.instance.id).await?;
+    data.delete(pool).await?;
 
     Ok(())
   }
