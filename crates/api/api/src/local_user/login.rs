@@ -28,13 +28,13 @@ pub async fn login(
   let local_user_view =
     LocalUserView::find_by_email_or_name(&mut context.pool(), &username_or_email)
       .await
-      .map_err(|_e| {
+      .map_err(|e| {
         // Dummy bcrypt verify for constant timing
         let _ = verify(
           &data.password,
           "$2b$12$000000000000000000000000000000000000000000",
         );
-        LemmyErrorType::IncorrectLogin
+        e
       })?;
 
   // Verify the password
