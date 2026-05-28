@@ -31,7 +31,7 @@ pub async fn remove_post(
     .ok_or(LemmyErrorType::CouldntFindPost)?;
 
   check_community_mod_action(
-    &local_user_view.person,
+    &local_user_view,
     orig_post.community_id,
     false,
     &mut context.pool(),

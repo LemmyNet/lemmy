@@ -38,7 +38,7 @@ pub async fn ban_from_community(
 
   // Verify that only mods or admins can ban
   check_community_mod_action(
-    &local_user_view.person,
+    &local_user_view,
     data.community_id,
     false,
     &mut context.pool(),

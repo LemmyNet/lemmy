@@ -237,13 +237,15 @@ async fn check_community_ban(
 /// In particular it checks that he is an admin or mod, wasn't banned and the community isn't
 /// removed/deleted.
 pub async fn check_community_mod_action(
-  person: &Person,
+  local_user_view: &LocalUserView,
   community_id: CommunityId,
   allow_deleted: bool,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
-  is_mod_or_admin(pool, person, community_id).await?;
-  check_community_ban(person, community_id, pool).await?;
+  is_mod_or_admin(pool, &local_user_view.person, community_id).await?;
+  if !local_user_view.local_user.admin {
+    check_community_ban(&local_user_view.person, community_id, pool).await?;
+  }
 
   // it must be possible to restore deleted community
   if !allow_deleted {

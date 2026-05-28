@@ -37,7 +37,7 @@ pub async fn update_community(
 ) -> LemmyResult<Json<CommunityResponse>> {
   // Verify its a mod (only mods can edit it)
   check_community_mod_action(
-    &local_user_view.person,
+    &local_user_view,
     data.community_id,
     false,
     &mut context.pool(),
