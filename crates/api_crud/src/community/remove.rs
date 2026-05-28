@@ -24,7 +24,7 @@ pub async fn remove_community(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityResponse>> {
   check_community_mod_action(
-    &local_user_view.person,
+    &local_user_view,
     data.community_id,
     true,
     &mut context.pool(),

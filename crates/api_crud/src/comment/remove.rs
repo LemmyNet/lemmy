@@ -35,7 +35,7 @@ pub async fn remove_comment(
   .ok_or(LemmyErrorType::CouldntFindComment)?;
 
   check_community_mod_action(
-    &local_user_view.person,
+    &local_user_view,
     orig_comment.community.id,
     false,
     &mut context.pool(),
