@@ -17,6 +17,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use tokio::task::spawn_blocking;
 
 #[tracing::instrument(skip(context))]
 pub async fn login(
@@ -27,27 +28,31 @@ pub async fn login(
   let site_view = SiteView::read_local(&mut context.pool())
     .await?
     .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
+  let password = data.password.clone();
 
   // Fetch that username / email
   let username_or_email = data.username_or_email.clone();
   let local_user_view =
-    LocalUserView::find_by_email_or_name(&mut context.pool(), &username_or_email)
-      .await?
-      .ok_or({
-        // Dummy bcrypt verify for constant timing
-        let _ = verify(
-          &data.password,
-          "$2b$12$000000000000000000000000000000000000000000",
-        );
-        LemmyErrorType::IncorrectLogin
-      })?;
+    match LocalUserView::find_by_email_or_name(&mut context.pool(), &username_or_email).await {
+      Ok(Some(o)) => o,
+      _e => {
+        spawn_blocking(move || {
+          // Dummy bcrypt verify for constant timing
+          let _ = verify(
+            &data.password,
+            "$2b$12$dt1Xr.ZGO8W1YtWoJRtpauM1.bkBt2C1Tck3XgZTSoBQRdGuYCTTy",
+          );
+        })
+        .await?;
+        return Err(LemmyErrorType::IncorrectLogin.into());
+      }
+    };
 
   // Verify the password
-  let valid: bool = verify(
-    &data.password,
-    &local_user_view.local_user.password_encrypted,
-  )
-  .unwrap_or(false);
+  let password_encrypted = local_user_view.local_user.password_encrypted.clone();
+  let valid: bool = spawn_blocking(move || verify(&password, &password_encrypted))
+    .await?
+    .unwrap_or(false);
   if !valid {
     Err(LemmyErrorType::IncorrectLogin)?
   }
