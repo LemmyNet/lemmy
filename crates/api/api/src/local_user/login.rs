@@ -39,7 +39,7 @@ pub async fn login(
           );
         })
         .await?;
-        return Err(e.into());
+        return Err(e);
       }
     };
 
