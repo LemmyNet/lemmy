@@ -4,7 +4,12 @@ use actix_web::web::Json;
 use chrono::Utc;
 use lemmy_api_utils::{
   context::LemmyContext,
-  utils::{check_local_user_valid, get_url_blocklist, process_markdown_opt, slur_regex},
+  utils::{
+    check_local_user_banned_or_deleted,
+    get_url_blocklist,
+    process_markdown_opt,
+    slur_regex,
+  },
 };
 use lemmy_db_schema::source::multi_community::{MultiCommunity, MultiCommunityUpdateForm};
 use lemmy_db_views_community::{
@@ -29,7 +34,7 @@ pub async fn edit_multi_community(
 ) -> LemmyResult<Json<MultiCommunityResponse>> {
   let multi_community_id = data.id;
   let my_person_id = local_user_view.person.id;
-  check_local_user_valid(&local_user_view)?;
+  check_local_user_banned_or_deleted(&local_user_view)?;
 
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;

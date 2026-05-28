@@ -4,7 +4,7 @@ use lemmy_api_utils::{
   build_response::build_community_response,
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_community_mod_action, check_local_user_valid, is_top_mod},
+  utils::{check_community_mod_action, check_local_user_banned_or_deleted, is_top_mod},
 };
 use lemmy_db_schema::source::community::{Community, CommunityUpdateForm};
 use lemmy_db_views_community::api::{CommunityResponse, DeleteCommunity};
@@ -18,7 +18,7 @@ pub async fn delete_community(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityResponse>> {
-  check_local_user_valid(&local_user_view)?;
+  check_local_user_banned_or_deleted(&local_user_view)?;
   // Fetch the community mods
   let community_mods =
     CommunityModeratorView::for_community(&mut context.pool(), data.community_id).await?;

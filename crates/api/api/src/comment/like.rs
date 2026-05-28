@@ -8,7 +8,7 @@ use lemmy_api_utils::{
   utils::{
     check_bot_account,
     check_community_user_action,
-    check_local_user_valid,
+    check_local_user_banned_or_deleted,
     check_local_vote_mode,
   },
 };
@@ -35,7 +35,7 @@ pub async fn like_comment(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommentResponse>> {
-  check_local_user_valid(&local_user_view)?;
+  check_local_user_banned_or_deleted(&local_user_view)?;
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   let local_instance_id = local_user_view.person.instance_id;
   let comment_id = data.comment_id;

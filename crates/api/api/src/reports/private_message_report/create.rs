@@ -3,7 +3,7 @@ use actix_web::web::{Data, Json};
 use lemmy_api_utils::{
   context::LemmyContext,
   plugins::plugin_hook_after,
-  utils::{check_local_user_valid, slur_regex},
+  utils::{check_local_user_banned_or_deleted, slur_regex},
 };
 use lemmy_db_schema::{
   source::{
@@ -27,7 +27,7 @@ pub async fn create_pm_report(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PrivateMessageReportResponse>> {
-  check_local_user_valid(&local_user_view)?;
+  check_local_user_banned_or_deleted(&local_user_view)?;
   let reason = data.reason.trim().to_string();
   let slur_regex = slur_regex(&context).await?;
   check_report_reason(&reason, &slur_regex)?;

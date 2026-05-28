@@ -1,6 +1,6 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
-use lemmy_api_utils::{context::LemmyContext, utils::check_local_user_valid};
+use lemmy_api_utils::{context::LemmyContext, utils::check_local_user_banned_or_deleted};
 use lemmy_db_schema::source::instance::{
   InstanceActions,
   InstanceCommunitiesBlockForm,
@@ -19,7 +19,7 @@ pub async fn user_block_instance_communities(
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<SuccessResponse>> {
-  check_local_user_valid(&local_user_view)?;
+  check_local_user_banned_or_deleted(&local_user_view)?;
   let instance_id = data.instance_id;
   let person_id = local_user_view.person.id;
   if local_user_view.person.instance_id == instance_id {

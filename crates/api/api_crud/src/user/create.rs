@@ -11,7 +11,7 @@ use lemmy_api_utils::{
   plugins::{is_captcha_plugin_loaded, plugin_validate_captcha},
   utils::{
     check_email_verified,
-    check_local_user_valid,
+    check_local_user_banned_or_deleted,
     check_registration_application,
     generate_featured_url,
     generate_followers_url,
@@ -338,7 +338,7 @@ pub async fn authenticate_with_oauth(
     // user found by oauth_user_id => Login user
     let local_user = user_view.clone().local_user;
 
-    check_local_user_valid(&user_view)?;
+    check_local_user_banned_or_deleted(&user_view)?;
     check_email_verified(&user_view, &site_view)?;
     check_registration_application(&user_view, &site_view.local_site, pool).await?;
     local_user
@@ -374,7 +374,7 @@ pub async fn authenticate_with_oauth(
         // users who signed up before the switch could have accounts with unverified emails falsely
         // marked as verified.
 
-        check_local_user_valid(&user_view)?;
+        check_local_user_banned_or_deleted(&user_view)?;
         check_email_verified(&user_view, &site_view)?;
         check_registration_application(&user_view, &site_view.local_site, pool).await?;
 
