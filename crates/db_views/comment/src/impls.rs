@@ -1014,22 +1014,21 @@ mod tests {
     assert!(comment_view.is_err());
 
     // No comments returned for non-follower who is not admin
-    data.timmy_local_user_view.local_user.admin = false;
+    let alicia_person_form = PersonInsertForm::test_form(data.instance.id, "alicia");
+    let inserted_alicia_person = Person::create(pool, &alicia_person_form).await?;
+    let alicia_local_user_form = LocalUserInsertForm::test_form(inserted_alicia_person.id);
+
+    let alicia = LocalUser::create(pool, &alicia_local_user_form, vec![]).await?;
     let read_comment_listing = CommentQuery {
       community_id: Some(data.community.id),
-      local_user: Some(&data.timmy_local_user_view.local_user),
+      local_user: Some(&alicia),
       ..Default::default()
     }
     .list(pool, &data.site, &data.local_site)
     .await?;
     assert_eq!(0, read_comment_listing.len());
-    let comment_view = CommentView::read(
-      pool,
-      data.comment_0.id,
-      Some(&data.timmy_local_user_view.local_user),
-      data.instance.id,
-    )
-    .await;
+    let comment_view =
+      CommentView::read(pool, data.comment_0.id, Some(&alicia), data.instance.id).await;
     assert!(comment_view.is_err());
 
     // Admin can view content without following
