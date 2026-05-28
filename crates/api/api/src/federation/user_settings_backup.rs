@@ -2,7 +2,7 @@ use activitypub_federation::{config::Data, fetch::object_id::ObjectId, traits::O
 use actix_web::web::Json;
 use futures::{StreamExt, future::try_join_all};
 use itertools::Itertools;
-use lemmy_api_utils::{context::LemmyContext, utils::check_local_user_valid};
+use lemmy_api_utils::{context::LemmyContext, utils::check_local_user_banned_or_deleted};
 use lemmy_apub_objects::objects::{
   comment::ApubComment,
   community::ApubCommunity,
@@ -56,7 +56,7 @@ pub async fn import_user_settings(
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<SuccessResponse>> {
-  check_local_user_valid(&local_user_view)?;
+  check_local_user_banned_or_deleted(&local_user_view)?;
   let person_form = PersonUpdateForm {
     display_name: data.display_name.clone().map(Some),
     bio: data.bio.clone().map(Some),
