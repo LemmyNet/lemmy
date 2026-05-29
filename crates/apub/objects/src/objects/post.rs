@@ -56,7 +56,7 @@ use lemmy_utils::{
   utils::{
     markdown::markdown_to_html,
     slurs::remove_slurs,
-    validation::{is_url_blocked, is_valid_url},
+    validation::{is_url_blocked, is_valid_url, truncate_for_db},
   },
 };
 use std::{collections::HashSet, ops::Deref};
@@ -246,9 +246,7 @@ impl Object for ApubPost {
       .map(|s| remove_slurs(&s, &slur_regex))
       .ok_or_else(|| anyhow!("Object must have name or content"))?;
 
-    if name.chars().count() > MAX_TITLE_LENGTH {
-      name = name.chars().take(MAX_TITLE_LENGTH).collect();
-    }
+    name = truncate_for_db(&name, MAX_TITLE_LENGTH);
 
     let first_attachment = page.attachment.first();
     let url = if let Some(attachment) = first_attachment.cloned() {
