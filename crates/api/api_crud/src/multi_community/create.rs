@@ -22,7 +22,7 @@ use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::{
-  error::LemmyResult,
+  error::{LemmyErrorType, LemmyResult},
   utils::{
     slurs::check_slurs,
     validation::{
@@ -55,6 +55,12 @@ pub async fn create_multi_community(
 
   let ap_id = MultiCommunity::generate_local_actor_url(&data.name, context.settings())?;
   let following_url = Url::parse(&format!("{}/following", ap_id))?;
+
+  // Check for duplicate multi-comm with the same name
+  let dupe = MultiCommunity::read_from_apub_id(&mut context.pool(), &ap_id).await?;
+  if dupe.is_some() {
+    return Err(LemmyErrorType::AlreadyExists.into());
+  }
 
   let title = data.title.as_ref().map(|x| x.trim().to_string());
   if let Some(title) = &title {
