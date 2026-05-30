@@ -12,8 +12,10 @@ pub mod actions {
   pub use lemmy_db_views_comment::api::{
     CreateComment,
     CreateCommentLike,
+    CreateCommentWarning,
     DeleteComment,
     EditComment,
+    LockComment,
     SaveComment,
   };
 
