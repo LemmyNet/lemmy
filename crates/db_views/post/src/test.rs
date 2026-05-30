@@ -2070,10 +2070,9 @@ async fn post_listing_private_community(data: &mut Data) -> LemmyResult<()> {
   assert!(post_view.is_err());
 
   // No posts returned for non-follower who is not admin
-  data.tegan.local_user.admin = false;
   let read_post_listing = PostQuery {
     community_id: Some(data.community.id),
-    local_user: Some(&data.tegan.local_user),
+    local_user: Some(&data.bot.local_user),
     ..Default::default()
   }
   .list(pool, &data.site, &data.local_site)
@@ -2082,7 +2081,7 @@ async fn post_listing_private_community(data: &mut Data) -> LemmyResult<()> {
   let post_view = PostView::read(
     pool,
     data.post.id,
-    Some(&data.tegan.local_user),
+    Some(&data.bot.local_user),
     data.instance.id,
     false,
   )

@@ -385,12 +385,13 @@ mod tests {
       },
       instance::Instance,
       language::Language,
-      local_site::{LocalSite, LocalSiteInsertForm},
+      local_site::LocalSite,
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
       person::{Person, PersonActions, PersonBlockForm, PersonInsertForm},
       post::{Post, PostInsertForm, PostUpdateForm},
-      site::{Site, SiteInsertForm},
+      site::Site,
     },
+    test_data::TestData,
     traits::{Bannable, Blockable, Followable, Likeable},
   };
   use lemmy_db_schema_file::enums::CommunityFollowerState;
@@ -410,40 +411,33 @@ mod tests {
     comment_2: Comment,
     _comment_5: Comment,
     post: Post,
-    timmy_local_user_view: LocalUserView,
-    sara_person: Person,
+    timmy: LocalUserView,
+    holly: LocalUserView,
     community: Community,
     site: Site,
     local_site: LocalSite,
   }
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
-    let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
-    let system_acct =
-      Person::create(pool, &PersonInsertForm::test_form(instance.id, "langs")).await?;
+    let data = TestData::create(pool).await?;
 
-    let timmy_person_form = PersonInsertForm::test_form(instance.id, "timmy");
-    let inserted_timmy_person = Person::create(pool, &timmy_person_form).await?;
-    let timmy_local_user_form = LocalUserInsertForm::test_form_admin(inserted_timmy_person.id);
+    let timmy_person_form = PersonInsertForm::test_form(data.instance.id, "timmy");
+    let timmy_person = Person::create(pool, &timmy_person_form).await?;
+    let timmy_local_user_form = LocalUserInsertForm::test_form_admin(timmy_person.id);
+    let timmy_local_user = LocalUser::create(pool, &timmy_local_user_form, vec![]).await?;
 
-    let inserted_timmy_local_user = LocalUser::create(pool, &timmy_local_user_form, vec![]).await?;
-
-    let sara_person_form = PersonInsertForm::test_form(instance.id, "sara");
-    let sara_person = Person::create(pool, &sara_person_form).await?;
+    let holly_local_user_form = LocalUserInsertForm::test_form(data.person.id);
+    let holly_local_user = LocalUser::create(pool, &holly_local_user_form, vec![]).await?;
 
     let new_community = CommunityInsertForm::new(
-      instance.id,
+      data.instance.id,
       "test community 5".to_string(),
       "nada".to_owned(),
       "pubkey".to_string(),
     );
     let community = Community::create(pool, &new_community).await?;
 
-    let new_post = PostInsertForm::new(
-      "A test post 2".into(),
-      inserted_timmy_person.id,
-      community.id,
-    );
+    let new_post = PostInsertForm::new("A test post 2".into(), timmy_person.id, community.id);
     let post = Post::create(pool, &new_post).await?;
     let english_id = Language::read_id_from_code(pool, "en").await?;
 
@@ -457,72 +451,53 @@ mod tests {
     //     5
     let comment_form_0 = CommentInsertForm {
       language_id: Some(english_id),
-      ..CommentInsertForm::new(
-        inserted_timmy_person.id,
-        post.id,
-        community.id,
-        "Comment 0".into(),
-      )
+      ..CommentInsertForm::new(timmy_person.id, post.id, community.id, "Comment 0".into())
     };
 
     let comment_0 = Comment::create(pool, &comment_form_0, None).await?;
 
     let comment_form_1 = CommentInsertForm {
       language_id: Some(english_id),
-      ..CommentInsertForm::new(sara_person.id, post.id, community.id, "Comment 1".into())
+      ..CommentInsertForm::new(
+        holly_local_user.person_id,
+        post.id,
+        community.id,
+        "Comment 1".into(),
+      )
     };
     let comment_1 = Comment::create(pool, &comment_form_1, Some(&comment_0.path)).await?;
 
     let finnish_id = Language::read_id_from_code(pool, "fi").await?;
     let comment_form_2 = CommentInsertForm {
       language_id: Some(finnish_id),
-      ..CommentInsertForm::new(
-        inserted_timmy_person.id,
-        post.id,
-        community.id,
-        "Comment 2".into(),
-      )
+      ..CommentInsertForm::new(timmy_person.id, post.id, community.id, "Comment 2".into())
     };
 
     let comment_2 = Comment::create(pool, &comment_form_2, Some(&comment_0.path)).await?;
 
     let comment_form_3 = CommentInsertForm {
       language_id: Some(english_id),
-      ..CommentInsertForm::new(
-        inserted_timmy_person.id,
-        post.id,
-        community.id,
-        "Comment 3".into(),
-      )
+      ..CommentInsertForm::new(timmy_person.id, post.id, community.id, "Comment 3".into())
     };
     let _inserted_comment_3 = Comment::create(pool, &comment_form_3, Some(&comment_1.path)).await?;
 
     let polish_id = Language::read_id_from_code(pool, "pl").await?;
     let comment_form_4 = CommentInsertForm {
       language_id: Some(polish_id),
-      ..CommentInsertForm::new(
-        inserted_timmy_person.id,
-        post.id,
-        community.id,
-        "Comment 4".into(),
-      )
+      ..CommentInsertForm::new(timmy_person.id, post.id, community.id, "Comment 4".into())
     };
 
     let inserted_comment_4 = Comment::create(pool, &comment_form_4, Some(&comment_1.path)).await?;
 
-    let comment_form_5 = CommentInsertForm::new(
-      inserted_timmy_person.id,
-      post.id,
-      community.id,
-      "Comment 5".into(),
-    );
+    let comment_form_5 =
+      CommentInsertForm::new(timmy_person.id, post.id, community.id, "Comment 5".into());
     let _comment_5 = Comment::create(pool, &comment_form_5, Some(&inserted_comment_4.path)).await?;
 
-    let timmy_blocks_sara_form = PersonBlockForm::new(inserted_timmy_person.id, sara_person.id);
-    let inserted_block = PersonActions::block(pool, &timmy_blocks_sara_form).await?;
+    let timmy_blocks_holly_form = PersonBlockForm::new(timmy_person.id, holly_local_user.person_id);
+    let inserted_block = PersonActions::block(pool, &timmy_blocks_holly_form).await?;
 
     assert_eq!(
-      (inserted_timmy_person.id, sara_person.id, true),
+      (timmy_person.id, holly_local_user.person_id, true),
       (
         inserted_block.person_id,
         inserted_block.target_id,
@@ -530,34 +505,36 @@ mod tests {
       )
     );
 
-    let comment_like_form =
-      CommentLikeForm::new(comment_0.id, inserted_timmy_person.id, Some(true));
+    let comment_like_form = CommentLikeForm::new(comment_0.id, timmy_person.id, Some(true));
 
     CommentActions::like(pool, &comment_like_form).await?;
 
-    let timmy_local_user_view = LocalUserView {
-      local_user: inserted_timmy_local_user.clone(),
-      person: inserted_timmy_person.clone(),
+    let timmy = LocalUserView {
+      local_user: timmy_local_user.clone(),
+      person: timmy_person.clone(),
       banned: false,
       ban_expires_at: None,
     };
-    let site_form = SiteInsertForm::new("test site".to_string(), instance.id);
-    let site = Site::create(pool, &site_form).await?;
-    let local_site_form = LocalSiteInsertForm::new(site.id, system_acct.id);
-    let local_site = LocalSite::create(pool, &local_site_form).await?;
+
+    let holly = LocalUserView {
+      local_user: holly_local_user.clone(),
+      person: data.person.clone(),
+      banned: false,
+      ban_expires_at: None,
+    };
 
     Ok(Data {
-      instance,
+      instance: data.instance,
       comment_0,
       comment_1,
       comment_2,
       _comment_5,
       post,
-      timmy_local_user_view,
-      sara_person,
+      timmy,
+      holly,
       community,
-      site,
-      local_site,
+      site: data.site,
+      local_site: data.local_site,
     })
   }
 
@@ -582,7 +559,7 @@ mod tests {
     let read_comment_views_with_person = CommentQuery {
       sort: (Some(CommentSortType::Old)),
       post_id: (Some(data.post.id)),
-      local_user: (Some(&data.timmy_local_user_view.local_user)),
+      local_user: (Some(&data.timmy.local_user)),
       ..Default::default()
     }
     .list(pool, &data.site, &data.local_site)
@@ -602,7 +579,7 @@ mod tests {
     let read_comment_from_blocked_person = CommentView::read(
       pool,
       data.comment_1.id,
-      Some(&data.timmy_local_user_view.local_user),
+      Some(&data.timmy.local_user),
       data.instance.id,
     )
     .await?;
@@ -706,7 +683,7 @@ mod tests {
     // by default, user has all languages enabled and should see all comments
     // (except from blocked user)
     let all_languages = CommentQuery {
-      local_user: (Some(&data.timmy_local_user_view.local_user)),
+      local_user: (Some(&data.timmy.local_user)),
       ..Default::default()
     }
     .list(pool, &data.site, &data.local_site)
@@ -715,14 +692,9 @@ mod tests {
 
     // change user lang to finnish, should only show one post in finnish and one undetermined
     let finnish_id = Language::read_id_from_code(pool, "fi").await?;
-    LocalUserLanguage::update(
-      pool,
-      vec![finnish_id],
-      data.timmy_local_user_view.local_user.id,
-    )
-    .await?;
+    LocalUserLanguage::update(pool, vec![finnish_id], data.timmy.local_user.id).await?;
     let finnish_comments = CommentQuery {
-      local_user: (Some(&data.timmy_local_user_view.local_user)),
+      local_user: (Some(&data.timmy.local_user)),
       ..Default::default()
     }
     .list(pool, &data.site, &data.local_site)
@@ -738,14 +710,9 @@ mod tests {
     );
 
     // now show all comments with undetermined language (which is the default value)
-    LocalUserLanguage::update(
-      pool,
-      vec![UNDETERMINED_ID],
-      data.timmy_local_user_view.local_user.id,
-    )
-    .await?;
+    LocalUserLanguage::update(pool, vec![UNDETERMINED_ID], data.timmy.local_user.id).await?;
     let undetermined_comment = CommentQuery {
-      local_user: (Some(&data.timmy_local_user_view.local_user)),
+      local_user: (Some(&data.timmy.local_user)),
       ..Default::default()
     }
     .list(pool, &data.site, &data.local_site)
@@ -788,7 +755,7 @@ mod tests {
     let data = init_data(pool).await?;
 
     // Make one of the inserted persons a moderator
-    let person_id = data.sara_person.id;
+    let person_id = data.holly.person.id;
     let community_id = data.community.id;
     let form = CommunityModeratorForm::new(community_id, person_id);
     CommunityActions::join(pool, &form).await?;
@@ -801,7 +768,7 @@ mod tests {
     .list(pool, &data.site, &data.local_site)
     .await?;
 
-    assert_eq!(comments[1].creator.name, "sara");
+    assert_eq!(comments[1].creator.name, "holly");
     assert!(comments[1].creator_is_moderator);
 
     assert!(!comments[0].creator_is_moderator);
@@ -827,8 +794,8 @@ mod tests {
     assert_eq!(comments[0].creator.name, "timmy");
     assert!(comments[0].creator_is_admin);
 
-    // Sara isn't, make sure its false
-    assert_eq!(comments[1].creator.name, "sara");
+    // Holly isn't, make sure its false
+    assert_eq!(comments[1].creator.name, "holly");
     assert!(!comments[1].creator_is_admin);
 
     cleanup(data, pool).await
@@ -865,7 +832,7 @@ mod tests {
     assert_eq!(0, unauthenticated_query.len());
 
     let authenticated_query = CommentQuery {
-      local_user: Some(&data.timmy_local_user_view.local_user),
+      local_user: Some(&data.timmy.local_user),
       ..Default::default()
     }
     .list(pool, &data.site, &data.local_site)
@@ -879,7 +846,7 @@ mod tests {
     let authenticated_comment = CommentView::read(
       pool,
       data.comment_0.id,
-      Some(&data.timmy_local_user_view.local_user),
+      Some(&data.timmy.local_user),
       data.instance.id,
     )
     .await;
@@ -941,7 +908,7 @@ mod tests {
     let comment_view = CommentView::read(
       pool,
       data.comment_0.id,
-      Some(&data.timmy_local_user_view.local_user),
+      Some(&data.timmy.local_user),
       data.instance.id,
     )
     .await?;
@@ -1014,10 +981,9 @@ mod tests {
     assert!(comment_view.is_err());
 
     // No comments returned for non-follower who is not admin
-    data.timmy_local_user_view.local_user.admin = false;
     let read_comment_listing = CommentQuery {
       community_id: Some(data.community.id),
-      local_user: Some(&data.timmy_local_user_view.local_user),
+      local_user: Some(&data.holly.local_user),
       ..Default::default()
     }
     .list(pool, &data.site, &data.local_site)
@@ -1026,17 +992,17 @@ mod tests {
     let comment_view = CommentView::read(
       pool,
       data.comment_0.id,
-      Some(&data.timmy_local_user_view.local_user),
+      Some(&data.holly.local_user),
       data.instance.id,
     )
     .await;
     assert!(comment_view.is_err());
 
     // Admin can view content without following
-    data.timmy_local_user_view.local_user.admin = true;
+    data.timmy.local_user.admin = true;
     let read_comment_listing = CommentQuery {
       community_id: Some(data.community.id),
-      local_user: Some(&data.timmy_local_user_view.local_user),
+      local_user: Some(&data.timmy.local_user),
       ..Default::default()
     }
     .list(pool, &data.site, &data.local_site)
@@ -1045,26 +1011,26 @@ mod tests {
     let comment_view = CommentView::read(
       pool,
       data.comment_0.id,
-      Some(&data.timmy_local_user_view.local_user),
+      Some(&data.timmy.local_user),
       data.instance.id,
     )
     .await;
     assert!(comment_view.is_ok());
-    data.timmy_local_user_view.local_user.admin = false;
+    data.timmy.local_user.admin = false;
 
     // User can view after following
     CommunityActions::follow(
       pool,
       &CommunityFollowerForm::new(
         data.community.id,
-        data.timmy_local_user_view.person.id,
+        data.timmy.person.id,
         CommunityFollowerState::Accepted,
       ),
     )
     .await?;
     let read_comment_listing = CommentQuery {
       community_id: Some(data.community.id),
-      local_user: Some(&data.timmy_local_user_view.local_user),
+      local_user: Some(&data.timmy.local_user),
       ..Default::default()
     }
     .list(pool, &data.site, &data.local_site)
@@ -1073,7 +1039,7 @@ mod tests {
     let comment_view = CommentView::read(
       pool,
       data.comment_0.id,
-      Some(&data.timmy_local_user_view.local_user),
+      Some(&data.timmy.local_user),
       data.instance.id,
     )
     .await;
@@ -1100,25 +1066,25 @@ mod tests {
     // Timmy leaves admin
     LocalUser::update(
       pool,
-      data.timmy_local_user_view.local_user.id,
+      data.timmy.local_user.id,
       &LocalUserUpdateForm {
         admin: Some(false),
         ..Default::default()
       },
     )
     .await?;
-    data.timmy_local_user_view.local_user.admin = false;
+    data.timmy.local_user.admin = false;
     let comment_view = CommentView::read(
       pool,
       data.comment_0.id,
-      Some(&data.timmy_local_user_view.local_user),
+      Some(&data.timmy.local_user),
       data.instance.id,
     )
     .await?;
     assert_eq!("", comment_view.comment.content);
     let comment_listing = CommentQuery {
       community_id: Some(data.community.id),
-      local_user: Some(&data.timmy_local_user_view.local_user),
+      local_user: Some(&data.timmy.local_user),
       sort: Some(CommentSortType::Old),
       ..Default::default()
     }
@@ -1129,25 +1095,25 @@ mod tests {
     // Read as admin, content is returned
     LocalUser::update(
       pool,
-      data.timmy_local_user_view.local_user.id,
+      data.timmy.local_user.id,
       &LocalUserUpdateForm {
         admin: Some(true),
         ..Default::default()
       },
     )
     .await?;
-    data.timmy_local_user_view.local_user.admin = true;
+    data.timmy.local_user.admin = true;
     let comment_view = CommentView::read(
       pool,
       data.comment_0.id,
-      Some(&data.timmy_local_user_view.local_user),
+      Some(&data.timmy.local_user),
       data.instance.id,
     )
     .await?;
     assert_eq!(data.comment_0.content, comment_view.comment.content);
     let comment_listing = CommentQuery {
       community_id: Some(data.community.id),
-      local_user: Some(&data.timmy_local_user_view.local_user),
+      local_user: Some(&data.timmy.local_user),
       sort: Some(CommentSortType::Old),
       ..Default::default()
     }
