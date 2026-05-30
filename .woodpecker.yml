@@ -343,7 +343,7 @@ steps:
     commands:
       - *install_binstall
       - cp -r migrations crates/db_schema/
-      - cargo publish --workspace --token "$CARGO_API_TOKEN" --from-git --allow-dirty --no-verify --allow-branch "${CI_COMMIT_TAG}" --yes custom "${CI_COMMIT_TAG}"
+      - cargo publish --workspace --token "$CARGO_API_TOKEN" --allow-dirty --no-verify
     when:
       - event: tag
 
