@@ -225,7 +225,7 @@ impl Object for ApubPost {
       )
       .await?;
     }
-    let mut name = page
+    let name = page
       .name
       .clone()
       .or_else(|| {
@@ -243,10 +243,9 @@ impl Object for ApubPost {
             .to_string()
         })
       })
-      .map(|s| remove_slurs(&s, &slur_regex))
+      .map(|n| remove_slurs(&n, &slur_regex))
+      .map(|n| truncate_for_db(&n, MAX_TITLE_LENGTH))
       .ok_or_else(|| anyhow!("Object must have name or content"))?;
-
-    name = truncate_for_db(&name, MAX_TITLE_LENGTH);
 
     let first_attachment = page.attachment.first();
     let url = if let Some(attachment) = first_attachment.cloned() {

@@ -152,8 +152,10 @@ impl Object for ApubPerson {
       proxy_image_link_opt_apub(person.icon.map(|i| i.url), &local_site, context).await?;
     let banner =
       proxy_image_link_opt_apub(person.image.map(|i| i.url), &local_site, context).await?;
-    let display_name = person.name.map(|s| remove_slurs(&s, &slur_regex));
-    let display_name = display_name.map(|d| truncate_for_db(&d, DISPLAY_NAME_MAX_LENGTH));
+    let display_name = person
+      .name
+      .map(|s| remove_slurs(&s, &slur_regex))
+      .map(|d| truncate_for_db(&d, DISPLAY_NAME_MAX_LENGTH));
 
     let person_form = PersonInsertForm {
       name: person.preferred_username,
