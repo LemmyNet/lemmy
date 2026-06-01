@@ -764,12 +764,7 @@ mod tests {
     let data = TestData::create(pool).await?;
     let community = Community::create(
       pool,
-      &CommunityInsertForm::new(
-        data.instance.id,
-        "name".to_owned(),
-        "title".to_owned(),
-        "pubkey".to_owned(),
-      ),
+      &CommunityInsertForm::new(data.instance.id, "name".to_owned(), "pubkey".to_owned()),
     )
     .await?;
     let person = Person::create(

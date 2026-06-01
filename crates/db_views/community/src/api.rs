@@ -97,7 +97,7 @@ pub struct CreateCommunity {
   /// The unique name.
   pub name: String,
   /// A longer title.
-  pub title: String,
+  pub title: Option<String>,
   /// A sidebar for the community in markdown.
   pub sidebar: Option<String>,
   /// A shorter, one line summary of your community.

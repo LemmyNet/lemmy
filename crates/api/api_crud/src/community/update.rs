@@ -46,8 +46,8 @@ pub async fn edit_community(
   check_nsfw_allowed(data.nsfw, Some(&local_site))?;
 
   let title = data.title.as_ref().map(|x| x.trim().to_string());
-
-  if let Some(title) = &title {
+  let title = diesel_string_update(title.as_deref());
+  if let Some(Some(title)) = &title {
     check_slurs(title, &slur_regex)?;
     is_valid_display_name(title)?;
   }

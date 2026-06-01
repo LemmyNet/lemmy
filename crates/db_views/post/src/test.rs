@@ -134,7 +134,6 @@ impl Data {
     let new_community = CommunityInsertForm::new(
       data.instance.id,
       "test_community_3".to_string(),
-      "nada".to_owned(),
       "pubkey".to_string(),
     );
     let community = Community::create(pool, &new_community).await?;
@@ -1062,7 +1061,6 @@ async fn post_listing_instance_block_communities(data: &mut Data) -> LemmyResult
   let community_form = CommunityInsertForm::new(
     blocked_instance_comms.id,
     "test_community_4".to_string(),
-    "none".to_owned(),
     "pubkey".to_string(),
   );
   let inserted_community = Community::create(pool, &community_form).await?;
@@ -1166,7 +1164,6 @@ async fn post_listing_instance_block_persons(data: &mut Data) -> LemmyResult<()>
   let community_form = CommunityInsertForm::new(
     blocked_instance_persons.id,
     "test_community_8".to_string(),
-    "none".to_owned(),
     "pubkey".to_string(),
   );
   let inserted_community = Community::create(pool, &community_form).await?;
@@ -1238,12 +1235,8 @@ async fn pagination_includes_each_post_once(data: &mut Data) -> LemmyResult<()> 
   let pool = &data.pool();
   let pool = &mut pool.into();
 
-  let community_form = CommunityInsertForm::new(
-    data.instance.id,
-    "yes".to_string(),
-    "yes".to_owned(),
-    "pubkey".to_string(),
-  );
+  let community_form =
+    CommunityInsertForm::new(data.instance.id, "yes".to_string(), "pubkey".to_string());
   let inserted_community = Community::create(pool, &community_form).await?;
 
   let mut inserted_post_ids = HashSet::new();
@@ -1339,12 +1332,8 @@ async fn pagination_hidden_cursors(data: &mut Data) -> LemmyResult<()> {
   let pool = &data.pool();
   let pool = &mut pool.into();
 
-  let community_form = CommunityInsertForm::new(
-    data.instance.id,
-    "yes".to_string(),
-    "yes".to_owned(),
-    "pubkey".to_string(),
-  );
+  let community_form =
+    CommunityInsertForm::new(data.instance.id, "yes".to_string(), "pubkey".to_string());
   let inserted_community = Community::create(pool, &community_form).await?;
 
   let page_size: usize = 5;
@@ -1456,12 +1445,8 @@ async fn pagination_recovery_cursors(data: &mut Data) -> LemmyResult<()> {
   let pool = &data.pool();
   let pool = &mut pool.into();
 
-  let community_form = CommunityInsertForm::new(
-    data.instance.id,
-    "yes".to_string(),
-    "yes".to_owned(),
-    "pubkey".to_string(),
-  );
+  let community_form =
+    CommunityInsertForm::new(data.instance.id, "yes".to_string(), "pubkey".to_string());
   let inserted_community = Community::create(pool, &community_form).await?;
 
   let page_size: usize = 5;
@@ -2315,7 +2300,6 @@ async fn post_listing_multi_community(data: &mut Data) -> LemmyResult<()> {
   let form = CommunityInsertForm::new(
     data.instance.id,
     "test_community_4".to_string(),
-    "nada".to_owned(),
     "pubkey".to_string(),
   );
   let community_1 = Community::create(pool, &form).await?;
@@ -2326,7 +2310,6 @@ async fn post_listing_multi_community(data: &mut Data) -> LemmyResult<()> {
   let form = CommunityInsertForm::new(
     data.instance.id,
     "test_community_5".to_string(),
-    "nada".to_owned(),
     "pubkey".to_string(),
   );
   let community_2 = Community::create(pool, &form).await?;

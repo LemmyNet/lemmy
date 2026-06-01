@@ -263,7 +263,6 @@ mod tests {
       ..CommunityInsertForm::new(
         local_instance.id,
         "test_community_3".to_string(),
-        "nada".to_owned(),
         "pubkey".to_string(),
       )
     };
@@ -332,7 +331,6 @@ mod tests {
       ..CommunityInsertForm::new(
         local_instance.id,
         "test_community_3".to_string(),
-        "nada".to_owned(),
         "pubkey".to_string(),
       )
     };

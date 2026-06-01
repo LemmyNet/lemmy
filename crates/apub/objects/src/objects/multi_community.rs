@@ -40,10 +40,11 @@ use lemmy_utils::{
     markdown::markdown_to_html,
     slurs::remove_slurs,
     validation::{
+      SITE_SUMMARY_MAX_LENGTH,
       is_valid_body_field,
       is_valid_display_name,
       summary_length_check,
-      truncate_summary,
+      truncate_for_db,
     },
   },
 };
@@ -154,7 +155,7 @@ impl Object for ApubMultiCommunity {
       .description
       .clone()
       .as_deref()
-      .map(truncate_summary)
+      .map(|d| truncate_for_db(d, SITE_SUMMARY_MAX_LENGTH))
       .map(|s| remove_slurs(&s, &slur_regex));
     if let Some(summary) = &summary {
       summary_length_check(summary)?;

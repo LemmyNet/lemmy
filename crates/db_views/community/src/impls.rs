@@ -468,7 +468,6 @@ mod tests {
         &CommunityInsertForm::new(
           instance.id,
           "test_community_1".to_string(),
-          "nada1".to_owned(),
           "pubkey".to_string(),
         ),
       )
@@ -478,7 +477,6 @@ mod tests {
         &CommunityInsertForm::new(
           instance.id,
           "test_community_2".to_string(),
-          "nada2".to_owned(),
           "pubkey".to_string(),
         ),
       )
@@ -490,7 +488,6 @@ mod tests {
           ..CommunityInsertForm::new(
             instance.id,
             "test_community_3".to_string(),
-            "nada3".to_owned(),
             "pubkey".to_string(),
           )
         },

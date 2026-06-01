@@ -69,7 +69,10 @@ pub fn send_notification_email(
         .map(|b| markdown_to_html(b))
         .unwrap_or_default();
       (
-        lang.notification_community_subscribed_subject(&post.name, &community.title),
+        lang.notification_community_subscribed_subject(
+          &post.name,
+          community.title.as_ref().unwrap_or(&community.name),
+        ),
         lang.notification_community_subscribed_body(&content, &link, inbox_link),
       )
     }
