@@ -74,28 +74,26 @@ pub async fn create_pm_report(
     .await?;
   }
 
-  if !private_message_report_view.private_message_creator.local {
-    let site = Site::read_from_instance_id(
-      &mut context.pool(),
-      private_message_report_view
-        .private_message_creator
-        .instance_id,
-    )
-    .await?;
-    ActivityChannel::submit_activity(
-      SendActivityData::CreateReport {
-        object_id: private_message_report_view
-          .private_message
-          .ap_id
-          .inner()
-          .clone(),
-        actor: private_message_report_view.creator.clone(),
-        receiver: Either::Left(site),
-        reason: data.reason.clone(),
-      },
-      &context,
-    )?;
-  }
+  let site = Site::read_from_instance_id(
+    &mut context.pool(),
+    private_message_report_view
+      .private_message_creator
+      .instance_id,
+  )
+  .await?;
+  ActivityChannel::submit_activity(
+    SendActivityData::CreateReport {
+      object_id: private_message_report_view
+        .private_message
+        .ap_id
+        .inner()
+        .clone(),
+      actor: private_message_report_view.creator.clone(),
+      receiver: Either::Left(site),
+      reason: data.reason.clone(),
+    },
+    &context,
+  )?;
 
   Ok(Json(PrivateMessageReportResponse {
     private_message_report_view,
