@@ -109,6 +109,14 @@ impl PrivateMessage {
       self.deleted_by_recipient = false;
     }
   }
+
+  /// Return the private message's ap_id with a timestamp fragment appended.
+  pub fn activity_object_id(&self) -> Url {
+    let timestamp = self.updated_at.unwrap_or(self.published_at);
+    let mut object_id = (*self.ap_id.0).clone();
+    object_id.set_fragment(Some(&timestamp.to_rfc3339()));
+    object_id
+  }
 }
 
 #[cfg(test)]

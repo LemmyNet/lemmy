@@ -12,6 +12,10 @@ docker/*.sql.xz
 .idea
 .vscode
 
+# macOS
+.DS_Store
+**/.DS_Store
+
 # local build files
 target
 env_setup.sh

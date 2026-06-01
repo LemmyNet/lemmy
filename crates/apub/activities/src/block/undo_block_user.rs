@@ -4,7 +4,7 @@ use crate::{
   activity_lists::AnnouncableActivities,
   block::{SiteOrCommunity, generate_cc},
   community::send_activity_in_community,
-  generate_activity_id,
+  generate_activity_id_with_object_id,
   protocol::block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
   send_lemmy_activity,
 };
@@ -47,7 +47,7 @@ impl UndoBlockUser {
     let block = BlockUser::new(target, user, mod_, None, reason, None, context).await?;
     let to = to(target)?;
 
-    let id = generate_activity_id(UndoType::Undo, context)?;
+    let id = generate_activity_id_with_object_id(UndoType::Undo, context)?;
     let undo = UndoBlockUser {
       actor: mod_.id().clone().into(),
       to,
