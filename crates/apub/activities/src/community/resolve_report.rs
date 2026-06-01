@@ -31,7 +31,8 @@ use lemmy_db_schema::{
   source::{
     comment_report::CommentReport,
     community_report::CommunityReport,
-    post_report::PostReport, private_message_report::PrivateMessageReport,
+    post_report::PostReport,
+    private_message_report::PrivateMessageReport,
   },
   traits::Reportable,
 };

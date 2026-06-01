@@ -4,7 +4,7 @@ use lemmy_api_utils::{
   build_response::build_community_response,
   context::LemmyContext,
   utils::{
-    check_local_user_valid,
+    check_local_user_banned_or_deleted,
     check_nsfw_allowed,
     generate_featured_url,
     generate_followers_url,
@@ -52,7 +52,7 @@ pub async fn create_community(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityResponse>> {
-  check_local_user_valid(&local_user_view)?;
+  check_local_user_banned_or_deleted(&local_user_view)?;
   let SiteView {
     site, local_site, ..
   } = SiteView::read_local(&mut context.pool()).await?;
@@ -91,9 +91,9 @@ pub async fn create_community(
 
   is_valid_actor_name(&data.name)?;
 
-  // Double check for duplicate community actor_ids
-  let community_ap_id = Community::generate_local_actor_url(&data.name, context.settings())?;
-  let community_dupe = Community::read_from_apub_id(&mut context.pool(), &community_ap_id).await?;
+  // Check for duplicate community with the same name
+  let ap_id = Community::generate_local_actor_url(&data.name, context.settings())?;
+  let community_dupe = Community::read_from_apub_id(&mut context.pool(), &ap_id).await?;
   if community_dupe.is_some() {
     return Err(LemmyErrorType::AlreadyExists.into());
   }
@@ -103,12 +103,12 @@ pub async fn create_community(
     sidebar,
     summary,
     nsfw: data.nsfw,
-    ap_id: Some(community_ap_id.clone()),
+    ap_id: Some(ap_id.clone()),
     private_key: Some(keypair.private_key),
-    followers_url: Some(generate_followers_url(&community_ap_id)?),
+    followers_url: Some(generate_followers_url(&ap_id)?),
     inbox_url: Some(generate_inbox_url()?),
-    moderators_url: Some(generate_moderators_url(&community_ap_id)?),
-    featured_url: Some(generate_featured_url(&community_ap_id)?),
+    moderators_url: Some(generate_moderators_url(&ap_id)?),
+    featured_url: Some(generate_featured_url(&ap_id)?),
     posting_restricted_to_mods: data.posting_restricted_to_mods,
     visibility: data.visibility,
     ..CommunityInsertForm::new(

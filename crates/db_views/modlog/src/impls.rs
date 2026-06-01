@@ -19,10 +19,7 @@ use lemmy_db_schema::{
     modlog::{Modlog, modlog_keys as key},
     multi_community::MultiCommunityEntry,
   },
-  utils::{
-    limit_fetch,
-    queries::filters::{filter_is_subscribed, filter_not_unlisted},
-  },
+  utils::{limit_fetch, queries::filters::filter_is_subscribed},
 };
 use lemmy_db_schema_file::{
   PersonId,
@@ -172,9 +169,7 @@ impl ModlogQuery<'_> {
     query = match self.listing_type.unwrap_or(ListingType::All) {
       ListingType::All => query,
       ListingType::Subscribed => query.filter(filter_is_subscribed()),
-      ListingType::Local => query
-        .filter(community::local.eq(true))
-        .filter(filter_not_unlisted()),
+      ListingType::Local => query.filter(community::local.eq(true)),
       ListingType::ModeratorView => {
         query.filter(community_actions::became_moderator_at.is_not_null())
       }
