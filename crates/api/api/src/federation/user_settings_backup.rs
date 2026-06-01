@@ -329,7 +329,6 @@ pub(crate) mod tests {
     let community_form = CommunityInsertForm::new(
       export_user.person.instance_id,
       "testcom".to_string(),
-      "testcom".to_string(),
       "pubkey".to_string(),
     );
     let community = Community::create(pool, &community_form).await?;

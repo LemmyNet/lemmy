@@ -437,8 +437,8 @@ pub(crate) fn convert_community(community: Community) -> CommunityV3 {
   } = community;
   CommunityV3 {
     id: CommunityIdV3(id.0),
-    name,
-    title,
+    name: name.clone(),
+    title: title.unwrap_or(name),
     description,
     removed,
     published: published_at,

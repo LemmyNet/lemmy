@@ -753,17 +753,13 @@ fn create_welcome_post(local_user: LocalUser, context: &LemmyContext) {
     let keypair = generate_actor_keypair()?;
     let community_form = CommunityInsertForm {
       ap_id: Some(community_ap_id.clone()),
+      title: Some("Main".to_string()),
       private_key: Some(keypair.private_key),
       followers_url: Some(generate_followers_url(&community_ap_id)?),
       inbox_url: Some(generate_inbox_url()?),
       moderators_url: Some(generate_moderators_url(&community_ap_id)?),
       featured_url: Some(generate_featured_url(&community_ap_id)?),
-      ..CommunityInsertForm::new(
-        site.site.instance_id,
-        community_name,
-        "Main".to_string(),
-        keypair.public_key,
-      )
+      ..CommunityInsertForm::new(site.site.instance_id, community_name, keypair.public_key)
     };
     let community = Community::create(pool, &community_form).await?;
 

@@ -137,7 +137,7 @@ diesel::table! {
         #[max_length = 255]
         name -> Varchar,
         #[max_length = 50]
-        title -> Varchar,
+        title -> Nullable<Varchar>,
         sidebar -> Nullable<Text>,
         removed -> Bool,
         published_at -> Timestamptz,
@@ -222,7 +222,7 @@ diesel::table! {
         creator_id -> Int4,
         community_id -> Int4,
         original_community_name -> Text,
-        original_community_title -> Text,
+        original_community_title -> Nullable<Text>,
         original_community_summary -> Nullable<Text>,
         original_community_sidebar -> Nullable<Text>,
         original_community_icon -> Nullable<Text>,

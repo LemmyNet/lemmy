@@ -90,7 +90,6 @@ async fn test_post() -> LemmyResult<()> {
   let community_form = CommunityInsertForm::new(
     data.alice.instance_id,
     "comm".to_string(),
-    "title".to_string(),
     "pubkey".to_string(),
   );
   let community = Community::create(pool, &community_form).await?;
@@ -153,12 +152,7 @@ async fn test_modlog() -> LemmyResult<()> {
   let data = init_data(pool).await?;
 
   // create a community and post
-  let form = CommunityInsertForm::new(
-    data.alice.instance_id,
-    "test".to_string(),
-    "test".to_string(),
-    String::new(),
-  );
+  let form = CommunityInsertForm::new(data.alice.instance_id, "test".to_string(), String::new());
   let community = Community::create(pool, &form).await?;
 
   let form = PostInsertForm {

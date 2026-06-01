@@ -104,6 +104,7 @@ pub async fn create_community(
   let community_form = CommunityInsertForm {
     sidebar,
     summary,
+    title,
     nsfw: data.nsfw,
     ap_id: Some(community_ap_id.clone()),
     private_key: Some(keypair.private_key),
@@ -113,12 +114,7 @@ pub async fn create_community(
     featured_url: Some(generate_featured_url(&community_ap_id)?),
     posting_restricted_to_mods: data.posting_restricted_to_mods,
     visibility: data.visibility,
-    ..CommunityInsertForm::new(
-      site.instance_id,
-      data.name.clone(),
-      title.unwrap_or(data.name),
-      keypair.public_key,
-    )
+    ..CommunityInsertForm::new(site.instance_id, data.name.clone(), keypair.public_key)
   };
 
   let inserted_community = Community::create(&mut context.pool(), &community_form).await?;

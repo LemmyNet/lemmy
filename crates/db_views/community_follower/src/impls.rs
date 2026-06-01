@@ -84,7 +84,7 @@ impl CommunityFollowerView {
       .filter(community_actions::follow_state.ne(CommunityFollowerState::ApprovalRequired))
       .filter(community_actions::follow_state.ne(CommunityFollowerState::Denied))
       .select(Self::as_select())
-      .order_by(lower(community::title))
+      .order_by(lower(community::name))
       .load::<CommunityFollowerView>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)

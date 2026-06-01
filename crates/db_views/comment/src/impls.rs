@@ -434,7 +434,6 @@ mod tests {
     let new_community = CommunityInsertForm::new(
       instance.id,
       "test community 5".to_string(),
-      "nada".to_owned(),
       "pubkey".to_string(),
     );
     let community = Community::create(pool, &new_community).await?;
