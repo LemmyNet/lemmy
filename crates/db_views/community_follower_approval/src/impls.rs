@@ -80,6 +80,11 @@ impl PendingFollowerView {
 
     let mut query = Self::joins()
       .filter(community_actions::became_moderator_at.is_not_null())
+      .filter(
+        follower_community_actions
+          .field(community_actions::became_moderator_at)
+          .is_null(),
+      )
       .filter(community::visibility.eq(CommunityVisibility::Private))
       .select((
         person1_select(),
