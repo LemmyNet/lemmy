@@ -22,11 +22,11 @@ const URL_MAX_LENGTH: usize = 2000;
 const ALT_TEXT_MAX_LENGTH: usize = 1500;
 const SITE_NAME_MAX_LENGTH: usize = 20;
 const SITE_NAME_MIN_LENGTH: usize = 1;
-const SITE_SUMMARY_MAX_LENGTH: usize = 150;
+pub const SITE_SUMMARY_MAX_LENGTH: usize = 150;
 const MIN_LENGTH_BLOCKING_KEYWORD: usize = 3;
 const MAX_LENGTH_BLOCKING_KEYWORD: usize = 50;
 const ACTOR_NAME_MAX_LENGTH: usize = 20;
-const DISPLAY_NAME_MAX_LENGTH: usize = 50;
+pub const DISPLAY_NAME_MAX_LENGTH: usize = 50;
 
 fn has_newline(name: &str) -> bool {
   name.contains('\n')
@@ -276,7 +276,7 @@ fn build_url_str_without_scheme(url_str: &str) -> LemmyResult<String> {
 // boundaries
 // To understand the difference between chars and graphemes see:
 // https://hsivonen.fi/string-length/
-fn truncate_for_db(text: &str, len: usize) -> String {
+pub fn truncate_for_db(text: &str, len: usize) -> String {
   if text.chars().count() <= len {
     text.to_string()
   } else {
@@ -320,10 +320,6 @@ fn truncate_for_db(text: &str, len: usize) -> String {
 
     text.chars().take(char_total).collect::<String>()
   }
-}
-
-pub fn truncate_summary(text: &str) -> String {
-  truncate_for_db(text, SITE_SUMMARY_MAX_LENGTH)
 }
 
 pub fn check_api_elements_count(len: usize) -> LemmyResult<()> {

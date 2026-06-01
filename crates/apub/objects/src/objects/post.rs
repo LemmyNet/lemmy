@@ -56,7 +56,7 @@ use lemmy_utils::{
   utils::{
     markdown::markdown_to_html,
     slurs::remove_slurs,
-    validation::{is_url_blocked, is_valid_url},
+    validation::{is_url_blocked, is_valid_url, truncate_for_db},
   },
 };
 use std::{collections::HashSet, ops::Deref};
@@ -225,7 +225,7 @@ impl Object for ApubPost {
       )
       .await?;
     }
-    let mut name = page
+    let name = page
       .name
       .clone()
       .or_else(|| {
@@ -243,12 +243,9 @@ impl Object for ApubPost {
             .to_string()
         })
       })
-      .map(|s| remove_slurs(&s, &slur_regex))
+      .map(|n| remove_slurs(&n, &slur_regex))
+      .map(|n| truncate_for_db(&n, MAX_TITLE_LENGTH))
       .ok_or_else(|| anyhow!("Object must have name or content"))?;
-
-    if name.chars().count() > MAX_TITLE_LENGTH {
-      name = name.chars().take(MAX_TITLE_LENGTH).collect();
-    }
 
     let first_attachment = page.attachment.first();
     let url = if let Some(attachment) = first_attachment.cloned() {

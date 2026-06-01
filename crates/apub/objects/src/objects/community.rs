@@ -44,7 +44,11 @@ use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::{sensitive::SensitiveString, traits::Crud};
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
-  utils::{markdown::markdown_to_html, slurs::remove_slurs, validation::truncate_summary},
+  utils::{
+    markdown::markdown_to_html,
+    slurs::remove_slurs,
+    validation::{SITE_SUMMARY_MAX_LENGTH, truncate_for_db},
+  },
 };
 use regex::RegexSet;
 use std::{ops::Deref, sync::OnceLock};
@@ -186,7 +190,7 @@ impl Object for ApubCommunity {
       .description
       .clone()
       .as_deref()
-      .map(truncate_summary)
+      .map(|s| truncate_for_db(s, SITE_SUMMARY_MAX_LENGTH))
       .map(|s| remove_slurs(&s, &slur_regex));
 
     let name = group.preferred_username.clone();
