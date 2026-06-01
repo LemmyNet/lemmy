@@ -474,7 +474,6 @@ mod tests {
     let new_community = CommunityInsertForm::new(
       inserted_instance.id,
       "test community".to_string(),
-      "nada".to_owned(),
       "pubkey".to_string(),
     );
     let inserted_community = Community::create(pool, &new_community).await?;
@@ -595,7 +594,6 @@ mod tests {
     let new_community = CommunityInsertForm::new(
       inserted_instance.id,
       "TIL_comment_agg".into(),
-      "nada".to_owned(),
       "pubkey".to_string(),
     );
     let inserted_community = Community::create(pool, &new_community).await?;
@@ -684,12 +682,8 @@ mod tests {
     let inserted_instance = Instance::read_or_create(pool, "mydomain.tld").await?;
     let new_person = PersonInsertForm::test_form(inserted_instance.id, "john");
     let inserted_person = Person::create(pool, &new_person).await?;
-    let new_community = CommunityInsertForm::new(
-      inserted_instance.id,
-      "test".into(),
-      "test".to_owned(),
-      "pubkey".to_string(),
-    );
+    let new_community =
+      CommunityInsertForm::new(inserted_instance.id, "test".into(), "pubkey".to_string());
     let inserted_community = Community::create(pool, &new_community).await?;
 
     let new_post = PostInsertForm::new(
@@ -759,12 +753,8 @@ mod tests {
     let inserted_instance = Instance::read_or_create(pool, "mydomain.tld").await?;
     let new_person = PersonInsertForm::test_form(inserted_instance.id, "sharah");
     let inserted_person = Person::create(pool, &new_person).await?;
-    let new_community = CommunityInsertForm::new(
-      inserted_instance.id,
-      "test".into(),
-      "test".to_owned(),
-      "pubkey".to_string(),
-    );
+    let new_community =
+      CommunityInsertForm::new(inserted_instance.id, "test".into(), "pubkey".to_string());
     let inserted_community = Community::create(pool, &new_community).await?;
     let new_post = PostInsertForm::new(
       "Post Title".to_string(),

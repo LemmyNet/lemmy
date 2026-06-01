@@ -30,7 +30,7 @@ pub struct Community {
   pub id: CommunityId,
   pub name: String,
   /// A longer title, that can contain other characters, and doesn't have to be unique.
-  pub title: String,
+  pub title: Option<String>,
   /// A sidebar for the community in markdown.
   pub sidebar: Option<String>,
   /// Whether the community is removed by a mod.
@@ -102,7 +102,8 @@ pub struct Community {
 pub struct CommunityInsertForm {
   pub instance_id: InstanceId,
   pub name: String,
-  pub title: String,
+  #[new(default)]
+  pub title: Option<String>,
   pub public_key: String,
   #[new(default)]
   pub sidebar: Option<String>,
@@ -150,7 +151,7 @@ pub struct CommunityInsertForm {
 #[cfg_attr(feature = "full", derive(AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = community))]
 pub struct CommunityUpdateForm {
-  pub title: Option<String>,
+  pub title: Option<Option<String>>,
   pub sidebar: Option<Option<String>>,
   pub removed: Option<bool>,
   pub published_at: Option<DateTime<Utc>>,

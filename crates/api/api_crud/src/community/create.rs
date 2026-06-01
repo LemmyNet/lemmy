@@ -37,7 +37,7 @@ use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
   utils::{
-    slurs::check_slurs,
+    slurs::{check_slurs, check_slurs_opt},
     validation::{
       is_valid_actor_name,
       is_valid_body_field,
@@ -65,7 +65,7 @@ pub async fn create_community(
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
   check_slurs(&data.name, &slur_regex)?;
-  check_slurs(&data.title, &slur_regex)?;
+  check_slurs_opt(&data.title, &slur_regex)?;
 
   let sidebar = process_markdown_opt(
     &data.sidebar,
@@ -75,8 +75,10 @@ pub async fn create_community(
     &context,
   )
   .await?;
-  let title = data.title.trim().to_string();
-  is_valid_display_name(&title)?;
+  let title = data.title.map(|t| t.trim().to_string());
+  if let Some(title) = &title {
+    is_valid_display_name(title)?;
+  }
 
   // Ensure that the sidebar has fewer than the max num characters...
   if let Some(sidebar) = &sidebar {
@@ -102,6 +104,7 @@ pub async fn create_community(
   let community_form = CommunityInsertForm {
     sidebar,
     summary,
+    title,
     nsfw: data.nsfw,
     ap_id: Some(ap_id.clone()),
     private_key: Some(keypair.private_key),
@@ -111,12 +114,7 @@ pub async fn create_community(
     featured_url: Some(generate_featured_url(&ap_id)?),
     posting_restricted_to_mods: data.posting_restricted_to_mods,
     visibility: data.visibility,
-    ..CommunityInsertForm::new(
-      site.instance_id,
-      data.name.clone(),
-      title,
-      keypair.public_key,
-    )
+    ..CommunityInsertForm::new(site.instance_id, data.name.clone(), keypair.public_key)
   };
 
   let inserted_community = Community::create(&mut context.pool(), &community_form).await?;

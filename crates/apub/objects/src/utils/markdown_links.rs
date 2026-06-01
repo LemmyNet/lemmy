@@ -91,7 +91,6 @@ mod tests {
       &CommunityInsertForm::new(
         data.instance.id,
         "my_community".to_string(),
-        "My Community".to_string(),
         "pubkey".to_string(),
       ),
     )

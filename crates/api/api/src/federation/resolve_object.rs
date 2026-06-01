@@ -145,12 +145,7 @@ mod tests {
 
     let community = Community::create(
       pool,
-      &CommunityInsertForm::new(
-        data.instance.id,
-        "test".to_string(),
-        "test".to_string(),
-        "pubkey".to_string(),
-      ),
+      &CommunityInsertForm::new(data.instance.id, "test".to_string(), "pubkey".to_string()),
     )
     .await?;
 

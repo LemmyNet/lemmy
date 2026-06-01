@@ -118,7 +118,7 @@ impl Object for ApubCommunity {
       kind: GroupType::Group,
       id: self.id().clone().into(),
       preferred_username: self.name.clone(),
-      name: Some(self.title.clone()),
+      name: self.title.clone(),
       summary: self.sidebar.as_ref().map(|d| markdown_to_html(d)),
       source: self.sidebar.clone().map(Source::new),
       description: self.summary.clone(),
@@ -190,7 +190,7 @@ impl Object for ApubCommunity {
       .map(|s| remove_slurs(&s, &slur_regex));
 
     let name = group.preferred_username.clone();
-    let title = remove_slurs(&group.name.clone().unwrap_or(name.clone()), &slur_regex);
+    let title = group.name.as_ref().map(|n| remove_slurs(n, &slur_regex));
 
     // If NSFW is not allowed, then remove NSFW communities
     let removed = check_nsfw_allowed(group.sensitive, Some(&local_site))
@@ -227,13 +227,9 @@ impl Object for ApubCommunity {
         .and_then(AttributedTo::url),
       posting_restricted_to_mods: group.posting_restricted_to_mods,
       featured_url: group.featured.clone().clone().map(Into::into),
+      title,
       visibility,
-      ..CommunityInsertForm::new(
-        instance_id,
-        name,
-        title,
-        group.public_key.public_key_pem.clone(),
-      )
+      ..CommunityInsertForm::new(instance_id, name, group.public_key.public_key_pem.clone())
     };
     let languages =
       LanguageTag::to_language_id_multiple(group.language.clone(), &mut context.pool()).await?;
@@ -306,7 +302,7 @@ pub(crate) mod tests {
     parse_lemmy_instance(&context).await?;
     let community = parse_lemmy_community(&context).await?;
 
-    assert_eq!(community.title, "Ten Forward");
+    assert_eq!(community.title, Some("Ten Forward".to_string()));
     assert!(!community.local);
 
     // Test the sidebar and description
