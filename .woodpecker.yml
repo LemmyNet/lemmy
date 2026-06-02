@@ -53,7 +53,7 @@ steps:
     commands:
       - *install_binstall
       - cargo binstall -y typos-cli
-      - typos --exclude crates/email/ --exclude crates/apub/apub/assets/ --exclude migrations
+      - typos --exclude crates/email/ --exclude crates/apub/apub/assets/ --exclude migrations --exclude readmes
     when:
       - event: pull_request
 
