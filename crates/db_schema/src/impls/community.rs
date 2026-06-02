@@ -212,7 +212,7 @@ impl Community {
     // The difference is we also regenerate the item's assigned number when the item is picked.
     // Without this, items would have permanent variations in the probability of being picked.
     // Additionally, in each group of multiple items that are assigned the same random number (a
-    // more likely occurence with `smallint`), there would be only one item that ever gets
+    // more likely occurrence with `smallint`), there would be only one item that ever gets
     // picked.
 
     let try_pick = || {
