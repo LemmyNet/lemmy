@@ -1,5 +1,5 @@
 use crate::LocalUserView;
-use diesel::{BoolExpressionMethods, ExpressionMethods, JoinOnDsl, QueryDsl, SelectableHelper};
+use diesel::{ExpressionMethods, JoinOnDsl, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
@@ -9,12 +9,11 @@ use lemmy_db_schema::{
   newtypes::CommunityId,
   source::combined::person_content::{PersonContentCombined, person_content_combined_keys as key},
   traits::InternalToCombinedView,
-  utils::limit_fetch,
+  utils::{limit_fetch, queries::filters::filter_private_or_followed},
 };
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
-  enums::{CommunityFollowerState, CommunityVisibility},
   joins::{
     creator_community_actions_join,
     creator_community_instance_actions_join,
@@ -28,15 +27,7 @@ use lemmy_db_schema_file::{
     my_person_actions_join,
     my_post_actions_join,
   },
-  schema::{
-    comment,
-    community,
-    community_actions,
-    person,
-    person_content_combined,
-    post,
-    post_actions,
-  },
+  schema::{comment, community, person, person_content_combined, post, post_actions},
 };
 use lemmy_db_views_post_comment_combined::{
   PostCommentCombinedView,
@@ -151,6 +142,7 @@ impl PersonContentCombinedQuery {
     let mut query = Self::joins(my_person_id, local_instance_id)
       // The creator id filter
       .filter(person_content_combined::creator_id.eq(self.creator_id))
+      .filter(filter_private_or_followed())
       .select(PostCommentCombinedViewInternal::as_select())
       .limit(limit)
       .into_boxed();
@@ -170,18 +162,6 @@ impl PersonContentCombinedQuery {
     // Filter by the community id
     if let Some(community_id) = self.community_id {
       query = query.filter(community::id.eq(community_id));
-    }
-
-    // Check permissions to view private community content.
-    // Specifically, if the community is private then only accepted followers may view its
-    // content, otherwise it is filtered out. Admins can view private community content
-    // without restriction.
-    if !my_local_user.is_admin() {
-      query = query.filter(
-        community::visibility
-          .ne(CommunityVisibility::Private)
-          .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
-      );
     }
 
     // Hide the hidden content

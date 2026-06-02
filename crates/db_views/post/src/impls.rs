@@ -238,6 +238,7 @@ impl PostView {
       .filter(post_actions::person_id.eq(my_person.id))
       .filter(post_actions::read_at.is_not_null())
       .filter(filter_blocked())
+      .filter(filter_private_or_followed())
       .limit(limit)
       .select(PostView::as_select())
       .into_boxed();
@@ -270,6 +271,7 @@ impl PostView {
       .filter(post_actions::person_id.eq(my_person.id))
       .filter(post_actions::hidden_at.is_not_null())
       .filter(filter_blocked())
+      .filter(filter_private_or_followed())
       .limit(limit)
       .select(PostView::as_select())
       .into_boxed();
