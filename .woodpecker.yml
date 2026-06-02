@@ -49,7 +49,7 @@ steps:
       - event: pull_request
 
   check_typos:
-    image: *rust_nightly_image
+    image: *rust_image
     commands:
       - *install_binstall
       - cargo binstall -y typos-cli
