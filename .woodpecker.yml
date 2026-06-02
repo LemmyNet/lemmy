@@ -94,6 +94,15 @@ steps:
     when:
       - event: pull_request
 
+  check_typos:
+    image: *rust_nightly_image
+    commands:
+      - *install_binstall
+      - cargo binstall -y typos-cli
+      - typos --exclude crates/email/ --exclude crates/apub/apub/assets/ --exclude migrations
+    when:
+      - event: pull_request
+
   api_tests_lint:
     image: node:24-trixie-slim
     commands:
