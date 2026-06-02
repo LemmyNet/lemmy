@@ -32,6 +32,7 @@ use lemmy_db_schema::{
     comment_report::CommentReport,
     community_report::CommunityReport,
     post_report::PostReport,
+    private_message_report::PrivateMessageReport,
   },
   traits::Reportable,
 };
@@ -95,9 +96,18 @@ impl Activity for ResolveReport {
       ReportableObjects::Left(PostOrComment::Right(comment)) => {
         CommentReport::resolve_apub(&mut context.pool(), comment.id, reporter.id, actor.id).await?;
       }
-      ReportableObjects::Right(community) => {
+      ReportableObjects::Right(Either::Left(community)) => {
         CommunityReport::resolve_apub(&mut context.pool(), community.id, reporter.id, actor.id)
           .await?;
+      }
+      ReportableObjects::Right(Either::Right(private_message)) => {
+        PrivateMessageReport::resolve_apub(
+          &mut context.pool(),
+          private_message.id,
+          reporter.id,
+          actor.id,
+        )
+        .await?;
       }
     };
 

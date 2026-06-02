@@ -1,14 +1,18 @@
 use crate::check_report_reason;
-use actix_web::web::{Data, Json};
+use activitypub_federation::config::Data;
+use actix_web::web::Json;
+use either::Either;
 use lemmy_api_utils::{
   context::LemmyContext,
   plugins::plugin_hook_after,
+  send_activity::{ActivityChannel, SendActivityData},
   utils::{check_local_user_banned_or_deleted, slur_regex},
 };
 use lemmy_db_schema::{
   source::{
     private_message::PrivateMessage,
     private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
+    site::Site,
   },
   traits::Reportable,
 };
@@ -70,7 +74,26 @@ pub async fn create_pm_report(
     .await?;
   }
 
-  // TODO: consider federating this
+  let site = Site::read_from_instance_id(
+    &mut context.pool(),
+    private_message_report_view
+      .private_message_creator
+      .instance_id,
+  )
+  .await?;
+  ActivityChannel::submit_activity(
+    SendActivityData::CreateReport {
+      object_id: private_message_report_view
+        .private_message
+        .ap_id
+        .inner()
+        .clone(),
+      actor: private_message_report_view.creator.clone(),
+      receiver: Either::Left(site),
+      reason: data.reason.clone(),
+    },
+    &context,
+  )?;
 
   Ok(Json(PrivateMessageReportResponse {
     private_message_report_view,
