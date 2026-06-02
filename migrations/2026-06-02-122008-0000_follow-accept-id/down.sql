@@ -1,3 +1,3 @@
 ALTER TABLE community_actions
-    DROP COLUMN;
+    DROP COLUMN follow_activity_id;
 
