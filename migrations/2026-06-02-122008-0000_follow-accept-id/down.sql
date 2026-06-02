@@ -1,1 +1,3 @@
-alter table community_actions drop column;
+ALTER TABLE community_actions
+    DROP COLUMN;
+

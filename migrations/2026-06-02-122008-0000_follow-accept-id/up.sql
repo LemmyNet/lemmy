@@ -1,1 +1,3 @@
-alter table community_actions add column follow_activity_id text;
+ALTER TABLE community_actions
+    ADD COLUMN follow_activity_id text;
+
