@@ -212,6 +212,8 @@ pub struct CommunityActions {
   #[serde(skip)]
   pub follow_approver_id: Option<PersonId>,
   pub notifications: Option<CommunityNotificationsMode>,
+  #[serde(skip)]
+  pub follow_activity_id: Option<DbUrl>,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -245,6 +247,8 @@ pub struct CommunityFollowerForm {
   pub follow_state: CommunityFollowerState,
   #[new(default)]
   pub follow_approver_id: Option<PersonId>,
+  #[new(default)]
+  pub follow_activity_id: Option<DbUrl>,
   #[new(value = "Utc::now()")]
   pub followed_at: DateTime<Utc>,
 }

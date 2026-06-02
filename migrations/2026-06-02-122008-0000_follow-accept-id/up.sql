@@ -1,0 +1,1 @@
+alter table community_actions add column follow_activity_id text;

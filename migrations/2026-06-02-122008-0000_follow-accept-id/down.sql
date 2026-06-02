@@ -1,0 +1,1 @@
+alter table community_actions drop column;
