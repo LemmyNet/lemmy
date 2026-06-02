@@ -55,7 +55,7 @@ const MIN_ACTIVITY_SEND_RESULTS_TO_HANDLE: usize = 0;
 ///      |                            |                             vvvv
 ///      |                            |                           fail or success
 ///      |                            |           <-report result--   |
-///      |               <---order and aggrate results---             |
+///      |               <---order and aggregate results---             |
 ///      |   <---send stats---        |                               |
 /// filter and print stats            |                               |
 pub(crate) struct InstanceWorker {
