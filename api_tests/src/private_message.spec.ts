@@ -171,11 +171,14 @@ test("Create a private message report", async () => {
     reason,
   );
 
-  const list_reports = await waitUntilSuccess(
-    () => listReports(alpha),
-    r => r.items.length === 1,
-  );
-  const r = list_reports.items[0] as PrivateMessageReportView;
+  const list_reports = (
+    await waitUntilSuccess(
+      () => listReports(alpha),
+      r => r.items.some(r => r.type_ === "private_message"),
+    )
+  ).items.filter(r => r.type_ === "private_message");
+
+  const r = list_reports[0] as PrivateMessageReportView;
   expect(r.private_message.ap_id).toBe(betaPm.private_message.ap_id);
   expect(r.private_message.content).toBe(betaPm.private_message.content);
   expect(r.private_message_creator.ap_id).toBe(betaPm.creator.ap_id);
