@@ -34,6 +34,7 @@ anyhow = { workspace = true }
 tracing = { workspace = true }
 chrono = { workspace = true }
 url = { workspace = true }
+tokio = { workspace = true }
 hound = "3.5.1"
 sitemap-rs = "0.2.1"
 totp-rs = { version = "5.7.0", features = ["gen_secret", "otpauth"] }
