@@ -2302,6 +2302,23 @@ async fn post_tags_present(data: &mut Data) -> LemmyResult<()> {
   assert_eq!(0, all_posts[1].tags.0.len()); // bot post
   assert_eq!(0, all_posts[2].tags.0.len()); // normal post
 
+  PostCommunityTag::update(pool, &data.bot_post, &[data.tag_1.id]).await?;
+  PostCommunityTag::update(pool, &data.post, &[data.tag_2.id]).await?;
+
+  let listing_for_tag = PostQuery {
+    tag_id: Some(data.tag_1.id),
+    ..Default::default()
+  }
+  .list(pool, &data.site, &data.local_site)
+  .await?;
+  dbg!(
+    &listing_for_tag
+      .iter()
+      .map(|p| p.tags.clone())
+      .collect::<Vec<_>>()
+  );
+  assert_eq!(2, listing_for_tag.len());
+
   Ok(())
 }
 
