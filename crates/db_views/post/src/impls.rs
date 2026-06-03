@@ -51,7 +51,7 @@ use lemmy_db_schema_file::{
     my_person_actions_join,
     my_post_actions_join,
   },
-  schema::{community, community_actions, person, post, post_actions, post_community_tag},
+  schema::{community, person, post, post_actions, post_community_tag},
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
