@@ -37,6 +37,7 @@ pub struct Modlog {
   pub expires_at: Option<DateTime<Utc>>,
   pub published_at: DateTime<Utc>,
   pub bulk_action_parent_id: Option<ModlogId>,
+  pub child_count: i32,
 }
 
 #[derive(derive_new::new)]
@@ -62,4 +63,6 @@ pub struct ModlogInsertForm<'a> {
   pub(crate) target_instance_id: Option<InstanceId>,
   #[new(default)]
   pub(crate) expires_at: Option<DateTime<Utc>>,
+  #[new(default)]
+  pub child_count: i32,
 }
