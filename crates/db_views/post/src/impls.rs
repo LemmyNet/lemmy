@@ -541,11 +541,16 @@ impl PostQuery<'_> {
     }
 
     if let Some(tag_id) = self.tag_id {
-      dbg!(&tag_id);
       // This filters the post_community_tags_fragment subquery
       let tags = post_community_tag::table
+        // Make sure its for this post
+        .filter(post_community_tag::post_id.eq(post::id))
+        // Make sure it filters for this tag
+        // otherwise single_value will only return the first result
+        .filter(post_community_tag::community_tag_id.eq(tag_id))
         .select(post_community_tag::community_tag_id)
         .single_value();
+
       query = query.filter(tags.eq(tag_id));
     }
 

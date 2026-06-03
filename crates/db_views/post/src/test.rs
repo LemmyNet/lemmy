@@ -2302,22 +2302,31 @@ async fn post_tags_present(data: &mut Data) -> LemmyResult<()> {
   assert_eq!(0, all_posts[1].tags.0.len()); // bot post
   assert_eq!(0, all_posts[2].tags.0.len()); // normal post
 
+  // Add a tag_1 to the bot post.
   PostCommunityTag::update(pool, &data.bot_post, &[data.tag_1.id]).await?;
-  PostCommunityTag::update(pool, &data.post, &[data.tag_2.id]).await?;
 
-  let listing_for_tag = PostQuery {
+  let listing_for_tag_1 = PostQuery {
     tag_id: Some(data.tag_1.id),
     ..Default::default()
   }
   .list(pool, &data.site, &data.local_site)
   .await?;
-  dbg!(
-    &listing_for_tag
-      .iter()
-      .map(|p| p.tags.clone())
-      .collect::<Vec<_>>()
-  );
-  assert_eq!(2, listing_for_tag.len());
+
+  // Should have only the bot post and post with tags
+  assert_eq!(2, listing_for_tag_1.len());
+  assert!(names(&listing_for_tag_1).contains(&POST_BY_BOT));
+  assert!(names(&listing_for_tag_1).contains(&POST_WITH_TAGS));
+
+  let listing_for_tag_2 = PostQuery {
+    tag_id: Some(data.tag_2.id),
+    ..Default::default()
+  }
+  .list(pool, &data.site, &data.local_site)
+  .await?;
+
+  // Should have only the post with tags
+  assert_eq!(1, listing_for_tag_2.len());
+  assert!(names(&listing_for_tag_2).contains(&POST_WITH_TAGS));
 
   Ok(())
 }
