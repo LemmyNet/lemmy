@@ -806,7 +806,7 @@ fn create_post_items(
       );
     }
     let category = Category {
-      name: p.community.title,
+      name: p.community.title.unwrap_or(p.community.name),
       domain: Some(p.community.ap_id.to_string()),
     };
 

@@ -41,20 +41,22 @@ pub const MAX_COMMENT_DEPTH_LIMIT: usize = 50;
 pub const DB_BATCH_SIZE: i64 = 1000;
 
 fn version() -> String {
+  let pkg_version = env!("CARGO_PKG_VERSION");
   if cfg!(debug_assertions) {
     // For debug simply use the version from Cargo.toml. We can't use git_version here
     // because it would cause a rebuild if any file in the repo is changed.
-    env!("CARGO_PKG_VERSION").to_string()
+    pkg_version.to_string()
   } else {
     // Event cron means its a nightly build
     // https://woodpecker-ci.org/docs/usage/environment
     if option_env!("CI_PIPELINE_EVENT") == Some("cron") {
-      format!("nightly-{}", Utc::now().date_naive())
+      let main_version = pkg_version.split("-").next().unwrap_or(pkg_version);
+      format!("{main_version}-nightly-{}", Utc::now().date_naive())
     } else {
       // For actual release builds use git binary for detailed version information.
       git_version::git_version!(
         args = ["--tags", "--dirty=-modified"],
-        fallback = env!("CARGO_PKG_VERSION")
+        fallback = pkg_version
       )
       .to_string()
     }

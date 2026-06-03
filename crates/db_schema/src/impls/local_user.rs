@@ -18,8 +18,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::{
   PersonId,
-  enums::CommunityVisibility,
-  schema::{community, community_actions, local_user, person, registration_application},
+  schema::{community_actions, local_user, person, registration_application},
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
@@ -320,12 +319,6 @@ pub trait LocalUserOptionHelper {
   fn is_admin(&self) -> bool;
   fn show_nsfw(&self, site: &Site) -> bool;
   fn hide_media(&self) -> bool;
-  fn visible_communities_only<Q>(&self, query: Q) -> Q
-  where
-    Q: diesel::query_dsl::methods::FilterDsl<
-        diesel::dsl::Eq<community::visibility, CommunityVisibility>,
-        Output = Q,
-      >;
 }
 
 impl LocalUserOptionHelper for Option<&LocalUser> {
@@ -357,21 +350,6 @@ impl LocalUserOptionHelper for Option<&LocalUser> {
 
   fn hide_media(&self) -> bool {
     self.map(|l| l.hide_media).unwrap_or(false)
-  }
-
-  // TODO: use this function for private community checks, but the generics get extremely confusing
-  fn visible_communities_only<Q>(&self, query: Q) -> Q
-  where
-    Q: diesel::query_dsl::methods::FilterDsl<
-        diesel::dsl::Eq<community::visibility, CommunityVisibility>,
-        Output = Q,
-      >,
-  {
-    if self.is_none() {
-      query.filter(community::visibility.eq(CommunityVisibility::Public))
-    } else {
-      query
-    }
   }
 }
 

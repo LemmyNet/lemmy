@@ -437,8 +437,8 @@ pub(crate) fn convert_community(community: Community) -> CommunityV3 {
   } = community;
   CommunityV3 {
     id: CommunityIdV3(id.0),
-    name,
-    title,
+    name: name.clone(),
+    title: title.unwrap_or(name),
     description,
     removed,
     published: published_at,
@@ -637,6 +637,7 @@ pub(crate) fn convert_local_site(local_site: LocalSite) -> LocalSiteV3 {
     RegistrationMode::Closed => RegistrationModeV3::Closed,
     RegistrationMode::RequireApplication => RegistrationModeV3::RequireApplication,
     RegistrationMode::Open => RegistrationModeV3::Open,
+    RegistrationMode::RequireInvitation => RegistrationModeV3::Closed,
   };
   LocalSiteV3 {
     id: Default::default(),

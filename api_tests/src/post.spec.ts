@@ -1067,17 +1067,22 @@ test("Rewrite markdown links", async () => {
     beta,
     community!.community.id,
     sampleSite,
-    `[link](${postRes1.post_view.post.ap_id})`,
+    `[link](${postRes1.post_view.post.ap_id})\n${postRes1.post_view.post.ap_id}\n`,
   ).then(expectSuccess);
   expect(postRes2.post_view.post).toBeDefined();
+  const originalLink = `http://lemmy-beta:8551/post/${postRes1?.post_view.post.id}`;
+  expect(postRes2.post_view.post.body).toBe(
+    `[link](${originalLink})\n${originalLink}\n`,
+  );
 
-  // fetch both posts from another instance
-  const alphaPost1 = await resolvePost(alpha, postRes1.post_view.post);
+  // fetch post from the other instance
   const alphaPost2 = await resolvePost(alpha, postRes2.post_view.post);
+  const alphaPost1 = await resolvePost(alpha, postRes1.post_view.post);
 
   // remote markdown link is replaced with local link
+  const rewrittenLink = `http://lemmy-alpha:8541/post/${alphaPost1?.post.id}`;
   expect(alphaPost2?.post.body).toBe(
-    `[link](http://lemmy-alpha:8541/post/${alphaPost1?.post.id})`,
+    `[link](${rewrittenLink})\n${rewrittenLink}\n`,
   );
 });
 

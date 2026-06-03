@@ -244,12 +244,7 @@ mod tests {
     // Create a post like to give bob a higher post score for sorting tests
     let community_form = CommunityInsertForm {
       summary: Some("bobs comm".into()),
-      ..CommunityInsertForm::new(
-        instance.id,
-        "bobs_comm".to_string(),
-        "Bobs Comm".to_owned(),
-        "pubkey".to_string(),
-      )
+      ..CommunityInsertForm::new(instance.id, "bobs_comm".to_string(), "pubkey".to_string())
     };
     let community = Community::create(pool, &community_form).await?;
     let bob_post_form = PostInsertForm {

@@ -36,7 +36,11 @@ use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::{sensitive::SensitiveString, traits::Crud};
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
-  utils::{markdown::markdown_to_html, slurs::remove_slurs},
+  utils::{
+    markdown::markdown_to_html,
+    slurs::remove_slurs,
+    validation::{DISPLAY_NAME_MAX_LENGTH, truncate_for_db},
+  },
 };
 use std::ops::Deref;
 use url::Url;
@@ -148,7 +152,10 @@ impl Object for ApubPerson {
       proxy_image_link_opt_apub(person.icon.map(|i| i.url), &local_site, context).await?;
     let banner =
       proxy_image_link_opt_apub(person.image.map(|i| i.url), &local_site, context).await?;
-    let display_name = person.name.map(|s| remove_slurs(&s, &slur_regex));
+    let display_name = person
+      .name
+      .map(|s| remove_slurs(&s, &slur_regex))
+      .map(|d| truncate_for_db(&d, DISPLAY_NAME_MAX_LENGTH));
 
     let person_form = PersonInsertForm {
       name: person.preferred_username,

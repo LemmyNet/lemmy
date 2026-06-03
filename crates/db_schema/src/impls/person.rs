@@ -521,7 +521,6 @@ mod tests {
     let new_community = CommunityInsertForm::new(
       data.instance.id,
       "TIL_site_agg".into(),
-      "nada".to_owned(),
       "pubkey".to_string(),
     );
 

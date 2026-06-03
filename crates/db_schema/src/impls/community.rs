@@ -704,18 +704,14 @@ mod tests {
     let artemis_person = PersonInsertForm::test_form(inserted_instance.id, "artemis");
     let inserted_artemis = Person::create(pool, &artemis_person).await?;
 
-    let new_community = CommunityInsertForm::new(
-      inserted_instance.id,
-      "TIL".into(),
-      "nada".to_owned(),
-      "pubkey".to_string(),
-    );
+    let new_community =
+      CommunityInsertForm::new(inserted_instance.id, "TIL".into(), "pubkey".to_string());
     let inserted_community = Community::create(pool, &new_community).await?;
 
-    let expected_community = Community {
+    let mut expected_community = Community {
       id: inserted_community.id,
       name: "TIL".into(),
-      title: "nada".to_owned(),
+      title: None,
       sidebar: None,
       summary: None,
       nsfw: false,
@@ -811,7 +807,7 @@ mod tests {
     let read_community = Community::read(pool, inserted_community.id).await?;
 
     let update_community_form = CommunityUpdateForm {
-      title: Some("nada".to_owned()),
+      title: Some(Some("nada".to_owned())),
       ..Default::default()
     };
     let updated_community =
@@ -831,6 +827,7 @@ mod tests {
     Instance::delete(pool, inserted_instance.id).await?;
 
     assert_eq!(expected_community, read_community);
+    expected_community.title = Some("nada".to_string());
     assert_eq!(expected_community, updated_community);
     assert_eq!(UpleteCount::only_updated(1), ignored_community);
     assert_eq!(UpleteCount::only_updated(1), left_community);
@@ -860,7 +857,6 @@ mod tests {
     let new_community = CommunityInsertForm::new(
       inserted_instance.id,
       "TIL_community_agg".into(),
-      "nada".to_owned(),
       "pubkey".to_string(),
     );
     let inserted_community = Community::create(pool, &new_community).await?;
@@ -868,7 +864,6 @@ mod tests {
     let another_community = CommunityInsertForm::new(
       inserted_instance.id,
       "TIL_community_agg_2".into(),
-      "nada".to_owned(),
       "pubkey".to_string(),
     );
     let another_inserted_community = Community::create(pool, &another_community).await?;

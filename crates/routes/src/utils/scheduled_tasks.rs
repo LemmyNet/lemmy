@@ -40,6 +40,7 @@ use lemmy_db_schema_file::schema::{
   instance_actions,
   local_site,
   local_user,
+  local_user_invite,
   person,
   post,
   received_activity,
@@ -93,6 +94,7 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
   // - Update active daily counts
   // - Expired bans
   // - Expired instance blocks
+  // - Expired invitations
   scheduler.every(CTimeUnits::hour(1)).run(move || {
     let context = context_1.clone();
 
@@ -108,6 +110,10 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
       delete_instance_block_when_expired(&mut context.pool())
         .await
         .inspect_err(|e| warn!("Failed to delete expired instance bans: {e}"))
+        .ok();
+      delete_invitations_when_expired(&mut context.pool())
+        .await
+        .inspect_err(|e| warn!("Failed to delete expired invitations: {e}"))
         .ok();
       plugin_hook_after("scheduled_task_1_hour", &());
     }
@@ -561,6 +567,17 @@ async fn delete_instance_block_when_expired(pool: &mut DbPool<'_>) -> LemmyResul
   Ok(())
 }
 
+/// Set invitations to Expired
+async fn delete_invitations_when_expired(pool: &mut DbPool<'_>) -> LemmyResult<()> {
+  let conn = &mut get_conn(pool).await?;
+  diesel::delete(
+    local_user_invite::table.filter(local_user_invite::expires_at.lt(now().nullable())),
+  )
+  .execute(conn)
+  .await?;
+  Ok(())
+}
+
 /// Find all unpublished posts with scheduled date in the future, and publish them.
 async fn publish_scheduled_posts(context: &Data<LemmyContext>) -> LemmyResult<()> {
   let pool = &mut context.pool();
@@ -747,12 +764,7 @@ mod tests {
     let data = TestData::create(pool).await?;
     let community = Community::create(
       pool,
-      &CommunityInsertForm::new(
-        data.instance.id,
-        "name".to_owned(),
-        "title".to_owned(),
-        "pubkey".to_owned(),
-      ),
+      &CommunityInsertForm::new(data.instance.id, "name".to_owned(), "pubkey".to_owned()),
     )
     .await?;
     let person = Person::create(

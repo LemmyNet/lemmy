@@ -1,5 +1,7 @@
 use crate::{ResolveObjectView, SiteView};
 #[cfg(feature = "full")]
+use activitypub_federation::protocol::helpers::deserialize_skip_error;
+#[cfg(feature = "full")]
 use extism::FromBytes;
 use extism_convert::Json;
 use lemmy_db_schema::{
@@ -168,6 +170,7 @@ pub struct CreateSite {
   pub image_max_upload_size: Option<i32>,
   pub image_allow_video_uploads: Option<bool>,
   pub image_upload_disabled: Option<bool>,
+  pub max_invites_per_user_allowed: Option<i32>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -304,6 +307,7 @@ pub struct EditSite {
   pub image_max_upload_size: Option<i32>,
   pub image_allow_video_uploads: Option<bool>,
   pub image_upload_disabled: Option<bool>,
+  pub max_invites_per_user_allowed: Option<i32>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -704,7 +708,7 @@ pub struct Search {
   pub post_url_only: Option<bool>,
   /// If true, then show the nsfw posts (even if your user setting is to hide them)
   pub show_nsfw: Option<bool>,
-  pub page_cursor: Option<String>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }
 
@@ -714,7 +718,7 @@ pub struct Search {
 /// The search response, containing lists of the return type possibilities
 pub struct SearchResponse {
   /**
-   * If `Search.q` contains an ActivityPub ID (eg `https://lemmy.world/comment/1`) or an
+   * If `Search.search_term` contains an ActivityPub ID (eg `https://lemmy.world/comment/1`) or an
    * identifier (eg `!fediverse@lemmy.ml`) then this field contains the resolved object.
    * It should always be shown above other search results.
    */
@@ -724,8 +728,8 @@ pub struct SearchResponse {
   pub communities: Vec<CommunityView>,
   pub persons: Vec<PersonView>,
   pub multi_communities: Vec<MultiCommunityView>,
-  pub prev_page: Option<String>,
-  pub next_page: Option<String>,
+  pub prev_page: Option<PaginationCursor>,
+  pub next_page: Option<PaginationCursor>,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -747,7 +751,6 @@ pub enum PostOrCommentOrPrivateMessage {
 /// Be careful with any changes to this struct, to avoid breaking changes which could prevent
 /// importing older backups.
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[serde(deny_unknown_fields)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct UserSettingsBackup {
@@ -757,6 +760,10 @@ pub struct UserSettingsBackup {
   pub banner: Option<Url>,
   pub matrix_id: Option<String>,
   pub bot_account: Option<bool>,
+  #[cfg_attr(
+    feature = "full",
+    serde(deserialize_with = "deserialize_skip_error", default)
+  )]
   // TODO: might be worth making a separate struct for settings backup, to avoid breakage in case
   //       fields are renamed, and to avoid storing unnecessary fields like person_id or email
   pub settings: Option<LocalUser>,

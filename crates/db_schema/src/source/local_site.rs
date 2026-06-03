@@ -113,6 +113,8 @@ pub struct LocalSite {
   /// This affects post and comment images, but not avatars and banners.
   pub image_allow_video_uploads: bool,
   pub image_upload_disabled: bool,
+  /// How many active invite links a user can have
+  pub max_invites_per_user_allowed: i32,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -191,6 +193,8 @@ pub struct LocalSiteInsertForm {
   pub image_allow_video_uploads: Option<bool>,
   #[new(default)]
   pub image_upload_disabled: Option<bool>,
+  #[new(default)]
+  pub max_invites_per_user_allowed: Option<i32>,
 }
 
 #[derive(Clone, Default)]
@@ -234,4 +238,5 @@ pub struct LocalSiteUpdateForm {
   pub image_max_upload_size: Option<i32>,
   pub image_allow_video_uploads: Option<bool>,
   pub image_upload_disabled: Option<bool>,
+  pub max_invites_per_user_allowed: Option<i32>,
 }

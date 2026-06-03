@@ -5,6 +5,7 @@ use crate::{
 };
 use chrono::Utc;
 use diesel::{
+  BoolExpressionMethods,
   ExpressionMethods,
   QueryDsl,
   dsl::{insert_into, update},
@@ -12,7 +13,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::{PersonId, schema::private_message_report};
 use lemmy_diesel_utils::connection::{DbPool, get_conn};
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult, UntranslatedError};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Reportable for PrivateMessageReport {
   type Form = PrivateMessageReportForm;
@@ -46,12 +47,27 @@ impl Reportable for PrivateMessageReport {
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
   async fn resolve_apub(
-    _pool: &mut DbPool<'_>,
-    _object_id: Self::ObjectIdType,
-    _report_creator_id: PersonId,
-    _resolver_id: PersonId,
+    pool: &mut DbPool<'_>,
+    object_id: Self::ObjectIdType,
+    report_creator_id: PersonId,
+    resolver_id: PersonId,
   ) -> LemmyResult<usize> {
-    Err(UntranslatedError::Unreachable.into())
+    let conn = &mut get_conn(pool).await?;
+    update(
+      private_message_report::table.filter(
+        private_message_report::private_message_id
+          .eq(object_id)
+          .and(private_message_report::creator_id.eq(report_creator_id)),
+      ),
+    )
+    .set((
+      private_message_report::resolved.eq(true),
+      private_message_report::resolver_id.eq(resolver_id),
+      private_message_report::updated_at.eq(Utc::now()),
+    ))
+    .execute(conn)
+    .await
+    .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
   // This is unused because private message doesn't have remove handler

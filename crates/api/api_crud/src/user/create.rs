@@ -11,7 +11,7 @@ use lemmy_api_utils::{
   plugins::{is_captcha_plugin_loaded, plugin_validate_captcha},
   utils::{
     check_email_verified,
-    check_local_user_valid,
+    check_local_user_banned_or_deleted,
     check_registration_application,
     generate_featured_url,
     generate_followers_url,
@@ -31,6 +31,7 @@ use lemmy_db_schema::{
     language::Language,
     local_site::LocalSite,
     local_user::{LocalUser, LocalUserInsertForm},
+    local_user_invite::{LocalUserInvite, LocalUserInviteUpdateForm},
     oauth_account::{OAuthAccount, OAuthAccountInsertForm},
     oauth_provider::AdminOAuthProvider,
     person::{Person, PersonInsertForm},
@@ -89,6 +90,20 @@ pub async fn register(
   let local_site = site_view.local_site.clone();
   let require_registration_application =
     local_site.registration_mode == RegistrationMode::RequireApplication;
+  let token = data.token.as_deref();
+
+  let local_user_invite = if local_site.registration_mode == RegistrationMode::RequireInvitation {
+    let token = token.ok_or(LemmyErrorType::MissingInviteToken)?;
+    let inv = LocalUserInvite::read_by_token(pool, token)
+      .await
+      .map_err(|_e| LemmyError::from(LemmyErrorType::InvalidInviteToken))?;
+    if !inv.is_expired() {
+      return Err(LemmyErrorType::InvalidInviteToken.into());
+    }
+    Some(inv)
+  } else {
+    None
+  };
 
   if local_site.registration_mode == RegistrationMode::Closed {
     return Err(LemmyErrorType::RegistrationClosed.into());
@@ -154,6 +169,7 @@ pub async fn register(
           email: tx_data.email.as_deref().map(str::to_lowercase),
           show_nsfw: Some(show_nsfw),
           accepted_application,
+          invited_by_local_user_id: local_user_invite.as_ref().map(|inv| inv.local_user_id),
           ..LocalUserInsertForm::new(person.id, Some(tx_data.password.to_string()))
         };
 
@@ -177,6 +193,22 @@ pub async fn register(
           };
 
           RegistrationApplication::create(&mut conn.into(), &form).await?;
+        }
+
+        if let Some(inv) = local_user_invite {
+          let new_uses_count = inv.uses_count + 1;
+          if inv.max_uses.map(|m| new_uses_count >= m).unwrap_or(false) {
+            LocalUserInvite::delete_by_token(&mut conn.into(), &inv.token).await?;
+          } else {
+            LocalUserInvite::update(
+              &mut conn.into(),
+              inv.id,
+              &LocalUserInviteUpdateForm {
+                uses_count: Some(new_uses_count),
+              },
+            )
+            .await?;
+          }
         }
 
         Ok(LocalUserView {
@@ -306,18 +338,13 @@ pub async fn authenticate_with_oauth(
     // user found by oauth_user_id => Login user
     let local_user = user_view.clone().local_user;
 
-    login_response.registration_created = local_site.site_setup
-      && require_registration_application
-      && !local_user.accepted_application
-      && !local_user.admin
-      && data.answer.is_some();
-
-    check_local_user_valid(&user_view)?;
+    check_local_user_banned_or_deleted(&user_view)?;
     check_email_verified(&user_view, &site_view)?;
     check_registration_application(&user_view, &site_view.local_site, pool).await?;
     local_user
   } else {
     // user has never previously registered using oauth
+    login_response.registration_created = local_site.site_setup && require_registration_application;
 
     // prevent registration if registration is closed
     if local_site.registration_mode == RegistrationMode::Closed {
@@ -347,7 +374,7 @@ pub async fn authenticate_with_oauth(
         // users who signed up before the switch could have accounts with unverified emails falsely
         // marked as verified.
 
-        check_local_user_valid(&user_view)?;
+        check_local_user_banned_or_deleted(&user_view)?;
         check_email_verified(&user_view, &site_view)?;
         check_registration_application(&user_view, &site_view.local_site, pool).await?;
 
@@ -726,17 +753,13 @@ fn create_welcome_post(local_user: LocalUser, context: &LemmyContext) {
     let keypair = generate_actor_keypair()?;
     let community_form = CommunityInsertForm {
       ap_id: Some(community_ap_id.clone()),
+      title: Some("Main".to_string()),
       private_key: Some(keypair.private_key),
       followers_url: Some(generate_followers_url(&community_ap_id)?),
       inbox_url: Some(generate_inbox_url()?),
       moderators_url: Some(generate_moderators_url(&community_ap_id)?),
       featured_url: Some(generate_featured_url(&community_ap_id)?),
-      ..CommunityInsertForm::new(
-        site.site.instance_id,
-        community_name,
-        "Main".to_string(),
-        keypair.public_key,
-      )
+      ..CommunityInsertForm::new(site.site.instance_id, community_name, keypair.public_key)
     };
     let community = Community::create(pool, &community_form).await?;
 
