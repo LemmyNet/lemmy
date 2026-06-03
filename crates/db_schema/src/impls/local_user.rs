@@ -318,7 +318,7 @@ pub trait LocalUserOptionHelper {
   fn show_read_posts(&self) -> bool;
   fn is_admin(&self) -> bool;
   fn show_nsfw(&self, site: &Site) -> bool;
-  fn hide_media(&self) -> bool;
+  fn hide_posts_with_media(&self) -> bool;
 }
 
 impl LocalUserOptionHelper for Option<&LocalUser> {
@@ -348,8 +348,8 @@ impl LocalUserOptionHelper for Option<&LocalUser> {
       .unwrap_or(site.content_warning.is_some())
   }
 
-  fn hide_media(&self) -> bool {
-    self.map(|l| l.hide_media).unwrap_or(false)
+  fn hide_posts_with_media(&self) -> bool {
+    self.map(|l| l.hide_posts_with_media).unwrap_or(false)
   }
 }
 

@@ -77,6 +77,8 @@ pub async fn import_user_settings(
     default_listing_type: data.settings.as_ref().map(|s| s.default_listing_type),
     interface_language: data.settings.clone().map(|s| s.interface_language),
     show_avatars: data.settings.as_ref().map(|s| s.show_avatars),
+    show_media: data.settings.as_ref().map(|s| s.show_media),
+    hide_posts_with_media: data.settings.as_ref().map(|s| s.hide_posts_with_media),
     send_notifications_to_email: data
       .settings
       .as_ref()
@@ -459,7 +461,7 @@ pub(crate) mod tests {
     let import_user = LocalUserView::create_test_user(pool, "bobby", "bio", false).await?;
 
     let backup = serde_json::from_str(
-      r#"{"display_name":null,"bio":null,"avatar":null,"banner":null,"matrix_id":null,"bot_account":false,"settings":{"id":1,"person_id":2,"show_nsfw":true,"theme":"browser","default_sort_type":"Active","default_listing_type":"Local","interface_language":"es","show_avatars":true,"send_notifications_to_email":false,"show_scores":true,"show_bot_accounts":true,"show_read_posts":true,"email_verified":false,"accepted_application":true,"open_links_in_new_tab":false,"blur_nsfw":true,"auto_expand":false,"infinite_scroll_enabled":false,"admin":true,"post_listing_mode":"List","totp_2fa_enabled":false,"enable_keyboard_navigation":false,"enable_animated_images":true,"collapse_bot_comments":false,"last_donation_notification":"2025-06-05T07:39:54.282106Z"},"vote_display_mode_settings":{"local_user_id":1,"score":false,"upvotes":true,"downvotes":true,"upvote_percentage":false},"followed_communities":["https://voyager.lemmy.ml/c/test","https://ds9.lemmy.ml/c/test","https://enterprise.lemmy.ml/c/test","https://enterprise.lemmy.ml/c/%D8%AA%D8%AC%D8%B1%D9%8A%D8%A8","https://enterprise.lemmy.ml/c/testmod","https://enterprise.lemmy.ml/c/test1","https://enterprise.lemmy.ml/c/main","https://voyager.lemmy.ml/c/test_comm_1"],"saved_posts":[],"saved_comments":[],"blocked_communities":[],"blocked_users":[],"blocked_instances":[]}"#,
+      r#"{"display_name":null,"bio":null,"avatar":null,"banner":null,"matrix_id":null,"bot_account":false,"settings":{"id":1,"person_id":2,"show_nsfw":true,"theme":"browser","default_sort_type":"Active","default_listing_type":"Local","interface_language":"es","show_avatars":true,"show_media": true,"hide_posts_with_media": false,"send_notifications_to_email":false,"show_scores":true,"show_bot_accounts":true,"show_read_posts":true,"email_verified":false,"accepted_application":true,"open_links_in_new_tab":false,"blur_nsfw":true,"auto_expand":false,"infinite_scroll_enabled":false,"admin":true,"post_listing_mode":"List","totp_2fa_enabled":false,"enable_keyboard_navigation":false,"enable_animated_images":true,"collapse_bot_comments":false,"last_donation_notification":"2025-06-05T07:39:54.282106Z"},"vote_display_mode_settings":{"local_user_id":1,"score":false,"upvotes":true,"downvotes":true,"upvote_percentage":false},"followed_communities":["https://voyager.lemmy.ml/c/test","https://ds9.lemmy.ml/c/test","https://enterprise.lemmy.ml/c/test","https://enterprise.lemmy.ml/c/%D8%AA%D8%AC%D8%B1%D9%8A%D8%A8","https://enterprise.lemmy.ml/c/testmod","https://enterprise.lemmy.ml/c/test1","https://enterprise.lemmy.ml/c/main","https://voyager.lemmy.ml/c/test_comm_1"],"saved_posts":[],"saved_comments":[],"blocked_communities":[],"blocked_users":[],"blocked_instances":[]}"#,
     )?;
     import_user_settings(Json(backup), import_user.clone(), context.clone()).await?;
 

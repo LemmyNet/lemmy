@@ -304,7 +304,7 @@ pub struct PostQuery<'a> {
   pub show_hidden: Option<bool>,
   pub show_read: Option<bool>,
   pub show_nsfw: Option<bool>,
-  pub hide_media: Option<bool>,
+  pub hide_posts_with_media: Option<bool>,
   pub no_comments_only: Option<bool>,
   pub keyword_blocks: Option<Vec<String>>,
   pub search_term: Option<String>,
@@ -495,7 +495,10 @@ impl PostQuery<'_> {
       query = query.filter(post_actions::hidden_at.is_null());
     }
 
-    if self.hide_media.unwrap_or(self.local_user.hide_media()) {
+    if self
+      .hide_posts_with_media
+      .unwrap_or(self.local_user.hide_posts_with_media())
+    {
       query = query.filter(not(
         post::url_content_type.is_not_null().and(
           post::url_content_type

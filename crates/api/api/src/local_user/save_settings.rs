@@ -159,6 +159,7 @@ pub async fn save_user_settings(
   let local_user_form = LocalUserUpdateForm {
     email,
     show_avatars: data.show_avatars,
+    show_media: data.show_media,
     show_read_posts: data.show_read_posts,
     send_notifications_to_email: data.send_notifications_to_email,
     show_nsfw: data.show_nsfw,
@@ -178,7 +179,7 @@ pub async fn save_user_settings(
     private_messages_enabled: data.private_messages_enabled,
     collapse_bot_comments: data.collapse_bot_comments,
     auto_mark_fetched_posts_as_read: data.auto_mark_fetched_posts_as_read,
-    hide_media: data.hide_media,
+    hide_posts_with_media: data.hide_posts_with_media,
     // Update the vote display modes
     show_score: data.show_score,
     show_upvotes: data.show_upvotes,
