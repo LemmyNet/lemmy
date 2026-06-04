@@ -9,7 +9,6 @@ use lemmy_db_views_site::api::CaptchaResponse;
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
-use std::process::exit;
 use tokio::task::spawn_blocking;
 
 /// Call a plugin hook which can rewrite data
@@ -89,7 +88,7 @@ mod internal {
     pub fn get_or_init() -> LemmyPlugins {
       if !SETTINGS.plugins.is_empty() {
         error!("Plugins not supported, recompile with `--features plugins`");
-        exit(1);
+        std::process::exit(1);
       }
       LemmyPlugins {}
     }
