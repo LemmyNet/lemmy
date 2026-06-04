@@ -63,6 +63,4 @@ pub struct ModlogInsertForm<'a> {
   pub(crate) target_instance_id: Option<InstanceId>,
   #[new(default)]
   pub(crate) expires_at: Option<DateTime<Utc>>,
-  #[new(default)]
-  pub child_count: i32,
 }
