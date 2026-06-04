@@ -63,7 +63,7 @@ pub async fn list_posts(
     show_read,
     // Show nsfw content if param is true, or if content_warning exists
     show_nsfw,
-    hide_media,
+    hide_posts_with_media,
     no_comments_only,
     search_term,
     search_title_only,
@@ -109,7 +109,7 @@ pub async fn list_posts(
     show_hidden,
     show_read,
     show_nsfw,
-    hide_media,
+    hide_posts_with_media,
     no_comments_only,
     keyword_blocks,
     search_term,

@@ -537,6 +537,8 @@ pub struct SaveUserSettings {
   pub matrix_user_id: Option<String>,
   /// Whether to show or hide avatars.
   pub show_avatars: Option<bool>,
+  /// Whether to show media in the UI.
+  pub show_media: Option<bool>,
   /// Sends notifications to your email.
   pub send_notifications_to_email: Option<bool>,
   /// Whether this account is a bot account. Users can hide these accounts easily if they wish.
@@ -567,8 +569,8 @@ pub struct SaveUserSettings {
   pub show_upvote_percentage: Option<bool>,
   /// Whether to automatically mark fetched posts as read.
   pub auto_mark_fetched_posts_as_read: Option<bool>,
-  /// Whether to hide posts containing images/videos.
-  pub hide_media: Option<bool>,
+  /// Whether to hide posts containing images/videos. Often labeled hide_memes.
+  pub hide_posts_with_media: Option<bool>,
   /// Whether to show vote totals given to others.
   pub show_person_votes: Option<bool>,
 }

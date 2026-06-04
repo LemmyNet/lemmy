@@ -2126,7 +2126,7 @@ async fn post_listing_private_community(data: &mut Data) -> LemmyResult<()> {
 #[test_context(Data)]
 #[tokio::test]
 #[serial]
-async fn post_listings_hide_media(data: &mut Data) -> LemmyResult<()> {
+async fn post_listings_hide_posts_with_media(data: &mut Data) -> LemmyResult<()> {
   let pool = &data.pool();
   let pool = &mut pool.into();
 
@@ -2141,44 +2141,44 @@ async fn post_listings_hide_media(data: &mut Data) -> LemmyResult<()> {
   )
   .await?;
 
-  // Make sure all the posts are returned when `hide_media` is unset
-  let hide_media_listing = PostQuery {
+  // Make sure all the posts are returned when `hide_posts_with_media` is unset
+  let hide_posts_with_media_listing = PostQuery {
     community_id: Some(data.community.id),
     local_user: Some(&data.tegan.local_user),
     ..Default::default()
   }
   .list(pool, &data.site, &data.local_site)
   .await?;
-  assert_eq!(3, hide_media_listing.len());
+  assert_eq!(3, hide_posts_with_media_listing.len());
 
-  // Ensure the `hide_media` user setting is set
+  // Ensure the `hide_posts_with_media` user setting is set
   let local_user_form = LocalUserUpdateForm {
-    hide_media: Some(true),
+    hide_posts_with_media: Some(true),
     ..Default::default()
   };
   LocalUser::update(pool, data.tegan.local_user.id, &local_user_form).await?;
-  data.tegan.local_user.hide_media = true;
+  data.tegan.local_user.hide_posts_with_media = true;
 
   // Ensure you don't see the image post
-  let hide_media_listing = PostQuery {
+  let hide_posts_with_media_listing = PostQuery {
     community_id: Some(data.community.id),
     local_user: Some(&data.tegan.local_user),
     ..Default::default()
   }
   .list(pool, &data.site, &data.local_site)
   .await?;
-  assert_eq!(2, hide_media_listing.len());
+  assert_eq!(2, hide_posts_with_media_listing.len());
 
-  // Make sure the `hide_media` override works
-  let hide_media_listing = PostQuery {
+  // Make sure the `hide_posts_with_media` override works
+  let hide_posts_with_media_listing = PostQuery {
     community_id: Some(data.community.id),
     local_user: Some(&data.tegan.local_user),
-    hide_media: Some(false),
+    hide_posts_with_media: Some(false),
     ..Default::default()
   }
   .list(pool, &data.site, &data.local_site)
   .await?;
-  assert_eq!(3, hide_media_listing.len());
+  assert_eq!(3, hide_posts_with_media_listing.len());
 
   Ok(())
 }
