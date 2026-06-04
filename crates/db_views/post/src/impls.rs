@@ -18,7 +18,7 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::{SortDirection, asc_if};
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommunityId, MultiCommunityId, PostId},
+  newtypes::{CommunityId, CommunityTagId, MultiCommunityId, PostId},
   source::{
     actor_language::LocalUserLanguage,
     community::CommunityActions,
@@ -51,7 +51,7 @@ use lemmy_db_schema_file::{
     my_person_actions_join,
     my_post_actions_join,
   },
-  schema::{community, person, post, post_actions},
+  schema::{community, person, post, post_actions, post_community_tag},
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
@@ -238,6 +238,7 @@ impl PostView {
       .filter(post_actions::person_id.eq(my_person.id))
       .filter(post_actions::read_at.is_not_null())
       .filter(filter_blocked())
+      .filter(filter_private_or_followed())
       .limit(limit)
       .select(PostView::as_select())
       .into_boxed();
@@ -270,6 +271,7 @@ impl PostView {
       .filter(post_actions::person_id.eq(my_person.id))
       .filter(post_actions::hidden_at.is_not_null())
       .filter(filter_blocked())
+      .filter(filter_private_or_followed())
       .limit(limit)
       .select(PostView::as_select())
       .into_boxed();
@@ -309,6 +311,7 @@ pub struct PostQuery<'a> {
   pub search_title_only: Option<bool>,
   pub search_url_only: Option<bool>,
   pub page_cursor: Option<PaginationCursor>,
+  pub tag_id: Option<CommunityTagId>,
   /// For backwards compat with API v3 (not available on API v4).
   pub page: Option<i64>,
   pub limit: Option<i64>,
@@ -536,6 +539,20 @@ impl PostQuery<'_> {
     if let Some(time_range_seconds) = self.time_range_seconds {
       query =
         query.filter(post::published_at.gt(now() - seconds_to_pg_interval(time_range_seconds)));
+    }
+
+    if let Some(tag_id) = self.tag_id {
+      // This filters the post_community_tags_fragment subquery
+      let tags = post_community_tag::table
+        // Make sure its for this post
+        .filter(post_community_tag::post_id.eq(post::id))
+        // Make sure it filters for this tag
+        // otherwise single_value will only return the first result
+        .filter(post_community_tag::community_tag_id.eq(tag_id))
+        .select(post_community_tag::community_tag_id)
+        .single_value();
+
+      query = query.filter(tags.eq(tag_id));
     }
 
     // Only sort by ascending for Old

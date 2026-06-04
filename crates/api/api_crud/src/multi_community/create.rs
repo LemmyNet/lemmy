@@ -50,7 +50,6 @@ pub async fn create_multi_community(
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;
 
-  is_valid_display_name(&data.name)?;
   check_slurs(&data.name, &slur_regex)?;
 
   let ap_id = MultiCommunity::generate_local_actor_url(&data.name, context.settings())?;

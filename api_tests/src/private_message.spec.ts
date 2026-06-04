@@ -1,5 +1,9 @@
 jest.setTimeout(120000);
-import { LemmyError, PrivateMessageView } from "lemmy-js-client";
+import {
+  LemmyError,
+  PrivateMessageReportView,
+  PrivateMessageView,
+} from "lemmy-js-client";
 import {
   alpha,
   beta,
@@ -16,6 +20,7 @@ import {
   expectSuccess,
   waitUntilSuccess,
   expectFailure,
+  listReports,
 } from "./shared";
 
 let recipient_id: number;
@@ -165,4 +170,17 @@ test("Create a private message report", async () => {
   expect(report.private_message_report_view.private_message_report.reason).toBe(
     reason,
   );
+
+  const list_reports = (
+    await waitUntilSuccess(
+      () => listReports(alpha),
+      r => r.items.some(r => r.type_ === "private_message"),
+    )
+  ).items.filter(r => r.type_ === "private_message");
+
+  const r = list_reports[0] as PrivateMessageReportView;
+  expect(r.private_message.ap_id).toBe(betaPm.private_message.ap_id);
+  expect(r.private_message.content).toBe(betaPm.private_message.content);
+  expect(r.private_message_creator.ap_id).toBe(betaPm.creator.ap_id);
+  expect(r.private_message_report.reason).toBe(reason);
 });

@@ -13,7 +13,7 @@ use lemmy_db_schema::{
   PersonContentType,
   source::combined::person_saved::{PersonSavedCombined, person_saved_combined_keys as key},
   traits::InternalToCombinedView,
-  utils::limit_fetch,
+  utils::{limit_fetch, queries::filters::filter_private_or_followed},
 };
 use lemmy_db_schema_file::{
   InstanceId,
@@ -143,6 +143,7 @@ impl PersonSavedCombinedQuery {
 
     let mut query = Self::joins(my_person_id, local_instance_id)
       .filter(person_saved_combined::person_id.eq(my_person_id))
+      .filter(filter_private_or_followed())
       .select(PostCommentCombinedViewInternal::as_select())
       .limit(limit)
       .into_boxed();
