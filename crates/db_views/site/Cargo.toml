@@ -27,10 +27,10 @@ full = [
   "lemmy_db_views_post/full",
   "lemmy_db_views_comment/full",
   "anyhow",
-  "extism",
   "i-love-jesus",
   "activitypub_federation",
 ]
+plugins = ["extism", "extism-convert"]
 ts-rs = [
   "dep:ts-rs",
   "lemmy_db_schema/ts-rs",
@@ -63,7 +63,7 @@ serde_with = { workspace = true }
 ts-rs = { workspace = true, optional = true }
 url = { workspace = true }
 extism = { workspace = true, optional = true }
-extism-convert = { workspace = true }
+extism-convert = { workspace = true, optional = true }
 anyhow = { workspace = true, optional = true }
 i-love-jesus = { workspace = true, optional = true }
 activitypub_federation = { workspace = true, optional = true }

@@ -31,7 +31,7 @@ COPY --from=planner /lemmy/recipe.json recipe.json
 # Build dependencies - this is the caching Docker layer!
 RUN if [ "${RUST_RELEASE_MODE}" = "release" ]; \
   then \
-  cargo chef cook --recipe-path recipe.json --release; \
+  cargo chef cook --recipe-path recipe.json --release --all-features; \
   else \
   cargo chef cook --recipe-path recipe.json; \
   fi 
@@ -42,7 +42,7 @@ COPY . .
 
 RUN if [ "${RUST_RELEASE_MODE}" = "release" ]; \
   then \
-  cargo build --features "${CARGO_BUILD_FEATURES}" --release; \
+  cargo build --features "${CARGO_BUILD_FEATURES}" --release --all-features; \
   mv target/release/lemmy_server .; \
   else \
   cargo build --features "${CARGO_BUILD_FEATURES}"; \

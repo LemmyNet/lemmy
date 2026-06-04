@@ -8,7 +8,7 @@ use diesel_async::{AsyncPgConnection, scoped_futures::ScopedFutureExt};
 use lemmy_api_utils::{
   claims::Claims,
   context::LemmyContext,
-  plugins::{is_captcha_plugin_loaded, plugin_validate_captcha},
+  plugins::{LemmyPlugins, plugin_validate_captcha},
   utils::{
     check_email_verified,
     check_local_user_banned_or_deleted,
@@ -126,7 +126,7 @@ pub async fn register(
     return Err(LemmyErrorType::PasswordsDoNotMatch.into());
   }
 
-  if local_site.site_setup && is_captcha_plugin_loaded() {
+  if local_site.site_setup && LemmyPlugins::get_or_init().is_captcha_plugin_loaded() {
     let answer = data.captcha_answer.clone().unwrap_or_default();
     let uuid = data.captcha_uuid.clone().unwrap_or_default();
     plugin_validate_captcha(answer, uuid).await?;
