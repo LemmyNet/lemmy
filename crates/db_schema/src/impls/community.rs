@@ -377,6 +377,7 @@ impl CommunityActions {
       .set((
         community_actions::follow_state.eq(state),
         community_actions::follow_approver_id.eq(approver_id),
+        community_actions::follow_activity_id.eq(None::<DbUrl>),
       ))
       .execute(conn)
       .await?;
