@@ -139,6 +139,8 @@ pub struct GetPosts {
   pub search_term: Option<String>,
   pub search_title_only: Option<bool>,
   pub search_url_only: Option<bool>,
+  /// Only show posts which have this tag
+  pub tag_id: Option<CommunityTagId>,
   pub page_cursor: Option<PaginationCursor>,
   /// For backwards compat with API v3 (not available on API v4)
   #[serde(skip)]

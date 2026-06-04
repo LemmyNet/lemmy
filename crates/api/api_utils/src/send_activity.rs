@@ -63,8 +63,16 @@ pub enum SendActivityData {
   },
   FollowCommunity(Community, Person, bool),
   FollowMultiCommunity(MultiCommunity, Person, bool),
-  AcceptFollower(CommunityId, PersonId),
-  RejectFollower(CommunityId, PersonId),
+  PrivateCommunityAcceptFollower {
+    community_id: CommunityId,
+    person_id: PersonId,
+    follow_activity_id: Option<DbUrl>,
+  },
+  PrivateCommunityRejectFollower {
+    community_id: CommunityId,
+    person_id: PersonId,
+    follow_activity_id: Option<DbUrl>,
+  },
   UpdateCommunity(Person, Community),
   DeleteCommunity(Person, Community, bool),
   RemoveCommunity {

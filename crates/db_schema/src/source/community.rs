@@ -212,6 +212,12 @@ pub struct CommunityActions {
   #[serde(skip)]
   pub follow_approver_id: Option<PersonId>,
   pub notifications: Option<CommunityNotificationsMode>,
+  /// For remote users following a local private community, store the ID of the follow activity.
+  /// This is so we can send the correct ID back when the follow is accepted or rejected later.
+  /// For follows to non-private communities this is not needed as the accept is sent back
+  /// immediately.
+  #[serde(skip)]
+  pub follow_activity_id: Option<DbUrl>,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -245,6 +251,9 @@ pub struct CommunityFollowerForm {
   pub follow_state: CommunityFollowerState,
   #[new(default)]
   pub follow_approver_id: Option<PersonId>,
+  /// Only needed when remote user follows a local, private community.
+  #[new(default)]
+  pub follow_activity_id: Option<DbUrl>,
   #[new(value = "Utc::now()")]
   pub followed_at: DateTime<Utc>,
 }

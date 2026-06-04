@@ -198,6 +198,7 @@ diesel::table! {
         follow_state -> Nullable<CommunityFollowerState>,
         follow_approver_id -> Nullable<Int4>,
         notifications -> Nullable<CommunityNotificationsModeEnum>,
+        follow_activity_id -> Nullable<Text>
     }
 }
 
