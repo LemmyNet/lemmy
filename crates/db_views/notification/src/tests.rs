@@ -1,5 +1,6 @@
 use crate::{NotificationData, NotificationView, impls::NotificationQuery};
 use lemmy_db_schema::{
+  NotificationTypeFilter,
   assert_length,
   source::{
     comment::{Comment, CommentInsertForm},
@@ -24,6 +25,7 @@ use serial_test::serial;
 struct Data {
   alice: Person,
   bob: Person,
+  carmen: Person,
 }
 
 async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
@@ -35,7 +37,10 @@ async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
   let bob_form = PersonInsertForm::test_form(instance.id, "bob2");
   let bob = Person::create(pool, &bob_form).await?;
 
-  Ok(Data { alice, bob })
+  let carmen_form = PersonInsertForm::test_form(instance.id, "carmen2");
+  let carmen = Person::create(pool, &carmen_form).await?;
+
+  Ok(Data { alice, bob, carmen })
 }
 
 async fn cleanup(data: Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
@@ -55,15 +60,28 @@ async fn test_private_message() -> LemmyResult<()> {
   let notifs = NotificationQuery::default().list(pool, &data.alice).await?;
   assert_length!(0, notifs);
 
-  let form = &PrivateMessageInsertForm::new(data.bob.id, data.alice.id, "my message".to_string());
+  let form = &PrivateMessageInsertForm::new(
+    data.bob.id,
+    data.alice.id,
+    "bob to alice message".to_string(),
+  );
+  let pm = PrivateMessage::create(pool, form).await?;
+  let form = NotificationInsertForm::new_private_message(&pm);
+  Notification::create(pool, &[form]).await?;
+
+  let form = &PrivateMessageInsertForm::new(
+    data.carmen.id,
+    data.alice.id,
+    "carmen to alice message".to_string(),
+  );
   let pm = PrivateMessage::create(pool, form).await?;
   let form = NotificationInsertForm::new_private_message(&pm);
   Notification::create(pool, &[form]).await?;
 
   let count = NotificationView::get_unread_count(pool, &data.alice, false).await?;
-  assert_eq!(1, count);
+  assert_eq!(2, count);
   let notifs = NotificationQuery::default().list(pool, &data.alice).await?;
-  assert_length!(1, notifs);
+  assert_length!(2, notifs);
   assert_eq!(Some(pm.id), notifs[0].notification.private_message_id);
   assert_eq!(pm.recipient_id, notifs[0].notification.recipient_id);
   assert!(!notifs[0].notification.read);
@@ -71,6 +89,65 @@ async fn test_private_message() -> LemmyResult<()> {
     panic!();
   };
   assert_eq!(pm, notif_pm.private_message);
+
+  // Make sure filtering is working correctly, filter for bobs messages
+  let notifs = NotificationQuery {
+    creator_id: Some(data.bob.id),
+    ..NotificationQuery::default()
+  }
+  .list(pool, &data.alice)
+  .await?;
+  assert_length!(1, notifs);
+
+  // Now create a message from alice to bob
+  let form = &PrivateMessageInsertForm::new(
+    data.alice.id,
+    data.bob.id,
+    "alice to bob message".to_string(),
+  );
+  let pm = PrivateMessage::create(pool, form).await?;
+  let form = NotificationInsertForm::new_private_message(&pm);
+  Notification::create(pool, &[form]).await?;
+
+  // The unread count should still be 2.
+  let count = NotificationView::get_unread_count(pool, &data.alice, false).await?;
+  assert_eq!(2, count);
+
+  // The simple notifs should still be 2.
+  let notifs = NotificationQuery::default().list(pool, &data.alice).await?;
+  assert_length!(2, notifs);
+
+  // The filtered notifs should still be 1.
+  let notifs = NotificationQuery {
+    creator_id: Some(data.bob.id),
+    ..NotificationQuery::default()
+  }
+  .list(pool, &data.alice)
+  .await?;
+  assert_length!(1, notifs);
+
+  // But when filtering by the private message type, it should include your own messages also
+  let notifs = NotificationQuery {
+    type_: Some(NotificationTypeFilter::Other(
+      NotificationType::PrivateMessage,
+    )),
+    ..NotificationQuery::default()
+  }
+  .list(pool, &data.alice)
+  .await?;
+  assert_length!(3, notifs);
+
+  // Bob filter should be only the messages between you and bob
+  let notifs = NotificationQuery {
+    creator_id: Some(data.bob.id),
+    type_: Some(NotificationTypeFilter::Other(
+      NotificationType::PrivateMessage,
+    )),
+    ..NotificationQuery::default()
+  }
+  .list(pool, &data.alice)
+  .await?;
+  assert_length!(2, notifs);
 
   cleanup(data, pool).await
 }
