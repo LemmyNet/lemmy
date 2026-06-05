@@ -1,9 +1,6 @@
 use crate::{ResolveObjectView, SiteView};
 #[cfg(feature = "full")]
 use activitypub_federation::protocol::helpers::deserialize_skip_error;
-#[cfg(feature = "full")]
-use extism::FromBytes;
-use extism_convert::Json;
 use lemmy_db_schema::{
   SearchType,
   newtypes::{CommunityId, LanguageId, MultiCommunityId, OAuthProviderId, TaglineId},
@@ -47,6 +44,8 @@ use lemmy_diesel_utils::{pagination::PaginationCursor, sensitive::SensitiveStrin
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
+#[cfg(feature = "plugins")]
+use {extism::FromBytes, extism_convert::Json};
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
@@ -367,8 +366,8 @@ pub struct SiteResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(FromBytes))]
-#[cfg_attr(feature = "full", encoding(Json))]
+#[cfg_attr(feature = "plugins", derive(FromBytes))]
+#[cfg_attr(feature = "plugins", encoding(Json))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A captcha response.
@@ -659,8 +658,8 @@ pub struct EditTagline {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[cfg_attr(feature = "full", derive(FromBytes))]
-#[cfg_attr(feature = "full", encoding(Json))]
+#[cfg_attr(feature = "plugins", derive(FromBytes))]
+#[cfg_attr(feature = "plugins", encoding(Json))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct PluginMetadata {
