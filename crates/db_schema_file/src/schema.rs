@@ -528,6 +528,18 @@ diesel::table! {
 }
 
 diesel::table! {
+    local_user_invite (id) {
+        id -> Int4,
+        token -> Text,
+        local_user_id -> Int4,
+        max_uses -> Nullable<Int4>,
+        uses_count -> Int4,
+        expires_at -> Nullable<Timestamptz>,
+        published_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     local_user_keyword_block (local_user_id, keyword) {
         local_user_id -> Int4,
         #[max_length = 50]
@@ -570,6 +582,7 @@ diesel::table! {
         expires_at -> Nullable<Timestamptz>,
         published_at -> Timestamptz,
         bulk_action_parent_id -> Nullable<Int4>,
+        child_count -> Int4,
     }
 }
 

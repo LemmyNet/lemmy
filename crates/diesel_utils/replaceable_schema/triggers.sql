@@ -1081,3 +1081,43 @@ CREATE TRIGGER multi_community_remove_subscribers
     FOR EACH ROW
     WHEN (OLD.follow_state = 'Accepted')
     EXECUTE FUNCTION r.multicommunity_subscribers_decrement ();
+-- Increment modlog.child_count for bulk_action_parents
+CREATE FUNCTION r.modlog_child_count_increment ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        modlog
+    SET
+        child_count = child_count + 1
+    WHERE
+        id = NEW.bulk_action_parent_id;
+    RETURN NULL;
+END
+$$;
+CREATE TRIGGER modlog_bulk_action_parent_insert
+    AFTER INSERT ON modlog
+    FOR EACH ROW
+    WHEN (NEW.bulk_action_parent_id IS NOT NULL)
+    EXECUTE FUNCTION r.modlog_child_count_increment ();
+-- Decrement modlog.child_count for bulk_action_parents on delete
+CREATE FUNCTION r.modlog_child_count_decrement ()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE
+        modlog
+    SET
+        child_count = child_count - 1
+    WHERE
+        id = OLD.bulk_action_parent_id;
+    RETURN NULL;
+END
+$$;
+CREATE TRIGGER modlog_bulk_action_parent_delete
+    AFTER DELETE ON modlog
+    FOR EACH ROW
+    WHEN (OLD.bulk_action_parent_id IS NOT NULL)
+    EXECUTE FUNCTION r.modlog_child_count_decrement ();
