@@ -20,7 +20,7 @@ pub async fn follow_community(
   let community_id = data.community_id;
   let community = Community::read(&mut context.pool(), community_id).await?;
 
-  do_follow_community(community, &local_user_view.person, data.follow, &context).await?;
+  do_follow_community(community, &local_user_view, data.follow, &context).await?;
 
   let community_view = CommunityView::read(
     &mut context.pool(),
