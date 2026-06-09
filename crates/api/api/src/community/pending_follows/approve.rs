@@ -22,7 +22,7 @@ pub async fn post_pending_follows_approve(
   let community_actions = CommunityActions::read(
     &mut context.pool(),
     data.community_id,
-    local_user_view.person.id,
+    data.follower_id,
   )
   .await?;
   let (state, activity_data) = if data.approve {
