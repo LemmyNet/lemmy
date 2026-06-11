@@ -134,7 +134,6 @@ impl Data {
     let new_community = CommunityInsertForm::new(
       data.instance.id,
       "test_community_3".to_string(),
-      "nada".to_owned(),
       "pubkey".to_string(),
     );
     let community = Community::create(pool, &new_community).await?;
@@ -1062,7 +1061,6 @@ async fn post_listing_instance_block_communities(data: &mut Data) -> LemmyResult
   let community_form = CommunityInsertForm::new(
     blocked_instance_comms.id,
     "test_community_4".to_string(),
-    "none".to_owned(),
     "pubkey".to_string(),
   );
   let inserted_community = Community::create(pool, &community_form).await?;
@@ -1166,7 +1164,6 @@ async fn post_listing_instance_block_persons(data: &mut Data) -> LemmyResult<()>
   let community_form = CommunityInsertForm::new(
     blocked_instance_persons.id,
     "test_community_8".to_string(),
-    "none".to_owned(),
     "pubkey".to_string(),
   );
   let inserted_community = Community::create(pool, &community_form).await?;
@@ -1238,12 +1235,8 @@ async fn pagination_includes_each_post_once(data: &mut Data) -> LemmyResult<()> 
   let pool_ref = &***pool_arc;
   let pool = &mut pool_ref.into();
 
-  let community_form = CommunityInsertForm::new(
-    data.instance.id,
-    "yes".to_string(),
-    "yes".to_owned(),
-    "pubkey".to_string(),
-  );
+  let community_form =
+    CommunityInsertForm::new(data.instance.id, "yes".to_string(), "pubkey".to_string());
   let inserted_community = Community::create(pool, &community_form).await?;
 
   let mut inserted_post_ids = HashSet::new();
@@ -1339,12 +1332,8 @@ async fn pagination_hidden_cursors(data: &mut Data) -> LemmyResult<()> {
   let pool_ref = &***pool_arc;
   let pool = &mut pool_ref.into();
 
-  let community_form = CommunityInsertForm::new(
-    data.instance.id,
-    "yes".to_string(),
-    "yes".to_owned(),
-    "pubkey".to_string(),
-  );
+  let community_form =
+    CommunityInsertForm::new(data.instance.id, "yes".to_string(), "pubkey".to_string());
   let inserted_community = Community::create(pool, &community_form).await?;
 
   let page_size: usize = 5;
@@ -1457,12 +1446,8 @@ async fn pagination_recovery_cursors(data: &mut Data) -> LemmyResult<()> {
   let pool_ref = &***pool_arc;
   let pool = &mut pool_ref.into();
 
-  let community_form = CommunityInsertForm::new(
-    data.instance.id,
-    "yes".to_string(),
-    "yes".to_owned(),
-    "pubkey".to_string(),
-  );
+  let community_form =
+    CommunityInsertForm::new(data.instance.id, "yes".to_string(), "pubkey".to_string());
   let inserted_community = Community::create(pool, &community_form).await?;
 
   let page_size: usize = 5;
@@ -2071,10 +2056,9 @@ async fn post_listing_private_community(data: &mut Data) -> LemmyResult<()> {
   assert!(post_view.is_err());
 
   // No posts returned for non-follower who is not admin
-  data.tegan.local_user.admin = false;
   let read_post_listing = PostQuery {
     community_id: Some(data.community.id),
-    local_user: Some(&data.tegan.local_user),
+    local_user: Some(&data.bot.local_user),
     ..Default::default()
   }
   .list(pool, &data.site, &data.local_site)
@@ -2083,7 +2067,7 @@ async fn post_listing_private_community(data: &mut Data) -> LemmyResult<()> {
   let post_view = PostView::read(
     pool,
     data.post.id,
-    Some(&data.tegan.local_user),
+    Some(&data.bot.local_user),
     data.instance.id,
     false,
   )
@@ -2158,44 +2142,44 @@ async fn post_listings_hide_media(data: &mut Data) -> LemmyResult<()> {
   )
   .await?;
 
-  // Make sure all the posts are returned when `hide_media` is unset
-  let hide_media_listing = PostQuery {
+  // Make sure all the posts are returned when `hide_posts_with_media` is unset
+  let hide_posts_with_media_listing = PostQuery {
     community_id: Some(data.community.id),
     local_user: Some(&data.tegan.local_user),
     ..Default::default()
   }
   .list(pool, &data.site, &data.local_site)
   .await?;
-  assert_eq!(3, hide_media_listing.len());
+  assert_eq!(3, hide_posts_with_media_listing.len());
 
-  // Ensure the `hide_media` user setting is set
+  // Ensure the `hide_posts_with_media` user setting is set
   let local_user_form = LocalUserUpdateForm {
-    hide_media: Some(true),
+    hide_posts_with_media: Some(true),
     ..Default::default()
   };
   LocalUser::update(pool, data.tegan.local_user.id, &local_user_form).await?;
-  data.tegan.local_user.hide_media = true;
+  data.tegan.local_user.hide_posts_with_media = true;
 
   // Ensure you don't see the image post
-  let hide_media_listing = PostQuery {
+  let hide_posts_with_media_listing = PostQuery {
     community_id: Some(data.community.id),
     local_user: Some(&data.tegan.local_user),
     ..Default::default()
   }
   .list(pool, &data.site, &data.local_site)
   .await?;
-  assert_eq!(2, hide_media_listing.len());
+  assert_eq!(2, hide_posts_with_media_listing.len());
 
-  // Make sure the `hide_media` override works
-  let hide_media_listing = PostQuery {
+  // Make sure the `hide_posts_with_media` override works
+  let hide_posts_with_media_listing = PostQuery {
     community_id: Some(data.community.id),
     local_user: Some(&data.tegan.local_user),
-    hide_media: Some(false),
+    hide_posts_with_media: Some(false),
     ..Default::default()
   }
   .list(pool, &data.site, &data.local_site)
   .await?;
-  assert_eq!(3, hide_media_listing.len());
+  assert_eq!(3, hide_posts_with_media_listing.len());
 
   Ok(())
 }
@@ -2303,6 +2287,32 @@ async fn post_tags_present(data: &mut Data) -> LemmyResult<()> {
   assert_eq!(0, all_posts[1].tags.0.len()); // bot post
   assert_eq!(0, all_posts[2].tags.0.len()); // normal post
 
+  // Add a tag_1 to the bot post.
+  PostCommunityTag::update(pool, &data.bot_post, &[data.tag_1.id]).await?;
+
+  let listing_for_tag_1 = PostQuery {
+    tag_id: Some(data.tag_1.id),
+    ..Default::default()
+  }
+  .list(pool, &data.site, &data.local_site)
+  .await?;
+
+  // Should have only the bot post and post with tags
+  assert_eq!(2, listing_for_tag_1.len());
+  assert!(names(&listing_for_tag_1).contains(&POST_BY_BOT));
+  assert!(names(&listing_for_tag_1).contains(&POST_WITH_TAGS));
+
+  let listing_for_tag_2 = PostQuery {
+    tag_id: Some(data.tag_2.id),
+    ..Default::default()
+  }
+  .list(pool, &data.site, &data.local_site)
+  .await?;
+
+  // Should have only the post with tags
+  assert_eq!(1, listing_for_tag_2.len());
+  assert!(names(&listing_for_tag_2).contains(&POST_WITH_TAGS));
+
   Ok(())
 }
 
@@ -2317,7 +2327,6 @@ async fn post_listing_multi_community(data: &mut Data) -> LemmyResult<()> {
   let form = CommunityInsertForm::new(
     data.instance.id,
     "test_community_4".to_string(),
-    "nada".to_owned(),
     "pubkey".to_string(),
   );
   let community_1 = Community::create(pool, &form).await?;
@@ -2328,7 +2337,6 @@ async fn post_listing_multi_community(data: &mut Data) -> LemmyResult<()> {
   let form = CommunityInsertForm::new(
     data.instance.id,
     "test_community_5".to_string(),
-    "nada".to_owned(),
     "pubkey".to_string(),
   );
   let community_2 = Community::create(pool, &form).await?;

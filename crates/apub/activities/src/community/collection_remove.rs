@@ -34,7 +34,7 @@ use lemmy_db_schema::{
   },
 };
 use lemmy_diesel_utils::traits::Crud;
-use lemmy_utils::error::{LemmyError, LemmyResult};
+use lemmy_utils::error::{LemmyError, LemmyResult, UntranslatedError};
 use url::Url;
 
 impl CollectionRemove {
@@ -115,10 +115,10 @@ impl Activity for CollectionRemove {
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     let (community, collection_type) =
       Community::get_by_collection_url(&mut context.pool(), &self.target.into()).await?;
+    let actor = self.actor.dereference(context).await?;
 
     match collection_type {
       CollectionType::Moderators => {
-        let actor = self.actor.dereference(context).await?;
         let remove_mod = ObjectId::<ApubPerson>::from(self.object)
           .dereference(context)
           .await?;
@@ -140,7 +140,6 @@ impl Activity for CollectionRemove {
         CommunityActions::leave(&mut context.pool(), &form).await?;
 
         // write mod log
-        let actor = self.actor.dereference(context).await?;
         let form =
           ModlogInsertForm::mod_add_to_community(actor.id, community.id, remove_mod.id, true);
         let action = Modlog::create(&mut context.pool(), &[form]).await?;
@@ -150,11 +149,17 @@ impl Activity for CollectionRemove {
         let post = ObjectId::<ApubPost>::from(self.object)
           .dereference(context)
           .await?;
+        if post.community_id != community.id {
+          return Err(UntranslatedError::InvalidCommunity.into());
+        }
         let form = PostUpdateForm {
           featured_community: Some(false),
           ..Default::default()
         };
         Post::update(&mut context.pool(), post.id, &form).await?;
+        let form = ModlogInsertForm::mod_feature_post_community(actor.id, &post, false);
+        let action = Modlog::create(&mut context.pool(), &[form]).await?;
+        notify_mod_action(action, context);
       }
     }
     Ok(())

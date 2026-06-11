@@ -19,8 +19,7 @@ doctest = false
 workspace = true
 
 [features]
-default = []
-full = []
+plugins = ["lemmy_api_utils/plugins"]
 
 [dependencies]
 lemmy_api = { workspace = true }

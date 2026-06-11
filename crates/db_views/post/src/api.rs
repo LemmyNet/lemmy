@@ -131,7 +131,7 @@ pub struct GetPosts {
   /// If true, then show the nsfw posts (even if your user setting is to hide them)
   pub show_nsfw: Option<bool>,
   /// If false, then show posts with media attached (even if your user setting is to hide them)
-  pub hide_media: Option<bool>,
+  pub hide_posts_with_media: Option<bool>,
   /// Whether to automatically mark fetched posts as read.
   pub mark_as_read: Option<bool>,
   /// If true, then only show posts with no comments
@@ -139,6 +139,8 @@ pub struct GetPosts {
   pub search_term: Option<String>,
   pub search_title_only: Option<bool>,
   pub search_url_only: Option<bool>,
+  /// Only show posts which have this tag
+  pub tag_id: Option<CommunityTagId>,
   pub page_cursor: Option<PaginationCursor>,
   /// For backwards compat with API v3 (not available on API v4)
   #[serde(skip)]

@@ -18,7 +18,7 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::{SortDirection, asc_if};
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommunityId, MultiCommunityId, PostId},
+  newtypes::{CommunityId, CommunityTagId, MultiCommunityId, PostId},
   source::{
     actor_language::LocalUserLanguage,
     community::CommunityActions,
@@ -31,13 +31,13 @@ use lemmy_db_schema::{
   },
   utils::{
     limit_fetch,
-    queries::filters::{filter_blocked, filter_not_unlisted},
+    queries::filters::{filter_blocked, filter_private_or_followed, filter_unlisted_or_followed},
   },
 };
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
-  enums::{CommunityFollowerState, CommunityVisibility, ListingType, PostSortType},
+  enums::{CommunityVisibility, ListingType, PostSortType},
   joins::{
     creator_community_actions_join,
     creator_community_instance_actions_join,
@@ -51,7 +51,7 @@ use lemmy_db_schema_file::{
     my_person_actions_join,
     my_post_actions_join,
   },
-  schema::{community, community_actions, person, post, post_actions},
+  schema::{community, person, post, post_actions, post_community_tag},
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
@@ -67,7 +67,7 @@ use lemmy_diesel_utils::{
 };
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
-  utils::validation::clean_url,
+  utils::markdown::clean_url,
 };
 use tracing::debug;
 use url::Url;
@@ -184,6 +184,10 @@ impl PostView {
       .select(Self::as_select())
       .into_boxed();
 
+    if my_local_user.is_none() {
+      query = query.filter(community::visibility.ne(CommunityVisibility::LocalOnlyPrivate));
+    }
+
     // Hide deleted and removed for non-admins or mods
     if !is_mod_or_admin {
       query = query
@@ -211,14 +215,8 @@ impl PostView {
             .or(post::comments.gt(0)),
         )
         // private communities can only by browsed by accepted followers
-        .filter(
-          community::visibility
-            .ne(CommunityVisibility::Private)
-            .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
-        );
+        .filter(filter_private_or_followed());
     }
-
-    query = my_local_user.visible_communities_only(query);
 
     Commented::new(query)
       .text("PostView::read")
@@ -240,6 +238,7 @@ impl PostView {
       .filter(post_actions::person_id.eq(my_person.id))
       .filter(post_actions::read_at.is_not_null())
       .filter(filter_blocked())
+      .filter(filter_private_or_followed())
       .limit(limit)
       .select(PostView::as_select())
       .into_boxed();
@@ -272,6 +271,7 @@ impl PostView {
       .filter(post_actions::person_id.eq(my_person.id))
       .filter(post_actions::hidden_at.is_not_null())
       .filter(filter_blocked())
+      .filter(filter_private_or_followed())
       .limit(limit)
       .select(PostView::as_select())
       .into_boxed();
@@ -304,13 +304,14 @@ pub struct PostQuery<'a> {
   pub show_hidden: Option<bool>,
   pub show_read: Option<bool>,
   pub show_nsfw: Option<bool>,
-  pub hide_media: Option<bool>,
+  pub hide_posts_with_media: Option<bool>,
   pub no_comments_only: Option<bool>,
   pub keyword_blocks: Option<Vec<String>>,
   pub search_term: Option<String>,
   pub search_title_only: Option<bool>,
   pub search_url_only: Option<bool>,
   pub page_cursor: Option<PaginationCursor>,
+  pub tag_id: Option<CommunityTagId>,
   /// For backwards compat with API v3 (not available on API v4).
   pub page: Option<i64>,
   pub limit: Option<i64>,
@@ -426,8 +427,28 @@ impl PostQuery<'_> {
 
     // Although the other listing types pre-fetched the communities, you still need to filter by
     // local if necessary.
-    if self.listing_type.unwrap_or_default() == ListingType::Local {
+    let listing_type = self.listing_type.unwrap_or_default();
+    if listing_type == ListingType::Local {
       query = query.filter(community::local.eq(true));
+    }
+
+    // Posts from unlisted communities should not be visible in Local/All feeds
+    if self.community_id.is_none()
+      && self.multi_community_id.is_none()
+      && (listing_type == ListingType::All || listing_type == ListingType::Local)
+    {
+      query = query.filter(filter_unlisted_or_followed());
+    }
+    if !self.local_user.is_admin() {
+      query = query
+        .filter(filter_private_or_followed())
+        // only show removed posts to admin
+        .filter(community::removed.eq(false))
+        .filter(community::local_removed.eq(false))
+        .filter(post::removed.eq(false));
+    }
+    if self.local_user.is_none() {
+      query = query.filter(community::visibility.ne(CommunityVisibility::LocalOnlyPrivate));
     }
 
     // The search term
@@ -449,11 +470,6 @@ impl PostQuery<'_> {
         let body_or_description_filter = post::body.ilike(searcher.clone());
         query.filter(name_or_title_filter.or(body_or_description_filter))
       }
-    }
-
-    // Hide the unlisted communities for the general types. Subscribed will still show them
-    if [ListingType::Local, ListingType::All].contains(&self.listing_type.unwrap_or_default()) {
-      query = query.filter(filter_not_unlisted());
     }
 
     if !self.show_nsfw.unwrap_or(self.local_user.show_nsfw(site)) {
@@ -480,7 +496,10 @@ impl PostQuery<'_> {
       query = query.filter(post_actions::hidden_at.is_null());
     }
 
-    if self.hide_media.unwrap_or(self.local_user.hide_media()) {
+    if self
+      .hide_posts_with_media
+      .unwrap_or(self.local_user.hide_posts_with_media())
+    {
       query = query.filter(not(
         post::url_content_type.is_not_null().and(
           post::url_content_type
@@ -490,25 +509,11 @@ impl PostQuery<'_> {
       ));
     }
 
-    query = self.local_user.visible_communities_only(query);
     query = query.filter(
       post::federation_pending
         .eq(false)
         .or(post::creator_id.nullable().eq(my_person_id)),
     );
-
-    if !self.local_user.is_admin() {
-      query = query
-        .filter(
-          community::visibility
-            .ne(CommunityVisibility::Private)
-            .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
-        )
-        // only show removed posts to admin
-        .filter(community::removed.eq(false))
-        .filter(community::local_removed.eq(false))
-        .filter(post::removed.eq(false));
-    }
 
     // Dont filter blocks or missing languages for moderator view type
     if self.listing_type.unwrap_or_default() != ListingType::ModeratorView {
@@ -537,6 +542,20 @@ impl PostQuery<'_> {
     if let Some(time_range_seconds) = self.time_range_seconds {
       query =
         query.filter(post::published_at.gt(now() - seconds_to_pg_interval(time_range_seconds)));
+    }
+
+    if let Some(tag_id) = self.tag_id {
+      // This filters the post_community_tags_fragment subquery
+      let tags = post_community_tag::table
+        // Make sure its for this post
+        .filter(post_community_tag::post_id.eq(post::id))
+        // Make sure it filters for this tag
+        // otherwise single_value will only return the first result
+        .filter(post_community_tag::community_tag_id.eq(tag_id))
+        .select(post_community_tag::community_tag_id)
+        .single_value();
+
+      query = query.filter(tags.eq(tag_id));
     }
 
     // Only sort by ascending for Old

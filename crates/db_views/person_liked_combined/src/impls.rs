@@ -7,7 +7,7 @@ use lemmy_db_schema::{
   PersonContentType,
   source::combined::person_liked::{PersonLikedCombined, person_liked_combined_keys as key},
   traits::InternalToCombinedView,
-  utils::limit_fetch,
+  utils::{limit_fetch, queries::filters::filter_private_or_followed},
 };
 use lemmy_db_schema_file::{
   InstanceId,
@@ -136,6 +136,7 @@ impl PersonLikedCombinedQuery {
 
     let mut query = Self::joins(my_person_id, local_instance_id)
       .filter(person_liked_combined::person_id.eq(my_person_id))
+      .filter(filter_private_or_followed())
       .select(PostCommentCombinedViewInternal::as_select())
       .limit(limit)
       .into_boxed();
@@ -241,7 +242,6 @@ mod tests {
     let community_form = CommunityInsertForm::new(
       instance.id,
       "test community pcv".to_string(),
-      "nada".to_owned(),
       "pubkey".to_string(),
     );
     let community = Community::create(pool, &community_form).await?;

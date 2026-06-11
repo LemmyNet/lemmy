@@ -45,6 +45,7 @@ pub enum LemmyErrorType {
   InstanceIsPrivate,
   /// Password must be between 10 and 60 characters
   InvalidPassword,
+  InvalidInviteToken,
   SiteDescriptionLengthOverflow,
   HoneypotFailed,
   RegistrationApplicationIsPending,
@@ -82,6 +83,7 @@ pub enum LemmyErrorType {
   CouldntGenerateTotp,
   MissingTotpToken,
   MissingTotpSecret,
+  MissingInviteToken,
   IncorrectTotpToken,
   TotpAlreadyEnabled,
   BlockedUrl,
@@ -98,6 +100,7 @@ pub enum LemmyErrorType {
   /// Thrown when an API call is submitted with more than 1000 array elements, see
   /// [[MAX_API_PARAM_ELEMENTS]]
   TooManyItems,
+  TooManyInvites,
   BanExpirationInPast,
   InvalidUnixTime,
   InvalidBotAction,

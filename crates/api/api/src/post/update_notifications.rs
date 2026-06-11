@@ -32,7 +32,7 @@ pub async fn edit_post_notifications(
   if data.mode == PostNotificationsMode::AllComments {
     let community = Community::read(&mut context.pool(), post.community_id).await?;
     if !community.local {
-      do_follow_community(community, &local_user_view.person, true, &context).await?;
+      do_follow_community(community, &local_user_view, true, &context).await?;
     }
   }
   Ok(Json(SuccessResponse::default()))

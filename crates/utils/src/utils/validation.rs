@@ -1,5 +1,4 @@
 use crate::error::{LemmyErrorExt, LemmyErrorType, LemmyResult, MAX_API_PARAM_ELEMENTS};
-use clearurls::UrlCleaner;
 use invisible_characters::INVISIBLE_CHARS;
 use itertools::Itertools;
 use regex::{Regex, RegexBuilder, RegexSet};
@@ -14,9 +13,6 @@ static VALID_MATRIX_ID_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     .expect("compile regex")
 });
 // taken from https://en.wikipedia.org/wiki/UTM_parameters
-#[expect(clippy::expect_used)]
-static URL_CLEANER: LazyLock<UrlCleaner> =
-  LazyLock::new(|| UrlCleaner::from_embedded_rules().expect("compile clearurls"));
 const ALLOWED_POST_URL_SCHEMES: [&str; 3] = ["http", "https", "magnet"];
 
 const BODY_MAX_LENGTH: usize = 10000;
@@ -26,11 +22,11 @@ const URL_MAX_LENGTH: usize = 2000;
 const ALT_TEXT_MAX_LENGTH: usize = 1500;
 const SITE_NAME_MAX_LENGTH: usize = 20;
 const SITE_NAME_MIN_LENGTH: usize = 1;
-const SITE_SUMMARY_MAX_LENGTH: usize = 150;
+pub const SITE_SUMMARY_MAX_LENGTH: usize = 150;
 const MIN_LENGTH_BLOCKING_KEYWORD: usize = 3;
 const MAX_LENGTH_BLOCKING_KEYWORD: usize = 50;
 const ACTOR_NAME_MAX_LENGTH: usize = 20;
-const DISPLAY_NAME_MAX_LENGTH: usize = 50;
+pub const DISPLAY_NAME_MAX_LENGTH: usize = 50;
 
 fn has_newline(name: &str) -> bool {
   name.contains('\n')
@@ -45,7 +41,7 @@ pub fn is_valid_actor_name(name: &str) -> LemmyResult<()> {
     Regex::new(r"^(?:[a-zA-Z0-9_]+|[0-9_\p{Arabic}]+|[0-9_\p{Cyrillic}]+)$").expect("compile regex")
   });
 
-  min_length_check(name, 3, LemmyErrorType::InvalidName)?;
+  min_length_check(name, 2, LemmyErrorType::InvalidName)?;
   max_length_check(name, ACTOR_NAME_MAX_LENGTH, LemmyErrorType::InvalidName)?;
   if VALID_ACTOR_NAME_REGEX.is_match(name) {
     Ok(())
@@ -197,24 +193,6 @@ pub fn build_and_check_regex(regex_str_opt: Option<&str>) -> LemmyResult<Regex> 
   }
 }
 
-/// Cleans a url of tracking parameters.
-pub fn clean_url(url: &Url) -> Url {
-  match URL_CLEANER.clear_single_url(url) {
-    Ok(res) => res.into_owned(),
-    // If there are any errors, just return the original url
-    Err(_) => url.clone(),
-  }
-}
-
-/// Cleans all the links in a string of tracking parameters.
-pub fn clean_urls_in_text(text: &str) -> String {
-  match URL_CLEANER.clear_text(text) {
-    Ok(res) => res.into_owned(),
-    // If there are any errors, just return the original text
-    Err(_) => text.to_owned(),
-  }
-}
-
 pub fn is_valid_url(url: &Url) -> LemmyResult<()> {
   if !ALLOWED_POST_URL_SCHEMES.contains(&url.scheme()) {
     return Err(LemmyErrorType::InvalidUrlScheme.into());
@@ -298,7 +276,7 @@ fn build_url_str_without_scheme(url_str: &str) -> LemmyResult<String> {
 // boundaries
 // To understand the difference between chars and graphemes see:
 // https://hsivonen.fi/string-length/
-fn truncate_for_db(text: &str, len: usize) -> String {
+pub fn truncate_for_db(text: &str, len: usize) -> String {
   if text.chars().count() <= len {
     text.to_string()
   } else {
@@ -344,10 +322,6 @@ fn truncate_for_db(text: &str, len: usize) -> String {
   }
 }
 
-pub fn truncate_summary(text: &str) -> String {
-  truncate_for_db(text, SITE_SUMMARY_MAX_LENGTH)
-}
-
 pub fn check_api_elements_count(len: usize) -> LemmyResult<()> {
   if len >= MAX_API_PARAM_ELEMENTS {
     return Err(LemmyErrorType::TooManyItems.into());
@@ -360,59 +334,14 @@ mod tests {
   use crate::{
     error::{LemmyErrorType, LemmyResult},
     utils::validation::{
-      BIO_MAX_LENGTH,
-      SITE_NAME_MAX_LENGTH,
-      SITE_SUMMARY_MAX_LENGTH,
-      URL_MAX_LENGTH,
-      build_and_check_regex,
-      check_urls_are_valid,
-      clean_url,
-      clean_urls_in_text,
-      is_url_blocked,
-      is_valid_actor_name,
-      is_valid_bio_field,
-      is_valid_display_name,
-      is_valid_matrix_id,
-      is_valid_post_title,
-      is_valid_url,
-      site_name_length_check,
-      summary_length_check,
-      truncate_for_db,
+      BIO_MAX_LENGTH, SITE_NAME_MAX_LENGTH, SITE_SUMMARY_MAX_LENGTH, URL_MAX_LENGTH,
+      build_and_check_regex, check_urls_are_valid, is_url_blocked, is_valid_actor_name,
+      is_valid_bio_field, is_valid_display_name, is_valid_matrix_id, is_valid_post_title,
+      is_valid_url, site_name_length_check, summary_length_check, truncate_for_db,
     },
   };
   use pretty_assertions::assert_eq;
   use url::Url;
-
-  const URL_WITH_TRACKING: &str = "https://example.com/path/123?utm_content=buffercf3b2&utm_medium=social&user+name=random+user&id=123";
-  const URL_TRACKING_REMOVED: &str = "https://example.com/path/123?user+name=random+user&id=123";
-
-  #[test]
-  fn test_clean_url_params() -> LemmyResult<()> {
-    let url = Url::parse(URL_WITH_TRACKING)?;
-    let cleaned = clean_url(&url);
-    let expected = Url::parse(URL_TRACKING_REMOVED)?;
-    assert_eq!(expected.to_string(), cleaned.to_string());
-
-    let url = Url::parse("https://example.com/path/123")?;
-    let cleaned = clean_url(&url);
-    assert_eq!(url.to_string(), cleaned.to_string());
-
-    Ok(())
-  }
-
-  #[test]
-  fn test_clean_body() -> LemmyResult<()> {
-    let text = format!("[a link]({URL_WITH_TRACKING})");
-    let cleaned = clean_urls_in_text(&text);
-    let expected = format!("[a link]({URL_TRACKING_REMOVED})");
-    assert_eq!(expected.clone(), cleaned.clone());
-
-    let text = "[a link](https://example.com/path/123)";
-    let cleaned = clean_urls_in_text(text);
-    assert_eq!(text.to_string(), cleaned);
-
-    Ok(())
-  }
 
   #[test]
   fn regex_checks() {

@@ -13,7 +13,11 @@ use activitypub_federation::{
   protocol::verification::{verify_domains_match, verify_urls_match},
   traits::{Actor, Object},
 };
-use lemmy_api_utils::{context::LemmyContext, utils::purge_user_account};
+use lemmy_api_utils::{
+  context::LemmyContext,
+  plugins::{plugin_hook_after, plugin_hook_before},
+  utils::purge_user_account,
+};
 use lemmy_apub_objects::{
   objects::{
     comment::ApubComment,
@@ -42,7 +46,7 @@ use lemmy_db_schema::source::{
   private_message::{PrivateMessage as DbPrivateMessage, PrivateMessageUpdateForm},
 };
 use lemmy_db_schema_file::enums::CommunityVisibility;
-use lemmy_db_views_site::SiteView;
+use lemmy_db_views_site::{SiteView, api::DeleteUserForm};
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::LemmyResult;
 use std::ops::Deref;
@@ -312,11 +316,17 @@ async fn receive_delete_action(
       let site_view = SiteView::read_local(&mut context.pool()).await?;
       let local_instance_id = site_view.site.instance_id;
 
-      if do_purge_user_account.unwrap_or(false) {
+      let mut form = DeleteUserForm {
+        person_id: person.id,
+        delete_content: do_purge_user_account.unwrap_or(false),
+      };
+      form = plugin_hook_before("federated_user_before_delete", form).await?;
+      if form.delete_content {
         purge_user_account(person.id, local_instance_id, context).await?;
       } else {
         Person::delete_account(&mut context.pool(), person.id, local_instance_id).await?;
       }
+      plugin_hook_after("federated_user_after_delete", &form);
     }
     DeletableObjects::Post(post) => {
       if deleted != post.deleted {

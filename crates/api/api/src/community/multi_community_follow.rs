@@ -3,7 +3,7 @@ use actix_web::web::Json;
 use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::check_local_user_valid,
+  utils::check_local_user_banned_or_deleted,
 };
 use lemmy_db_schema::source::multi_community::{MultiCommunity, MultiCommunityFollowForm};
 use lemmy_db_schema_file::enums::CommunityFollowerState;
@@ -20,7 +20,7 @@ pub async fn follow_multi_community(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<MultiCommunityResponse>> {
-  check_local_user_valid(&local_user_view)?;
+  check_local_user_banned_or_deleted(&local_user_view)?;
   let multi_community_id = data.multi_community_id;
   let my_person_id = local_user_view.person.id;
   let multi = MultiCommunity::read(&mut context.pool(), multi_community_id).await?;

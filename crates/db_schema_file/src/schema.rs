@@ -137,7 +137,7 @@ diesel::table! {
         #[max_length = 255]
         name -> Varchar,
         #[max_length = 50]
-        title -> Varchar,
+        title -> Nullable<Varchar>,
         sidebar -> Nullable<Text>,
         removed -> Bool,
         published_at -> Timestamptz,
@@ -198,6 +198,7 @@ diesel::table! {
         follow_state -> Nullable<CommunityFollowerState>,
         follow_approver_id -> Nullable<Int4>,
         notifications -> Nullable<CommunityNotificationsModeEnum>,
+        follow_activity_id -> Nullable<Text>
     }
 }
 
@@ -222,7 +223,7 @@ diesel::table! {
         creator_id -> Int4,
         community_id -> Int4,
         original_community_name -> Text,
-        original_community_title -> Text,
+        original_community_title -> Nullable<Text>,
         original_community_summary -> Nullable<Text>,
         original_community_sidebar -> Nullable<Text>,
         original_community_icon -> Nullable<Text>,
@@ -428,6 +429,7 @@ diesel::table! {
         image_max_upload_size -> Int4,
         image_allow_video_uploads -> Bool,
         image_upload_disabled -> Bool,
+        max_invites_per_user_allowed -> Int4,
     }
 }
 
@@ -500,7 +502,7 @@ diesel::table! {
         private_messages_enabled -> Bool,
         default_comment_sort_type -> CommentSortTypeEnum,
         auto_mark_fetched_posts_as_read -> Bool,
-        hide_media -> Bool,
+        hide_posts_with_media -> Bool,
         default_post_time_range_seconds -> Nullable<Int4>,
         show_score -> Bool,
         show_upvotes -> Bool,
@@ -508,6 +510,20 @@ diesel::table! {
         show_upvote_percentage -> Bool,
         show_person_votes -> Bool,
         default_items_per_page -> Int4,
+        invited_by_local_user_id -> Nullable<Int4>,
+        show_media -> Bool,
+    }
+}
+
+diesel::table! {
+    local_user_invite (id) {
+        id -> Int4,
+        token -> Text,
+        local_user_id -> Int4,
+        max_uses -> Nullable<Int4>,
+        uses_count -> Int4,
+        expires_at -> Nullable<Timestamptz>,
+        published_at -> Timestamptz,
     }
 }
 
@@ -554,6 +570,7 @@ diesel::table! {
         expires_at -> Nullable<Timestamptz>,
         published_at -> Timestamptz,
         bulk_action_parent_id -> Nullable<Int4>,
+        child_count -> Int4,
     }
 }
 
@@ -1004,6 +1021,7 @@ diesel::joinable!(local_site -> person (system_account));
 diesel::joinable!(local_site -> site (site_id));
 diesel::joinable!(local_site_rate_limit -> local_site (local_site_id));
 diesel::joinable!(local_user -> person (person_id));
+diesel::joinable!(local_user_invite -> local_user (local_user_id));
 diesel::joinable!(local_user_keyword_block -> local_user (local_user_id));
 diesel::joinable!(local_user_language -> language (language_id));
 diesel::joinable!(local_user_language -> local_user (local_user_id));
@@ -1081,6 +1099,7 @@ diesel::allow_tables_to_appear_in_same_query!(
   local_site,
   local_site_rate_limit,
   local_user,
+  local_user_invite,
   local_user_keyword_block,
   local_user_language,
   login_token,

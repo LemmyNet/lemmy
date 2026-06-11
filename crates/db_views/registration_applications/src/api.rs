@@ -4,7 +4,7 @@ use lemmy_db_schema_file::PersonId;
 use lemmy_diesel_utils::{pagination::PaginationCursor, sensitive::SensitiveString};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-#[cfg(feature = "full")]
+#[cfg(feature = "plugins")]
 use {extism::ToBytes, extism_convert::Json};
 
 #[skip_serializing_none]
@@ -61,11 +61,13 @@ pub struct Register {
   pub answer: Option<String>,
   /// If this is true the login is valid forever, otherwise it expires after one week.
   pub stay_logged_in: Option<bool>,
+  /// Invitation token
+  pub token: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "full", derive(ToBytes))]
-#[cfg_attr(feature = "full", encoding(Json))]
+#[cfg_attr(feature = "plugins", derive(ToBytes))]
+#[cfg_attr(feature = "plugins", encoding(Json))]
 pub struct CaptchaAnswer {
   pub answer: String,
   pub uuid: String,

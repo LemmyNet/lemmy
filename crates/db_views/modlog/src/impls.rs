@@ -19,10 +19,7 @@ use lemmy_db_schema::{
     modlog::{Modlog, modlog_keys as key},
     multi_community::MultiCommunityEntry,
   },
-  utils::{
-    limit_fetch,
-    queries::filters::{filter_is_subscribed, filter_not_unlisted},
-  },
+  utils::{limit_fetch, queries::filters::filter_is_subscribed},
 };
 use lemmy_db_schema_file::{
   PersonId,
@@ -172,9 +169,7 @@ impl ModlogQuery<'_> {
     query = match self.listing_type.unwrap_or(ListingType::All) {
       ListingType::All => query,
       ListingType::Subscribed => query.filter(filter_is_subscribed()),
-      ListingType::Local => query
-        .filter(community::local.eq(true))
-        .filter(filter_not_unlisted()),
+      ListingType::Local => query.filter(community::local.eq(true)),
       ListingType::ModeratorView => {
         query.filter(community_actions::became_moderator_at.is_not_null())
       }
@@ -284,7 +279,6 @@ mod tests {
     let community_form = CommunityInsertForm::new(
       instance.id,
       "test community crv".to_string(),
-      "nada".to_owned(),
       "pubkey".to_string(),
     );
     let community = Community::create(pool, &community_form).await?;
@@ -292,7 +286,6 @@ mod tests {
     let community_form_2 = CommunityInsertForm::new(
       instance.id,
       "test community crv 2".to_string(),
-      "nada".to_owned(),
       "pubkey".to_string(),
     );
     let community_2 = Community::create(pool, &community_form_2).await?;
@@ -944,6 +937,7 @@ mod tests {
     .items;
     assert_eq!(1, modlog.len());
     assert!(modlog[0].modlog.bulk_action_parent_id.is_none());
+    assert_eq!(0, modlog[0].modlog.child_count);
 
     cleanup(data, pool).await?;
 
@@ -979,6 +973,10 @@ mod tests {
       Some(parent_id),
     );
     Modlog::create(pool, &[post_form_1, post_form_2]).await?;
+
+    // Read that ban, to make sure it has 2 children
+    let ban_action = Modlog::read(pool, parent_id).await?;
+    assert_eq!(2, ban_action.child_count);
 
     // Create one individual (non-bulk) post removal for mixed-dataset tests
     let individual_form =
@@ -1067,6 +1065,10 @@ mod tests {
     );
     Modlog::create(pool, &[post_form_1, post_form_2]).await?;
 
+    // Read that ban, to make sure it has 2 children
+    let parent_a = Modlog::read(pool, parent_a_id).await?;
+    assert_eq!(2, parent_a.child_count);
+
     // Two comment removals linked to parent B
     let comment_form_1 = ModlogInsertForm::mod_remove_comment(
       data.timmy.id,
@@ -1085,6 +1087,10 @@ mod tests {
       Some(parent_b_id),
     );
     Modlog::create(pool, &[comment_form_1, comment_form_2]).await?;
+
+    // Read that ban, to make sure it has 2 children
+    let parent_b = Modlog::read(pool, parent_b_id).await?;
+    assert_eq!(2, parent_b.child_count);
 
     // Filter by parent A
     let children_of_a = ModlogQuery {

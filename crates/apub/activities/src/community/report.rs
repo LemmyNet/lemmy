@@ -41,6 +41,7 @@ use lemmy_db_schema::{
     community_report::{CommunityReport, CommunityReportForm},
     post::Post,
     post_report::{PostReport, PostReportForm},
+    private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
   },
   traits::Reportable,
 };
@@ -118,9 +119,10 @@ impl Activity for Report {
         check_community_deleted_or_removed(&community)?;
         check_comment_deleted_or_removed(&comment)?;
       }
-      ReportableObjects::Right(community) => {
+      ReportableObjects::Right(Either::Left(community)) => {
         check_community_deleted_removed(&community)?;
       }
+      ReportableObjects::Right(Either::Right(_private_message)) => {}
     }
     Ok(())
   }
@@ -151,7 +153,7 @@ impl Activity for Report {
         };
         CommentReport::report(&mut context.pool(), &report_form).await?;
       }
-      ReportableObjects::Right(community) => {
+      ReportableObjects::Right(Either::Left(community)) => {
         let report_form = CommunityReportForm {
           creator_id: actor.id,
           community_id: community.id,
@@ -164,6 +166,15 @@ impl Activity for Report {
           original_community_sidebar: community.sidebar.clone(),
         };
         CommunityReport::report(&mut context.pool(), &report_form).await?;
+      }
+      ReportableObjects::Right(Either::Right(private_message)) => {
+        let form = PrivateMessageReportForm {
+          creator_id: actor.id,
+          private_message_id: private_message.id,
+          original_pm_text: private_message.content.clone(),
+          reason,
+        };
+        PrivateMessageReport::report(&mut context.pool(), &form).await?;
       }
     };
 

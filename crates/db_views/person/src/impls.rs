@@ -155,6 +155,8 @@ impl PersonQuery<'_> {
 
       let name_or_title_filter = person::name
         .ilike(searcher.clone())
+        // Also include the ap_id to allow for instance searching
+        .or(person::ap_id.ilike(searcher.clone()))
         .or(person::display_name.ilike(searcher.clone()));
 
       query = if self.search_title_only.unwrap_or_default() {
@@ -241,12 +243,7 @@ mod tests {
     // Create a post like to give bob a higher post score for sorting tests
     let community_form = CommunityInsertForm {
       summary: Some("bobs comm".into()),
-      ..CommunityInsertForm::new(
-        instance.id,
-        "bobs_comm".to_string(),
-        "Bobs Comm".to_owned(),
-        "pubkey".to_string(),
-      )
+      ..CommunityInsertForm::new(instance.id, "bobs_comm".to_string(), "pubkey".to_string())
     };
     let community = Community::create(pool, &community_form).await?;
     let bob_post_form = PostInsertForm {

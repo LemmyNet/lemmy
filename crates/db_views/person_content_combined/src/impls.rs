@@ -1,5 +1,5 @@
 use crate::LocalUserView;
-use diesel::{BoolExpressionMethods, ExpressionMethods, JoinOnDsl, QueryDsl, SelectableHelper};
+use diesel::{ExpressionMethods, JoinOnDsl, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
@@ -9,12 +9,11 @@ use lemmy_db_schema::{
   newtypes::CommunityId,
   source::combined::person_content::{PersonContentCombined, person_content_combined_keys as key},
   traits::InternalToCombinedView,
-  utils::limit_fetch,
+  utils::{limit_fetch, queries::filters::filter_private_or_followed},
 };
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
-  enums::{CommunityFollowerState, CommunityVisibility},
   joins::{
     creator_community_actions_join,
     creator_community_instance_actions_join,
@@ -28,7 +27,7 @@ use lemmy_db_schema_file::{
     my_person_actions_join,
     my_post_actions_join,
   },
-  schema::{comment, community, community_actions, person, person_content_combined, post},
+  schema::{comment, community, person, person_content_combined, post, post_actions},
 };
 use lemmy_db_views_post_comment_combined::{
   PostCommentCombinedView,
@@ -143,6 +142,7 @@ impl PersonContentCombinedQuery {
     let mut query = Self::joins(my_person_id, local_instance_id)
       // The creator id filter
       .filter(person_content_combined::creator_id.eq(self.creator_id))
+      .filter(filter_private_or_followed())
       .select(PostCommentCombinedViewInternal::as_select())
       .limit(limit)
       .into_boxed();
@@ -153,7 +153,9 @@ impl PersonContentCombinedQuery {
         PersonContentType::Comments => {
           query.filter(person_content_combined::comment_id.is_not_null())
         }
-        PersonContentType::Posts => query.filter(person_content_combined::post_id.is_not_null()),
+        // Cannot use `person_content_combined::post_id.is_not_null()` because comments also include
+        // post_id
+        PersonContentType::Posts => query.filter(person_content_combined::comment_id.is_null()),
       }
     }
 
@@ -162,17 +164,8 @@ impl PersonContentCombinedQuery {
       query = query.filter(community::id.eq(community_id));
     }
 
-    // Check permissions to view private community content.
-    // Specifically, if the community is private then only accepted followers may view its
-    // content, otherwise it is filtered out. Admins can view private community content
-    // without restriction.
-    if !my_local_user.is_admin() {
-      query = query.filter(
-        community::visibility
-          .ne(CommunityVisibility::Private)
-          .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
-      );
-    }
+    // Hide the hidden content
+    query = query.filter(post_actions::hidden_at.is_null());
 
     // Sorting by published
     let paginated_query =
@@ -206,8 +199,7 @@ impl PersonContentCombinedQuery {
 #[cfg(test)]
 #[expect(clippy::indexing_slicing)]
 mod tests {
-
-  use crate::impls::PersonContentCombinedQuery;
+  use super::*;
   use lemmy_db_schema::{
     source::{
       comment::{Comment, CommentInsertForm},
@@ -263,7 +255,6 @@ mod tests {
     let community_form = CommunityInsertForm::new(
       instance.id,
       "test community pcv".to_string(),
-      "nada".to_owned(),
       "pubkey".to_string(),
     );
     let community = Community::create(pool, &community_form).await?;
@@ -273,7 +264,6 @@ mod tests {
       ..CommunityInsertForm::new(
         instance.id,
         "private community pcv".to_string(),
-        "nada".to_owned(),
         "pubkey".to_string(),
       )
     };
@@ -417,6 +407,33 @@ mod tests {
     } else {
       panic!("wrong type");
     }
+
+    let post_content = PersonContentCombinedQuery {
+      creator_id: data.timmy.id,
+      type_: Some(PersonContentType::Posts),
+      ..Default::default()
+    }
+    .list(pool, None, data.instance.id)
+    .await?;
+    assert_eq!(2, post_content.len());
+    let PostCommentCombinedView::Post(_) = &post_content[0] else {
+      panic!("wrong type");
+    };
+    let PostCommentCombinedView::Post(_) = &post_content[1] else {
+      panic!("wrong type");
+    };
+
+    let comment_content = PersonContentCombinedQuery {
+      creator_id: data.timmy.id,
+      type_: Some(PersonContentType::Comments),
+      ..Default::default()
+    }
+    .list(pool, None, data.instance.id)
+    .await?;
+    assert_eq!(1, comment_content.len());
+    let PostCommentCombinedView::Comment(_) = &comment_content[0] else {
+      panic!("wrong type");
+    };
 
     cleanup(data, pool).await?;
 
