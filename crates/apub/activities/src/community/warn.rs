@@ -110,7 +110,7 @@ impl Activity for Warn {
       ),
     };
     let action = Modlog::create(&mut context.pool(), &[form]).await?;
-    notify_mod_action(action, &context);
+    notify_mod_action(action, context);
     Ok(())
   }
 }

@@ -393,7 +393,7 @@ pub async fn match_outgoing_activities(
         send_update_multi_community(multi, actor, context).await
       }
       Warning(post_or_comment, reason, actor) => {
-        Warn::send(post_or_comment, reason, actor.into(), context).await
+        Warn::send(*post_or_comment, reason, actor.into(), context).await
       }
     }
   })

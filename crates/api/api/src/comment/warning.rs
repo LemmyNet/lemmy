@@ -51,7 +51,7 @@ pub async fn create_comment_warning(
 
   ActivityChannel::submit_activity(
     SendActivityData::Warning(
-      Either::Right(orig_comment.clone()),
+      Box::new(Either::Right(orig_comment.clone())),
       data.reason,
       local_user_view.person,
     ),

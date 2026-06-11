@@ -53,7 +53,7 @@ pub async fn create_post_warning(
 
   ActivityChannel::submit_activity(
     SendActivityData::Warning(
-      Either::Left(orig_post.clone()),
+      Box::new(Either::Left(orig_post.clone())),
       data.reason,
       local_user_view.person.clone(),
     ),

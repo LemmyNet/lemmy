@@ -120,7 +120,7 @@ pub enum SendActivityData {
     receiver: Either<Site, Community>,
   },
   UpdateMultiCommunity(MultiCommunity, Person),
-  Warning(Either<PostView, CommentView>, String, Person),
+  Warning(Box<Either<PostView, CommentView>>, String, Person),
 }
 
 // TODO: instead of static, move this into LemmyContext. make sure that stopping the process with
