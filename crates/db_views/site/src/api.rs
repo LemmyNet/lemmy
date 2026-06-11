@@ -17,7 +17,7 @@ use lemmy_db_schema::{
     post::Post,
     private_message::PrivateMessage,
     tagline::Tagline,
-  },
+  }, views::{CommentView, PostView},
 };
 use lemmy_db_schema_file::{
   InstanceId,
@@ -33,13 +33,11 @@ use lemmy_db_schema_file::{
     VoteShow,
   },
 };
-use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_community::{CommunityView, MultiCommunityView};
 use lemmy_db_views_community_follower::CommunityFollowerView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
-use lemmy_db_views_post::PostView;
 use lemmy_diesel_utils::{pagination::PaginationCursor, sensitive::SensitiveString};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;

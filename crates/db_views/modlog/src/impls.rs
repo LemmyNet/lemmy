@@ -1,4 +1,3 @@
-use crate::ModlogView;
 use diesel::{
   BoolExpressionMethods,
   ExpressionMethods,
@@ -20,6 +19,7 @@ use lemmy_db_schema::{
     multi_community::MultiCommunityEntry,
   },
   utils::{limit_fetch, queries::filters::filter_is_subscribed},
+  views::ModlogView,
 };
 use lemmy_db_schema_file::{
   PersonId,
@@ -39,51 +39,29 @@ use lemmy_diesel_utils::{
 };
 use lemmy_utils::error::LemmyResult;
 
-impl ModlogView {
-  #[diesel::dsl::auto_type(no_type_alias)]
-  fn joins(my_person_id: Option<PersonId>) -> _ {
-    // The query for the admin / mod person
-    let moderator_join = person::table.on(modlog::mod_id.eq(person::id));
+#[diesel::dsl::auto_type(no_type_alias)]
+fn joins(my_person_id: Option<PersonId>) -> _ {
+  // The query for the admin / mod person
+  let moderator_join = person::table.on(modlog::mod_id.eq(person::id));
 
-    // The modded / other person
-    let target_person = aliases::person1.field(person::id).nullable();
-    let target_person_join = aliases::person1.on(modlog::target_person_id.eq(target_person));
+  // The modded / other person
+  let target_person = aliases::person1.field(person::id).nullable();
+  let target_person_join = aliases::person1.on(modlog::target_person_id.eq(target_person));
 
-    let community_actions_join = community_actions::table.on(
-      community_actions::community_id
-        .eq(community::id)
-        .and(community_actions::person_id.nullable().eq(my_person_id)),
-    );
+  let community_actions_join = community_actions::table.on(
+    community_actions::community_id
+      .eq(community::id)
+      .and(community_actions::person_id.nullable().eq(my_person_id)),
+  );
 
-    modlog::table
-      .inner_join(moderator_join)
-      .left_join(target_person_join)
-      .left_join(comment::table)
-      .left_join(post::table)
-      .left_join(community::table)
-      .left_join(instance::table)
-      .left_join(community_actions_join)
-  }
-}
-
-impl PaginationCursorConversion for ModlogView {
-  type PaginatedType = Modlog;
-  fn to_cursor(&self) -> CursorData {
-    CursorData::new_id(self.modlog.id.0)
-  }
-
-  async fn from_cursor(
-    cursor: CursorData,
-    pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Self::PaginatedType> {
-    let conn = &mut get_conn(pool).await?;
-    let query = modlog::table
-      .select(Self::PaginatedType::as_select())
-      .filter(modlog::id.eq(cursor.id()?));
-    let token = query.first(conn).await?;
-
-    Ok(token)
-  }
+  modlog::table
+    .inner_join(moderator_join)
+    .left_join(target_person_join)
+    .left_join(comment::table)
+    .left_join(post::table)
+    .left_join(community::table)
+    .left_join(instance::table)
+    .left_join(community_actions_join)
 }
 
 #[derive(Default)]
@@ -115,7 +93,7 @@ impl ModlogQuery<'_> {
     let target_person = aliases::person1.field(person::id);
     let my_person_id = self.local_user.person_id();
 
-    let mut query = ModlogView::joins(my_person_id)
+    let mut query = joins(my_person_id)
       .select(ModlogView::as_select())
       .limit(limit)
       .into_boxed();
@@ -201,24 +179,22 @@ impl ModlogQuery<'_> {
     // Map the query results to the enum
     let out = res
       .into_iter()
-      .map(|u| u.hide_mod_name(hide_modlog_names))
+      .map(|u| hide_mod_name(u, hide_modlog_names))
       .collect();
 
     paginate_response(out, limit, self.page_cursor)
   }
 }
 
-impl ModlogView {
-  /// Hides modlog names by setting the moderator to None.
-  pub fn hide_mod_name(self, hide_modlog_names: bool) -> Self {
-    if hide_modlog_names {
-      Self {
-        moderator: None,
-        ..self
-      }
-    } else {
-      self
+/// Hides modlog names by setting the moderator to None.
+pub fn hide_mod_name(s: ModlogView, hide_modlog_names: bool) -> ModlogView {
+  if hide_modlog_names {
+    ModlogView {
+      moderator: None,
+      ..s
     }
+  } else {
+    s
   }
 }
 

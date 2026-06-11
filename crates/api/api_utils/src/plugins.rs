@@ -2,8 +2,11 @@ use crate::{
   context::LemmyContext,
   plugins::internal::{call_captcha_plugin, run_plugin_hook_after, run_plugin_hook_before},
 };
-use lemmy_db_schema::source::{notification::Notification, person::Person};
-use lemmy_db_views_notification::NotificationView;
+use lemmy_db_schema::{
+  source::{notification::Notification, person::Person},
+  views::NotificationView,
+};
+use lemmy_db_views_notification::impls::read_notification_view;
 use lemmy_db_views_registration_applications::api::CaptchaAnswer;
 use lemmy_db_views_site::api::CaptchaResponse;
 use lemmy_diesel_utils::traits::Crud;
@@ -52,7 +55,7 @@ pub async fn plugin_hook_notification(
 
   for n in notifications {
     let person = Person::read(&mut context.pool(), n.recipient_id).await?;
-    let view = NotificationView::read(&mut context.pool(), n.id, &person).await?;
+    let view = read_notification_view(&mut context.pool(), n.id, &person).await?;
     spawn_blocking(move || run_plugin_hook_after(name, view));
   }
   Ok(())

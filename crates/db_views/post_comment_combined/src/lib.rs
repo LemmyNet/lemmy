@@ -1,14 +1,12 @@
 use chrono::{DateTime, Utc};
-use lemmy_db_schema::source::{
+use lemmy_db_schema::{source::{
   comment::{Comment, CommentActions},
   community::{Community, CommunityActions},
   community_tag::CommunityTagsView,
   images::ImageDetails,
   person::{Person, PersonActions},
   post::{Post, PostActions},
-};
-use lemmy_db_views_comment::CommentView;
-use lemmy_db_views_post::PostView;
+}, views::{CommentView, PostView}};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use {

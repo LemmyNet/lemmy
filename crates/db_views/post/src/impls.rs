@@ -1,4 +1,3 @@
-use crate::PostView;
 use diesel::{
   self,
   BoolExpressionMethods,
@@ -33,6 +32,7 @@ use lemmy_db_schema::{
     limit_fetch,
     queries::filters::{filter_blocked, filter_private_or_followed, filter_unlisted_or_followed},
   },
+  views::PostView,
 };
 use lemmy_db_schema_file::{
   InstanceId,
@@ -72,20 +72,6 @@ use lemmy_utils::{
 use tracing::debug;
 use url::Url;
 
-impl PaginationCursorConversion for PostView {
-  type PaginatedType = Post;
-  fn to_cursor(&self) -> CursorData {
-    CursorData::new_id(self.post.id.0)
-  }
-
-  async fn from_cursor(
-    cursor: CursorData,
-    pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Self::PaginatedType> {
-    Post::read(pool, PostId(cursor.id()?)).await
-  }
-}
-
 /// This dummy struct is necessary to allow pagination using PostAction keys
 struct PostViewDummy(PostActions);
 impl PaginationCursorConversion for PostViewDummy {
@@ -103,7 +89,6 @@ impl PaginationCursorConversion for PostViewDummy {
   }
 }
 
-impl PostView {
   // TODO while we can abstract the joins into a function, the selects are currently impossible to
   // do, because they rely on a few types that aren't yet publicly exported in diesel:
   // https://github.com/diesel-rs/diesel/issues/4462
@@ -169,19 +154,19 @@ impl PostView {
       .left_join(my_local_user_admin_join)
   }
 
-  pub async fn read(
+  pub async fn read_post_view(
     pool: &mut DbPool<'_>,
     post_id: PostId,
     my_local_user: Option<&'_ LocalUser>,
     local_instance_id: InstanceId,
     is_mod_or_admin: bool,
-  ) -> LemmyResult<Self> {
+) -> LemmyResult<PostView> {
     let conn = &mut get_conn(pool).await?;
     let my_person_id = my_local_user.person_id();
 
-    let mut query = Self::joins(my_person_id, local_instance_id)
+  let mut query = joins(my_person_id, local_instance_id)
       .filter(post::id.eq(post_id))
-      .select(Self::as_select())
+    .select(PostView::as_select())
       .into_boxed();
 
     if my_local_user.is_none() {
@@ -234,7 +219,7 @@ impl PostView {
     no_limit: Option<bool>,
   ) -> LemmyResult<PagedResponse<PostView>> {
     let limit = limit_fetch(limit, no_limit)?;
-    let query = PostView::post_action_joins(Some(my_person.id), my_person.instance_id)
+    let query = post_action_joins(Some(my_person.id), my_person.instance_id)
       .filter(post_actions::person_id.eq(my_person.id))
       .filter(post_actions::read_at.is_not_null())
       .filter(filter_blocked())
@@ -252,7 +237,7 @@ impl PostView {
 
     let conn = &mut get_conn(pool).await?;
     let res = paginated_query
-      .load::<Self>(conn)
+    .load::<PostView>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)?;
     paginate_response(res, limit, page_cursor)
@@ -267,7 +252,7 @@ impl PostView {
     no_limit: Option<bool>,
   ) -> LemmyResult<PagedResponse<PostView>> {
     let limit = limit_fetch(limit, no_limit)?;
-    let query = PostView::post_action_joins(Some(my_person.id), my_person.instance_id)
+    let query = post_action_joins(Some(my_person.id), my_person.instance_id)
       .filter(post_actions::person_id.eq(my_person.id))
       .filter(post_actions::hidden_at.is_not_null())
       .filter(filter_blocked())
@@ -285,11 +270,10 @@ impl PostView {
 
     let conn = &mut get_conn(pool).await?;
     let res = paginated_query
-      .load::<Self>(conn)
+    .load::<PostView>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)?;
     paginate_response(res, limit, page_cursor)
-  }
 }
 
 #[derive(Clone, Default)]
@@ -389,7 +373,7 @@ impl PostQuery<'_> {
     let limit = limit_fetch(self.limit, None)?;
     let my_person_id = self.local_user.person_id();
 
-    let mut query = PostView::joins(my_person_id, site.instance_id)
+    let mut query = joins(my_person_id, site.instance_id)
       .select(PostView::as_select())
       .limit(limit)
       .into_boxed();

@@ -1,7 +1,10 @@
-use crate::PrivateMessageView;
 use diesel::{BoolExpressionMethods, ExpressionMethods, JoinOnDsl, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema::{newtypes::PrivateMessageId, source::person::Person};
+use lemmy_db_schema::{
+  newtypes::PrivateMessageId,
+  source::person::Person,
+  views::PrivateMessageView,
+};
 use lemmy_db_schema_file::{
   aliases,
   schema::{instance_actions, person, person_actions, private_message},
@@ -9,47 +12,45 @@ use lemmy_db_schema_file::{
 use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
-impl PrivateMessageView {
-  #[diesel::dsl::auto_type(no_type_alias)]
-  fn joins() -> _ {
-    let recipient_id = aliases::person1.field(person::id);
+#[diesel::dsl::auto_type(no_type_alias)]
+fn joins() -> _ {
+  let recipient_id = aliases::person1.field(person::id);
 
-    let creator_join = person::table.on(private_message::creator_id.eq(person::id));
-    let recipient_join = aliases::person1.on(private_message::recipient_id.eq(recipient_id));
+  let creator_join = person::table.on(private_message::creator_id.eq(person::id));
+  let recipient_join = aliases::person1.on(private_message::recipient_id.eq(recipient_id));
 
-    let person_actions_join = person_actions::table.on(
-      person_actions::target_id
-        .eq(private_message::creator_id)
-        .and(person_actions::person_id.eq(recipient_id)),
-    );
+  let person_actions_join = person_actions::table.on(
+    person_actions::target_id
+      .eq(private_message::creator_id)
+      .and(person_actions::person_id.eq(recipient_id)),
+  );
 
-    let instance_actions_join = instance_actions::table.on(
-      instance_actions::instance_id
-        .eq(person::instance_id)
-        .and(instance_actions::person_id.eq(recipient_id)),
-    );
+  let instance_actions_join = instance_actions::table.on(
+    instance_actions::instance_id
+      .eq(person::instance_id)
+      .and(instance_actions::person_id.eq(recipient_id)),
+  );
 
-    private_message::table
-      .inner_join(creator_join)
-      .inner_join(recipient_join)
-      .left_join(person_actions_join)
-      .left_join(instance_actions_join)
-  }
+  private_message::table
+    .inner_join(creator_join)
+    .inner_join(recipient_join)
+    .left_join(person_actions_join)
+    .left_join(instance_actions_join)
+}
 
-  pub async fn read(
-    pool: &mut DbPool<'_>,
-    private_message_id: PrivateMessageId,
-    my_person: Option<&Person>,
-  ) -> LemmyResult<Self> {
-    let conn = &mut get_conn(pool).await?;
-    let mut pm = Self::joins()
-      .filter(private_message::id.eq(private_message_id))
-      .select(Self::as_select())
-      .first(conn)
-      .await
-      .with_lemmy_type(LemmyErrorType::NotFound)?;
+pub async fn read(
+  pool: &mut DbPool<'_>,
+  private_message_id: PrivateMessageId,
+  my_person: Option<&Person>,
+) -> LemmyResult<PrivateMessageView> {
+  let conn = &mut get_conn(pool).await?;
+  let mut pm = joins()
+    .filter(private_message::id.eq(private_message_id))
+    .select(PrivateMessageView::as_select())
+    .first(conn)
+    .await
+    .with_lemmy_type(LemmyErrorType::NotFound)?;
 
-    pm.private_message.clear_deleted_by_recipient(my_person);
-    Ok(pm)
-  }
+  pm.private_message.clear_deleted_by_recipient(my_person);
+  Ok(pm)
 }

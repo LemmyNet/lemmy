@@ -1,5 +1,4 @@
-use crate::PrivateMessageView;
-use lemmy_db_schema::newtypes::PrivateMessageId;
+use lemmy_db_schema::{newtypes::PrivateMessageId, views::PrivateMessageView};
 use lemmy_db_schema_file::PersonId;
 use serde::{Deserialize, Serialize};
 

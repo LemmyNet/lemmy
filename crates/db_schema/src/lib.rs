@@ -15,6 +15,7 @@ pub mod test_data;
 pub mod traits;
 #[cfg(feature = "full")]
 pub mod utils;
+pub mod views;
 
 use lemmy_db_schema_file::enums::{ModlogKind, NotificationType};
 use serde::{Deserialize, Serialize};

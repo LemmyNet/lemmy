@@ -11,11 +11,10 @@ use lemmy_db_schema::{
     post::Post,
     private_message::PrivateMessage,
     site::Site,
-  },
+  }, views::PrivateMessageView,
 };
 use lemmy_db_schema_file::PersonId;
 use lemmy_db_views_community::api::BanFromCommunity;
-use lemmy_db_views_private_message::PrivateMessageView;
 use lemmy_diesel_utils::dburl::DbUrl;
 use lemmy_utils::error::LemmyResult;
 use std::sync::LazyLock;

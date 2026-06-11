@@ -1,7 +1,6 @@
-use crate::PostView;
 use lemmy_db_schema::{
   PostFeatureType,
-  newtypes::{CommentId, CommunityId, CommunityTagId, LanguageId, MultiCommunityId, PostId},
+  newtypes::{CommentId, CommunityId, CommunityTagId, LanguageId, MultiCommunityId, PostId}, views::PostView,
 };
 use lemmy_db_schema_file::{
   PersonId,

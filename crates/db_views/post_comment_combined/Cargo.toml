@@ -20,19 +20,13 @@ workspace = true
 full = [
   "diesel",
   "lemmy_db_schema/full",
-  "lemmy_db_views_post/full",
-  "lemmy_db_views_comment/full",
 ]
 ts-rs = [
   "dep:ts-rs",
   "lemmy_db_schema/ts-rs",
-  "lemmy_db_views_post/ts-rs",
-  "lemmy_db_views_comment/ts-rs",
 ]
 
 [dependencies]
-lemmy_db_views_post = { workspace = true }
-lemmy_db_views_comment = { workspace = true }
 lemmy_db_schema = { workspace = true }
 diesel = { workspace = true, optional = true }
 serde = { workspace = true }

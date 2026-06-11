@@ -10,13 +10,13 @@ use lemmy_db_schema::{
     post::{Post, PostActions},
   },
   traits::{ApubActor, Blockable},
+  views::PrivateMessageView,
 };
 use lemmy_db_schema_file::{
   PersonId,
   enums::{CommunityNotificationsMode, NotificationType, PostNotificationsMode},
 };
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_private_message::PrivateMessageView;
 use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::{dburl::DbUrl, traits::Crud};
 use lemmy_email::notifications::{NotificationEmailData, send_notification_email};
@@ -392,8 +392,7 @@ mod tests {
   };
   use lemmy_db_schema_file::enums::NotificationType;
   use lemmy_db_views_local_user::LocalUserView;
-  use lemmy_db_views_notification::{NotificationData, NotificationView, impls::NotificationQuery};
-  use lemmy_db_views_private_message::PrivateMessageView;
+  use lemmy_db_views_notification::impls::NotificationQuery;
   use lemmy_diesel_utils::{
     connection::{DbPool, build_db_pool_for_tests},
     traits::Crud,

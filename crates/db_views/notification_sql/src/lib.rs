@@ -1,4 +1,4 @@
-use diesel::{ExpressionMethods, JoinOnDsl, QueryDsl};
+use diesel::{BoolExpressionMethods, ExpressionMethods, JoinOnDsl, PgExpressionMethods, QueryDsl};
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
@@ -65,4 +65,37 @@ pub fn notification_joins(person_id: PersonId, instance_id: InstanceId) -> _ {
     .left_join(my_post_actions_join)
     .left_join(my_person_actions_join)
     .left_join(my_comment_actions_join)
+}
+
+/// Filter out the deleted and removed items.
+#[diesel::dsl::auto_type]
+pub fn filter_deleted_and_removed(my_person_id: PersonId) -> _ {
+  // Use is_distinct_from since that handles null
+  comment::deleted
+    .is_distinct_from(true)
+    .and(
+      // Only hide removed if its not a modlog item
+      modlog::id
+        .is_not_null()
+        .or(comment::removed.is_distinct_from(true)),
+    )
+    .and(post::deleted.is_distinct_from(true))
+    .and(
+      modlog::id
+        .is_not_null()
+        .or(post::removed.is_distinct_from(true)),
+    )
+    // Filter out the deleted / removed
+    .and(private_message::deleted.is_distinct_from(true))
+    .and(
+      modlog::id
+        .is_not_null()
+        .or(private_message::removed.is_distinct_from(true)),
+    )
+    // Also hide messages deleted by the recipient, but only for them
+    .and(
+      private_message::deleted_by_recipient
+        .is_distinct_from(true)
+        .or(notification::recipient_id.ne(my_person_id)),
+    )
 }

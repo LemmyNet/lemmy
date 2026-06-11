@@ -1,4 +1,4 @@
-use crate::{CommentSlimView, CommentView};
+use crate::CommentSlimView;
 use diesel::{
   BoolExpressionMethods,
   ExpressionMethods,
@@ -31,6 +31,7 @@ use lemmy_db_schema::{
       filter_unlisted_or_followed,
     },
   },
+  views::CommentView,
 };
 use lemmy_db_schema_file::{
   InstanceId,
@@ -68,93 +69,77 @@ use lemmy_diesel_utils::{
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
-impl PaginationCursorConversion for CommentView {
-  type PaginatedType = Comment;
-  fn to_cursor(&self) -> CursorData {
-    CursorData::new_id(self.comment.id.0)
-  }
+#[diesel::dsl::auto_type(no_type_alias)]
+fn joins(my_person_id: Option<PersonId>, local_instance_id: InstanceId) -> _ {
+  let my_community_actions_join: my_community_actions_join =
+    my_community_actions_join(my_person_id);
+  let my_comment_actions_join: my_comment_actions_join = my_comment_actions_join(my_person_id);
+  let my_local_user_admin_join: my_local_user_admin_join = my_local_user_admin_join(my_person_id);
+  let my_instance_communities_actions_join: my_instance_communities_actions_join =
+    my_instance_communities_actions_join(my_person_id);
+  let my_instance_persons_actions_join_1: my_instance_persons_actions_join_1 =
+    my_instance_persons_actions_join_1(my_person_id);
+  let my_person_actions_join: my_person_actions_join = my_person_actions_join(my_person_id);
+  let creator_local_instance_actions_join: creator_local_instance_actions_join =
+    creator_local_instance_actions_join(local_instance_id);
 
-  async fn from_cursor(
-    data: CursorData,
-    pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Self::PaginatedType> {
-    Comment::read(pool, CommentId(data.id()?)).await
-  }
+  comment::table
+    .inner_join(person::table)
+    .inner_join(post::table)
+    .inner_join(community::table)
+    .left_join(creator_home_instance_actions_join())
+    .left_join(creator_community_instance_actions_join())
+    .left_join(creator_community_actions_join())
+    .left_join(creator_local_instance_actions_join)
+    .left_join(my_community_actions_join)
+    .left_join(my_comment_actions_join)
+    .left_join(my_person_actions_join)
+    .left_join(my_local_user_admin_join)
+    .left_join(my_instance_communities_actions_join)
+    .left_join(my_instance_persons_actions_join_1)
 }
 
-impl CommentView {
-  #[diesel::dsl::auto_type(no_type_alias)]
-  fn joins(my_person_id: Option<PersonId>, local_instance_id: InstanceId) -> _ {
-    let my_community_actions_join: my_community_actions_join =
-      my_community_actions_join(my_person_id);
-    let my_comment_actions_join: my_comment_actions_join = my_comment_actions_join(my_person_id);
-    let my_local_user_admin_join: my_local_user_admin_join = my_local_user_admin_join(my_person_id);
-    let my_instance_communities_actions_join: my_instance_communities_actions_join =
-      my_instance_communities_actions_join(my_person_id);
-    let my_instance_persons_actions_join_1: my_instance_persons_actions_join_1 =
-      my_instance_persons_actions_join_1(my_person_id);
-    let my_person_actions_join: my_person_actions_join = my_person_actions_join(my_person_id);
-    let creator_local_instance_actions_join: creator_local_instance_actions_join =
-      creator_local_instance_actions_join(local_instance_id);
+pub async fn read_comment_view(
+  pool: &mut DbPool<'_>,
+  comment_id: CommentId,
+  my_local_user: Option<&'_ LocalUser>,
+  local_instance_id: InstanceId,
+) -> LemmyResult<CommentView> {
+  let conn = &mut get_conn(pool).await?;
 
-    comment::table
-      .inner_join(person::table)
-      .inner_join(post::table)
-      .inner_join(community::table)
-      .left_join(creator_home_instance_actions_join())
-      .left_join(creator_community_instance_actions_join())
-      .left_join(creator_community_actions_join())
-      .left_join(creator_local_instance_actions_join)
-      .left_join(my_community_actions_join)
-      .left_join(my_comment_actions_join)
-      .left_join(my_person_actions_join)
-      .left_join(my_local_user_admin_join)
-      .left_join(my_instance_communities_actions_join)
-      .left_join(my_instance_persons_actions_join_1)
+  let mut query = joins(my_local_user.person_id(), local_instance_id)
+    .filter(comment::id.eq(comment_id))
+    .select(CommentView::as_select())
+    .into_boxed();
+
+  // Check permissions to view private community content.
+  // Specifically, if the community is private then only accepted followers may view its
+  // content, otherwise it is filtered out. Admins can view private community content
+  // without restriction.
+  if !my_local_user.is_admin() {
+    query = query.filter(filter_private_or_followed())
+  }
+  if my_local_user.is_none() {
+    query = query.filter(community::visibility.ne(CommunityVisibility::LocalOnlyPrivate));
   }
 
-  pub async fn read(
-    pool: &mut DbPool<'_>,
-    comment_id: CommentId,
-    my_local_user: Option<&'_ LocalUser>,
-    local_instance_id: InstanceId,
-  ) -> LemmyResult<Self> {
-    let conn = &mut get_conn(pool).await?;
+  query
+    .first::<CommentView>(conn)
+    .await
+    .with_lemmy_type(LemmyErrorType::NotFound)
+}
 
-    let mut query = Self::joins(my_local_user.person_id(), local_instance_id)
-      .filter(comment::id.eq(comment_id))
-      .select(Self::as_select())
-      .into_boxed();
-
-    // Check permissions to view private community content.
-    // Specifically, if the community is private then only accepted followers may view its
-    // content, otherwise it is filtered out. Admins can view private community content
-    // without restriction.
-    if !my_local_user.is_admin() {
-      query = query.filter(filter_private_or_followed())
-    }
-    if my_local_user.is_none() {
-      query = query.filter(community::visibility.ne(CommunityVisibility::LocalOnlyPrivate));
-    }
-
-    query
-      .first::<Self>(conn)
-      .await
-      .with_lemmy_type(LemmyErrorType::NotFound)
-  }
-
-  pub fn map_to_slim(self) -> CommentSlimView {
-    CommentSlimView {
-      comment: self.comment,
-      creator: self.creator,
-      comment_actions: self.comment_actions,
-      person_actions: self.person_actions,
-      creator_is_admin: self.creator_is_admin,
-      can_mod: self.can_mod,
-      creator_banned: self.creator_banned,
-      creator_banned_from_community: self.creator_banned_from_community,
-      creator_is_moderator: self.creator_is_moderator,
-    }
+pub fn map_to_slim(s: CommentView) -> CommentSlimView {
+  CommentSlimView {
+    comment: s.comment,
+    creator: s.creator,
+    comment_actions: s.comment_actions,
+    person_actions: s.person_actions,
+    creator_is_admin: s.creator_is_admin,
+    can_mod: s.can_mod,
+    creator_banned: s.creator_banned,
+    creator_banned_from_community: s.creator_banned_from_community,
+    creator_is_moderator: s.creator_is_moderator,
   }
 }
 
@@ -187,7 +172,7 @@ impl CommentQuery<'_> {
     // The left join below will return None in this case
     let my_person_id = self.local_user.person_id();
 
-    let mut query = CommentView::joins(my_person_id, site.instance_id)
+    let mut query = joins(my_person_id, site.instance_id)
       .select(CommentView::as_select())
       .into_boxed();
 

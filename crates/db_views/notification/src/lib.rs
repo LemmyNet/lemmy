@@ -13,10 +13,6 @@ use lemmy_db_schema::source::{
 };
 use lemmy_db_schema::{NotificationTypeFilter, source::notification::Notification};
 use lemmy_db_schema_file::PersonId;
-use lemmy_db_views_comment::CommentView;
-use lemmy_db_views_modlog::ModlogView;
-use lemmy_db_views_post::PostView;
-use lemmy_db_views_private_message::PrivateMessageView;
 use lemmy_diesel_utils::pagination::PaginationCursor;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -103,25 +99,6 @@ struct NotificationViewInternal {
   creator_banned_from_community: bool,
   #[diesel(select_expression = creator_ban_expires_from_community())]
   pub creator_community_ban_expires_at: Option<DateTime<Utc>>,
-}
-
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
-pub struct NotificationView {
-  pub notification: Notification,
-  pub data: NotificationData,
-}
-
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
-#[serde(tag = "type_", rename_all = "snake_case")]
-pub enum NotificationData {
-  Comment(CommentView),
-  Post(PostView),
-  PrivateMessage(PrivateMessageView),
-  ModAction(ModlogView),
 }
 
 #[skip_serializing_none]

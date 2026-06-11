@@ -1,6 +1,6 @@
 #![expect(clippy::indexing_slicing, clippy::expect_used, clippy::unreachable)]
 
-use crate::{PostView, impls::PostQuery};
+use crate::impls::PostQuery;
 use chrono::{DateTime, Days, Utc};
 use diesel_async::SimpleAsyncConnection;
 use diesel_uplete::UpleteCount;

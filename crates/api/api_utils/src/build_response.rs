@@ -5,10 +5,10 @@ use lemmy_db_schema::{
   source::actor_language::CommunityLanguage,
 };
 use lemmy_db_schema_file::InstanceId;
-use lemmy_db_views_comment::{CommentView, api::CommentResponse};
+use lemmy_db_views_comment::{api::CommentResponse, impls::read_comment_view};
 use lemmy_db_views_community::{CommunityView, api::CommunityResponse};
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_post::{PostView, api::PostResponse};
+use lemmy_db_views_post::{api::PostResponse, impls::read_post_view};
 use lemmy_utils::error::LemmyResult;
 
 pub async fn build_comment_response(
@@ -18,7 +18,7 @@ pub async fn build_comment_response(
   local_instance_id: InstanceId,
 ) -> LemmyResult<CommentResponse> {
   let local_user = local_user_view.map(|l| l.local_user);
-  let comment_view = CommentView::read(
+  let comment_view = read_comment_view(
     &mut context.pool(),
     comment_id,
     local_user.as_ref(),
@@ -62,7 +62,7 @@ pub async fn build_post_response(
     .await
     .is_ok();
   let local_user = local_user_view.local_user;
-  let post_view = PostView::read(
+  let post_view = read_post_view(
     &mut context.pool(),
     post_id,
     Some(&local_user),

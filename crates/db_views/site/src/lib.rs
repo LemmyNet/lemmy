@@ -1,6 +1,6 @@
 #[cfg(feature = "full")]
 use diesel::{Queryable, Selectable};
-use lemmy_db_schema::source::{
+use lemmy_db_schema::{source::{
   federation_allowlist::FederationAllowList,
   federation_blocklist::FederationBlockList,
   federation_queue_state::FederationQueueState,
@@ -8,11 +8,9 @@ use lemmy_db_schema::source::{
   local_site::LocalSite,
   local_site_rate_limit::LocalSiteRateLimit,
   site::Site,
-};
-use lemmy_db_views_comment::CommentView;
+}, views::{CommentView, PostView}};
 use lemmy_db_views_community::{CommunityView, MultiCommunityView};
 use lemmy_db_views_person::PersonView;
-use lemmy_db_views_post::PostView;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 

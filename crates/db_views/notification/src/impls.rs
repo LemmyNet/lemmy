@@ -1,4 +1,4 @@
-use crate::{CommentView, NotificationData, NotificationView, NotificationViewInternal};
+use crate::NotificationViewInternal;
 use diesel::{
   BoolExpressionMethods,
   ExpressionMethods,
@@ -16,16 +16,22 @@ use lemmy_db_schema::{
     person::Person,
   },
   utils::{limit_fetch, queries::filters::filter_blocked},
+  views::{
+    CommentView,
+    ModlogView,
+    NotificationData,
+    NotificationView,
+    PostView,
+    PrivateMessageView,
+  },
 };
 use lemmy_db_schema_file::{
   PersonId,
   enums::NotificationType,
   schema::{comment, modlog, notification, person, post, private_message},
 };
-use lemmy_db_views_modlog::ModlogView;
-use lemmy_db_views_notification_sql::notification_joins;
-use lemmy_db_views_post::PostView;
-use lemmy_db_views_private_message::PrivateMessageView;
+use lemmy_db_views_modlog::impls::hide_mod_name;
+use lemmy_db_views_notification_sql::{filter_deleted_and_removed, notification_joins};
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   pagination::{
@@ -38,78 +44,55 @@ use lemmy_diesel_utils::{
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
-impl NotificationView {
-  /// Gets the number of unread mentions
-  pub async fn get_unread_count(
-    pool: &mut DbPool<'_>,
-    my_person: &Person,
-    show_bot_accounts: bool,
-  ) -> LemmyResult<i64> {
-    use diesel::dsl::count;
-    let conn = &mut get_conn(pool).await?;
+/// Gets the number of unread mentions
+pub async fn get_unread_count(
+  pool: &mut DbPool<'_>,
+  my_person: &Person,
+  show_bot_accounts: bool,
+) -> LemmyResult<i64> {
+  use diesel::dsl::count;
+  let conn = &mut get_conn(pool).await?;
 
-    let unread_filter = notification::read.eq(false);
+  let unread_filter = notification::read.eq(false);
 
-    let mut query = notification_joins(my_person.id, my_person.instance_id)
-      // Filter for your user
-      .filter(notification::recipient_id.eq(my_person.id))
-      // Filter unreads
-      .filter(unread_filter)
-      .filter(filter_deleted_and_removed(my_person.id))
-      // Don't count replies from blocked users
-      .filter(filter_blocked())
-      .select(count(notification::id))
-      .into_boxed();
+  let mut query = notification_joins(my_person.id, my_person.instance_id)
+    // Filter for your user
+    .filter(notification::recipient_id.eq(my_person.id))
+    // Filter unreads
+    .filter(unread_filter)
+    .filter(filter_deleted_and_removed(my_person.id))
+    // Don't count replies from blocked users
+    .filter(filter_blocked())
+    .select(count(notification::id))
+    .into_boxed();
 
-    // These filters need to be kept in sync with the filters in queries().list()
-    if !show_bot_accounts {
-      query = query.filter(person::bot_account.is_distinct_from(true));
-    }
-
-    query
-      .first::<i64>(conn)
-      .await
-      .with_lemmy_type(LemmyErrorType::NotFound)
+  // These filters need to be kept in sync with the filters in queries().list()
+  if !show_bot_accounts {
+    query = query.filter(person::bot_account.is_distinct_from(true));
   }
 
-  pub async fn read(
-    pool: &mut DbPool<'_>,
-    id: NotificationId,
-    my_person: &Person,
-  ) -> LemmyResult<Self> {
-    let conn = &mut get_conn(pool).await?;
-
-    let res = notification_joins(my_person.id, my_person.instance_id)
-      .filter(notification::id.eq(id))
-      .select(NotificationViewInternal::as_select())
-      .get_result::<NotificationViewInternal>(conn)
-      .await
-      .with_lemmy_type(LemmyErrorType::NotFound)?;
-    // TODO: should pass this in as param
-    let hide_modlog_names = true;
-    map_to_enum(res, hide_modlog_names, my_person).ok_or(LemmyErrorType::NotFound.into())
-  }
+  query
+    .first::<i64>(conn)
+    .await
+    .with_lemmy_type(LemmyErrorType::NotFound)
 }
 
-impl PaginationCursorConversion for NotificationView {
-  type PaginatedType = Notification;
+pub async fn read_notification_view(
+  pool: &mut DbPool<'_>,
+  id: NotificationId,
+  my_person: &Person,
+) -> LemmyResult<NotificationView> {
+  let conn = &mut get_conn(pool).await?;
 
-  fn to_cursor(&self) -> CursorData {
-    CursorData::new_id(self.notification.id.0)
-  }
-
-  async fn from_cursor(
-    cursor: CursorData,
-    pool: &mut DbPool<'_>,
-  ) -> LemmyResult<Self::PaginatedType> {
-    let conn = &mut get_conn(pool).await?;
-    let query = notification::table
-      .select(Self::PaginatedType::as_select())
-      .filter(notification::id.eq(cursor.id()?));
-    let token = query.first(conn).await?;
-
-    Ok(token)
-  }
+  let res = notification_joins(my_person.id, my_person.instance_id)
+    .filter(notification::id.eq(id))
+    .select(NotificationViewInternal::as_select())
+    .get_result::<NotificationViewInternal>(conn)
+    .await
+    .with_lemmy_type(LemmyErrorType::NotFound)?;
+  // TODO: should pass this in as param
+  let hide_modlog_names = true;
+  map_to_enum(res, hide_modlog_names, my_person).ok_or(LemmyErrorType::NotFound.into())
 }
 
 #[derive(Default)]
@@ -245,7 +228,7 @@ fn map_to_enum(
       target_comment: v.comment,
       target_instance: v.instance,
     };
-    let m = m.hide_mod_name(hide_modlog_name);
+    let m = hide_mod_name(m, hide_modlog_name);
     NotificationData::ModAction(m)
   } else if let (Some(comment), Some(post), Some(community)) = (v.comment, &v.post, &v.community) {
     NotificationData::Comment(CommentView {
@@ -305,37 +288,4 @@ fn map_to_enum(
     v.notification
   };
   Some(NotificationView { notification, data })
-}
-
-/// Filter out the deleted and removed items.
-#[diesel::dsl::auto_type]
-fn filter_deleted_and_removed(my_person_id: PersonId) -> _ {
-  // Use is_distinct_from since that handles null
-  comment::deleted
-    .is_distinct_from(true)
-    .and(
-      // Only hide removed if its not a modlog item
-      modlog::id
-        .is_not_null()
-        .or(comment::removed.is_distinct_from(true)),
-    )
-    .and(post::deleted.is_distinct_from(true))
-    .and(
-      modlog::id
-        .is_not_null()
-        .or(post::removed.is_distinct_from(true)),
-    )
-    // Filter out the deleted / removed
-    .and(private_message::deleted.is_distinct_from(true))
-    .and(
-      modlog::id
-        .is_not_null()
-        .or(private_message::removed.is_distinct_from(true)),
-    )
-    // Also hide messages deleted by the recipient, but only for them
-    .and(
-      private_message::deleted_by_recipient
-        .is_distinct_from(true)
-        .or(notification::recipient_id.ne(my_person_id)),
-    )
 }
