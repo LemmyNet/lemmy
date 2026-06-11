@@ -372,7 +372,7 @@ mod tests {
     ])
   }
 
-  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
+  #[tokio_shared_rt::test(shared)]
   async fn test_convert_update_languages() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
@@ -390,7 +390,7 @@ mod tests {
     Ok(())
   }
 
-  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
+  #[tokio_shared_rt::test(shared)]
   async fn test_site_languages() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
@@ -412,7 +412,7 @@ mod tests {
     Ok(())
   }
 
-  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
+  #[tokio_shared_rt::test(shared)]
   async fn test_user_languages() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
@@ -443,7 +443,7 @@ mod tests {
     Ok(())
   }
 
-  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
+  #[tokio_shared_rt::test(shared)]
   async fn test_community_languages() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
@@ -496,7 +496,7 @@ mod tests {
     Ok(())
   }
 
-  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
+  #[tokio_shared_rt::test(shared)]
   async fn test_validate_post_language() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();

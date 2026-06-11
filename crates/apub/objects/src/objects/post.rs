@@ -382,7 +382,7 @@ mod tests {
   use lemmy_db_schema::{source::instance::Instance, test_data::TestData};
   use pretty_assertions::assert_eq;
 
-  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
+  #[tokio_shared_rt::test(shared)]
   async fn test_parse_lemmy_post() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let test_data = TestData::create(&mut context.pool()).await?;
@@ -408,7 +408,7 @@ mod tests {
     Ok(())
   }
 
-  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
+  #[tokio_shared_rt::test(shared)]
   async fn test_convert_mastodon_post_title() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let test_data = TestData::create(&mut context.pool()).await?;

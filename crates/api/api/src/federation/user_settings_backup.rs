@@ -318,7 +318,7 @@ pub(crate) mod tests {
   use std::time::Duration;
   use tokio::time::sleep;
 
-  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
+  #[tokio_shared_rt::test(shared)]
   async fn test_settings_export_import() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();
@@ -387,7 +387,7 @@ pub(crate) mod tests {
     Ok(())
   }
 
-  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
+  #[tokio_shared_rt::test(shared)]
   async fn disallow_large_backup() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();
@@ -423,7 +423,7 @@ pub(crate) mod tests {
     Ok(())
   }
 
-  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
+  #[tokio_shared_rt::test(shared)]
   async fn import_partial_backup() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();
@@ -447,7 +447,7 @@ pub(crate) mod tests {
     Ok(())
   }
 
-  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
+  #[tokio_shared_rt::test(shared)]
   async fn import_019_backup() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();

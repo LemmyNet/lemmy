@@ -386,7 +386,7 @@ mod tests {
   use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use lemmy_utils::error::LemmyResult;
 
-  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
+  #[tokio_shared_rt::test(shared)]
   async fn test_admin_higher_check() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
@@ -424,7 +424,7 @@ mod tests {
     Ok(())
   }
 
-  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
+  #[tokio_shared_rt::test(shared)]
   async fn test_email_taken() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();

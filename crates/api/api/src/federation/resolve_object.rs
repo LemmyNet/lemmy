@@ -126,7 +126,7 @@ mod tests {
   use lemmy_diesel_utils::traits::Crud;
   use lemmy_utils::error::LemmyErrorType;
 
-  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
+  #[tokio_shared_rt::test(shared)]
   async fn test_object_visibility() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();

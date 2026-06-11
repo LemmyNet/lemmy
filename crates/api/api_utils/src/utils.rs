@@ -1090,7 +1090,7 @@ mod tests {
     Ok(())
   }
 
-  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
+  #[tokio_shared_rt::test(shared)]
   async fn test_proxy_image_link() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
 

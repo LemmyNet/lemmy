@@ -92,7 +92,7 @@ mod tests {
       local_site,
     })
   }
-  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
+  #[tokio_shared_rt::test(shared)]
   async fn test_mod_remove_or_restore_data() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();
@@ -392,7 +392,7 @@ mod tests {
 
   /// Verifies that remove_or_restore_user_data sets bulk_action_parent_id on all child entries
   /// when a real parent ModlogId is provided
-  #[tokio_shared_rt::test(shared = true, flavor = "multi_thread")]
+  #[tokio_shared_rt::test(shared)]
   async fn test_bulk_parent_id_propagated() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();
