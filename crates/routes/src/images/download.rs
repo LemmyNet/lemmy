@@ -104,6 +104,9 @@ pub async fn image_proxy(
   } else {
     // Proxy the image data through Lemmy
     let download_filename = download_filename_from_url(url.path(), output_file_type);
+    eprintln!(
+      "[TRACE] image_proxy: download_filename={download_filename:?}, processed_url={processed_url}"
+    );
     Ok(Either::Right(
       do_get_image(processed_url, req, &context, download_filename).await?,
     ))
@@ -134,11 +137,22 @@ pub(super) async fn do_get_image(
     client_res.insert_header(convert_header(name, value));
   }
 
+  eprintln!("[TRACE] do_get_image: download_filename={download_filename:?}");
+  eprintln!(
+    "[TRACE] do_get_image: pictrs_content_disposition={:?}",
+    res.headers().get("content-disposition")
+  );
+
   if let Some(download_filename) = &download_filename {
     set_content_disposition(&mut client_res, download_filename);
   }
 
-  Ok(client_res.body(BodyStream::new(res.bytes_stream())))
+  let built_response = client_res.body(BodyStream::new(res.bytes_stream()));
+  eprintln!(
+    "[TRACE] do_get_image: final_content_disposition={:?}",
+    built_response.headers().get("content-disposition")
+  );
+  Ok(built_response)
 }
 
 /// Auth required if instance is private with federation disabled
@@ -161,10 +175,11 @@ enum PictrsFileType {
 
 fn set_content_disposition(client_res: &mut HttpResponseBuilder, filename: &str) {
   let encoded = urlencoding::encode(filename);
-  client_res.insert_header((
-    CONTENT_DISPOSITION,
-    format!("inline; filename=\"{}\"", encoded),
-  ));
+  let header_value = format!("inline; filename=\"{}\"", encoded);
+  eprintln!(
+    "[TRACE] set_content_disposition: filename={filename}, encoded={encoded}, header_value={header_value}"
+  );
+  client_res.insert_header((CONTENT_DISPOSITION, header_value));
 }
 
 /// Extracts the final path segment from a URL, percent-decodes it, and returns a
@@ -176,25 +191,32 @@ fn download_filename_from_url(
   path: &str,
   output_file_type: Option<PictrsFileType>,
 ) -> Option<String> {
+  eprintln!(
+    "[TRACE] download_filename_from_url: path={path}, output_file_type={output_file_type:?}"
+  );
   let raw = path
     .rsplit('/')
     .next()?
     .split('?')
     .next()
     .filter(|s| !s.is_empty())?;
+  eprintln!("[TRACE] download_filename_from_url: raw={raw}");
   let decoded = urlencoding::decode(raw).unwrap_or_else(|_| raw.into());
   let name = decoded.as_ref();
+  eprintln!("[TRACE] download_filename_from_url: name={name}");
 
   let has_ext = name.rsplit_once('.').is_some_and(|(s, _)| !s.is_empty());
   let stem = name
     .rsplit_once('.')
     .filter(|(s, _)| !s.is_empty())
     .map_or(name, |(s, _)| s);
-  match output_file_type {
+  let result = match output_file_type {
     None if has_ext => Some(name.into()),
     None => Some(format!("{name}.jpg")),
     Some(ft) => Some(format!("{stem}.{ft}")),
-  }
+  };
+  eprintln!("[TRACE] download_filename_from_url: result={result:?}");
+  result
 }
 
 /// Take file type from param, name, or use jpg if nothing is given
