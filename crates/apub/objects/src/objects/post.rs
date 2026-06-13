@@ -359,7 +359,7 @@ pub async fn append_attachments_to_body(
     body.push('\n');
 
     for attachment in attachments {
-      if let Ok(markdown) = &attachment.as_markdown(context).await {
+      if let Ok(markdown) = attachment.as_markdown(context).await {
         body.push('\n');
         body.push_str(&markdown);
       }
