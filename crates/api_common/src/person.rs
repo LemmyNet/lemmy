@@ -441,3 +441,13 @@ pub struct ListMedia {
 pub struct ListMediaResponse {
   pub images: Vec<LocalImageView>,
 }
+
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct GetVoteAnalyticsByPerson {
+  pub person_id: PersonId,
+  pub start_time: Option<i64>,
+  pub end_time: Option<i64>,
+  pub limit: Option<i64>,
+}
