@@ -59,6 +59,8 @@ async function expectProxiedImageContentDisposition(
       response.ok &&
       response.headers.get("content-disposition") ===
         expectedContentDisposition,
+    15,
+    [0.2, 0.5, 1, 2, 3, 5, 10, 10, 10, 10, 10, 10, 10, 10, 10],
   );
 
   expect(proxyResponse.headers.get("content-disposition")).toBe(
