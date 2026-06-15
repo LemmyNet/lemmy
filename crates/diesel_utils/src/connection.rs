@@ -290,6 +290,7 @@ pub async fn build_db_pool_for_tests()
       .expect("diesel postgres backend");
 
       backend
+        .clean_tables(false)
         .create_database_pool()
         .await
         .expect("create db pool")
