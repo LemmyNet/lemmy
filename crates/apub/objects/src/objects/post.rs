@@ -432,11 +432,6 @@ mod tests {
     Ok(())
   }
 
-  // Tests that issue 6229 is fixed:
-  // - When a federated post has both an image and a link in its `attachment` array,
-  // - only the first one is used as `post.url`; the second is silently dropped.
-  // Following the issue discussions, the fix is to add the subsequent links at the end of the post
-  // body.
   #[tokio::test]
   #[serial]
   async fn test_parse_post_with_image_and_link() -> LemmyResult<()> {
