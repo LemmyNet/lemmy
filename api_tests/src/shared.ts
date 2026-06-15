@@ -861,7 +861,7 @@ export async function reportPost(
 
 export async function warnPost(
   api: LemmyHttp,
-  post_id: number,
+  post_id: PostId,
   reason: string,
 ) {
   const form: CreatePostWarning = {
