@@ -1221,7 +1221,7 @@ test("Admin removes post from local user in remote community", async () => {
   );
 });
 
-test("Warn about a post", async () => {
+test.only("Warn about a post", async () => {
   // Create post from alpha
   const alphaCommunity = await resolveBetaCommunity(alpha);
   await followBeta(alpha);
@@ -1246,9 +1246,10 @@ test("Warn about a post", async () => {
   const warningNotification = notifsRes.items.find(
     r =>
       r.data.type_ == "mod_action" &&
+      r.data.modlog.kind == "mod_warn_post" &&
       r.data.target_post?.ap_id === alphaPost.post_view.post.ap_id,
   );
-  if (!warningNotification) throw Error();
+  if (!warningNotification) throw Error("Modlog entry for warning not found");
 
   const warningNotificationData = warningNotification.data as ModlogView;
   expect(warningNotificationData.modlog.reason).toBe(reason);

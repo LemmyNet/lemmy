@@ -67,6 +67,7 @@ import {
   MultiCommunityView,
   RequestState,
   CreatePostWarning,
+  PostId,
 } from "lemmy-js-client";
 
 export const fetchFunction = fetch;
