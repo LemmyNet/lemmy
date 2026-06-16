@@ -49,7 +49,7 @@
 
 | Desktop                                                      | Mobile                                                   |
 | ------------------------------------------------------------ | -------------------------------------------------------- |
-| ![desktop](https://i.postimg.cc/8zdxDb45/main-screen-2.webp) | ![mobile](https://i.postimg.cc/6pVFwhcW/mobile-pic.webp) |
+| ![desktop](https://i.postimg.cc/wvYVvKjP/main-screen-2.webp) | ![mobile](https://i.postimg.cc/hjRrjFty/mobile-pic.webp) |
 
 [Lemmy](https://github.com/LemmyNet/lemmy) is similar to sites like [Reddit](https://reddit.com), [Lobste.rs](https://lobste.rs), or [Hacker News](https://news.ycombinator.com/): you subscribe to forums you're interested in, post links and discussions, then vote, and comment on them. Behind the scenes, it is very different; anyone can easily run a server, and all these servers are federated (think email), and connected to the same universe, called the [Fediverse](https://en.wikipedia.org/wiki/Fediverse).
 
