@@ -3519,6 +3519,7 @@ dependencies = [
  "lemmy_apub_objects",
  "lemmy_db_schema 1.0.0-test-fix-publish-3",
  "lemmy_db_schema_file",
+ "lemmy_db_views_comment",
  "lemmy_db_views_community",
  "lemmy_db_views_community_moderator",
  "lemmy_db_views_local_user",

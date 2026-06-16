@@ -15,7 +15,7 @@ use crate::{
   following::send_follow,
   protocol::{
     CreateOrUpdateType,
-    community::{report::Report, resolve_report::ResolveReport},
+    community::{report::Report, resolve_report::ResolveReport, warn::Warn},
     create_or_update::{note::CreateOrUpdateNote, page::CreateOrUpdatePage},
   },
   voting::send_like_activity,
@@ -391,6 +391,9 @@ pub async fn match_outgoing_activities(
       }
       UpdateMultiCommunity(multi, actor) => {
         send_update_multi_community(multi, actor, context).await
+      }
+      Warning(post_or_comment, reason, actor) => {
+        Warn::send(*post_or_comment, reason, actor.into(), context).await
       }
     }
   })
