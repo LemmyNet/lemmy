@@ -315,12 +315,10 @@ pub(crate) mod tests {
   use lemmy_db_views_local_user::LocalUserView;
   use lemmy_diesel_utils::traits::Crud;
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
-  use serial_test::serial;
   use std::time::Duration;
   use tokio::time::sleep;
 
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared)]
   async fn test_settings_export_import() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();
@@ -389,8 +387,7 @@ pub(crate) mod tests {
     Ok(())
   }
 
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared)]
   async fn disallow_large_backup() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();
@@ -426,8 +423,7 @@ pub(crate) mod tests {
     Ok(())
   }
 
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared)]
   async fn import_partial_backup() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();
@@ -451,8 +447,7 @@ pub(crate) mod tests {
     Ok(())
   }
 
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared)]
   async fn import_019_backup() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();

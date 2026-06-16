@@ -2,7 +2,7 @@ use crate::util::{FederationQueueStateWithDomain, get_latest_activity_id};
 use chrono::Local;
 use lemmy_db_schema::newtypes::ActivityId;
 use lemmy_db_schema_file::InstanceId;
-use lemmy_diesel_utils::connection::{ActualDbPool, DbPool};
+use lemmy_diesel_utils::connection::{DbPool, GenericDbPool};
 use lemmy_utils::{error::LemmyResult, federate_retry_sleep_duration};
 use std::{collections::HashMap, time::Duration};
 use tokio::{sync::mpsc::UnboundedReceiver, time::interval};
@@ -11,10 +11,10 @@ use tracing::{debug, info, warn};
 /// every 60s, print the state for every instance. exits if the receiver is done (all senders
 /// dropped)
 pub(crate) async fn receive_print_stats(
-  pool: ActualDbPool,
+  pool: GenericDbPool,
   mut receiver: UnboundedReceiver<FederationQueueStateWithDomain>,
 ) {
-  let pool = &mut DbPool::Pool(&pool);
+  let pool = &mut DbPool::from(&pool);
   let mut printerval = interval(Duration::from_secs(60));
   let mut stats = HashMap::new();
   loop {

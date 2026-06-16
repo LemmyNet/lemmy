@@ -7,7 +7,7 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::InstanceId;
 use lemmy_db_views_community_follower::CommunityFollowerView;
 use lemmy_diesel_utils::{
-  connection::{ActualDbPool, DbPool},
+  connection::{DbPool, GenericDbPool},
   dburl::DbUrl,
 };
 use lemmy_utils::error::LemmyResult;
@@ -50,18 +50,18 @@ pub trait DataSource: Send + Sync {
   ) -> LemmyResult<Vec<(CommunityId, DbUrl)>>;
 }
 pub struct DbDataSource {
-  pool: ActualDbPool,
+  pool: GenericDbPool,
 }
 
 impl DbDataSource {
-  pub fn new(pool: ActualDbPool) -> Self {
+  pub fn new(pool: GenericDbPool) -> Self {
     Self { pool }
   }
 }
 
 impl DataSource for DbDataSource {
   async fn read_site_from_instance_id(&self, instance_id: InstanceId) -> LemmyResult<Site> {
-    Site::read_from_instance_id(&mut DbPool::Pool(&self.pool), instance_id).await
+    Site::read_from_instance_id(&mut DbPool::from(&self.pool), instance_id).await
   }
 
   async fn get_instance_followed_community_inboxes(
@@ -70,7 +70,7 @@ impl DataSource for DbDataSource {
     last_fetch: DateTime<Utc>,
   ) -> LemmyResult<Vec<(CommunityId, DbUrl)>> {
     CommunityFollowerView::get_instance_followed_community_inboxes(
-      &mut DbPool::Pool(&self.pool),
+      &mut DbPool::from(&self.pool),
       instance_id,
       last_fetch,
     )
@@ -97,7 +97,7 @@ pub type RealCommunityInboxCollector = CommunityInboxCollector<DbDataSource>;
 
 impl<T: DataSource> CommunityInboxCollector<T> {
   pub fn new_real(
-    pool: ActualDbPool,
+    pool: GenericDbPool,
     instance_id: InstanceId,
     domain: String,
   ) -> RealCommunityInboxCollector {
