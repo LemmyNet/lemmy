@@ -275,6 +275,9 @@ impl Object for ApubPost {
 
     let body = read_from_string_or_source_opt(&page.content, &page.media_type, &page.source);
     let body =
+      append_attachments_to_body(&body, page.attachment.get(1..).unwrap_or_default(), context)
+        .await;
+    let body =
       process_markdown_opt(&body, &slur_regex, &url_blocklist, &local_site, context).await?;
     let body = markdown_rewrite_remote_links_opt(body, context).await;
     let language_id = Some(
@@ -346,6 +349,25 @@ pub async fn update_apub_post_tags(
   Ok(())
 }
 
+pub async fn append_attachments_to_body(
+  content: &Option<String>,
+  attachments: &[Attachment],
+  context: &Data<LemmyContext>,
+) -> Option<String> {
+  let mut body = content.clone()?;
+  if !attachments.is_empty() {
+    body.push('\n');
+
+    for attachment in attachments {
+      if let Ok(markdown) = attachment.as_markdown(context).await {
+        body.push('\n');
+        body.push_str(&markdown);
+      }
+    }
+  }
+  Some(body)
+}
+
 pub async fn post_nsfw(
   page: &Page,
   community: &Community,
@@ -404,6 +426,38 @@ mod tests {
     assert!(!post.featured_community);
     // one request is made trying to resolve post.url into local object
     assert_eq!(context.request_count(), 1);
+
+    test_data.delete(&mut context.pool()).await?;
+    Instance::delete_all(&mut context.pool()).await?;
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_parse_post_with_image_and_link() -> LemmyResult<()> {
+    let context = LemmyContext::init_test_context().await;
+    let test_data = TestData::create(&mut context.pool()).await?;
+    parse_lemmy_person(&context).await?;
+    parse_lemmy_community(&context).await?;
+
+    let json = file_to_json_object("../apub/assets/lemmy/objects/page_image_and_link.json")?;
+    let url = Url::parse("https://enterprise.lemmy.ml/post/55999")?;
+    ApubPost::verify(&json, &url, &context).await?;
+    let post = ApubPost::from_json(json, &context).await?;
+
+    assert_eq!(
+      post.url.as_ref().map(|u| u.as_str()),
+      Some("https://enterprise.lemmy.ml/pictrs/image/eOtYb9iEiB.png")
+    );
+
+    assert!(
+      post
+        .body
+        .as_deref()
+        .unwrap_or_default()
+        .contains("https://example.com/some-article"),
+      "link attachment not added to body"
+    );
 
     test_data.delete(&mut context.pool()).await?;
     Instance::delete_all(&mut context.pool()).await?;
