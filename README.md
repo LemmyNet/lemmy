@@ -157,7 +157,6 @@ When working on an issue or pull request, you can comment with any questions you
 ## Code Mirrors
 
 - [GitHub](https://github.com/LemmyNet/lemmy)
-- [Gitea](https://git.join-lemmy.org/LemmyNet/lemmy)
 - [Codeberg](https://codeberg.org/LemmyNet/lemmy)
 
 ## Credits
