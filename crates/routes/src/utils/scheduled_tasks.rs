@@ -491,6 +491,15 @@ async fn process_community_aggregates(
     prev_community_id_res = updated_rows.last().map(|row| row.community_id);
   }
 
+  // Dead communities are absent in the temporary table.
+  // Reset the activity counter of the dead communities
+  sql_query(format!("UPDATE community a SET {field_name_prefix}_{} = 0 WHERE a.id NOT IN (SELECT DISTINCT b.community_id_ FROM {caggs_temp_table} b)",
+      interval.1))
+    .execute(conn)
+    .await
+    .inspect_err(|e| warn!("Failed to zero-out community stats: {e}"))
+    .ok();
+
   // Drop the temp table just in case
   sql_query(drop_caggs_temp_table).execute(conn).await.ok();
 
@@ -803,6 +812,88 @@ mod tests {
         interactions_month: 1,
         ..community_after.clone()
       }
+    );
+
+    data.delete(pool).await?;
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_dead_community_active_counts_reset_to_zero() -> LemmyResult<()> {
+    let context = LemmyContext::init_test_context().await;
+    let pool = &mut context.pool();
+
+    let public_key = "public_key".to_owned();
+    let data = TestData::create(pool).await?;
+    let person = Person::create(
+      pool,
+      &PersonInsertForm::new("user".to_owned(), "public_key".to_owned(), data.instance.id),
+    )
+    .await?;
+
+    let dead_community = Community::create(
+      pool,
+      &CommunityInsertForm::new(data.instance.id, "dead".to_owned(), public_key.clone()),
+    )
+    .await?;
+    let two_years_ago = Utc::now() - chrono::Duration::days(730);
+    Post::create(
+      pool,
+      &PostInsertForm {
+        published_at: Some(two_years_ago),
+        ..PostInsertForm::new("dead post".to_owned(), person.id, dead_community.id)
+      },
+    )
+    .await?;
+
+    let alive_community = Community::create(
+      pool,
+      &CommunityInsertForm::new(data.instance.id, "alive".to_owned(), public_key.clone()),
+    )
+    .await?;
+    Post::create(
+      pool,
+      &PostInsertForm::new("alive post".to_owned(), person.id, alive_community.id),
+    )
+    .await?;
+
+    all_active_counts(pool).await?;
+
+    let dead_stats = Community::read(pool, dead_community.id).await?;
+    assert_eq!(
+      dead_stats.users_active_day, 0,
+      "dead: users_active_day should be 0"
+    );
+    assert_eq!(
+      dead_stats.users_active_week, 0,
+      "dead: users_active_week should be 0"
+    );
+    assert_eq!(
+      dead_stats.users_active_month, 0,
+      "dead: users_active_month should be 0"
+    );
+    assert_eq!(
+      dead_stats.users_active_half_year, 0,
+      "dead: users_active_half_year should be 0"
+    );
+
+    let alive_stats = Community::read(pool, alive_community.id).await?;
+    assert_eq!(
+      alive_stats.users_active_day, 1,
+      "alive: users_active_day should be 1"
+    );
+    assert_eq!(
+      alive_stats.users_active_week, 1,
+      "alive: users_active_week should be 1"
+    );
+    assert_eq!(
+      alive_stats.users_active_month, 1,
+      "alive: users_active_month should be 1"
+    );
+    assert_eq!(
+      alive_stats.users_active_half_year, 1,
+      "alive: users_active_half_year should be 1"
     );
 
     data.delete(pool).await?;
