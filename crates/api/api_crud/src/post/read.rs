@@ -9,6 +9,7 @@ use lemmy_db_schema::source::{
 };
 use lemmy_db_schema_file::enums::PostSortType;
 use lemmy_db_views_community::CommunityView;
+use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::{
   PostView,
@@ -86,6 +87,8 @@ pub async fn get_post(
   )
   .await?;
 
+  let moderators = CommunityModeratorView::for_community(&mut context.pool(), community_id).await?;
+
   // Fetch the cross_posts
   let cross_posts = if let Some(url) = &post_view.post.url {
     PostQuery {
@@ -110,5 +113,6 @@ pub async fn get_post(
     post_view,
     community_view,
     cross_posts,
+    moderators,
   }))
 }

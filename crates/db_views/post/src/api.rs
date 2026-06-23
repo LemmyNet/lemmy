@@ -8,6 +8,7 @@ use lemmy_db_schema_file::{
   enums::{ListingType, PostNotificationsMode, PostSortType},
 };
 use lemmy_db_views_community::CommunityView;
+use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_diesel_utils::{dburl::DbUrl, pagination::PaginationCursor};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -311,4 +312,5 @@ pub struct GetPostResponse {
   pub community_view: CommunityView,
   /// A list of cross-posts, or other times / communities this link has been posted to.
   pub cross_posts: Vec<PostView>,
+  pub moderators: Vec<CommunityModeratorView>,
 }
