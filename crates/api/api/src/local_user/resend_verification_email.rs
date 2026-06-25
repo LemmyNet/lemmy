@@ -1,5 +1,5 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_utils::{context::LemmyContext, utils::check_local_user_valid};
+use lemmy_api_utils::{context::LemmyContext, utils::check_local_user_banned_or_deleted};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::{
   SiteView,
@@ -24,7 +24,7 @@ pub async fn resend_verification_email(
 async fn try_resend_verification_email(email: &str, context: &LemmyContext) -> LemmyResult<()> {
   // Fetch that email
   let local_user_view = LocalUserView::find_by_email(&mut context.pool(), email).await?;
-  check_local_user_valid(&local_user_view)?;
+  check_local_user_banned_or_deleted(&local_user_view)?;
 
   let site_view = SiteView::read_local(&mut context.pool()).await?;
 

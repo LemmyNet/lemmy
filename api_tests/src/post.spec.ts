@@ -15,6 +15,7 @@ import {
   resolvePost,
   likePost,
   followBeta,
+  warnPost,
   resolveBetaCommunity,
   createComment,
   deletePost,
@@ -62,6 +63,7 @@ import {
   ResolveObject,
   ResolvePostReport,
   LemmyError,
+  ModlogView,
 } from "lemmy-js-client";
 
 let betaCommunity: CommunityView | undefined;
@@ -1067,17 +1069,22 @@ test("Rewrite markdown links", async () => {
     beta,
     community!.community.id,
     sampleSite,
-    `[link](${postRes1.post_view.post.ap_id})`,
+    `[link](${postRes1.post_view.post.ap_id})\n${postRes1.post_view.post.ap_id}\n`,
   ).then(expectSuccess);
   expect(postRes2.post_view.post).toBeDefined();
+  const originalLink = `http://lemmy-beta:8551/post/${postRes1?.post_view.post.id}`;
+  expect(postRes2.post_view.post.body).toBe(
+    `[link](${originalLink})\n${originalLink}\n`,
+  );
 
-  // fetch both posts from another instance
-  const alphaPost1 = await resolvePost(alpha, postRes1.post_view.post);
+  // fetch post from the other instance
   const alphaPost2 = await resolvePost(alpha, postRes2.post_view.post);
+  const alphaPost1 = await resolvePost(alpha, postRes1.post_view.post);
 
   // remote markdown link is replaced with local link
+  const rewrittenLink = `http://lemmy-alpha:8541/post/${alphaPost1?.post.id}`;
   expect(alphaPost2?.post.body).toBe(
-    `[link](http://lemmy-alpha:8541/post/${alphaPost1?.post.id})`,
+    `[link](${rewrittenLink})\n${rewrittenLink}\n`,
   );
 });
 
@@ -1211,6 +1218,44 @@ test("Admin removes post from local user in remote community", async () => {
   await waitUntil(
     () => resolvePost(beta, postRes.post_view.post),
     p => p !== undefined && !p.post.removed,
+  );
+});
+
+test.only("Warn about a post", async () => {
+  // Create post from alpha
+  const alphaCommunity = await resolveBetaCommunity(alpha);
+  await followBeta(alpha);
+  const alphaPost = await createPost(alpha, alphaCommunity!.community.id).then(
+    expectSuccess,
+  );
+  expect(alphaPost.post_view.post).toBeDefined();
+
+  // Send warning from mod on beta
+  const betaPost = await resolvePost(beta, alphaPost.post_view.post);
+  const reason = randomString(10);
+  const betaWarning = await warnPost(beta, betaPost!.post.id, reason).then(
+    expectSuccess,
+  );
+  expect(betaWarning.post_view.post.ap_id).toBe(alphaPost.post_view.post.ap_id);
+
+  // Warning was federated to user instance
+  const notifsRes = await waitUntilSuccess(
+    () => listNotifications(alpha, "mod_action"),
+    r => r.items.length > 0,
+  );
+  const warningNotification = notifsRes.items.find(
+    r =>
+      r.data.type_ == "mod_action" &&
+      r.data.modlog.kind == "mod_warn_post" &&
+      r.data.target_post?.ap_id === alphaPost.post_view.post.ap_id,
+  );
+  if (!warningNotification) throw Error("Modlog entry for warning not found");
+
+  const warningNotificationData = warningNotification.data as ModlogView;
+  expect(warningNotificationData.modlog.reason).toBe(reason);
+  const myUser = await getMyUser(beta).then(expectSuccess);
+  expect(warningNotificationData.moderator?.ap_id).toBe(
+    myUser.local_user_view.person.ap_id,
   );
 });
 

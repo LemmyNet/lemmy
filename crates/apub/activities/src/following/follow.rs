@@ -128,7 +128,10 @@ impl Activity for Follow {
           // Dont allow following local-only community via federation.
           LocalOnlyPrivate | LocalOnlyPublic => return Err(LemmyErrorType::NotFound.into()),
         };
-        let form = CommunityFollowerForm::new(c.id, person.id, follow_state);
+        let form = CommunityFollowerForm {
+          follow_activity_id: Some(self.id.clone().into()),
+          ..CommunityFollowerForm::new(c.id, person.id, follow_state)
+        };
         CommunityActions::follow(&mut context.pool(), &form).await?;
         if c.visibility == CommunityVisibility::Public {
           AcceptFollow::send(self, context).await?;

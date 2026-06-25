@@ -101,8 +101,6 @@ impl CommunityModeratorView {
       .select(Self::as_select())
       .into_boxed();
 
-    query = local_user.visible_communities_only(query);
-
     // only show deleted communities to creator
     if Some(person_id) != local_user.person_id() {
       query = query.filter(community::deleted.eq(false));

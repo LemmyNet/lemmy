@@ -20,6 +20,7 @@ workspace = true
 
 [features]
 default = []
+plugins = ["lemmy_api_utils/plugins"]
 
 [dependencies]
 lemmy_api = { workspace = true }

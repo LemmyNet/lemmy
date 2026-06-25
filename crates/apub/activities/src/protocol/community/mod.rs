@@ -5,6 +5,7 @@ pub mod lock;
 pub mod report;
 pub mod resolve_report;
 pub mod update;
+pub mod warn;
 
 #[cfg(test)]
 mod tests {
@@ -16,6 +17,7 @@ mod tests {
     lock::{LockPageOrNote, UndoLockPageOrNote},
     report::Report,
     update::Update,
+    warn::Warn,
   };
   use lemmy_apub_objects::utils::test::test_parse_lemmy_item;
   use lemmy_utils::error::LemmyResult;
@@ -62,6 +64,7 @@ mod tests {
     test_parse_lemmy_item::<ResolveReport>(
       "../apub/assets/lemmy/activities/community/resolve_report_page.json",
     )?;
+    test_parse_lemmy_item::<Warn>("../apub/assets/lemmy/activities/community/warn.json")?;
 
     Ok(())
   }

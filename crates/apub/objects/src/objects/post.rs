@@ -56,7 +56,7 @@ use lemmy_utils::{
   utils::{
     markdown::markdown_to_html,
     slurs::remove_slurs,
-    validation::{is_url_blocked, is_valid_url},
+    validation::{is_url_blocked, is_valid_url, truncate_for_db},
   },
 };
 use std::{collections::HashSet, ops::Deref};
@@ -225,7 +225,7 @@ impl Object for ApubPost {
       )
       .await?;
     }
-    let mut name = page
+    let name = page
       .name
       .clone()
       .or_else(|| {
@@ -243,12 +243,9 @@ impl Object for ApubPost {
             .to_string()
         })
       })
-      .map(|s| remove_slurs(&s, &slur_regex))
+      .map(|n| remove_slurs(&n, &slur_regex))
+      .map(|n| truncate_for_db(&n, MAX_TITLE_LENGTH))
       .ok_or_else(|| anyhow!("Object must have name or content"))?;
-
-    if name.chars().count() > MAX_TITLE_LENGTH {
-      name = name.chars().take(MAX_TITLE_LENGTH).collect();
-    }
 
     let first_attachment = page.attachment.first();
     let url = if let Some(attachment) = first_attachment.cloned() {
@@ -277,6 +274,9 @@ impl Object for ApubPost {
     let alt_text = first_attachment.cloned().and_then(Attachment::alt_text);
 
     let body = read_from_string_or_source_opt(&page.content, &page.media_type, &page.source);
+    let body =
+      append_attachments_to_body(&body, page.attachment.get(1..).unwrap_or_default(), context)
+        .await;
     let body =
       process_markdown_opt(&body, &slur_regex, &url_blocklist, &local_site, context).await?;
     let body = markdown_rewrite_remote_links_opt(body, context).await;
@@ -349,6 +349,25 @@ pub async fn update_apub_post_tags(
   Ok(())
 }
 
+pub async fn append_attachments_to_body(
+  content: &Option<String>,
+  attachments: &[Attachment],
+  context: &Data<LemmyContext>,
+) -> Option<String> {
+  let mut body = content.clone()?;
+  if !attachments.is_empty() {
+    body.push('\n');
+
+    for attachment in attachments {
+      if let Ok(markdown) = attachment.as_markdown(context).await {
+        body.push('\n');
+        body.push_str(&markdown);
+      }
+    }
+  }
+  Some(body)
+}
+
 pub async fn post_nsfw(
   page: &Page,
   community: &Community,
@@ -405,7 +424,40 @@ mod tests {
     assert_eq!(post.body.as_ref().map(std::string::String::len), Some(45));
     assert!(!post.locked);
     assert!(!post.featured_community);
-    assert_eq!(context.request_count(), 0);
+    // one request is made trying to resolve post.url into local object
+    assert_eq!(context.request_count(), 1);
+
+    test_data.delete(&mut context.pool()).await?;
+    Instance::delete_all(&mut context.pool()).await?;
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_parse_post_with_image_and_link() -> LemmyResult<()> {
+    let context = LemmyContext::init_test_context().await;
+    let test_data = TestData::create(&mut context.pool()).await?;
+    parse_lemmy_person(&context).await?;
+    parse_lemmy_community(&context).await?;
+
+    let json = file_to_json_object("../apub/assets/lemmy/objects/page_image_and_link.json")?;
+    let url = Url::parse("https://enterprise.lemmy.ml/post/55999")?;
+    ApubPost::verify(&json, &url, &context).await?;
+    let post = ApubPost::from_json(json, &context).await?;
+
+    assert_eq!(
+      post.url.as_ref().map(|u| u.as_str()),
+      Some("https://enterprise.lemmy.ml/pictrs/image/eOtYb9iEiB.png")
+    );
+
+    assert!(
+      post
+        .body
+        .as_deref()
+        .unwrap_or_default()
+        .contains("https://example.com/some-article"),
+      "link attachment not added to body"
+    );
 
     test_data.delete(&mut context.pool()).await?;
     Instance::delete_all(&mut context.pool()).await?;

@@ -1,9 +1,6 @@
 use crate::{ResolveObjectView, SiteView};
 #[cfg(feature = "full")]
 use activitypub_federation::protocol::helpers::deserialize_skip_error;
-#[cfg(feature = "full")]
-use extism::FromBytes;
-use extism_convert::Json;
 use lemmy_db_schema::{
   SearchType,
   newtypes::{CommunityId, LanguageId, MultiCommunityId, OAuthProviderId, TaglineId},
@@ -47,6 +44,8 @@ use lemmy_diesel_utils::{pagination::PaginationCursor, sensitive::SensitiveStrin
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
+#[cfg(feature = "plugins")]
+use {extism::FromBytes, extism_convert::Json};
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
@@ -367,8 +366,8 @@ pub struct SiteResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[cfg_attr(feature = "full", derive(FromBytes))]
-#[cfg_attr(feature = "full", encoding(Json))]
+#[cfg_attr(feature = "plugins", derive(FromBytes))]
+#[cfg_attr(feature = "plugins", encoding(Json))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// A captcha response.
@@ -537,6 +536,8 @@ pub struct SaveUserSettings {
   pub matrix_user_id: Option<String>,
   /// Whether to show or hide avatars.
   pub show_avatars: Option<bool>,
+  /// Whether to show media in the UI.
+  pub show_media: Option<bool>,
   /// Sends notifications to your email.
   pub send_notifications_to_email: Option<bool>,
   /// Whether this account is a bot account. Users can hide these accounts easily if they wish.
@@ -567,8 +568,8 @@ pub struct SaveUserSettings {
   pub show_upvote_percentage: Option<bool>,
   /// Whether to automatically mark fetched posts as read.
   pub auto_mark_fetched_posts_as_read: Option<bool>,
-  /// Whether to hide posts containing images/videos.
-  pub hide_media: Option<bool>,
+  /// Whether to hide posts containing images/videos. Often labeled hide_memes.
+  pub hide_posts_with_media: Option<bool>,
   /// Whether to show vote totals given to others.
   pub show_person_votes: Option<bool>,
 }
@@ -657,8 +658,8 @@ pub struct EditTagline {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[cfg_attr(feature = "full", derive(FromBytes))]
-#[cfg_attr(feature = "full", encoding(Json))]
+#[cfg_attr(feature = "plugins", derive(FromBytes))]
+#[cfg_attr(feature = "plugins", encoding(Json))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct PluginMetadata {
@@ -708,7 +709,7 @@ pub struct Search {
   pub post_url_only: Option<bool>,
   /// If true, then show the nsfw posts (even if your user setting is to hide them)
   pub show_nsfw: Option<bool>,
-  pub page_cursor: Option<String>,
+  pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }
 
@@ -718,7 +719,7 @@ pub struct Search {
 /// The search response, containing lists of the return type possibilities
 pub struct SearchResponse {
   /**
-   * If `Search.q` contains an ActivityPub ID (eg `https://lemmy.world/comment/1`) or an
+   * If `Search.search_term` contains an ActivityPub ID (eg `https://lemmy.world/comment/1`) or an
    * identifier (eg `!fediverse@lemmy.ml`) then this field contains the resolved object.
    * It should always be shown above other search results.
    */
@@ -728,8 +729,8 @@ pub struct SearchResponse {
   pub communities: Vec<CommunityView>,
   pub persons: Vec<PersonView>,
   pub multi_communities: Vec<MultiCommunityView>,
-  pub prev_page: Option<String>,
-  pub next_page: Option<String>,
+  pub prev_page: Option<PaginationCursor>,
+  pub next_page: Option<PaginationCursor>,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]

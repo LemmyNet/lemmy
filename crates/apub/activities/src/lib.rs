@@ -15,7 +15,7 @@ use crate::{
   following::send_follow,
   protocol::{
     CreateOrUpdateType,
-    community::{report::Report, resolve_report::ResolveReport},
+    community::{report::Report, resolve_report::ResolveReport, warn::Warn},
     create_or_update::{note::CreateOrUpdateNote, page::CreateOrUpdatePage},
   },
   voting::send_like_activity,
@@ -373,14 +373,27 @@ pub async fn match_outgoing_activities(
         )
         .await
       }
-      AcceptFollower(community_id, person_id) => {
-        send_accept_or_reject_follow(community_id, person_id, true, &context).await
+      PrivateCommunityAcceptFollower {
+        community_id,
+        person_id,
+        follow_activity_id,
+      } => {
+        send_accept_or_reject_follow(community_id, person_id, follow_activity_id, true, &context)
+          .await
       }
-      RejectFollower(community_id, person_id) => {
-        send_accept_or_reject_follow(community_id, person_id, false, &context).await
+      PrivateCommunityRejectFollower {
+        community_id,
+        person_id,
+        follow_activity_id,
+      } => {
+        send_accept_or_reject_follow(community_id, person_id, follow_activity_id, false, &context)
+          .await
       }
       UpdateMultiCommunity(multi, actor) => {
         send_update_multi_community(multi, actor, context).await
+      }
+      Warning(post_or_comment, reason, actor) => {
+        Warn::send(*post_or_comment, reason, actor.into(), context).await
       }
     }
   })

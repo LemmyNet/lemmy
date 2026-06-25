@@ -260,7 +260,6 @@ pub(crate) mod tests {
       ..CommunityInsertForm::new(
         data.instance.id,
         "testcom6".to_string(),
-        "nada".to_owned(),
         "pubkey".to_string(),
       )
     };

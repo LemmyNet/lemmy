@@ -8,6 +8,7 @@ use crate::protocol::{
     report::Report,
     resolve_report::ResolveReport,
     update::Update,
+    warn::Warn,
   },
   create_or_update::{note_wrapper::CreateOrUpdateNoteWrapper, page::CreateOrUpdatePage},
   deletion::{delete::Delete, undo_delete::UndoDelete},
@@ -69,6 +70,7 @@ pub enum AnnouncableActivities {
   UndoLock(UndoLockPageOrNote),
   Report(Report),
   ResolveReport(ResolveReport),
+  Warn(Warn),
   // For compatibility with Pleroma/Mastodon (send only)
   Page(Page),
 }
@@ -92,6 +94,7 @@ impl InCommunity for AnnouncableActivities {
       UndoLock(a) => a.object.community(context).await,
       Report(a) => a.community(context).await,
       ResolveReport(a) => a.object.community(context).await,
+      Warn(a) => a.community(context).await,
       Page(_) => Err(LemmyErrorType::NotFound.into()),
     }
   }

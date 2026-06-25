@@ -68,8 +68,8 @@ pub struct LocalUser {
   pub default_comment_sort_type: CommentSortType,
   /// Whether to automatically mark fetched posts as read.
   pub auto_mark_fetched_posts_as_read: bool,
-  /// Whether to hide posts containing images/videos
-  pub hide_media: bool,
+  /// Whether to hide posts containing images/videos. Often labeled hide_memes.
+  pub hide_posts_with_media: bool,
   /// A default time range limit to apply to post sorts, in seconds.
   pub default_post_time_range_seconds: Option<i32>,
   pub show_score: bool,
@@ -79,6 +79,8 @@ pub struct LocalUser {
   pub show_person_votes: bool,
   pub default_items_per_page: i32,
   pub invited_by_local_user_id: Option<LocalUserId>,
+  /// Whether to show media in the UI.
+  pub show_media: bool,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -138,7 +140,7 @@ pub struct LocalUserInsertForm {
   #[new(default)]
   pub auto_mark_fetched_posts_as_read: Option<bool>,
   #[new(default)]
-  pub hide_media: Option<bool>,
+  pub hide_posts_with_media: Option<bool>,
   #[new(default)]
   pub default_post_time_range_seconds: Option<i32>,
   #[new(default)]
@@ -153,6 +155,8 @@ pub struct LocalUserInsertForm {
   pub show_person_votes: Option<bool>,
   #[new(default)]
   pub invited_by_local_user_id: Option<LocalUserId>,
+  #[new(default)]
+  pub show_media: Option<bool>,
 }
 
 #[derive(Clone, Default)]
@@ -185,7 +189,7 @@ pub struct LocalUserUpdateForm {
   pub private_messages_enabled: Option<bool>,
   pub default_comment_sort_type: Option<CommentSortType>,
   pub auto_mark_fetched_posts_as_read: Option<bool>,
-  pub hide_media: Option<bool>,
+  pub hide_posts_with_media: Option<bool>,
   pub default_post_time_range_seconds: Option<Option<i32>>,
   pub show_score: Option<bool>,
   pub show_upvotes: Option<bool>,
@@ -193,4 +197,5 @@ pub struct LocalUserUpdateForm {
   pub show_upvote_percentage: Option<bool>,
   pub show_person_votes: Option<bool>,
   pub default_items_per_page: Option<i32>,
+  pub show_media: Option<bool>,
 }

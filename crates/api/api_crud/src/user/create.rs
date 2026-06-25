@@ -8,10 +8,10 @@ use diesel_async::{AsyncPgConnection, scoped_futures::ScopedFutureExt};
 use lemmy_api_utils::{
   claims::Claims,
   context::LemmyContext,
-  plugins::{is_captcha_plugin_loaded, plugin_validate_captcha},
+  plugins::{LemmyPlugins, plugin_validate_captcha},
   utils::{
     check_email_verified,
-    check_local_user_valid,
+    check_local_user_banned_or_deleted,
     check_registration_application,
     generate_featured_url,
     generate_followers_url,
@@ -126,7 +126,7 @@ pub async fn register(
     return Err(LemmyErrorType::PasswordsDoNotMatch.into());
   }
 
-  if local_site.site_setup && is_captcha_plugin_loaded() {
+  if local_site.site_setup && LemmyPlugins::get_or_init().is_captcha_plugin_loaded() {
     let answer = data.captcha_answer.clone().unwrap_or_default();
     let uuid = data.captcha_uuid.clone().unwrap_or_default();
     plugin_validate_captcha(answer, uuid).await?;
@@ -338,18 +338,13 @@ pub async fn authenticate_with_oauth(
     // user found by oauth_user_id => Login user
     let local_user = user_view.clone().local_user;
 
-    login_response.registration_created = local_site.site_setup
-      && require_registration_application
-      && !local_user.accepted_application
-      && !local_user.admin
-      && data.answer.is_some();
-
-    check_local_user_valid(&user_view)?;
+    check_local_user_banned_or_deleted(&user_view)?;
     check_email_verified(&user_view, &site_view)?;
     check_registration_application(&user_view, &site_view.local_site, pool).await?;
     local_user
   } else {
     // user has never previously registered using oauth
+    login_response.registration_created = local_site.site_setup && require_registration_application;
 
     // prevent registration if registration is closed
     if local_site.registration_mode == RegistrationMode::Closed {
@@ -379,7 +374,7 @@ pub async fn authenticate_with_oauth(
         // users who signed up before the switch could have accounts with unverified emails falsely
         // marked as verified.
 
-        check_local_user_valid(&user_view)?;
+        check_local_user_banned_or_deleted(&user_view)?;
         check_email_verified(&user_view, &site_view)?;
         check_registration_application(&user_view, &site_view.local_site, pool).await?;
 
@@ -758,17 +753,13 @@ fn create_welcome_post(local_user: LocalUser, context: &LemmyContext) {
     let keypair = generate_actor_keypair()?;
     let community_form = CommunityInsertForm {
       ap_id: Some(community_ap_id.clone()),
+      title: Some("Main".to_string()),
       private_key: Some(keypair.private_key),
       followers_url: Some(generate_followers_url(&community_ap_id)?),
       inbox_url: Some(generate_inbox_url()?),
       moderators_url: Some(generate_moderators_url(&community_ap_id)?),
       featured_url: Some(generate_featured_url(&community_ap_id)?),
-      ..CommunityInsertForm::new(
-        site.site.instance_id,
-        community_name,
-        "Main".to_string(),
-        keypair.public_key,
-      )
+      ..CommunityInsertForm::new(site.site.instance_id, community_name, keypair.public_key)
     };
     let community = Community::create(pool, &community_form).await?;
 
