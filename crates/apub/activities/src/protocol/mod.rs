@@ -128,4 +128,10 @@ mod tests {
     test_json::<AnnounceActivity>("../apub/assets/wordpress/activities/announce.json")?;
     Ok(())
   }
+
+  #[test]
+  fn test_parse_mitra_activities() -> LemmyResult<()> {
+    test_json::<AcceptFollow>("../apub/assets/mitra/activities/accept.json")?;
+    Ok(())
+  }
 }
