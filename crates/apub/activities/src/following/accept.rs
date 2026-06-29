@@ -1,7 +1,10 @@
 use crate::{
   check_community_deleted_or_removed,
   generate_activity_id,
-  protocol::following::{accept::AcceptFollow, follow::Follow},
+  protocol::{
+    IdOrNestedObject,
+    following::{accept::AcceptFollow, follow::Follow},
+  },
   send_lemmy_activity,
 };
 use activitypub_federation::{
@@ -25,7 +28,7 @@ impl AcceptFollow {
     let accept = AcceptFollow {
       actor: target.id().clone().into(),
       to: Some([person.id().clone().into()]),
-      object: follow,
+      object: IdOrNestedObject::NestedObject(follow),
       kind: AcceptType::Accept,
       id: generate_activity_id(AcceptType::Accept, context)?,
     };
@@ -49,18 +52,20 @@ impl Activity for AcceptFollow {
   }
 
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    verify_urls_match(self.actor.inner(), self.object.object.inner())?;
-    self.object.verify(context).await?;
+    let object = self.object.clone().object(context).await?;
+    verify_urls_match(self.actor.inner(), object.object.inner())?;
+    object.verify(context).await?;
     if let Some(to) = &self.to {
-      verify_urls_match(to[0].inner(), self.object.actor.inner())?;
+      verify_urls_match(to[0].inner(), object.actor.inner())?;
     }
     Ok(())
   }
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
+    let object = self.object.object(context).await?;
     let community = self.actor.dereference(context).await?;
     check_community_deleted_or_removed(&community)?;
-    let actor = self.object.actor.dereference(context).await?;
+    let actor = object.actor.dereference(context).await?;
     let person = actor.left().ok_or(UntranslatedError::Unreachable)?;
     // This will throw an error if no follow was requested
     let community_id = community.id;
