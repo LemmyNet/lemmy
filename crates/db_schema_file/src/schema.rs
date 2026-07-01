@@ -179,6 +179,8 @@ diesel::table! {
         report_count -> Int2,
         unresolved_report_count -> Int2,
         local_removed -> Bool,
+        #[max_length = 255]
+        redirect_url -> Nullable<Varchar>,
     }
 }
 
@@ -198,7 +200,7 @@ diesel::table! {
         follow_state -> Nullable<CommunityFollowerState>,
         follow_approver_id -> Nullable<Int4>,
         notifications -> Nullable<CommunityNotificationsModeEnum>,
-        follow_activity_id -> Nullable<Text>
+        follow_activity_id -> Nullable<Text>,
     }
 }
 
