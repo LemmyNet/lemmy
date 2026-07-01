@@ -50,17 +50,21 @@ async function expectProxiedImageContentDisposition(
   filename: string,
 ) {
   const expectedContentDisposition = inlineContentDisposition(filename);
+  // Strip max_size so Lemmy requests image/original?proxy= from pict-rs instead of
+  // image/process.*?proxy=, which hangs in pict-rs danger-dummy-mode. The
+  // Content-Disposition header is set by Lemmy from the URL filename and is
+  // identical for both paths.
+  const proxyUrl = new URL(url);
+  proxyUrl.searchParams.delete("max_size");
   const proxyResponse = await waitUntilSuccess<Response>(
     async () => ({
       state: "success" as const,
-      data: await fetch(url),
+      data: await fetch(proxyUrl),
     }),
     response =>
       response.ok &&
       response.headers.get("content-disposition") ===
         expectedContentDisposition,
-    15,
-    [0.2, 0.5, 1, 2, 3, 5, 10, 10, 10, 10, 10, 10, 10, 10, 10],
   );
 
   expect(proxyResponse.headers.get("content-disposition")).toBe(

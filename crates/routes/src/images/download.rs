@@ -69,9 +69,14 @@ pub async fn image_proxy(
   // for arbitrary purposes.
   RemoteImage::validate(&mut context.pool(), url.clone().into()).await?;
 
+  // If the URL is itself a proxy URL from another Lemmy instance (which happens when
+  // a federated post's thumbnail_url is re-proxied), unwrap it to get the original image
+  // URL for correct filename and file-type derivation.
+  let url_for_filename = unwrap_proxy_url(&url);
+
   let pictrs_config = context.settings().pictrs()?;
   let output_file_type = (params.file_type.is_some() || params.max_size.is_some())
-    .then(|| file_type(params.file_type.clone(), url.path()).unwrap_or_default());
+    .then(|| file_type(params.file_type.clone(), url_for_filename.path()).unwrap_or_default());
 
   let processed_url = if let Some(file_type) = &output_file_type {
     let mut url = format!(
@@ -103,7 +108,7 @@ pub async fn image_proxy(
     Ok(Either::Left(Redirect::to(url.to_string()).respond_to(&req)))
   } else {
     // Proxy the image data through Lemmy
-    let download_filename = download_filename_from_url(url.path(), output_file_type);
+    let download_filename = download_filename_from_url(url_for_filename.path(), output_file_type);
     eprintln!(
       "[TRACE] image_proxy: download_filename={download_filename:?}, processed_url={processed_url}"
     );
@@ -180,6 +185,21 @@ fn set_content_disposition(client_res: &mut HttpResponseBuilder, filename: &str)
     "[TRACE] set_content_disposition: filename={filename}, encoded={encoded}, header_value={header_value}"
   );
   client_res.insert_header((CONTENT_DISPOSITION, header_value));
+}
+
+/// If the given URL is itself a Lemmy image proxy URL, recursively extract the
+/// original image URL from its `url` query param. This handles federated posts
+/// where the thumbnail URL from the origin instance is already a proxy URL that
+/// gets re-proxied by the receiving instance.
+fn unwrap_proxy_url(url: &Url) -> Url {
+  if url.path().ends_with("/api/v4/image/proxy") {
+    if let Some((_, value)) = url.query_pairs().find(|(k, _)| k == "url") {
+      if let Ok(inner) = Url::parse(&value) {
+        return unwrap_proxy_url(&inner);
+      }
+    }
+  }
+  url.clone()
 }
 
 /// Extracts the final path segment from a URL, percent-decodes it, and returns a
