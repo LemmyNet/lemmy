@@ -176,14 +176,20 @@ fn set_content_disposition(client_res: &mut HttpResponseBuilder, filename: &str)
 /// where the thumbnail URL from the origin instance is already a proxy URL that
 /// gets re-proxied by the receiving instance.
 fn unwrap_proxy_url(url: &Url) -> Url {
-  if url.path().ends_with("/api/v4/image/proxy") {
-    if let Some((_, value)) = url.query_pairs().find(|(k, _)| k == "url") {
-      if let Ok(inner) = Url::parse(&value) {
-        return unwrap_proxy_url(&inner);
-      }
-    }
+  if !url.path().ends_with("/api/v4/image/proxy") {
+    return url.clone();
   }
-  url.clone()
+
+  let inner = url
+    .query_pairs()
+    .find(|(k, _)| k == "url")
+    .map(|(_, v)| v)
+    .and_then(|v| Url::parse(&v).ok());
+
+  match inner {
+    Some(inner) => unwrap_proxy_url(&inner),
+    None => url.clone(),
+  }
 }
 
 /// Extracts the final path segment from a URL, percent-decodes it, and returns a
