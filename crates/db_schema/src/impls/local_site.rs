@@ -133,7 +133,7 @@ mod tests {
     assert_eq!(1, site_aggregates_after_post_delete.posts);
     assert_eq!(0, site_aggregates_after_post_delete.comments);
 
-    // This shouuld delete all the associated rows, and fire triggers
+    // This should delete all the associated rows, and fire triggers
     let person_num_deleted = Person::delete(pool, inserted_person.id).await?;
     assert_eq!(1, person_num_deleted);
 
