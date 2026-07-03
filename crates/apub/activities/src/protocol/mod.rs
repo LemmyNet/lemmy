@@ -44,7 +44,7 @@ impl<Kind: Id + DeserializeOwned + Send> IdOrNestedObject<Kind> {
         // which is simpler.
         let sent = SentActivity::read_from_apub_id(&mut context.pool(), &i.clone().into()).await;
         if let Ok(sent) = sent {
-          return Ok(serde_json::from_value::<Kind>(sent.data)?);
+          Ok(serde_json::from_value::<Kind>(sent.data)?)
         } else {
           Ok(fetch_object_http(&i, context).await?.object)
         }

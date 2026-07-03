@@ -28,8 +28,7 @@ impl AcceptFollow {
     let accept = AcceptFollow {
       actor: target.id().clone().into(),
       to: Some([person.id().clone().into()]),
-      // TODO: revert this
-      object: IdOrNestedObject::Id(follow.id),
+      object: IdOrNestedObject::NestedObject(follow),
       kind: AcceptType::Accept,
       id: generate_activity_id(AcceptType::Accept, context)?,
     };
