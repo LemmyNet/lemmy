@@ -27,14 +27,14 @@ pub enum IdOrNestedObject<Kind: Id> {
   NestedObject(Kind),
 }
 
-impl<Kind: Id + DeserializeOwned + Send> IdOrNestedObject<Kind> {
+impl<Kind: Id + DeserializeOwned + Clone + Send> IdOrNestedObject<Kind> {
   pub(crate) fn id(&self) -> &Url {
     match self {
       IdOrNestedObject::Id(i) => i,
       IdOrNestedObject::NestedObject(n) => n.id(),
     }
   }
-  pub async fn object(self, context: &Data<LemmyContext>) -> LemmyResult<Kind> {
+  pub async fn dereference(&self, context: &Data<LemmyContext>) -> LemmyResult<Kind> {
     match self {
       // TODO: move IdOrNestedObject struct to library and make fetch_object_http private
       IdOrNestedObject::Id(i) => {
@@ -49,7 +49,7 @@ impl<Kind: Id + DeserializeOwned + Send> IdOrNestedObject<Kind> {
           Ok(fetch_object_http(&i, context).await?.object)
         }
       }
-      IdOrNestedObject::NestedObject(o) => Ok(o),
+      IdOrNestedObject::NestedObject(o) => Ok(o.clone()),
     }
   }
 }

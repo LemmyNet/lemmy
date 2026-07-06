@@ -8,7 +8,7 @@ use either::Either;
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
   objects::{ReportableObjects, community::ApubCommunity, instance::ApubSite, person::ApubPerson},
-  utils::protocol::InCommunity,
+  utils::protocol::{Id, InCommunity},
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use serde::{Deserialize, Serialize};
@@ -102,5 +102,11 @@ impl InCommunity for Report {
       verify_urls_match(audience.inner(), community.ap_id.inner())?;
     }
     Ok(community)
+  }
+}
+
+impl Id for Report {
+  fn id(&self) -> &Url {
+    &self.id
   }
 }
