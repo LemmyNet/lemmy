@@ -1,3 +1,4 @@
+use activitypub_federation::kinds::object::NoteType;
 use lemmy_apub_objects::protocol::private_message::PrivateMessageType;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
@@ -20,7 +21,14 @@ pub struct CreateOrUpdateNoteWrapper {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct NoteWrapper {
-  pub(crate) r#type: PrivateMessageType,
+  pub(crate) r#type: NoteWrapperType,
   #[serde(flatten)]
   other: Map<String, Value>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum NoteWrapperType {
+  PrivateMessage(PrivateMessageType),
+  Note(NoteType),
 }
