@@ -105,7 +105,7 @@ impl Activity for UndoLockPageOrNote {
   }
 
   async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
-    let object = self.object.dereference(&context).await?;
+    let object = self.object.dereference(context).await?;
     let community = object.community(context).await?;
     verify_visibility(&self.to, &self.cc, &community)?;
     check_community_deleted_or_removed(&community)?;
@@ -119,7 +119,7 @@ impl Activity for UndoLockPageOrNote {
       .unwrap_or_else(|| MOD_ACTION_DEFAULT_REASON.to_string());
     let actor = self.actor.dereference(context).await?;
 
-    let object = self.object.dereference(&context).await?;
+    let object = self.object.dereference(context).await?;
     match object.object.dereference(context).await? {
       PostOrComment::Left(post) => {
         let form = PostUpdateForm {

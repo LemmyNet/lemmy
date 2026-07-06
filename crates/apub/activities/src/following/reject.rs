@@ -52,7 +52,7 @@ impl Activity for RejectFollow {
   }
 
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    let object = self.object.dereference(&context).await?;
+    let object = self.object.dereference(context).await?;
     verify_urls_match(self.actor.inner(), object.object.inner())?;
     object.verify(context).await?;
     if let Some(to) = &self.to {
@@ -64,7 +64,7 @@ impl Activity for RejectFollow {
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     let community = self.actor.dereference(context).await?;
     check_community_deleted_or_removed(&community)?;
-    let object = self.object.dereference(&context).await?;
+    let object = self.object.dereference(context).await?;
     let actor = object.actor.dereference(context).await?;
     let person = actor.left().ok_or(UntranslatedError::Unreachable)?;
 

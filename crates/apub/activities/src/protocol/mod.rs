@@ -46,7 +46,7 @@ impl<Kind: Id + DeserializeOwned + Clone + Send> IdOrNestedObject<Kind> {
         if let Ok(sent) = sent {
           Ok(serde_json::from_value::<Kind>(sent.data)?)
         } else {
-          Ok(fetch_object_http(&i, context).await?.object)
+          Ok(fetch_object_http(i, context).await?.object)
         }
       }
       IdOrNestedObject::NestedObject(o) => Ok(o.clone()),

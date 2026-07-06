@@ -63,7 +63,7 @@ impl Activity for UndoFollow {
   }
 
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    let object = self.object.dereference(&context).await?;
+    let object = self.object.dereference(context).await?;
     verify_urls_match(self.actor.inner(), object.actor.inner())?;
     object.verify(context).await?;
     if let Some(to) = &self.to {
@@ -74,7 +74,7 @@ impl Activity for UndoFollow {
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     let actor = self.actor.dereference(context).await?;
-    let object = self.object.dereference(&context).await?;
+    let object = self.object.dereference(context).await?;
     let object = object.object.dereference(context).await?;
 
     // Handle remote community unfollowing a local community

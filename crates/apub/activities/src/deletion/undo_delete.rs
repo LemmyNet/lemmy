@@ -34,14 +34,14 @@ impl Activity for UndoDelete {
   }
 
   async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
-    let object = self.object.dereference(&context).await?;
+    let object = self.object.dereference(context).await?;
     object.verify(context).await?;
     verify_delete_activity(&object, object.summary.is_some(), context).await?;
     Ok(())
   }
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    let object = self.object.dereference(&context).await?;
+    let object = self.object.dereference(context).await?;
     if let Some(reason) = object.summary {
       UndoDelete::receive_undo_remove_action(
         &self.actor.dereference(context).await?,

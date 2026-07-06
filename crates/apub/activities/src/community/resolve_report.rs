@@ -81,7 +81,7 @@ impl Activity for ResolveReport {
   }
 
   async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    let object = self.object.dereference(&context).await?;
+    let object = self.object.dereference(context).await?;
     object.verify(context).await?;
     let receiver = object.to[0].dereference(context).await?;
     verify_person_in_site_or_community(&self.actor, &receiver, context).await?;
@@ -91,7 +91,7 @@ impl Activity for ResolveReport {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    let object = self.object.dereference(&context).await?;
+    let object = self.object.dereference(context).await?;
     let reporter = object.actor.dereference(context).await?;
     let actor = self.actor.dereference(context).await?;
     match object.object.dereference(context).await? {

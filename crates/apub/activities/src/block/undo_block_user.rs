@@ -90,14 +90,14 @@ impl Activity for UndoBlockUser {
   }
 
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    let object = self.object.dereference(&context).await?;
+    let object = self.object.dereference(context).await?;
     verify_domains_match(self.actor.inner(), object.actor.inner())?;
     object.verify(context).await?;
     Ok(())
   }
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    let object = self.object.dereference(&context).await?;
+    let object = self.object.dereference(context).await?;
     let expires_at = object.end_time;
     let mod_person = self.actor.dereference(context).await?;
     let blocked_person = object.object.dereference_local(context).await?;
