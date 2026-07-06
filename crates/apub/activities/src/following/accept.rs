@@ -52,7 +52,7 @@ impl Activity for AcceptFollow {
   }
 
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    let object = self.object.clone().object(context).await?;
+    let object = self.object.clone().dereference(context).await?;
     verify_urls_match(self.actor.inner(), object.object.inner())?;
     object.verify(context).await?;
     if let Some(to) = &self.to {
@@ -62,7 +62,7 @@ impl Activity for AcceptFollow {
   }
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    let object = self.object.object(context).await?;
+    let object = self.object.dereference(context).await?;
     let community = self.actor.dereference(context).await?;
     check_community_deleted_or_removed(&community)?;
     let actor = object.actor.dereference(context).await?;

@@ -10,7 +10,7 @@ use chrono::{DateTime, Utc};
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
   objects::{community::ApubCommunity, person::ApubPerson},
-  utils::protocol::InCommunity,
+  utils::protocol::{Id, InCommunity},
 };
 use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
@@ -51,5 +51,11 @@ impl InCommunity for BlockUser {
       verify_urls_match(audience.inner(), community.ap_id.inner())?;
     }
     Ok(community)
+  }
+}
+
+impl Id for BlockUser {
+  fn id(&self) -> &Url {
+    &self.id
   }
 }

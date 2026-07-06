@@ -1,7 +1,10 @@
 use crate::{
   check_community_deleted_or_removed,
   generate_activity_id,
-  protocol::following::{follow::Follow, undo_follow::UndoFollow},
+  protocol::{
+    IdOrNestedObject,
+    following::{follow::Follow, undo_follow::UndoFollow},
+  },
   send_lemmy_activity,
 };
 use activitypub_federation::{
@@ -33,11 +36,11 @@ impl UndoFollow {
     target: &CommunityOrMulti,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    let object = Follow::new(actor, target, context)?;
+    let follow = Follow::new(actor, target, context)?;
     let undo = UndoFollow {
       actor: actor.id().clone().into(),
       to: Some([target.id().clone().into()]),
-      object,
+      object: IdOrNestedObject::NestedObject(follow),
       kind: UndoType::Undo,
       id: generate_activity_id(UndoType::Undo, context)?,
     };
@@ -60,17 +63,19 @@ impl Activity for UndoFollow {
   }
 
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    verify_urls_match(self.actor.inner(), self.object.actor.inner())?;
-    self.object.verify(context).await?;
+    let object = self.object.dereference(context).await?;
+    verify_urls_match(self.actor.inner(), object.actor.inner())?;
+    object.verify(context).await?;
     if let Some(to) = &self.to {
-      verify_urls_match(to[0].inner(), self.object.object.inner())?;
+      verify_urls_match(to[0].inner(), object.object.inner())?;
     }
     Ok(())
   }
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     let actor = self.actor.dereference(context).await?;
-    let object = self.object.object.dereference(context).await?;
+    let object = self.object.dereference(context).await?;
+    let object = object.object.dereference(context).await?;
 
     // Handle remote community unfollowing a local community
     if let (Right(community), Right(Left(follower))) = (&actor, &object) {
