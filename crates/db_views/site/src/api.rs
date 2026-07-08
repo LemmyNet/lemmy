@@ -833,8 +833,6 @@ pub struct UnreadCountsResponse {
 
 /// Used for delete user plugin hooks
 #[derive(Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 pub struct DeleteUserForm {
   pub person_id: PersonId,
   pub delete_content: bool,
