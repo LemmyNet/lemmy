@@ -6,7 +6,6 @@ use lemmy_db_schema_file::{
   PersonId,
   enums::{
     CommentSortType,
-    FederationMode,
     ImageMode,
     ListingType,
     PostListingMode,
@@ -66,14 +65,6 @@ pub struct LocalSite {
   pub default_comment_sort_type: CommentSortType,
   /// Whether or not external auth methods can auto-register users.
   pub oauth_registration: bool,
-  /// What kind of post upvotes your site allows.
-  pub post_upvotes: FederationMode,
-  /// What kind of post downvotes your site allows.
-  pub post_downvotes: FederationMode,
-  /// What kind of comment upvotes your site allows.
-  pub comment_upvotes: FederationMode,
-  /// What kind of comment downvotes your site allows.
-  pub comment_downvotes: FederationMode,
   /// A default time range limit to apply to post sorts, in seconds.
   pub default_post_time_range_seconds: Option<i32>,
   /// Block NSFW content being created
@@ -160,14 +151,6 @@ pub struct LocalSiteInsertForm {
   #[new(default)]
   pub oauth_registration: Option<bool>,
   #[new(default)]
-  pub post_upvotes: Option<FederationMode>,
-  #[new(default)]
-  pub post_downvotes: Option<FederationMode>,
-  #[new(default)]
-  pub comment_upvotes: Option<FederationMode>,
-  #[new(default)]
-  pub comment_downvotes: Option<FederationMode>,
-  #[new(default)]
   pub default_post_time_range_seconds: Option<i32>,
   #[new(default)]
   pub nsfw_content_disallowed: bool,
@@ -220,10 +203,6 @@ pub struct LocalSiteUpdateForm {
   pub default_post_sort_type: Option<PostSortType>,
   pub default_comment_sort_type: Option<CommentSortType>,
   pub oauth_registration: Option<bool>,
-  pub post_upvotes: Option<FederationMode>,
-  pub post_downvotes: Option<FederationMode>,
-  pub comment_upvotes: Option<FederationMode>,
-  pub comment_downvotes: Option<FederationMode>,
   pub default_post_time_range_seconds: Option<Option<i32>>,
   pub nsfw_content_disallowed: Option<bool>,
   pub email_notifications_disabled: Option<bool>,

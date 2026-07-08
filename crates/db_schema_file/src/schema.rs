@@ -10,6 +10,10 @@ pub mod sql_types {
   pub struct CommentSortTypeEnum;
 
   #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+  #[diesel(postgres_type(name = "community_downvote_enum"))]
+  pub struct CommunityDownvoteEnum;
+
+  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
   #[diesel(postgres_type(name = "community_follower_state"))]
   pub struct CommunityFollowerState;
 
@@ -20,10 +24,6 @@ pub mod sql_types {
   #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
   #[diesel(postgres_type(name = "community_visibility"))]
   pub struct CommunityVisibility;
-
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "federation_mode_enum"))]
-  pub struct FederationModeEnum;
 
   #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
   #[diesel(postgres_type(name = "image_mode_enum"))]
@@ -131,6 +131,7 @@ diesel::table! {
 diesel::table! {
     use diesel::sql_types::*;
     use super::sql_types::CommunityVisibility;
+    use super::sql_types::CommunityDownvoteEnum;
 
     community (id) {
         id -> Int4,
@@ -179,6 +180,7 @@ diesel::table! {
         report_count -> Int2,
         unresolved_report_count -> Int2,
         local_removed -> Bool,
+        downvote_mode -> CommunityDownvoteEnum,
     }
 }
 
@@ -198,7 +200,7 @@ diesel::table! {
         follow_state -> Nullable<CommunityFollowerState>,
         follow_approver_id -> Nullable<Int4>,
         notifications -> Nullable<CommunityNotificationsModeEnum>,
-        follow_activity_id -> Nullable<Text>
+        follow_activity_id -> Nullable<Text>,
     }
 }
 
@@ -376,7 +378,6 @@ diesel::table! {
     use super::sql_types::PostListingModeEnum;
     use super::sql_types::PostSortTypeEnum;
     use super::sql_types::CommentSortTypeEnum;
-    use super::sql_types::FederationModeEnum;
     use super::sql_types::ImageModeEnum;
 
     local_site (id) {
@@ -402,10 +403,6 @@ diesel::table! {
         default_post_sort_type -> PostSortTypeEnum,
         default_comment_sort_type -> CommentSortTypeEnum,
         oauth_registration -> Bool,
-        post_upvotes -> FederationModeEnum,
-        post_downvotes -> FederationModeEnum,
-        comment_upvotes -> FederationModeEnum,
-        comment_downvotes -> FederationModeEnum,
         default_post_time_range_seconds -> Nullable<Int4>,
         nsfw_content_disallowed -> Bool,
         users -> Int4,

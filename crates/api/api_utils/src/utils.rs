@@ -9,9 +9,9 @@ use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
 use enum_map::{EnumMap, enum_map};
 use lemmy_db_schema::{
-  newtypes::{CommunityId, CommunityTagId, ModlogId, PostId, PostOrCommentId},
+  newtypes::{CommunityId, CommunityTagId, ModlogId, PostId},
   source::{
-    comment::{Comment, CommentActions, CommentLikeForm},
+    comment::{Comment, CommentActions},
     community::{Community, CommunityActions, CommunityUpdateForm},
     community_tag::{CommunityTag, PostCommunityTag},
     images::{ImageDetails, RemoteImage},
@@ -22,7 +22,7 @@ use lemmy_db_schema::{
     modlog::{Modlog, ModlogInsertForm},
     oauth_account::OAuthAccount,
     person::{Person, PersonUpdateForm},
-    post::{Post, PostActions, PostLikeForm, PostReadCommentsForm},
+    post::{Post, PostActions, PostReadCommentsForm},
     private_message::PrivateMessage,
     registration_application::RegistrationApplication,
     site::Site,
@@ -32,7 +32,7 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
-  enums::{FederationMode, ImageMode, RegistrationMode},
+  enums::{CommunityDownvoteMode, CommunityFollowerState, ImageMode, RegistrationMode},
 };
 use lemmy_db_views_community_follower_approval::PendingFollowerView;
 use lemmy_db_views_community_moderator::{CommunityModeratorView, CommunityPersonBanView};
@@ -313,35 +313,29 @@ pub fn check_comment_deleted_or_removed(comment: &Comment) -> LemmyResult<()> {
   }
 }
 
-pub async fn check_local_vote_mode(
+// TODO: errors from this function should not be returned from api
+pub async fn check_community_downvote_mode(
   is_upvote: Option<bool>,
-  post_or_comment_id: PostOrCommentId,
-  local_site: &LocalSite,
+  community: &Community,
   person_id: PersonId,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
-  let (downvote_setting, upvote_setting) = match post_or_comment_id {
-    PostOrCommentId::Post(_) => (local_site.post_downvotes, local_site.post_upvotes),
-    PostOrCommentId::Comment(_) => (local_site.comment_downvotes, local_site.comment_upvotes),
+  use CommunityDownvoteMode::*;
+  let is_upvote = is_upvote.unwrap_or_default();
+  let allowed = match community.downvote_mode {
+    All => true,
+    Subscribed => {
+      let actions = CommunityActions::read(pool, community.id, person_id).await?;
+      actions.followed_at.is_some()
+        && actions.follow_state == Some(CommunityFollowerState::Accepted)
+    }
+    Disabled => is_upvote,
   };
-
-  let downvote_fail = is_upvote == Some(false) && downvote_setting == FederationMode::Disable;
-  let upvote_fail = is_upvote == Some(true) && upvote_setting == FederationMode::Disable;
-
-  // Undo previous vote for item if new vote fails
-  if downvote_fail || upvote_fail {
-    match post_or_comment_id {
-      PostOrCommentId::Post(post_id) => {
-        let form = PostLikeForm::new(post_id, person_id, None);
-        PostActions::like(pool, &form).await?;
-      }
-      PostOrCommentId::Comment(comment_id) => {
-        let form = CommentLikeForm::new(comment_id, person_id, None);
-        CommentActions::like(pool, &form).await?;
-      }
-    };
+  if allowed {
+    Ok(())
+  } else {
+    Err(UntranslatedError::VoteNotAllowed.into())
   }
-  Ok(())
 }
 
 /// Dont allow bots to do certain actions, like voting
