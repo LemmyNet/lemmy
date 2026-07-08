@@ -8,7 +8,13 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::{
   PersonId,
-  enums::{CommunityNotificationsMode, CommunityVisibility, ListingType, TagColor},
+  enums::{
+    CommunityDownvoteMode,
+    CommunityNotificationsMode,
+    CommunityVisibility,
+    ListingType,
+    TagColor,
+  },
 };
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_diesel_utils::pagination::PaginationCursor;
@@ -108,6 +114,7 @@ pub struct CreateCommunity {
   pub posting_restricted_to_mods: Option<bool>,
   pub discussion_languages: Option<Vec<LanguageId>>,
   pub visibility: Option<CommunityVisibility>,
+  pub downvote_mode: Option<CommunityDownvoteMode>,
 }
 
 #[skip_serializing_none]
@@ -139,6 +146,7 @@ pub struct EditCommunity {
   pub posting_restricted_to_mods: Option<bool>,
   pub discussion_languages: Option<Vec<LanguageId>>,
   pub visibility: Option<CommunityVisibility>,
+  pub downvote_mode: Option<CommunityDownvoteMode>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]

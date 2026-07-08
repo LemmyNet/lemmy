@@ -6,7 +6,7 @@ pub use lemmy_db_schema::{
     multi_community::{MultiCommunity, MultiCommunityFollow},
   },
 };
-pub use lemmy_db_schema_file::enums::CommunityVisibility;
+pub use lemmy_db_schema_file::enums::{CommunityDownvoteMode, CommunityVisibility};
 pub use lemmy_db_views_community::{
   CommunityView,
   MultiCommunityView,
