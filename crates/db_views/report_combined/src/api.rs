@@ -98,6 +98,7 @@ pub struct CreatePostReport {
 pub struct ResolveCommentReport {
   pub report_id: CommentReportId,
   pub resolved: bool,
+  pub resolve_reason: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
@@ -107,6 +108,7 @@ pub struct ResolveCommentReport {
 pub struct ResolveCommunityReport {
   pub report_id: CommunityReportId,
   pub resolved: bool,
+  pub resolve_reason: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
@@ -116,6 +118,7 @@ pub struct ResolveCommunityReport {
 pub struct ResolvePostReport {
   pub report_id: PostReportId,
   pub resolved: bool,
+  pub resolve_reason: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]

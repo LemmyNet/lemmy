@@ -118,6 +118,7 @@ pub enum SendActivityData {
     actor: Person,
     report_creator: Person,
     receiver: Either<Site, Community>,
+    // TODO probably needs resolve reason
   },
   UpdateMultiCommunity(MultiCommunity, Person),
   Warning(Box<Either<PostView, CommentView>>, String, Person),
