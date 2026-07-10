@@ -411,7 +411,7 @@ test("moderator view", async () => {
   expect(postIds).toContain(otherAlphaPost.post.id);
   expect(commentIds).toContain(otherAlphaComment.comment.id);
 
-  // in moderator view, alpha should not see otherPost, wich was posted on a community alpha doesn't moderate
+  // in moderator view, alpha should not see otherPost, which was posted on a community alpha doesn't moderate
   posts = (await getPosts(alpha, "moderator_view").then(expectSuccess)).items;
   expect(posts).toBeDefined();
   postIds = posts.map(post => post.post.id);

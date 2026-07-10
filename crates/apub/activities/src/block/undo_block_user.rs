@@ -5,7 +5,10 @@ use crate::{
   block::{SiteOrCommunity, generate_cc},
   community::send_activity_in_community,
   generate_activity_id,
-  protocol::block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
+  protocol::{
+    IdOrNestedObject,
+    block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
+  },
   send_lemmy_activity,
 };
 use activitypub_federation::{
@@ -51,7 +54,7 @@ impl UndoBlockUser {
     let undo = UndoBlockUser {
       actor: mod_.id().clone().into(),
       to,
-      object: block,
+      object: IdOrNestedObject::NestedObject(block),
       cc: generate_cc(target, &mut context.pool()).await?,
       kind: UndoType::Undo,
       id: id.clone(),
@@ -87,21 +90,22 @@ impl Activity for UndoBlockUser {
   }
 
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    verify_domains_match(self.actor.inner(), self.object.actor.inner())?;
-    self.object.verify(context).await?;
+    let object = self.object.dereference(context).await?;
+    verify_domains_match(self.actor.inner(), object.actor.inner())?;
+    object.verify(context).await?;
     Ok(())
   }
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    let expires_at = self.object.end_time;
+    let object = self.object.dereference(context).await?;
+    let expires_at = object.end_time;
     let mod_person = self.actor.dereference(context).await?;
-    let blocked_person = self.object.object.dereference_local(context).await?;
-    let reason = self
-      .object
+    let blocked_person = object.object.dereference_local(context).await?;
+    let reason = object
       .summary
       .unwrap_or_else(|| MOD_ACTION_DEFAULT_REASON.to_string());
     let pool = &mut context.pool();
-    match self.object.target.dereference(context).await? {
+    match object.target.dereference(context).await? {
       SiteOrCommunity::Left(site) => {
         verify_is_public(&self.to, &self.cc)?;
         let form = InstanceBanForm::new(blocked_person.id, site.instance_id, expires_at);

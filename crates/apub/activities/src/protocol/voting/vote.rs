@@ -7,7 +7,7 @@ use activitypub_federation::{
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
   objects::{PostOrComment, community::ApubCommunity, person::ApubPerson},
-  utils::protocol::InCommunity,
+  utils::protocol::{Id, InCommunity},
 };
 use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
@@ -55,5 +55,11 @@ impl InCommunity for Vote {
       verify_urls_match(audience.inner(), community.ap_id.inner())?;
     }
     Ok(community.into())
+  }
+}
+
+impl Id for Vote {
+  fn id(&self) -> &Url {
+    &self.id
   }
 }
