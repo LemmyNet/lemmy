@@ -48,4 +48,4 @@ tokio.workspace = true
 clap = { workspace = true }
 
 [target.'cfg(target_arch = "x86_64")'.dependencies]
-mimalloc = "0.1.48"
+tikv-jemallocator = "0.7.0"
