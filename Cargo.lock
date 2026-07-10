@@ -3166,7 +3166,7 @@ checksum = "830d08ce1d1d941e6b30645f1a0eb5643013d835ce3779a5fc208261dbe10f55"
 
 [[package]]
 name = "lemmy_api"
-version = "0.19.19"
+version = "0.19.19-jemalloc"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -3197,7 +3197,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_api_common"
-version = "0.19.19"
+version = "0.19.19-jemalloc"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -3236,7 +3236,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_api_crud"
-version = "0.19.19"
+version = "0.19.19-jemalloc"
 dependencies = [
  "accept-language",
  "activitypub_federation",
@@ -3259,7 +3259,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_apub"
-version = "0.19.19"
+version = "0.19.19-jemalloc"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -3296,7 +3296,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_perf"
-version = "0.19.19"
+version = "0.19.19-jemalloc"
 dependencies = [
  "anyhow",
  "clap",
@@ -3311,7 +3311,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_schema"
-version = "0.19.19"
+version = "0.19.19-jemalloc"
 dependencies = [
  "activitypub_federation",
  "anyhow",
@@ -3350,7 +3350,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views"
-version = "0.19.19"
+version = "0.19.19-jemalloc"
 dependencies = [
  "actix-web",
  "chrono",
@@ -3372,7 +3372,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_actor"
-version = "0.19.19"
+version = "0.19.19-jemalloc"
 dependencies = [
  "chrono",
  "diesel",
@@ -3392,7 +3392,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_db_views_moderator"
-version = "0.19.19"
+version = "0.19.19-jemalloc"
 dependencies = [
  "diesel",
  "diesel-async",
@@ -3404,7 +3404,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_federate"
-version = "0.19.19"
+version = "0.19.19-jemalloc"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -3435,7 +3435,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_routes"
-version = "0.19.19"
+version = "0.19.19-jemalloc"
 dependencies = [
  "activitypub_federation",
  "actix-web",
@@ -3460,7 +3460,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_server"
-version = "0.19.19"
+version = "0.19.19-jemalloc"
 dependencies = [
  "activitypub_federation",
  "actix-cors",
@@ -3481,7 +3481,6 @@ dependencies = [
  "lemmy_federate",
  "lemmy_routes",
  "lemmy_utils",
- "mimalloc",
  "opentelemetry 0.21.0",
  "opentelemetry-otlp 0.14.0",
  "opentelemetry_sdk 0.21.2",
@@ -3494,6 +3493,7 @@ dependencies = [
  "rustls 0.23.27",
  "serde_json",
  "serial_test",
+ "tikv-jemallocator",
  "tokio",
  "tracing",
  "tracing-actix-web",
@@ -3506,7 +3506,7 @@ dependencies = [
 
 [[package]]
 name = "lemmy_utils"
-version = "0.19.19"
+version = "0.19.19-jemalloc"
 dependencies = [
  "actix-web",
  "anyhow",
@@ -3591,16 +3591,6 @@ name = "libm"
 version = "0.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f9fbbcab51052fe104eb5e5d351cf728d30a5be1fe14d9be8a3b097481fb97de"
-
-[[package]]
-name = "libmimalloc-sys"
-version = "0.1.42"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec9d6fac27761dabcd4ee73571cdb06b7022dc99089acbe5435691edffaac0f4"
-dependencies = [
- "cc",
- "libc",
-]
 
 [[package]]
 name = "linked-hash-map"
@@ -3923,15 +3913,6 @@ dependencies = [
  "migrations_internals",
  "proc-macro2",
  "quote",
-]
-
-[[package]]
-name = "mimalloc"
-version = "0.1.46"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "995942f432bbb4822a7e9c3faa87a695185b0d09273ba85f097b54f4e458f2af"
-dependencies = [
- "libmimalloc-sys",
 ]
 
 [[package]]
@@ -6498,6 +6479,26 @@ checksum = "8b9ef9bad013ada3808854ceac7b46812a6465ba368859a37e2100283d2d719c"
 dependencies = [
  "cfg-if",
  "once_cell",
+]
+
+[[package]]
+name = "tikv-jemalloc-sys"
+version = "0.7.1+5.3.1-0-g81034ce1f1373e37dc865038e1bc8eeecf559ce8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1a2825c78386b4ae0314074867860ba9577875de945f05992c38815cbec327f0"
+dependencies = [
+ "cc",
+ "libc",
+]
+
+[[package]]
+name = "tikv-jemallocator"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "249f09e49ab1609436f34c776e84231bead18d6a955f119f939bdc1d847561bd"
+dependencies = [
+ "libc",
+ "tikv-jemalloc-sys",
 ]
 
 [[package]]
