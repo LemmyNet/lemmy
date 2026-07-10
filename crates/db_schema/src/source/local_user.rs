@@ -4,7 +4,14 @@ use chrono::{DateTime, Utc};
 use lemmy_db_schema_file::schema::local_user;
 use lemmy_db_schema_file::{
   PersonId,
-  enums::{CommentSortType, ListingType, PostListingMode, PostSortType, VoteShow},
+  enums::{
+    CommentSortType,
+    ListingType,
+    PostListingMode,
+    PostNotificationsMode,
+    PostSortType,
+    VoteShow,
+  },
 };
 use lemmy_diesel_utils::sensitive::SensitiveString;
 use serde::{Deserialize, Serialize};
@@ -81,6 +88,7 @@ pub struct LocalUser {
   pub invited_by_local_user_id: Option<LocalUserId>,
   /// Whether to show media in the UI.
   pub show_media: bool,
+  pub default_post_notifications_mode: PostNotificationsMode,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -157,6 +165,8 @@ pub struct LocalUserInsertForm {
   pub invited_by_local_user_id: Option<LocalUserId>,
   #[new(default)]
   pub show_media: Option<bool>,
+  #[new(default)]
+  pub default_post_notifications_mode: Option<PostNotificationsMode>,
 }
 
 #[derive(Clone, Default)]
@@ -198,4 +208,5 @@ pub struct LocalUserUpdateForm {
   pub show_person_votes: Option<bool>,
   pub default_items_per_page: Option<i32>,
   pub show_media: Option<bool>,
+  pub default_post_notifications_mode: Option<PostNotificationsMode>,
 }
