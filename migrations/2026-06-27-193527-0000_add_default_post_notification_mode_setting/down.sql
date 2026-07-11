@@ -1,2 +1,6 @@
-ALTER TABLE local_user DROP COLUMN default_post_notifications_mode;
-ALTER TABLE local_site DROP COLUMN default_post_notifications_mode;
+ALTER TABLE local_user
+    DROP COLUMN default_post_notifications_mode;
+
+ALTER TABLE local_site
+    DROP COLUMN default_post_notifications_mode;
+
