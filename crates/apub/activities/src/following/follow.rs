@@ -12,10 +12,7 @@ use activitypub_federation::{
 };
 use either::Either::*;
 use lemmy_api_utils::context::LemmyContext;
-use lemmy_apub_objects::{
-  objects::{CommunityOrMulti, person::ApubPerson},
-  utils::protocol::Id,
-};
+use lemmy_apub_objects::objects::{CommunityOrMulti, person::ApubPerson};
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
@@ -152,11 +149,5 @@ impl Activity for Follow {
       }
     }
     Ok(())
-  }
-}
-
-impl Id for Follow {
-  fn id(&self) -> &Url {
-    &self.id
   }
 }

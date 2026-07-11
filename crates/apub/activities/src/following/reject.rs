@@ -2,7 +2,10 @@ use super::send_activity_from_user_or_community_or_multi;
 use crate::{
   check_community_deleted_or_removed,
   generate_activity_id,
-  protocol::following::{follow::Follow, reject::RejectFollow},
+  protocol::{
+    IdOrNestedObject,
+    following::{follow::Follow, reject::RejectFollow},
+  },
 };
 use activitypub_federation::{
   config::Data,
@@ -25,7 +28,7 @@ impl RejectFollow {
     let reject = RejectFollow {
       actor: user_or_community.id().clone().into(),
       to: Some([person.id().clone().into()]),
-      object: follow,
+      object: IdOrNestedObject::NestedObject(follow),
       kind: RejectType::Reject,
       id: generate_activity_id(RejectType::Reject, context)?,
     };
@@ -49,10 +52,11 @@ impl Activity for RejectFollow {
   }
 
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    verify_urls_match(self.actor.inner(), self.object.object.inner())?;
-    self.object.verify(context).await?;
+    let object = self.object.dereference(context).await?;
+    verify_urls_match(self.actor.inner(), object.object.inner())?;
+    object.verify(context).await?;
     if let Some(to) = &self.to {
-      verify_urls_match(to[0].inner(), self.object.actor.inner())?;
+      verify_urls_match(to[0].inner(), object.actor.inner())?;
     }
     Ok(())
   }
@@ -60,7 +64,8 @@ impl Activity for RejectFollow {
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     let community = self.actor.dereference(context).await?;
     check_community_deleted_or_removed(&community)?;
-    let actor = self.object.actor.dereference(context).await?;
+    let object = self.object.dereference(context).await?;
+    let actor = object.actor.dereference(context).await?;
     let person = actor.left().ok_or(UntranslatedError::Unreachable)?;
 
     // remove the follow

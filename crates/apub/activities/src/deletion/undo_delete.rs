@@ -1,7 +1,10 @@
 use crate::{
   deletion::{DeletableObjects, receive_delete_action, verify_delete_activity},
   generate_activity_id,
-  protocol::deletion::{delete::Delete, undo_delete::UndoDelete},
+  protocol::{
+    IdOrNestedObject,
+    deletion::{delete::Delete, undo_delete::UndoDelete},
+  },
 };
 use activitypub_federation::{config::Data, kinds::activity::UndoType, traits::Activity};
 use lemmy_api_utils::{context::LemmyContext, notify::notify_mod_action};
@@ -30,24 +33,26 @@ impl Activity for UndoDelete {
     self.actor.inner()
   }
 
-  async fn verify(&self, data: &Data<Self::DataType>) -> Result<(), Self::Error> {
-    self.object.verify(data).await?;
-    verify_delete_activity(&self.object, self.object.summary.is_some(), data).await?;
+  async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
+    let object = self.object.dereference(context).await?;
+    object.verify(context).await?;
+    verify_delete_activity(&object, object.summary.is_some(), context).await?;
     Ok(())
   }
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    if let Some(reason) = self.object.summary {
+    let object = self.object.dereference(context).await?;
+    if let Some(reason) = object.summary {
       UndoDelete::receive_undo_remove_action(
         &self.actor.dereference(context).await?,
-        self.object.object.id(),
+        object.object.id(),
         reason,
-        self.object.with_replies,
+        object.with_replies,
         context,
       )
       .await
     } else {
-      receive_delete_action(self.object.object.id(), &self.actor, false, None, context).await
+      receive_delete_action(object.object.id(), &self.actor, false, None, context).await
     }
   }
 }
@@ -62,7 +67,7 @@ impl UndoDelete {
     with_replies: Option<bool>,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<UndoDelete> {
-    let object = Delete::new(
+    let delete = Delete::new(
       actor,
       object,
       to.clone(),
@@ -77,7 +82,7 @@ impl UndoDelete {
     Ok(UndoDelete {
       actor: actor.ap_id.clone().into(),
       to,
-      object,
+      object: IdOrNestedObject::NestedObject(delete),
       cc: cc.into_iter().collect(),
       kind: UndoType::Undo,
       id,

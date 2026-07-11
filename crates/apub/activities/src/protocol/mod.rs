@@ -1,6 +1,7 @@
 use activitypub_federation::{config::Data, fetch::fetch_object_http};
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::utils::protocol::Id;
+use lemmy_db_schema::source::activity::SentActivity;
 use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use strum::Display;
@@ -26,18 +27,29 @@ pub enum IdOrNestedObject<Kind: Id> {
   NestedObject(Kind),
 }
 
-impl<Kind: Id + DeserializeOwned + Send> IdOrNestedObject<Kind> {
+impl<Kind: Id + DeserializeOwned + Clone + Send> IdOrNestedObject<Kind> {
   pub(crate) fn id(&self) -> &Url {
     match self {
       IdOrNestedObject::Id(i) => i,
       IdOrNestedObject::NestedObject(n) => n.id(),
     }
   }
-  pub async fn object(self, context: &Data<LemmyContext>) -> LemmyResult<Kind> {
+  pub async fn dereference(&self, context: &Data<LemmyContext>) -> LemmyResult<Kind> {
     match self {
       // TODO: move IdOrNestedObject struct to library and make fetch_object_http private
-      IdOrNestedObject::Id(i) => Ok(fetch_object_http(&i, context).await?.object),
-      IdOrNestedObject::NestedObject(o) => Ok(o),
+      IdOrNestedObject::Id(i) => {
+        // Check if object is one of our sent activities. This is necessary because "sensitive"
+        // activities like Follow cannot be fetched over HTTP. In principle we should also check
+        // tables Post, Comment, Community etc. But these items can always be fetched over HTTP
+        // which is simpler.
+        let sent = SentActivity::read_from_apub_id(&mut context.pool(), &i.clone().into()).await;
+        if let Ok(sent) = sent {
+          Ok(serde_json::from_value::<Kind>(sent.data)?)
+        } else {
+          Ok(fetch_object_http(i, context).await?.object)
+        }
+      }
+      IdOrNestedObject::NestedObject(o) => Ok(o.clone()),
     }
   }
 }
