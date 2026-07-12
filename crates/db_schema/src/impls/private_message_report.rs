@@ -34,6 +34,7 @@ impl Reportable for PrivateMessageReport {
     report_id: Self::IdType,
     by_resolver_id: PersonId,
     is_resolved: bool,
+    resolve_reason: Option<String>,
   ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
     update(private_message_report::table.find(report_id))
@@ -41,6 +42,7 @@ impl Reportable for PrivateMessageReport {
         private_message_report::resolved.eq(is_resolved),
         private_message_report::resolver_id.eq(by_resolver_id),
         private_message_report::updated_at.eq(Utc::now()),
+        private_message_report::resolve_reason.eq(resolve_reason),
       ))
       .execute(conn)
       .await

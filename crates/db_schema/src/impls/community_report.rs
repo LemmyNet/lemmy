@@ -37,6 +37,8 @@ impl Reportable for CommunityReport {
   /// * `conn` - the postgres connection
   /// * `report_id` - the id of the report to resolve
   /// * `by_resolver_id` - the id of the user resolving the report
+  /// * `is_resolved` - is the report resolved
+  /// * `resolve_reason` - reason why report was resolved
   async fn update_resolved(
     pool: &mut DbPool<'_>,
     report_id_: Self::IdType,

@@ -34,7 +34,16 @@ pub async fn resolve_comment_report(
   )
   .await?;
 
-  CommentReport::update_resolved(&mut context.pool(), report_id, person_id, data.resolved).await?;
+  CommentReport::update_resolved(
+    &mut context.pool(),
+    report_id,
+    person_id,
+    data.resolved,
+    data.resolve_reason,
+  )
+  .await?;
+
+  // TODO notify reporter if resolve reason has been given
 
   let report_id = data.report_id;
   let comment_report_view =

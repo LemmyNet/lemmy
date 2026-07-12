@@ -107,17 +107,20 @@ pub trait Reportable: Sized {
     report_id: Self::IdType,
     resolver_id: PersonId,
     is_resolved: bool,
+    resolve_reason: Option<String>,
   ) -> impl Future<Output = LemmyResult<usize>> + Send;
   fn resolve_apub(
     pool: &mut DbPool<'_>,
     object_id: Self::ObjectIdType,
     report_creator_id: PersonId,
     resolver_id: PersonId,
+    // TODO needs update?
   ) -> impl Future<Output = LemmyResult<usize>> + Send;
   fn resolve_all_for_object(
     pool: &mut DbPool<'_>,
     comment_id_: Self::ObjectIdType,
     by_resolver_id: PersonId,
+    // TODO check if needs update
   ) -> impl Future<Output = LemmyResult<usize>> + Send;
 }
 
