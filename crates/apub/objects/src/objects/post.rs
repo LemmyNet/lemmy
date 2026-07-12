@@ -430,8 +430,7 @@ mod tests {
     Ok(())
   }
 
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared)]
   async fn test_parse_post_with_image_and_link() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let test_data = TestData::create(&mut context.pool()).await?;
