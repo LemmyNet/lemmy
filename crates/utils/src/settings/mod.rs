@@ -94,17 +94,25 @@ impl Settings {
     )])
   }
 
+  pub fn get_all_connection_options(&self) -> Vec<(String, String)> {
+    let mut options = CONNECTION_OPTIONS
+      .iter()
+      .filter_map(|o| o.split_once('='))
+      .map(|(k, v)| (k.to_string(), v.to_string()))
+      .collect::<Vec<_>>();
+    options.extend(self.get_lemmy_connection_options());
+    options
+  }
+
   /// Sets a few additional config options necessary for starting lemmy
   pub fn get_database_url_with_options(&self) -> LemmyResult<String> {
     let mut url = Url::parse(&self.get_database_url())?;
 
-    let mut options = CONNECTION_OPTIONS
-      .iter()
-      .map(ToString::to_string)
+    let options = self
+      .get_all_connection_options()
+      .into_iter()
+      .map(|(k, v)| format!("{k}={v}"))
       .collect::<Vec<String>>();
-    for (k, v) in self.get_lemmy_connection_options() {
-      options.push(format!("{}={}", k, v));
-    }
 
     // Create the connection uri portion
     let options_segments = options
@@ -118,6 +126,26 @@ impl Settings {
 
     url.set_query(Some(&format!("options={options_segments}")));
     Ok(url.into())
+  }
+
+  /// Extracts the username, password, and Unix socket path from the configured database URL
+  #[expect(clippy::expect_used)]
+  pub fn get_database_unix_socket_parts(&self) -> (String, Option<String>, String) {
+    let url = Url::parse(&self.get_database_url()).expect("parse database url");
+
+    let username = url.username().to_owned();
+    let password = url.password().map(str::to_owned);
+
+    let socket_path = url
+      .host_str()
+      .map(|h| {
+        urlencoding::decode(h)
+          .expect("decode unix socket path")
+          .into_owned()
+      })
+      .expect("database url must specify a unix socket host");
+
+    (username, password, socket_path)
   }
 }
 #[expect(clippy::expect_used)]

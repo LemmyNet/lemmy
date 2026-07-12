@@ -1,6 +1,5 @@
 use crate::schema_setup;
 use db_pool::{
-  PrivilegedPostgresConfig,
   r#async::{
     DatabasePool,
     DatabasePoolBuilderTrait,
@@ -8,6 +7,7 @@ use db_pool::{
     DieselDeadpool,
     ReusableConnectionPool,
   },
+  postgres::{Options, Parameters, PostgresHostConfig, PrivilegedPostgresConfig},
 };
 use deadpool::{Runtime, Status};
 use diesel::result::{
@@ -249,6 +249,23 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
   Ok(pool)
 }
 
+/// Builds a privileged Postgres configuration for the test database pool
+fn build_test_privileged_postgres_config() -> PrivilegedPostgresConfig {
+  let (username, password, socket_path) = SETTINGS.get_database_unix_socket_parts();
+  let host = PostgresHostConfig::UnixSocket(socket_path.into());
+
+  let options = Options::new(SETTINGS.get_all_connection_options());
+  let parameters = Parameters::builder().options(options).build();
+
+  PrivilegedPostgresConfig::builder()
+    .username(username)
+    .maybe_password(password)
+    .host(host)
+    .unwrap_or_else(|_| panic!("valid postgres host config"))
+    .parameters(parameters)
+    .build()
+}
+
 #[expect(clippy::expect_used)]
 pub async fn build_db_pool_for_tests()
 -> ReusableConnectionPool<'static, DieselAsyncPostgresBackend<DieselDeadpool>> {
@@ -256,11 +273,7 @@ pub async fn build_db_pool_for_tests()
     OnceCell::const_new();
   let db_pool = POOL
     .get_or_init(|| async {
-      let config = PrivilegedPostgresConfig::new().database_url(
-        SETTINGS
-          .get_database_url_with_options()
-          .expect("get database url with options"),
-      );
+      let config = build_test_privileged_postgres_config();
 
       let backend = DieselAsyncPostgresBackend::new(
         config,
