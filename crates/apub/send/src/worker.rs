@@ -466,8 +466,11 @@ mod test {
   use lemmy_diesel_utils::{dburl::DbUrl, traits::Crud};
   use lemmy_utils::error::LemmyResult;
   use serde_json::{Value, json};
-  use serial_test::serial;
-  use std::sync::{Arc, RwLock};
+  use std::sync::{
+    Arc,
+    RwLock,
+    atomic::{AtomicU16, Ordering},
+  };
   use test_context::{AsyncTestContext, test_context};
   use tokio::{
     spawn,
@@ -487,6 +490,7 @@ mod test {
     wait_stop_server: ServerHandle,
     is_concurrent: bool,
     respond_with_error: Arc<RwLock<bool>>,
+    port: u16,
   }
 
   impl Data {
@@ -508,9 +512,13 @@ mod test {
       let (stats_sender, stats_receiver) = unbounded_channel();
       let (inbox_sender, inbox_receiver) = unbounded_channel();
 
+      // Allocate a unique port for this test run's mock inbox listener.
+      static NEXT_PORT: AtomicU16 = AtomicU16::new(8085);
+      let port = NEXT_PORT.fetch_add(1, Ordering::SeqCst);
+
       // listen for received activities in background
       let respond_with_error = Arc::new(RwLock::new(false));
-      let wait_stop_server = listen_activities(inbox_sender, respond_with_error.clone())?;
+      let wait_stop_server = listen_activities(port, inbox_sender, respond_with_error.clone())?;
 
       let concurrent_sends_per_instance = std::env::var("LEMMY_TEST_FEDERATION_CONCURRENT_SENDS")
         .ok()
@@ -541,6 +549,7 @@ mod test {
         cleaned_up: false,
         is_concurrent: concurrent_sends_per_instance > 1,
         respond_with_error,
+        port,
       })
     }
 
@@ -569,19 +578,22 @@ mod test {
     }
   }
 
-  #[test_context(Data)]
-  #[tokio::test]
-  #[traced_test]
-  #[serial]
-  async fn test_stats(data: &mut Data) -> LemmyResult<()> {
+  /// Drains any backlog of already-queued messages from a receiver without blocking
+  fn drain<T>(rec: &mut UnboundedReceiver<T>) {
+    while rec.try_recv().is_ok() {}
+  }
+
+  /// Waits for any straggling in-flight sends/retries from a previous step to actually land
+  async fn cleanup_receivers(data: &mut Data) {
+    sleep(2 * *WORK_FINISHED_RECHECK_DELAY).await;
+    drain(&mut data.stats_receiver);
+    drain(&mut data.inbox_receiver);
+  }
+
+  async fn run_stats(data: &mut Data) -> LemmyResult<()> {
     tracing::debug!("hello world");
 
-    // first receive at startup
-    let rcv = data.stats_receiver.recv().await.unwrap();
-    tracing::debug!("received first stats");
-    assert_eq!(data.instance.id, rcv.state.instance_id);
-
-    let sent = send_activity(data.person.ap_id.clone(), &data.context, true).await?;
+    let sent = send_activity(data.person.ap_id.clone(), &data.context, true, data.port).await?;
     tracing::debug!("sent activity");
     // receive for successfully sent activity
     let inbox_rcv = data.inbox_receiver.recv().await.unwrap();
@@ -609,22 +621,12 @@ mod test {
     Ok(())
   }
 
-  #[test_context(Data)]
-  #[tokio::test]
-  #[traced_test]
-  #[serial]
-  async fn test_send_40(data: &mut Data) -> LemmyResult<()> {
+  async fn run_send_40(data: &mut Data) -> LemmyResult<()> {
     tracing::debug!("hello world");
 
-    // first receive at startup
-    let rcv = data.stats_receiver.recv().await.unwrap();
-    tracing::debug!("received first stats");
-    assert_eq!(data.instance.id, rcv.state.instance_id);
-    // assert_eq!(Some(ActivityId(0)), rcv.state.last_successful_id);
-    // let last_id_before = rcv.state.last_successful_id.unwrap();
     let mut sent = vec![];
     for _ in 0..40 {
-      sent.push(send_activity(data.person.ap_id.clone(), &data.context, false).await?);
+      sent.push(send_activity(data.person.ap_id.clone(), &data.context, false, data.port).await?);
     }
     sleep(2 * *WORK_FINISHED_RECHECK_DELAY).await;
     tracing::debug!("sent activity");
@@ -633,26 +635,16 @@ mod test {
     Ok(())
   }
 
-  #[test_context(Data)]
-  #[tokio::test]
-  #[traced_test]
-  #[serial]
-  /// this test sends 15 activities, waits and checks they have all been received, then sends 50,
-  /// etc
-  async fn test_send_15_20_30(data: &mut Data) -> LemmyResult<()> {
+  /// sends 15 activities, waits and checks they have all been received, then sends 50, etc
+  async fn run_send_15_20_30(data: &mut Data) -> LemmyResult<()> {
     tracing::debug!("hello world");
 
-    // first receive at startup
-    let rcv = data.stats_receiver.recv().await.unwrap();
-    tracing::debug!("received first stats");
-    assert_eq!(data.instance.id, rcv.state.instance_id);
-    // assert_eq!(Some(ActivityId(0)), rcv.state.last_successful_id);
-    // let last_id_before = rcv.state.last_successful_id.unwrap();
     let counts = vec![15, 20, 35];
     for count in counts {
       tracing::debug!("sending {} activities", count);
       let sent = try_join_all(
-        (0..count).map(|_| send_activity(data.person.ap_id.clone(), &data.context, false)),
+        (0..count)
+          .map(|_| send_activity(data.person.ap_id.clone(), &data.context, false, data.port)),
       )
       .await?;
       sleep(2 * *WORK_FINISHED_RECHECK_DELAY).await;
@@ -663,14 +655,11 @@ mod test {
     Ok(())
   }
 
-  #[test_context(Data)]
-  #[tokio::test]
-  #[serial]
-  async fn test_update_instance(data: &mut Data) -> LemmyResult<()> {
+  async fn run_update_instance(data: &mut Data) -> LemmyResult<()> {
     let form = InstanceForm::new(data.instance.domain.clone());
     Instance::update(&mut data.context.pool(), data.instance.id, form).await?;
 
-    send_activity(data.person.ap_id.clone(), &data.context, true).await?;
+    send_activity(data.person.ap_id.clone(), &data.context, true, data.port).await?;
     data.inbox_receiver.recv().await.unwrap();
 
     let instance =
@@ -681,24 +670,18 @@ mod test {
     Ok(())
   }
 
-  #[test_context(Data)]
-  #[tokio::test]
-  #[serial]
-  async fn test_errors(data: &mut Data) -> LemmyResult<()> {
+  async fn run_errors(data: &mut Data) -> LemmyResult<()> {
     let form = InstanceForm::new(data.instance.domain.clone());
     Instance::update(&mut data.context.pool(), data.instance.id, form).await?;
 
     // check initial state
-    let rcv = data.stats_receiver.recv().await.unwrap();
-    assert_eq!(0, rcv.state.fail_count);
-    assert_eq!(data.instance.id, rcv.state.instance_id);
-
-    // set receiver to return error for all inbox requests
     *data.respond_with_error.write().unwrap() = true;
 
     // send a few activities
-    try_join_all((0..5).map(|_| send_activity(data.person.ap_id.clone(), &data.context, false)))
-      .await?;
+    try_join_all(
+      (0..5).map(|_| send_activity(data.person.ap_id.clone(), &data.context, false, data.port)),
+    )
+    .await?;
 
     // it immediately performs first retry giving us 2 failures
     wait_receive(2, &mut data.stats_receiver).await;
@@ -712,6 +695,26 @@ mod test {
     // fail count goes back to 0
     wait_receive(0, &mut data.stats_receiver).await;
 
+    Ok(())
+  }
+
+  #[test_context(Data)]
+  #[tokio_shared_rt::test(flavor = "multi_thread", shared)]
+  #[traced_test]
+  /// Formerly there were 5 separate tests, each with its own runtime that presumably killed
+  /// leftover tasks between them. Now they all share one runtime, so leftover tasks stay and
+  /// interfere each other. Running them sequentially in one `Data` is a workaround since i don't
+  /// have a proper fix for that yet.
+  async fn test_worker(data: &mut Data) -> LemmyResult<()> {
+    run_update_instance(data).await?;
+    cleanup_receivers(data).await;
+    run_send_40(data).await?;
+    cleanup_receivers(data).await;
+    run_send_15_20_30(data).await?;
+    cleanup_receivers(data).await;
+    run_errors(data).await?;
+    cleanup_receivers(data).await;
+    run_stats(data).await?;
     Ok(())
   }
 
@@ -730,6 +733,7 @@ mod test {
   }
 
   fn listen_activities(
+    port: u16,
     inbox_sender: UnboundedSender<String>,
     respond_with_error: Arc<RwLock<bool>>,
   ) -> LemmyResult<ServerHandle> {
@@ -754,7 +758,7 @@ mod test {
           ),
         )
     })
-    .bind(("127.0.0.1", 8085))?
+    .bind(("127.0.0.1", port))?
     .run();
     let handle = run.handle();
     tokio::spawn(async move {
@@ -771,6 +775,7 @@ mod test {
     ap_id: DbUrl,
     context: &LemmyContext,
     wait: bool,
+    port: u16,
   ) -> LemmyResult<SentActivity> {
     // create outgoing activity
     let id = format!(
@@ -787,7 +792,9 @@ mod test {
       ap_id: Url::parse(&id)?.into(),
       data,
       sensitive: false,
-      send_inboxes: vec![Some(Url::parse("http://localhost:8085/inbox")?.into())],
+      send_inboxes: vec![Some(
+        Url::parse(&format!("http://localhost:{port}/inbox"))?.into(),
+      )],
       send_all_instances: false,
       send_community_followers_of: None,
       actor_type: ActorType::Person,
