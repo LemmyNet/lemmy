@@ -1,8 +1,10 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
+use either::Either;
 use lemmy_api_utils::{
   context::LemmyContext,
   notify::notify_mod_action,
+  send_activity::{ActivityChannel, SendActivityData},
   utils::{check_comment_deleted_or_removed, check_community_mod_action},
 };
 use lemmy_db_schema::source::modlog::{Modlog, ModlogInsertForm};
@@ -47,7 +49,14 @@ pub async fn create_comment_warning(
 
   notify_mod_action(action, &context);
 
-  // TODO federate activity
+  ActivityChannel::submit_activity(
+    SendActivityData::Warning(
+      Box::new(Either::Right(orig_comment.clone())),
+      data.reason,
+      local_user_view.person,
+    ),
+    &context,
+  )?;
 
   Ok(Json(CommentResponse {
     comment_view: orig_comment,

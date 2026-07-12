@@ -113,11 +113,15 @@ impl Collection for ApubCommunityOutbox {
     // process items in parallel, to avoid long delay from fetch_site_metadata() and other
     // processing
     join_all(outbox_activities.into_iter().map(|activity| {
-      async {
+      async move {
         // Receiving announce requires at least one local community follower for anti spam purposes.
         // This won't be the case for newly fetched communities, so we extract the inner activity
         // and handle it directly to bypass this check.
-        let inner = activity.object.object(data).await.map(TryInto::try_into);
+        let inner = activity
+          .object
+          .dereference(data)
+          .await
+          .map(TryInto::try_into);
         if let Ok(Ok(AnnouncableActivities::CreateOrUpdatePost(inner))) = inner {
           let verify = inner.verify(data).await;
           if verify.is_ok() {

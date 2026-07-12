@@ -11,7 +11,7 @@ mod tests {
     page::CreateOrUpdatePage,
     private_message::CreateOrUpdatePrivateMessage,
   };
-  use lemmy_apub_objects::utils::test::test_parse_lemmy_item;
+  use lemmy_apub_objects::utils::test::{test_json, test_parse_lemmy_item};
   use lemmy_utils::error::LemmyResult;
 
   #[test]
@@ -33,6 +33,9 @@ mod tests {
     )?;
     test_parse_lemmy_item::<CreateOrUpdateNoteWrapper>(
       "../apub/assets/lemmy/activities/create_or_update/create_private_message.json",
+    )?;
+    test_json::<CreateOrUpdateNoteWrapper>(
+      "../apub/assets/lemmy/activities/create_or_update/create_private_message_0.19.json",
     )?;
     test_parse_lemmy_item::<NoteWrapper>("../apub/assets/lemmy/objects/comment.json")?;
     test_parse_lemmy_item::<NoteWrapper>("../apub/assets/lemmy/objects/private_message.json")?;

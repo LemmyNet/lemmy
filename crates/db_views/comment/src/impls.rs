@@ -314,7 +314,7 @@ impl CommentQuery<'_> {
       // For now, don't do any limiting for tree fetches
       // https://stackoverflow.com/questions/72983614/postgres-ltree-how-to-limit-the-max-number-of-children-at-any-given-level
 
-      // Don't use the regular error-checking one, many more comments must ofter be fetched.
+      // Don't use the regular error-checking one, many more comments must after be fetched.
       // This does not work for comment trees, and the limit should be manually set to a high number
       //
       // If a max depth is given, then you know its a tree fetch, and limits should be ignored

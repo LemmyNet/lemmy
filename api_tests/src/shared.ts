@@ -66,6 +66,8 @@ import {
   LemmyError,
   MultiCommunityView,
   RequestState,
+  CreatePostWarning,
+  PostId,
 } from "lemmy-js-client";
 
 export const fetchFunction = fetch;
@@ -93,10 +95,10 @@ export const epsilon = new LemmyHttp(epsilonUrl, { fetchFunction });
 export const password = "lemmylemmy";
 
 export function expectSuccess<T>(res: RequestState<T>): T {
-  expect(res.state).toBe("success");
   if (res.state === "success") {
     return res.data;
   }
+  console.error(res);
   throw new Error("Request did not succeed");
 }
 
@@ -856,6 +858,18 @@ export async function reportPost(
     reason,
   };
   return api.createPostReport(form);
+}
+
+export async function warnPost(
+  api: LemmyHttp,
+  post_id: PostId,
+  reason: string,
+) {
+  const form: CreatePostWarning = {
+    post_id,
+    reason,
+  };
+  return api.warnPost(form);
 }
 
 export async function reportCommunity(

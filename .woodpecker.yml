@@ -48,6 +48,15 @@ steps:
     when:
       - event: pull_request
 
+  check_typos:
+    image: *rust_image
+    commands:
+      - *install_binstall
+      - cargo binstall -y typos-cli
+      - typos --exclude crates/email/ --exclude crates/apub/apub/assets/ --exclude migrations --exclude readmes
+    when:
+      - event: pull_request
+
   bash_fmt:
     image: alpine:3
     commands:
