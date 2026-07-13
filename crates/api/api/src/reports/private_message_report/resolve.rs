@@ -36,8 +36,6 @@ pub async fn resolve_pm_report(
   )
   .await?;
 
-  // TODO notify reporter if resolve reason has been given
-
   let private_message_report_view =
     ReportCombinedViewInternal::read_private_message_report(&mut context.pool(), report_id, person)
       .await?;

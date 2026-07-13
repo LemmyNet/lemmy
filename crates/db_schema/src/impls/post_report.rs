@@ -154,11 +154,11 @@ mod tests {
     let data = init_data(pool).await?;
 
     let resolved_count =
-      PostReport::update_resolved(pool, data.report.id, data.person.id, true).await?;
+      PostReport::update_resolved(pool, data.report.id, data.person.id, true, None).await?;
     assert_eq!(resolved_count, 1);
 
     let unresolved_count =
-      PostReport::update_resolved(pool, data.report.id, data.person.id, false).await?;
+      PostReport::update_resolved(pool, data.report.id, data.person.id, false, None).await?;
     assert_eq!(unresolved_count, 1);
 
     cleanup(data, pool).await

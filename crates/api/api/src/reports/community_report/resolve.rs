@@ -44,8 +44,6 @@ pub async fn resolve_community_report(
   )
   .await?;
 
-  // TODO send notification
-
   ActivityChannel::submit_activity(
     SendActivityData::SendResolveReport {
       object_id: community_report_view.community.ap_id.inner().clone(),

@@ -43,8 +43,6 @@ pub async fn resolve_comment_report(
   )
   .await?;
 
-  // TODO notify reporter if resolve reason has been given
-
   let report_id = data.report_id;
   let comment_report_view =
     ReportCombinedViewInternal::read_comment_report(&mut context.pool(), report_id, person).await?;
