@@ -479,6 +479,8 @@ mod test {
   use tracing_test::traced_test;
   use url::Url;
 
+  static NEXT_PORT: AtomicU16 = AtomicU16::new(8085);
+
   struct Data {
     context: activitypub_federation::config::Data<LemmyContext>,
     instance: Instance,
@@ -513,7 +515,6 @@ mod test {
       let (inbox_sender, inbox_receiver) = unbounded_channel();
 
       // Allocate a unique port for this test run's mock inbox listener.
-      static NEXT_PORT: AtomicU16 = AtomicU16::new(8085);
       let port = NEXT_PORT.fetch_add(1, Ordering::SeqCst);
 
       // listen for received activities in background
