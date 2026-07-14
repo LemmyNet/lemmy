@@ -35,6 +35,7 @@ pub struct PostReport {
   pub published_at: DateTime<Utc>,
   pub updated_at: Option<DateTime<Utc>>,
   pub violates_instance_rules: bool,
+  pub resolve_reason: Option<String>,
 }
 
 #[derive(Clone, Default)]

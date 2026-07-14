@@ -37,11 +37,14 @@ impl Reportable for CommunityReport {
   /// * `conn` - the postgres connection
   /// * `report_id` - the id of the report to resolve
   /// * `by_resolver_id` - the id of the user resolving the report
+  /// * `is_resolved` - is the report resolved
+  /// * `resolve_reason` - reason why report was resolved
   async fn update_resolved(
     pool: &mut DbPool<'_>,
     report_id_: Self::IdType,
     by_resolver_id: PersonId,
     is_resolved: bool,
+    resolve_reason: Option<String>,
   ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
     update(community_report::table.find(report_id_))
@@ -49,6 +52,7 @@ impl Reportable for CommunityReport {
         community_report::resolved.eq(is_resolved),
         community_report::resolver_id.eq(by_resolver_id),
         community_report::updated_at.eq(Utc::now()),
+        community_report::resolve_reason.eq(resolve_reason),
       ))
       .execute(conn)
       .await
