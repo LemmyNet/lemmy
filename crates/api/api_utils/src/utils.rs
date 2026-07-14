@@ -11,7 +11,7 @@ use enum_map::{EnumMap, enum_map};
 use lemmy_db_schema::{
   newtypes::{CommunityId, CommunityTagId, ModlogId, PostId, PostOrCommentId},
   source::{
-    comment::{Comment, CommentActions, CommentLikeForm},
+    comment::{Comment, CommentActions},
     community::{Community, CommunityActions, CommunityUpdateForm},
     community_tag::{CommunityTag, PostCommunityTag},
     images::{ImageDetails, RemoteImage},
@@ -22,7 +22,7 @@ use lemmy_db_schema::{
     modlog::{Modlog, ModlogInsertForm},
     oauth_account::OAuthAccount,
     person::{Person, PersonUpdateForm},
-    post::{Post, PostActions, PostLikeForm, PostReadCommentsForm},
+    post::{Post, PostActions, PostReadCommentsForm},
     private_message::PrivateMessage,
     registration_application::RegistrationApplication,
     site::Site,
@@ -319,56 +319,50 @@ pub fn check_comment_deleted_or_removed(comment: &Comment) -> LemmyResult<()> {
   }
 }
 
-pub async fn check_local_vote_mode(
-  is_upvote: Option<bool>,
+/// Checks whether a vote is allowed, considering both the local site's federation vote settings
+/// (per post/comment) and the community's downvote settings.
+pub async fn check_vote_settings(
+  vote: Option<bool>,
   post_or_comment_id: PostOrCommentId,
-  local_site: &LocalSite,
-  person_id: PersonId,
+  community: &Community,
+  person: &Person,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
+  let is_upvote = vote.unwrap_or_default();
+  let local_site = SiteView::read_local(pool)
+    .await
+    .map(|s| s.local_site)
+    .unwrap_or_default();
+
   let (downvote_setting, upvote_setting) = match post_or_comment_id {
     PostOrCommentId::Post(_) => (local_site.post_downvotes, local_site.post_upvotes),
     PostOrCommentId::Comment(_) => (local_site.comment_downvotes, local_site.comment_upvotes),
   };
 
-  let downvote_fail = is_upvote == Some(false) && downvote_setting == FederationMode::Disable;
-  let upvote_fail = is_upvote == Some(true) && upvote_setting == FederationMode::Disable;
+  let site_allowed = if is_upvote {
+    match upvote_setting {
+      FederationMode::All => true,
+      FederationMode::Local => person.local,
+      FederationMode::Disable => false,
+    }
+  } else {
+    match downvote_setting {
+      FederationMode::All => true,
+      FederationMode::Local => person.local,
+      FederationMode::Disable => false,
+    }
+  };
 
-  // Undo previous vote for item if new vote fails
-  if downvote_fail || upvote_fail {
-    match post_or_comment_id {
-      PostOrCommentId::Post(post_id) => {
-        let form = PostLikeForm::new(post_id, person_id, None);
-        PostActions::like(pool, &form).await?;
-      }
-      PostOrCommentId::Comment(comment_id) => {
-        let form = CommentLikeForm::new(comment_id, person_id, None);
-        CommentActions::like(pool, &form).await?;
-      }
-    };
-  }
-  Ok(())
-}
-
-// TODO: errors from this function should not be returned from api
-pub async fn check_community_downvote_mode(
-  is_upvote: Option<bool>,
-  community: &Community,
-  person_id: PersonId,
-  pool: &mut DbPool<'_>,
-) -> LemmyResult<()> {
-  use CommunityDownvoteMode::*;
-  let is_upvote = is_upvote.unwrap_or_default();
-  let allowed = match community.downvote_mode {
-    All => true,
-    Subscribed => {
-      let actions = CommunityActions::read(pool, community.id, person_id).await?;
+  let community_allowed = match community.downvote_mode {
+    CommunityDownvoteMode::All => true,
+    CommunityDownvoteMode::Subscribed => {
+      let actions = CommunityActions::read(pool, community.id, person.id).await?;
       actions.followed_at.is_some()
         && actions.follow_state == Some(CommunityFollowerState::Accepted)
     }
-    Disabled => is_upvote,
+    CommunityDownvoteMode::Disabled => is_upvote,
   };
-  if allowed {
+  if site_allowed && community_allowed {
     Ok(())
   } else {
     Err(UntranslatedError::VoteNotAllowed.into())

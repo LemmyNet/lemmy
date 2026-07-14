@@ -165,7 +165,6 @@ impl CommunityVisibility {
 #[cfg_attr(feature = "ts-rs", ts(export))]
 pub enum CommunityDownvoteMode {
   #[default]
-  /// Allows all
   All,
   Subscribed,
   Disabled,

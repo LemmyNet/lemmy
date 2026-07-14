@@ -7,10 +7,9 @@ use lemmy_api_utils::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
     check_bot_account,
-    check_community_downvote_mode,
     check_community_user_action,
     check_local_user_banned_or_deleted,
-    check_local_vote_mode,
+    check_vote_settings,
   },
 };
 use lemmy_db_schema::{
@@ -27,7 +26,6 @@ use lemmy_db_views_post::{
   PostView,
   api::{CreatePostLike, PostResponse},
 };
-use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::LemmyResult;
 use std::ops::Deref;
 
@@ -37,19 +35,9 @@ pub async fn like_post(
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
   check_local_user_banned_or_deleted(&local_user_view)?;
-  let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   let local_instance_id = local_user_view.person.instance_id;
   let post_id = data.post_id;
   let my_person_id = local_user_view.person.id;
-
-  check_local_vote_mode(
-    data.is_upvote,
-    PostOrCommentId::Post(post_id),
-    &local_site,
-    my_person_id,
-    &mut context.pool(),
-  )
-  .await?;
 
   let orig_post = PostView::read(
     &mut context.pool(),
@@ -61,10 +49,11 @@ pub async fn like_post(
   .await?;
   check_bot_account(&local_user_view.person)?;
 
-  check_community_downvote_mode(
+  check_vote_settings(
     data.is_upvote,
+    PostOrCommentId::Post(post_id),
     &orig_post.community,
-    my_person_id,
+    &local_user_view.person,
     &mut context.pool(),
   )
   .await?;
