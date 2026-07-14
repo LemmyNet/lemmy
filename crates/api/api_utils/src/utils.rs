@@ -9,9 +9,9 @@ use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
 use enum_map::{EnumMap, enum_map};
 use lemmy_db_schema::{
-  newtypes::{CommunityId, CommunityTagId, ModlogId, PostId},
+  newtypes::{CommunityId, CommunityTagId, ModlogId, PostId, PostOrCommentId},
   source::{
-    comment::{Comment, CommentActions},
+    comment::{Comment, CommentActions, CommentLikeForm},
     community::{Community, CommunityActions, CommunityUpdateForm},
     community_tag::{CommunityTag, PostCommunityTag},
     images::{ImageDetails, RemoteImage},
@@ -22,7 +22,7 @@ use lemmy_db_schema::{
     modlog::{Modlog, ModlogInsertForm},
     oauth_account::OAuthAccount,
     person::{Person, PersonUpdateForm},
-    post::{Post, PostActions, PostReadCommentsForm},
+    post::{Post, PostActions, PostLikeForm, PostReadCommentsForm},
     private_message::PrivateMessage,
     registration_application::RegistrationApplication,
     site::Site,
@@ -32,7 +32,13 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
-  enums::{CommunityDownvoteMode, CommunityFollowerState, ImageMode, RegistrationMode},
+  enums::{
+    CommunityDownvoteMode,
+    CommunityFollowerState,
+    FederationMode,
+    ImageMode,
+    RegistrationMode,
+  },
 };
 use lemmy_db_views_community_follower_approval::PendingFollowerView;
 use lemmy_db_views_community_moderator::{CommunityModeratorView, CommunityPersonBanView};
@@ -311,6 +317,37 @@ pub fn check_comment_deleted_or_removed(comment: &Comment) -> LemmyResult<()> {
   } else {
     Ok(())
   }
+}
+
+pub async fn check_local_vote_mode(
+  is_upvote: Option<bool>,
+  post_or_comment_id: PostOrCommentId,
+  local_site: &LocalSite,
+  person_id: PersonId,
+  pool: &mut DbPool<'_>,
+) -> LemmyResult<()> {
+  let (downvote_setting, upvote_setting) = match post_or_comment_id {
+    PostOrCommentId::Post(_) => (local_site.post_downvotes, local_site.post_upvotes),
+    PostOrCommentId::Comment(_) => (local_site.comment_downvotes, local_site.comment_upvotes),
+  };
+
+  let downvote_fail = is_upvote == Some(false) && downvote_setting == FederationMode::Disable;
+  let upvote_fail = is_upvote == Some(true) && upvote_setting == FederationMode::Disable;
+
+  // Undo previous vote for item if new vote fails
+  if downvote_fail || upvote_fail {
+    match post_or_comment_id {
+      PostOrCommentId::Post(post_id) => {
+        let form = PostLikeForm::new(post_id, person_id, None);
+        PostActions::like(pool, &form).await?;
+      }
+      PostOrCommentId::Comment(comment_id) => {
+        let form = CommentLikeForm::new(comment_id, person_id, None);
+        CommentActions::like(pool, &form).await?;
+      }
+    };
+  }
+  Ok(())
 }
 
 // TODO: errors from this function should not be returned from api
