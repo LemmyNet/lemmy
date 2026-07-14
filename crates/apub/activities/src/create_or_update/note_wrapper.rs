@@ -1,6 +1,7 @@
 use crate::protocol::create_or_update::{
   note::CreateOrUpdateNote,
   note_wrapper::CreateOrUpdateNoteWrapper,
+  page::CreateOrUpdatePage,
   private_message::CreateOrUpdatePrivateMessage,
 };
 use activitypub_federation::{config::Data, traits::Activity};
@@ -41,10 +42,20 @@ impl Activity for CreateOrUpdateNoteWrapper {
     // successful and a community is returned, this is a comment.
     let comment = from_value::<CreateOrUpdateNote>(val.clone());
     if let Ok(comment) = comment
-      && comment.community(context).await.is_ok()
+      && CreateOrUpdateNote::verify(&comment, context).await.is_ok()
     {
-      CreateOrUpdateNote::verify(&comment, context).await?;
       CreateOrUpdateNote::receive(comment, context).await?;
+      return Ok(());
+    }
+
+    // A post can also have type Create/Note and get parsed as NoteWrapper
+    // (especially from microblogging platforms like Mastodon or Mitra).
+    // So we need to check here if it parses as a valid post.
+    let post = from_value::<CreateOrUpdatePage>(val.clone());
+    if let Ok(post) = post
+      && CreateOrUpdatePage::verify(&post, context).await.is_ok()
+    {
+      CreateOrUpdatePage::receive(post, context).await?;
       return Ok(());
     }
 
