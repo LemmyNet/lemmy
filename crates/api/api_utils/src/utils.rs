@@ -35,8 +35,8 @@ use lemmy_db_schema_file::{
   enums::{
     CommunityDownvoteMode,
     CommunityFollowerState,
-    FederationMode,
     ImageMode,
+    LocalSiteVoteSettingsEnum,
     RegistrationMode,
   },
 };
@@ -341,15 +341,15 @@ pub async fn check_vote_settings(
 
   let site_allowed = if is_upvote {
     match upvote_setting {
-      FederationMode::All => true,
-      FederationMode::Local => person.local,
-      FederationMode::Disable => false,
+      LocalSiteVoteSettingsEnum::All => true,
+      LocalSiteVoteSettingsEnum::Local => person.local,
+      LocalSiteVoteSettingsEnum::Disable => false,
     }
   } else {
     match downvote_setting {
-      FederationMode::All => true,
-      FederationMode::Local => person.local,
-      FederationMode::Disable => false,
+      LocalSiteVoteSettingsEnum::All => true,
+      LocalSiteVoteSettingsEnum::Local => person.local,
+      LocalSiteVoteSettingsEnum::Disable => false,
     }
   };
 

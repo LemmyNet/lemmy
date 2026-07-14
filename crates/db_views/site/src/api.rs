@@ -24,9 +24,9 @@ use lemmy_db_schema_file::{
   PersonId,
   enums::{
     CommentSortType,
-    FederationMode,
     ImageMode,
     ListingType,
+    LocalSiteVoteSettingsEnum,
     PostListingMode,
     PostSortType,
     RegistrationMode,
@@ -153,10 +153,10 @@ pub struct CreateSite {
   pub content_warning: Option<String>,
   pub reports_email_admins: Option<bool>,
   pub federation_signed_fetch: Option<bool>,
-  pub post_upvotes: Option<FederationMode>,
-  pub post_downvotes: Option<FederationMode>,
-  pub comment_upvotes: Option<FederationMode>,
-  pub comment_downvotes: Option<FederationMode>,
+  pub post_upvotes: Option<LocalSiteVoteSettingsEnum>,
+  pub post_downvotes: Option<LocalSiteVoteSettingsEnum>,
+  pub comment_upvotes: Option<LocalSiteVoteSettingsEnum>,
+  pub comment_downvotes: Option<LocalSiteVoteSettingsEnum>,
   pub nsfw_content_disallowed: Option<bool>,
   pub email_notifications_disabled: Option<bool>,
   pub suggested_multi_community_id: Option<MultiCommunityId>,
@@ -278,13 +278,13 @@ pub struct EditSite {
   /// Whether or not external auth methods can auto-register users.
   pub oauth_registration: Option<bool>,
   /// What kind of post upvotes your site allows.
-  pub post_upvotes: Option<FederationMode>,
+  pub post_upvotes: Option<LocalSiteVoteSettingsEnum>,
   /// What kind of post downvotes your site allows.
-  pub post_downvotes: Option<FederationMode>,
+  pub post_downvotes: Option<LocalSiteVoteSettingsEnum>,
   /// What kind of comment upvotes your site allows.
-  pub comment_upvotes: Option<FederationMode>,
+  pub comment_upvotes: Option<LocalSiteVoteSettingsEnum>,
   /// What kind of comment downvotes your site allows.
-  pub comment_downvotes: Option<FederationMode>,
+  pub comment_downvotes: Option<LocalSiteVoteSettingsEnum>,
   /// Block NSFW content being created
   pub nsfw_content_disallowed: Option<bool>,
   /// Dont send email notifications to users for new replies, mentions etc

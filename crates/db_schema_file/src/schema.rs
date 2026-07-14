@@ -26,8 +26,8 @@ pub mod sql_types {
   pub struct CommunityVisibility;
 
   #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "federation_mode_enum"))]
-  pub struct FederationModeEnum;
+  #[diesel(postgres_type(name = "local_site_vote_settings_enum"))]
+  pub struct LocalSiteVoteSettingsEnum;
 
   #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
   #[diesel(postgres_type(name = "image_mode_enum"))]
@@ -382,7 +382,7 @@ diesel::table! {
     use super::sql_types::PostListingModeEnum;
     use super::sql_types::PostSortTypeEnum;
     use super::sql_types::CommentSortTypeEnum;
-    use super::sql_types::FederationModeEnum;
+    use super::sql_types::LocalSiteVoteSettingsEnum;
     use super::sql_types::ImageModeEnum;
 
     local_site (id) {
@@ -408,10 +408,10 @@ diesel::table! {
         default_post_sort_type -> PostSortTypeEnum,
         default_comment_sort_type -> CommentSortTypeEnum,
         oauth_registration -> Bool,
-        post_upvotes -> FederationModeEnum,
-        post_downvotes -> FederationModeEnum,
-        comment_upvotes -> FederationModeEnum,
-        comment_downvotes -> FederationModeEnum,
+        post_upvotes -> LocalSiteVoteSettingsEnum,
+        post_downvotes -> LocalSiteVoteSettingsEnum,
+        comment_upvotes -> LocalSiteVoteSettingsEnum,
+        comment_downvotes -> LocalSiteVoteSettingsEnum,
         default_post_time_range_seconds -> Nullable<Int4>,
         nsfw_content_disallowed -> Bool,
         users -> Int4,
