@@ -76,7 +76,7 @@ impl Activity for Vote {
       post_or_comment_id,
       &community,
       &actor,
-      &mut context.pool(),
+      context,
     )
     .await?;
 

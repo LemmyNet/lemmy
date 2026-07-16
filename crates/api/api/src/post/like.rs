@@ -54,7 +54,7 @@ pub async fn like_post(
     PostOrCommentId::Post(post_id),
     &orig_post.community,
     &local_user_view.person,
-    &mut context.pool(),
+    &context,
   )
   .await?;
 

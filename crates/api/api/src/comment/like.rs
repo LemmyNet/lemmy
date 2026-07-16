@@ -52,7 +52,7 @@ pub async fn like_comment(
     PostOrCommentId::Comment(comment_id),
     &orig_comment.community,
     &local_user_view.person,
-    &mut context.pool(),
+    &context,
   )
   .await?;
   check_bot_account(&local_user_view.person)?;

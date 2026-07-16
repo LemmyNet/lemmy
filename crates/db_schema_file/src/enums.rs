@@ -158,35 +158,19 @@ impl CommunityVisibility {
 #[cfg_attr(feature = "full", derive(DbEnum))]
 #[cfg_attr(
   feature = "full",
-  ExistingTypePath = "crate::schema::sql_types::CommunityDownvoteEnum"
-)]
-#[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(export))]
-pub enum CommunityDownvoteMode {
-  #[default]
-  All,
-  Subscribed,
-  Disabled,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash)]
-#[serde(rename_all = "snake_case")]
-#[cfg_attr(feature = "full", derive(DbEnum))]
-#[cfg_attr(
-  feature = "full",
-  ExistingTypePath = "crate::schema::sql_types::LocalSiteVoteSettingsEnum"
+  ExistingTypePath = "crate::schema::sql_types::VoteSettingsEnum"
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// The federation mode for an item
-pub enum LocalSiteVoteSettingsEnum {
+pub enum VoteSettings {
   #[default]
   /// Allows all
   All,
   /// Allows only local
   Local,
+  Subscribed,
   /// Disables
   Disable,
 }

@@ -13,7 +13,7 @@ use activitypub_federation::{
   },
 };
 use chrono::{DateTime, Utc};
-use lemmy_db_schema_file::enums::CommunityDownvoteMode;
+use lemmy_db_schema_file::enums::VoteSettings;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use std::fmt::Debug;
@@ -66,5 +66,5 @@ pub struct Group {
   #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) tag: Vec<ApubCommunityTag>,
   // lemmy extension
-  pub(crate) downvote_mode: Option<CommunityDownvoteMode>,
+  pub(crate) downvote_mode: Option<VoteSettings>,
 }

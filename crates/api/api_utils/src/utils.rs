@@ -32,13 +32,7 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
-  enums::{
-    CommunityDownvoteMode,
-    CommunityFollowerState,
-    ImageMode,
-    LocalSiteVoteSettingsEnum,
-    RegistrationMode,
-  },
+  enums::{CommunityFollowerState, ImageMode, RegistrationMode, VoteSettings},
 };
 use lemmy_db_views_community_follower_approval::PendingFollowerView;
 use lemmy_db_views_community_moderator::{CommunityModeratorView, CommunityPersonBanView};
@@ -326,10 +320,10 @@ pub async fn check_vote_settings(
   post_or_comment_id: PostOrCommentId,
   community: &Community,
   person: &Person,
-  pool: &mut DbPool<'_>,
+  context: &LemmyContext,
 ) -> LemmyResult<()> {
   let is_upvote = vote.unwrap_or_default();
-  let local_site = SiteView::read_local(pool)
+  let local_site = SiteView::read_local(&mut context.pool())
     .await
     .map(|s| s.local_site)
     .unwrap_or_default();
@@ -339,29 +333,26 @@ pub async fn check_vote_settings(
     PostOrCommentId::Comment(_) => (local_site.comment_downvotes, local_site.comment_upvotes),
   };
 
+  // TODO: make fn to reuse enum logic
+  let check_vote_fn = async |vote_setting, context: &LemmyContext| {
+    Ok::<bool, LemmyError>(match vote_setting {
+      VoteSettings::All => true,
+      VoteSettings::Local => person.local,
+      VoteSettings::Subscribed => {
+        let actions = CommunityActions::read(&mut context.pool(), community.id, person.id).await?;
+        actions.followed_at.is_some()
+          && actions.follow_state == Some(CommunityFollowerState::Accepted)
+      }
+      VoteSettings::Disable => false,
+    })
+  };
   let site_allowed = if is_upvote {
-    match upvote_setting {
-      LocalSiteVoteSettingsEnum::All => true,
-      LocalSiteVoteSettingsEnum::Local => person.local,
-      LocalSiteVoteSettingsEnum::Disable => false,
-    }
+    check_vote_fn(upvote_setting, context).await?
   } else {
-    match downvote_setting {
-      LocalSiteVoteSettingsEnum::All => true,
-      LocalSiteVoteSettingsEnum::Local => person.local,
-      LocalSiteVoteSettingsEnum::Disable => false,
-    }
+    check_vote_fn(downvote_setting, context).await?
   };
 
-  let community_allowed = match community.downvote_mode {
-    CommunityDownvoteMode::All => true,
-    CommunityDownvoteMode::Subscribed => {
-      let actions = CommunityActions::read(pool, community.id, person.id).await?;
-      actions.followed_at.is_some()
-        && actions.follow_state == Some(CommunityFollowerState::Accepted)
-    }
-    CommunityDownvoteMode::Disabled => is_upvote,
-  };
+  let community_allowed = check_vote_fn(upvote_setting, context).await?;
   if site_allowed && community_allowed {
     Ok(())
   } else {

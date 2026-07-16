@@ -10,10 +10,6 @@ pub mod sql_types {
   pub struct CommentSortTypeEnum;
 
   #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "community_downvote_enum"))]
-  pub struct CommunityDownvoteEnum;
-
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
   #[diesel(postgres_type(name = "community_follower_state"))]
   pub struct CommunityFollowerState;
 
@@ -24,10 +20,6 @@ pub mod sql_types {
   #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
   #[diesel(postgres_type(name = "community_visibility"))]
   pub struct CommunityVisibility;
-
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "local_site_vote_settings_enum"))]
-  pub struct LocalSiteVoteSettingsEnum;
 
   #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
   #[diesel(postgres_type(name = "image_mode_enum"))]
@@ -68,6 +60,10 @@ pub mod sql_types {
   #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
   #[diesel(postgres_type(name = "tag_color_enum"))]
   pub struct TagColorEnum;
+
+  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+  #[diesel(postgres_type(name = "vote_settings_enum"))]
+  pub struct VoteSettingsEnum;
 
   #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
   #[diesel(postgres_type(name = "vote_show_enum"))]
@@ -135,7 +131,7 @@ diesel::table! {
 diesel::table! {
     use diesel::sql_types::*;
     use super::sql_types::CommunityVisibility;
-    use super::sql_types::CommunityDownvoteEnum;
+    use super::sql_types::VoteSettingsEnum;
 
     community (id) {
         id -> Int4,
@@ -184,7 +180,7 @@ diesel::table! {
         report_count -> Int2,
         unresolved_report_count -> Int2,
         local_removed -> Bool,
-        downvote_mode -> CommunityDownvoteEnum,
+        downvote_mode -> VoteSettingsEnum,
     }
 }
 
@@ -382,7 +378,7 @@ diesel::table! {
     use super::sql_types::PostListingModeEnum;
     use super::sql_types::PostSortTypeEnum;
     use super::sql_types::CommentSortTypeEnum;
-    use super::sql_types::LocalSiteVoteSettingsEnum;
+    use super::sql_types::VoteSettingsEnum;
     use super::sql_types::ImageModeEnum;
 
     local_site (id) {
@@ -408,10 +404,10 @@ diesel::table! {
         default_post_sort_type -> PostSortTypeEnum,
         default_comment_sort_type -> CommentSortTypeEnum,
         oauth_registration -> Bool,
-        post_upvotes -> LocalSiteVoteSettingsEnum,
-        post_downvotes -> LocalSiteVoteSettingsEnum,
-        comment_upvotes -> LocalSiteVoteSettingsEnum,
-        comment_downvotes -> LocalSiteVoteSettingsEnum,
+        post_upvotes -> VoteSettingsEnum,
+        post_downvotes -> VoteSettingsEnum,
+        comment_upvotes -> VoteSettingsEnum,
+        comment_downvotes -> VoteSettingsEnum,
         default_post_time_range_seconds -> Nullable<Int4>,
         nsfw_content_disallowed -> Bool,
         users -> Int4,

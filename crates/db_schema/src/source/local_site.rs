@@ -8,10 +8,10 @@ use lemmy_db_schema_file::{
     CommentSortType,
     ImageMode,
     ListingType,
-    LocalSiteVoteSettingsEnum,
     PostListingMode,
     PostSortType,
     RegistrationMode,
+    VoteSettings,
   },
 };
 use serde::{Deserialize, Serialize};
@@ -67,13 +67,13 @@ pub struct LocalSite {
   /// Whether or not external auth methods can auto-register users.
   pub oauth_registration: bool,
   /// What kind of post upvotes your site allows.
-  pub post_upvotes: LocalSiteVoteSettingsEnum,
+  pub post_upvotes: VoteSettings,
   /// What kind of post downvotes your site allows.
-  pub post_downvotes: LocalSiteVoteSettingsEnum,
+  pub post_downvotes: VoteSettings,
   /// What kind of comment upvotes your site allows.
-  pub comment_upvotes: LocalSiteVoteSettingsEnum,
+  pub comment_upvotes: VoteSettings,
   /// What kind of comment downvotes your site allows.
-  pub comment_downvotes: LocalSiteVoteSettingsEnum,
+  pub comment_downvotes: VoteSettings,
   /// A default time range limit to apply to post sorts, in seconds.
   pub default_post_time_range_seconds: Option<i32>,
   /// Block NSFW content being created
@@ -160,13 +160,13 @@ pub struct LocalSiteInsertForm {
   #[new(default)]
   pub oauth_registration: Option<bool>,
   #[new(default)]
-  pub post_upvotes: Option<LocalSiteVoteSettingsEnum>,
+  pub post_upvotes: Option<VoteSettings>,
   #[new(default)]
-  pub post_downvotes: Option<LocalSiteVoteSettingsEnum>,
+  pub post_downvotes: Option<VoteSettings>,
   #[new(default)]
-  pub comment_upvotes: Option<LocalSiteVoteSettingsEnum>,
+  pub comment_upvotes: Option<VoteSettings>,
   #[new(default)]
-  pub comment_downvotes: Option<LocalSiteVoteSettingsEnum>,
+  pub comment_downvotes: Option<VoteSettings>,
   #[new(default)]
   pub default_post_time_range_seconds: Option<i32>,
   #[new(default)]
@@ -220,10 +220,10 @@ pub struct LocalSiteUpdateForm {
   pub default_post_sort_type: Option<PostSortType>,
   pub default_comment_sort_type: Option<CommentSortType>,
   pub oauth_registration: Option<bool>,
-  pub post_upvotes: Option<LocalSiteVoteSettingsEnum>,
-  pub post_downvotes: Option<LocalSiteVoteSettingsEnum>,
-  pub comment_upvotes: Option<LocalSiteVoteSettingsEnum>,
-  pub comment_downvotes: Option<LocalSiteVoteSettingsEnum>,
+  pub post_upvotes: Option<VoteSettings>,
+  pub post_downvotes: Option<VoteSettings>,
+  pub comment_upvotes: Option<VoteSettings>,
+  pub comment_downvotes: Option<VoteSettings>,
   pub default_post_time_range_seconds: Option<Option<i32>>,
   pub nsfw_content_disallowed: Option<bool>,
   pub email_notifications_disabled: Option<bool>,
