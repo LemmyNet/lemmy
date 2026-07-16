@@ -765,6 +765,24 @@ diesel::table! {
 }
 
 diesel::table! {
+    plugin (id) {
+        id -> Int4,
+        file -> Text,
+        hash -> Text,
+        allowed_hosts -> Nullable<Text>,
+    }
+}
+
+diesel::table! {
+    plugin_config (id) {
+        id -> Int4,
+        plugin_id -> Int4,
+        key -> Text,
+        value -> Text,
+    }
+}
+
+diesel::table! {
     post (id) {
         id -> Int4,
         #[max_length = 200]
@@ -1060,6 +1078,7 @@ diesel::joinable!(person_liked_combined -> post (post_id));
 diesel::joinable!(person_saved_combined -> comment (comment_id));
 diesel::joinable!(person_saved_combined -> community (community_id));
 diesel::joinable!(person_saved_combined -> post (post_id));
+diesel::joinable!(plugin_config -> plugin (plugin_id));
 diesel::joinable!(post -> community (community_id));
 diesel::joinable!(post -> language (language_id));
 diesel::joinable!(post -> person (creator_id));
@@ -1133,3 +1152,4 @@ diesel::allow_tables_to_appear_in_same_query!(
   image_details,
 );
 diesel::allow_tables_to_appear_in_same_query!(custom_emoji, custom_emoji_keyword,);
+diesel::allow_tables_to_appear_in_same_query!(plugin, plugin_config,);

@@ -28,6 +28,7 @@ pub mod oauth_account;
 pub mod oauth_provider;
 pub mod password_reset_request;
 pub mod person;
+pub mod plugin;
 pub mod post;
 pub mod post_report;
 pub mod private_message;
