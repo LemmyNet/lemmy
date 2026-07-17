@@ -50,3 +50,13 @@ pub struct PostReportForm {
   pub reason: String,
   pub violates_instance_rules: bool,
 }
+
+#[derive(Clone, Default)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = post_report))]
+pub struct UpdateReportForm {
+  pub resolver_id: Option<PersonId>,
+  pub resolved: Option<bool>,
+  pub resolve_reason: Option<Option<String>>,
+  pub updated_at: Option<DateTime<Utc>>,
+}

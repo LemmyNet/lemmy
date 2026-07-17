@@ -1,17 +1,22 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
+use chrono::Utc;
 use either::Either;
 use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_community_mod_action,
 };
-use lemmy_db_schema::{source::post_report::PostReport, traits::Reportable};
+use lemmy_db_schema::{
+  source::post_report::{PostReport, UpdateReportForm},
+  traits::Reportable,
+};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_report_combined::{
   ReportCombinedViewInternal,
   api::{PostReportResponse, ResolvePostReport},
 };
+use lemmy_diesel_utils::utils::diesel_string_update;
 use lemmy_utils::error::LemmyResult;
 
 /// Resolves or unresolves a post report and notifies the moderators of the community
@@ -34,14 +39,16 @@ pub async fn resolve_post_report(
   )
   .await?;
 
-  PostReport::update_resolved(
-    &mut context.pool(),
-    report_id,
-    person.id,
-    data.resolved,
-    data.resolve_reason,
-  )
-  .await?;
+  let resolve_reason = diesel_string_update(data.resolve_reason.as_deref());
+
+  let form = UpdateReportForm {
+    resolver_id: Some(data.person.id),
+    resolved: Some(data.resolved),
+    resolve_reason,
+    updated_at: Some(Utc::now()),
+  };
+
+  PostReport::update_resolved(&mut context.pool(), report_id, &form).await?;
 
   let post_report_view =
     ReportCombinedViewInternal::read_post_report(&mut context.pool(), report_id, person).await?;
