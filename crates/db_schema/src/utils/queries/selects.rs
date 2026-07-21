@@ -283,6 +283,50 @@ pub fn comment_select_remove_deletes() -> _ {
   )
 }
 
+/// A special version of the above, using local_user_can_mod instead of local_user_can_mod_comment
+#[diesel::dsl::auto_type]
+pub fn comment_select_remove_deletes_combined() -> _ {
+  let deleted_or_removed = comment::deleted.or(comment::removed);
+
+  // You can only view the content if it hasn't been removed, you're a mod or it's your own comment.
+  let is_creator = local_user::person_id
+    .nullable()
+    .eq(comment::creator_id.nullable());
+  let can_view_content = not(deleted_or_removed)
+    // This needs to be local_user_can_mod, and not local_user_can_mod_comment
+    .or(local_user_can_mod())
+    .or(is_creator);
+  let content = case_when(can_view_content, comment::content).otherwise("");
+
+  (
+    comment::id,
+    comment::creator_id,
+    comment::post_id,
+    content,
+    comment::removed,
+    comment::published_at,
+    comment::updated_at,
+    comment::deleted,
+    comment::ap_id,
+    comment::local,
+    comment::path,
+    comment::distinguished,
+    comment::language_id,
+    comment::score,
+    comment::upvotes,
+    comment::downvotes,
+    comment::child_count,
+    comment::hot_rank,
+    comment::controversy_rank,
+    comment::report_count,
+    comment::unresolved_report_count,
+    comment::federation_pending,
+    comment::locked,
+    comment::community_id,
+  )
+    .nullable()
+}
+
 /// Selects the post columns, but gives an empty string for content when
 /// deleted or removed, and you're not a mod/admin.
 #[diesel::dsl::auto_type]
@@ -295,6 +339,64 @@ pub fn post_select_remove_deletes() -> _ {
     .eq(post::creator_id.nullable());
   let can_view_content = not(deleted_or_removed)
     .or(local_user_can_mod_post())
+    .or(is_creator);
+  let body = case_when(can_view_content, post::body).otherwise("");
+
+  (
+    post::id,
+    post::name,
+    post::url,
+    body,
+    post::creator_id,
+    post::community_id,
+    post::removed,
+    post::locked,
+    post::published_at,
+    post::updated_at,
+    post::deleted,
+    post::nsfw,
+    post::embed_title,
+    post::embed_description,
+    post::thumbnail_url,
+    post::ap_id,
+    post::local,
+    post::embed_video_url,
+    post::language_id,
+    post::featured_community,
+    post::featured_local,
+    post::url_content_type,
+    post::alt_text,
+    post::scheduled_publish_time_at,
+    post::newest_comment_time_necro_at,
+    post::newest_comment_time_at,
+    post::comments,
+    post::score,
+    post::upvotes,
+    post::downvotes,
+    post::hot_rank,
+    post::hot_rank_active,
+    post::controversy_rank,
+    post::scaled_rank,
+    post::report_count,
+    post::unresolved_report_count,
+    post::federation_pending,
+    post::embed_video_width,
+    post::embed_video_height,
+  )
+}
+
+/// A special version of the above, using local_user_can_mod instead of local_user_can_mod_comment
+#[diesel::dsl::auto_type]
+pub fn post_select_remove_deletes_combined() -> _ {
+  let deleted_or_removed = post::deleted.or(post::removed);
+
+  // You can only view the content if it hasn't been removed, you're a mod or it's your own post.
+  let is_creator = local_user::person_id
+    .nullable()
+    .eq(post::creator_id.nullable());
+  let can_view_content = not(deleted_or_removed)
+    // This needs to be local_user_can_mod, and not local_user_can_mod_comment
+    .or(local_user_can_mod())
     .or(is_creator);
   let body = case_when(can_view_content, post::body).otherwise("");
 
