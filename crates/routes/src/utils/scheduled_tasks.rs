@@ -66,9 +66,13 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
   // https://github.com/mdsherry/clokwerk/issues/38
   let mut scheduler = AsyncScheduler::with_tz(Utc);
 
+  let context_1 = context.clone();
   // Every 1 minute run plugin hooks
-  scheduler.every(CTimeUnits::minutes(1)).run(async move || {
-    plugin_hook_after("scheduled_task_1_min", &());
+  scheduler.every(CTimeUnits::minutes(1)).run(move || {
+    let context = context_1.clone();
+    async move {
+      plugin_hook_after("scheduled_task_1_min", &(), &context);
+    }
   });
 
   let context_1 = context.clone();
@@ -85,7 +89,7 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
         .await
         .inspect_err(|e| warn!("Failed to publish scheduled posts: {e}"))
         .ok();
-      plugin_hook_after("scheduled_task_10_mins", &());
+      plugin_hook_after("scheduled_task_10_mins", &(), &context);
     }
   });
 
@@ -115,7 +119,7 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
         .await
         .inspect_err(|e| warn!("Failed to delete expired invitations: {e}"))
         .ok();
-      plugin_hook_after("scheduled_task_1_hour", &());
+      plugin_hook_after("scheduled_task_1_hour", &(), &context);
     }
   });
 
@@ -155,7 +159,7 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
         .await
         .inspect_err(|e| warn!("Failed to clear old activities: {e}"))
         .ok();
-      plugin_hook_after("scheduled_task_daily", &());
+      plugin_hook_after("scheduled_task_daily", &(), &context);
     }
   });
 

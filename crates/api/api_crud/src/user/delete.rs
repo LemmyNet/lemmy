@@ -40,7 +40,7 @@ pub async fn delete_account(
     delete_content: data.delete_content,
   };
 
-  form = plugin_hook_before("local_user_before_delete", form).await?;
+  form = plugin_hook_before("local_user_before_delete", form, &context).await?;
   if form.delete_content {
     purge_user_account(local_user_view.person.id, local_instance_id, &context).await?;
   } else {
@@ -59,7 +59,7 @@ pub async fn delete_account(
     )
     .await?;
   }
-  plugin_hook_after("local_user_after_delete", &form);
+  plugin_hook_after("local_user_after_delete", &form, &context);
 
   LoginToken::invalidate_all(&mut context.pool(), local_user_view.local_user.id).await?;
 

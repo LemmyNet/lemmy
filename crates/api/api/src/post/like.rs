@@ -65,7 +65,7 @@ pub async fn like_post(
   check_community_user_action(&local_user_view, &orig_post.community, &mut context.pool()).await?;
 
   let mut like_form = PostLikeForm::new(data.post_id, my_person_id, data.is_upvote);
-  like_form = plugin_hook_before("post_before_vote", like_form).await?;
+  like_form = plugin_hook_before("post_before_vote", like_form, &context).await?;
   let like = PostActions::like(&mut context.pool(), &like_form).await?;
   PersonActions::like(
     &mut context.pool(),
@@ -76,7 +76,7 @@ pub async fn like_post(
   )
   .await?;
 
-  plugin_hook_after("post_after_vote", &like);
+  plugin_hook_after("post_after_vote", &like, &context);
 
   // Mark Post Read
   PostActions::mark_as_read(&mut context.pool(), my_person_id, &[post_id]).await?;

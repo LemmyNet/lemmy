@@ -75,7 +75,7 @@ pub async fn edit_comment(
     updated_at: Some(Some(Utc::now())),
     ..Default::default()
   };
-  form = plugin_hook_before("local_comment_before_update", form).await?;
+  form = plugin_hook_before("local_comment_before_update", form, &context).await?;
   validate_post_language(
     &mut context.pool(),
     form.language_id,
@@ -85,7 +85,7 @@ pub async fn edit_comment(
 
   let updated_comment = Comment::update(&mut context.pool(), comment_id, &form).await?;
 
-  plugin_hook_after("local_comment_after_update", &updated_comment);
+  plugin_hook_after("local_comment_after_update", &updated_comment, &context);
 
   // Do the mentions / recipients
   NotifyData {

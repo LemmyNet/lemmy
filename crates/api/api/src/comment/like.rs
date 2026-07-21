@@ -68,7 +68,7 @@ pub async fn like_comment(
   .await?;
 
   let mut like_form = CommentLikeForm::new(data.comment_id, my_person_id, data.is_upvote);
-  like_form = plugin_hook_before("comment_before_vote", like_form).await?;
+  like_form = plugin_hook_before("comment_before_vote", like_form, &context).await?;
   let like = CommentActions::like(&mut context.pool(), &like_form).await?;
   PersonActions::like(
     &mut context.pool(),
@@ -79,7 +79,7 @@ pub async fn like_comment(
   )
   .await?;
 
-  plugin_hook_after("comment_after_vote", &like);
+  plugin_hook_after("comment_after_vote", &like, &context);
 
   // Mark any notification as read
   Notification::mark_read_by_comment_and_recipient(

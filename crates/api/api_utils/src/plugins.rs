@@ -7,7 +7,7 @@ use lemmy_db_views_notification::NotificationView;
 use lemmy_db_views_registration_applications::api::CaptchaAnswer;
 use lemmy_db_views_site::api::CaptchaResponse;
 use lemmy_diesel_utils::traits::Crud;
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::{error::LemmyResult, spawn_try_task};
 use serde::{Deserialize, Serialize};
 use tokio::task::spawn_blocking;
 
@@ -29,22 +29,22 @@ where
 }
 
 /// Call a plugin hook without rewriting data
-pub async fn plugin_hook_after<T>(
-  name: &'static str,
-  data: &T,
-  context: &LemmyContext,
-) -> LemmyResult<()>
+pub fn plugin_hook_after<T>(name: &'static str, data: &T, context: &LemmyContext)
 where
   T: Clone + Serialize + for<'b> Deserialize<'b> + Sync + Send + 'static,
 {
-  let plugins = LemmyPlugins::get_or_init(context).await?;
-  if !plugins.function_exists(name) {
-    return Ok(());
-  }
-
   let data = data.clone();
-  spawn_blocking(move || run_plugin_hook_after(plugins, name, data));
-  Ok(())
+  let context = context.clone();
+  spawn_try_task(async move {
+    let plugins = LemmyPlugins::get_or_init(&context).await?;
+    if !plugins.function_exists(name) {
+      return Ok(());
+    }
+
+    let data = data.clone();
+    run_plugin_hook_after(plugins, name, data).await?;
+    Ok(())
+  })
 }
 
 /// Calls plugin hook for the given notifications Loads additional data via

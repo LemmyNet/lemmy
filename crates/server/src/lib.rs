@@ -48,6 +48,7 @@ use lemmy_utils::{
   rate_limit::RateLimit,
   response::jsonify_plain_text_errors,
   settings::{SETTINGS, structs::Settings},
+  spawn_try_task,
 };
 use reqwest_middleware::ClientBuilder;
 use reqwest_tracing::TracingMiddleware;
@@ -176,9 +177,6 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
     startup_server_handle = Some(create_startup_server()?);
   }
 
-  // Initialize plugins in background
-  tokio::task::spawn_blocking(LemmyPlugins::get_or_init);
-
   // Set up the connection pool
   let pool = build_db_pool()?;
 
@@ -216,6 +214,13 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
     secret.clone(),
     rate_limit_cell,
   );
+
+  // Initialize plugins in background
+  let context_1 = context.clone();
+  spawn_try_task(async move {
+    LemmyPlugins::get_or_init(&context_1).await?;
+    Ok(())
+  });
 
   if let Some(prometheus) = SETTINGS.prometheus.clone() {
     serve_prometheus(prometheus, context.clone())?;

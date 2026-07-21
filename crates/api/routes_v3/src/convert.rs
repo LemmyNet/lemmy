@@ -55,7 +55,6 @@ use lemmy_api_019::{
     SearchResponse as SearchResponseV3,
   },
 };
-use lemmy_api_utils::plugins::LemmyPlugins;
 use lemmy_db_schema::{
   CommunitySortType,
   newtypes::LanguageId,
@@ -549,7 +548,7 @@ pub(crate) fn convert_post(post: Post) -> (PostV3, PostAggregates) {
     },
   )
 }
-pub(crate) fn convert_site_view(site_view: SiteView) -> SiteViewV3 {
+pub(crate) fn convert_site_view(site_view: SiteView, captcha_enabled: bool) -> SiteViewV3 {
   let SiteView {
     site, local_site, ..
   } = site_view;
@@ -567,7 +566,7 @@ pub(crate) fn convert_site_view(site_view: SiteView) -> SiteViewV3 {
   };
   SiteViewV3 {
     site: convert_site(site),
-    local_site: convert_local_site(local_site),
+    local_site: convert_local_site(local_site, captcha_enabled),
     local_site_rate_limit: dummy_local_site_rate_limit(),
     counts,
   }
@@ -613,7 +612,7 @@ pub(crate) fn convert_db_url(db_url: DbUrl) -> DbUrlV3 {
   url.into()
 }
 
-pub(crate) fn convert_local_site(local_site: LocalSite) -> LocalSiteV3 {
+pub(crate) fn convert_local_site(local_site: LocalSite, captcha_enabled: bool) -> LocalSiteV3 {
   let LocalSite {
     site_id,
     site_setup,
@@ -657,7 +656,7 @@ pub(crate) fn convert_local_site(local_site: LocalSite) -> LocalSiteV3 {
     slur_filter_regex,
     actor_name_max_length: 20,
     federation_enabled,
-    captcha_enabled: LemmyPlugins::get_or_init().is_captcha_plugin_loaded(),
+    captcha_enabled,
     captcha_difficulty: String::new(),
     published: published_at,
     updated: updated_at,

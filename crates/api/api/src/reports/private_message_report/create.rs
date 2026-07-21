@@ -60,6 +60,7 @@ pub async fn create_pm_report(
   plugin_hook_after(
     "private_message_report_after_create",
     &private_message_report_view,
+    &context,
   );
 
   // Email the admins
