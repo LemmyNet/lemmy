@@ -395,7 +395,7 @@ pub fn post_select_remove_deletes_combined() -> _ {
     .nullable()
     .eq(post::creator_id.nullable());
   let can_view_content = not(deleted_or_removed)
-    // This needs to be local_user_can_mod, and not local_user_can_mod_comment
+    // This needs to be local_user_can_mod, and not local_user_can_mod_post
     .or(local_user_can_mod())
     .or(is_creator);
   let body = case_when(can_view_content, post::body).otherwise("");
