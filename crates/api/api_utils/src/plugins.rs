@@ -149,7 +149,7 @@ mod internal {
   };
   use extism_convert::Json;
   use extism_manifest::HttpRequest;
-  use lemmy_db_schema::source::plugin::Plugin;
+  use lemmy_db_schema::{impls::plugin::PluginView, source::plugin::Plugin};
   use lemmy_db_views_site::api::PluginMetadata;
   use lemmy_utils::{
     CacheLock,
@@ -159,13 +159,7 @@ mod internal {
   };
   use moka::future::Cache;
   use serde::{Deserialize, Serialize};
-  use std::{
-    env::var,
-    ops::Deref,
-    path::PathBuf,
-    sync::{LazyLock, OnceLock},
-    time::Duration,
-  };
+  use std::{path::PathBuf, sync::LazyLock, time::Duration};
   use tokio::task::spawn_blocking;
   use tracing::{error, warn};
   use url::Url;
@@ -247,7 +241,7 @@ mod internal {
   }
 
   impl LemmyPlugin {
-    fn init(settings: Plugin) -> LemmyResult<Self> {
+    fn init(settings: PluginView) -> LemmyResult<Self> {
       // TODO: do we still need a way to skip hash check with `DANGER_PLUGIN_SKIP_HASH_CHECK`?
       //       or simply calculate hash automatically when plugin is added?
       /*
@@ -258,25 +252,27 @@ mod internal {
         Some(settings.hash.unwrap_or_else(|| "dummy".to_string()))
       };
       */
-      let hash = Some(settings.hash);
+      let file = settings.plugin.file;
+      let hash = Some(settings.plugin.hash);
       let meta = WasmMetadata { hash, name: None };
-      let (wasm, filename) = if settings.file.starts_with("http") {
-        let name: Option<String> = Url::parse(&settings.file)?
+      let (wasm, filename) = if file.starts_with("http") {
+        let name: Option<String> = Url::parse(&file)?
           .path_segments()
           .and_then(|mut p| p.next_back())
           .map(std::string::ToString::to_string);
         let req = HttpRequest {
-          url: settings.file.clone(),
+          url: file.clone(),
           headers: Default::default(),
           method: None,
         };
         (Wasm::Url { req, meta }, name)
       } else {
-        let path = PathBuf::from(settings.file.clone());
+        let path = PathBuf::from(file.clone());
         let name: Option<String> = path.file_name().map(|n| n.to_string_lossy().to_string());
         (Wasm::File { path, meta }, name)
       };
       let allowed_hosts = settings
+        .plugin
         .allowed_hosts
         .map(|a| a.split(",").map(ToString::to_string).collect::<Vec<_>>());
       let mut manifest = Manifest {
@@ -303,7 +299,7 @@ mod internal {
       }
       Ok(LemmyPlugin {
         pool,
-        filename: filename.unwrap_or(settings.file),
+        filename: filename.unwrap_or(file),
       })
     }
 
@@ -332,10 +328,11 @@ mod internal {
           .try_get_with::<_, LemmyError>((), async {
             let plugins = Plugin::read_all(&mut context.pool()).await?;
             let mut plugins: Vec<_> = plugins
-              .iter()
+              .into_iter()
               .flat_map(|p| {
-                LemmyPlugin::init(p.clone())
-                  .inspect_err(|e| warn!("Failed to load plugin {}: {e}", p.file))
+                let file = p.plugin.file.clone();
+                LemmyPlugin::init(p)
+                  .inspect_err(|e| warn!("Failed to load plugin {}: {e}", file))
                   .ok()
               })
               .collect();

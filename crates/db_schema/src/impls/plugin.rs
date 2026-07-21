@@ -1,15 +1,17 @@
 use crate::{
+  diesel::ExpressionMethods,
   newtypes::PluginId,
-  source::plugin::{Plugin, PluginForm},
+  source::plugin::{Plugin, PluginConfig, PluginForm},
 };
 use diesel::{QueryDsl, insert_into};
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::plugin;
+use lemmy_db_schema_file::schema::{plugin, plugin_config};
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   traits::Crud,
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use std::collections::BTreeMap;
 
 impl Crud for Plugin {
   type InsertForm = PluginForm;
@@ -41,9 +43,25 @@ impl Crud for Plugin {
   }
 }
 
+pub struct PluginView {
+  pub plugin: Plugin,
+  pub config: BTreeMap<String, String>,
+}
+
 impl Plugin {
-  pub async fn read_all(pool: &mut DbPool<'_>) -> LemmyResult<Vec<Plugin>> {
+  pub async fn read_all(pool: &mut DbPool<'_>) -> LemmyResult<Vec<PluginView>> {
     let conn = &mut get_conn(pool).await?;
-    Ok(plugin::table.get_results(conn).await?)
+    let plugins: Vec<Plugin> = plugin::table.get_results(conn).await?;
+    let mut res = vec![];
+    for plugin in plugins {
+      // TODO: should use only a single sql query
+      let config: Vec<PluginConfig> = plugin_config::table
+        .filter(plugin_config::plugin_id.eq(plugin.id))
+        .get_results(conn)
+        .await?;
+      let config = config.into_iter().map(|c| (c.key, c.value)).collect();
+      res.push(PluginView { plugin, config });
+    }
+    Ok(res)
   }
 }
