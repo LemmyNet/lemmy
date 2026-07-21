@@ -61,9 +61,9 @@ async fn read_site(context: &LemmyContext) -> LemmyResult<GetSiteResponse> {
     tagline,
     oauth_providers,
     admin_oauth_providers,
-    active_plugins: LemmyPlugins::metadata(&context).await,
+    active_plugins: LemmyPlugins::metadata(context).await,
     last_application_duration_seconds,
-    captcha_enabled: LemmyPlugins::get_or_init(&context)
+    captcha_enabled: LemmyPlugins::get_or_init(context)
       .await?
       .is_captcha_plugin_loaded(),
   })

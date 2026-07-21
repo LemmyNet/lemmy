@@ -188,7 +188,7 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
   let federation_enabled = site_view.local_site.federation_enabled;
 
   if federation_enabled {
-    println!("Federation enabled, host is {}", &SETTINGS.hostname);
+    println!("Federation enabled, host is {}", SETTINGS.hostname);
   }
 
   // Set up the rate limiter

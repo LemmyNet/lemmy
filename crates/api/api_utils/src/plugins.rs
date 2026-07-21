@@ -278,7 +278,7 @@ mod internal {
       let mut manifest = Manifest {
         wasm: vec![wasm],
         config: settings.config,
-        allowed_hosts: allowed_hosts,
+        allowed_hosts,
         memory: Default::default(),
         allowed_paths: None,
         timeout_ms: None,
@@ -323,6 +323,7 @@ mod internal {
     pub async fn get_or_init(context: &LemmyContext) -> LemmyResult<LemmyPlugins> {
       static PLUGINS: CacheLock<LemmyPlugins> =
         LazyLock::new(|| Cache::builder().max_capacity(1).build());
+
       Ok(
         PLUGINS
           .try_get_with::<_, LemmyError>((), async {
@@ -363,9 +364,10 @@ mod internal {
             })
           })
           .await
-          .unwrap(),
+          .map_err(|e| anyhow::anyhow!("Failed to initialize plugins: {e}"))?,
       )
     }
+
     pub async fn metadata(context: &LemmyContext) -> Vec<PluginMetadata> {
       static METADATA: CacheLock<Vec<PluginMetadata>> =
         LazyLock::new(|| Cache::builder().max_capacity(1).build());
@@ -377,30 +379,32 @@ mod internal {
       } else {
         let context = context.clone();
         tokio::task::spawn(async move {
-          METADATA.try_get_with::<_, LemmyError>((), async move {
-            let mut metadata = vec![];
-            for plugin in LemmyPlugins::get_or_init(&context).await?.plugins {
-              let run = match plugin.pool.get(GET_PLUGIN_TIMEOUT) {
-                Ok(p) => p,
-                Err(e) => {
-                  error!("Failed to load plugin {}: {e}", plugin.filename);
-                  continue;
+          METADATA
+            .try_get_with::<_, LemmyError>((), async move {
+              let mut metadata = vec![];
+              for plugin in LemmyPlugins::get_or_init(&context).await?.plugins {
+                let run = match plugin.pool.get(GET_PLUGIN_TIMEOUT) {
+                  Ok(p) => p,
+                  Err(e) => {
+                    error!("Failed to load plugin {}: {e}", plugin.filename);
+                    continue;
+                  }
+                };
+                let m = run.and_then(|mut run| run.call("metadata", 0).ok());
+                if let Some(m) = m {
+                  metadata.push(m);
+                } else {
+                  // Failed to load plugin metadata, use placeholder
+                  metadata.push(PluginMetadata {
+                    name: plugin.filename,
+                    url: None,
+                    description: None,
+                  });
                 }
-              };
-              let m = run.and_then(|mut run| run.call("metadata", 0).ok());
-              if let Some(m) = m {
-                metadata.push(m);
-              } else {
-                // Failed to load plugin metadata, use placeholder
-                metadata.push(PluginMetadata {
-                  name: plugin.filename,
-                  url: None,
-                  description: None,
-                });
               }
-            }
-            Ok(metadata)
-          })
+              Ok(metadata)
+            })
+            .await
         });
         vec![]
       }

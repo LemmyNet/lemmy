@@ -88,7 +88,7 @@ where
 {
   let id = format!(
     "{}/activities/{}/{}",
-    &context.settings().get_protocol_and_hostname(),
+    context.settings().get_protocol_and_hostname(),
     kind.to_string().to_lowercase(),
     Uuid::new_v4()
   );
