@@ -363,7 +363,7 @@ pub async fn authenticate_with_oauth(
 
     // Lookup user by OAUTH email and link accounts
     local_user_view = if let Ok(email) = &email {
-      LocalUserView::find_by_email(pool, &email).await
+      LocalUserView::find_by_email(pool, email).await
     } else {
       Err(LemmyErrorType::OauthLoginFailed.into())
     };
