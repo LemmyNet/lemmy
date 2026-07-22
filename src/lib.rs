@@ -60,8 +60,7 @@ use tracing_error::ErrorLayer;
 use tracing_log::LogTracer;
 use tracing_subscriber::{filter::Targets, layer::SubscriberExt, Layer, Registry};
 
-#[cfg_attr(target_arch = "x86_64", global_allocator)]
-#[cfg(target_arch = "x86_64")]
+#[global_allocator]
 static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 
 /// Timeout for HTTP requests while sending activities. A longer timeout provides better
