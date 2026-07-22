@@ -41,15 +41,11 @@ afterAll(async () => {
   await Promise.allSettled([unfollows(), deleteAllMedia(alpha)]);
 });
 
-function inlineContentDisposition(filename: string): string {
-  return `inline; filename="${encodeURIComponent(filename)}"`;
-}
-
 async function expectProxiedImageContentDisposition(
   url: string,
   filename: string,
 ) {
-  const expectedContentDisposition = inlineContentDisposition(filename);
+  const expectedContentDisposition = `inline; filename="${encodeURIComponent(filename)}"`;
   // Strip max_size so Lemmy requests image/original?proxy= from pict-rs instead of
   // image/process.*?proxy=, which hangs in pict-rs danger-dummy-mode. The
   // Content-Disposition header is set by Lemmy from the URL filename and is
