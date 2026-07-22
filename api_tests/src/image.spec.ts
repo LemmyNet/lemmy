@@ -214,7 +214,7 @@ test("Purge post, linked image removed", async () => {
 
 test("Images in remote image post are proxied if setting enabled", async () => {
   const expectedFilename = decodeURIComponent(
-    new URL(sampleImage).pathname.split("/").pop() ?? "",
+    new URL(sampleImage).pathname.split("/").pop()!,
   );
 
   const community = await createCommunity(gamma).then(expectSuccess);
@@ -244,12 +244,10 @@ test("Images in remote image post are proxied if setting enabled", async () => {
   expect(post.thumbnail_url?.includes(".jpg")).toBeTruthy();
 
   // Proxied image should include a Content-Disposition: inline header
-  if (post.thumbnail_url) {
-    await expectProxiedImageContentDisposition(
-      post.thumbnail_url,
-      expectedFilename,
-    );
-  }
+  await expectProxiedImageContentDisposition(
+    post.thumbnail_url!,
+    expectedFilename,
+  );
 
   const epsilonPostRes = await resolvePost(epsilon, postRes.post_view.post);
   expect(epsilonPostRes?.post).toBeDefined();
@@ -276,12 +274,10 @@ test("Images in remote image post are proxied if setting enabled", async () => {
   // Make sure that it contains `jpg`, to be sure its an image
   expect(epsilonPost.thumbnail_url?.includes(".jpg")).toBeTruthy();
 
-  if (epsilonPost.thumbnail_url) {
-    await expectProxiedImageContentDisposition(
-      epsilonPost.thumbnail_url,
-      expectedFilename,
-    );
-  }
+  await expectProxiedImageContentDisposition(
+    epsilonPost.thumbnail_url!,
+    expectedFilename,
+  );
 });
 
 test("Thumbnail of remote image link is proxied if setting enabled", async () => {

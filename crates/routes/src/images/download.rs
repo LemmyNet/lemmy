@@ -108,7 +108,7 @@ pub async fn image_proxy(
     Ok(Either::Left(Redirect::to(url.to_string()).respond_to(&req)))
   } else {
     // Proxy the image data through Lemmy
-    let download_filename = download_filename_from_url(url_for_filename.path(), output_file_type);
+    let download_filename = download_filename_from_url_path(url_for_filename.path(), output_file_type);
     Ok(Either::Right(
       do_get_image(processed_url, req, &context, download_filename).await?,
     ))
@@ -175,8 +175,12 @@ fn set_content_disposition(client_res: &mut HttpResponseBuilder, filename: &str)
 /// original image URL from its `url` query param. This handles federated posts
 /// where the thumbnail URL from the origin instance is already a proxy URL that
 /// gets re-proxied by the receiving instance.
+fn is_proxy_url(path: &str) -> bool {
+  path.ends_with("/api/v4/image/proxy") || path.ends_with("/api/v3/image_proxy")
+}
+
 fn unwrap_proxy_url(url: &Url) -> Url {
-  if !url.path().ends_with("/api/v4/image/proxy") {
+  if !is_proxy_url(url.path()) {
     return url.clone();
   }
 
@@ -197,7 +201,7 @@ fn unwrap_proxy_url(url: &Url) -> Url {
 ///
 /// If `output_file_type` is set, the extension is replaced with that type.
 /// Otherwise the original extension is preserved, or `.jpg` is added when none exists.
-fn download_filename_from_url(
+fn download_filename_from_url_path(
   path: &str,
   output_file_type: Option<PictrsFileType>,
 ) -> Option<String> {
@@ -233,7 +237,7 @@ fn file_type(file_type: Option<String>, name: &str) -> LemmyResult<PictrsFileTyp
 
 #[cfg(test)]
 mod tests {
-  use super::{PictrsFileType, download_filename_from_url, set_content_disposition};
+  use super::{PictrsFileType, download_filename_from_url_path, set_content_disposition};
   use crate::images::download::file_type;
   use actix_web::{
     HttpResponse,
@@ -290,36 +294,36 @@ mod tests {
   }
 
   #[test]
-  fn test_download_filename_from_url() {
+  fn test_download_filename_from_url_path() {
     assert_eq!(
-      download_filename_from_url("/images/photo.png", Some(PictrsFileType::Avif)),
+      download_filename_from_url_path("/images/photo.png", Some(PictrsFileType::Avif)),
       Some("photo.avif".to_string())
     );
 
     assert_eq!(
-      download_filename_from_url("/images/archive", Some(PictrsFileType::Webp)),
+      download_filename_from_url_path("/images/archive", Some(PictrsFileType::Webp)),
       Some("archive.webp".to_string())
     );
 
     assert_eq!(
-      download_filename_from_url("/images/photo.tar.gz", Some(PictrsFileType::Jpg)),
+      download_filename_from_url_path("/images/photo.tar.gz", Some(PictrsFileType::Jpg)),
       Some("photo.tar.jpg".to_string())
     );
 
     assert_eq!(
-      download_filename_from_url("/images/%C3%A9l%C3%A9phant.png", Some(PictrsFileType::Jxl)),
+      download_filename_from_url_path("/images/%C3%A9l%C3%A9phant.png", Some(PictrsFileType::Jxl)),
       Some("éléphant.jxl".to_string())
     );
 
     // Without output file type, original extension is preserved
     assert_eq!(
-      download_filename_from_url("/images/photo.png", None),
+      download_filename_from_url_path("/images/photo.png", None),
       Some("photo.png".to_string())
     );
 
     // Without output file type and no extension, falls back to .jpg
     assert_eq!(
-      download_filename_from_url("/images/noextension", None),
+      download_filename_from_url_path("/images/noextension", None),
       Some("noextension.jpg".to_string())
     );
   }
