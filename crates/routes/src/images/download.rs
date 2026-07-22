@@ -108,7 +108,8 @@ pub async fn image_proxy(
     Ok(Either::Left(Redirect::to(url.to_string()).respond_to(&req)))
   } else {
     // Proxy the image data through Lemmy
-    let download_filename = download_filename_from_url_path(url_for_filename.path(), output_file_type);
+    let download_filename =
+      download_filename_from_url_path(url_for_filename.path(), output_file_type);
     Ok(Either::Right(
       do_get_image(processed_url, req, &context, download_filename).await?,
     ))
