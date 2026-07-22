@@ -1,4 +1,5 @@
 use crate::newtypes::PluginId;
+#[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::{plugin, plugin_config};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
