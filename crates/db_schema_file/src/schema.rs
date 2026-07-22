@@ -125,6 +125,7 @@ diesel::table! {
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
         violates_instance_rules -> Bool,
+        resolve_reason -> Nullable<Text>,
     }
 }
 
@@ -198,7 +199,7 @@ diesel::table! {
         follow_state -> Nullable<CommunityFollowerState>,
         follow_approver_id -> Nullable<Int4>,
         notifications -> Nullable<CommunityNotificationsModeEnum>,
-        follow_activity_id -> Nullable<Text>
+        follow_activity_id -> Nullable<Text>,
     }
 }
 
@@ -233,6 +234,7 @@ diesel::table! {
         resolver_id -> Nullable<Int4>,
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
+        resolve_reason -> Nullable<Text>,
     }
 }
 
@@ -850,6 +852,7 @@ diesel::table! {
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
         violates_instance_rules -> Bool,
+        resolve_reason -> Nullable<Text>,
     }
 }
 
@@ -881,6 +884,7 @@ diesel::table! {
         resolver_id -> Nullable<Int4>,
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
+        resolve_reason -> Nullable<Text>,
     }
 }
 

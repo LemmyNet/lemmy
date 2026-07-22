@@ -37,6 +37,7 @@ pub struct CommunityReport {
   pub resolver_id: Option<PersonId>,
   pub published_at: DateTime<Utc>,
   pub updated_at: Option<DateTime<Utc>>,
+  pub resolve_reason: Option<String>,
 }
 
 #[derive(Clone)]

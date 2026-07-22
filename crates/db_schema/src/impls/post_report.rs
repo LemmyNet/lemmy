@@ -34,6 +34,7 @@ impl Reportable for PostReport {
     report_id: Self::IdType,
     by_resolver_id: PersonId,
     is_resolved: bool,
+    resolve_reason: Option<String>,
   ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
     update(post_report::table.find(report_id))
@@ -41,6 +42,7 @@ impl Reportable for PostReport {
         post_report::resolved.eq(is_resolved),
         post_report::resolver_id.eq(by_resolver_id),
         post_report::updated_at.eq(Utc::now()),
+        post_report::resolve_reason.eq(resolve_reason),
       ))
       .execute(conn)
       .await
@@ -152,11 +154,11 @@ mod tests {
     let data = init_data(pool).await?;
 
     let resolved_count =
-      PostReport::update_resolved(pool, data.report.id, data.person.id, true).await?;
+      PostReport::update_resolved(pool, data.report.id, data.person.id, true, None).await?;
     assert_eq!(resolved_count, 1);
 
     let unresolved_count =
-      PostReport::update_resolved(pool, data.report.id, data.person.id, false).await?;
+      PostReport::update_resolved(pool, data.report.id, data.person.id, false, None).await?;
     assert_eq!(unresolved_count, 1);
 
     cleanup(data, pool).await

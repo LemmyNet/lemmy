@@ -27,8 +27,14 @@ pub async fn resolve_pm_report(
 
   let report_id = data.report_id;
   let person = &local_user_view.person;
-  PrivateMessageReport::update_resolved(&mut context.pool(), report_id, person.id, data.resolved)
-    .await?;
+  PrivateMessageReport::update_resolved(
+    &mut context.pool(),
+    report_id,
+    person.id,
+    data.resolved,
+    data.resolve_reason,
+  )
+  .await?;
 
   let private_message_report_view =
     ReportCombinedViewInternal::read_private_message_report(&mut context.pool(), report_id, person)

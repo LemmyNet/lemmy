@@ -710,7 +710,14 @@ mod tests {
     assert_eq!(2, report_count_timmy);
 
     // Resolve the post report
-    PostReport::update_resolved(pool, inserted_post_report.id, data.timmy.id, true).await?;
+    PostReport::update_resolved(
+      pool,
+      inserted_post_report.id,
+      data.timmy.id,
+      true,
+      Some("Reason for resolving report...".to_string()),
+    )
+    .await?;
 
     // Do a batch read of timmys reports
     // It should only show saras, which is unresolved
@@ -774,8 +781,14 @@ mod tests {
     }
 
     // admin resolves the report (after taking appropriate action)
-    PrivateMessageReport::update_resolved(pool, pm_report.id, data.admin_view.person.id, true)
-      .await?;
+    PrivateMessageReport::update_resolved(
+      pool,
+      pm_report.id,
+      data.admin_view.person.id,
+      true,
+      Some("Reason for resolving report...".to_string()),
+    )
+    .await?;
 
     let reports = ReportCombinedQuery::default()
       .list(pool, &data.admin_view)
@@ -991,7 +1004,14 @@ mod tests {
     assert_eq!(2, report_count);
 
     // Resolve the report
-    CommentReport::update_resolved(pool, inserted_jessica_report.id, data.timmy.id, true).await?;
+    CommentReport::update_resolved(
+      pool,
+      inserted_jessica_report.id,
+      data.timmy.id,
+      true,
+      Some("Reason for resolving report...".to_string()),
+    )
+    .await?;
     let read_jessica_report_view_after_resolve = ReportCombinedViewInternal::read_comment_report(
       pool,
       inserted_jessica_report.id,
@@ -1099,8 +1119,14 @@ mod tests {
     }
 
     // admin resolves the report (after taking appropriate action)
-    CommunityReport::update_resolved(pool, community_report.id, data.admin_view.person.id, true)
-      .await?;
+    CommunityReport::update_resolved(
+      pool,
+      community_report.id,
+      data.admin_view.person.id,
+      true,
+      Some("Reason for resolving report...".to_string()),
+    )
+    .await?;
 
     let reports = ReportCombinedQuery {
       show_community_rule_violations: Some(true),
