@@ -35,7 +35,7 @@ pub struct PostReport {
   pub published_at: DateTime<Utc>,
   pub updated_at: Option<DateTime<Utc>>,
   pub violates_instance_rules: bool,
-  pub resolve_reason: Option<String>,
+  pub conclusion: Option<String>,
 }
 
 #[derive(Clone, Default)]
@@ -57,6 +57,6 @@ pub struct PostReportForm {
 pub struct UpdateReportForm {
   pub resolver_id: Option<PersonId>,
   pub resolved: Option<bool>,
-  pub resolve_reason: Option<Option<String>>,
+  pub conclusion: Option<Option<String>>,
   pub updated_at: Option<DateTime<Utc>>,
 }

@@ -39,12 +39,12 @@ pub async fn resolve_post_report(
   )
   .await?;
 
-  let resolve_reason = diesel_string_update(data.resolve_reason.as_deref());
+  let conclusion = diesel_string_update(data.conclusion.as_deref());
 
   let form = UpdateReportForm {
-    resolver_id: Some(data.person.id),
+    resolver_id: Some(person.id),
     resolved: Some(data.resolved),
-    resolve_reason,
+    conclusion,
     updated_at: Some(Utc::now()),
   };
 

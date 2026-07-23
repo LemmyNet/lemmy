@@ -148,7 +148,7 @@ mod tests {
     let update_form = UpdateReportForm {
       resolver_id: Some(data.person.id),
       resolved: Some(true),
-      resolve_reason: None,
+      conclusion: None,
       updated_at: None,
     };
 
