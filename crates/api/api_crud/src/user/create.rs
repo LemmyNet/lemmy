@@ -357,10 +357,16 @@ pub async fn authenticate_with_oauth(
     }
 
     // Extract the OAUTH email claim from the returned user_info
-    let email = read_user_info(&user_info, "email")?;
+    // Some oauth providers like github return null for email in some cases.
+    // See https://github.com/LemmyNet/lemmy/issues/6609
+    let email = read_user_info(&user_info, "email");
 
     // Lookup user by OAUTH email and link accounts
-    local_user_view = LocalUserView::find_by_email(pool, &email).await;
+    local_user_view = if let Ok(email) = &email {
+      LocalUserView::find_by_email(pool, email).await
+    } else {
+      Err(LemmyErrorType::OauthLoginFailed.into())
+    };
 
     if let Ok(user_view) = local_user_view {
       // user found by email => link and login if linking is allowed
@@ -420,7 +426,7 @@ pub async fn authenticate_with_oauth(
 
             // Create the local user
             let local_user_form = LocalUserInsertForm {
-              email: Some(str::to_lowercase(&email)),
+              email: email.ok().map(|e| e.to_lowercase()),
               show_nsfw: Some(show_nsfw),
               accepted_application: Some(!require_registration_application),
               email_verified: Some(oauth_provider.auto_verify_email),
