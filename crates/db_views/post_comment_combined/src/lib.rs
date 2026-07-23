@@ -16,6 +16,7 @@ use {
   lemmy_db_schema::traits::InternalToCombinedView,
   lemmy_db_schema::utils::queries::selects::{
     CreatorLocalHomeCommunityBanExpiresType,
+    comment_select_remove_deletes_combined,
     creator_ban_expires_from_community,
     creator_banned_from_community,
     creator_is_admin,
@@ -24,6 +25,7 @@ use {
     creator_local_home_community_banned,
     local_user_can_mod,
     post_community_tags_fragment,
+    post_select_remove_deletes_combined,
   },
 };
 
@@ -32,9 +34,9 @@ use {
 #[diesel(check_for_backend(diesel::pg::Pg))]
 /// A combined person_saved view
 pub struct PostCommentCombinedViewInternal {
-  #[diesel(embed)]
+  #[diesel(select_expression = comment_select_remove_deletes_combined())]
   pub comment: Option<Comment>,
-  #[diesel(embed)]
+  #[diesel(select_expression = post_select_remove_deletes_combined())]
   pub post: Post,
   #[diesel(embed)]
   pub item_creator: Person,
