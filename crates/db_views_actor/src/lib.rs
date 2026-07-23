@@ -19,3 +19,5 @@ pub mod person_mention_view;
 #[cfg(feature = "full")]
 pub mod person_view;
 pub mod structs;
+#[cfg(feature = "full")]
+mod vote_analytics_given_by_view;
