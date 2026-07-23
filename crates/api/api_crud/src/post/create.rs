@@ -132,7 +132,7 @@ pub async fn create_post(
     )
   };
 
-  post_form = plugin_hook_before("local_post_before_create", post_form).await?;
+  post_form = plugin_hook_before("local_post_before_create", post_form, &context).await?;
   validate_post_language(
     &mut context.pool(),
     post_form.language_id,
@@ -142,7 +142,7 @@ pub async fn create_post(
 
   let inserted_post = Post::create(&mut context.pool(), &post_form).await?;
 
-  plugin_hook_after("local_post_after_create", &inserted_post);
+  plugin_hook_after("local_post_after_create", &inserted_post, &context);
 
   if let Some(tags) = &data.tags {
     update_post_tags(&inserted_post, tags, &context).await?;

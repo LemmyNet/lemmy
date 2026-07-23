@@ -149,7 +149,7 @@ impl Object for ApubPost {
     // Add automatic hashtag based on community name
     let hashtag = Hashtag {
       href: self.ap_id.clone().into(),
-      name: format!("#{}", &community.name),
+      name: format!("#{}", community.name),
       kind: HashtagType::Hashtag,
     };
     tags.push(ApubTag::Hashtag(hashtag));
@@ -303,11 +303,11 @@ impl Object for ApubPost {
       language_id,
       ..PostInsertForm::new(name, creator.id, community.id)
     };
-    form = plugin_hook_before("federated_post_before_receive", form).await?;
+    form = plugin_hook_before("federated_post_before_receive", form, context).await?;
 
     let timestamp = page.updated.or(page.published).unwrap_or_else(Utc::now);
     let post = Post::insert_apub(&mut context.pool(), timestamp, &form).await?;
-    plugin_hook_after("federated_post_after_receive", &post);
+    plugin_hook_after("federated_post_after_receive", &post, context);
 
     update_apub_post_tags(&page, &post, context).await?;
 

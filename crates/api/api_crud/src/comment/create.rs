@@ -109,14 +109,14 @@ pub async fn create_comment(
     federation_pending: Some(community_use_pending(&post_view.community, &context).await),
     ..CommentInsertForm::new(my_person_id, post_id, community_id, content.clone())
   };
-  comment_form = plugin_hook_before("local_comment_before_create", comment_form).await?;
+  comment_form = plugin_hook_before("local_comment_before_create", comment_form, &context).await?;
   validate_post_language(&mut context.pool(), comment_form.language_id, community_id).await?;
 
   // Create the comment
   let parent_path = parent_opt.clone().map(|t| t.path);
   let inserted_comment =
     Comment::create(&mut context.pool(), &comment_form, parent_path.as_ref()).await?;
-  plugin_hook_after("local_comment_after_create", &inserted_comment);
+  plugin_hook_after("local_comment_after_create", &inserted_comment, &context);
 
   NotifyData {
     comment: Some(inserted_comment.clone()),

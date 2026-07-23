@@ -19,7 +19,8 @@ doctest = false
 workspace = true
 
 [features]
-default = []
+# TODO: only temporary, remove this before merging
+default = ["plugins"]
 plugins = ["lemmy_api_utils/plugins"]
 
 [dependencies]

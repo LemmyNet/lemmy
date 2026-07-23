@@ -283,15 +283,14 @@ fn map_to_enum(
       creator_ban_expires_at: v.creator_ban_expires_at,
       creator_is_moderator: v.creator_is_moderator,
     })
-  } else if let Some(mut private_message) = v.private_message {
+  } else {
+    let mut private_message = v.private_message?;
     private_message.clear_deleted_by_recipient(Some(my_person));
     NotificationData::PrivateMessage(PrivateMessageView {
       private_message,
       creator: v.creator,
       recipient: v.recipient,
     })
-  } else {
-    return None;
   };
 
   let notification = if hide_modlog_name {

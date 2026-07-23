@@ -7,16 +7,20 @@ use lemmy_db_views_notification::NotificationView;
 use lemmy_db_views_registration_applications::api::CaptchaAnswer;
 use lemmy_db_views_site::api::CaptchaResponse;
 use lemmy_diesel_utils::traits::Crud;
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::{error::LemmyResult, spawn_try_task};
 use serde::{Deserialize, Serialize};
 use tokio::task::spawn_blocking;
 
 /// Call a plugin hook which can rewrite data
-pub async fn plugin_hook_before<T>(name: &'static str, data: T) -> LemmyResult<T>
+pub async fn plugin_hook_before<T>(
+  name: &'static str,
+  data: T,
+  context: &LemmyContext,
+) -> LemmyResult<T>
 where
   T: Clone + Serialize + for<'a> Deserialize<'a> + Sync + Send + 'static,
 {
-  let plugins = LemmyPlugins::get_or_init();
+  let plugins = LemmyPlugins::get_or_init(context).await?;
   if !plugins.function_exists(name) {
     return Ok(data);
   }
@@ -25,17 +29,22 @@ where
 }
 
 /// Call a plugin hook without rewriting data
-pub fn plugin_hook_after<T>(name: &'static str, data: &T)
+pub fn plugin_hook_after<T>(name: &'static str, data: &T, context: &LemmyContext)
 where
   T: Clone + Serialize + for<'b> Deserialize<'b> + Sync + Send + 'static,
 {
-  let plugins = LemmyPlugins::get_or_init();
-  if !plugins.function_exists(name) {
-    return;
-  }
-
   let data = data.clone();
-  spawn_blocking(move || run_plugin_hook_after(name, data));
+  let context = context.clone();
+  spawn_try_task(async move {
+    let plugins = LemmyPlugins::get_or_init(&context).await?;
+    if !plugins.function_exists(name) {
+      return Ok(());
+    }
+
+    let data = data.clone();
+    run_plugin_hook_after(plugins, name, data).await?;
+    Ok(())
+  })
 }
 
 /// Calls plugin hook for the given notifications Loads additional data via
@@ -45,7 +54,7 @@ pub async fn plugin_hook_notification(
   context: &LemmyContext,
 ) -> LemmyResult<()> {
   let name = "notification_after_create";
-  let plugins = LemmyPlugins::get_or_init();
+  let plugins = LemmyPlugins::get_or_init(context).await?;
   if !plugins.function_exists(name) {
     return Ok(());
   }
@@ -53,17 +62,22 @@ pub async fn plugin_hook_notification(
   for n in notifications {
     let person = Person::read(&mut context.pool(), n.recipient_id).await?;
     let view = NotificationView::read(&mut context.pool(), n.id, &person).await?;
-    spawn_blocking(move || run_plugin_hook_after(name, view));
+    let plugins = plugins.clone();
+    spawn_blocking(move || run_plugin_hook_after(plugins, name, view));
   }
   Ok(())
 }
 
-pub async fn plugin_get_captcha() -> LemmyResult<CaptchaResponse> {
-  call_captcha_plugin("get_captcha", ()).await
+pub async fn plugin_get_captcha(context: &LemmyContext) -> LemmyResult<CaptchaResponse> {
+  call_captcha_plugin("get_captcha", (), context).await
 }
 
-pub async fn plugin_validate_captcha(answer: String, uuid: String) -> LemmyResult<()> {
-  call_captcha_plugin("validate_captcha", CaptchaAnswer { answer, uuid }).await
+pub async fn plugin_validate_captcha(
+  answer: String,
+  uuid: String,
+  context: &LemmyContext,
+) -> LemmyResult<()> {
+  call_captcha_plugin("validate_captcha", CaptchaAnswer { answer, uuid }, context).await
 }
 
 #[derive(Clone)]
@@ -77,20 +91,19 @@ pub struct LemmyPlugins {
 #[cfg(not(feature = "plugins"))]
 mod internal {
   use super::*;
+  use lemmy_db_schema::source::plugin::Plugin;
   use lemmy_db_views_site::api::PluginMetadata;
-  use lemmy_utils::{
-    error::{LemmyResult, UntranslatedError},
-    settings::SETTINGS,
-  };
+  use lemmy_utils::error::{LemmyResult, UntranslatedError};
   use tracing::error;
 
   impl LemmyPlugins {
-    pub fn get_or_init() -> LemmyPlugins {
-      if !SETTINGS.plugins.is_empty() {
+    pub async fn get_or_init(context: &LemmyContext) -> LemmyResult<LemmyPlugins> {
+      let plugins = Plugin::read_all(&mut context.pool()).await?;
+      if !plugins.is_empty() {
         error!("Plugins not supported, recompile with `--features plugins`");
         std::process::exit(1);
       }
-      LemmyPlugins {}
+      Ok(LemmyPlugins {})
     }
     pub(super) fn function_exists(&self, _name: &'static str) -> bool {
       false
@@ -122,7 +135,7 @@ mod internal {
 
 #[cfg(feature = "plugins")]
 mod internal {
-  use crate::plugins::LemmyPlugins;
+  use crate::plugins::{LemmyContext, LemmyPlugins};
   use anyhow::anyhow;
   use extism::{
     FromBytesOwned,
@@ -136,20 +149,17 @@ mod internal {
   };
   use extism_convert::Json;
   use extism_manifest::HttpRequest;
+  use lemmy_db_schema::{impls::plugin::PluginView, source::plugin::Plugin};
   use lemmy_db_views_site::api::PluginMetadata;
   use lemmy_utils::{
+    CacheLock,
     VERSION,
     error::{LemmyError, LemmyErrorType, LemmyResult},
-    settings::{SETTINGS, structs::PluginSettings},
+    settings::SETTINGS,
   };
+  use moka::future::Cache;
   use serde::{Deserialize, Serialize};
-  use std::{
-    env::var,
-    ops::Deref,
-    path::PathBuf,
-    sync::{LazyLock, OnceLock},
-    time::Duration,
-  };
+  use std::{path::PathBuf, sync::LazyLock, time::Duration};
   use tokio::task::spawn_blocking;
   use tracing::{error, warn};
   use url::Url;
@@ -163,8 +173,9 @@ mod internal {
   >(
     name: &'static str,
     params: T,
+    context: &LemmyContext,
   ) -> LemmyResult<R> {
-    let plugins = LemmyPlugins::get_or_init();
+    let plugins = LemmyPlugins::get_or_init(context).await?;
     let Some(captcha_plugin) = plugins.captcha_plugin else {
       return Err(LemmyErrorType::PluginError("plugin not loaded".to_string()).into());
     };
@@ -181,11 +192,14 @@ mod internal {
     .await?
   }
 
-  pub(super) fn run_plugin_hook_after<T>(name: &'static str, data: T) -> LemmyResult<()>
+  pub(super) async fn run_plugin_hook_after<T>(
+    plugins: LemmyPlugins,
+    name: &'static str,
+    data: T,
+  ) -> LemmyResult<()>
   where
     T: Clone + Serialize + for<'b> Deserialize<'b>,
   {
-    let plugins = LemmyPlugins::get_or_init();
     for p in plugins.plugins {
       if let Some(mut plugin) = p.get(name)? {
         let params: Json<T> = data.clone().into();
@@ -227,34 +241,44 @@ mod internal {
   }
 
   impl LemmyPlugin {
-    fn init(settings: PluginSettings) -> LemmyResult<Self> {
+    fn init(settings: PluginView) -> LemmyResult<Self> {
+      // TODO: do we still need a way to skip hash check with `DANGER_PLUGIN_SKIP_HASH_CHECK`?
+      //       or simply calculate hash automatically when plugin is added?
+      /*
       let hash = if cfg!(debug_assertions) || var("DANGER_PLUGIN_SKIP_HASH_CHECK").is_ok() {
         None
       } else {
         // if no hash was provided in config, set a dummy value here to enforce hash check
         Some(settings.hash.unwrap_or_else(|| "dummy".to_string()))
       };
+      */
+      let file = settings.plugin.file;
+      let hash = Some(settings.plugin.hash);
       let meta = WasmMetadata { hash, name: None };
-      let (wasm, filename) = if settings.file.starts_with("http") {
-        let name: Option<String> = Url::parse(&settings.file)?
+      let (wasm, filename) = if file.starts_with("http") {
+        let name: Option<String> = Url::parse(&file)?
           .path_segments()
           .and_then(|mut p| p.next_back())
           .map(std::string::ToString::to_string);
         let req = HttpRequest {
-          url: settings.file.clone(),
+          url: file.clone(),
           headers: Default::default(),
           method: None,
         };
         (Wasm::Url { req, meta }, name)
       } else {
-        let path = PathBuf::from(settings.file.clone());
+        let path = PathBuf::from(file.clone());
         let name: Option<String> = path.file_name().map(|n| n.to_string_lossy().to_string());
         (Wasm::File { path, meta }, name)
       };
+      let allowed_hosts = settings
+        .plugin
+        .allowed_hosts
+        .map(|a| a.split(",").map(ToString::to_string).collect::<Vec<_>>());
       let mut manifest = Manifest {
         wasm: vec![wasm],
         config: settings.config,
-        allowed_hosts: settings.allowed_hosts,
+        allowed_hosts,
         memory: Default::default(),
         allowed_paths: None,
         timeout_ms: None,
@@ -275,7 +299,7 @@ mod internal {
       }
       Ok(LemmyPlugin {
         pool,
-        filename: filename.unwrap_or(settings.file),
+        filename: filename.unwrap_or(file),
       })
     }
 
@@ -296,79 +320,92 @@ mod internal {
 
   impl LemmyPlugins {
     /// Load and initialize all plugins
-    pub fn get_or_init() -> Self {
-      static PLUGINS: LazyLock<LemmyPlugins> = LazyLock::new(|| {
-        let mut plugins: Vec<_> = SETTINGS
-          .plugins
-          .iter()
-          .flat_map(|p| {
-            LemmyPlugin::init(p.clone())
-              .inspect_err(|e| warn!("Failed to load plugin {}: {e}", p.file))
-              .ok()
-          })
-          .collect();
+    pub async fn get_or_init(context: &LemmyContext) -> LemmyResult<LemmyPlugins> {
+      static PLUGINS: CacheLock<LemmyPlugins> =
+        LazyLock::new(|| Cache::builder().max_capacity(1).build());
 
-        let mut captcha_plugin = None;
-        for (i, p) in plugins.iter().enumerate() {
-          let is_captcha = p
-            .pool
-            .function_exists("validate_captcha", GET_PLUGIN_TIMEOUT)
-            .unwrap_or_default()
-            && p
-              .pool
-              .function_exists("validate_captcha", GET_PLUGIN_TIMEOUT)
-              .unwrap_or_default();
-          if is_captcha {
-            captcha_plugin = Some(plugins.remove(i));
-            break;
-          }
-        }
+      Ok(
+        PLUGINS
+          .try_get_with::<_, LemmyError>((), async {
+            let plugins = Plugin::read_all(&mut context.pool()).await?;
+            let mut plugins: Vec<_> = plugins
+              .into_iter()
+              .flat_map(|p| {
+                let file = p.plugin.file.clone();
+                LemmyPlugin::init(p)
+                  .inspect_err(|e| warn!("Failed to load plugin {}: {e}", file))
+                  .ok()
+              })
+              .collect();
 
-        // Need to put captcha plugin back in so it can be shown in the active plugins list.
-        if let Some(captcha_plugin) = &captcha_plugin {
-          plugins.push(captcha_plugin.clone());
-        }
-        LemmyPlugins {
-          plugins,
-          captcha_plugin,
-        }
-      });
-      PLUGINS.deref().clone()
-    }
-    pub fn metadata() -> Vec<PluginMetadata> {
-      static METADATA: OnceLock<Vec<PluginMetadata>> = OnceLock::new();
-      if let Some(m) = METADATA.get() {
-        m.clone()
-      } else {
-        // Loading metadata can take multiple seconds. Do this in background task to avoid blocking
-        // /api/v4/site endpoint.
-        std::thread::spawn(|| {
-          METADATA.get_or_init(|| {
-            let mut metadata = vec![];
-            for plugin in LemmyPlugins::get_or_init().plugins {
-              let run = match plugin.pool.get(GET_PLUGIN_TIMEOUT) {
-                Ok(p) => p,
-                Err(e) => {
-                  error!("Failed to load plugin {}: {e}", plugin.filename);
-                  continue;
-                }
-              };
-              let m = run.and_then(|mut run| run.call("metadata", 0).ok());
-              if let Some(m) = m {
-                metadata.push(m);
-              } else {
-                // Failed to load plugin metadata, use placeholder
-                metadata.push(PluginMetadata {
-                  name: plugin.filename,
-                  url: None,
-                  description: None,
-                });
+            let mut captcha_plugin = None;
+            for (i, p) in plugins.iter().enumerate() {
+              let is_captcha = p
+                .pool
+                .function_exists("validate_captcha", GET_PLUGIN_TIMEOUT)
+                .unwrap_or_default()
+                && p
+                  .pool
+                  .function_exists("validate_captcha", GET_PLUGIN_TIMEOUT)
+                  .unwrap_or_default();
+              if is_captcha {
+                captcha_plugin = Some(plugins.remove(i));
+                break;
               }
             }
-            metadata
-          });
+
+            // Need to put captcha plugin back in so it can be shown in the active plugins list.
+            if let Some(captcha_plugin) = &captcha_plugin {
+              plugins.push(captcha_plugin.clone());
+            }
+            Ok(LemmyPlugins {
+              plugins,
+              captcha_plugin,
+            })
+          })
+          .await
+          .map_err(|e| anyhow::anyhow!("Failed to initialize plugins: {e}"))?,
+      )
+    }
+
+    pub async fn metadata(context: &LemmyContext) -> Vec<PluginMetadata> {
+      static METADATA: CacheLock<Vec<PluginMetadata>> =
+        LazyLock::new(|| Cache::builder().max_capacity(1).build());
+      // Loading metadata can take multiple seconds. Do this in background task to avoid blocking
+      // /api/v4/site endpoint.
+      let metadata = METADATA.get(&()).await;
+      if let Some(m) = metadata {
+        m
+      } else {
+        let context = context.clone();
+        tokio::task::spawn(async move {
+          METADATA
+            .try_get_with::<_, LemmyError>((), async move {
+              let mut metadata = vec![];
+              for plugin in LemmyPlugins::get_or_init(&context).await?.plugins {
+                let run = match plugin.pool.get(GET_PLUGIN_TIMEOUT) {
+                  Ok(p) => p,
+                  Err(e) => {
+                    error!("Failed to load plugin {}: {e}", plugin.filename);
+                    continue;
+                  }
+                };
+                let m = run.and_then(|mut run| run.call("metadata", 0).ok());
+                if let Some(m) = m {
+                  metadata.push(m);
+                } else {
+                  // Failed to load plugin metadata, use placeholder
+                  metadata.push(PluginMetadata {
+                    name: plugin.filename,
+                    url: None,
+                    description: None,
+                  });
+                }
+              }
+              Ok(metadata)
+            })
+            .await
         });
-        // Return empty metadata until loading is finished
         vec![]
       }
     }

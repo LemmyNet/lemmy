@@ -18,7 +18,7 @@ impl MentionData {
     hostname.eq(&self.domain)
   }
   pub fn full_name(&self) -> String {
-    format!("@{}@{}", &self.name, &self.domain)
+    format!("@{}@{}", self.name, self.domain)
   }
 }
 

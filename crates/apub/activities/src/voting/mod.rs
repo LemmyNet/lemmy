@@ -73,9 +73,9 @@ async fn vote_comment(
 ) -> LemmyResult<()> {
   let mut like_form = CommentLikeForm::new(comment.id, actor.id, Some(vote_type.into()));
   comment.set_not_pending(&mut context.pool()).await?;
-  like_form = plugin_hook_before("comment_before_vote", like_form).await?;
+  like_form = plugin_hook_before("comment_before_vote", like_form, context).await?;
   let like = CommentActions::like(&mut context.pool(), &like_form).await?;
-  plugin_hook_after("comment_after_vote", &like);
+  plugin_hook_after("comment_after_vote", &like, context);
   Ok(())
 }
 
@@ -87,9 +87,9 @@ async fn vote_post(
 ) -> LemmyResult<()> {
   let mut like_form = PostLikeForm::new(post.id, actor.id, Some(vote_type.into()));
   post.set_not_pending(&mut context.pool()).await?;
-  like_form = plugin_hook_before("post_before_vote", like_form).await?;
+  like_form = plugin_hook_before("post_before_vote", like_form, context).await?;
   let like = PostActions::like(&mut context.pool(), &like_form).await?;
-  plugin_hook_after("post_after_vote", &like);
+  plugin_hook_after("post_after_vote", &like, context);
   Ok(())
 }
 

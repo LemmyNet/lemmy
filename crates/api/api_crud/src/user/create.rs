@@ -126,10 +126,14 @@ pub async fn register(
     return Err(LemmyErrorType::PasswordsDoNotMatch.into());
   }
 
-  if local_site.site_setup && LemmyPlugins::get_or_init().is_captcha_plugin_loaded() {
+  if local_site.site_setup
+    && LemmyPlugins::get_or_init(&context)
+      .await?
+      .is_captcha_plugin_loaded()
+  {
     let answer = data.captcha_answer.clone().unwrap_or_default();
     let uuid = data.captcha_uuid.clone().unwrap_or_default();
-    plugin_validate_captcha(answer, uuid).await?;
+    plugin_validate_captcha(answer, uuid, &context).await?;
   }
 
   let slur_regex = slur_regex(&context).await?;

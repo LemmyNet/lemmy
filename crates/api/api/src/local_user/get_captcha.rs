@@ -5,22 +5,28 @@ use actix_web::{
     StatusCode,
     header::{CacheControl, CacheDirective},
   },
-  web::Json,
+  web::{Data, Json},
 };
-use lemmy_api_utils::plugins::{LemmyPlugins, plugin_get_captcha};
+use lemmy_api_utils::{
+  context::LemmyContext,
+  plugins::{LemmyPlugins, plugin_get_captcha},
+};
 use lemmy_db_views_site::api::GetCaptchaResponse;
 use lemmy_utils::error::LemmyResult;
 
-pub async fn get_captcha() -> LemmyResult<HttpResponse> {
+pub async fn get_captcha(context: Data<LemmyContext>) -> LemmyResult<HttpResponse> {
   let mut res = HttpResponseBuilder::new(StatusCode::OK);
   res.insert_header(CacheControl(vec![CacheDirective::NoStore]));
 
-  if !LemmyPlugins::get_or_init().is_captcha_plugin_loaded() {
+  if !LemmyPlugins::get_or_init(&context)
+    .await?
+    .is_captcha_plugin_loaded()
+  {
     return Ok(res.json(Json(GetCaptchaResponse { ok: None })));
   }
 
   let captcha = GetCaptchaResponse {
-    ok: Some(plugin_get_captcha().await?),
+    ok: Some(plugin_get_captcha(&context).await?),
   };
   Ok(res.json(Json(captcha)))
 }

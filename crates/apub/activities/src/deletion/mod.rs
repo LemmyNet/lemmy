@@ -320,13 +320,13 @@ async fn receive_delete_action(
         person_id: person.id,
         delete_content: do_purge_user_account.unwrap_or(false),
       };
-      form = plugin_hook_before("federated_user_before_delete", form).await?;
+      form = plugin_hook_before("federated_user_before_delete", form, context).await?;
       if form.delete_content {
         purge_user_account(person.id, local_instance_id, context).await?;
       } else {
         Person::delete_account(&mut context.pool(), person.id, local_instance_id).await?;
       }
-      plugin_hook_after("federated_user_after_delete", &form);
+      plugin_hook_after("federated_user_after_delete", &form, context);
     }
     DeletableObjects::Post(post) => {
       if deleted != post.deleted {

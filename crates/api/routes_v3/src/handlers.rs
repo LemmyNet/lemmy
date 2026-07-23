@@ -254,6 +254,7 @@ pub(crate) async fn get_site_v3(
     discussion_languages,
     tagline,
     blocked_urls,
+    captcha_enabled,
     ..
   } = get_site(local_user_view.clone(), context.clone()).await?.0;
   let my_user = if let Some(local_user_view) = local_user_view {
@@ -262,7 +263,7 @@ pub(crate) async fn get_site_v3(
     None
   };
   Ok(Json(GetSiteResponseV3 {
-    site_view: convert_site_view(site_view),
+    site_view: convert_site_view(site_view, captcha_enabled),
     admins: admins.into_iter().map(convert_person_view).collect(),
     version,
     my_user: convert_my_user(my_user),
