@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
-  enums::{CommunityFollowerState, CommunityNotificationsMode, CommunityVisibility},
+  enums::{CommunityFollowerState, CommunityNotificationsMode, CommunityVisibility, VoteSettings},
 };
 use lemmy_diesel_utils::{dburl::DbUrl, sensitive::SensitiveString};
 use serde::{Deserialize, Serialize};
@@ -94,6 +94,7 @@ pub struct Community {
   pub report_count: i16,
   pub unresolved_report_count: i16,
   pub local_removed: bool,
+  pub downvote_mode: VoteSettings,
 }
 
 #[derive(Debug, Clone, derive_new::new)]
@@ -145,6 +146,8 @@ pub struct CommunityInsertForm {
   pub summary: Option<String>,
   #[new(default)]
   pub local_removed: Option<bool>,
+  #[new(default)]
+  pub downvote_mode: Option<VoteSettings>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -173,6 +176,7 @@ pub struct CommunityUpdateForm {
   pub visibility: Option<CommunityVisibility>,
   pub summary: Option<Option<String>>,
   pub local_removed: Option<bool>,
+  pub downvote_mode: Option<VoteSettings>,
 }
 
 #[skip_serializing_none]
