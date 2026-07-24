@@ -78,7 +78,6 @@ mod tests {
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
-  use serial_test::serial;
 
   async fn create_local_user(
     pool: &mut DbPool<'_>,
@@ -132,10 +131,9 @@ mod tests {
     .await
   }
 
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared)]
   async fn test_list_and_count() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
@@ -153,10 +151,9 @@ mod tests {
     Ok(())
   }
 
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared)]
   async fn test_list_filters_by_user() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
 
     let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
