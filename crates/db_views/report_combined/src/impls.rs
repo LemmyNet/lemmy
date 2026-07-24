@@ -439,16 +439,20 @@ mod tests {
     assert_length,
     source::{
       comment::{Comment, CommentInsertForm},
-      comment_report::{CommentReport, CommentReportForm, UpdateReportForm},
+      comment_report::{CommentReport, CommentReportForm, UpdateCommentReportForm},
       community::{Community, CommunityActions, CommunityInsertForm, CommunityModeratorForm},
-      community_report::{CommunityReport, CommunityReportForm, UpdateReportForm},
+      community_report::{CommunityReport, CommunityReportForm, UpdateCommunityReportForm},
       instance::{Instance, InstanceActions, InstanceBanForm},
       local_user::{LocalUser, LocalUserInsertForm},
       person::{Person, PersonInsertForm},
       post::{Post, PostInsertForm},
-      post_report::{PostReport, PostReportForm, UpdateReportForm},
+      post_report::{PostReport, PostReportForm, UpdatePostReportForm},
       private_message::{PrivateMessage, PrivateMessageInsertForm},
-      private_message_report::{PrivateMessageReport, PrivateMessageReportForm, UpdateReportForm},
+      private_message_report::{
+        PrivateMessageReport,
+        PrivateMessageReportForm,
+        UpdatePrivateMessageReportForm,
+      },
     },
     traits::{Bannable, Reportable},
   };
@@ -709,14 +713,15 @@ mod tests {
       ReportCombinedViewInternal::get_report_count(pool, &data.timmy_view).await?;
     assert_eq!(2, report_count_timmy);
 
-    let update_form = UpdateReportForm {
-      resolver_id: data.timmy.id,
-      resolved: true,
-      conclusion: Some("Reason for resolving report...".to_string()),
+    let update_form = UpdatePostReportForm {
+      resolver_id: Some(data.timmy.id),
+      resolved: Some(true),
+      conclusion: Some(Some("Reason for resolving report...".to_string())),
+      ..Default::default()
     };
 
     // Resolve the post report
-    PostReport::update_resolved(pool, inserted_post_report.id, &form).await?;
+    PostReport::update_resolved(pool, inserted_post_report.id, &update_form).await?;
 
     // Do a batch read of timmys reports
     // It should only show saras, which is unresolved
@@ -779,14 +784,15 @@ mod tests {
       panic!("wrong type");
     }
 
-    let update_form = UpdateReportForm {
-      resolver_id: data.admin_view.person.id,
-      resolved: true,
-      conclusion: Some("Reason for resolving report...".to_string()),
+    let update_form = UpdatePrivateMessageReportForm {
+      resolver_id: Some(data.admin_view.person.id),
+      resolved: Some(true),
+      conclusion: Some(Some("Reason for resolving report...".to_string())),
+      ..Default::default()
     };
 
     // admin resolves the report (after taking appropriate action)
-    PrivateMessageReport::update_resolved(pool, pm_report.id, &form).await?;
+    PrivateMessageReport::update_resolved(pool, pm_report.id, &update_form).await?;
 
     let reports = ReportCombinedQuery::default()
       .list(pool, &data.admin_view)
@@ -1001,14 +1007,15 @@ mod tests {
     let report_count = ReportCombinedViewInternal::get_report_count(pool, &data.timmy_view).await?;
     assert_eq!(2, report_count);
 
-    let update_form = UpdateReportForm {
-      resolver_id: data.timmy.id,
-      resolved: true,
-      conclusion: Some("Reason for resolving report...".to_string()),
+    let update_form = UpdateCommentReportForm {
+      resolver_id: Some(data.timmy.id),
+      resolved: Some(true),
+      conclusion: Some(Some("Reason for resolving report...".to_string())),
+      ..Default::default()
     };
 
     // Resolve the report
-    CommentReport::update_resolved(pool, inserted_jessica_report.id, &form).await?;
+    CommentReport::update_resolved(pool, inserted_jessica_report.id, &update_form).await?;
 
     let read_jessica_report_view_after_resolve = ReportCombinedViewInternal::read_comment_report(
       pool,
@@ -1116,14 +1123,15 @@ mod tests {
       panic!("wrong type");
     }
 
-    let update_form = UpdateReportForm {
-      resolver_id: data.admin_view.person.id,
-      resolved: true,
-      conclusion: Some("Reason for resolving report...".to_string()),
+    let update_form = UpdateCommunityReportForm {
+      resolver_id: Some(data.admin_view.person.id),
+      resolved: Some(true),
+      conclusion: Some(Some("Reason for resolving report...".to_string())),
+      ..Default::default()
     };
 
     // admin resolves the report (after taking appropriate action)
-    CommunityReport::update_resolved(pool, community_report.id, &form).await?;
+    CommunityReport::update_resolved(pool, community_report.id, &update_form).await?;
 
     let reports = ReportCombinedQuery {
       show_community_rule_violations: Some(true),

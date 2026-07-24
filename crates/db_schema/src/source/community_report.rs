@@ -58,7 +58,7 @@ pub struct CommunityReportForm {
 #[derive(Clone, Default)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = community_report))]
-pub struct UpdateReportForm {
+pub struct UpdateCommunityReportForm {
   pub resolver_id: Option<PersonId>,
   pub resolved: Option<bool>,
   pub conclusion: Option<Option<String>>,

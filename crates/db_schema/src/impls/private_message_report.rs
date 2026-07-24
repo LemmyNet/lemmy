@@ -3,7 +3,7 @@ use crate::{
   source::private_message_report::{
     PrivateMessageReport,
     PrivateMessageReportForm,
-    UpdateReportForm,
+    UpdatePrivateMessageReportForm,
   },
   traits::Reportable,
 };
@@ -21,7 +21,7 @@ use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Reportable for PrivateMessageReport {
   type Form = PrivateMessageReportForm;
-  type UpdateForm = UpdateReportForm;
+  type UpdateForm = UpdatePrivateMessageReportForm;
   type IdType = PrivateMessageReportId;
   type ObjectIdType = PrivateMessageId;
 

@@ -8,7 +8,7 @@ use lemmy_api_utils::{
   utils::check_community_mod_action,
 };
 use lemmy_db_schema::{
-  source::post_report::{PostReport, UpdateReportForm},
+  source::post_report::{PostReport, UpdatePostReportForm},
   traits::Reportable,
 };
 use lemmy_db_views_local_user::LocalUserView;
@@ -41,7 +41,7 @@ pub async fn resolve_post_report(
 
   let conclusion = diesel_string_update(data.conclusion.as_deref());
 
-  let form = UpdateReportForm {
+  let form = UpdatePostReportForm {
     resolver_id: Some(person.id),
     resolved: Some(data.resolved),
     conclusion,

@@ -1,11 +1,13 @@
 use crate::{
   newtypes::{PostId, PostReportId},
-  source::post_report::{PostReport, PostReportForm, UpdateReportForm},
+  source::post_report::{PostReport, PostReportForm, UpdatePostReportForm},
   traits::Reportable,
 };
 use chrono::Utc;
 use diesel::{
-  BoolExpressionMethods, ExpressionMethods, QueryDsl,
+  BoolExpressionMethods,
+  ExpressionMethods,
+  QueryDsl,
   dsl::{insert_into, update},
 };
 use diesel_async::RunQueryDsl;
@@ -15,7 +17,7 @@ use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Reportable for PostReport {
   type Form = PostReportForm;
-  type UpdateForm = UpdateReportForm;
+  type UpdateForm = UpdatePostReportForm;
   type IdType = PostReportId;
   type ObjectIdType = PostId;
 
@@ -145,11 +147,10 @@ mod tests {
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
-    let update_form = UpdateReportForm {
+    let update_form = UpdatePostReportForm {
       resolver_id: Some(data.person.id),
       resolved: Some(true),
-      conclusion: None,
-      updated_at: None,
+      ..Default::default()
     };
 
     let resolved_count = PostReport::update_resolved(pool, data.report.id, &update_form).await?;

@@ -9,7 +9,7 @@ use lemmy_api_utils::{
 };
 use lemmy_db_schema::{
   source::{
-    community_report::{CommunityReport, UpdateReportForm},
+    community_report::{CommunityReport, UpdateCommunityReportForm},
     site::Site,
   },
   traits::Reportable,
@@ -34,7 +34,7 @@ pub async fn resolve_community_report(
 
   let conclusion = diesel_string_update(data.conclusion.as_deref());
 
-  let form = UpdateReportForm {
+  let form = UpdateCommunityReportForm {
     resolver_id: Some(person.id),
     resolved: Some(data.resolved),
     conclusion,

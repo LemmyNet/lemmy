@@ -1,6 +1,6 @@
 use crate::{
   newtypes::{CommunityId, CommunityReportId},
-  source::community_report::{CommunityReport, CommunityReportForm, UpdateReportForm},
+  source::community_report::{CommunityReport, CommunityReportForm, UpdateCommunityReportForm},
   traits::Reportable,
 };
 use chrono::Utc;
@@ -17,7 +17,7 @@ use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Reportable for CommunityReport {
   type Form = CommunityReportForm;
-  type UpdateForm = UpdateReportForm;
+  type UpdateForm = UpdateCommunityReportForm;
   type IdType = CommunityReportId;
   type ObjectIdType = CommunityId;
   /// creates a community report and returns it

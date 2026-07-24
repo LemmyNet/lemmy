@@ -1,6 +1,6 @@
 use crate::{
   newtypes::{CommentId, CommentReportId, PostId},
-  source::comment_report::{CommentReport, CommentReportForm, UpdateReportForm},
+  source::comment_report::{CommentReport, CommentReportForm, UpdateCommentReportForm},
   traits::Reportable,
 };
 use chrono::Utc;
@@ -22,7 +22,7 @@ use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Reportable for CommentReport {
   type Form = CommentReportForm;
-  type UpdateForm = UpdateReportForm;
+  type UpdateForm = UpdateCommentReportForm;
   type IdType = CommentReportId;
   type ObjectIdType = CommentId;
   /// creates a comment report and returns it

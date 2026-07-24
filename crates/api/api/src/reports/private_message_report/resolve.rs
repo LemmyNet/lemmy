@@ -10,7 +10,7 @@ use lemmy_api_utils::{
 use lemmy_db_schema::{
   source::{
     person::Person,
-    private_message_report::{PrivateMessageReport, UpdateReportForm},
+    private_message_report::{PrivateMessageReport, UpdatePrivateMessageReportForm},
     site::Site,
   },
   traits::Reportable,
@@ -35,7 +35,7 @@ pub async fn resolve_pm_report(
 
   let conclusion = diesel_string_update(data.conclusion.as_deref());
 
-  let form = UpdateReportForm {
+  let form = UpdatePrivateMessageReportForm {
     resolver_id: Some(person.id),
     resolved: Some(data.resolved),
     conclusion,
