@@ -560,6 +560,8 @@ async fn create_local_user(
 
   local_user_form.default_listing_type = Some(local_site.default_post_listing_type);
   local_user_form.post_listing_mode = Some(local_site.default_post_listing_mode);
+  local_user_form.default_post_notifications_mode =
+    Some(local_site.default_post_notifications_mode);
   // If its the initial site setup, they are an admin
   local_user_form.admin = Some(!local_site.site_setup);
   local_user_form.interface_language = language_tags.first().cloned();

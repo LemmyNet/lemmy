@@ -93,6 +93,10 @@ pub async fn import_user_settings(
     show_upvotes: data.settings.as_ref().map(|s| s.show_upvotes),
     show_downvotes: data.settings.as_ref().map(|s| s.show_downvotes),
     show_upvote_percentage: data.settings.as_ref().map(|s| s.show_upvote_percentage),
+    default_post_notifications_mode: data
+      .settings
+      .as_ref()
+      .map(|s| s.default_post_notifications_mode),
     ..Default::default()
   };
   let local_user_id = local_user_view.local_user.id;
