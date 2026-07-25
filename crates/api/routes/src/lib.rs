@@ -13,6 +13,7 @@ use lemmy_api::{
     ban::ban_from_community,
     block::user_block_community,
     follow::follow_community,
+    list_community_followers::list_community_followers,
     multi_community_follow::follow_multi_community,
     pending_follows::{approve::post_pending_follows_approve, list::get_pending_follows_list},
     random::get_random_community,
@@ -246,6 +247,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("/tag", put().to(edit_community_tag))
           .route("/tag", delete().to(delete_community_tag))
           .route("/notifications", put().to(edit_community_notifications))
+          .route("/followers", get().to(list_community_followers))
           .service(
             scope("/pending_follows")
               .route("/list", get().to(get_pending_follows_list))

@@ -5,6 +5,7 @@ use diesel::{
   PgTextExpressionMethods,
   QueryDsl,
   SelectableHelper,
+  dsl::exists,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::asc_if;
@@ -12,6 +13,7 @@ use lemmy_db_schema::{
   PersonListingType,
   PersonSortType,
   impls::local_user::LocalUserOptionHelper,
+  newtypes::CommunityId,
   source::{
     local_user::LocalUser,
     person::{Person, person_keys as key},
@@ -27,7 +29,7 @@ use lemmy_db_schema_file::{
     creator_local_instance_actions_join,
     my_person_actions_join,
   },
-  schema::{local_user, person},
+  schema::{community_actions, local_user, person},
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
@@ -123,6 +125,7 @@ pub struct PersonQuery<'a> {
   pub listing_type: Option<PersonListingType>,
   pub search_term: Option<String>,
   pub search_title_only: Option<bool>,
+  pub community_id: Option<CommunityId>,
   pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }
@@ -141,6 +144,17 @@ impl PersonQuery<'_> {
       .limit(limit)
       .filter(person::deleted.eq(false))
       .into_boxed();
+
+    if let Some(community_id) = self.community_id {
+      query = query.filter(exists(
+        community_actions::table.filter(
+          community_actions::community_id
+            .eq(community_id)
+            .and(community_actions::person_id.eq(person::id)),
+          //do we need to check as well follow_state check or followed_at is not null ?
+        ),
+      ))
+    }
 
     if let Some(listing_type) = self.listing_type {
       query = match listing_type {

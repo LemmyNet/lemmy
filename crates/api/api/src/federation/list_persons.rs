@@ -24,6 +24,7 @@ pub async fn list_persons(
     listing_type: data.type_,
     search_term: data.search_term,
     search_title_only: data.search_title_only,
+    community_id: None,
     limit: data.limit,
     page_cursor: data.page_cursor,
   }
