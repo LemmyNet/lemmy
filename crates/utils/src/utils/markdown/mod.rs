@@ -61,10 +61,7 @@ fn clean_urls_in_text(text: &str) -> String {
 mod tests {
 
   use super::*;
-  use crate::utils::{
-    markdown::code_links::clean_urls_skip_code_links,
-    validation::check_urls_are_valid,
-  };
+  use crate::utils::validation::check_urls_are_valid;
   use pretty_assertions::assert_eq;
   use regex::escape;
 
@@ -300,7 +297,7 @@ mod tests {
   #[test]
   fn test_clean_query_params_case() -> LemmyResult<()> {
     let link = "https://example.com/query?peers=5%B02%27";
-    let cleaned = clean_urls_in_text(&link);
+    let cleaned = clean_urls_in_text(link);
 
     // This fails and clearUrls adds some extra characters
     assert_ne!(link, cleaned.clone());
