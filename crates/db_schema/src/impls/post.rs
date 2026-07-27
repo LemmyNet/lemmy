@@ -97,7 +97,20 @@ impl Post {
       .on_conflict(post::ap_id)
       .filter_target(coalesce(post::updated_at, post::published_at).lt(timestamp))
       .do_update()
-      .set(form)
+      // We only set the vaues for everything we'd want to update from an
+      // edit and leave everything else alone.
+      //
+      // Work around for: https://github.com/LemmyNet/lemmy/issues/4372
+      .set(PostUpdateForm {
+        name: Some(form.name.clone()),
+        nsfw: form.nsfw,
+        url: Some(form.url.clone()),
+        body: Some(form.body.clone()),
+        language_id: form.language_id,
+        alt_text: Some(form.alt_text.clone()),
+	updated_at: Some(form.updated_at),
+        ..Default::default()
+      })
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntCreate)
