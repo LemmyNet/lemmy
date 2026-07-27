@@ -716,7 +716,7 @@ mod tests {
     let update_form = UpdatePostReportForm {
       resolver_id: Some(data.timmy.id),
       resolved: Some(true),
-      conclusion: Some(Some("Reason for resolving report...".to_string())),
+      conclusion: Some(Some("This is the conclusion of the report...".to_string())),
       ..Default::default()
     };
 
@@ -787,7 +787,7 @@ mod tests {
     let update_form = UpdatePrivateMessageReportForm {
       resolver_id: Some(data.admin_view.person.id),
       resolved: Some(true),
-      conclusion: Some(Some("Reason for resolving report...".to_string())),
+      conclusion: Some(Some("This is the conclusion of the report...".to_string())),
       ..Default::default()
     };
 
@@ -1010,7 +1010,7 @@ mod tests {
     let update_form = UpdateCommentReportForm {
       resolver_id: Some(data.timmy.id),
       resolved: Some(true),
-      conclusion: Some(Some("Reason for resolving report...".to_string())),
+      conclusion: Some(Some("This is the conclusion of the report".to_string())),
       ..Default::default()
     };
 
@@ -1126,7 +1126,7 @@ mod tests {
     let update_form = UpdateCommunityReportForm {
       resolver_id: Some(data.admin_view.person.id),
       resolved: Some(true),
-      conclusion: Some(Some("Reason for resolving report...".to_string())),
+      conclusion: Some(Some("This is the conclusion of the report".to_string())),
       ..Default::default()
     };
 
