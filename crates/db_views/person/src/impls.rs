@@ -24,6 +24,7 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
+  enums::CommunityFollowerState,
   joins::{
     creator_home_instance_actions_join,
     creator_local_instance_actions_join,
@@ -150,8 +151,8 @@ impl PersonQuery<'_> {
         community_actions::table.filter(
           community_actions::community_id
             .eq(community_id)
-            .and(community_actions::person_id.eq(person::id)),
-          //do we need to check as well follow_state check or followed_at is not null ?
+            .and(community_actions::person_id.eq(person::id))
+            .and(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
         ),
       ))
     }
