@@ -290,7 +290,10 @@ test("Make sure banned user can delete their account", async () => {
   expect(deleteAccount).toBeDefined();
 
   // Make sure post is gone
-  const postAfterDelete = await getPost(alpha, postId).then(expectSuccess);
+  const postAfterDelete = await waitUntilSuccess(
+    () => getPost(alpha, postId),
+    s => s.post_view.post.deleted,
+  );
   expect(postAfterDelete.post_view.post.deleted).toBe(true);
   expect(postAfterDelete.post_view.post.name).toBe("*Permanently Deleted*");
 });
@@ -340,8 +343,9 @@ test("Admins can view and ban deleted accounts", async () => {
   ).then(expectSuccess);
   expect(banUser.person_view.banned).toBe(true);
   // Make sure the post is removed
-  const postAfterBan = await getPost(beta, postRes.post_view.post.id).then(
-    expectSuccess,
+  const postAfterBan = await waitUntilSuccess(
+    () => getPost(beta, postRes.post_view.post.id),
+    s => s.post_view.post.removed,
   );
   expect(postAfterBan.post_view.post.removed).toBe(true);
 

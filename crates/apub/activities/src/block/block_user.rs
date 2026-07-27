@@ -34,7 +34,10 @@ use lemmy_db_schema::{
   },
   traits::Bannable,
 };
-use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
+use lemmy_utils::{
+  error::{LemmyError, LemmyErrorType, LemmyResult},
+  spawn_try_task,
+};
 use url::Url;
 
 impl BlockUser {
@@ -150,15 +153,18 @@ impl Activity for BlockUser {
         if self.remove_data.unwrap_or(false) {
           if blocked_person.instance_id == site.instance_id {
             // user banned from home instance, remove all content
-            remove_or_restore_user_data(
-              mod_person.id,
-              blocked_person.id,
-              true,
-              &reason,
-              parent_id,
-              context,
-            )
-            .await?;
+            let context = context.clone();
+            spawn_try_task(async move {
+              remove_or_restore_user_data(
+                mod_person.id,
+                blocked_person.id,
+                true,
+                &reason,
+                parent_id,
+                &context,
+              )
+              .await
+            });
           } else {
             update_removed_for_instance(&blocked_person, &site, true, pool).await?;
           }
@@ -189,16 +195,19 @@ impl Activity for BlockUser {
         notify_mod_action(action, context);
 
         if self.remove_data.unwrap_or(false) {
-          remove_or_restore_user_data_in_community(
-            community.id,
-            mod_person.id,
-            blocked_person.id,
-            true,
-            &reason,
-            parent_id,
-            &mut context.pool(),
-          )
-          .await?;
+          let context = context.clone();
+          spawn_try_task(async move {
+            remove_or_restore_user_data_in_community(
+              community.id,
+              mod_person.id,
+              blocked_person.id,
+              true,
+              &reason,
+              parent_id,
+              &mut context.pool(),
+            )
+            .await
+          });
         }
       }
     }

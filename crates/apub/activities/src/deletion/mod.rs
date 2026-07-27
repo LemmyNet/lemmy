@@ -48,7 +48,7 @@ use lemmy_db_schema::source::{
 use lemmy_db_schema_file::enums::CommunityVisibility;
 use lemmy_db_views_site::{SiteView, api::DeleteUserForm};
 use lemmy_diesel_utils::traits::Crud;
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::{error::LemmyResult, spawn_try_task};
 use std::ops::Deref;
 use url::Url;
 
@@ -322,7 +322,10 @@ async fn receive_delete_action(
       };
       form = plugin_hook_before("federated_user_before_delete", form).await?;
       if form.delete_content {
-        purge_user_account(person.id, local_instance_id, context).await?;
+        let context = context.clone();
+        spawn_try_task(
+          async move { purge_user_account(person.id, local_instance_id, &context).await },
+        );
       } else {
         Person::delete_account(&mut context.pool(), person.id, local_instance_id).await?;
       }

@@ -684,8 +684,9 @@ test("Enforce site ban federation for federated user", async () => {
   expect(banAlphaOnBeta.person_view.banned).toBe(true);
 
   // existing alpha post should be removed on beta
-  const betaRemovedPost = await getPost(beta, searchBeta1!.post.id).then(
-    expectSuccess,
+  const betaRemovedPost = await waitUntilSuccess(
+    () => getPost(beta, searchBeta1!.post.id),
+    s => s.post_view.post.removed,
   );
   expect(betaRemovedPost.post_view.post.removed).toBe(true);
 
