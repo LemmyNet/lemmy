@@ -332,9 +332,11 @@ pub async fn authenticate_with_oauth(
 
   // Lookup user by oauth_user_id
   let mut local_user_view =
-    LocalUserView::find_by_oauth_id(pool, oauth_provider.id, &oauth_user_id).await;
+    LocalUserView::find_by_oauth_id(pool, oauth_provider.id, &oauth_user_id)
+      .await
+      .ok();
 
-  let local_user = if let Ok(user_view) = local_user_view {
+  let local_user = if let Some(user_view) = local_user_view {
     // user found by oauth_user_id => Login user
     let local_user = user_view.clone().local_user;
 
@@ -363,12 +365,12 @@ pub async fn authenticate_with_oauth(
 
     // Lookup user by OAUTH email and link accounts
     local_user_view = if let Ok(email) = &email {
-      LocalUserView::find_by_email(pool, email).await
+      LocalUserView::find_by_email(pool, email).await.ok()
     } else {
-      Err(LemmyErrorType::OauthLoginFailed.into())
+      None
     };
 
-    if let Ok(user_view) = local_user_view {
+    if let Some(user_view) = local_user_view {
       // user found by email => link and login if linking is allowed
 
       // we only allow linking by email when email_verification is required otherwise emails cannot
