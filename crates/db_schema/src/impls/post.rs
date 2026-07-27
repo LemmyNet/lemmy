@@ -108,7 +108,7 @@ impl Post {
         body: Some(form.body.clone()),
         language_id: form.language_id,
         alt_text: Some(form.alt_text.clone()),
-	updated_at: Some(form.updated_at),
+        updated_at: Some(form.updated_at),
         ..Default::default()
       })
       .get_result::<Self>(conn)
