@@ -41,6 +41,33 @@ afterAll(async () => {
   await Promise.allSettled([unfollows(), deleteAllMedia(alpha)]);
 });
 
+async function expectProxiedImageContentDisposition(
+  url: string,
+  filename: string,
+) {
+  const expectedContentDisposition = `inline; filename="${encodeURIComponent(filename)}"`;
+  // Strip max_size so Lemmy requests image/original?proxy= from pict-rs instead of
+  // image/process.*?proxy=, which hangs in pict-rs danger-dummy-mode. The
+  // Content-Disposition header is set by Lemmy from the URL filename and is
+  // identical for both paths.
+  const proxyUrl = new URL(url);
+  proxyUrl.searchParams.delete("max_size");
+  const proxyResponse = await waitUntilSuccess<Response>(
+    async () => ({
+      state: "success" as const,
+      data: await fetch(proxyUrl),
+    }),
+    response =>
+      response.ok &&
+      response.headers.get("content-disposition") ===
+        expectedContentDisposition,
+  );
+
+  expect(proxyResponse.headers.get("content-disposition")).toBe(
+    expectedContentDisposition,
+  );
+}
+
 test("Upload image and delete it", async () => {
   const health = await alpha.imageHealth().then(expectSuccess);
   expect(health.success).toBeTruthy();
@@ -182,6 +209,10 @@ test("Purge post, linked image removed", async () => {
 });
 
 test("Images in remote image post are proxied if setting enabled", async () => {
+  const expectedFilename = decodeURIComponent(
+    new URL(sampleImage).pathname.split("/").pop()!,
+  );
+
   const community = await createCommunity(gamma).then(expectSuccess);
   const postRes = await createPost(
     gamma,
@@ -208,6 +239,12 @@ test("Images in remote image post are proxied if setting enabled", async () => {
   // Make sure that it contains `jpg`, to be sure its an image
   expect(post.thumbnail_url?.includes(".jpg")).toBeTruthy();
 
+  // Proxied image should include a Content-Disposition: inline header
+  await expectProxiedImageContentDisposition(
+    post.thumbnail_url!,
+    expectedFilename,
+  );
+
   const epsilonPostRes = await resolvePost(epsilon, postRes.post_view.post);
   expect(epsilonPostRes?.post).toBeDefined();
 
@@ -232,6 +269,11 @@ test("Images in remote image post are proxied if setting enabled", async () => {
 
   // Make sure that it contains `jpg`, to be sure its an image
   expect(epsilonPost.thumbnail_url?.includes(".jpg")).toBeTruthy();
+
+  await expectProxiedImageContentDisposition(
+    epsilonPost.thumbnail_url!,
+    expectedFilename,
+  );
 });
 
 test("Thumbnail of remote image link is proxied if setting enabled", async () => {
