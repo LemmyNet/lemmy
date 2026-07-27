@@ -97,7 +97,7 @@ impl Post {
       .on_conflict(post::ap_id)
       .filter_target(coalesce(post::updated_at, post::published_at).lt(timestamp))
       .do_update()
-      // We only set the vaues for everything we'd want to update from an
+      // We only set the values for everything we'd want to update from an
       // edit and leave everything else alone.
       //
       // Work around for: https://github.com/LemmyNet/lemmy/issues/4372
