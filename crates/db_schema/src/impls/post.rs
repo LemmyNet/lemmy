@@ -86,7 +86,7 @@ impl Crud for Post {
 }
 
 impl Post {
-  pub async fn insert_apub(
+  pub async fn upsert_apub(
     pool: &mut DbPool<'_>,
     timestamp: DateTime<Utc>,
     form: &PostInsertForm,
@@ -97,20 +97,7 @@ impl Post {
       .on_conflict(post::ap_id)
       .filter_target(coalesce(post::updated_at, post::published_at).lt(timestamp))
       .do_update()
-      // We only set the values for everything we'd want to update from an
-      // edit and leave everything else alone.
-      //
-      // Work around for: https://github.com/LemmyNet/lemmy/issues/4372
-      .set(PostUpdateForm {
-        name: Some(form.name.clone()),
-        nsfw: form.nsfw,
-        url: Some(form.url.clone()),
-        body: Some(form.body.clone()),
-        language_id: form.language_id,
-        alt_text: Some(form.alt_text.clone()),
-        updated_at: Some(form.updated_at),
-        ..Default::default()
-      })
+      .set(form.to_update_form())
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntCreate)
@@ -355,6 +342,22 @@ impl Post {
       Post::update(pool, self.id, &form).await?;
     }
     Ok(())
+  }
+}
+
+impl PostInsertForm {
+  fn to_update_form(&self) -> PostUpdateForm {
+    PostUpdateForm {
+      name: Some(self.name.clone()),
+      nsfw: self.nsfw,
+      url: Some(self.url.clone()),
+      body: Some(self.body.clone()),
+      language_id: self.language_id,
+      alt_text: Some(self.alt_text.clone()),
+      updated_at: Some(self.updated_at),
+      deleted: self.deleted,
+      ..Default::default()
+    }
   }
 }
 

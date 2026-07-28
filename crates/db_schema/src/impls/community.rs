@@ -119,7 +119,7 @@ pub enum CollectionType {
 }
 
 impl Community {
-  pub async fn insert_apub(
+  pub async fn upsert_apub(
     pool: &mut DbPool<'_>,
     timestamp: DateTime<Utc>,
     form: &CommunityInsertForm,
@@ -279,6 +279,28 @@ impl Community {
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
+
+// impl CommunityInsertForm {
+//   #[inline]
+//   fn to_update_form(&self) -> CommunityUpdateForm {
+//     CommunityUpdateForm {
+//       title: Some(self.title.clone()),
+//       sidebar: Some(self.sidebar.clone()),
+//       summary: Some(self.summary.clone()),
+//       removed: self.removed,
+//       updated_at: Some(self.updated_at),
+//       nsfw: self.nsfw,
+//       icon: Some(self.icon.clone()),
+//       banner: Some(self.banner.clone()),
+//       visibility: self.visibility,
+//       posting_restricted_to_mods: self.posting_restricted_to_mods,
+//       moderators_url: Some(self.moderators_url.clone()),
+//       featured_url: Some(self.featured_url.clone()),
+//       public_key: Some(self.public_key.clone()),
+//       ..Default::default()
+//     }
+//   }
+// }
 
 impl CommunityActions {
   pub async fn read(

@@ -51,7 +51,7 @@ impl Crud for PrivateMessage {
 }
 
 impl PrivateMessage {
-  pub async fn insert_apub(
+  pub async fn upsert_apub(
     pool: &mut DbPool<'_>,
     timestamp: DateTime<Utc>,
     form: &PrivateMessageInsertForm,
@@ -64,7 +64,7 @@ impl PrivateMessage {
         coalesce(private_message::updated_at, private_message::published_at).lt(timestamp),
       )
       .do_update()
-      .set(form)
+      .set(form.to_update_form())
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntCreate)
@@ -107,6 +107,16 @@ impl PrivateMessage {
   pub fn clear_deleted_by_recipient(&mut self, my_person: Option<&Person>) {
     if Some(self.creator_id) == my_person.map(|p| p.id) {
       self.deleted_by_recipient = false;
+    }
+  }
+}
+
+impl PrivateMessageInsertForm {
+  fn to_update_form(&self) -> PrivateMessageUpdateForm {
+    PrivateMessageUpdateForm {
+      content: Some(self.content.clone()),
+      updated_at: Some(self.updated_at),
+      ..Default::default()
     }
   }
 }

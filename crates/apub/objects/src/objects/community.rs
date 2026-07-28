@@ -239,7 +239,7 @@ impl Object for ApubCommunity {
       LanguageTag::to_language_id_multiple(group.language.clone(), &mut context.pool()).await?;
 
     let timestamp = group.updated.or(group.published).unwrap_or_else(Utc::now);
-    let community = Community::insert_apub(&mut context.pool(), timestamp, &form).await?;
+    let community = Community::upsert_apub(&mut context.pool(), timestamp, &form).await?;
     CommunityLanguage::update(&mut context.pool(), languages, community.id).await?;
 
     let new_tags = group

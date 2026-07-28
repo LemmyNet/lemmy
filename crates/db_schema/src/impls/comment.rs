@@ -163,10 +163,10 @@ impl Comment {
     comment_form: &CommentInsertForm,
     parent_path: Option<&Ltree>,
   ) -> LemmyResult<Comment> {
-    Self::insert_apub(pool, None, comment_form, parent_path).await
+    Self::upsert_apub(pool, None, comment_form, parent_path).await
   }
 
-  pub async fn insert_apub(
+  pub async fn upsert_apub(
     pool: &mut DbPool<'_>,
     timestamp: Option<DateTime<Utc>>,
     comment_form: &CommentInsertForm,
@@ -174,6 +174,7 @@ impl Comment {
   ) -> LemmyResult<Comment> {
     let conn = &mut get_conn(pool).await?;
     let comment_form = (comment_form, parent_path.map(|p| comment::path.eq(p)));
+    let update_form = (comment_form.0.to_update_form(), comment_form.1);
 
     if let Some(timestamp) = timestamp {
       insert_into(comment::table)
@@ -181,7 +182,7 @@ impl Comment {
         .on_conflict(comment::ap_id)
         .filter_target(coalesce(comment::updated_at, comment::published_at).lt(timestamp))
         .do_update()
-        .set(comment_form)
+        .set(update_form)
         .get_result::<Self>(conn)
         .await
     } else {
@@ -319,6 +320,23 @@ impl Comment {
       .get_results(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+}
+
+impl CommentInsertForm {
+  fn to_update_form(&self) -> CommentUpdateForm {
+    CommentUpdateForm {
+      content: Some(self.content.clone()),
+      removed: self.removed,
+      updated_at: Some(self.updated_at),
+      deleted: self.deleted,
+      distinguished: self.distinguished,
+      local: self.local,
+      language_id: self.language_id,
+      federation_pending: self.federation_pending,
+      locked: self.locked,
+      ..Default::default()
+    }
   }
 }
 
