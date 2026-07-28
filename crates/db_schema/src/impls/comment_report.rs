@@ -1,6 +1,6 @@
 use crate::{
   newtypes::{CommentId, CommentReportId, PostId},
-  source::comment_report::{CommentReport, CommentReportForm},
+  source::comment_report::{CommentReport, CommentReportForm, UpdateCommentReportForm},
   traits::Reportable,
 };
 use chrono::Utc;
@@ -22,6 +22,7 @@ use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Reportable for CommentReport {
   type Form = CommentReportForm;
+  type UpdateForm = UpdateCommentReportForm;
   type IdType = CommentReportId;
   type ObjectIdType = CommentId;
   /// creates a comment report and returns it
@@ -41,24 +42,15 @@ impl Reportable for CommentReport {
   ///
   /// * `conn` - the postgres connection
   /// * `report_id` - the id of the report to resolve
-  /// * `by_resolver_id` - the id of the user resolving the report
-  /// * `is_resolved` - is the report resolved
-  /// * `resolve_reason` - reason why report was resolved
+  /// * `form` - update report form
   async fn update_resolved(
     pool: &mut DbPool<'_>,
     report_id_: Self::IdType,
-    by_resolver_id: PersonId,
-    is_resolved: bool,
-    resolve_reason: Option<String>,
+    form: &Self::UpdateForm,
   ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
     update(comment_report::table.find(report_id_))
-      .set((
-        comment_report::resolved.eq(is_resolved),
-        comment_report::resolver_id.eq(by_resolver_id),
-        comment_report::updated_at.eq(Utc::now()),
-        comment_report::resolve_reason.eq(resolve_reason),
-      ))
+      .set(form)
       .execute(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
