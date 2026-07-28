@@ -332,9 +332,11 @@ pub async fn authenticate_with_oauth(
 
   // Lookup user by oauth_user_id
   let mut local_user_view =
-    LocalUserView::find_by_oauth_id(pool, oauth_provider.id, &oauth_user_id).await;
+    LocalUserView::find_by_oauth_id(pool, oauth_provider.id, &oauth_user_id)
+      .await
+      .ok();
 
-  let local_user = if let Ok(user_view) = local_user_view {
+  let local_user = if let Some(user_view) = local_user_view {
     // user found by oauth_user_id => Login user
     let local_user = user_view.clone().local_user;
 
@@ -357,12 +359,18 @@ pub async fn authenticate_with_oauth(
     }
 
     // Extract the OAUTH email claim from the returned user_info
-    let email = read_user_info(&user_info, "email")?;
+    // Some oauth providers like github return null for email in some cases.
+    // See https://github.com/LemmyNet/lemmy/issues/6609
+    let email = read_user_info(&user_info, "email");
 
     // Lookup user by OAUTH email and link accounts
-    local_user_view = LocalUserView::find_by_email(pool, &email).await;
+    local_user_view = if let Ok(email) = &email {
+      LocalUserView::find_by_email(pool, email).await.ok()
+    } else {
+      None
+    };
 
-    if let Ok(user_view) = local_user_view {
+    if let Some(user_view) = local_user_view {
       // user found by email => link and login if linking is allowed
 
       // we only allow linking by email when email_verification is required otherwise emails cannot
@@ -420,7 +428,7 @@ pub async fn authenticate_with_oauth(
 
             // Create the local user
             let local_user_form = LocalUserInsertForm {
-              email: Some(str::to_lowercase(&email)),
+              email: email.ok().map(|e| e.to_lowercase()),
               show_nsfw: Some(show_nsfw),
               accepted_application: Some(!require_registration_application),
               email_verified: Some(oauth_provider.auto_verify_email),
