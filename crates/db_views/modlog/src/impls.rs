@@ -227,7 +227,7 @@ impl ModlogView {
 mod tests {
   use super::*;
   use lemmy_db_schema::source::{
-    comment::{Comment, CommentInsertForm},
+    comment::{Comment, CommentUpdateForm},
     community::{Community, CommunityInsertForm},
     instance::Instance,
     local_site::LocalSiteInsertForm,
@@ -299,11 +299,11 @@ mod tests {
 
     // Timmy creates a comment
     let comment_form =
-      CommentInsertForm::new(timmy.id, post.id, community.id, "A test comment rv".into());
+      CommentUpdateForm::new(timmy.id, post.id, community.id, "A test comment rv".into());
     let comment = Comment::create(pool, &comment_form, None).await?;
 
     // jessica creates a comment
-    let comment_form_2 = CommentInsertForm::new(
+    let comment_form_2 = CommentUpdateForm::new(
       jessica.id,
       post_2.id,
       community_2.id,

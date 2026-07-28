@@ -21,7 +21,7 @@ use lemmy_api_utils::{
 use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
   source::{
-    comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm},
+    comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm, CommentUpdateForm},
     notification::Notification,
   },
   traits::Likeable,
@@ -104,10 +104,13 @@ pub async fn create_comment(
     check_comment_depth(parent)?;
   }
 
-  let mut comment_form = CommentInsertForm {
+  // We use an update form here as the comment create code goes
+  // through the same code as apub code, which needs to use an update
+  // form.
+  let mut comment_form = CommentUpdateForm {
     language_id: data.language_id,
     federation_pending: Some(community_use_pending(&post_view.community, &context).await),
-    ..CommentInsertForm::new(my_person_id, post_id, community_id, content.clone())
+    ..CommentUpdateForm::new(my_person_id, post_id, community_id, content.clone())
   };
   comment_form = plugin_hook_before("local_comment_before_create", comment_form).await?;
   validate_post_language(&mut context.pool(), comment_form.language_id, community_id).await?;

@@ -53,7 +53,7 @@ mod tests {
   use lemmy_db_schema::{
     ModlogKindFilter,
     source::{
-      comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm},
+      comment::{Comment, CommentActions, CommentUpdateForm, CommentLikeForm},
       community::{Community, CommunityInsertForm},
       instance::Instance,
       local_site::{LocalSite, LocalSiteInsertForm},
@@ -129,7 +129,7 @@ mod tests {
     let post_form_2 = PostInsertForm::new("A test post radical".into(), sara.id, community.id);
     let post_2 = Post::create(pool, &post_form_2).await?;
 
-    let comment_form_1 = CommentInsertForm::new(
+    let comment_form_1 = CommentUpdateForm::new(
       sara.id,
       post_1.id,
       community.id,
@@ -140,7 +140,7 @@ mod tests {
     let comment_like_form_1 = CommentLikeForm::new(comment_1.id, sara.id, Some(true));
     CommentActions::like(pool, &comment_like_form_1).await?;
 
-    let comment_form_2 = CommentInsertForm::new(
+    let comment_form_2 = CommentUpdateForm::new(
       sara.id,
       post_2.id,
       community.id,
@@ -423,7 +423,7 @@ mod tests {
     let post_form_2 = PostInsertForm::new("Bulk test post 2".into(), person_b.id, community.id);
     let post_2 = Post::create(pool, &post_form_2).await?;
 
-    let comment_form = CommentInsertForm::new(
+    let comment_form = CommentUpdateForm::new(
       person_b.id,
       post_2.id,
       community.id,

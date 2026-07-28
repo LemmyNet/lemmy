@@ -212,14 +212,14 @@ impl Object for ApubComment {
         .await?,
     );
 
-    let mut form = CommentInsertForm {
-      creator_id: creator.id,
-      post_id: post.id,
-      community_id: post.community_id,
-      content,
+    let mut form = CommentUpdateForm {
+      creator_id: Some(creator.id),
+      post_id: Some(post.id),
+      community_id: Some(post.community_id),
+      content: Some(content),
       removed: None,
       published_at: note.published,
-      updated_at: note.updated,
+      updated_at: Some(note.updated),
       deleted: Some(false),
       ap_id: Some(note.id.into()),
       distinguished: note.distinguished,

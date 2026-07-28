@@ -2,11 +2,7 @@ use crate::{
   diesel::{DecoratableTarget, OptionalExtension},
   newtypes::{CommentId, CommunityId, PostId},
   source::comment::{
-    Comment,
-    CommentActions,
-    CommentInsertForm,
-    CommentLikeForm,
-    CommentSavedForm,
+    Comment, CommentActions, CommentInsertForm, CommentLikeForm, CommentSavedForm,
     CommentUpdateForm,
   },
   traits::{Likeable, Saveable},
@@ -14,9 +10,7 @@ use crate::{
 };
 use chrono::{DateTime, Utc};
 use diesel::{
-  ExpressionMethods,
-  JoinOnDsl,
-  QueryDsl,
+  ExpressionMethods, JoinOnDsl, QueryDsl,
   dsl::{insert_into, not},
   expression::SelectableHelper,
   update,
@@ -25,8 +19,7 @@ use diesel_async::RunQueryDsl;
 use diesel_ltree::{Ltree, dsl::LtreeExtensions};
 use diesel_uplete::{UpleteCount, uplete};
 use lemmy_db_schema_file::{
-  InstanceId,
-  PersonId,
+  InstanceId, PersonId,
   schema::{comment, comment_actions, community, post},
 };
 use lemmy_diesel_utils::{
@@ -160,7 +153,7 @@ impl Comment {
   #[expect(clippy::same_name_method)]
   pub async fn create(
     pool: &mut DbPool<'_>,
-    comment_form: &CommentInsertForm,
+    comment_form: &CommentUpdateForm,
     parent_path: Option<&Ltree>,
   ) -> LemmyResult<Comment> {
     Self::upsert_apub(pool, None, comment_form, parent_path).await
@@ -169,12 +162,11 @@ impl Comment {
   pub async fn upsert_apub(
     pool: &mut DbPool<'_>,
     timestamp: Option<DateTime<Utc>>,
-    comment_form: &CommentInsertForm,
+    comment_form: &CommentUpdateForm,
     parent_path: Option<&Ltree>,
   ) -> LemmyResult<Comment> {
     let conn = &mut get_conn(pool).await?;
     let comment_form = (comment_form, parent_path.map(|p| comment::path.eq(p)));
-    let update_form = (comment_form.0.to_update_form(), comment_form.1);
 
     if let Some(timestamp) = timestamp {
       insert_into(comment::table)
@@ -182,7 +174,7 @@ impl Comment {
         .on_conflict(comment::ap_id)
         .filter_target(coalesce(comment::updated_at, comment::published_at).lt(timestamp))
         .do_update()
-        .set(update_form)
+        .set(comment_form)
         .get_result::<Self>(conn)
         .await
     } else {
@@ -455,6 +447,24 @@ impl CommentActions {
   }
 }
 
+impl CommentUpdateForm {
+  // Wrapper function to make writing create comments easier
+  pub fn new(
+    creator_id: PersonId,
+    post_id: PostId,
+    community_id: CommunityId,
+    content: String,
+  ) -> Self {
+    Self {
+      creator_id: Some(creator_id),
+      post_id: Some(post_id),
+      community_id: Some(community_id),
+      content: Some(content),
+      ..Default::default()
+    }
+  }
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -503,7 +513,7 @@ mod tests {
     );
     let inserted_post = Post::create(pool, &new_post).await?;
 
-    let comment_form = CommentInsertForm::new(
+    let comment_form = CommentUpdateForm::new(
       inserted_person.id,
       inserted_post.id,
       inserted_community.id,
@@ -542,7 +552,7 @@ mod tests {
       locked: false,
     };
 
-    let child_comment_form = CommentInsertForm::new(
+    let child_comment_form = CommentUpdateForm::new(
       inserted_person.id,
       inserted_post.id,
       inserted_community.id,
@@ -623,7 +633,7 @@ mod tests {
     );
     let inserted_post = Post::create(pool, &new_post).await?;
 
-    let comment_form = CommentInsertForm::new(
+    let comment_form = CommentUpdateForm::new(
       inserted_person.id,
       inserted_post.id,
       inserted_community.id,
@@ -631,7 +641,7 @@ mod tests {
     );
     let inserted_comment = Comment::create(pool, &comment_form, None).await?;
 
-    let child_comment_form = CommentInsertForm::new(
+    let child_comment_form = CommentUpdateForm::new(
       inserted_person.id,
       inserted_post.id,
       inserted_community.id,
@@ -711,7 +721,7 @@ mod tests {
     );
     let inserted_post = Post::create(pool, &new_post).await?;
 
-    let parent_comment_form = CommentInsertForm::new(
+    let parent_comment_form = CommentUpdateForm::new(
       inserted_person.id,
       inserted_post.id,
       inserted_community.id,
@@ -719,7 +729,7 @@ mod tests {
     );
     let inserted_parent_comment = Comment::create(pool, &parent_comment_form, None).await?;
 
-    let child_comment_form = CommentInsertForm::new(
+    let child_comment_form = CommentUpdateForm::new(
       inserted_person.id,
       inserted_post.id,
       inserted_community.id,
@@ -732,7 +742,7 @@ mod tests {
     )
     .await?;
 
-    let grandchild_comment_form = CommentInsertForm::new(
+    let grandchild_comment_form = CommentUpdateForm::new(
       inserted_person.id,
       inserted_post.id,
       inserted_community.id,
@@ -781,7 +791,7 @@ mod tests {
     );
     let inserted_post = Post::create(pool, &new_post).await?;
 
-    let comment_toplevel1_form = CommentInsertForm::new(
+    let comment_toplevel1_form = CommentUpdateForm::new(
       inserted_person.id,
       inserted_post.id,
       inserted_community.id,
@@ -789,7 +799,7 @@ mod tests {
     );
     let inserted_comment_toplevel1 = Comment::create(pool, &comment_toplevel1_form, None).await?;
 
-    let child_comment_form = CommentInsertForm::new(
+    let child_comment_form = CommentUpdateForm::new(
       inserted_person.id,
       inserted_post.id,
       inserted_community.id,
@@ -802,7 +812,7 @@ mod tests {
     )
     .await?;
 
-    let comment_toplevel2_form = CommentInsertForm::new(
+    let comment_toplevel2_form = CommentUpdateForm::new(
       inserted_person.id,
       inserted_post.id,
       inserted_community.id,

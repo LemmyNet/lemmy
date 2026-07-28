@@ -103,7 +103,7 @@ pub struct CommentInsertForm {
 }
 
 #[derive(Debug, Clone, Default)]
-#[cfg_attr(feature = "full", derive(AsChangeset, Serialize, Deserialize))]
+#[cfg_attr(feature = "full", derive(AsChangeset, Serialize, Deserialize, Insertable))]
 #[cfg_attr(feature = "full", diesel(table_name = comment))]
 pub struct CommentUpdateForm {
   pub content: Option<String>,
@@ -117,6 +117,10 @@ pub struct CommentUpdateForm {
   pub language_id: Option<LanguageId>,
   pub federation_pending: Option<bool>,
   pub locked: Option<bool>,
+  pub creator_id: Option<PersonId>,
+  pub post_id: Option<PostId>,
+  pub community_id: Option<CommunityId>,
+  pub published_at: Option<DateTime<Utc>>,
 }
 
 #[skip_serializing_none]
