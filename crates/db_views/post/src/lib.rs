@@ -20,12 +20,12 @@ use {
     CreatorLocalHomeBanExpiresType,
     creator_ban_expires_from_community,
     creator_banned_from_community,
+    creator_is_admin,
     creator_is_moderator,
     creator_local_home_ban_expires,
     creator_local_home_community_banned,
-    local_user_can_mod_post,
+    local_user_can_mod,
     post_community_tags_fragment,
-    post_creator_is_admin,
   },
 };
 
@@ -60,7 +60,7 @@ pub struct PostView {
   pub post_actions: Option<PostActions>,
   #[cfg_attr(feature = "full",
     diesel(
-      select_expression = post_creator_is_admin()
+      select_expression = creator_is_admin()
     )
   )]
   pub creator_is_admin: bool,
@@ -72,7 +72,7 @@ pub struct PostView {
   pub tags: CommunityTagsView,
   #[cfg_attr(feature = "full",
     diesel(
-      select_expression = local_user_can_mod_post()
+      select_expression = local_user_can_mod()
     )
   )]
   pub can_mod: bool,
