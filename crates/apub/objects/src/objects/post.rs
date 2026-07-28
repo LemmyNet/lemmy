@@ -45,7 +45,7 @@ use lemmy_db_schema::source::{
   community_tag::CommunityTag,
   local_site::LocalSite,
   person::Person,
-  post::{Post, PostInsertForm, PostUpdateForm},
+  post::{Post, PostUpdateForm},
 };
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_site::SiteView;

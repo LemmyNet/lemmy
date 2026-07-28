@@ -59,7 +59,10 @@ pub struct PrivateMessageInsertForm {
 }
 
 #[derive(Clone, Default)]
-#[cfg_attr(feature = "full", derive(AsChangeset, Serialize, Deserialize, Insertable))]
+#[cfg_attr(
+  feature = "full",
+  derive(AsChangeset, Serialize, Deserialize, Insertable)
+)]
 #[cfg_attr(feature = "full", diesel(table_name = private_message))]
 pub struct PrivateMessageUpdateForm {
   pub creator_id: Option<PersonId>,

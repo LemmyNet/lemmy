@@ -204,7 +204,7 @@ mod tests {
   use crate::{LocalUserView, impls::PersonSavedCombinedQuery};
   use lemmy_db_schema::{
     source::{
-      comment::{Comment, CommentActions, CommentUpdateForm, CommentSavedForm},
+      comment::{Comment, CommentActions, CommentSavedForm, CommentUpdateForm},
       community::{Community, CommunityInsertForm},
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm},

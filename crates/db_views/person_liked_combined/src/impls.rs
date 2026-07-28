@@ -195,7 +195,7 @@ mod tests {
   use lemmy_db_schema::{
     LikeType,
     source::{
-      comment::{Comment, CommentActions, CommentUpdateForm, CommentLikeForm},
+      comment::{Comment, CommentActions, CommentLikeForm, CommentUpdateForm},
       community::{Community, CommunityInsertForm},
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm},

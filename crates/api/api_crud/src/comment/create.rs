@@ -21,7 +21,7 @@ use lemmy_api_utils::{
 use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
   source::{
-    comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm, CommentUpdateForm},
+    comment::{Comment, CommentActions, CommentLikeForm, CommentUpdateForm},
     notification::Notification,
   },
   traits::Likeable,

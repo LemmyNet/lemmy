@@ -103,7 +103,10 @@ pub struct CommentInsertForm {
 }
 
 #[derive(Debug, Clone, Default)]
-#[cfg_attr(feature = "full", derive(AsChangeset, Serialize, Deserialize, Insertable))]
+#[cfg_attr(
+  feature = "full",
+  derive(AsChangeset, Serialize, Deserialize, Insertable)
+)]
 #[cfg_attr(feature = "full", diesel(table_name = comment))]
 pub struct CommentUpdateForm {
   pub content: Option<String>,

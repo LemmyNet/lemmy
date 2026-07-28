@@ -375,7 +375,7 @@ mod tests {
     newtypes::CommentId,
     source::{
       actor_language::LocalUserLanguage,
-      comment::{Comment, CommentActions, CommentUpdateForm, CommentLikeForm},
+      comment::{Comment, CommentActions, CommentLikeForm, CommentUpdateForm},
       community::{
         Community,
         CommunityActions,

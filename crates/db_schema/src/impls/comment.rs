@@ -2,7 +2,11 @@ use crate::{
   diesel::{DecoratableTarget, OptionalExtension},
   newtypes::{CommentId, CommunityId, PostId},
   source::comment::{
-    Comment, CommentActions, CommentInsertForm, CommentLikeForm, CommentSavedForm,
+    Comment,
+    CommentActions,
+    CommentInsertForm,
+    CommentLikeForm,
+    CommentSavedForm,
     CommentUpdateForm,
   },
   traits::{Likeable, Saveable},
@@ -10,7 +14,9 @@ use crate::{
 };
 use chrono::{DateTime, Utc};
 use diesel::{
-  ExpressionMethods, JoinOnDsl, QueryDsl,
+  ExpressionMethods,
+  JoinOnDsl,
+  QueryDsl,
   dsl::{insert_into, not},
   expression::SelectableHelper,
   update,
@@ -19,7 +25,8 @@ use diesel_async::RunQueryDsl;
 use diesel_ltree::{Ltree, dsl::LtreeExtensions};
 use diesel_uplete::{UpleteCount, uplete};
 use lemmy_db_schema_file::{
-  InstanceId, PersonId,
+  InstanceId,
+  PersonId,
   schema::{comment, comment_actions, community, post},
 };
 use lemmy_diesel_utils::{
@@ -312,23 +319,6 @@ impl Comment {
       .get_results(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
-  }
-}
-
-impl CommentInsertForm {
-  fn to_update_form(&self) -> CommentUpdateForm {
-    CommentUpdateForm {
-      content: Some(self.content.clone()),
-      removed: self.removed,
-      updated_at: Some(self.updated_at),
-      deleted: self.deleted,
-      distinguished: self.distinguished,
-      local: self.local,
-      language_id: self.language_id,
-      federation_pending: self.federation_pending,
-      locked: self.locked,
-      ..Default::default()
-    }
   }
 }
 

@@ -53,7 +53,7 @@ mod tests {
   use lemmy_db_schema::{
     ModlogKindFilter,
     source::{
-      comment::{Comment, CommentActions, CommentUpdateForm, CommentLikeForm},
+      comment::{Comment, CommentActions, CommentLikeForm, CommentUpdateForm},
       community::{Community, CommunityInsertForm},
       instance::Instance,
       local_site::{LocalSite, LocalSiteInsertForm},

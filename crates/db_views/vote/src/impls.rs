@@ -188,7 +188,7 @@ mod tests {
   use crate::VoteView;
   use lemmy_db_schema::{
     source::{
-      comment::{Comment, CommentActions, CommentUpdateForm, CommentLikeForm},
+      comment::{Comment, CommentActions, CommentLikeForm, CommentUpdateForm},
       community::{Community, CommunityActions, CommunityInsertForm, CommunityPersonBanForm},
       instance::Instance,
       person::{Person, PersonInsertForm},

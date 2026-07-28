@@ -415,7 +415,7 @@ mod tests {
 
   use crate::{
     source::{
-      comment::{Comment, CommentActions, CommentUpdateForm, CommentLikeForm},
+      comment::{Comment, CommentActions, CommentLikeForm, CommentUpdateForm},
       community::{Community, CommunityInsertForm},
       person::{Person, PersonActions, PersonFollowerForm, PersonInsertForm, PersonUpdateForm},
       post::{Post, PostActions, PostInsertForm, PostLikeForm},
