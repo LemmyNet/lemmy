@@ -5,7 +5,6 @@ use diesel::{
   PgTextExpressionMethods,
   QueryDsl,
   SelectableHelper,
-  dsl::exists,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::asc_if;
@@ -29,6 +28,7 @@ use lemmy_db_schema_file::{
     creator_home_instance_actions_join,
     creator_local_instance_actions_join,
     my_person_actions_join,
+    person_community_actions_join,
   },
   schema::{community_actions, local_user, person},
 };
@@ -63,16 +63,22 @@ impl PaginationCursorConversion for PersonView {
 
 impl PersonView {
   #[diesel::dsl::auto_type(no_type_alias)]
-  fn joins(my_person_id: Option<PersonId>, local_instance_id: InstanceId) -> _ {
+  fn joins(
+    my_person_id: Option<PersonId>,
+    local_instance_id: InstanceId,
+    community_id: Option<CommunityId>,
+  ) -> _ {
     let creator_local_instance_actions_join: creator_local_instance_actions_join =
       creator_local_instance_actions_join(local_instance_id);
     let my_person_actions_join: my_person_actions_join = my_person_actions_join(my_person_id);
-
+    let person_community_actions_join: person_community_actions_join =
+      person_community_actions_join(community_id);
     person::table
       .left_join(local_user::table)
       .left_join(my_person_actions_join)
       .left_join(creator_home_instance_actions_join())
       .left_join(creator_local_instance_actions_join)
+      .left_join(person_community_actions_join)
   }
 
   pub async fn read(
@@ -83,7 +89,7 @@ impl PersonView {
     is_admin: bool,
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
-    let mut query = Self::joins(my_person_id, local_instance_id)
+    let mut query = Self::joins(my_person_id, local_instance_id, None)
       .filter(person::id.eq(person_id))
       .select(Self::as_select())
       .into_boxed();
@@ -105,7 +111,7 @@ impl PersonView {
   ) -> LemmyResult<Vec<PersonView>> {
     let conn = &mut get_conn(pool).await?;
 
-    Self::joins(my_person_id, local_instance_id)
+    Self::joins(my_person_id, local_instance_id, None)
       .filter(person::deleted.eq(false))
       .filter(local_user::admin)
       // Order by admin created date (ie old)
@@ -140,21 +146,22 @@ impl PersonQuery<'_> {
     use PersonSortType::*;
     let limit = limit_fetch(self.limit, None)?;
 
-    let mut query = PersonView::joins(self.local_user.person_id(), site.instance_id)
-      .select(PersonView::as_select())
-      .limit(limit)
-      .filter(person::deleted.eq(false))
-      .into_boxed();
+    let mut query = PersonView::joins(
+      self.local_user.person_id(),
+      site.instance_id,
+      self.community_id,
+    )
+    .select(PersonView::as_select())
+    .limit(limit)
+    .filter(person::deleted.eq(false))
+    .into_boxed();
 
-    if let Some(community_id) = self.community_id {
-      query = query.filter(exists(
-        community_actions::table.filter(
-          community_actions::community_id
-            .eq(community_id)
-            .and(community_actions::person_id.eq(person::id))
-            .and(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
-        ),
-      ))
+    if self.community_id.is_some() {
+      query = query.filter(
+        community_actions::follow_state
+          .eq(CommunityFollowerState::Accepted)
+          .or(community_actions::received_ban_at.is_not_null()),
+      )
     }
 
     if let Some(listing_type) = self.listing_type {

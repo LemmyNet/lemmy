@@ -1,5 +1,8 @@
 use chrono::{DateTime, Utc};
-use lemmy_db_schema::source::person::{Person, PersonActions};
+use lemmy_db_schema::source::{
+  community::CommunityActions,
+  person::{Person, PersonActions},
+};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use {
@@ -48,4 +51,8 @@ pub struct PersonView {
      )
   )]
   pub ban_expires_at: Option<DateTime<Utc>>,
+  //same as for communityView to hide optional community_actions for unrelated queries
+  #[serde(skip_serializing_if = "Option::is_none")]
+  #[cfg_attr(feature = "full", diesel(embed))]
+  pub community_actions: Option<CommunityActions>,
 }
