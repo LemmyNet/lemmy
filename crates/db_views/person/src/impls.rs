@@ -219,14 +219,20 @@ mod tests {
   use lemmy_db_schema::{
     assert_length,
     source::{
-      community::{Community, CommunityInsertForm},
+      community::{
+        Community,
+        CommunityActions,
+        CommunityFollowerForm,
+        CommunityInsertForm,
+        CommunityPersonBanForm,
+      },
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
       person::{Person, PersonActions, PersonInsertForm, PersonNoteForm, PersonUpdateForm},
       post::{Post, PostActions, PostInsertForm, PostLikeForm},
       site::SiteInsertForm,
     },
-    traits::Likeable,
+    traits::{Bannable, Followable, Likeable},
   };
   use lemmy_diesel_utils::{
     connection::{DbPool, build_db_pool_for_tests},
@@ -241,6 +247,7 @@ mod tests {
     alice: Person,
     alice_local_user: LocalUser,
     bob: Person,
+    bobs_community: Community,
   }
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
@@ -282,10 +289,12 @@ mod tests {
       alice,
       alice_local_user,
       bob,
+      bobs_community: community,
     })
   }
 
   async fn cleanup(data: Data, pool: &mut DbPool<'_>) -> LemmyResult<()> {
+    Community::delete(pool, data.bobs_community.id).await?;
     Instance::delete(pool, data.bob.instance_id).await?;
     Ok(())
   }
@@ -419,6 +428,79 @@ mod tests {
 
     cleanup(data, pool).await?;
 
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn list_community_followers_test() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    let follow_form_bob = CommunityFollowerForm::new(
+      data.bobs_community.id,
+      data.bob.id,
+      CommunityFollowerState::Accepted,
+    );
+    CommunityActions::follow(pool, &follow_form_bob).await?;
+
+    let persons_list = PersonQuery {
+      community_id: Some(data.bobs_community.id),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+    //only bob is following bobs community with follow state Accepted
+    assert_length!(1, persons_list);
+
+    let follow_form_alice = CommunityFollowerForm::new(
+      data.bobs_community.id,
+      data.alice_local_user.person_id,
+      CommunityFollowerState::Accepted,
+    );
+    CommunityActions::follow(pool, &follow_form_alice).await?;
+    let ban_form =
+      CommunityPersonBanForm::new(data.bobs_community.id, data.alice_local_user.person_id);
+    CommunityActions::ban(pool, &ban_form).await?;
+
+    let persons_list_new = PersonQuery {
+      community_id: Some(data.bobs_community.id),
+      ..Default::default()
+    }
+    .list(&data.site, pool)
+    .await?;
+    //  despite alice is banned, both Alice and Bob should be returned
+    assert_length!(2, persons_list_new);
+
+    let bob_person_view = persons_list_new
+      .iter()
+      .find(|p| p.person.id == data.bob.id)
+      .expect("Bob should be in list of community followers");
+
+    let alice_person_view = persons_list_new
+      .iter()
+      .find(|p| p.person.id == data.alice.id)
+      .expect("Alice should be in list of community followers");
+    // bob should have follow state Accepted
+    assert_eq!(
+      CommunityFollowerState::Accepted,
+      bob_person_view
+        .community_actions
+        .as_ref()
+        .and_then(|ca| ca.follow_state)
+        .expect("should have follow state"),
+    );
+
+    // alice should have received_ban_at value
+    assert!(
+      alice_person_view
+        .community_actions
+        .as_ref()
+        .and_then(|ca| ca.received_ban_at)
+        .is_some()
+    );
+    cleanup(data, pool).await?;
     Ok(())
   }
 }
