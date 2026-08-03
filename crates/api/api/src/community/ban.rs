@@ -94,6 +94,8 @@ pub async fn ban_from_community(
   notify_mod_action(action.clone(), &context);
 
   // Remove/Restore their data if that's desired
+  // Can't run inside the transaction above because spawn_try_task
+  // gets its own DB connection from the pool
   if data.remove_or_restore_data.unwrap_or(false) {
     let remove_data = data.ban;
     let reason = data.reason.clone();
