@@ -97,7 +97,7 @@ impl Post {
       .on_conflict(post::ap_id)
       .filter_target(coalesce(post::updated_at, post::published_at).lt(timestamp))
       .do_update()
-      .set(form.to_update_form())
+      .set(form)
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntCreate)
@@ -342,22 +342,6 @@ impl Post {
       Post::update(pool, self.id, &form).await?;
     }
     Ok(())
-  }
-}
-
-impl PostInsertForm {
-  fn to_update_form(&self) -> PostUpdateForm {
-    PostUpdateForm {
-      name: Some(self.name.clone()),
-      nsfw: self.nsfw,
-      url: Some(self.url.clone()),
-      body: Some(self.body.clone()),
-      language_id: self.language_id,
-      alt_text: Some(self.alt_text.clone()),
-      updated_at: Some(self.updated_at),
-      deleted: self.deleted,
-      ..Default::default()
-    }
   }
 }
 

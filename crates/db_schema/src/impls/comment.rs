@@ -174,7 +174,6 @@ impl Comment {
   ) -> LemmyResult<Comment> {
     let conn = &mut get_conn(pool).await?;
     let comment_form = (comment_form, parent_path.map(|p| comment::path.eq(p)));
-    let update_form = (comment_form.0.to_update_form(), comment_form.1);
 
     if let Some(timestamp) = timestamp {
       insert_into(comment::table)
@@ -182,7 +181,7 @@ impl Comment {
         .on_conflict(comment::ap_id)
         .filter_target(coalesce(comment::updated_at, comment::published_at).lt(timestamp))
         .do_update()
-        .set(update_form)
+        .set(comment_form)
         .get_result::<Self>(conn)
         .await
     } else {

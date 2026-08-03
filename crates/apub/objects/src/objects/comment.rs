@@ -31,7 +31,7 @@ use lemmy_api_utils::{
   utils::{check_is_mod_or_admin, get_url_blocklist, process_markdown, slur_regex},
 };
 use lemmy_db_schema::source::{
-  comment::{Comment, CommentUpdateForm},
+  comment::{Comment, CommentInsertForm, CommentUpdateForm},
   community::Community,
   person::Person,
   post::Post,

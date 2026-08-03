@@ -45,7 +45,7 @@ use lemmy_db_schema::source::{
   community_tag::CommunityTag,
   local_site::LocalSite,
   person::Person,
-  post::{Post, PostUpdateForm},
+  post::{Post, PostInsertForm, PostUpdateForm},
 };
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_site::SiteView;
@@ -290,7 +290,7 @@ impl Object for ApubPost {
 
     let orig_post = Post::read_from_apub_id(&mut context.pool(), page.id.clone().into()).await;
     let mut form = PostInsertForm {
-      url: url.map(Into::into),
+      url: Some(url.map(Into::into)),
       body,
       alt_text,
       published_at: page.published,
