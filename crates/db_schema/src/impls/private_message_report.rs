@@ -1,6 +1,10 @@
 use crate::{
   newtypes::{PrivateMessageId, PrivateMessageReportId},
-  source::private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
+  source::private_message_report::{
+    PrivateMessageReport,
+    PrivateMessageReportForm,
+    UpdatePrivateMessageReportForm,
+  },
   traits::Reportable,
 };
 use chrono::Utc;
@@ -17,6 +21,7 @@ use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Reportable for PrivateMessageReport {
   type Form = PrivateMessageReportForm;
+  type UpdateForm = UpdatePrivateMessageReportForm;
   type IdType = PrivateMessageReportId;
   type ObjectIdType = PrivateMessageId;
 
@@ -32,18 +37,11 @@ impl Reportable for PrivateMessageReport {
   async fn update_resolved(
     pool: &mut DbPool<'_>,
     report_id: Self::IdType,
-    by_resolver_id: PersonId,
-    is_resolved: bool,
-    resolve_reason: Option<String>,
+    form: &Self::UpdateForm,
   ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
     update(private_message_report::table.find(report_id))
-      .set((
-        private_message_report::resolved.eq(is_resolved),
-        private_message_report::resolver_id.eq(by_resolver_id),
-        private_message_report::updated_at.eq(Utc::now()),
-        private_message_report::resolve_reason.eq(resolve_reason),
-      ))
+      .set(form)
       .execute(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
