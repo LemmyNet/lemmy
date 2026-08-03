@@ -25,10 +25,11 @@ use lemmy_db_schema::{
   },
   traits::{Blockable, Crud, Followable, Saveable},
 };
-use lemmy_db_views::structs::LocalUserView;
+use lemmy_db_views::structs::{LocalUserView, SiteView};
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult, MAX_API_PARAM_ELEMENTS},
   spawn_try_task,
+  utils::validation::{is_valid_bio_field, is_valid_display_name, is_valid_matrix_id},
 };
 use serde::{Deserialize, Serialize};
 use std::future::Future;
@@ -102,6 +103,25 @@ pub async fn import_settings(
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<SuccessResponse>> {
+  let site_view = SiteView::read_local(&mut context.pool())
+    .await?
+    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
+
+  if let Some(display_name) = &data.display_name {
+    is_valid_display_name(
+      display_name.trim(),
+      site_view.local_site.actor_name_max_length as usize,
+    )?;
+  }
+
+  if let Some(bio) = &data.bio {
+    is_valid_bio_field(bio)?;
+  }
+
+  if let Some(matrix_id) = &data.matrix_id {
+    is_valid_matrix_id(matrix_id)?;
+  }
+
   let person_form = PersonUpdateForm {
     display_name: Some(data.display_name.clone()),
     bio: Some(data.bio.clone()),
