@@ -1953,7 +1953,9 @@ async fn speed_check(data: &mut Data) -> LemmyResult<()> {
   let num_posts = 1000;
   for x in 1..num_posts {
     let name = format!("post_{x}");
-    let url = Some(Some(Url::parse(&format!("https://google.com/{name}"))?.into()));
+    let url = Some(Some(
+      Url::parse(&format!("https://google.com/{name}"))?.into(),
+    ));
 
     let post_form = PostInsertForm {
       url,
@@ -2192,7 +2194,9 @@ async fn post_with_blocked_keywords(data: &mut Data) -> LemmyResult<()> {
 
   let name_blocked = format!("post_{POST_KEYWORD_BLOCKED}");
   let name_blocked2 = format!("post2_{POST_KEYWORD_BLOCKED}2");
-  let url = Some(Some(Url::parse(&format!("https://google.com/{POST_KEYWORD_BLOCKED}"))?.into()));
+  let url = Some(Some(
+    Url::parse(&format!("https://google.com/{POST_KEYWORD_BLOCKED}"))?.into(),
+  ));
   let body = format!("post body with {POST_KEYWORD_BLOCKED}");
   let name_not_blocked = "post_with_name_not_blocked".to_string();
   let name_not_blocked2 = "post_with_name_not_blocked2".to_string();
