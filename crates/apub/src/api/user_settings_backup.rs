@@ -339,8 +339,11 @@ mod tests {
     source::{
       community::{Community, CommunityFollower, CommunityFollowerForm, CommunityInsertForm},
       instance::Instance,
+      local_site::{LocalSite, LocalSiteInsertForm},
+      local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitInsertForm},
       local_user::{LocalUser, LocalUserInsertForm},
       person::{Person, PersonInsertForm},
+      site::{Site, SiteInsertForm},
     },
     traits::{Crud, Followable},
   };
@@ -352,12 +355,28 @@ mod tests {
   use std::time::Duration;
   use tokio::time::sleep;
 
+  async fn setup(context: &Data<LemmyContext>) -> LemmyResult<Instance> {
+    let instance = Instance::read_or_create(&mut context.pool(), "example.com".to_string()).await?;
+    let site_form = SiteInsertForm::builder()
+      .name("test site".to_string())
+      .instance_id(instance.id)
+      .build();
+    let site = Site::create(&mut context.pool(), &site_form).await?;
+    let local_site_form = LocalSiteInsertForm::builder().site_id(site.id).build();
+    let local_site = LocalSite::create(&mut context.pool(), &local_site_form).await?;
+    let local_site_rate_limit_form = LocalSiteRateLimitInsertForm::builder()
+      .local_site_id(local_site.id)
+      .build();
+    LocalSiteRateLimit::create(&mut context.pool(), &local_site_rate_limit_form).await?;
+    Ok(instance)
+  }
+
   async fn create_user(
     name: String,
     bio: Option<String>,
+    instance: &Instance,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<LocalUserView> {
-    let instance = Instance::read_or_create(&mut context.pool(), "example.com".to_string()).await?;
     let person_form = PersonInsertForm {
       display_name: Some(name.clone()),
       bio,
@@ -367,21 +386,26 @@ mod tests {
 
     let user_form = LocalUserInsertForm::test_form(person.id);
     let local_user = LocalUser::create(&mut context.pool(), &user_form, vec![]).await?;
+    let local_user_view = LocalUserView::read(&mut context.pool(), local_user.id)
+      .await?
+      .ok_or(LemmyErrorType::CouldntFindLocalUser)?;
 
-    Ok(
-      LocalUserView::read(&mut context.pool(), local_user.id)
-        .await?
-        .ok_or(LemmyErrorType::CouldntFindLocalUser)?,
-    )
+    Ok(local_user_view)
   }
 
   #[tokio::test]
   #[serial]
   async fn test_settings_export_import() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
+    let instance = setup(&context).await?;
 
-    let export_user =
-      create_user("hanna".to_string(), Some("my bio".to_string()), &context).await?;
+    let export_user = create_user(
+      "hanna".to_string(),
+      Some("my bio".to_string()),
+      &instance,
+      &context,
+    )
+    .await?;
 
     let community_form = CommunityInsertForm::builder()
       .name("testcom".to_string())
@@ -398,7 +422,7 @@ mod tests {
 
     let backup = export_settings(export_user.clone(), context.reset_request_count()).await?;
 
-    let import_user = create_user("charles".to_string(), None, &context).await?;
+    let import_user = create_user("charles".to_string(), None, &instance, &context).await?;
 
     import_settings(backup, import_user.clone(), context.reset_request_count()).await?;
 
@@ -420,8 +444,7 @@ mod tests {
     assert_eq!(follows.len(), 1);
     assert_eq!(follows[0].community.actor_id, community.actor_id);
 
-    LocalUser::delete(&mut context.pool(), export_user.local_user.id).await?;
-    LocalUser::delete(&mut context.pool(), import_user.local_user.id).await?;
+    Instance::delete(&mut context.pool(), instance.id).await?;
     Ok(())
   }
 
@@ -429,9 +452,15 @@ mod tests {
   #[serial]
   async fn test_settings_partial_import() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
+    let instance = setup(&context).await?;
 
-    let export_user =
-      create_user("hanna".to_string(), Some("my bio".to_string()), &context).await?;
+    let export_user = create_user(
+      "hanna".to_string(),
+      Some("my bio".to_string()),
+      &instance,
+      &context,
+    )
+    .await?;
 
     let community_form = CommunityInsertForm::builder()
       .name("testcom".to_string())
@@ -448,7 +477,7 @@ mod tests {
 
     let backup = export_settings(export_user.clone(), context.reset_request_count()).await?;
 
-    let import_user = create_user("charles".to_string(), None, &context).await?;
+    let import_user = create_user("charles".to_string(), None, &instance, &context).await?;
 
     let backup2 = UserSettingsBackup {
       followed_communities: backup.followed_communities.clone(),
@@ -460,6 +489,7 @@ mod tests {
       context.reset_request_count(),
     )
     .await?;
+    Instance::delete(&mut context.pool(), instance.id).await?;
     Ok(())
   }
 
@@ -467,9 +497,15 @@ mod tests {
   #[serial]
   async fn disallow_large_backup() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
+    let instance = setup(&context).await?;
 
-    let export_user =
-      create_user("hanna".to_string(), Some("my bio".to_string()), &context).await?;
+    let export_user = create_user(
+      "hanna".to_string(),
+      Some("my bio".to_string()),
+      &instance,
+      &context,
+    )
+    .await?;
 
     let mut backup = export_settings(export_user.clone(), context.reset_request_count()).await?;
 
@@ -484,7 +520,7 @@ mod tests {
       backup.saved_comments.push("http://example4.com".parse()?);
     }
 
-    let import_user = create_user("charles".to_string(), None, &context).await?;
+    let import_user = create_user("charles".to_string(), None, &instance, &context).await?;
 
     let imported =
       import_settings(backup, import_user.clone(), context.reset_request_count()).await;
@@ -494,8 +530,7 @@ mod tests {
       Some(LemmyErrorType::TooManyItems)
     );
 
-    LocalUser::delete(&mut context.pool(), export_user.local_user.id).await?;
-    LocalUser::delete(&mut context.pool(), import_user.local_user.id).await?;
+    Instance::delete(&mut context.pool(), instance.id).await?;
     Ok(())
   }
 }
