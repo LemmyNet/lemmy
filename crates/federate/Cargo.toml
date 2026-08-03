@@ -33,14 +33,14 @@ serde_json.workspace = true
 tokio = { workspace = true, features = ["full"] }
 tracing.workspace = true
 moka.workspace = true
-tokio-util = "0.7.15"
+tokio-util = "0.7.19"
 async-trait.workspace = true
 
 [dev-dependencies]
 serial_test = { workspace = true }
 url.workspace = true
 actix-web.workspace = true
-tracing-test = "0.2.5"
+tracing-test = "0.2.6"
 uuid.workspace = true
 test-context = "0.3.0"
 mockall = "0.13.1"
