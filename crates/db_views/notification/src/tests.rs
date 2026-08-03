@@ -3,7 +3,7 @@ use lemmy_db_schema::{
   NotificationTypeFilter,
   assert_length,
   source::{
-    comment::{Comment, CommentUpdateForm},
+    comment::{Comment, CommentInsertForm},
     community::{Community, CommunityInsertForm},
     instance::Instance,
     modlog::{Modlog, ModlogInsertForm},
@@ -237,9 +237,9 @@ async fn test_modlog() -> LemmyResult<()> {
   };
   let post = Post::create(pool, &form).await?;
 
-  let form = CommentUpdateForm {
+  let form = CommentInsertForm {
     removed: Some(true),
-    ..CommentUpdateForm::new(data.bob.id, post.id, community.id, String::new())
+    ..CommentInsertForm::new(data.bob.id, post.id, community.id, String::new())
   };
   let comment = Comment::create(pool, &form, None).await?;
 

@@ -188,7 +188,7 @@ mod tests {
   use crate::VoteView;
   use lemmy_db_schema::{
     source::{
-      comment::{Comment, CommentActions, CommentLikeForm, CommentUpdateForm},
+      comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm},
       community::{Community, CommunityActions, CommunityInsertForm, CommunityPersonBanForm},
       instance::Instance,
       person::{Person, PersonInsertForm},
@@ -232,7 +232,7 @@ mod tests {
     );
     let inserted_post = Post::create(pool, &new_post).await?;
 
-    let comment_form = CommentUpdateForm::new(
+    let comment_form = CommentInsertForm::new(
       inserted_timmy.id,
       inserted_post.id,
       inserted_community.id,

@@ -25,7 +25,7 @@ use lemmy_db_schema::{
   source::{
     instance::{Instance, InstanceActions},
     person::{Person, PersonActions},
-    private_message::{PrivateMessage as DbPrivateMessage, PrivateMessageUpdateForm},
+    private_message::{PrivateMessage as DbPrivateMessage, PrivateMessageInsertForm},
   },
   traits::Blockable,
 };
@@ -157,17 +157,15 @@ impl Object for ApubPrivateMessage {
       process_markdown(&content, &slur_regex, &url_blocklist, &local_site, context).await?;
     let content = markdown_rewrite_remote_links(content, context).await;
 
-    let mut form = PrivateMessageUpdateForm {
-      creator_id: Some(creator.id),
-      recipient_id: Some(recipient.id),
-      content: Some(content),
+    let mut form = PrivateMessageInsertForm {
+      creator_id: creator.id,
+      recipient_id: recipient.id,
+      content,
       published_at: note.published,
-      updated_at: Some(note.updated),
+      updated_at: note.updated,
       deleted: Some(false),
       ap_id: Some(note.id.into()),
       local: Some(false),
-      removed: None,
-      deleted_by_recipient: None,
     };
     form = plugin_hook_before("federated_private_message_before_receive", form).await?;
     let timestamp = note.updated.or(note.published).unwrap_or_else(Utc::now);

@@ -89,7 +89,7 @@ impl Post {
   pub async fn upsert_apub(
     pool: &mut DbPool<'_>,
     timestamp: DateTime<Utc>,
-    form: &PostUpdateForm,
+    form: &PostInsertForm,
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     insert_into(post::table)
@@ -97,7 +97,7 @@ impl Post {
       .on_conflict(post::ap_id)
       .filter_target(coalesce(post::updated_at, post::published_at).lt(timestamp))
       .do_update()
-      .set(form)
+      .set(form.to_update_form())
       .get_result::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntCreate)
@@ -345,6 +345,22 @@ impl Post {
   }
 }
 
+impl PostInsertForm {
+  fn to_update_form(&self) -> PostUpdateForm {
+    PostUpdateForm {
+      name: Some(self.name.clone()),
+      nsfw: self.nsfw,
+      url: Some(self.url.clone()),
+      body: Some(self.body.clone()),
+      language_id: self.language_id,
+      alt_text: Some(self.alt_text.clone()),
+      updated_at: Some(self.updated_at),
+      deleted: self.deleted,
+      ..Default::default()
+    }
+  }
+}
+
 impl Likeable for PostActions {
   type Form = PostLikeForm;
   type IdType = PostId;
@@ -568,7 +584,7 @@ impl PostActions {
 mod tests {
   use crate::{
     source::{
-      comment::{Comment, CommentUpdateForm},
+      comment::{Comment, CommentInsertForm, CommentUpdateForm},
       community::{Community, CommunityInsertForm},
       instance::Instance,
       person::{Person, PersonInsertForm},
@@ -754,7 +770,7 @@ mod tests {
     );
     let inserted_post = Post::create(pool, &new_post).await?;
 
-    let comment_form = CommentUpdateForm::new(
+    let comment_form = CommentInsertForm::new(
       inserted_person.id,
       inserted_post.id,
       inserted_community.id,
@@ -762,7 +778,7 @@ mod tests {
     );
     let inserted_comment = Comment::create(pool, &comment_form, None).await?;
 
-    let child_comment_form = CommentUpdateForm::new(
+    let child_comment_form = CommentInsertForm::new(
       inserted_person.id,
       inserted_post.id,
       inserted_community.id,
@@ -856,7 +872,7 @@ mod tests {
     );
     let inserted_post = Post::create(pool, &new_post).await?;
 
-    let comment_form = CommentUpdateForm::new(
+    let comment_form = CommentInsertForm::new(
       inserted_person.id,
       inserted_post.id,
       inserted_community.id,

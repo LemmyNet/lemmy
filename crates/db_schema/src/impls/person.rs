@@ -415,7 +415,7 @@ mod tests {
 
   use crate::{
     source::{
-      comment::{Comment, CommentActions, CommentLikeForm, CommentUpdateForm},
+      comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm, CommentUpdateForm},
       community::{Community, CommunityInsertForm},
       person::{Person, PersonActions, PersonFollowerForm, PersonInsertForm, PersonUpdateForm},
       post::{Post, PostActions, PostInsertForm, PostLikeForm},
@@ -532,7 +532,7 @@ mod tests {
     let post_like = PostLikeForm::new(inserted_post.id, data.person.id, Some(true));
     let _inserted_post_like = PostActions::like(pool, &post_like).await?;
 
-    let comment_form = CommentUpdateForm::new(
+    let comment_form = CommentInsertForm::new(
       data.person.id,
       inserted_post.id,
       inserted_community.id,
@@ -544,7 +544,7 @@ mod tests {
 
     CommentActions::like(pool, &comment_like).await?;
 
-    let child_comment_form = CommentUpdateForm::new(
+    let child_comment_form = CommentInsertForm::new(
       data.person.id,
       inserted_post.id,
       inserted_community.id,

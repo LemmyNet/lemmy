@@ -380,7 +380,7 @@ mod tests {
     NotificationTypeFilter,
     assert_length,
     source::{
-      comment::{Comment, CommentUpdateForm},
+      comment::{Comment, CommentInsertForm},
       community::{Community, CommunityInsertForm},
       instance::{Instance, InstanceActions, InstancePersonsBlockForm},
       notification::{Notification, NotificationInsertForm},
@@ -438,7 +438,7 @@ mod tests {
       PostInsertForm::new("jessica post prv".into(), jessica.id, community.id);
     let jessica_post = Post::create(pool, &jessica_post_form).await?;
 
-    let timmy_comment_form = CommentUpdateForm::new(
+    let timmy_comment_form = CommentInsertForm::new(
       timmy.person.id,
       timmy_post.id,
       community.id,
@@ -515,7 +515,7 @@ mod tests {
     let data = init_data(pool).await?;
 
     // Sara replied to timmys comment with a mention
-    let sara_comment_form = CommentUpdateForm::new(
+    let sara_comment_form = CommentInsertForm::new(
       data.sara.person.id,
       data.timmy_post.id,
       data.community.id,

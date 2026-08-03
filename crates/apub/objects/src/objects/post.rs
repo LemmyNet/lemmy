@@ -289,22 +289,19 @@ impl Object for ApubPost {
     );
 
     let orig_post = Post::read_from_apub_id(&mut context.pool(), page.id.clone().into()).await;
-    let mut form = PostUpdateForm {
-      name: Some(name),
-      creator_id: Some(creator.id),
-      community_id: Some(community.id),
-      url: Some(url.map(Into::into)),
-      body: Some(body),
-      alt_text: Some(alt_text),
+    let mut form = PostInsertForm {
+      url: url.map(Into::into),
+      body,
+      alt_text,
       published_at: page.published,
-      updated_at: Some(page.updated),
+      updated_at: page.updated,
       deleted: Some(false),
       nsfw: post_nsfw(&page, &community, Some(&local_site), context).await?,
       ap_id: Some(page.id.clone().into()),
       // May be a local post which is updated by remote mod.
       local: Some(page.id.is_local(context)),
       language_id,
-      ..Default::default()
+      ..PostInsertForm::new(name, creator.id, community.id)
     };
     form = plugin_hook_before("federated_post_before_receive", form).await?;
 

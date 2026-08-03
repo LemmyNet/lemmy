@@ -202,7 +202,7 @@ mod tests {
   use super::*;
   use lemmy_db_schema::{
     source::{
-      comment::{Comment, CommentUpdateForm},
+      comment::{Comment, CommentInsertForm},
       community::{Community, CommunityActions, CommunityFollowerForm, CommunityInsertForm},
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm},
@@ -286,7 +286,7 @@ mod tests {
     );
     let timmy_private_comm_post = Post::create(pool, &timmy_private_comm_post_form).await?;
 
-    let timmy_comment_form = CommentUpdateForm::new(
+    let timmy_comment_form = CommentInsertForm::new(
       timmy.id,
       timmy_post.id,
       community.id,
@@ -294,7 +294,7 @@ mod tests {
     );
     let timmy_comment = Comment::create(pool, &timmy_comment_form, None).await?;
 
-    let sara_comment_form = CommentUpdateForm::new(
+    let sara_comment_form = CommentInsertForm::new(
       sara.id,
       timmy_post.id,
       community.id,
@@ -302,7 +302,7 @@ mod tests {
     );
     let sara_comment = Comment::create(pool, &sara_comment_form, None).await?;
 
-    let sara_comment_form_2 = CommentUpdateForm::new(
+    let sara_comment_form_2 = CommentInsertForm::new(
       sara.id,
       timmy_post_2.id,
       community.id,
@@ -310,7 +310,7 @@ mod tests {
     );
     let sara_comment_2 = Comment::create(pool, &sara_comment_form_2, None).await?;
 
-    let timmy_private_comm_comment_form = CommentUpdateForm::new(
+    let timmy_private_comm_comment_form = CommentInsertForm::new(
       timmy.id,
       timmy_private_comm_post.id,
       private_community.id,

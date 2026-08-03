@@ -438,7 +438,7 @@ mod tests {
     ReportType,
     assert_length,
     source::{
-      comment::{Comment, CommentUpdateForm},
+      comment::{Comment, CommentInsertForm},
       comment_report::{CommentReport, CommentReportForm, UpdateCommentReportForm},
       community::{Community, CommunityActions, CommunityInsertForm, CommunityModeratorForm},
       community_report::{CommunityReport, CommunityReportForm, UpdateCommunityReportForm},
@@ -537,7 +537,7 @@ mod tests {
     let inserted_post_2 = Post::create(pool, &new_post_2).await?;
 
     // Timmy creates a comment
-    let comment_form = CommentUpdateForm::new(
+    let comment_form = CommentInsertForm::new(
       inserted_timmy.id,
       inserted_post.id,
       inserted_community.id,

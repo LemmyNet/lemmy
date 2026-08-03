@@ -39,7 +39,7 @@ mod tests {
   use super::*;
   use crate::{
     source::{
-      comment::{Comment, CommentUpdateForm},
+      comment::{Comment, CommentInsertForm},
       community::{Community, CommunityInsertForm, CommunityUpdateForm},
       person::{Person, PersonInsertForm},
       post::{Post, PostInsertForm},
@@ -100,7 +100,7 @@ mod tests {
     let inserted_post = Post::create(pool, &new_post).await?;
     let _inserted_post_again = Post::create(pool, &new_post).await?;
 
-    let comment_form = CommentUpdateForm::new(
+    let comment_form = CommentInsertForm::new(
       inserted_person.id,
       inserted_post.id,
       inserted_community.id,
@@ -110,7 +110,7 @@ mod tests {
     // Insert two of those comments
     let inserted_comment = Comment::create(pool, &comment_form, None).await?;
 
-    let child_comment_form = CommentUpdateForm::new(
+    let child_comment_form = CommentInsertForm::new(
       inserted_person.id,
       inserted_post.id,
       inserted_community.id,

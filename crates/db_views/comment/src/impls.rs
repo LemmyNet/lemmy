@@ -375,7 +375,7 @@ mod tests {
     newtypes::CommentId,
     source::{
       actor_language::LocalUserLanguage,
-      comment::{Comment, CommentActions, CommentLikeForm, CommentUpdateForm},
+      comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm, CommentUpdateForm},
       community::{
         Community,
         CommunityActions,
@@ -450,16 +450,16 @@ mod tests {
     //  3  4
     //     \
     //     5
-    let comment_form_0 = CommentUpdateForm {
+    let comment_form_0 = CommentInsertForm {
       language_id: Some(english_id),
-      ..CommentUpdateForm::new(timmy_person.id, post.id, community.id, "Comment 0".into())
+      ..CommentInsertForm::new(timmy_person.id, post.id, community.id, "Comment 0".into())
     };
 
     let comment_0 = Comment::create(pool, &comment_form_0, None).await?;
 
-    let comment_form_1 = CommentUpdateForm {
+    let comment_form_1 = CommentInsertForm {
       language_id: Some(english_id),
-      ..CommentUpdateForm::new(
+      ..CommentInsertForm::new(
         holly_local_user.person_id,
         post.id,
         community.id,
@@ -469,29 +469,29 @@ mod tests {
     let comment_1 = Comment::create(pool, &comment_form_1, Some(&comment_0.path)).await?;
 
     let finnish_id = Language::read_id_from_code(pool, "fi").await?;
-    let comment_form_2 = CommentUpdateForm {
+    let comment_form_2 = CommentInsertForm {
       language_id: Some(finnish_id),
-      ..CommentUpdateForm::new(timmy_person.id, post.id, community.id, "Comment 2".into())
+      ..CommentInsertForm::new(timmy_person.id, post.id, community.id, "Comment 2".into())
     };
 
     let comment_2 = Comment::create(pool, &comment_form_2, Some(&comment_0.path)).await?;
 
-    let comment_form_3 = CommentUpdateForm {
+    let comment_form_3 = CommentInsertForm {
       language_id: Some(english_id),
-      ..CommentUpdateForm::new(timmy_person.id, post.id, community.id, "Comment 3".into())
+      ..CommentInsertForm::new(timmy_person.id, post.id, community.id, "Comment 3".into())
     };
     let _inserted_comment_3 = Comment::create(pool, &comment_form_3, Some(&comment_1.path)).await?;
 
     let polish_id = Language::read_id_from_code(pool, "pl").await?;
-    let comment_form_4 = CommentUpdateForm {
+    let comment_form_4 = CommentInsertForm {
       language_id: Some(polish_id),
-      ..CommentUpdateForm::new(timmy_person.id, post.id, community.id, "Comment 4".into())
+      ..CommentInsertForm::new(timmy_person.id, post.id, community.id, "Comment 4".into())
     };
 
     let inserted_comment_4 = Comment::create(pool, &comment_form_4, Some(&comment_1.path)).await?;
 
     let comment_form_5 =
-      CommentUpdateForm::new(timmy_person.id, post.id, community.id, "Comment 5".into());
+      CommentInsertForm::new(timmy_person.id, post.id, community.id, "Comment 5".into());
     let _comment_5 = Comment::create(pool, &comment_form_5, Some(&inserted_comment_4.path)).await?;
 
     let timmy_blocks_holly_form = PersonBlockForm::new(timmy_person.id, holly_local_user.person_id);

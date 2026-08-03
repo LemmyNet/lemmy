@@ -147,10 +147,7 @@ pub struct PostInsertForm {
 }
 
 #[derive(Debug, Clone, Default)]
-#[cfg_attr(
-  feature = "full",
-  derive(AsChangeset, Serialize, Deserialize, Insertable)
-)]
+#[cfg_attr(feature = "full", derive(AsChangeset, Serialize, Deserialize))]
 #[cfg_attr(feature = "full", diesel(table_name = post))]
 pub struct PostUpdateForm {
   pub name: Option<String>,
@@ -177,8 +174,6 @@ pub struct PostUpdateForm {
   pub alt_text: Option<Option<String>>,
   pub scheduled_publish_time_at: Option<Option<DateTime<Utc>>>,
   pub federation_pending: Option<bool>,
-  pub creator_id: Option<PersonId>,
-  pub community_id: Option<CommunityId>,
 }
 
 #[skip_serializing_none]

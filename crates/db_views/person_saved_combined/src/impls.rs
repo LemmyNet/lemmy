@@ -204,7 +204,7 @@ mod tests {
   use crate::{LocalUserView, impls::PersonSavedCombinedQuery};
   use lemmy_db_schema::{
     source::{
-      comment::{Comment, CommentActions, CommentSavedForm, CommentUpdateForm},
+      comment::{Comment, CommentActions, CommentInsertForm, CommentSavedForm},
       community::{Community, CommunityInsertForm},
       instance::Instance,
       local_user::{LocalUser, LocalUserInsertForm},
@@ -264,7 +264,7 @@ mod tests {
     let sara_post_form = PostInsertForm::new("sara post prv".into(), sara.id, community.id);
     let _sara_post = Post::create(pool, &sara_post_form).await?;
 
-    let timmy_comment_form = CommentUpdateForm::new(
+    let timmy_comment_form = CommentInsertForm::new(
       timmy.id,
       timmy_post.id,
       community.id,
@@ -272,7 +272,7 @@ mod tests {
     );
     let _timmy_comment = Comment::create(pool, &timmy_comment_form, None).await?;
 
-    let sara_comment_form = CommentUpdateForm::new(
+    let sara_comment_form = CommentInsertForm::new(
       sara.id,
       timmy_post.id,
       community.id,
@@ -280,7 +280,7 @@ mod tests {
     );
     let sara_comment = Comment::create(pool, &sara_comment_form, None).await?;
 
-    let sara_comment_form_2 = CommentUpdateForm::new(
+    let sara_comment_form_2 = CommentInsertForm::new(
       sara.id,
       timmy_post_2.id,
       community.id,

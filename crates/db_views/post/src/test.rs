@@ -10,7 +10,7 @@ use lemmy_db_schema::{
   newtypes::{LanguageId, PostId},
   source::{
     actor_language::LocalUserLanguage,
-    comment::{Comment, CommentUpdateForm},
+    comment::{Comment, CommentInsertForm},
     community::{
       Community,
       CommunityActions,
@@ -1999,7 +1999,7 @@ async fn post_listings_no_comments_only(data: &mut Data) -> LemmyResult<()> {
   let pool = &mut pool.into();
 
   // Create a comment for a post
-  let comment_form = CommentUpdateForm::new(
+  let comment_form = CommentInsertForm::new(
     data.tegan.person.id,
     data.post.id,
     data.community.id,
