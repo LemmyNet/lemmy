@@ -15,14 +15,18 @@ pub(crate) struct PersonQuery {
   user_name: String,
 }
 
-/// Return the ActivityPub json representation of a local person over HTTP.
+/// Return the ActivityPub json representation of a person over HTTP.
 pub(crate) async fn get_apub_person_http(
   info: Path<PersonQuery>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
-  let user_name = info.into_inner().user_name;
+  let (name, domain) = if let Some((n, d)) = info.user_name.split_once('@') {
+    (n, Some(d))
+  } else {
+    (info.user_name.as_str(), None::<&str>)
+  };
   // This needs to be able to read deleted persons, so that it can send tombstones
-  let person: ApubPerson = Person::read_from_name(&mut context.pool(), &user_name, None, true)
+  let person: ApubPerson = Person::read_from_name(&mut context.pool(), name, domain, true)
     .await?
     .ok_or(LemmyErrorType::NotFound)?
     .into();

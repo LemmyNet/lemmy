@@ -51,16 +51,20 @@ pub(crate) struct CommunityIsFollowerQuery {
   is_follower: Option<ObjectId<SiteOrMultiOrCommunityOrUser>>,
 }
 
-/// Return the ActivityPub json representation of a local community over HTTP.
+/// Return the ActivityPub json representation of a community over HTTP.
 pub(crate) async fn get_apub_community_http(
   info: Path<CommunityPath>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
-  let community: ApubCommunity =
-    Community::read_from_name(&mut context.pool(), &info.community_name, None, true)
-      .await?
-      .ok_or(LemmyErrorType::NotFound)?
-      .into();
+  let (name, domain) = if let Some((n, d)) = info.community_name.split_once('@') {
+    (n, Some(d))
+  } else {
+    (info.community_name.as_str(), None::<&str>)
+  };
+  let community: ApubCommunity = Community::read_from_name(&mut context.pool(), name, domain, true)
+    .await?
+    .ok_or(LemmyErrorType::NotFound)?
+    .into();
 
   check_community_fetchable(&community)?;
 
