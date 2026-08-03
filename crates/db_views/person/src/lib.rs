@@ -4,6 +4,7 @@ use lemmy_db_schema::source::{
   person::{Person, PersonActions},
 };
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]
 use {
   diesel::{NullableExpressionMethods, Queryable, Selectable, helper_types::Nullable},
@@ -20,6 +21,7 @@ pub mod api;
 #[cfg(feature = "full")]
 pub mod impls;
 
+#[skip_serializing_none]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "full", derive(Queryable, Selectable))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]
@@ -52,7 +54,6 @@ pub struct PersonView {
   )]
   pub ban_expires_at: Option<DateTime<Utc>>,
   //same as for communityView to hide optional community_actions for unrelated queries
-  #[serde(skip_serializing_if = "Option::is_none")]
   #[cfg_attr(feature = "full", diesel(embed))]
   pub community_actions: Option<CommunityActions>,
 }
