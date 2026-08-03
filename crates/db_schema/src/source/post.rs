@@ -101,7 +101,7 @@ pub struct PostInsertForm {
   #[new(default)]
   pub nsfw: Option<bool>,
   #[new(default)]
-  pub url: Option<DbUrl>,
+  pub url: Option<Option<DbUrl>>,
   #[new(default)]
   pub body: Option<String>,
   #[new(default)]
