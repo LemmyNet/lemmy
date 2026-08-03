@@ -119,18 +119,7 @@ pub struct ListPersons {
   pub sort: Option<PersonSortType>,
   pub search_term: Option<String>,
   pub search_title_only: Option<bool>,
-  pub page_cursor: Option<PaginationCursor>,
-  pub limit: Option<i64>,
-}
-
-#[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-pub struct ListCommunityFollowers {
-  pub type_: Option<PersonListingType>,
-  pub sort: Option<PersonSortType>,
-  pub community_id: CommunityId,
+  pub community_id: Option<CommunityId>,
   pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }
