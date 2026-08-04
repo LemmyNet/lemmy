@@ -103,11 +103,10 @@ pub async fn import_settings(
   local_user_view: LocalUserView,
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<SuccessResponse>> {
-  let site_view = SiteView::read_local(&mut context.pool())
-    .await?
-    .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
-
   if let Some(display_name) = &data.display_name {
+    let site_view = SiteView::read_local(&mut context.pool())
+      .await?
+      .ok_or(LemmyErrorType::LocalSiteNotSetup)?;
     is_valid_display_name(
       display_name.trim(),
       site_view.local_site.actor_name_max_length as usize,
