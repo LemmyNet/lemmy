@@ -1221,7 +1221,7 @@ test("Admin removes post from local user in remote community", async () => {
   );
 });
 
-test.only("Warn about a post", async () => {
+test("Warn about a post", async () => {
   // Create post from alpha
   const alphaCommunity = await resolveBetaCommunity(alpha);
   await followBeta(alpha);
