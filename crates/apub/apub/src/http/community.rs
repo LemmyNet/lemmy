@@ -1,4 +1,4 @@
-use super::check_community_content_fetchable;
+use super::{ActorPath, check_community_content_fetchable};
 use crate::{
   collections::{
     community_featured::ApubCommunityFeatured,
@@ -42,25 +42,16 @@ use lemmy_utils::{
 use serde::Deserialize;
 
 #[derive(Deserialize, Clone)]
-pub(crate) struct CommunityPath {
-  community_name: String,
-}
-
-#[derive(Deserialize, Clone)]
 pub(crate) struct CommunityIsFollowerQuery {
   is_follower: Option<ObjectId<SiteOrMultiOrCommunityOrUser>>,
 }
 
 /// Return the ActivityPub json representation of a community over HTTP.
 pub(crate) async fn get_apub_community_http(
-  info: Path<CommunityPath>,
+  info: Path<ActorPath>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
-  let (name, domain) = if let Some((n, d)) = info.community_name.split_once('@') {
-    (n, Some(d))
-  } else {
-    (info.community_name.as_str(), None::<&str>)
-  };
+  let (name, domain) = info.split_name();
   let community: ApubCommunity = Community::read_from_name(&mut context.pool(), name, domain, true)
     .await?
     .ok_or(LemmyErrorType::NotFound)?
@@ -73,12 +64,12 @@ pub(crate) async fn get_apub_community_http(
 
 /// Returns an empty followers collection, only populating the size (for privacy).
 pub(crate) async fn get_apub_community_followers(
-  info: Path<CommunityPath>,
+  info: Path<ActorPath>,
   query: Query<CommunityIsFollowerQuery>,
   context: Data<LemmyContext>,
   request: HttpRequest,
 ) -> LemmyResult<HttpResponse> {
-  let community = Community::read_from_name(&mut context.pool(), &info.community_name, None, false)
+  let community = Community::read_from_name(&mut context.pool(), &info.name, None, false)
     .await?
     .ok_or(LemmyErrorType::NotFound)?;
   if let Some(is_follower) = &query.is_follower {
@@ -126,12 +117,12 @@ async fn check_is_follower(
 /// Returns the community outbox, which is populated by a maximum of 20 posts (but no other
 /// activities like votes or comments).
 pub(crate) async fn get_apub_community_outbox(
-  info: Path<CommunityPath>,
+  info: Path<ActorPath>,
   context: Data<LemmyContext>,
   request: HttpRequest,
 ) -> LemmyResult<HttpResponse> {
   let community: ApubCommunity =
-    Community::read_from_name(&mut context.pool(), &info.community_name, None, false)
+    Community::read_from_name(&mut context.pool(), &info.name, None, false)
       .await?
       .ok_or(LemmyErrorType::NotFound)?
       .into();
@@ -141,11 +132,11 @@ pub(crate) async fn get_apub_community_outbox(
 }
 
 pub(crate) async fn get_apub_community_moderators(
-  info: Path<CommunityPath>,
+  info: Path<ActorPath>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
   let community: ApubCommunity =
-    Community::read_from_name(&mut context.pool(), &info.community_name, None, false)
+    Community::read_from_name(&mut context.pool(), &info.name, None, false)
       .await?
       .ok_or(LemmyErrorType::NotFound)?
       .into();
@@ -156,12 +147,12 @@ pub(crate) async fn get_apub_community_moderators(
 
 /// Returns collection of featured (stickied) posts.
 pub(crate) async fn get_apub_community_featured(
-  info: Path<CommunityPath>,
+  info: Path<ActorPath>,
   context: Data<LemmyContext>,
   request: HttpRequest,
 ) -> LemmyResult<HttpResponse> {
   let community: ApubCommunity =
-    Community::read_from_name(&mut context.pool(), &info.community_name, None, false)
+    Community::read_from_name(&mut context.pool(), &info.name, None, false)
       .await?
       .ok_or(LemmyErrorType::NotFound)?
       .into();
@@ -254,7 +245,7 @@ pub(crate) mod tests {
     deleted: bool,
     visibility: CommunityVisibility,
     context: &Data<LemmyContext>,
-  ) -> LemmyResult<(TestData, Community, Path<CommunityPath>)> {
+  ) -> LemmyResult<(TestData, Community, Path<ActorPath>)> {
     let data = TestData::create(&mut context.pool()).await?;
 
     let community_form = CommunityInsertForm {
@@ -268,8 +259,8 @@ pub(crate) mod tests {
       )
     };
     let community = Community::create(&mut context.pool(), &community_form).await?;
-    let path: Path<CommunityPath> = CommunityPath {
-      community_name: community.name.clone(),
+    let path: Path<ActorPath> = ActorPath {
+      name: community.name.clone(),
     }
     .into();
     Ok((data, community, path))
@@ -289,8 +280,8 @@ pub(crate) mod tests {
     let request = TestRequest::default().to_http_request();
 
     // fetch invalid community
-    let query = CommunityPath {
-      community_name: "asd".to_string(),
+    let query = ActorPath {
+      name: "asd".to_string(),
     };
     let res = get_apub_community_http(query.into(), context.clone()).await;
     assert!(res.is_err());

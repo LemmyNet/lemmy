@@ -1,3 +1,4 @@
+use super::ActorPath;
 use crate::protocol::collections::url_collection::UrlCollection;
 use activitypub_federation::{config::Data, traits::Object};
 use actix_web::{HttpResponse, web::Path};
@@ -8,23 +9,13 @@ use lemmy_utils::{
   FEDERATION_CONTEXT,
   error::{LemmyErrorType, LemmyResult},
 };
-use serde::Deserialize;
-
-#[derive(Deserialize)]
-pub(crate) struct PersonQuery {
-  user_name: String,
-}
 
 /// Return the ActivityPub json representation of a person over HTTP.
 pub(crate) async fn get_apub_person_http(
-  info: Path<PersonQuery>,
+  info: Path<ActorPath>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
-  let (name, domain) = if let Some((n, d)) = info.user_name.split_once('@') {
-    (n, Some(d))
-  } else {
-    (info.user_name.as_str(), None::<&str>)
-  };
+  let (name, domain) = info.split_name();
   // This needs to be able to read deleted persons, so that it can send tombstones
   let person: ApubPerson = Person::read_from_name(&mut context.pool(), name, domain, true)
     .await?
@@ -35,10 +26,10 @@ pub(crate) async fn get_apub_person_http(
 }
 
 pub(crate) async fn get_apub_person_outbox(
-  info: Path<PersonQuery>,
+  info: Path<ActorPath>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
-  let person = Person::read_from_name(&mut context.pool(), &info.user_name, None, false)
+  let person = Person::read_from_name(&mut context.pool(), &info.name, None, false)
     .await?
     .ok_or(LemmyErrorType::NotFound)?;
   let outbox_id = generate_outbox_url(&person.ap_id)?.to_string();
