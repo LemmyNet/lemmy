@@ -53,7 +53,7 @@ pub struct PersonView {
      )
   )]
   pub ban_expires_at: Option<DateTime<Utc>>,
-  //same as for communityView to hide optional community_actions for unrelated queries
+  // Same as for CommunityView to hide optional community_actions for unrelated queries
   #[cfg_attr(feature = "full", diesel(embed))]
   pub community_actions: Option<CommunityActions>,
 }

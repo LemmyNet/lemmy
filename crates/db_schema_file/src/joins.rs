@@ -201,7 +201,7 @@ pub fn creator_community_actions_join() -> _ {
       ),
   )
 }
-// add or move CommunityId
+
 #[diesel::dsl::auto_type]
 pub fn person_community_actions_join(community_id: Option<CommunityId>) -> _ {
   community_actions::table.on(
