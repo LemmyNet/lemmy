@@ -96,6 +96,7 @@ pub trait Blockable: Sized {
 
 pub trait Reportable: Sized {
   type Form;
+  type UpdateForm;
   type IdType;
   type ObjectIdType;
   fn report(
@@ -105,9 +106,7 @@ pub trait Reportable: Sized {
   fn update_resolved(
     pool: &mut DbPool<'_>,
     report_id: Self::IdType,
-    resolver_id: PersonId,
-    is_resolved: bool,
-    resolve_reason: Option<String>,
+    form: &Self::UpdateForm,
   ) -> impl Future<Output = LemmyResult<usize>> + Send;
   fn resolve_apub(
     pool: &mut DbPool<'_>,

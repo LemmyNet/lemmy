@@ -1,5 +1,6 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
+use chrono::Utc;
 use either::Either;
 use lemmy_api_utils::{
   context::LemmyContext,
@@ -7,7 +8,10 @@ use lemmy_api_utils::{
   utils::is_admin,
 };
 use lemmy_db_schema::{
-  source::{community_report::CommunityReport, site::Site},
+  source::{
+    community_report::{CommunityReport, UpdateCommunityReportForm},
+    site::Site,
+  },
   traits::Reportable,
 };
 use lemmy_db_views_local_user::LocalUserView;
@@ -15,6 +19,7 @@ use lemmy_db_views_report_combined::{
   ReportCombinedViewInternal,
   api::{CommunityReportResponse, ResolveCommunityReport},
 };
+use lemmy_diesel_utils::utils::diesel_string_update;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn resolve_community_report(
@@ -26,14 +31,17 @@ pub async fn resolve_community_report(
 
   let report_id = data.report_id;
   let person = &local_user_view.person;
-  CommunityReport::update_resolved(
-    &mut context.pool(),
-    report_id,
-    person.id,
-    data.resolved,
-    data.resolve_reason,
-  )
-  .await?;
+
+  let conclusion = diesel_string_update(data.conclusion.as_deref());
+
+  let form = UpdateCommunityReportForm {
+    resolver_id: Some(person.id),
+    resolved: Some(data.resolved),
+    conclusion,
+    updated_at: Some(Utc::now()),
+  };
+
+  CommunityReport::update_resolved(&mut context.pool(), report_id, &form).await?;
 
   let community_report_view =
     ReportCombinedViewInternal::read_community_report(&mut context.pool(), report_id, person)

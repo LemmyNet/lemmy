@@ -125,7 +125,7 @@ diesel::table! {
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
         violates_instance_rules -> Bool,
-        resolve_reason -> Nullable<Text>,
+        conclusion -> Nullable<Text>,
     }
 }
 
@@ -234,7 +234,7 @@ diesel::table! {
         resolver_id -> Nullable<Int4>,
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
-        resolve_reason -> Nullable<Text>,
+        conclusion -> Nullable<Text>,
     }
 }
 
@@ -852,7 +852,7 @@ diesel::table! {
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
         violates_instance_rules -> Bool,
-        resolve_reason -> Nullable<Text>,
+        conclusion -> Nullable<Text>,
     }
 }
 
@@ -884,7 +884,7 @@ diesel::table! {
         resolver_id -> Nullable<Int4>,
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
-        resolve_reason -> Nullable<Text>,
+        conclusion -> Nullable<Text>,
     }
 }
 

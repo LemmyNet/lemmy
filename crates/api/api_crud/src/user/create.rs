@@ -319,7 +319,8 @@ pub async fn authenticate_with_oauth(
   )
   .await?;
 
-  let oauth_user_id = read_user_info(&user_info, oauth_provider.id_claim.as_str())?;
+  let oauth_user_id = read_user_info(&user_info, oauth_provider.id_claim.as_str())
+    .ok_or(LemmyErrorType::OauthLoginFailed)?;
 
   let require_registration_application =
     local_site.registration_mode == RegistrationMode::RequireApplication;
@@ -332,9 +333,11 @@ pub async fn authenticate_with_oauth(
 
   // Lookup user by oauth_user_id
   let mut local_user_view =
-    LocalUserView::find_by_oauth_id(pool, oauth_provider.id, &oauth_user_id).await;
+    LocalUserView::find_by_oauth_id(pool, oauth_provider.id, &oauth_user_id)
+      .await
+      .ok();
 
-  let local_user = if let Ok(user_view) = local_user_view {
+  let local_user = if let Some(user_view) = local_user_view {
     // user found by oauth_user_id => Login user
     let local_user = user_view.clone().local_user;
 
@@ -357,12 +360,18 @@ pub async fn authenticate_with_oauth(
     }
 
     // Extract the OAUTH email claim from the returned user_info
-    let email = read_user_info(&user_info, "email")?;
+    // Some oauth providers like github return null for email in some cases.
+    // See https://github.com/LemmyNet/lemmy/issues/6609
+    let email = read_user_info(&user_info, "email").map(|e| e.to_lowercase());
 
     // Lookup user by OAUTH email and link accounts
-    local_user_view = LocalUserView::find_by_email(pool, &email).await;
+    local_user_view = if let Some(email) = &email {
+      LocalUserView::find_by_email(pool, email).await.ok()
+    } else {
+      None
+    };
 
-    if let Ok(user_view) = local_user_view {
+    if let Some(user_view) = local_user_view {
       // user found by email => link and login if linking is allowed
 
       // we only allow linking by email when email_verification is required otherwise emails cannot
@@ -420,7 +429,7 @@ pub async fn authenticate_with_oauth(
 
             // Create the local user
             let local_user_form = LocalUserInsertForm {
-              email: Some(str::to_lowercase(&email)),
+              email,
               show_nsfw: Some(show_nsfw),
               accepted_application: Some(!require_registration_application),
               email_verified: Some(oauth_provider.auto_verify_email),
@@ -652,13 +661,14 @@ async fn oidc_get_user_info(
   Ok(user_info)
 }
 
-fn read_user_info(user_info: &serde_json::Value, key: &str) -> LemmyResult<String> {
+fn read_user_info(user_info: &serde_json::Value, key: &str) -> Option<String> {
   if let Some(value) = user_info.get(key) {
-    let result = serde_json::from_value::<String>(value.clone())
-      .with_lemmy_type(LemmyErrorType::OauthLoginFailed)?;
-    return Ok(result);
+    serde_json::from_value::<Option<String>>(value.clone())
+      .ok()
+      .flatten()
+  } else {
+    None
   }
-  Err(LemmyErrorType::OauthLoginFailed.into())
 }
 
 #[expect(clippy::expect_used)]
