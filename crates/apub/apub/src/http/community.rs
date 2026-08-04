@@ -161,17 +161,13 @@ pub(crate) async fn get_apub_community_featured(
   Ok(create_http_response(featured, &FEDERATION_CONTEXT)?)
 }
 
-#[derive(Deserialize)]
-pub(crate) struct MultiCommunityQuery {
-  multi_name: String,
-}
-
 pub(crate) async fn get_apub_person_multi_community(
-  query: Path<MultiCommunityQuery>,
+  path: Path<ActorPath>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
+  let (name, domain) = path.split_name();
   let multi: ApubMultiCommunity =
-    MultiCommunity::read_from_name(&mut context.pool(), &query.multi_name, None, false)
+    MultiCommunity::read_from_name(&mut context.pool(), name, domain, false)
       .await?
       .ok_or(LemmyErrorType::NotFound)?
       .into();
@@ -180,10 +176,10 @@ pub(crate) async fn get_apub_person_multi_community(
 }
 
 pub(crate) async fn get_apub_person_multi_community_follows(
-  query: Path<MultiCommunityQuery>,
+  path: Path<ActorPath>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
-  let multi = MultiCommunity::read_from_name(&mut context.pool(), &query.multi_name, None, false)
+  let multi = MultiCommunity::read_from_name(&mut context.pool(), &path.name, None, false)
     .await?
     .ok_or(LemmyErrorType::NotFound)?
     .into();
