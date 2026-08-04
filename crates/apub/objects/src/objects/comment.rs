@@ -327,7 +327,7 @@ pub(crate) mod tests {
     let parsed = html_to_markdown_rs::convert("<script></script><b>hello</b>", None)?
       .content
       .unwrap_or_default();
-    assert_eq!(parsed, "**hello**");
+    assert_eq!(parsed, "**hello**\n");
     Ok(())
   }
 }
