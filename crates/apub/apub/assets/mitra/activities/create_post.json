@@ -1,0 +1,48 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/v1",
+    "https://w3id.org/security/data-integrity/v2",
+    {
+      "Emoji": "toot:Emoji",
+      "Hashtag": "as:Hashtag",
+      "sensitive": "as:sensitive",
+      "toot": "http://joinmastodon.org/ns#"
+    }
+  ],
+  "actor": "https://mitra.social/users/test",
+  "cc": ["https://mitra.social/users/test/followers"],
+  "id": "https://mitra.social/activities/create/019f57cf-693a-77f2-b006-c4c76338956a",
+  "object": {
+    "attributedTo": "https://mitra.social/users/test",
+    "audience": "https://voyager.lemmy.ml/c/pubtest0906",
+    "cc": ["https://mitra.social/users/test/followers"],
+    "content": "<p>Remote post 5</p>",
+    "contentMap": {
+      "da": "<p>Remote post 5</p>"
+    },
+    "context": "https://mitra.social/collections/conversations/019f57cf-693a-77f2-b006-c4d06a6602cb",
+    "id": "https://mitra.social/objects/019f57cf-693a-77f2-b006-c4c76338956a",
+    "published": "2026-07-12T19:30:38.521875Z",
+    "replies": "https://mitra.social/objects/019f57cf-693a-77f2-b006-c4c76338956a/replies",
+    "sensitive": false,
+    "to": [
+      "https://www.w3.org/ns/activitystreams#Public",
+      "https://voyager.lemmy.ml/c/pubtest0906"
+    ],
+    "type": "Note"
+  },
+  "proof": {
+    "created": "2026-07-12T19:30:38.560996451Z",
+    "cryptosuite": "eddsa-jcs-2022",
+    "proofPurpose": "assertionMethod",
+    "proofValue": "zEcoGfTSgqBKd6kYh8cEeaDV96vqo8BVCrCriYHAYJT2Wa1tUnpstmhpFk2jr2osKX4d5gpd6bwueBDe4iYxT3K8",
+    "type": "DataIntegrityProof",
+    "verificationMethod": "https://mitra.social/users/test#ed25519-key"
+  },
+  "to": [
+    "https://www.w3.org/ns/activitystreams#Public",
+    "https://voyager.lemmy.ml/c/pubtest0906"
+  ],
+  "type": "Create"
+}

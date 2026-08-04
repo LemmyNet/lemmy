@@ -45,6 +45,7 @@ use lemmy_db_schema_file::{
     creator_community_instance_actions_join,
     creator_home_instance_actions_join,
     creator_local_instance_actions_join,
+    creator_local_user_admin_join,
     my_comment_actions_join,
     my_community_actions_join,
     my_instance_communities_actions_join,
@@ -105,6 +106,7 @@ impl CommentView {
       .left_join(creator_community_instance_actions_join())
       .left_join(creator_community_actions_join())
       .left_join(creator_local_instance_actions_join)
+      .left_join(creator_local_user_admin_join())
       .left_join(my_community_actions_join)
       .left_join(my_comment_actions_join)
       .left_join(my_person_actions_join)
