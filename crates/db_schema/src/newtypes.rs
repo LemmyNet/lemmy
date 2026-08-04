@@ -1,5 +1,6 @@
 #[cfg(feature = "full")]
 use diesel_ltree::Ltree;
+pub use lemmy_db_schema_file::CommunityId;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
@@ -40,13 +41,6 @@ pub enum PostOrCommentId {
   Post(PostId),
   Comment(CommentId),
 }
-
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Default, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(DieselNewType))]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// The community id.
-pub struct CommunityId(pub i32);
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Default, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(DieselNewType))]

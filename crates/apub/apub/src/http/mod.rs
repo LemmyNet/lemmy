@@ -90,6 +90,24 @@ struct ActivityQuery {
   id: String,
 }
 
+/// Path parameter for ActivityPub actors (persons and communities), which may be qualified with a
+/// domain (e.g. `name@domain`) to reference a remote actor.
+#[derive(Deserialize, Clone)]
+pub(crate) struct ActorPath {
+  name: String,
+}
+
+impl ActorPath {
+  /// Split the actor name into its local name and optional domain.
+  pub(crate) fn split_name(&self) -> (&str, Option<&str>) {
+    if let Some((n, d)) = self.name.split_once('@') {
+      (n, Some(d))
+    } else {
+      (self.name.as_str(), None)
+    }
+  }
+}
+
 /// Return the ActivityPub json representation of a local activity over HTTP.
 async fn get_activity(
   info: web::Path<ActivityQuery>,
