@@ -1,6 +1,6 @@
 use crate::{
   newtypes::{PostId, PostReportId},
-  source::post_report::{PostReport, PostReportForm},
+  source::post_report::{PostReport, PostReportForm, UpdatePostReportForm},
   traits::Reportable,
 };
 use chrono::Utc;
@@ -17,6 +17,7 @@ use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Reportable for PostReport {
   type Form = PostReportForm;
+  type UpdateForm = UpdatePostReportForm;
   type IdType = PostReportId;
   type ObjectIdType = PostId;
 
@@ -32,18 +33,11 @@ impl Reportable for PostReport {
   async fn update_resolved(
     pool: &mut DbPool<'_>,
     report_id: Self::IdType,
-    by_resolver_id: PersonId,
-    is_resolved: bool,
-    resolve_reason: Option<String>,
+    form: &Self::UpdateForm,
   ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
     update(post_report::table.find(report_id))
-      .set((
-        post_report::resolved.eq(is_resolved),
-        post_report::resolver_id.eq(by_resolver_id),
-        post_report::updated_at.eq(Utc::now()),
-        post_report::resolve_reason.eq(resolve_reason),
-      ))
+      .set(form)
       .execute(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -153,12 +147,16 @@ mod tests {
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
-    let resolved_count =
-      PostReport::update_resolved(pool, data.report.id, data.person.id, true, None).await?;
+    let update_form = UpdatePostReportForm {
+      resolver_id: Some(data.person.id),
+      resolved: Some(true),
+      ..Default::default()
+    };
+
+    let resolved_count = PostReport::update_resolved(pool, data.report.id, &update_form).await?;
     assert_eq!(resolved_count, 1);
 
-    let unresolved_count =
-      PostReport::update_resolved(pool, data.report.id, data.person.id, false, None).await?;
+    let unresolved_count = PostReport::update_resolved(pool, data.report.id, &update_form).await?;
     assert_eq!(unresolved_count, 1);
 
     cleanup(data, pool).await

@@ -1,6 +1,6 @@
 use crate::{
   newtypes::{CommunityId, CommunityReportId},
-  source::community_report::{CommunityReport, CommunityReportForm},
+  source::community_report::{CommunityReport, CommunityReportForm, UpdateCommunityReportForm},
   traits::Reportable,
 };
 use chrono::Utc;
@@ -17,6 +17,7 @@ use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Reportable for CommunityReport {
   type Form = CommunityReportForm;
+  type UpdateForm = UpdateCommunityReportForm;
   type IdType = CommunityReportId;
   type ObjectIdType = CommunityId;
   /// creates a community report and returns it
@@ -36,24 +37,15 @@ impl Reportable for CommunityReport {
   ///
   /// * `conn` - the postgres connection
   /// * `report_id` - the id of the report to resolve
-  /// * `by_resolver_id` - the id of the user resolving the report
-  /// * `is_resolved` - is the report resolved
-  /// * `resolve_reason` - reason why report was resolved
+  /// * `form` - update report form
   async fn update_resolved(
     pool: &mut DbPool<'_>,
     report_id_: Self::IdType,
-    by_resolver_id: PersonId,
-    is_resolved: bool,
-    resolve_reason: Option<String>,
+    form: &Self::UpdateForm,
   ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
     update(community_report::table.find(report_id_))
-      .set((
-        community_report::resolved.eq(is_resolved),
-        community_report::resolver_id.eq(by_resolver_id),
-        community_report::updated_at.eq(Utc::now()),
-        community_report::resolve_reason.eq(resolve_reason),
-      ))
+      .set(form)
       .execute(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)

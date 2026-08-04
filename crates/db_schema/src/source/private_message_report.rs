@@ -32,7 +32,7 @@ pub struct PrivateMessageReport {
   pub resolver_id: Option<PersonId>,
   pub published_at: DateTime<Utc>,
   pub updated_at: Option<DateTime<Utc>>,
-  pub resolve_reason: Option<String>,
+  pub conclusion: Option<String>,
 }
 
 #[derive(Clone)]
@@ -43,4 +43,14 @@ pub struct PrivateMessageReportForm {
   pub private_message_id: PrivateMessageId,
   pub original_pm_text: String,
   pub reason: String,
+}
+
+#[derive(Clone, Default)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = private_message_report))]
+pub struct UpdatePrivateMessageReportForm {
+  pub resolver_id: Option<PersonId>,
+  pub resolved: Option<bool>,
+  pub conclusion: Option<Option<String>>,
+  pub updated_at: Option<DateTime<Utc>>,
 }
