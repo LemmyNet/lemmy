@@ -164,10 +164,8 @@ pub enum UntranslatedError {
 
 cfg_select! {
   feature = "full" => {
-
+    use serde_with::{DisplayFromStr, serde_as};
     use std::fmt;
-    use serde_with::serde_as;
-    use serde_with::DisplayFromStr;
 
     pub type LemmyResult<T> = Result<T, LemmyError>;
 
@@ -182,20 +180,21 @@ cfg_select! {
       pub caller: Location<'static>,
     }
 
-    /// Maximum number of items in an array passed as API parameter. See [[LemmyErrorType::TooManyItems]]
+    /// Maximum number of items in an array passed as API parameter. See
+    /// [[LemmyErrorType::TooManyItems]]
     pub(crate) const MAX_API_PARAM_ELEMENTS: usize = 10_000;
 
     impl<T> From<T> for LemmyError
     where
       T: Into<anyhow::Error>,
     {
-    #[track_caller]
+      #[track_caller]
       fn from(t: T) -> Self {
         let cause = t.into();
         let error_type = match cause.downcast_ref::<diesel::result::Error>() {
           Some(&diesel::NotFound) => LemmyErrorType::NotFound,
-          _ => LemmyErrorType::Unknown(format!("{}", &cause))
-      };
+          _ => LemmyErrorType::Unknown(format!("{}", &cause)),
+        };
         LemmyError {
           error_type,
           cause,
@@ -207,10 +206,10 @@ cfg_select! {
     impl Debug for LemmyError {
       fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("LemmyError")
-         .field("message", &self.error_type)
-         .field("caller", &format_args!("{}", self.caller))
-         .field("inner", &self.cause)
-         .finish()
+          .field("message", &self.error_type)
+          .field("caller", &format_args!("{}", self.caller))
+          .field("inner", &self.cause)
+          .finish()
       }
     }
 
@@ -238,9 +237,8 @@ cfg_select! {
     }
 
     impl From<LemmyErrorType> for LemmyError {
-    #[track_caller]
+      #[track_caller]
       fn from(error_type: LemmyErrorType) -> Self {
-
         let cause = anyhow::anyhow!("{}", error_type);
         LemmyError {
           error_type,
@@ -251,11 +249,11 @@ cfg_select! {
     }
 
     impl From<UntranslatedError> for LemmyError {
-    #[track_caller]
+      #[track_caller]
       fn from(error_type: UntranslatedError) -> Self {
         let cause = anyhow::anyhow!("{}", error_type);
         LemmyError {
-          error_type: LemmyErrorType::UntranslatedError( Some(error_type) ),
+          error_type: LemmyErrorType::UntranslatedError(Some(error_type)),
           cause,
           caller: *Location::caller(),
         }
@@ -264,7 +262,7 @@ cfg_select! {
 
     impl From<UntranslatedError> for LemmyErrorType {
       fn from(error: UntranslatedError) -> Self {
-        LemmyErrorType::UntranslatedError (Some(error) )
+        LemmyErrorType::UntranslatedError(Some(error))
       }
     }
 
@@ -273,7 +271,7 @@ cfg_select! {
     }
 
     impl<T, E: Into<anyhow::Error>> LemmyErrorExt<T, E> for Result<T, E> {
-    #[track_caller]
+      #[track_caller]
       fn with_lemmy_type(self, error_type: LemmyErrorType) -> LemmyResult<T> {
         self.map_err(|error| LemmyError {
           error_type,
@@ -294,7 +292,8 @@ cfg_select! {
           e
         })
       }
-      // this function can't be an impl From or similar because it would conflict with one of the other broad Into<> implementations
+      // this function can't be an impl From or similar because it would conflict with one of the
+      // other broad Into<> implementations
       fn into_anyhow(self) -> Result<T, anyhow::Error> {
         self.map_err(|e| e.cause)
       }
@@ -304,14 +303,24 @@ cfg_select! {
     mod tests {
       #![allow(clippy::indexing_slicing)]
       use super::*;
-      use actix_web::{body::MessageBody, ResponseError};
+      use actix_web::{ResponseError, body::MessageBody};
       use pretty_assertions::assert_eq;
 
       #[test]
       fn untranslated_error_format() -> LemmyResult<()> {
-        let err = LemmyError::from(UntranslatedError::DomainBlocked("test".to_string())).error_response();
-        let json = String::from_utf8(err.into_body().try_into_bytes().unwrap_or_default().to_vec())?;
-        assert_eq!(&json, r#"{"error":"domain_blocked","message":"test","cause":"DomainBlocked"}"#);
+        let err =
+          LemmyError::from(UntranslatedError::DomainBlocked("test".to_string())).error_response();
+        let json = String::from_utf8(
+          err
+            .into_body()
+            .try_into_bytes()
+            .unwrap_or_default()
+            .to_vec(),
+        )?;
+        assert_eq!(
+          &json,
+          r#"{"error":"domain_blocked","message":"test","cause":"DomainBlocked"}"#
+        );
 
         Ok(())
       }
@@ -319,7 +328,13 @@ cfg_select! {
       #[test]
       fn deserializes_no_message() -> LemmyResult<()> {
         let err = LemmyError::from(LemmyErrorType::BlockedUrl).error_response();
-        let json = String::from_utf8(err.into_body().try_into_bytes().unwrap_or_default().to_vec())?;
+        let json = String::from_utf8(
+          err
+            .into_body()
+            .try_into_bytes()
+            .unwrap_or_default()
+            .to_vec(),
+        )?;
         assert_eq!(&json, r#"{"error":"blocked_url","cause":"BlockedUrl"}"#);
 
         Ok(())
@@ -329,7 +344,13 @@ cfg_select! {
       fn deserializes_with_message() -> LemmyResult<()> {
         let reg_banned = LemmyErrorType::PictrsResponseError(String::from("reason"));
         let err = LemmyError::from(reg_banned).error_response();
-        let json = String::from_utf8(err.into_body().try_into_bytes().unwrap_or_default().to_vec())?;
+        let json = String::from_utf8(
+          err
+            .into_body()
+            .try_into_bytes()
+            .unwrap_or_default()
+            .to_vec(),
+        )?;
         assert_eq!(
           &json,
           r#"{"error":"pictrs_response_error","message":"reason","cause":"PictrsResponseError"}"#
@@ -345,7 +366,10 @@ cfg_select! {
         assert_eq!(404, not_found_error.status_code());
 
         let other_error = LemmyError::from(diesel::result::Error::NotInTransaction);
-        assert!(matches!(other_error.error_type, LemmyErrorType::Unknown{..}));
+        assert!(matches!(
+          other_error.error_type,
+          LemmyErrorType::Unknown { .. }
+        ));
         assert_eq!(400, other_error.status_code());
       }
     }
