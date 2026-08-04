@@ -472,24 +472,24 @@ mod tests {
     .await?;
     //  despite alice is banned, both Alice and Bob should be returned
     assert_length!(2, persons_list_new);
-
+    // Bob should be in list of community followers
     let bob_person_view = persons_list_new
       .iter()
       .find(|p| p.person.id == data.bob.id)
-      .expect("Bob should be in list of community followers");
+      .ok_or(LemmyErrorType::NotFound)?;
 
+    // Alice should be in list of community followers
     let alice_person_view = persons_list_new
       .iter()
       .find(|p| p.person.id == data.alice.id)
-      .expect("Alice should be in list of community followers");
+      .ok_or(LemmyErrorType::NotFound)?;
     // bob should have follow state Accepted
     assert_eq!(
-      CommunityFollowerState::Accepted,
+      Some(CommunityFollowerState::Accepted),
       bob_person_view
         .community_actions
         .as_ref()
-        .and_then(|ca| ca.follow_state)
-        .expect("should have follow state"),
+        .and_then(|ca| ca.follow_state),
     );
 
     // alice should have received_ban_at value
