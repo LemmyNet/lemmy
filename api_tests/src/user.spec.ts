@@ -132,10 +132,11 @@ test("Delete user", async () => {
 
   // check that posts and comments are marked as deleted on other instances.
   // use get methods to avoid refetching from origin instance
-  expect(
-    (await getPost(alpha, localPost.id).then(expectSuccess)).post_view.post
-      .deleted,
-  ).toBe(true);
+  const deletedLocalPost = await waitUntilSuccess(
+    () => getPost(alpha, localPost.id),
+    s => s.post_view.post.deleted,
+  );
+  expect(deletedLocalPost.post_view.post.deleted).toBe(true);
   // Make sure the remote post is deleted.
   // TODO this fails occasionally
   // Probably because it could return a not_found
