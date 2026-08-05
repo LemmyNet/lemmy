@@ -242,7 +242,7 @@ mod tests {
     let pm = ApubPrivateMessage::from_json(json, &context).await?;
 
     assert_eq!(pm.ap_id, pleroma_url.into());
-    assert_eq!(pm.content.len(), 3);
+    assert_eq!(pm.content.len(), 4);
     assert_eq!(context.request_count(), 0);
 
     test_data.delete(&mut context.pool()).await?;
