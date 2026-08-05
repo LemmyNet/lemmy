@@ -666,6 +666,7 @@ fn read_user_info(user_info: &serde_json::Value, key: &str) -> Option<String> {
     serde_json::from_value::<Option<String>>(value.clone())
       .ok()
       .flatten()
+      .filter(|s| !s.is_empty())
   } else {
     None
   }
