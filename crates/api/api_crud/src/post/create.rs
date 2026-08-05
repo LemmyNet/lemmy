@@ -169,6 +169,13 @@ pub async fn create_post(
   let like_form = PostLikeForm::new(post_id, person_id, Some(true));
 
   PostActions::like(&mut context.pool(), &like_form).await?;
+  PostActions::update_notification_state(
+    post_id,
+    person_id,
+    local_user_view.local_user.default_post_notifications_mode,
+    &mut context.pool(),
+  )
+  .await?;
 
   NotifyData {
     do_send_email: !local_site.email_notifications_disabled,

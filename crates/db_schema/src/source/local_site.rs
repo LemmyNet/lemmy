@@ -10,6 +10,7 @@ use lemmy_db_schema_file::{
     ImageMode,
     ListingType,
     PostListingMode,
+    PostNotificationsMode,
     PostSortType,
     RegistrationMode,
   },
@@ -115,6 +116,7 @@ pub struct LocalSite {
   pub image_upload_disabled: bool,
   /// How many active invite links a user can have
   pub max_invites_per_user_allowed: i32,
+  pub default_post_notifications_mode: PostNotificationsMode,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -195,6 +197,8 @@ pub struct LocalSiteInsertForm {
   pub image_upload_disabled: Option<bool>,
   #[new(default)]
   pub max_invites_per_user_allowed: Option<i32>,
+  #[new(default)]
+  pub default_post_notifications_mode: Option<PostNotificationsMode>,
 }
 
 #[derive(Clone, Default)]
@@ -239,4 +243,5 @@ pub struct LocalSiteUpdateForm {
   pub image_allow_video_uploads: Option<bool>,
   pub image_upload_disabled: Option<bool>,
   pub max_invites_per_user_allowed: Option<i32>,
+  pub default_post_notifications_mode: Option<PostNotificationsMode>,
 }
