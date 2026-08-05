@@ -287,11 +287,6 @@ pub async fn authenticate_with_oauth(
     return Err(LemmyErrorType::OauthAuthorizationInvalid.into());
   }
 
-  // validate the PKCE challenge
-  if let Some(code_verifier) = &data.pkce_code_verifier {
-    check_code_verifier(code_verifier)?;
-  }
-
   // Fetch the OAUTH provider and make sure it's enabled
   let oauth_provider_id = data.oauth_provider_id;
   let oauth_provider = AdminOAuthProvider::read(pool, oauth_provider_id)
@@ -301,6 +296,15 @@ pub async fn authenticate_with_oauth(
 
   if !oauth_provider.enabled {
     return Err(LemmyErrorType::OauthAuthorizationInvalid.into());
+  }
+
+  // validate the PKCE challenge
+  if oauth_provider.use_pkce {
+    let code_verifier = data
+      .pkce_code_verifier
+      .as_deref()
+      .ok_or(LemmyErrorType::OauthAuthorizationInvalid)?;
+    check_code_verifier(code_verifier)?;
   }
 
   let token_response = oauth_request_access_token(
