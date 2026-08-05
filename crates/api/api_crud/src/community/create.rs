@@ -114,6 +114,7 @@ pub async fn create_community(
     featured_url: Some(generate_featured_url(&ap_id)?),
     posting_restricted_to_mods: data.posting_restricted_to_mods,
     visibility: data.visibility,
+    downvote_mode: data.downvote_mode,
     ..CommunityInsertForm::new(site.instance_id, data.name.clone(), keypair.public_key)
   };
 

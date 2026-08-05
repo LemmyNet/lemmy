@@ -748,6 +748,7 @@ mod tests {
       unresolved_report_count: 0,
       interactions_month: 0,
       local_removed: false,
+      downvote_mode: Default::default(),
     };
 
     let community_follower_form = CommunityFollowerForm::new(
