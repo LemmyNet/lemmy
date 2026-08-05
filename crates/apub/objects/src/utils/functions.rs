@@ -11,7 +11,7 @@ use activitypub_federation::{
   protocol::values::MediaTypeMarkdownOrHtml,
 };
 use either::Either;
-use lemmy_api_utils::{context::LemmyContext, utils::check_is_mod_or_admin};
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::source::{
   community::Community,
   instance::{Instance, InstanceActions},
