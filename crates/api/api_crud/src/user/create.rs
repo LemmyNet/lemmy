@@ -351,7 +351,6 @@ pub async fn authenticate_with_oauth(
     local_user
   } else {
     // user has never previously registered using oauth
-    login_response.registration_created = local_site.site_setup && require_registration_application;
 
     // prevent registration if registration is closed
     if local_site.registration_mode == RegistrationMode::Closed {
@@ -403,6 +402,7 @@ pub async fn authenticate_with_oauth(
       }
     } else {
       // No user was found by email => Register as new user
+      login_response.registration_created = local_site.site_setup && require_registration_application;
 
       // make sure the registration answer is provided when the registration application is required
       validate_registration_answer(require_registration_application, &data.answer)?;
