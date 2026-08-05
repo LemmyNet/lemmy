@@ -662,13 +662,10 @@ async fn oidc_get_user_info(
 }
 
 fn read_user_info(user_info: &serde_json::Value, key: &str) -> Option<String> {
-  if let Some(value) = user_info.get(key) {
-    serde_json::from_value::<Option<String>>(value.clone())
-      .ok()
-      .flatten()
-      .filter(|s| !s.is_empty())
-  } else {
-    None
+  match user_info.get(key)? {
+    serde_json::Value::String(s) if !s.is_empty() => Some(s.clone()),
+    serde_json::Value::Number(n) => Some(n.to_string()),
+    _ => None,
   }
 }
 
