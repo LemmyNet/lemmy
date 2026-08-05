@@ -25,7 +25,6 @@ import {
   getMyUser,
   getPersonDetails,
   banPersonFromSite,
-  statusNotFound,
   statusUnauthorized,
   listPersonContent,
   password,
