@@ -278,18 +278,13 @@ pub async fn authenticate_with_oauth(
     return Err(LemmyErrorType::OauthAuthorizationInvalid.into());
   }
 
-  // validate the redirect_uri
-  let redirect_uri = &data.redirect_uri;
-  if redirect_uri.host_str().unwrap_or("").is_empty()
-    || !redirect_uri.path().eq(&String::from("/oauth/callback"))
-    || !redirect_uri.query().unwrap_or("").is_empty()
-  {
+  // redirect_uri must point exactly at this instance's oauth callback
+  let expected_redirect_uri = format!(
+    "{}/oauth/callback",
+    context.settings().get_protocol_and_hostname()
+  );
+  if data.redirect_uri.as_str() != expected_redirect_uri {
     return Err(LemmyErrorType::OauthAuthorizationInvalid.into());
-  }
-
-  // validate the PKCE challenge
-  if let Some(code_verifier) = &data.pkce_code_verifier {
-    check_code_verifier(code_verifier)?;
   }
 
   // Fetch the OAUTH provider and make sure it's enabled
@@ -303,12 +298,21 @@ pub async fn authenticate_with_oauth(
     return Err(LemmyErrorType::OauthAuthorizationInvalid.into());
   }
 
+  // validate the PKCE challenge
+  if oauth_provider.use_pkce {
+    let code_verifier = data
+      .pkce_code_verifier
+      .as_deref()
+      .ok_or(LemmyErrorType::OauthAuthorizationInvalid)?;
+    check_code_verifier(code_verifier)?;
+  }
+
   let token_response = oauth_request_access_token(
     &context,
     &oauth_provider,
     &data.code,
     data.pkce_code_verifier.as_deref(),
-    redirect_uri.as_str(),
+    data.redirect_uri.as_str(),
   )
   .await?;
 
@@ -347,7 +351,6 @@ pub async fn authenticate_with_oauth(
     local_user
   } else {
     // user has never previously registered using oauth
-    login_response.registration_created = local_site.site_setup && require_registration_application;
 
     // prevent registration if registration is closed
     if local_site.registration_mode == RegistrationMode::Closed {
@@ -399,6 +402,13 @@ pub async fn authenticate_with_oauth(
       }
     } else {
       // No user was found by email => Register as new user
+      login_response.registration_created =
+        local_site.site_setup && require_registration_application;
+
+      // Check if verification email can be sent before submitting transaction
+      if local_site.email_verification_required && email.is_none() {
+        return Err(LemmyErrorType::EmailRequired.into());
+      }
 
       // make sure the registration answer is provided when the registration application is required
       validate_registration_answer(require_registration_application, &data.answer)?;
@@ -662,12 +672,10 @@ async fn oidc_get_user_info(
 }
 
 fn read_user_info(user_info: &serde_json::Value, key: &str) -> Option<String> {
-  if let Some(value) = user_info.get(key) {
-    serde_json::from_value::<Option<String>>(value.clone())
-      .ok()
-      .flatten()
-  } else {
-    None
+  match user_info.get(key)? {
+    serde_json::Value::String(s) if !s.is_empty() => Some(s.clone()),
+    serde_json::Value::Number(n) => Some(n.to_string()),
+    _ => None,
   }
 }
 
