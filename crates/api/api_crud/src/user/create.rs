@@ -278,12 +278,12 @@ pub async fn authenticate_with_oauth(
     return Err(LemmyErrorType::OauthAuthorizationInvalid.into());
   }
 
-  // validate the redirect_uri
-  let redirect_uri = &data.redirect_uri;
-  if redirect_uri.host_str().unwrap_or("").is_empty()
-    || !redirect_uri.path().eq(&String::from("/oauth/callback"))
-    || !redirect_uri.query().unwrap_or("").is_empty()
-  {
+  // redirect_uri must point exactly at this instance's oauth callback
+  let expected_redirect_uri = format!(
+    "{}/oauth/callback",
+    context.settings().get_protocol_and_hostname()
+  );
+  if data.redirect_uri.as_str() != expected_redirect_uri {
     return Err(LemmyErrorType::OauthAuthorizationInvalid.into());
   }
 
@@ -312,7 +312,7 @@ pub async fn authenticate_with_oauth(
     &oauth_provider,
     &data.code,
     data.pkce_code_verifier.as_deref(),
-    redirect_uri.as_str(),
+    data.redirect_uri.as_str(),
   )
   .await?;
 
