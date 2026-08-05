@@ -35,6 +35,7 @@ import {
   expectSuccess,
   expectFailure,
   waitUntilSuccess,
+  waitUntil,
 } from "./shared";
 import {
   EditSite,
@@ -125,9 +126,10 @@ test("Delete user", async () => {
     new LemmyError("incorrect_login", statusUnauthorized),
   );
 
-  await jestLemmyError(
+  // User deletion runs as a background task, so wait for it to complete
+  await waitUntil(
     () => getPersonDetails(user, person_id).then(expectFailure),
-    new LemmyError("not_found", statusNotFound),
+    e => e?.name === "not_found",
   );
 
   // check that posts and comments are marked as deleted on other instances.
@@ -152,9 +154,10 @@ test("Delete user", async () => {
     () => alpha.getComment({ id: remoteComment.id }),
     c => c.comment_view.comment.deleted,
   );
-  await jestLemmyError(
+  // User deletion runs as a background task, so wait for it to complete
+  await waitUntil(
     () => getPersonDetails(user, remoteComment.creator_id).then(expectFailure),
-    new LemmyError("not_found", statusNotFound),
+    e => e?.name === "not_found",
   );
 });
 
