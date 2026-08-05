@@ -1,6 +1,5 @@
 use crate::{
   activity_lists::AnnouncableActivities,
-  check_community_deleted_or_removed,
   community::send_activity_in_community,
   create_or_update::{parse_apub_mentions, tagged_user_inboxes},
   generate_activity_id,
@@ -14,7 +13,7 @@ use activitypub_federation::{
 use lemmy_api_utils::{
   context::LemmyContext,
   notify::NotifyData,
-  utils::{check_is_mod_or_admin, check_post_deleted_or_removed},
+  utils::{check_community_deleted_removed, check_is_mod_or_admin, check_post_deleted_or_removed},
 };
 use lemmy_apub_objects::{
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
@@ -100,7 +99,7 @@ impl Activity for CreateOrUpdateNote {
 
     verify_person_in_community(&self.actor, &community, context).await?;
     verify_domains_match(self.actor.inner(), self.object.id.inner())?;
-    check_community_deleted_or_removed(&community)?;
+    check_community_deleted_removed(&community)?;
     check_post_deleted_or_removed(&post)?;
     verify_urls_match(self.actor.inner(), self.object.attributed_to.inner())?;
 

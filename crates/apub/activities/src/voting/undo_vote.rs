@@ -1,5 +1,4 @@
 use crate::{
-  check_community_deleted_or_removed,
   generate_activity_id,
   protocol::{
     IdOrNestedObject,
@@ -13,7 +12,7 @@ use activitypub_federation::{
   protocol::verification::verify_urls_match,
   traits::{Activity, Object},
 };
-use lemmy_api_utils::context::LemmyContext;
+use lemmy_api_utils::{context::LemmyContext, utils::check_community_deleted_removed};
 use lemmy_apub_objects::{
   objects::{PostOrComment, community::ApubCommunity, person::ApubPerson},
   utils::{functions::verify_person_in_community, protocol::InCommunity},
@@ -54,7 +53,7 @@ impl Activity for UndoVote {
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     let object = self.object.dereference(context).await?;
     let community = object.community(context).await?;
-    check_community_deleted_or_removed(&community)?;
+    check_community_deleted_removed(&community)?;
     verify_person_in_community(&self.actor, &community, context).await?;
     verify_urls_match(self.actor.inner(), object.actor.inner())?;
     object.verify(context).await?;

@@ -1,5 +1,4 @@
 use crate::{
-  check_community_deleted_or_removed,
   generate_activity_id,
   protocol::{
     IdOrNestedObject,
@@ -14,7 +13,7 @@ use activitypub_federation::{
   traits::{Activity, Actor, Object},
 };
 use either::Either::*;
-use lemmy_api_utils::context::LemmyContext;
+use lemmy_api_utils::{context::LemmyContext, utils::check_community_deleted_removed};
 use lemmy_apub_objects::objects::{CommunityOrMulti, person::ApubPerson};
 use lemmy_db_schema::{
   source::{
@@ -79,7 +78,7 @@ impl Activity for UndoFollow {
 
     // Handle remote community unfollowing a local community
     if let (Right(community), Right(Left(follower))) = (&actor, &object) {
-      check_community_deleted_or_removed(community)?;
+      check_community_deleted_removed(community)?;
       CommunityCommunityFollow::unfollow(&mut context.pool(), community.id, follower.id).await?;
       return Ok(());
     }
