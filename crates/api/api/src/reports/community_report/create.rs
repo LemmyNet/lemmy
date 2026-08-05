@@ -6,7 +6,7 @@ use lemmy_api_utils::{
   context::LemmyContext,
   plugins::plugin_hook_after,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{check_local_user_banned_or_deleted, slur_regex},
+  utils::{check_community_user_action, check_local_user_banned_or_deleted, slur_regex},
 };
 use lemmy_db_schema::{
   source::{
@@ -39,6 +39,7 @@ pub async fn create_community_report(
   let person = &local_user_view.person;
   let community_id = data.community_id;
   let community = Community::read(&mut context.pool(), community_id).await?;
+  check_community_user_action(&local_user_view, &community, &mut context.pool()).await?;
   let site = Site::read_from_instance_id(&mut context.pool(), community.instance_id).await?;
 
   let report_form = CommunityReportForm {
