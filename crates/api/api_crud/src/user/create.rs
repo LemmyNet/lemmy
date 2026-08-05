@@ -402,7 +402,13 @@ pub async fn authenticate_with_oauth(
       }
     } else {
       // No user was found by email => Register as new user
-      login_response.registration_created = local_site.site_setup && require_registration_application;
+      login_response.registration_created =
+        local_site.site_setup && require_registration_application;
+
+      // Check if verification email can be sent before submitting transaction
+      if local_site.email_verification_required && email.is_none() {
+        return Err(LemmyErrorType::EmailRequired.into());
+      }
 
       // make sure the registration answer is provided when the registration application is required
       validate_registration_answer(require_registration_application, &data.answer)?;
