@@ -3,7 +3,6 @@ use crate::{
   MOD_ACTION_DEFAULT_REASON,
   activity_lists::AnnouncableActivities,
   block::{SiteOrCommunity, generate_cc},
-  check_community_deleted_or_removed,
   community::send_activity_in_community,
   generate_activity_id,
   protocol::block::block_user::BlockUser,
@@ -19,7 +18,11 @@ use chrono::{DateTime, Utc};
 use lemmy_api_utils::{
   context::LemmyContext,
   notify::notify_mod_action,
-  utils::{remove_or_restore_user_data, remove_or_restore_user_data_in_community},
+  utils::{
+    check_community_deleted_removed,
+    remove_or_restore_user_data,
+    remove_or_restore_user_data_in_community,
+  },
 };
 use lemmy_apub_objects::{
   objects::person::ApubPerson,
@@ -122,7 +125,7 @@ impl Activity for BlockUser {
       SiteOrCommunity::Right(community) => {
         verify_visibility(&self.to, &self.cc, &community)?;
         verify_mod_action(&self.actor, self.object.inner(), &community, context).await?;
-        check_community_deleted_or_removed(&community)?;
+        check_community_deleted_removed(&community)?;
       }
     }
     Ok(())

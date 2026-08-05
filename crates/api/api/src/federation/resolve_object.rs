@@ -4,11 +4,11 @@ use activitypub_federation::{
 };
 use actix_web::web::{Json, Query};
 use either::Either::*;
-use lemmy_api_utils::{
-  context::LemmyContext,
-  utils::{check_is_mod_or_admin, check_private_instance},
+use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
+use lemmy_apub_objects::{
+  objects::{SearchableObjects, UserOrCommunity},
+  utils::check_is_mod_or_admin,
 };
-use lemmy_apub_objects::objects::{SearchableObjects, UserOrCommunity};
 use lemmy_db_schema_file::PersonId;
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_community::{CommunityView, MultiCommunityView};

@@ -44,7 +44,7 @@ use lemmy_db_schema::source::{
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::traits::Crud;
-use lemmy_utils::error::{LemmyError, LemmyResult, UntranslatedError};
+use lemmy_utils::error::{LemmyError, LemmyResult};
 use serde::Serialize;
 use tracing::info;
 use url::{ParseError, Url};
@@ -70,14 +70,6 @@ async fn verify_person(
   let person = person_id.dereference(context).await?;
   InstanceActions::check_ban(&mut context.pool(), person.id, person.instance_id).await?;
   Ok(())
-}
-
-pub(crate) fn check_community_deleted_or_removed(community: &Community) -> LemmyResult<()> {
-  if community.deleted || community.removed {
-    Err(UntranslatedError::CannotCreatePostOrCommentInDeletedOrRemovedCommunity.into())
-  } else {
-    Ok(())
-  }
 }
 
 /// Generate a unique ID for an activity, in the format:

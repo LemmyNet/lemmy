@@ -1,6 +1,7 @@
 use crate::{
   protocol::note::Note,
   utils::{
+    check_is_mod_or_admin,
     functions::{
       append_attachments_to_comment,
       check_apub_id_valid_with_strictness,
@@ -28,7 +29,7 @@ use chrono::{DateTime, Utc};
 use lemmy_api_utils::{
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
-  utils::{check_is_mod_or_admin, get_url_blocklist, process_markdown, slur_regex},
+  utils::{get_url_blocklist, process_markdown, slur_regex},
 };
 use lemmy_db_schema::source::{
   comment::{Comment, CommentInsertForm, CommentUpdateForm},

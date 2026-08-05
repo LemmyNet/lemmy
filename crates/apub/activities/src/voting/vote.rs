@@ -1,5 +1,4 @@
 use crate::{
-  check_community_deleted_or_removed,
   generate_activity_id,
   protocol::voting::vote::{Vote, VoteType},
   voting::{undo_vote_comment, undo_vote_post, vote_comment, vote_post},
@@ -9,7 +8,10 @@ use activitypub_federation::{
   fetch::object_id::ObjectId,
   traits::{Activity, Object},
 };
-use lemmy_api_utils::{context::LemmyContext, utils::check_bot_account};
+use lemmy_api_utils::{
+  context::LemmyContext,
+  utils::{check_bot_account, check_community_deleted_removed},
+};
 use lemmy_apub_objects::{
   objects::{PostOrComment, community::ApubCommunity, person::ApubPerson},
   utils::{functions::verify_person_in_community, protocol::InCommunity},
@@ -52,7 +54,7 @@ impl Activity for Vote {
 
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     let community = self.community(context).await?;
-    check_community_deleted_or_removed(&community)?;
+    check_community_deleted_removed(&community)?;
     verify_person_in_community(&self.actor, &community, context).await?;
     Ok(())
   }
