@@ -13,7 +13,11 @@ use activitypub_federation::{
 use lemmy_api_utils::{
   context::LemmyContext,
   notify::NotifyData,
-  utils::{check_community_deleted_removed, check_post_deleted_or_removed},
+  utils::{
+    check_comment_deleted_or_removed,
+    check_community_deleted_removed,
+    check_post_deleted_or_removed,
+  },
 };
 use lemmy_apub_objects::{
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
@@ -94,7 +98,7 @@ impl Activity for CreateOrUpdateNote {
   }
 
   async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    let post = self.object.get_parents(context).await?.0;
+    let (post, parent_comment) = self.object.get_parents(context).await?;
     let community = self.community(context).await?;
     verify_visibility(&self.to, &self.cc, &community)?;
 
@@ -102,6 +106,9 @@ impl Activity for CreateOrUpdateNote {
     verify_domains_match(self.actor.inner(), self.object.id.inner())?;
     check_community_deleted_removed(&community)?;
     check_post_deleted_or_removed(&post)?;
+    if let Some(parent_comment) = parent_comment {
+      check_comment_deleted_or_removed(&parent_comment.0)?;
+    }
     verify_urls_match(self.actor.inner(), self.object.attributed_to.inner())?;
 
     ApubComment::verify(&self.object, self.actor.inner(), context).await?;
