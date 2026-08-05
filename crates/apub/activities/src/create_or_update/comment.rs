@@ -13,11 +13,12 @@ use activitypub_federation::{
 use lemmy_api_utils::{
   context::LemmyContext,
   notify::NotifyData,
-  utils::{check_community_deleted_removed, check_is_mod_or_admin, check_post_deleted_or_removed},
+  utils::{check_community_deleted_removed, check_post_deleted_or_removed},
 };
 use lemmy_apub_objects::{
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
   utils::{
+    check_is_mod_or_admin,
     functions::{generate_to, verify_person_in_community, verify_visibility},
     protocol::InCommunity,
   },

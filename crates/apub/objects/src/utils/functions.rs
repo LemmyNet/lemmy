@@ -2,6 +2,7 @@ use super::protocol::Source;
 use crate::{
   objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},
   protocol::{group::Group, page::Attachment},
+  utils::check_is_mod_or_admin,
 };
 use activitypub_federation::{
   config::Data,
@@ -11,7 +12,7 @@ use activitypub_federation::{
 };
 use either::Either;
 use html2md::parse_html;
-use lemmy_api_utils::{context::LemmyContext, utils::check_is_mod_or_admin};
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::source::{
   community::Community,
   instance::{Instance, InstanceActions},
