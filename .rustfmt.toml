@@ -1,4 +1,4 @@
-tab_spaces = 2
+tab_spaces = 21
 edition = "2024"
 imports_layout = "HorizontalVertical"
 imports_granularity = "Crate"
