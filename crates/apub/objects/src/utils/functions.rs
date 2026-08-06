@@ -11,7 +11,6 @@ use activitypub_federation::{
   protocol::values::MediaTypeMarkdownOrHtml,
 };
 use either::Either;
-use html2md::parse_html;
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::source::{
   community::Community,
@@ -44,7 +43,10 @@ pub fn read_from_string_or_source(
     content.to_string()
   } else {
     // otherwise, convert content html to markdown
-    parse_html(content)
+    html_to_markdown_rs::convert(content, None)
+      .unwrap_or_default()
+      .content
+      .unwrap_or_default()
   }
 }
 

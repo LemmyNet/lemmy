@@ -262,7 +262,7 @@ pub(crate) mod tests {
     assert_eq!(person.name, "lanodan");
     assert!(!person.local);
     assert_eq!(context.request_count(), 0);
-    assert_eq!(person.bio.as_ref().map(std::string::String::len), Some(812));
+    assert_eq!(person.bio.as_ref().map(std::string::String::len), Some(734));
 
     test_data.delete(&mut context.pool()).await?;
     Instance::delete_all(&mut context.pool()).await?;
