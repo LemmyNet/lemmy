@@ -302,8 +302,8 @@ pub async fn verify_mod_action(
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   // Mod action comes from the same instance as the community, or same instance as the object
-  // creator. Presumably it was done by an instance admin so we accept it.
-  // TODO: federate instance admin status and check it here
+  // creator. We trust that the origin instance performed necessary permission checks.
+  // https://codeberg.org/fediverse/fep/src/branch/main/fep/fe34/fep-fe34.md
   if mod_id.inner().domain() == community.ap_id.domain()
     || mod_id.inner().domain() == object_id.domain()
   {
