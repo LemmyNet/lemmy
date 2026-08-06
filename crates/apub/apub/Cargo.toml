@@ -49,5 +49,5 @@ either = { workspace = true }
 chrono = { workspace = true }
 
 [dev-dependencies]
-serial_test = { workspace = true }
 pretty_assertions = { workspace = true }
+tokio-shared-rt = { workspace = true }

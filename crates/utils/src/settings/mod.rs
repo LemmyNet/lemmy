@@ -87,15 +87,32 @@ impl Settings {
       .ok_or_else(|| anyhow!("images_disabled").into())
   }
 
+  pub fn get_lemmy_connection_options(&self) -> Vec<(String, String)> {
+    Vec::from([(
+      "lemmy.protocol_and_hostname".to_string(),
+      self.get_protocol_and_hostname().clone(),
+    )])
+  }
+
+  pub fn get_all_connection_options(&self) -> Vec<(String, String)> {
+    let mut options = CONNECTION_OPTIONS
+      .iter()
+      .filter_map(|o| o.split_once('='))
+      .map(|(k, v)| (k.to_string(), v.to_string()))
+      .collect::<Vec<_>>();
+    options.extend(self.get_lemmy_connection_options());
+    options
+  }
+
   /// Sets a few additional config options necessary for starting lemmy
   pub fn get_database_url_with_options(&self) -> LemmyResult<String> {
     let mut url = Url::parse(&self.get_database_url())?;
 
-    // Set `lemmy.protocol_and_hostname` so triggers can use it
-    let lemmy_protocol_and_hostname_option =
-      "lemmy.protocol_and_hostname=".to_owned() + &self.get_protocol_and_hostname();
-    let mut options = CONNECTION_OPTIONS.to_vec();
-    options.push(&lemmy_protocol_and_hostname_option);
+    let options = self
+      .get_all_connection_options()
+      .into_iter()
+      .map(|(k, v)| format!("{k}={v}"))
+      .collect::<Vec<String>>();
 
     // Create the connection uri portion
     let options_segments = options
@@ -109,6 +126,26 @@ impl Settings {
 
     url.set_query(Some(&format!("options={options_segments}")));
     Ok(url.into())
+  }
+
+  /// Extracts the username, password, and Unix socket path from the configured database URL
+  #[expect(clippy::expect_used)]
+  pub fn get_database_unix_socket_parts(&self) -> (String, Option<String>, String) {
+    let url = Url::parse(&self.get_database_url()).expect("parse database url");
+
+    let username = url.username().to_owned();
+    let password = url.password().map(str::to_owned);
+
+    let socket_path = url
+      .host_str()
+      .map(|h| {
+        urlencoding::decode(h)
+          .expect("decode unix socket path")
+          .into_owned()
+      })
+      .expect("database url must specify a unix socket host");
+
+    (username, password, socket_path)
   }
 }
 #[expect(clippy::expect_used)]

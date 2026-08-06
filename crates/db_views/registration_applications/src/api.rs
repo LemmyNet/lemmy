@@ -65,8 +65,8 @@ pub struct Register {
   pub token: Option<String>,
 }
 
-#[derive(Serialize, Deserialize)]
-#[cfg_attr(feature = "plugins", derive(ToBytes,))]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "plugins", derive(ToBytes))]
 #[cfg_attr(feature = "plugins", encoding(Json))]
 pub struct CaptchaAnswer {
   pub answer: String,

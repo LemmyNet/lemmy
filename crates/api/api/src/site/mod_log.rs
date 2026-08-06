@@ -72,7 +72,6 @@ mod tests {
   use lemmy_diesel_utils::{connection::DbPool, traits::Crud};
   use lemmy_utils::error::LemmyErrorType;
   use pretty_assertions::assert_eq;
-  use serial_test::serial;
 
   struct Data {
     instance: Instance,
@@ -93,8 +92,7 @@ mod tests {
       local_site,
     })
   }
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared)]
   async fn test_mod_remove_or_restore_data() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();
@@ -394,8 +392,7 @@ mod tests {
 
   /// Verifies that remove_or_restore_user_data sets bulk_action_parent_id on all child entries
   /// when a real parent ModlogId is provided
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared)]
   async fn test_bulk_parent_id_propagated() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();

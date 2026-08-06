@@ -69,4 +69,4 @@ ts-rs = { workspace = true, optional = true }
 
 [dev-dependencies]
 pretty_assertions.workspace = true
-serial_test.workspace = true
+tokio-shared-rt = { workspace = true }
