@@ -290,7 +290,7 @@ impl Object for ApubPost {
 
     let orig_post = Post::read_from_apub_id(&mut context.pool(), page.id.clone().into()).await;
     let mut form = PostInsertForm {
-      url: Some(url.map(Into::into)),
+      url: url.map(Into::into),
       body,
       alt_text,
       published_at: page.published,
