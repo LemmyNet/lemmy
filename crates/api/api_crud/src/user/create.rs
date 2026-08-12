@@ -350,12 +350,9 @@ pub async fn authenticate_with_oauth(
     check_registration_application(&user_view, &site_view.local_site, pool).await?;
     local_user
   } else {
-    // user has never previously registered using oauth
-
-    // prevent registration if registration is closed
-    if local_site.registration_mode == RegistrationMode::Closed {
-      return Err(LemmyErrorType::RegistrationClosed.into());
-    }
+    // User has never previously registered using oauth
+    // Intentionally don't check for `local_site.registration_mode == RegistrationMode::Closed`
+    // because login with new oauth accounts should always be possible.
 
     // prevent registration if registration is closed for OAUTH providers
     if !local_site.oauth_registration {
