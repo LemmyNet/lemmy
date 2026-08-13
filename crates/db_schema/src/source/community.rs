@@ -94,6 +94,9 @@ pub struct Community {
   pub report_count: i16,
   pub unresolved_report_count: i16,
   pub local_removed: bool,
+  /// If set, requests for this (local, empty) community redirect to this URL instead,
+  /// pointing users to the canonical/remote community.
+  pub redirect_url: Option<DbUrl>,
 }
 
 #[derive(Debug, Clone, derive_new::new)]
@@ -145,6 +148,8 @@ pub struct CommunityInsertForm {
   pub summary: Option<String>,
   #[new(default)]
   pub local_removed: Option<bool>,
+  #[new(default)]
+  pub redirect_url: Option<DbUrl>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -173,6 +178,7 @@ pub struct CommunityUpdateForm {
   pub visibility: Option<CommunityVisibility>,
   pub summary: Option<Option<String>>,
   pub local_removed: Option<bool>,
+  pub redirect_url: Option<Option<DbUrl>>,
 }
 
 #[skip_serializing_none]
