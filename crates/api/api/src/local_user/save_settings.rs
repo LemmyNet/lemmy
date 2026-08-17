@@ -123,6 +123,7 @@ pub async fn save_user_settings(
   };
 
   let default_comment_sort_type = data.default_comment_sort_type;
+  let default_post_notifications_mode = data.default_post_notifications_mode;
 
   let person_form = PersonUpdateForm {
     display_name,
@@ -186,6 +187,7 @@ pub async fn save_user_settings(
     show_downvotes: data.show_downvotes,
     show_upvote_percentage: data.show_upvote_percentage,
     show_person_votes: data.show_person_votes,
+    default_post_notifications_mode,
     ..Default::default()
   };
 
