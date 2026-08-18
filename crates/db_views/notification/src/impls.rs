@@ -15,12 +15,15 @@ use lemmy_db_schema::{
     notification::{Notification, notification_keys},
     person::Person,
   },
-  utils::{limit_fetch, queries::filters::filter_blocked},
+  utils::{
+    limit_fetch,
+    queries::filters::{filter_blocked, filter_private_or_followed},
+  },
 };
 use lemmy_db_schema_file::{
   PersonId,
   enums::NotificationType,
-  schema::{comment, modlog, notification, person, post, private_message},
+  schema::{comment, community, modlog, notification, person, post, private_message},
 };
 use lemmy_db_views_modlog::ModlogView;
 use lemmy_db_views_notification_sql::notification_joins;
@@ -56,6 +59,7 @@ impl NotificationView {
       // Filter unreads
       .filter(unread_filter)
       .filter(filter_deleted_and_removed(my_person.id))
+      .filter(community::id.is_null().or(filter_private_or_followed()))
       // Don't count replies from blocked users
       .filter(filter_blocked())
       .select(count(notification::id))
@@ -136,6 +140,7 @@ impl NotificationQuery {
         // Dont show replies from blocked users or instances
         .filter(filter_blocked())
         .filter(filter_deleted_and_removed(my_person.id))
+        .filter(community::id.is_null().or(filter_private_or_followed()))
         .limit(limit)
         .select(NotificationViewInternal::as_select())
         .into_boxed();
