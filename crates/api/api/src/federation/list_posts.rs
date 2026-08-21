@@ -12,10 +12,8 @@ use crate::federation::{
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
-use lemmy_db_schema::{
-  newtypes::PostId,
-  source::{keyword_block::LocalUserKeywordBlock, post::PostActions},
-};
+use lemmy_db_schema::source::{keyword_block::LocalUserKeywordBlock, post::PostActions};
+use lemmy_db_schema_file::newtypes::PostId;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::{PostView, api::GetPosts, impls::PostQuery};
 use lemmy_db_views_site::SiteView;

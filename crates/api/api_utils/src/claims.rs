@@ -2,10 +2,8 @@ use crate::context::LemmyContext;
 use actix_web::{HttpRequest, http::header::USER_AGENT};
 use chrono::{DateTime, Duration, Utc};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
-use lemmy_db_schema::{
-  newtypes::LocalUserId,
-  source::login_token::{LoginToken, LoginTokenCreateForm},
-};
+use lemmy_db_schema::source::login_token::{LoginToken, LoginTokenCreateForm};
+use lemmy_db_schema_file::newtypes::LocalUserId;
 use lemmy_diesel_utils::sensitive::SensitiveString;
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use serde::{Deserialize, Serialize};

@@ -1,15 +1,12 @@
-use crate::{
-  newtypes::OAuthProviderId,
-  source::oauth_provider::{
-    AdminOAuthProvider,
-    OAuthProviderInsertForm,
-    OAuthProviderUpdateForm,
-    PublicOAuthProvider,
-  },
+use crate::source::oauth_provider::{
+  AdminOAuthProvider,
+  OAuthProviderInsertForm,
+  OAuthProviderUpdateForm,
+  PublicOAuthProvider,
 };
 use diesel::{QueryDsl, dsl::insert_into};
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::oauth_provider;
+use lemmy_db_schema_file::{newtypes::OAuthProviderId, schema::oauth_provider};
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   traits::Crud,

@@ -3,7 +3,6 @@ use diesel::{BoolExpressionMethods, ExpressionMethods, JoinOnDsl, QueryDsl, Sele
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  newtypes::{CommentId, PostId},
   source::{comment::CommentActions, post::PostActions},
   utils::limit_fetch,
 };
@@ -12,6 +11,7 @@ use lemmy_db_schema_file::{
   PersonId,
   aliases::creator_community_actions,
   joins::{creator_home_instance_actions_join, creator_local_instance_actions_join},
+  newtypes::{CommentId, PostId},
   schema::{comment, comment_actions, community_actions, person, post, post_actions},
 };
 use lemmy_diesel_utils::{

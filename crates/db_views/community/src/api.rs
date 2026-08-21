@@ -3,12 +3,12 @@ use lemmy_db_schema::{
   CommunitySortType,
   MultiCommunityListingType,
   MultiCommunitySortType,
-  newtypes::{CommunityId, CommunityTagId, LanguageId, MultiCommunityId},
   source::site::Site,
 };
 use lemmy_db_schema_file::{
   PersonId,
   enums::{CommunityNotificationsMode, CommunityVisibility, ListingType, TagColor},
+  newtypes::{CommunityId, CommunityTagId, LanguageId, MultiCommunityId},
 };
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_diesel_utils::pagination::PaginationCursor;

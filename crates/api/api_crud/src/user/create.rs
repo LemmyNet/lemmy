@@ -24,7 +24,6 @@ use lemmy_api_utils::{
 };
 use lemmy_apub_objects::objects::community::ApubCommunity;
 use lemmy_db_schema::{
-  newtypes::OAuthProviderId,
   source::{
     actor_language::SiteLanguage,
     community::{Community, CommunityActions, CommunityInsertForm, CommunityModeratorForm},
@@ -40,7 +39,7 @@ use lemmy_db_schema::{
   },
   traits::{ApubActor, Likeable},
 };
-use lemmy_db_schema_file::enums::RegistrationMode;
+use lemmy_db_schema_file::{enums::RegistrationMode, newtypes::OAuthProviderId};
 use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;

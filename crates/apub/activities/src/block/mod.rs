@@ -6,10 +6,14 @@ use lemmy_apub_objects::{
   objects::{community::ApubCommunity, instance::ApubSite},
   utils::functions::generate_to,
 };
-use lemmy_db_schema::{
-  newtypes::CommunityId,
-  source::{comment::Comment, community::Community, person::Person, post::Post, site::Site},
+use lemmy_db_schema::source::{
+  comment::Comment,
+  community::Community,
+  person::Person,
+  post::Post,
+  site::Site,
 };
+use lemmy_db_schema_file::newtypes::CommunityId;
 use lemmy_db_views_community::api::BanFromCommunity;
 use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::{connection::DbPool, traits::Crud};

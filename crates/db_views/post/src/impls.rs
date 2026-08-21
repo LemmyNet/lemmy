@@ -18,7 +18,6 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::{SortDirection, asc_if};
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommunityId, CommunityTagId, MultiCommunityId, PostId},
   source::{
     actor_language::LocalUserLanguage,
     community::CommunityActions,
@@ -52,6 +51,7 @@ use lemmy_db_schema_file::{
     my_person_actions_join,
     my_post_actions_join,
   },
+  newtypes::{CommunityId, CommunityTagId, MultiCommunityId, PostId},
   schema::{community, person, post, post_actions, post_community_tag},
 };
 use lemmy_diesel_utils::{

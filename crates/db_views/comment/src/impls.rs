@@ -12,7 +12,6 @@ use diesel_ltree::{Ltree, LtreeExtensions, nlevel};
 use i_love_jesus::asc_if;
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommentId, CommunityId, PostId},
   source::{
     actor_language::LocalUserLanguage,
     comment::{Comment, comment_keys as key},
@@ -53,6 +52,7 @@ use lemmy_db_schema_file::{
     my_local_user_admin_join,
     my_person_actions_join,
   },
+  newtypes::{CommentId, CommunityId, PostId},
   schema::{comment, community, person, post},
 };
 use lemmy_diesel_utils::{
@@ -372,7 +372,6 @@ mod tests {
   use lemmy_db_schema::{
     assert_length,
     impls::actor_language::UNDETERMINED_ID,
-    newtypes::CommentId,
     source::{
       actor_language::LocalUserLanguage,
       comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm, CommentUpdateForm},
@@ -396,7 +395,7 @@ mod tests {
     test_data::TestData,
     traits::{Bannable, Blockable, Followable, Likeable},
   };
-  use lemmy_db_schema_file::enums::CommunityFollowerState;
+  use lemmy_db_schema_file::{enums::CommunityFollowerState, newtypes::CommentId};
   use lemmy_db_views_local_user::LocalUserView;
   use lemmy_diesel_utils::{
     connection::{DbPool, build_db_pool_for_tests},
