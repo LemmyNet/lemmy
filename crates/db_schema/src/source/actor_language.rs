@@ -1,4 +1,4 @@
-use crate::newtypes::{CommunityId, LanguageId, LocalUserId, SiteId};
+use lemmy_db_schema_file::newtypes::{CommunityId, LanguageId, LocalUserId, SiteId};
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::local_user_language;
 use serde::{Deserialize, Serialize};

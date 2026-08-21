@@ -1,5 +1,4 @@
 use crate::{
-  newtypes::{CommunityId, PostId},
   source::post::{
     Post,
     PostActions,
@@ -32,6 +31,7 @@ use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
   enums::PostNotificationsMode,
+  newtypes::{CommunityId, PostId},
   schema::{community, local_user, person, post, post_actions},
 };
 use lemmy_diesel_utils::{

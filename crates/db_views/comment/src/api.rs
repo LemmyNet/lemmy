@@ -1,8 +1,8 @@
 use crate::CommentView;
-use lemmy_db_schema::newtypes::{CommentId, CommunityId, LanguageId, PostId};
 use lemmy_db_schema_file::{
   PersonId,
   enums::{CommentSortType, ListingType},
+  newtypes::{CommentId, CommunityId, LanguageId, PostId},
 };
 use lemmy_diesel_utils::pagination::PaginationCursor;
 use serde::{Deserialize, Serialize};

@@ -1,12 +1,11 @@
 use crate::{
-  newtypes::TaglineId,
   source::tagline::{Tagline, TaglineInsertForm, TaglineUpdateForm, tagline_keys as key},
   utils::limit_fetch,
 };
 use diesel::{QueryDsl, insert_into};
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
-use lemmy_db_schema_file::schema::tagline;
+use lemmy_db_schema_file::{newtypes::TaglineId, schema::tagline};
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   pagination::{

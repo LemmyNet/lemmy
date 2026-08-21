@@ -1,4 +1,4 @@
-use lemmy_db_schema_file::{CommunityId, PersonId};
+use lemmy_db_schema_file::{PersonId, newtypes::CommunityId};
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_diesel_utils::connection::DbPool;

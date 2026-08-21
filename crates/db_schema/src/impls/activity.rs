@@ -1,10 +1,10 @@
 use crate::{
   diesel::OptionalExtension,
-  newtypes::ActivityId,
   source::activity::{ReceivedActivity, SentActivity, SentActivityForm},
 };
 use diesel::{ExpressionMethods, QueryDsl, dsl::insert_into};
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema_file::newtypes::ActivityId;
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   dburl::DbUrl,

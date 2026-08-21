@@ -1,5 +1,4 @@
 use crate::{
-  newtypes::{CommentId, CommentReportId, PostId},
   source::comment_report::{CommentReport, CommentReportForm, UpdateCommentReportForm},
   traits::Reportable,
 };
@@ -15,6 +14,7 @@ use diesel_async::RunQueryDsl;
 use diesel_ltree::{Ltree, LtreeExtensions};
 use lemmy_db_schema_file::{
   PersonId,
+  newtypes::{CommentId, CommentReportId, PostId},
   schema::{comment, comment_report},
 };
 use lemmy_diesel_utils::connection::{DbPool, get_conn};

@@ -1,10 +1,12 @@
-use crate::newtypes::{CommunityId, CommunityTagId, PostId};
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use diesel::{AsExpression, FromSqlRow, sql_types::Nullable};
-use lemmy_db_schema_file::enums::TagColor;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::{community_tag, post_community_tag};
+use lemmy_db_schema_file::{
+  enums::TagColor,
+  newtypes::{CommunityId, CommunityTagId, PostId},
+};
 use lemmy_diesel_utils::dburl::DbUrl;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;

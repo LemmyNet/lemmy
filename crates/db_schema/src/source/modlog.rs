@@ -1,10 +1,14 @@
-use crate::newtypes::{CommentId, CommunityId, ModlogId, PostId};
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::modlog;
-use lemmy_db_schema_file::{InstanceId, PersonId, enums::ModlogKind};
+use lemmy_db_schema_file::{
+  InstanceId,
+  PersonId,
+  enums::ModlogKind,
+  newtypes::{CommentId, CommunityId, ModlogId, PostId},
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]

@@ -1,5 +1,4 @@
 use crate::{
-  newtypes::{CommunityId, CommunityReportId},
   source::community_report::{CommunityReport, CommunityReportForm, UpdateCommunityReportForm},
   traits::Reportable,
 };
@@ -11,7 +10,11 @@ use diesel::{
   dsl::{insert_into, update},
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::{PersonId, schema::community_report};
+use lemmy_db_schema_file::{
+  PersonId,
+  newtypes::{CommunityId, CommunityReportId},
+  schema::community_report,
+};
 use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 

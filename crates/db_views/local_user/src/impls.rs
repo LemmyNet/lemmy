@@ -11,7 +11,6 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::asc_if;
 use lemmy_db_schema::{
   LocalUserSortType,
-  newtypes::{LocalUserId, OAuthProviderId},
   source::{
     instance::Instance,
     local_user::{LocalUser, LocalUserInsertForm},
@@ -22,6 +21,7 @@ use lemmy_db_schema_file::{
   PersonId,
   aliases::creator_home_instance_actions,
   joins::creator_home_instance_actions_join,
+  newtypes::{LocalUserId, OAuthProviderId},
   schema::{instance_actions, local_user, oauth_account, person},
 };
 use lemmy_diesel_utils::{
