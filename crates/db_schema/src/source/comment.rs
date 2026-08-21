@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use lemmy_db_schema_file::{
   PersonId,
-  newtypes::{CommentId, CommunityId, LanguageId, LtreeDef, PostId},
+  newtypes::{CommentId, CommunityId, LanguageId, PostId},
 };
 use lemmy_diesel_utils::dburl::DbUrl;
 use serde::{Deserialize, Serialize};
@@ -10,6 +10,7 @@ use serde_with::skip_serializing_none;
 use {
   diesel_ltree::Ltree,
   i_love_jesus::CursorKeysModule,
+  lemmy_db_schema_file::newtypes::LtreeDef,
   lemmy_db_schema_file::schema::{comment, comment_actions},
 };
 
