@@ -75,51 +75,25 @@ use webmention::{Webmention, WebmentionError};
 
 pub const AUTH_COOKIE_NAME: &str = "jwt";
 
-pub async fn check_is_mod_or_admin(
-  pool: &mut DbPool<'_>,
-  person_id: PersonId,
-  community_id: CommunityId,
-) -> LemmyResult<()> {
-  let is_mod = CommunityModeratorView::check_is_community_moderator(pool, community_id, person_id)
-    .await
-    .is_ok();
-  let is_admin = LocalUserView::read_person(pool, person_id)
-    .await
-    .is_ok_and(|t| t.local_user.admin);
-
-  if is_mod || is_admin {
-    Ok(())
-  } else {
-    Err(LemmyErrorType::NotAModOrAdmin.into())
-  }
-}
-
-/// Checks if a person is an admin, or moderator of any community.
-pub(crate) async fn check_is_mod_of_any_or_admin(
-  pool: &mut DbPool<'_>,
-  person_id: PersonId,
-) -> LemmyResult<()> {
-  let is_mod_of_any = CommunityModeratorView::is_community_moderator_of_any(pool, person_id)
-    .await
-    .is_ok();
-  let is_admin = LocalUserView::read_person(pool, person_id)
-    .await
-    .is_ok_and(|t| t.local_user.admin);
-
-  if is_mod_of_any || is_admin {
-    Ok(())
-  } else {
-    Err(LemmyErrorType::NotAModOrAdmin.into())
-  }
-}
-
 pub async fn is_mod_or_admin(
   pool: &mut DbPool<'_>,
   local_user_view: &LocalUserView,
   community_id: CommunityId,
 ) -> LemmyResult<()> {
-  check_local_user_valid(local_user_view)?;
-  check_is_mod_or_admin(pool, local_user_view.person.id, community_id).await
+  check_local_user_banned_or_deleted(local_user_view)?;
+  let is_mod = CommunityModeratorView::check_is_community_moderator(
+    pool,
+    community_id,
+    local_user_view.person.id,
+  )
+  .await
+  .is_ok();
+
+  if is_mod || local_user_view.local_user.admin {
+    Ok(())
+  } else {
+    Err(LemmyErrorType::NotAModOrAdmin.into())
+  }
 }
 
 pub async fn is_mod_or_admin_opt(
@@ -147,12 +121,20 @@ pub async fn check_community_mod_of_any_or_admin_action(
 ) -> LemmyResult<()> {
   let person = &local_user_view.person;
 
-  check_local_user_valid(local_user_view)?;
-  check_is_mod_of_any_or_admin(pool, person.id).await
+  check_local_user_banned_or_deleted(local_user_view)?;
+  let is_mod_of_any = CommunityModeratorView::is_community_moderator_of_any(pool, person.id)
+    .await
+    .is_ok();
+
+  if is_mod_of_any || local_user_view.local_user.admin {
+    Ok(())
+  } else {
+    Err(LemmyErrorType::NotAModOrAdmin.into())
+  }
 }
 
 pub fn is_admin(local_user_view: &LocalUserView) -> LemmyResult<()> {
-  check_local_user_valid(local_user_view)?;
+  check_local_user_banned_or_deleted(local_user_view)?;
   if !local_user_view.local_user.admin {
     Err(LemmyErrorType::NotAnAdmin.into())
   } else {
@@ -164,7 +146,7 @@ pub fn is_top_mod(
   local_user_view: &LocalUserView,
   community_mods: &[CommunityModeratorView],
 ) -> LemmyResult<()> {
-  check_local_user_valid(local_user_view)?;
+  check_local_user_banned_or_deleted(local_user_view)?;
   if local_user_view.person.id
     != community_mods
       .first()
@@ -190,7 +172,7 @@ pub async fn update_read_comments(
   Ok(())
 }
 
-pub fn check_local_user_valid(local_user_view: &LocalUserView) -> LemmyResult<()> {
+pub fn check_local_user_banned_or_deleted(local_user_view: &LocalUserView) -> LemmyResult<()> {
   // Check for a site ban
   if local_user_view.banned {
     return Err(LemmyErrorType::SiteBan.into());
@@ -256,7 +238,7 @@ pub async fn check_community_user_action(
   community: &Community,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
-  check_local_user_valid(local_user_view)?;
+  check_local_user_banned_or_deleted(local_user_view)?;
   check_community_deleted_removed(community)?;
   CommunityPersonBanView::check(pool, local_user_view.person.id, community.id).await?;
   PendingFollowerView::check_private_community_action(pool, local_user_view.person.id, community)
@@ -282,8 +264,12 @@ pub async fn check_community_mod_action(
   allow_deleted: bool,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
+  check_local_user_banned_or_deleted(local_user_view)?;
   is_mod_or_admin(pool, local_user_view, community.id).await?;
-  CommunityPersonBanView::check(pool, local_user_view.person.id, community.id).await?;
+  if !local_user_view.local_user.admin {
+    CommunityPersonBanView::check(pool, local_user_view.person.id, community.id).await?;
+    InstanceActions::check_ban(pool, local_user_view.person.id, community.instance_id).await?;
+  }
 
   // it must be possible to restore deleted community
   if !allow_deleted {

@@ -7,6 +7,7 @@ pub mod person;
 pub mod post;
 pub mod private_message;
 
+use crate::objects::private_message::ApubPrivateMessage;
 use comment::ApubComment;
 use community::ApubCommunity;
 use either::Either;
@@ -21,7 +22,7 @@ pub type PostOrComment = Either<ApubPost, ApubComment>;
 
 pub type SearchableObjects = Either<Either<PostOrComment, UserOrCommunity>, ApubMultiCommunity>;
 
-pub type ReportableObjects = Either<PostOrComment, ApubCommunity>;
+pub type ReportableObjects = Either<PostOrComment, Either<ApubCommunity, ApubPrivateMessage>>;
 
 pub type UserOrCommunity = Either<ApubPerson, ApubCommunity>;
 

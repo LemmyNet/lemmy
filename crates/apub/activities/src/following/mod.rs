@@ -14,7 +14,7 @@ use lemmy_db_schema::{
   source::{activity::ActivitySendTargets, community::Community, person::Person},
 };
 use lemmy_db_schema_file::PersonId;
-use lemmy_diesel_utils::traits::Crud;
+use lemmy_diesel_utils::{dburl::DbUrl, traits::Crud};
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use serde::Serialize;
 
@@ -40,18 +40,23 @@ pub async fn send_follow(
 pub async fn send_accept_or_reject_follow(
   community_id: CommunityId,
   person_id: PersonId,
+  follow_activity_id: Option<DbUrl>,
   accepted: bool,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let community = Community::read(&mut context.pool(), community_id).await?;
   let person = Person::read(&mut context.pool(), person_id).await?;
 
+  // This fallback should never be needed as we always store `community_actions.follow_activity_id`.
+  // But it needs to be an option so the type system thinks it can be missing
+  let fallback_id = generate_activity_id(FollowType::Follow, context)?;
+
   let follow = Follow {
     actor: person.ap_id.into(),
     to: Some([community.ap_id.clone().into()]),
     object: community.ap_id.into(),
     kind: FollowType::Follow,
-    id: generate_activity_id(FollowType::Follow, context)?,
+    id: follow_activity_id.map(Into::into).unwrap_or(fallback_id),
   };
   if accepted {
     AcceptFollow::send(follow, context).await

@@ -1,5 +1,6 @@
 #[cfg(feature = "full")]
 use diesel_ltree::Ltree;
+pub use lemmy_db_schema_file::CommunityId;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
@@ -29,17 +30,17 @@ impl fmt::Display for CommentId {
   }
 }
 
-pub enum PostOrCommentId {
-  Post(PostId),
-  Comment(CommentId),
-}
-
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Default, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(DieselNewType))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// The community id.
-pub struct CommunityId(pub i32);
+/// The invitation id.
+pub struct InvitationId(pub i32);
+
+pub enum PostOrCommentId {
+  Post(PostId),
+  Comment(CommentId),
+}
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Default, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(DieselNewType))]
@@ -122,14 +123,14 @@ pub struct ActivityId(pub i64);
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// The local site id.
-pub struct LocalSiteId(i32);
+pub struct LocalSiteId(pub i32);
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(DieselNewType))]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// The custom emoji id.
-pub struct CustomEmojiId(i32);
+pub struct CustomEmojiId(pub i32);
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(DieselNewType))]
@@ -161,27 +162,27 @@ pub struct LtreeDef(pub String);
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(DieselNewType))]
 /// The report combined id
-pub struct ReportCombinedId(i32);
+pub struct ReportCombinedId(pub i32);
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(DieselNewType))]
 /// The person content combined id
-pub struct PersonContentCombinedId(i32);
+pub struct PersonContentCombinedId(pub i32);
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(DieselNewType))]
 /// The person saved combined id
-pub struct PersonSavedCombinedId(i32);
+pub struct PersonSavedCombinedId(pub i32);
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(DieselNewType))]
 /// The person liked combined id
-pub struct PersonLikedCombinedId(i32);
+pub struct PersonLikedCombinedId(pub i32);
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(DieselNewType))]
 /// The search combined id
-pub struct SearchCombinedId(i32);
+pub struct SearchCombinedId(pub i32);
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(DieselNewType))]

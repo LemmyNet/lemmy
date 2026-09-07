@@ -37,6 +37,7 @@ pub struct Modlog {
   pub expires_at: Option<DateTime<Utc>>,
   pub published_at: DateTime<Utc>,
   pub bulk_action_parent_id: Option<ModlogId>,
+  pub child_count: i32,
 }
 
 #[derive(derive_new::new)]

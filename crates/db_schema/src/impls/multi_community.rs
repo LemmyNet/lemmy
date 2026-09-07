@@ -387,12 +387,7 @@ mod tests {
     let form = PersonInsertForm::test_form(instance.id, "bobby");
     let person = Person::create(pool, &form).await?;
 
-    let form = CommunityInsertForm::new(
-      instance.id,
-      "TIL".into(),
-      "nada".to_owned(),
-      "pubkey".to_string(),
-    );
+    let form = CommunityInsertForm::new(instance.id, "TIL".into(), "pubkey".to_string());
     let community = Community::create(pool, &form).await?;
 
     let form =

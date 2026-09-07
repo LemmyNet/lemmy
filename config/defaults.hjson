@@ -33,9 +33,11 @@
     admin_username: "admin"
     # Password for the admin user. It must be between 10 and 60 characters.
     admin_password: "tf6HHDS4RolWfFhk4Rq9"
-    # Name of the site, can be changed later. Maximum 20 characters.
+    # Name of the site, can be changed later. Maximum 20 characters. Only used if `admin_username`
+    # and `admin_password` are set.
     site_name: "My Lemmy Instance"
-    # Email for the admin user (optional, can be omitted and set later through the website)
+    # Email for the admin user (optional, can be omitted and set later through the website). Only
+    # used if `admin_username` and `admin_password` are set.
     admin_email: "user@example.com"
     # On first start Lemmy fetches the 50 most active communities from one of these instances,
     # to provide some initial data. It tries the first list entry, and if it fails uses subsequent

@@ -2,6 +2,7 @@ use super::protocol::Source;
 use crate::{
   objects::{community::ApubCommunity, instance::ApubSite, person::ApubPerson},
   protocol::{group::Group, page::Attachment},
+  utils::check_is_mod_or_admin,
 };
 use activitypub_federation::{
   config::Data,
@@ -10,8 +11,7 @@ use activitypub_federation::{
   protocol::values::MediaTypeMarkdownOrHtml,
 };
 use either::Either;
-use html2md::parse_html;
-use lemmy_api_utils::{context::LemmyContext, utils::check_is_mod_or_admin};
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::source::{
   community::Community,
   instance::{Instance, InstanceActions},
@@ -43,7 +43,10 @@ pub fn read_from_string_or_source(
     content.to_string()
   } else {
     // otherwise, convert content html to markdown
-    parse_html(content)
+    html_to_markdown_rs::convert(content, None)
+      .unwrap_or_default()
+      .content
+      .unwrap_or_default()
   }
 }
 
@@ -299,8 +302,8 @@ pub async fn verify_mod_action(
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   // Mod action comes from the same instance as the community, or same instance as the object
-  // creator. Presumably it was done by an instance admin so we accept it.
-  // TODO: federate instance admin status and check it here
+  // creator. We trust that the origin instance performed necessary permission checks.
+  // https://codeberg.org/fediverse/fep/src/branch/main/fep/fe34/fep-fe34.md
   if mod_id.inner().domain() == community.ap_id.domain()
     || mod_id.inner().domain() == object_id.domain()
   {

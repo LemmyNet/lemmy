@@ -1,6 +1,5 @@
 use crate::{
   activity_lists::AnnouncableActivities,
-  check_community_deleted_or_removed,
   community::send_activity_in_community,
   protocol::deletion::{delete::Delete, undo_delete::UndoDelete},
   send_lemmy_activity,
@@ -16,7 +15,7 @@ use activitypub_federation::{
 use lemmy_api_utils::{
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
-  utils::purge_user_account,
+  utils::{check_community_deleted_removed, purge_user_account},
 };
 use lemmy_apub_objects::{
   objects::{
@@ -48,7 +47,7 @@ use lemmy_db_schema::source::{
 use lemmy_db_schema_file::enums::CommunityVisibility;
 use lemmy_db_views_site::{SiteView, api::DeleteUserForm};
 use lemmy_diesel_utils::traits::Crud;
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::{error::LemmyResult, spawn_try_task};
 use std::ops::Deref;
 use url::Url;
 
@@ -274,7 +273,7 @@ async fn verify_delete_post_or_comment(
   is_mod_action: bool,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
-  check_community_deleted_or_removed(community)?;
+  check_community_deleted_removed(community)?;
   if is_mod_action {
     verify_mod_action(actor, object_id, community, context).await?;
   } else {
@@ -322,7 +321,10 @@ async fn receive_delete_action(
       };
       form = plugin_hook_before("federated_user_before_delete", form).await?;
       if form.delete_content {
-        purge_user_account(person.id, local_instance_id, context).await?;
+        let context = context.clone();
+        spawn_try_task(
+          async move { purge_user_account(person.id, local_instance_id, &context).await },
+        );
       } else {
         Person::delete_account(&mut context.pool(), person.id, local_instance_id).await?;
       }

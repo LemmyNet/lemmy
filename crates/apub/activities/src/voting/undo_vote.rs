@@ -1,7 +1,9 @@
 use crate::{
-  check_community_deleted_or_removed,
   generate_activity_id,
-  protocol::voting::{undo_vote::UndoVote, vote::Vote},
+  protocol::{
+    IdOrNestedObject,
+    voting::{undo_vote::UndoVote, vote::Vote},
+  },
   voting::{undo_vote_comment, undo_vote_post},
 };
 use activitypub_federation::{
@@ -10,7 +12,7 @@ use activitypub_federation::{
   protocol::verification::verify_urls_match,
   traits::{Activity, Object},
 };
-use lemmy_api_utils::context::LemmyContext;
+use lemmy_api_utils::{context::LemmyContext, utils::check_community_deleted_removed};
 use lemmy_apub_objects::{
   objects::{PostOrComment, community::ApubCommunity, person::ApubPerson},
   utils::{functions::verify_person_in_community, protocol::InCommunity},
@@ -27,7 +29,7 @@ impl UndoVote {
   ) -> LemmyResult<Self> {
     Ok(UndoVote {
       actor: actor.id().clone().into(),
-      object: vote,
+      object: IdOrNestedObject::NestedObject(vote),
       kind: UndoType::Undo,
       id: generate_activity_id(UndoType::Undo, context)?,
       audience: Some(community.ap_id.clone().into()),
@@ -49,17 +51,19 @@ impl Activity for UndoVote {
   }
 
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
-    let community = self.object.community(context).await?;
-    check_community_deleted_or_removed(&community)?;
+    let object = self.object.dereference(context).await?;
+    let community = object.community(context).await?;
+    check_community_deleted_removed(&community)?;
     verify_person_in_community(&self.actor, &community, context).await?;
-    verify_urls_match(self.actor.inner(), self.object.actor.inner())?;
-    self.object.verify(context).await?;
+    verify_urls_match(self.actor.inner(), object.actor.inner())?;
+    object.verify(context).await?;
     Ok(())
   }
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     let actor = self.actor.dereference(context).await?;
-    let object = self.object.object.dereference(context).await?;
+    let object = self.object.dereference(context).await?;
+    let object = object.object.dereference(context).await?;
     match object {
       PostOrComment::Left(p) => undo_vote_post(actor, &p, context).await,
       PostOrComment::Right(c) => undo_vote_comment(actor, &c, context).await,

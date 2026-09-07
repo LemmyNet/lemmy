@@ -127,6 +127,7 @@ use lemmy_api_crud::{
     list::list_custom_emojis,
     update::edit_custom_emoji,
   },
+  invite::{create::create_invitation, list::list_invitations, revoke::revoke_invitation},
   multi_community::{
     create::create_multi_community,
     create_entry::create_multi_community_entry,
@@ -265,7 +266,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
       // Post
       .service(
         resource("/post")
-          // Handle POST to /post separately to add the post() rate limitter
+          // Handle POST to /post separately to add the post() rate limiter
           .guard(guard::Post())
           .wrap(rate_limit.post())
           .route(post().to(create_post)),
@@ -298,7 +299,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
       )
       // Comment
       .service(
-        // Handle POST to /comment separately to add the comment() rate limitter
+        // Handle POST to /comment separately to add the comment() rate limiter
         resource("/comment")
           .guard(guard::Post())
           .wrap(rate_limit.comment())
@@ -408,6 +409,12 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
             resource("/data/export")
               .wrap(rate_limit.import_user_settings())
               .route(get().to(export_user_data)),
+          )
+          .service(
+            scope("/invite")
+              .route("", post().to(create_invitation))
+              .route("", delete().to(revoke_invitation))
+              .route("/list", get().to(list_invitations)),
           ),
       )
       // Person / User actions

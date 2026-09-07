@@ -41,7 +41,6 @@ mod tests {
     source::{
       comment::{Comment, CommentInsertForm},
       community::{Community, CommunityInsertForm, CommunityUpdateForm},
-      instance::Instance,
       person::{Person, PersonInsertForm},
       post::{Post, PostInsertForm},
       site::Site,
@@ -75,7 +74,6 @@ mod tests {
     let new_community = CommunityInsertForm::new(
       data.instance.id,
       "TIL_site_agg".into(),
-      "nada".to_owned(),
       "pubkey".to_string(),
     );
 
@@ -135,7 +133,7 @@ mod tests {
     assert_eq!(1, site_aggregates_after_post_delete.local_posts);
     assert_eq!(0, site_aggregates_after_post_delete.local_comments);
 
-    // This shouuld delete all the associated rows, and fire triggers
+    // This should delete all the associated rows, and fire triggers
     let person_num_deleted = Person::delete(pool, inserted_person.id).await?;
     assert_eq!(1, person_num_deleted);
 
@@ -151,7 +149,7 @@ mod tests {
     let after_delete_site = read_local_site(pool).await;
     assert!(after_delete_site.is_err());
 
-    Instance::delete(pool, data.instance.id).await?;
+    data.delete(pool).await?;
 
     Ok(())
   }

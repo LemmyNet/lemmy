@@ -19,7 +19,8 @@ pub fn clean_urls_skip_code_links(src: &str) -> String {
   let ast = PARSER.parse(src);
 
   let mut code_offsets: Vec<(usize, usize)> = Vec::new();
-  //we need to exclude code fences (``` ``` and ~~~ ~~~) as well as bacticks inline code (` `) and code blocks (4 spaces)
+  //we need to exclude code fences (``` ``` and ~~~ ~~~) as well as bacticks inline code (` `) and
+  // code blocks (4 spaces)
   ast.walk(|node, _| {
     if (node.cast::<fence::CodeFence>().is_some()
       || node.cast::<code::CodeBlock>().is_some()

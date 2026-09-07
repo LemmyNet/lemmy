@@ -1,5 +1,5 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_utils::{context::LemmyContext, utils::check_local_user_valid};
+use lemmy_api_utils::{context::LemmyContext, utils::check_local_user_banned_or_deleted};
 use lemmy_db_schema::{
   source::post::{PostActions, PostSavedForm},
   traits::Saveable,
@@ -16,7 +16,7 @@ pub async fn save_post(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
-  check_local_user_valid(&local_user_view)?;
+  check_local_user_banned_or_deleted(&local_user_view)?;
   let post_saved_form = PostSavedForm::new(data.post_id, local_user_view.person.id);
 
   if data.save {

@@ -44,6 +44,7 @@ pub async fn setup_local_site(pool: &mut DbPool<'_>, settings: &Settings) -> Lem
     let domain = settings
       .get_hostname_without_port()
       .with_lemmy_type(LemmyErrorType::Unknown("must have domain".into()))?;
+    let mut site_setup = false;
 
     conn
       .run_transaction(|conn| {
@@ -51,9 +52,13 @@ pub async fn setup_local_site(pool: &mut DbPool<'_>, settings: &Settings) -> Lem
           // Upsert this to the instance table
           let instance = Instance::read_or_create(&mut conn.into(), &domain).await?;
 
-          if let Some(setup) = &settings.setup {
+          let setup = settings.setup.as_ref();
+          if let Some(setup) = setup
+            && let Some(admin_username) = &setup.admin_username
+            && let Some(admin_password) = &setup.admin_password
+          {
             let person_keypair = generate_actor_keypair()?;
-            let person_ap_id = Person::generate_local_actor_url(&setup.admin_username, settings)?;
+            let person_ap_id = Person::generate_local_actor_url(admin_username, settings)?;
 
             // Register the user if there's a site setup
             let person_form = PersonInsertForm {
@@ -61,7 +66,7 @@ pub async fn setup_local_site(pool: &mut DbPool<'_>, settings: &Settings) -> Lem
               inbox_url: Some(generate_inbox_url()?),
               private_key: Some(person_keypair.private_key),
               ..PersonInsertForm::new(
-                setup.admin_username.clone(),
+                admin_username.clone(),
                 person_keypair.public_key,
                 instance.id,
               )
@@ -71,9 +76,10 @@ pub async fn setup_local_site(pool: &mut DbPool<'_>, settings: &Settings) -> Lem
             let local_user_form = LocalUserInsertForm {
               email: setup.admin_email.clone(),
               admin: Some(true),
-              ..LocalUserInsertForm::new(person_inserted.id, Some(setup.admin_password.clone()))
+              ..LocalUserInsertForm::new(person_inserted.id, Some(admin_password.clone()))
             };
             LocalUser::create(&mut conn.into(), &local_user_form, vec![]).await?;
+            site_setup = true;
           };
 
           // Add an entry for the site table
@@ -83,7 +89,7 @@ pub async fn setup_local_site(pool: &mut DbPool<'_>, settings: &Settings) -> Lem
           let name = settings
             .setup
             .clone()
-            .map(|s| s.site_name)
+            .and_then(|s| s.site_name)
             .unwrap_or_else(|| "New Site".to_string());
           let site_form = SiteInsertForm {
             ap_id: Some(site_ap_id.clone().into()),
@@ -111,7 +117,7 @@ pub async fn setup_local_site(pool: &mut DbPool<'_>, settings: &Settings) -> Lem
 
           // Finally create the local_site row
           let local_site_form = LocalSiteInsertForm {
-            site_setup: Some(settings.setup.is_some()),
+            site_setup: Some(site_setup),
             ..LocalSiteInsertForm::new(site.id, system_account.id)
           };
           let local_site = LocalSite::create(&mut conn.into(), &local_site_form).await?;

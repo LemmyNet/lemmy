@@ -55,7 +55,7 @@ use lemmy_api_019::{
     SearchResponse as SearchResponseV3,
   },
 };
-use lemmy_api_utils::plugins::is_captcha_plugin_loaded;
+use lemmy_api_utils::plugins::LemmyPlugins;
 use lemmy_db_schema::{
   CommunitySortType,
   newtypes::LanguageId,
@@ -437,8 +437,8 @@ pub(crate) fn convert_community(community: Community) -> CommunityV3 {
   } = community;
   CommunityV3 {
     id: CommunityIdV3(id.0),
-    name,
-    title,
+    name: name.clone(),
+    title: title.unwrap_or(name),
     description,
     removed,
     published: published_at,
@@ -637,6 +637,7 @@ pub(crate) fn convert_local_site(local_site: LocalSite) -> LocalSiteV3 {
     RegistrationMode::Closed => RegistrationModeV3::Closed,
     RegistrationMode::RequireApplication => RegistrationModeV3::RequireApplication,
     RegistrationMode::Open => RegistrationModeV3::Open,
+    RegistrationMode::RequireInvitation => RegistrationModeV3::Closed,
   };
   LocalSiteV3 {
     id: Default::default(),
@@ -656,7 +657,7 @@ pub(crate) fn convert_local_site(local_site: LocalSite) -> LocalSiteV3 {
     slur_filter_regex,
     actor_name_max_length: 20,
     federation_enabled,
-    captcha_enabled: is_captcha_plugin_loaded(),
+    captcha_enabled: LemmyPlugins::get_or_init().is_captcha_plugin_loaded(),
     captcha_difficulty: String::new(),
     published: published_at,
     updated: updated_at,

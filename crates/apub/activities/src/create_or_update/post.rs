@@ -1,6 +1,5 @@
 use crate::{
   activity_lists::AnnouncableActivities,
-  check_community_deleted_or_removed,
   community::send_activity_in_community,
   create_or_update::{parse_apub_mentions, tagged_user_inboxes},
   generate_activity_id,
@@ -12,7 +11,11 @@ use activitypub_federation::{
   traits::{Activity, Object},
 };
 use chrono::Utc;
-use lemmy_api_utils::{context::LemmyContext, notify::NotifyData};
+use lemmy_api_utils::{
+  context::LemmyContext,
+  notify::NotifyData,
+  utils::check_community_deleted_removed,
+};
 use lemmy_apub_objects::{
   objects::{
     community::ApubCommunity,
@@ -95,7 +98,7 @@ impl Activity for CreateOrUpdatePage {
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     let community = self.community(context).await?;
     verify_visibility(&self.to, &self.cc, &community)?;
-    check_community_deleted_or_removed(&community)?;
+    check_community_deleted_removed(&community)?;
     verify_domains_match(self.actor.inner(), self.object.id.inner())?;
     ApubPost::verify(&self.object, self.actor.inner(), context).await?;
     Ok(())

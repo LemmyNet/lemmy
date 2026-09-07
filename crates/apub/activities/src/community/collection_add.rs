@@ -1,6 +1,5 @@
 use crate::{
   activity_lists::AnnouncableActivities,
-  check_community_deleted_or_removed,
   community::send_activity_in_community,
   generate_activity_id,
   protocol::community::{collection_add::CollectionAdd, collection_remove::CollectionRemove},
@@ -14,7 +13,7 @@ use activitypub_federation::{
 use lemmy_api_utils::{
   context::LemmyContext,
   notify::notify_mod_action,
-  utils::{generate_featured_url, generate_moderators_url},
+  utils::{check_community_deleted_removed, generate_featured_url, generate_moderators_url},
 };
 use lemmy_apub_objects::{
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
@@ -36,7 +35,7 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::PersonId;
 use lemmy_diesel_utils::traits::Crud;
-use lemmy_utils::error::{LemmyError, LemmyResult};
+use lemmy_utils::error::{LemmyError, LemmyResult, UntranslatedError};
 use url::Url;
 
 impl CollectionAdd {
@@ -110,13 +109,14 @@ impl Activity for CollectionAdd {
     let community = self.community(context).await?;
     verify_visibility(&self.to, &self.cc, &community)?;
     verify_mod_action(&self.actor, &self.object, &community, context).await?;
-    check_community_deleted_or_removed(&community)?;
+    check_community_deleted_removed(&community)?;
     Ok(())
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     let (community, collection_type) =
       Community::get_by_collection_url(&mut context.pool(), &self.target.clone().into()).await?;
+    let actor = self.actor.dereference(context).await?;
 
     match collection_type {
       CollectionType::Moderators => {
@@ -135,7 +135,6 @@ impl Activity for CollectionAdd {
           CommunityActions::join(&mut context.pool(), &form).await?;
 
           // write mod log
-          let actor = self.actor.dereference(context).await?;
           let form =
             ModlogInsertForm::mod_add_to_community(actor.id, community.id, new_mod.id, false);
           let action = Modlog::create(&mut context.pool(), &[form]).await?;
@@ -146,11 +145,17 @@ impl Activity for CollectionAdd {
         let post = ObjectId::<ApubPost>::from(self.object)
           .dereference(context)
           .await?;
+        if post.community_id != community.id {
+          return Err(UntranslatedError::InvalidCommunity.into());
+        }
         let form = PostUpdateForm {
           featured_community: Some(true),
           ..Default::default()
         };
         Post::update(&mut context.pool(), post.id, &form).await?;
+        let form = ModlogInsertForm::mod_feature_post_community(actor.id, &post, true);
+        let action = Modlog::create(&mut context.pool(), &[form]).await?;
+        notify_mod_action(action, context);
       }
     }
     Ok(())

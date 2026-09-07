@@ -13,7 +13,7 @@ use anyhow::anyhow;
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
   objects::{community::ApubCommunity, person::ApubPerson},
-  utils::protocol::InCommunity,
+  utils::protocol::{Id, InCommunity},
 };
 use lemmy_db_schema::source::{community::Community, post::Post};
 use lemmy_diesel_utils::traits::Crud;
@@ -71,5 +71,11 @@ impl InCommunity for Delete {
       verify_urls_match(audience.inner(), community.ap_id.inner())?;
     }
     Ok(community.into())
+  }
+}
+
+impl Id for Delete {
+  fn id(&self) -> &Url {
+    &self.id
   }
 }

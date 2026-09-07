@@ -20,5 +20,5 @@ pub mod administration {
     ApproveRegistrationApplication,
     ListRegistrationApplications,
   };
-  pub use lemmy_db_views_site::api::{CreateSite, EditSite};
+  pub use lemmy_db_views_site::api::{CreateSite, EditSite, Search, SearchResponse};
 }

@@ -1,6 +1,7 @@
 use crate::{
   protocol::note::Note,
   utils::{
+    check_is_mod_or_admin,
     functions::{
       append_attachments_to_comment,
       check_apub_id_valid_with_strictness,
@@ -28,7 +29,7 @@ use chrono::{DateTime, Utc};
 use lemmy_api_utils::{
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
-  utils::{check_is_mod_or_admin, get_url_blocklist, process_markdown, slur_regex},
+  utils::{get_url_blocklist, process_markdown, slur_regex},
 };
 use lemmy_db_schema::source::{
   comment::{Comment, CommentInsertForm, CommentUpdateForm},
@@ -251,7 +252,6 @@ pub(crate) mod tests {
     utils::test::{file_to_json_object, parse_lemmy_community, parse_lemmy_person},
   };
   use assert_json_diff::assert_json_include;
-  use html2md::parse_html;
   use lemmy_db_schema::{source::instance::Instance, test_data::TestData};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
@@ -313,7 +313,7 @@ pub(crate) mod tests {
     let comment = ApubComment::from_json(json, &context).await?;
 
     assert_eq!(comment.ap_id, pleroma_url.into());
-    assert_eq!(comment.content.len(), 10);
+    assert_eq!(comment.content.len(), 11);
     assert!(!comment.local);
     assert_eq!(context.request_count(), 1);
 
@@ -324,8 +324,11 @@ pub(crate) mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_html_to_markdown_sanitize() {
-    let parsed = parse_html("<script></script><b>hello</b>");
-    assert_eq!(parsed, "**hello**");
+  async fn test_html_to_markdown_sanitize() -> LemmyResult<()> {
+    let parsed = html_to_markdown_rs::convert("<script></script><b>hello</b>", None)?
+      .content
+      .unwrap_or_default();
+    assert_eq!(parsed, "**hello**\n");
+    Ok(())
   }
 }

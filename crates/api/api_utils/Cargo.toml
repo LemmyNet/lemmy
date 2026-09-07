@@ -32,6 +32,13 @@ full = [
   "lemmy_db_views_notification/full",
   "lemmy_db_views_registration_applications/full",
 ]
+plugins = [
+  "extism",
+  "extism-convert",
+  "extism-manifest",
+  "lemmy_db_views_site/plugins",
+  "lemmy_db_views_registration_applications/plugins",
+]
 
 [dependencies]
 lemmy_db_schema = { workspace = true }
@@ -53,9 +60,9 @@ serde = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 lemmy_utils = { workspace = true }
-extism = { workspace = true }
-extism-convert = { workspace = true }
-extism-manifest = "1.20.0"
+extism = { workspace = true, optional = true }
+extism-convert = { workspace = true, optional = true }
+extism-manifest = { version = "1.20.0", optional = true }
 reqwest-middleware = { workspace = true }
 activitypub_federation = { workspace = true }
 mime = { version = "0.3.17" }

@@ -74,7 +74,7 @@ impl Collection for ApubCommunityFeatured {
       page.id.dereference(context).await
     }))
     .await
-    // ignore any failed or unparseable items
+    // ignore any failed or unparsable items
     .into_iter()
     .filter_map(|p| p.ok().map(|p| p.0))
     .collect();

@@ -155,7 +155,7 @@ impl Activity for AnnounceActivity {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    let object: AnnouncableActivities = self.object.object(context).await?.try_into()?;
+    let object: AnnouncableActivities = self.object.dereference(context).await?.try_into()?;
 
     // This is only for sending, not receiving so we reject it.
     if let AnnouncableActivities::Page(_) = object {
