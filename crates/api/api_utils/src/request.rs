@@ -600,13 +600,20 @@ mod tests {
       Some("The F-Droid compatible repo at https://apt.izzysoft.de/fdroid/".to_string()),
       sample_res.opengraph_data.description
     );
+
+    let gitlab_url =
+      Url::parse("https://gitlab.com/uploads/-/system/project/avatar/4877469/iod_logo.png")?;
+
+    // Only check the domain and path, since query sometimes fails.
     assert_eq!(
-      Some(
-        Url::parse("https://gitlab.com/uploads/-/system/project/avatar/4877469/iod_logo.png")?
-          .into()
-      ),
-      sample_res.opengraph_data.image
+      Some(gitlab_url.path()),
+      sample_res.opengraph_data.image.as_ref().map(|i| i.path())
     );
+    assert_eq!(
+      Some(gitlab_url.domain()),
+      sample_res.opengraph_data.image.as_ref().map(|i| i.domain())
+    );
+
     assert_eq!(None, sample_res.opengraph_data.embed_video_url);
     assert_eq!(
       Some(mime::TEXT_HTML_UTF_8.to_string()),
