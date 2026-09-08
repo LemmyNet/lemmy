@@ -33,7 +33,7 @@ use lemmy_db_schema::{
   utils::DELETED_REPLACEMENT_TEXT,
 };
 use lemmy_db_schema_file::schema::{
-  comment,
+  comment::{self, language_id},
   community,
   community_actions,
   federation_allowlist,
@@ -60,7 +60,7 @@ use lemmy_utils::{
   DB_BATCH_SIZE,
   error::{LemmyErrorType, LemmyResult},
 };
-use serde_json::{Map, Value};
+// use serde_json::{Map, Value};
 use std::time::Duration;
 use tracing::{info, warn};
 use url::Url;
@@ -364,13 +364,13 @@ struct CommunityAggregatesUpdateResult {
   community_id: i32,
 }
 
-#[derive(Queryable, Debug)]
-struct PostCountSelectResult {
-  #[diesel(sql_type = VarChar)]
-  lang_code: String,
-  #[diesel(sql_type = Integer)]
-  post_count: i64,
-}
+// #[derive(Queryable, Debug)]
+// struct PostCountSelectResult {
+//   #[diesel(sql_type = VarChar)]
+//   lang_code: String,
+//   #[diesel(sql_type = Integer)]
+//   post_count: i64,
+// }
 
 /// Re-calculate the site and community active counts for a given interval
 async fn active_counts(pool: &mut DbPool<'_>, interval: (&str, &str)) -> LemmyResult<()> {
@@ -611,41 +611,26 @@ async fn update_stats(pool: &mut DbPool<'_>) -> LemmyResult<()> {
 // Update db with percentage breakdown of local posts per language tag
 async fn process_language_breakdown(conn: &mut AsyncPgConnection) -> LemmyResult<()> {
   info!("Updating local language usage percentages ...");
-  let local_post_count = local_site::table
-    .select(local_site::local_posts)
-    .get_result::<i32>(conn)
-    .await?;
-
-  if local_post_count == 0 {
-    return Ok(());
-  }
-
-  let post_lang_breakdown = post::table
-    .inner_join(language::table.on(post::language_id.eq(language::id)))
-    .filter(post::local.eq(true))
-    .group_by(language::code)
-    .select((language::code, count_star()))
-    .load::<PostCountSelectResult>(conn)
-    .await?;
-
-  let mut post_counts = Map::new();
-
-  for post_count in post_lang_breakdown {
-    post_counts.insert(
-      post_count.lang_code,
-      Value::Number(
-        serde_json::Number::from_f64(
-          (post_count.post_count as f64 * 10000.0 / f64::from(local_post_count)).round() / 100.0,
-        )
-        .unwrap_or(serde_json::Number::from(0)),
-      ),
-    );
-  }
-
-  update(local_site::table)
-    .set(local_site::language_usage_percent.eq(Value::Object(post_counts)))
-    .execute(conn)
-    .await?;
+  sql_query(
+    r#"
+    WITH counts AS (
+      SELECT l.code, COUNT(*) AS post_count
+      FROM post p
+      INNER JOIN language l ON p.language_id = l.id
+      WHERE p.local = true
+      GROUP BY l.code
+    ),
+    total AS (SELECT local_posts FROM local_site LIMIT 1)
+    UPDATE language
+    SET usage = CASE WHEN t.local_posts = 0 THEN 0
+                     ELSE counts.post_count::float / t.local_posts::float * 100.0
+                END
+    FROM counts, total t
+    WHERE language.code = counts.code
+    "#,
+  )
+  .execute(conn)
+  .await?;
 
   Ok(())
 }

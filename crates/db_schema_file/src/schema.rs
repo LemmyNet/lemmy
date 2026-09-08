@@ -356,6 +356,7 @@ diesel::table! {
         #[max_length = 3]
         code -> Varchar,
         name -> Text,
+        usage -> Float8,
     }
 }
 
@@ -437,7 +438,6 @@ diesel::table! {
         ban_rate -> Int4,
         accepted_signups_rate -> Int4,
         failed_signups_rate -> Int4,
-        language_usage_percent -> Jsonb,
     }
 }
 

@@ -123,7 +123,6 @@ pub struct LocalSite {
   pub ban_rate: i32,
   pub accepted_signups_rate: i32,
   pub failed_signups_rate: i32,
-  pub language_usage_percent: Value,
 }
 
 #[derive(Clone, derive_new::new)]
