@@ -5,6 +5,7 @@ use lemmy_db_schema::source::{
   comment_report::CommentReport,
   community::{Community, CommunityActions},
   community_report::CommunityReport,
+  community_tag::CommunityTagsView,
   person::{Person, PersonActions},
   post::{Post, PostActions},
   post_report::PostReport,
@@ -26,6 +27,7 @@ use {
     local_user_is_admin,
     person1_select,
     person2_select,
+    post_community_tags_fragment,
   },
   lemmy_db_schema::{Person1AliasAllColumnsTuple, Person2AliasAllColumnsTuple},
   lemmy_db_views_local_user::LocalUserView,
@@ -93,6 +95,8 @@ pub struct ReportCombinedViewInternal {
   pub person_actions: Option<PersonActions>,
   #[diesel(embed)]
   pub comment_actions: Option<CommentActions>,
+  #[diesel(select_expression = post_community_tags_fragment())]
+  pub tags: CommunityTagsView,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -144,6 +148,7 @@ pub struct CommentReportView {
   pub creator_ban_expires_at: Option<DateTime<Utc>>,
   pub creator_banned_from_community: bool,
   pub creator_community_ban_expires_at: Option<DateTime<Utc>>,
+  pub tags: CommunityTagsView,
 }
 
 #[skip_serializing_none]
@@ -185,4 +190,5 @@ pub struct PostReportView {
   pub creator_ban_expires_at: Option<DateTime<Utc>>,
   pub creator_banned_from_community: bool,
   pub creator_community_ban_expires_at: Option<DateTime<Utc>>,
+  pub tags: CommunityTagsView,
 }

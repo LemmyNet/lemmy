@@ -15,6 +15,7 @@ use lemmy_db_views_site::{
   api::{Login, LoginResponse},
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use tokio::task::spawn_blocking;
 
 pub async fn login(
   Json(data): Json<Login>,
@@ -22,19 +23,35 @@ pub async fn login(
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<LoginResponse>> {
   let site_view = SiteView::read_local(&mut context.pool()).await?;
+  let password = data.password.clone();
 
   // Fetch that username / email
   let username_or_email = data.username_or_email.clone();
   let local_user_view =
-    LocalUserView::find_by_email_or_name(&mut context.pool(), &username_or_email).await?;
+    match LocalUserView::find_by_email_or_name(&mut context.pool(), &username_or_email).await {
+      Ok(o) => o,
+      Err(e) => {
+        spawn_blocking(move || {
+          // Dummy bcrypt verify for constant timing
+          let _ = verify(
+            &data.password,
+            "$2b$12$dt1Xr.ZGO8W1YtWoJRtpauM1.bkBt2C1Tck3XgZTSoBQRdGuYCTTy",
+          );
+        })
+        .await?;
+        return Err(e);
+      }
+    };
+
+  let Some(password_encrypted) = local_user_view.local_user.password_encrypted.clone() else {
+    // user registered via oauth and has no password (but dont reveal this to potential attacker)
+    return Err(LemmyErrorType::IncorrectLogin.into());
+  };
 
   // Verify the password
-  let valid: bool = local_user_view
-    .local_user
-    .password_encrypted
-    .as_ref()
-    .and_then(|password_encrypted| verify(&data.password, password_encrypted).ok())
-    .unwrap_or(false);
+  let valid = spawn_blocking(move || verify(&password, &password_encrypted).ok())
+    .await?
+    .unwrap_or_default();
   if !valid {
     return Err(LemmyErrorType::IncorrectLogin.into());
   }

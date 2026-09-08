@@ -1,11 +1,13 @@
 use crate::{
   MOD_ACTION_DEFAULT_REASON,
   activity_lists::AnnouncableActivities,
-  check_community_deleted_or_removed,
   community::send_activity_in_community,
   generate_activity_id,
   post_or_comment_community,
-  protocol::community::lock::{LockPageOrNote, LockType, UndoLockPageOrNote},
+  protocol::{
+    IdOrNestedObject,
+    community::lock::{LockPageOrNote, LockType, UndoLockPageOrNote},
+  },
 };
 use activitypub_federation::{
   config::Data,
@@ -13,7 +15,11 @@ use activitypub_federation::{
   kinds::activity::UndoType,
   traits::Activity,
 };
-use lemmy_api_utils::{context::LemmyContext, notify::notify_mod_action};
+use lemmy_api_utils::{
+  context::LemmyContext,
+  notify::notify_mod_action,
+  utils::check_community_deleted_removed,
+};
 use lemmy_apub_objects::{
   objects::{PostOrComment, community::ApubCommunity},
   utils::{
@@ -48,7 +54,7 @@ impl Activity for LockPageOrNote {
   async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
     let community = self.community(context).await?;
     verify_visibility(&self.to, &self.cc, &community)?;
-    check_community_deleted_or_removed(&community)?;
+    check_community_deleted_removed(&community)?;
     verify_mod_action(&self.actor, self.object.inner(), &community, context).await?;
     Ok(())
   }
@@ -102,10 +108,11 @@ impl Activity for UndoLockPageOrNote {
   }
 
   async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
-    let community = self.object.community(context).await?;
+    let object = self.object.dereference(context).await?;
+    let community = object.community(context).await?;
     verify_visibility(&self.to, &self.cc, &community)?;
-    check_community_deleted_or_removed(&community)?;
-    verify_mod_action(&self.actor, self.object.object.inner(), &community, context).await?;
+    check_community_deleted_removed(&community)?;
+    verify_mod_action(&self.actor, object.object.inner(), &community, context).await?;
     Ok(())
   }
 
@@ -115,7 +122,8 @@ impl Activity for UndoLockPageOrNote {
       .unwrap_or_else(|| MOD_ACTION_DEFAULT_REASON.to_string());
     let actor = self.actor.dereference(context).await?;
 
-    match self.object.object.dereference(context).await? {
+    let object = self.object.dereference(context).await?;
+    match object.object.dereference(context).await? {
       PostOrComment::Left(post) => {
         let form = PostUpdateForm {
           locked: Some(false),
@@ -182,7 +190,7 @@ pub(crate) async fn send_lock(
       cc: lock.cc.clone(),
       kind: UndoType::Undo,
       id,
-      object: lock,
+      object: IdOrNestedObject::NestedObject(lock),
       summary: Some(reason),
       audience: Some(community.ap_id.clone().into()),
     };

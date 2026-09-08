@@ -25,6 +25,7 @@ use lemmy_db_views_person::{PersonView, api::PersonResponse};
 use lemmy_diesel_utils::{connection::get_conn, traits::Crud};
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
+  spawn_try_task,
   utils::validation::is_valid_body_field,
 };
 
@@ -85,28 +86,33 @@ pub async fn ban_from_community(
         );
         let action = Modlog::create(&mut conn.into(), &[form]).await?;
 
-        // Remove/Restore their data if that's desired
-        let ban_id = action.first().ok_or(LemmyErrorType::NotFound)?.id;
-        if tx_data.remove_or_restore_data.unwrap_or(false) {
-          let remove_data = tx_data.ban;
-          remove_or_restore_user_data_in_community(
-            tx_data.community_id,
-            my_person_id,
-            banned_person_id,
-            remove_data,
-            &tx_data.reason,
-            ban_id,
-            &mut conn.into(),
-          )
-          .await?;
-        };
-
         Ok(action)
       }
       .scope_boxed()
     })
     .await?;
   notify_mod_action(action.clone(), &context);
+
+  // Remove/Restore their data in background if that's desired
+  // Cant do this inside transaction because `conn` cannot be passed into spawn_try_task.
+  if data.remove_or_restore_data.unwrap_or(false) {
+    let remove_data = data.ban;
+    let reason = data.reason.clone();
+    let ban_id = action.first().ok_or(LemmyErrorType::NotFound)?.id;
+    let context = context.clone();
+    spawn_try_task(async move {
+      remove_or_restore_user_data_in_community(
+        data.community_id,
+        my_person_id,
+        banned_person_id,
+        remove_data,
+        &reason,
+        ban_id,
+        &mut context.pool(),
+      )
+      .await
+    });
+  }
 
   let person_view = PersonView::read(
     &mut context.pool(),

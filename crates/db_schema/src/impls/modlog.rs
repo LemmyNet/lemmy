@@ -8,7 +8,7 @@ use crate::{
   },
 };
 use chrono::{DateTime, Utc};
-use diesel::dsl::insert_into;
+use diesel::{QueryDsl, dsl::insert_into};
 use diesel_async::RunQueryDsl;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::modlog;
@@ -17,6 +17,15 @@ use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Modlog {
+  pub async fn read(pool: &mut DbPool<'_>, id: ModlogId) -> LemmyResult<Self> {
+    let conn = &mut get_conn(pool).await?;
+    modlog::table
+      .find(id)
+      .first(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::NotFound)
+  }
+
   pub async fn create<'a>(
     pool: &mut DbPool<'_>,
     form: &[ModlogInsertForm<'a>],

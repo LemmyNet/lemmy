@@ -1,12 +1,13 @@
 use diesel::{
   BoolExpressionMethods,
   ExpressionMethods,
-  helper_types::{Eq, NotEq},
+  dsl::IsNotNull,
+  helper_types::{Eq, NotEq, Or},
 };
 use lemmy_db_schema_file::{
   aliases::my_instance_persons_actions,
   enums::{CommunityFollowerState, CommunityVisibility},
-  schema::{community, community_actions, instance_actions, person_actions},
+  schema::{community, community_actions, instance_actions, local_user, person_actions},
 };
 
 /// Hide all content from blocked communities and persons. Content from blocked instances is also
@@ -25,18 +26,36 @@ pub fn filter_blocked() -> _ {
     )
 }
 
-type IsSubscribedType =
-  Eq<lemmy_db_schema_file::schema::community_actions::follow_state, Option<CommunityFollowerState>>;
+type IsSubscribedType = Eq<community_actions::follow_state, Option<CommunityFollowerState>>;
 
 pub fn filter_is_subscribed() -> IsSubscribedType {
   community_actions::follow_state.eq(Some(CommunityFollowerState::Accepted))
 }
 
-type IsNotUnlistedType =
-  NotEq<lemmy_db_schema_file::schema::community::visibility, CommunityVisibility>;
+type CommunityVisibilityType = NotEq<community::visibility, CommunityVisibility>;
 
-#[diesel::dsl::auto_type]
-pub fn filter_not_unlisted() -> _ {
-  let not_unlisted: IsNotUnlistedType = community::visibility.ne(CommunityVisibility::Unlisted);
-  not_unlisted
+type CommunityVisibilityNotUnlistedOrSubscribedType = Or<CommunityVisibilityType, IsSubscribedType>;
+
+/// Show only listed or followed communities
+pub fn filter_unlisted_or_followed() -> CommunityVisibilityNotUnlistedOrSubscribedType {
+  community::visibility
+    .ne(CommunityVisibility::Unlisted)
+    .or(filter_is_subscribed())
+}
+
+type CommunityVisibilityOrSubscribedType = Or<
+  Or<
+    Or<CommunityVisibilityType, IsSubscribedType>,
+    IsNotNull<community_actions::became_moderator_at>,
+  >,
+  local_user::admin,
+>;
+
+/// Show only non-private or followed communities
+pub fn filter_private_or_followed() -> CommunityVisibilityOrSubscribedType {
+  community::visibility
+    .ne(CommunityVisibility::Private)
+    .or(filter_is_subscribed())
+    .or(community_actions::became_moderator_at.is_not_null())
+    .or(local_user::admin)
 }

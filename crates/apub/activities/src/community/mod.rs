@@ -34,6 +34,7 @@ pub mod lock;
 pub mod report;
 pub mod resolve_report;
 pub mod update;
+pub mod warn;
 
 /// This function sends all activities which are happening in a community to the right inboxes.
 /// For example Create/Page, Add/Mod etc, but not private messages.

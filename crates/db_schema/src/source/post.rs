@@ -176,6 +176,7 @@ pub struct PostUpdateForm {
   pub federation_pending: Option<bool>,
 }
 
+#[skip_serializing_none]
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(
   feature = "full",

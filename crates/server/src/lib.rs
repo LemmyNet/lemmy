@@ -11,6 +11,7 @@ use clap::{Parser, Subcommand};
 use lemmy_api::sitemap::get_sitemap;
 use lemmy_api_utils::{
   context::LemmyContext,
+  plugins::LemmyPlugins,
   request::client_builder,
   send_activity::ActivityChannel,
   utils::local_site_rate_limit_to_rate_limit_config,
@@ -57,7 +58,7 @@ use tracing_actix_web::{DefaultRootSpanBuilder, TracingLogger};
 
 #[cfg_attr(target_arch = "x86_64", global_allocator)]
 #[cfg(target_arch = "x86_64")]
-static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 
 /// Timeout for HTTP requests while sending activities. A longer timeout provides better
 /// compatibility with other ActivityPub software that might allocate more time for synchronous
@@ -174,6 +175,9 @@ pub async fn start_lemmy_server(args: CmdArgs) -> LemmyResult<()> {
   if !args.disable_http_server {
     startup_server_handle = Some(create_startup_server()?);
   }
+
+  // Initialize plugins in background
+  tokio::task::spawn_blocking(LemmyPlugins::get_or_init);
 
   // Set up the connection pool
   let pool = build_db_pool()?;

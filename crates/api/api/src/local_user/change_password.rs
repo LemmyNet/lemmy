@@ -6,7 +6,7 @@ use bcrypt::verify;
 use lemmy_api_utils::{
   claims::Claims,
   context::LemmyContext,
-  utils::{check_local_user_valid, password_length_check},
+  utils::{check_local_user_banned_or_deleted, password_length_check},
 };
 use lemmy_db_schema::source::{local_user::LocalUser, login_token::LoginToken};
 use lemmy_db_views_local_user::LocalUserView;
@@ -19,7 +19,7 @@ pub async fn change_password(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<LoginResponse>> {
-  check_local_user_valid(&local_user_view)?;
+  check_local_user_banned_or_deleted(&local_user_view)?;
   password_length_check(&data.new_password)?;
 
   // Make sure passwords match

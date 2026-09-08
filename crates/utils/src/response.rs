@@ -68,10 +68,10 @@ mod tests {
   #[actix_web::test]
   async fn test_non_error_responses_are_not_modified() {
     async fn ok_service() -> actix_web::Result<String, Error> {
-      Ok("Oll Korrect".to_string())
+      Ok("All Correct".to_string())
     }
 
-    check_for_jsonification(ok_service, StatusCode::OK, "Oll Korrect").await;
+    check_for_jsonification(ok_service, StatusCode::OK, "All Correct").await;
   }
 
   #[actix_web::test]

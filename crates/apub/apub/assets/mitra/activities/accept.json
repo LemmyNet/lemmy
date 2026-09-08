@@ -1,0 +1,26 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/activitystreams",
+    "https://w3id.org/security/v1",
+    "https://w3id.org/security/data-integrity/v2",
+    {
+      "Emoji": "toot:Emoji",
+      "Hashtag": "as:Hashtag",
+      "sensitive": "as:sensitive",
+      "toot": "http://joinmastodon.org/ns#"
+    }
+  ],
+  "actor": "https://mitra.social/users/localtestgroup",
+  "id": "https://mitra.social/activities/accept/019f03a5-e4bb-7483-88df-3ec069abb505",
+  "object": "https://voyager.lemmy.ml/activities/follow/7d782f02-b91d-4455-b6c0-772540f00c2d",
+  "proof": {
+    "created": "2026-06-26T11:17:11.483620610Z",
+    "cryptosuite": "eddsa-jcs-2022",
+    "proofPurpose": "assertionMethod",
+    "proofValue": "zV4wGtoD5QnFNPEk77KaYCXLLXwzu9ZRNzw6iJRkRpQSXdMD5q6oHiKSeRQ1WvsDxH9sTsE9t3XrdxDu8NVP8XTm",
+    "type": "DataIntegrityProof",
+    "verificationMethod": "https://mitra.social/users/localtestgroup#ed25519-key"
+  },
+  "to": ["https://voyager.lemmy.ml/u/silverpill"],
+  "type": "Accept"
+}

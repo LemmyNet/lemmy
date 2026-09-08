@@ -8,6 +8,7 @@ use lemmy_api_utils::{
   plugins::{plugin_hook_after, plugin_hook_before},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
+    check_comment_deleted_or_removed,
     check_comment_depth,
     check_community_user_action,
     check_post_deleted_or_removed,
@@ -102,6 +103,7 @@ pub async fn create_comment(
       return Err(LemmyErrorType::CouldntCreate.into());
     }
     check_comment_depth(parent)?;
+    check_comment_deleted_or_removed(parent)?;
   }
 
   let mut comment_form = CommentInsertForm {

@@ -140,6 +140,7 @@ pub async fn edit_site(
     image_max_upload_size: data.image_max_upload_size,
     image_allow_video_uploads: data.image_allow_video_uploads,
     image_upload_disabled: data.image_upload_disabled,
+    max_invites_per_user_allowed: data.max_invites_per_user_allowed,
   };
 
   let update_local_site = LocalSite::update(&mut context.pool(), &local_site_form)

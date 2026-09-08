@@ -44,7 +44,7 @@ async-trait = "0.1.89"
 anyhow = { workspace = true }
 moka.workspace = true
 serde_with.workspace = true
-html2md = "0.2.15"
+html-to-markdown-rs = "3.0"
 html2text = { workspace = true }
 stringreader = "0.1.1"
 semver = "1.0.27"

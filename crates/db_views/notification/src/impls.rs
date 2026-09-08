@@ -173,8 +173,29 @@ impl NotificationQuery {
         }
       }
 
+      // The creator_id filter
+      // For private messages, to create a conversation view, also include your own messages to them
       if let Some(creator_id) = self.creator_id {
-        query = query.filter(notification::creator_id.eq(creator_id));
+        if self.type_
+          == Some(NotificationTypeFilter::Other(
+            NotificationType::PrivateMessage,
+          ))
+        {
+          query = query.filter(
+            // Them to me
+            notification::recipient_id
+              .eq(my_person.id)
+              .and(notification::creator_id.eq(creator_id))
+              // Me to them
+              .or(
+                notification::recipient_id
+                  .eq(creator_id)
+                  .and(notification::creator_id.eq(my_person.id)),
+              ),
+          );
+        } else {
+          query = query.filter(notification::creator_id.eq(creator_id));
+        }
       }
 
       if !self.show_bot_accounts.unwrap_or_default() {
