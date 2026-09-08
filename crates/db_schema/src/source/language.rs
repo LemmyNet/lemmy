@@ -14,4 +14,5 @@ pub struct Language {
   pub id: LanguageId,
   pub code: String,
   pub name: String,
+  pub usage: f64,
 }

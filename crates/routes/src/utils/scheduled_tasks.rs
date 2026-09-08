@@ -20,7 +20,6 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use diesel_uplete::uplete;
 use lemmy_api_utils::{
   context::LemmyContext,
-  plugins::plugin_hook_after,
   send_activity::{ActivityChannel, SendActivityData},
   utils::send_webmention,
 };
@@ -62,7 +61,7 @@ use lemmy_utils::{
   DB_BATCH_SIZE,
   error::{LemmyErrorType, LemmyResult},
 };
-use serde_json::{Map, Value};
+// use serde_json::{Map, Value};
 use std::time::Duration;
 use tracing::{info, warn};
 use url::Url;
@@ -71,11 +70,6 @@ use url::Url;
 pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
   // https://github.com/mdsherry/clokwerk/issues/38
   let mut scheduler = AsyncScheduler::with_tz(Utc);
-
-  // Every 1 minute run plugin hooks
-  scheduler.every(CTimeUnits::minutes(1)).run(async move || {
-    plugin_hook_after("scheduled_task_1_min", &());
-  });
 
   let context_1 = context.clone();
   // Every 10 minutes update hot ranks, delete expired captchas and publish scheduled posts
@@ -91,7 +85,6 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
         .await
         .inspect_err(|e| warn!("Failed to publish scheduled posts: {e}"))
         .ok();
-      plugin_hook_after("scheduled_task_10_mins", &());
     }
   });
 
@@ -100,7 +93,6 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
   // - Update active daily counts
   // - Expired bans
   // - Expired instance blocks
-  // - Expired invitations
   scheduler.every(CTimeUnits::hour(1)).run(move || {
     let context = context_1.clone();
 
@@ -117,11 +109,6 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
         .await
         .inspect_err(|e| warn!("Failed to delete expired instance bans: {e}"))
         .ok();
-      delete_invitations_when_expired(&mut context.pool())
-        .await
-        .inspect_err(|e| warn!("Failed to delete expired invitations: {e}"))
-        .ok();
-      plugin_hook_after("scheduled_task_1_hour", &());
     }
   });
 
@@ -165,7 +152,6 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
         .await
         .inspect_err(|e| warn!("Failed to clear old activities: {e}"))
         .ok();
-      plugin_hook_after("scheduled_task_daily", &());
     }
   });
 
@@ -379,13 +365,13 @@ struct CommunityAggregatesUpdateResult {
   community_id: i32,
 }
 
-#[derive(Queryable, Debug)]
-struct PostCountSelectResult {
-  #[diesel(sql_type = VarChar)]
-  lang_code: String,
-  #[diesel(sql_type = Integer)]
-  post_count: i64,
-}
+// #[derive(Queryable, Debug)]
+// struct PostCountSelectResult {
+//   #[diesel(sql_type = VarChar)]
+//   lang_code: String,
+//   #[diesel(sql_type = Integer)]
+//   post_count: i64,
+// }
 
 /// Re-calculate the site and community active counts for a given interval
 async fn active_counts(pool: &mut DbPool<'_>, interval: (&str, &str)) -> LemmyResult<()> {
@@ -509,15 +495,6 @@ async fn process_community_aggregates(
     prev_community_id_res = updated_rows.last().map(|row| row.community_id);
   }
 
-  // Dead communities are absent in the temporary table.
-  // Reset the activity counter of the dead communities
-  sql_query(format!("UPDATE community a SET {field_name_prefix}_{} = 0 WHERE a.id NOT IN (SELECT DISTINCT b.community_id_ FROM {caggs_temp_table} b)",
-      interval.1))
-    .execute(conn)
-    .await
-    .inspect_err(|e| warn!("Failed to zero-out community stats: {e}"))
-    .ok();
-
   // Drop the temp table just in case
   sql_query(drop_caggs_temp_table).execute(conn).await.ok();
 
@@ -635,41 +612,26 @@ async fn update_stats(pool: &mut DbPool<'_>) -> LemmyResult<()> {
 // Update db with percentage breakdown of local posts per language tag
 async fn process_language_breakdown(conn: &mut AsyncPgConnection) -> LemmyResult<()> {
   info!("Updating local language usage percentages ...");
-  let local_post_count = local_site::table
-    .select(local_site::local_posts)
-    .get_result::<i32>(conn)
-    .await?;
-
-  if local_post_count == 0 {
-    return Ok(());
-  }
-
-  let post_lang_breakdown = post::table
-    .inner_join(language::table.on(post::language_id.eq(language::id)))
-    .filter(post::local.eq(true))
-    .group_by(language::code)
-    .select((language::code, count_star()))
-    .load::<PostCountSelectResult>(conn)
-    .await?;
-
-  let mut post_counts = Map::new();
-
-  for post_count in post_lang_breakdown {
-    post_counts.insert(
-      post_count.lang_code,
-      Value::Number(
-        serde_json::Number::from_f64(
-          (post_count.post_count as f64 * 10000.0 / f64::from(local_post_count)).round() / 100.0,
-        )
-        .unwrap_or(serde_json::Number::from(0)),
-      ),
-    );
-  }
-
-  update(local_site::table)
-    .set(local_site::language_usage_percent.eq(Value::Object(post_counts)))
-    .execute(conn)
-    .await?;
+  sql_query(
+    r#"
+    WITH counts AS (
+      SELECT l.code, COUNT(*) AS post_count
+      FROM post p
+      INNER JOIN language l ON p.language_id = l.id
+      WHERE p.local = true
+      GROUP BY l.code
+    ),
+    total AS (SELECT local_posts FROM local_site LIMIT 1)
+    UPDATE language
+    SET usage = CASE WHEN t.local_posts = 0 THEN 0
+                     ELSE counts.post_count::float / t.local_posts::float * 100.0
+                END
+    FROM counts, total t
+    WHERE language.code = counts.code
+    "#,
+  )
+  .execute(conn)
+  .await?;
 
   Ok(())
 }
@@ -702,17 +664,6 @@ async fn delete_instance_block_when_expired(pool: &mut DbPool<'_>) -> LemmyResul
 
   diesel::delete(
     federation_blocklist::table.filter(federation_blocklist::expires_at.lt(now().nullable())),
-  )
-  .execute(conn)
-  .await?;
-  Ok(())
-}
-
-/// Set invitations to Expired
-async fn delete_invitations_when_expired(pool: &mut DbPool<'_>) -> LemmyResult<()> {
-  let conn = &mut get_conn(pool).await?;
-  diesel::delete(
-    local_user_invite::table.filter(local_user_invite::expires_at.lt(now().nullable())),
   )
   .execute(conn)
   .await?;
@@ -906,7 +857,12 @@ mod tests {
     let data = TestData::create(pool).await?;
     let community = Community::create(
       pool,
-      &CommunityInsertForm::new(data.instance.id, "name".to_owned(), "pubkey".to_owned()),
+      &CommunityInsertForm::new(
+        data.instance.id,
+        "name".to_owned(),
+        "title".to_owned(),
+        "pubkey".to_owned(),
+      ),
     )
     .await?;
     let person = Person::create(
@@ -961,7 +917,12 @@ mod tests {
     // insert some local data
     let community = Community::create(
       pool,
-      &CommunityInsertForm::new(data.instance.id, "name".to_owned(), "pubkey".to_owned()),
+      &CommunityInsertForm::new(
+        data.instance.id,
+        "name".to_owned(),
+        "title".to_owned(),
+        "pubkey".to_owned(),
+      ),
     )
     .await?;
     let person = Person::create(
@@ -981,7 +942,12 @@ mod tests {
     // insert some federated data
     let community = Community::create(
       pool,
-      &CommunityInsertForm::new(instance0.id, "name".to_owned(), "pubkey".to_owned()),
+      &CommunityInsertForm::new(
+        instance0.id,
+        "name".to_owned(),
+        "title".to_owned(),
+        "pubkey".to_owned(),
+      ),
     )
     .await?;
     let person = Person::create(
@@ -1028,7 +994,12 @@ mod tests {
     let data = TestData::create(pool).await?;
     let community = Community::create(
       pool,
-      &CommunityInsertForm::new(data.instance.id, "name".to_owned(), "pubkey".to_owned()),
+      &CommunityInsertForm::new(
+        data.instance.id,
+        "name".to_owned(),
+        "title".to_owned(),
+        "pubkey".to_owned(),
+      ),
     )
     .await?;
     let person = Person::create(
@@ -1071,88 +1042,6 @@ mod tests {
     assert_eq!(
       local_site.language_usage_percent["de"].as_f64(),
       Some(33.33)
-    );
-
-    data.delete(pool).await?;
-    Ok(())
-  }
-
-  #[tokio::test]
-  #[serial]
-  async fn test_dead_community_active_counts_reset_to_zero() -> LemmyResult<()> {
-    let context = LemmyContext::init_test_context().await;
-    let pool = &mut context.pool();
-
-    let public_key = "public_key".to_owned();
-    let data = TestData::create(pool).await?;
-    let person = Person::create(
-      pool,
-      &PersonInsertForm::new("user".to_owned(), "public_key".to_owned(), data.instance.id),
-    )
-    .await?;
-
-    let dead_community = Community::create(
-      pool,
-      &CommunityInsertForm::new(data.instance.id, "dead".to_owned(), public_key.clone()),
-    )
-    .await?;
-    let two_years_ago = Utc::now() - chrono::Duration::days(730);
-    Post::create(
-      pool,
-      &PostInsertForm {
-        published_at: Some(two_years_ago),
-        ..PostInsertForm::new("dead post".to_owned(), person.id, dead_community.id)
-      },
-    )
-    .await?;
-
-    let alive_community = Community::create(
-      pool,
-      &CommunityInsertForm::new(data.instance.id, "alive".to_owned(), public_key.clone()),
-    )
-    .await?;
-    Post::create(
-      pool,
-      &PostInsertForm::new("alive post".to_owned(), person.id, alive_community.id),
-    )
-    .await?;
-
-    all_active_counts(pool).await?;
-
-    let dead_stats = Community::read(pool, dead_community.id).await?;
-    assert_eq!(
-      dead_stats.users_active_day, 0,
-      "dead: users_active_day should be 0"
-    );
-    assert_eq!(
-      dead_stats.users_active_week, 0,
-      "dead: users_active_week should be 0"
-    );
-    assert_eq!(
-      dead_stats.users_active_month, 0,
-      "dead: users_active_month should be 0"
-    );
-    assert_eq!(
-      dead_stats.users_active_half_year, 0,
-      "dead: users_active_half_year should be 0"
-    );
-
-    let alive_stats = Community::read(pool, alive_community.id).await?;
-    assert_eq!(
-      alive_stats.users_active_day, 1,
-      "alive: users_active_day should be 1"
-    );
-    assert_eq!(
-      alive_stats.users_active_week, 1,
-      "alive: users_active_week should be 1"
-    );
-    assert_eq!(
-      alive_stats.users_active_month, 1,
-      "alive: users_active_month should be 1"
-    );
-    assert_eq!(
-      alive_stats.users_active_half_year, 1,
-      "alive: users_active_half_year should be 1"
     );
 
     data.delete(pool).await?;

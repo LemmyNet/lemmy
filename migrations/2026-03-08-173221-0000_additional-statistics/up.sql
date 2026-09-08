@@ -26,9 +26,6 @@ ALTER TABLE local_site
 ALTER TABLE local_site
     ADD COLUMN failed_signups_rate integer NOT NULL DEFAULT 0;
 
-ALTER TABLE local_site
-    ADD COLUMN language_usage_percent jsonb NOT NULL DEFAULT '{}'::jsonb;
-
 ALTER TABLE local_site RENAME posts TO local_posts;
 
 ALTER TABLE local_site RENAME comments TO local_comments;
@@ -36,4 +33,8 @@ ALTER TABLE local_site RENAME comments TO local_comments;
 ALTER TABLE local_site RENAME users TO local_users;
 
 ALTER TABLE local_site RENAME communities TO local_communities;
+
+-- Percentage of posts/comments on this instance that use each language
+ALTER TABLE LANGUAGE
+    ADD COLUMN usage float NOT NULL DEFAULT 0;
 
