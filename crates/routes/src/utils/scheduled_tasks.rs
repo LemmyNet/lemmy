@@ -3,8 +3,13 @@ use activitypub_federation::config::Data;
 use chrono::{DateTime, TimeZone, Utc};
 use clokwerk::{AsyncScheduler, TimeUnits as CTimeUnits};
 use diesel::{
-  BoolExpressionMethods, ExpressionMethods, JoinOnDsl, NullableExpressionMethods, QueryDsl,
-  QueryableByName, SelectableHelper,
+  BoolExpressionMethods,
+  ExpressionMethods,
+  JoinOnDsl,
+  NullableExpressionMethods,
+  QueryDsl,
+  QueryableByName,
+  SelectableHelper,
   dsl::{IntervalDsl, count, count_star, exists, not, update},
   prelude::Queryable,
   query_builder::AsQuery,
@@ -29,9 +34,23 @@ use lemmy_db_schema::{
   utils::DELETED_REPLACEMENT_TEXT,
 };
 use lemmy_db_schema_file::schema::{
-  comment, community, community_actions, federation_allowlist, federation_blocklist,
-  federation_queue_state, instance, instance_actions, language, local_site, local_user,
-  local_user_invite, person, post, received_activity, sent_activity, site,
+  comment,
+  community,
+  community_actions,
+  federation_allowlist,
+  federation_blocklist,
+  federation_queue_state,
+  instance,
+  instance_actions,
+  language,
+  local_site,
+  local_user,
+  local_user_invite,
+  person,
+  post,
+  received_activity,
+  sent_activity,
+  site,
 };
 use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::{
@@ -511,6 +530,8 @@ async fn process_community_aggregates(
   Ok(())
 }
 
+async fn update_local_user_count(pool: &mut DbPool<'_>) -> LemmyResult<()> {
+  info!("Updating the local user count...");
 
   let conn = &mut get_conn(pool).await?;
   let user_count = local_user::table
