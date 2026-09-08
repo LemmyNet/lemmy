@@ -336,7 +336,7 @@ fn create_http_server(
           webfinger::config(cfg);
         }
       })
-      .configure(feeds::config)
+      .configure(|cfg| feeds::config(cfg, &rate_limit_cell))
       .configure(|cfg| images::config(cfg, pictrs_client.clone(), &rate_limit_cell))
       .configure(nodeinfo::config)
   })
