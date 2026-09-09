@@ -195,6 +195,7 @@ impl Object for ApubCommunity {
 
     let name = group.preferred_username.clone();
     let title = group.name.as_ref().map(|n| remove_slurs(n, &slur_regex));
+    let title = truncate_for_db(title, DISPLAY_NAME_MAX_LENGTH);
 
     // If NSFW is not allowed, then remove NSFW communities
     let removed = check_nsfw_allowed(group.sensitive, Some(&local_site))
