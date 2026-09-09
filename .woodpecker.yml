@@ -359,42 +359,36 @@ steps:
       - event: tag
 
   notify_success:
-    image: alpine:3
-    environment:
-      REPO_NAME: ${CI_REPO_NAME}
-      COMMIT_SOURCE_BRANCH: ${CI_COMMIT_SOURCE_BRANCH}
-      PIPELINE_URL: ${CI_PIPELINE_URL}
-    commands:
-      - apk add curl
-      - "curl -H'Title: ✔️ ${REPO_NAME}/${COMMIT_SOURCE_BRANCH}' -d'${PIPELINE_URL}' ntfy.sh/lemmy_drone_ci"
+    image: codeberg.org/l-x/woodpecker-ntfy
     when:
       - event: pull_request
         status: [success]
+    settings:
+      url: https://ntfy.sh/lemmy_drone_ci
+      title: "✔️ ${CI_REPO_NAME}/${CI_COMMIT_SOURCE_BRANCH}"
+      message: ${CI_PIPELINE_URL}
+      click: ${CI_PIPELINE_URL}
 
   notify_failure:
-    image: alpine:3
-    environment:
-      REPO_NAME: ${CI_REPO_NAME}
-      COMMIT_SOURCE_BRANCH: ${CI_COMMIT_SOURCE_BRANCH}
-      PIPELINE_URL: ${CI_PIPELINE_URL}
-    commands:
-      - apk add curl
-      - "curl -H'Title: ❌ ${REPO_NAME}/${COMMIT_SOURCE_BRANCH}' -d'${PIPELINE_URL}' ntfy.sh/lemmy_drone_ci"
+    image: codeberg.org/l-x/woodpecker-ntfy
     when:
       - event: pull_request
         status: [failure]
+    settings:
+      url: https://ntfy.sh/lemmy_drone_ci
+      title: "❌ ${CI_REPO_NAME}/${CI_COMMIT_SOURCE_BRANCH}"
+      message: ${CI_PIPELINE_URL}
+      click: ${CI_PIPELINE_URL}
 
   notify_on_tag_deploy:
-    image: alpine:3
-    environment:
-      REPO_NAME: ${CI_REPO_NAME}
-      COMMIT_TAG: ${CI_COMMIT_TAG}
-      PIPELINE_URL: ${CI_PIPELINE_URL}
-    commands:
-      - apk add curl
-      - "curl -H'Title: ${REPO_NAME}:${COMMIT_TAG} deployed' -d'${PIPELINE_URL}' ntfy.sh/lemmy_drone_ci"
+    image: codeberg.org/l-x/woodpecker-ntfy
     when:
-      event: tag
+      - event: [tag]
+    settings:
+      url: https://ntfy.sh/lemmy_drone_ci
+      title: "${CI_REPO_NAME}:${CI_COMMIT_TAG} deployed"
+      message: ${CI_PIPELINE_URL}
+      click: ${CI_PIPELINE_URL}
 
 services:
   database:
