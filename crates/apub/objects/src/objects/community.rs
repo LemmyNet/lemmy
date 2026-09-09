@@ -163,7 +163,7 @@ impl Object for ApubCommunity {
 
     // Also validate the followers url to prevent attacks
     if let Some(followers) = &group.followers {
-      verify_domains_match(group.id.inner(), followers.inner())?;
+      verify_domains_match(group.id.inner(), followers)?;
     }
 
     // Doesnt call verify_is_remote_object() because the community might be edited by a
