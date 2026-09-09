@@ -161,6 +161,11 @@ impl Object for ApubCommunity {
     check_apub_id_valid_with_strictness(group.id.inner(), true, context).await?;
     verify_domains_match(expected_domain, group.id.inner())?;
 
+    // Also validate the followers url to prevent attacks
+    if let Some(followers) = &group.followers {
+      verify_domains_match(group.id.inner(), followers.inner())?;
+    }
+
     // Doesnt call verify_is_remote_object() because the community might be edited by a
     // remote mod. This is safe as we validate `expected_domain`.
     Ok(())
