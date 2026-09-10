@@ -31,7 +31,7 @@ use diesel_uplete::{UpleteCount, uplete};
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
-  enums::PostNotificationsMode,
+  enums::{CommunityVisibility, PostNotificationsMode},
   schema::{community, local_user, person, post, post_actions},
 };
 use lemmy_diesel_utils::{
@@ -125,10 +125,18 @@ impl Post {
   ) -> LemmyResult<Vec<(DbUrl, chrono::DateTime<Utc>)>> {
     let conn = &mut get_conn(pool).await?;
     post::table
+      .inner_join(community::table)
       .select((post::ap_id, coalesce(post::updated_at, post::published_at)))
       .filter(post::local.eq(true))
       .filter(post::deleted.eq(false))
       .filter(post::removed.eq(false))
+      .filter(community::removed.eq(false))
+      .filter(community::deleted.eq(false))
+      .filter(community::visibility.eq_any([
+        CommunityVisibility::Public,
+        CommunityVisibility::Unlisted,
+        CommunityVisibility::LocalOnlyPublic,
+      ]))
       .filter(post::published_at.ge(Utc::now().naive_utc() - SITEMAP_DAYS))
       .order(post::published_at.desc())
       .limit(SITEMAP_LIMIT)
