@@ -292,4 +292,16 @@ mod tests {
 
     Ok(())
   }
+
+  // See https://github.com/LemmyNet/lemmy/issues/6613 for context.
+  #[test]
+  fn test_clean_query_params_case() -> LemmyResult<()> {
+    let link = "https://example.com/query?peers=5%B02%27";
+    let cleaned = clean_urls_in_text(link);
+
+    // This fails and clearUrls adds some extra characters
+    assert_ne!(link, cleaned.clone());
+
+    Ok(())
+  }
 }
