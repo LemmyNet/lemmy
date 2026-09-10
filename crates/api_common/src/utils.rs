@@ -873,6 +873,11 @@ pub async fn process_markdown(
 
   if context.settings().pictrs_config()?.image_mode() == PictrsImageMode::ProxyAllImages {
     let (text, links) = markdown_rewrite_image_links(text);
+
+    // Validate the IPs for the links before inserting to the remote image table to prevent SSRF.
+    for link in &links {
+      validate_link_ip(&link).await?;
+    }
     RemoteImage::create(&mut context.pool(), links.clone()).await?;
 
     // Create images and image detail rows
