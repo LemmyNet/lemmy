@@ -23,6 +23,7 @@ use lemmy_db_views_actor::{
 use lemmy_utils::{
   cache_header::cache_1hour,
   error::{LemmyError, LemmyErrorType, LemmyResult},
+  rate_limit::RateLimitCell,
   utils::markdown::markdown_to_html,
 };
 use rss::{
@@ -68,9 +69,10 @@ enum RequestType {
   Inbox,
 }
 
-pub fn config(cfg: &mut web::ServiceConfig) {
+pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimitCell) {
   cfg.service(
     web::scope("/feeds")
+      .wrap(rate_limit.message())
       .route("/{type}/{name}.xml", web::get().to(get_feed))
       .route("/all.xml", web::get().to(get_all_feed).wrap(cache_1hour()))
       .route(

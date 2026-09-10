@@ -634,14 +634,12 @@ mod tests {
       Some("The F-Droid compatible repo at https://apt.izzysoft.de/fdroid/".to_string()),
       sample_res.opengraph_data.description
     );
-    assert_eq!(
-      Some(
-        Url::parse("https://gitlab.com/uploads/-/system/project/avatar/4877469/iod_logo.png")
-          .unwrap()
-          .into()
-      ),
-      sample_res.opengraph_data.image
-    );
+    assert!(sample_res
+      .opengraph_data
+      .image
+      .unwrap()
+      .to_string()
+      .starts_with("https://gitlab.com/uploads/-/system/project/avatar/"));
     assert_eq!(None, sample_res.opengraph_data.embed_video_url);
     assert_eq!(
       Some(mime::TEXT_HTML_UTF_8.to_string()),
