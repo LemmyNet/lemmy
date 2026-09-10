@@ -839,6 +839,11 @@ pub async fn process_markdown(
 
   if local_site.image_mode == ImageMode::ProxyAllImages {
     let (text, links) = markdown_rewrite_image_links(text);
+
+    // Validate the IPs for the links before inserting to the remote image table to prevent SSRF.
+    for link in &links {
+      context.is_valid_ip(link).await?;
+    }
     RemoteImage::create(&mut context.pool(), links.clone()).await?;
 
     // Create images and image detail rows
