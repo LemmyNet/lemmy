@@ -8,6 +8,6 @@ git push
 popd
 
 git submodule update --remote
-git add ../crates/utils/translations
+git add ../crates/email/translations
 git commit -m"Updating translations."
 git push
