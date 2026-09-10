@@ -876,7 +876,7 @@ pub async fn process_markdown(
 
     // Validate the IPs for the links before inserting to the remote image table to prevent SSRF.
     for link in &links {
-      validate_link_ip(&link).await?;
+      validate_link_ip(link).await?;
     }
     RemoteImage::create(&mut context.pool(), links.clone()).await?;
 
