@@ -96,7 +96,7 @@ pub async fn register(
     let inv = LocalUserInvite::read_by_token(pool, token)
       .await
       .map_err(|_e| LemmyError::from(LemmyErrorType::InvalidInviteToken))?;
-    if !inv.is_expired() {
+    if inv.is_expired() {
       return Err(LemmyErrorType::InvalidInviteToken.into());
     }
     Some(inv)
