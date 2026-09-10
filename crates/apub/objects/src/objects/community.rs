@@ -48,7 +48,7 @@ use lemmy_utils::{
   utils::{
     markdown::markdown_to_html,
     slurs::remove_slurs,
-    validation::{SITE_SUMMARY_MAX_LENGTH, truncate_for_db},
+    validation::{DISPLAY_NAME_MAX_LENGTH, SITE_SUMMARY_MAX_LENGTH, truncate_for_db},
   },
 };
 use regex::RegexSet;
@@ -199,7 +199,11 @@ impl Object for ApubCommunity {
       .map(|s| remove_slurs(&s, &slur_regex));
 
     let name = group.preferred_username.clone();
-    let title = group.name.as_ref().map(|n| remove_slurs(n, &slur_regex));
+    let title = group
+      .name
+      .as_ref()
+      .map(|n| remove_slurs(n, &slur_regex))
+      .map(|s| truncate_for_db(&s, DISPLAY_NAME_MAX_LENGTH));
 
     // If NSFW is not allowed, then remove NSFW communities
     let removed = check_nsfw_allowed(group.sensitive, Some(&local_site))
