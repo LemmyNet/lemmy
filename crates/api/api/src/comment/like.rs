@@ -8,7 +8,6 @@ use lemmy_api_utils::{
   utils::{check_bot_account, check_community_user_action, check_local_vote_mode},
 };
 use lemmy_db_schema::{
-  newtypes::PostOrCommentId,
   source::{
     comment::{CommentActions, CommentLikeForm},
     notification::Notification,
@@ -16,6 +15,7 @@ use lemmy_db_schema::{
   },
   traits::Likeable,
 };
+use lemmy_db_schema_file::newtypes::PostOrCommentId;
 use lemmy_db_views_comment::{
   CommentView,
   api::{CommentResponse, CreateCommentLike},

@@ -1,18 +1,20 @@
-use crate::{
-  newtypes::{CommunityId, ModlogId},
-  source::{
-    comment::Comment,
-    modlog::{Modlog, ModlogInsertForm},
-    person::Person,
-    post::Post,
-  },
+use crate::source::{
+  comment::Comment,
+  modlog::{Modlog, ModlogInsertForm},
+  person::Person,
+  post::Post,
 };
 use chrono::{DateTime, Utc};
 use diesel::{QueryDsl, dsl::insert_into};
 use diesel_async::RunQueryDsl;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::modlog;
-use lemmy_db_schema_file::{InstanceId, PersonId, enums::ModlogKind};
+use lemmy_db_schema_file::{
+  InstanceId,
+  PersonId,
+  enums::ModlogKind,
+  newtypes::{CommunityId, ModlogId},
+};
 use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 

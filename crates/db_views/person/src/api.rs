@@ -1,11 +1,6 @@
 use crate::PersonView;
-use lemmy_db_schema::{
-  PersonListingType,
-  PersonSortType,
-  newtypes::CommunityId,
-  source::site::Site,
-};
-use lemmy_db_schema_file::PersonId;
+use lemmy_db_schema::{PersonListingType, PersonSortType, source::site::Site};
+use lemmy_db_schema_file::{PersonId, newtypes::CommunityId};
 use lemmy_db_views_community::MultiCommunityView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_diesel_utils::pagination::PaginationCursor;

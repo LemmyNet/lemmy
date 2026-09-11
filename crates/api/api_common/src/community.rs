@@ -1,12 +1,12 @@
-pub use lemmy_db_schema::{
-  newtypes::{CommunityId, CommunityTagId, MultiCommunityId},
-  source::{
-    community::{Community, CommunityActions},
-    community_tag::{CommunityTag, CommunityTagsView},
-    multi_community::{MultiCommunity, MultiCommunityFollow},
-  },
+pub use lemmy_db_schema::source::{
+  community::{Community, CommunityActions},
+  community_tag::{CommunityTag, CommunityTagsView},
+  multi_community::{MultiCommunity, MultiCommunityFollow},
 };
-pub use lemmy_db_schema_file::enums::CommunityVisibility;
+pub use lemmy_db_schema_file::{
+  enums::CommunityVisibility,
+  newtypes::{CommunityId, CommunityTagId, MultiCommunityId},
+};
 pub use lemmy_db_views_community::{
   CommunityView,
   MultiCommunityView,

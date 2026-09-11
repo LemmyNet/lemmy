@@ -1,6 +1,5 @@
 use crate::{
   diesel::{BoolExpressionMethods, NullableExpressionMethods, OptionalExtension},
-  newtypes::{CommunityId, LocalUserId},
   source::person::{
     Person,
     PersonActions,
@@ -26,6 +25,7 @@ use diesel_uplete::{UpleteCount, uplete};
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
+  newtypes::{CommunityId, LocalUserId},
   schema::{instance, instance_actions, local_user, person, person_actions},
 };
 use lemmy_diesel_utils::{

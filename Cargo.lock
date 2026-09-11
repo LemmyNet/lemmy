@@ -3697,7 +3697,6 @@ dependencies = [
  "derive-new",
  "diesel",
  "diesel-async",
- "diesel-derive-newtype",
  "diesel-uplete",
  "diesel_ltree",
  "i-love-jesus",
