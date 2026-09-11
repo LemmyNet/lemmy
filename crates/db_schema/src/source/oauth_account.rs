@@ -1,5 +1,5 @@
-use crate::newtypes::{LocalUserId, OAuthProviderId};
 use chrono::{DateTime, Utc};
+use lemmy_db_schema_file::newtypes::{LocalUserId, OAuthProviderId};
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::oauth_account;
 use serde::{Deserialize, Serialize};

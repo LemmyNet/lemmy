@@ -1,7 +1,4 @@
-use crate::{
-  newtypes::LocalUserId,
-  source::password_reset_request::{PasswordResetRequest, PasswordResetRequestForm},
-};
+use crate::source::password_reset_request::{PasswordResetRequest, PasswordResetRequestForm};
 use diesel::{
   ExpressionMethods,
   IntoSql,
@@ -10,7 +7,7 @@ use diesel::{
   sql_types::Timestamptz,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::password_reset_request;
+use lemmy_db_schema_file::{newtypes::LocalUserId, schema::password_reset_request};
 use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 

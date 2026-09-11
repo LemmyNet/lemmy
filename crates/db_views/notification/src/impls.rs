@@ -10,7 +10,6 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   NotificationTypeFilter,
-  newtypes::NotificationId,
   source::{
     notification::{Notification, notification_keys},
     person::Person,
@@ -23,6 +22,7 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::{
   PersonId,
   enums::NotificationType,
+  newtypes::NotificationId,
   schema::{comment, community, modlog, notification, person, post, private_message},
 };
 use lemmy_db_views_modlog::ModlogView;

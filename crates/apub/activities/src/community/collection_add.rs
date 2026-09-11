@@ -24,7 +24,6 @@ use lemmy_apub_objects::{
 };
 use lemmy_db_schema::{
   impls::community::CollectionType,
-  newtypes::CommunityId,
   source::{
     activity::ActivitySendTargets,
     community::{Community, CommunityActions, CommunityModeratorForm},
@@ -33,7 +32,7 @@ use lemmy_db_schema::{
     post::{Post, PostUpdateForm},
   },
 };
-use lemmy_db_schema_file::PersonId;
+use lemmy_db_schema_file::{PersonId, newtypes::CommunityId};
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::{LemmyError, LemmyResult, UntranslatedError};
 use url::Url;

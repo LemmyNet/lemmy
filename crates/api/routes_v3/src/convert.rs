@@ -58,7 +58,6 @@ use lemmy_api_019::{
 use lemmy_api_utils::plugins::LemmyPlugins;
 use lemmy_db_schema::{
   CommunitySortType,
-  newtypes::LanguageId,
   source::{
     comment::Comment,
     community::Community,
@@ -69,12 +68,9 @@ use lemmy_db_schema::{
     site::Site,
   },
 };
-use lemmy_db_schema_file::enums::{
-  CommentSortType,
-  CommunityFollowerState,
-  ListingType,
-  PostSortType,
-  RegistrationMode,
+use lemmy_db_schema_file::{
+  enums::{CommentSortType, CommunityFollowerState, ListingType, PostSortType, RegistrationMode},
+  newtypes::LanguageId,
 };
 use lemmy_db_views_comment::{CommentView, api::CommentResponse};
 use lemmy_db_views_community::CommunityView;
