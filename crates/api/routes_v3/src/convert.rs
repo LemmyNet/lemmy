@@ -552,10 +552,10 @@ pub(crate) fn convert_site_view(site_view: SiteView) -> SiteViewV3 {
 
   let counts = SiteAggregates {
     site_id: SiteIdV3(site.id.0),
-    users: local_site.users.into(),
-    posts: local_site.posts.into(),
-    comments: local_site.comments.into(),
-    communities: local_site.communities.into(),
+    users: local_site.local_users.into(),
+    posts: local_site.local_posts.into(),
+    comments: local_site.local_comments.into(),
+    communities: local_site.local_communities.into(),
     users_active_day: local_site.users_active_day.into(),
     users_active_week: local_site.users_active_week.into(),
     users_active_month: local_site.users_active_month.into(),

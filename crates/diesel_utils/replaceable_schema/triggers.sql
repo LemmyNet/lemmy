@@ -169,7 +169,7 @@ WHERE
 UPDATE
     local_site AS a
 SET
-    comments = a.comments + diff.comments
+    local_comments = a.local_comments + diff.comments
 FROM (
     SELECT
         coalesce(sum(count_diff), 0) AS comments
@@ -223,7 +223,7 @@ WHERE
 UPDATE
     local_site AS a
 SET
-    posts = a.posts + diff.posts
+    local_posts = a.local_posts + diff.posts
 FROM (
     SELECT
         coalesce(sum(count_diff), 0) AS posts
@@ -242,7 +242,7 @@ BEGIN
     UPDATE
         local_site AS a
     SET
-        communities = a.communities + diff.communities
+        local_communities = a.local_communities + diff.communities
     FROM (
         SELECT
             coalesce(sum(count_diff), 0) AS communities

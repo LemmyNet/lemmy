@@ -4308,6 +4308,7 @@ dependencies = [
  "rosetta-i18n",
  "rss",
  "serde",
+ "serde_json",
  "serial_test",
  "strum 0.28.0",
  "tokio",
@@ -7560,6 +7561,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "756050066659291d47a554a9f558125db17428b073c5ffce1daf5dcb0f7231d8"
 dependencies = [
  "chrono",
+ "serde_json",
  "thiserror 2.0.18",
  "ts-rs-macros",
  "url",
