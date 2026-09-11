@@ -131,9 +131,12 @@ impl Object for ApubPerson {
     expected_domain: &Url,
     context: &Data<Self::DataType>,
   ) -> LemmyResult<()> {
-    verify_domains_match(person.id.inner(), expected_domain)?;
     verify_is_remote_object(&person.id, context)?;
     check_apub_id_valid_with_strictness(person.id.inner(), false, context).await?;
+
+    verify_domains_match(person.id.inner(), expected_domain)?;
+    verify_domains_match(person.id.inner(), &person.outbox)?;
+    verify_domains_match(person.id.inner(), &person.inbox)?;
 
     Ok(())
   }

@@ -117,6 +117,8 @@ impl Object for ApubSite {
   ) -> LemmyResult<()> {
     check_apub_id_valid_with_strictness(apub.id.inner(), true, data).await?;
     verify_domains_match(expected_domain, apub.id.inner())?;
+    verify_domains_match(apub.id.inner(), &apub.outbox)?;
+    verify_domains_match(apub.id.inner(), &apub.inbox)?;
     verify_is_remote_object(&apub.id, data)?;
 
     Ok(())
