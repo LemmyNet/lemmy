@@ -28,6 +28,7 @@ use lemmy_db_schema_file::{
     ImageMode,
     ListingType,
     PostListingMode,
+    PostNotificationsMode,
     PostSortType,
     RegistrationMode,
     VoteShow,
@@ -170,6 +171,7 @@ pub struct CreateSite {
   pub image_allow_video_uploads: Option<bool>,
   pub image_upload_disabled: Option<bool>,
   pub max_invites_per_user_allowed: Option<i32>,
+  pub default_post_notifications_mode: Option<PostNotificationsMode>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -307,6 +309,7 @@ pub struct EditSite {
   pub image_allow_video_uploads: Option<bool>,
   pub image_upload_disabled: Option<bool>,
   pub max_invites_per_user_allowed: Option<i32>,
+  pub default_post_notifications_mode: Option<PostNotificationsMode>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -572,6 +575,7 @@ pub struct SaveUserSettings {
   pub hide_posts_with_media: Option<bool>,
   /// Whether to show vote totals given to others.
   pub show_person_votes: Option<bool>,
+  pub default_post_notifications_mode: Option<PostNotificationsMode>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]

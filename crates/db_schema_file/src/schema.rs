@@ -380,6 +380,7 @@ diesel::table! {
     use super::sql_types::CommentSortTypeEnum;
     use super::sql_types::FederationModeEnum;
     use super::sql_types::ImageModeEnum;
+    use super::sql_types::PostNotificationsModeEnum;
 
     local_site (id) {
         id -> Int4,
@@ -432,6 +433,7 @@ diesel::table! {
         image_allow_video_uploads -> Bool,
         image_upload_disabled -> Bool,
         max_invites_per_user_allowed -> Int4,
+        default_post_notifications_mode -> PostNotificationsModeEnum,
     }
 }
 
@@ -473,6 +475,7 @@ diesel::table! {
     use super::sql_types::PostListingModeEnum;
     use super::sql_types::CommentSortTypeEnum;
     use super::sql_types::VoteShowEnum;
+    use super::sql_types::PostNotificationsModeEnum;
 
     local_user (id) {
         id -> Int4,
@@ -514,6 +517,7 @@ diesel::table! {
         default_items_per_page -> Int4,
         invited_by_local_user_id -> Nullable<Int4>,
         show_media -> Bool,
+        default_post_notifications_mode -> PostNotificationsModeEnum,
     }
 }
 
