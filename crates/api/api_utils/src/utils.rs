@@ -9,7 +9,6 @@ use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
 use enum_map::{EnumMap, enum_map};
 use lemmy_db_schema::{
-  newtypes::{CommunityId, CommunityTagId, ModlogId, PostId, PostOrCommentId},
   source::{
     comment::{Comment, CommentActions, CommentLikeForm},
     community::{Community, CommunityActions, CommunityUpdateForm},
@@ -19,6 +18,7 @@ use lemmy_db_schema::{
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
+    login_token::LoginToken,
     modlog::{Modlog, ModlogInsertForm},
     oauth_account::OAuthAccount,
     person::{Person, PersonUpdateForm},
@@ -33,6 +33,7 @@ use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
   enums::{FederationMode, ImageMode, RegistrationMode},
+  newtypes::{CommunityId, CommunityTagId, ModlogId, PostId, PostOrCommentId},
 };
 use lemmy_db_views_community_follower_approval::PendingFollowerView;
 use lemmy_db_views_community_moderator::{CommunityModeratorView, CommunityPersonBanView};
@@ -757,6 +758,7 @@ pub async fn purge_user_account(
   // Delete the oauth accounts linked to the local user
   if let Ok(local_user) = LocalUserView::read_person(pool, person_id).await {
     OAuthAccount::delete_user_accounts(pool, local_user.local_user.id).await?;
+    LoginToken::invalidate_all(pool, local_user.local_user.id).await?;
   }
 
   Person::delete_account(pool, person_id, local_instance_id).await?;
@@ -837,6 +839,11 @@ pub async fn process_markdown(
 
   if local_site.image_mode == ImageMode::ProxyAllImages {
     let (text, links) = markdown_rewrite_image_links(text);
+
+    // Validate the IPs for the links before inserting to the remote image table to prevent SSRF.
+    for link in &links {
+      context.is_valid_ip(link).await?;
+    }
     RemoteImage::create(&mut context.pool(), links.clone()).await?;
 
     // Create images and image detail rows
@@ -1032,10 +1039,8 @@ pub async fn update_post_tags(
 mod tests {
   use super::*;
   use diesel_ltree::Ltree;
-  use lemmy_db_schema::{
-    newtypes::{CommentId, LanguageId},
-    test_data::TestData,
-  };
+  use lemmy_db_schema::test_data::TestData;
+  use lemmy_db_schema_file::newtypes::{CommentId, LanguageId};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 

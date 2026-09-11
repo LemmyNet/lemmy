@@ -1,5 +1,5 @@
-use crate::newtypes::CustomEmojiId;
 use chrono::{DateTime, Utc};
+use lemmy_db_schema_file::newtypes::CustomEmojiId;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::custom_emoji;
 use lemmy_diesel_utils::dburl::DbUrl;

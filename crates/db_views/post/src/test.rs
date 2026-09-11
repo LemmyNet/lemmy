@@ -7,7 +7,6 @@ use diesel_uplete::UpleteCount;
 use lemmy_db_schema::{
   assert_length,
   impls::actor_language::UNDETERMINED_ID,
-  newtypes::{LanguageId, PostId},
   source::{
     actor_language::LocalUserLanguage,
     comment::{Comment, CommentInsertForm},
@@ -41,12 +40,9 @@ use lemmy_db_schema::{
   test_data::TestData,
   traits::{Bannable, Blockable, Followable, Likeable},
 };
-use lemmy_db_schema_file::enums::{
-  CommunityFollowerState,
-  CommunityVisibility,
-  ListingType,
-  PostSortType,
-  TagColor,
+use lemmy_db_schema_file::{
+  enums::{CommunityFollowerState, CommunityVisibility, ListingType, PostSortType, TagColor},
+  newtypes::{LanguageId, PostId},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_diesel_utils::{

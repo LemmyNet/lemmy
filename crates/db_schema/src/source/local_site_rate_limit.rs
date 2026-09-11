@@ -1,5 +1,5 @@
-use crate::newtypes::LocalSiteId;
 use chrono::{DateTime, Utc};
+use lemmy_db_schema_file::newtypes::LocalSiteId;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::local_site_rate_limit;
 use serde::{Deserialize, Serialize};

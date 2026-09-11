@@ -4,10 +4,8 @@ use activitypub_federation::{config::Data, traits::Object};
 use actix_web::{HttpRequest, HttpResponse, web};
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{objects::post::ApubPost, utils::functions::context_url};
-use lemmy_db_schema::{
-  newtypes::PostId,
-  source::{community::Community, post::Post},
-};
+use lemmy_db_schema::source::{community::Community, post::Post};
+use lemmy_db_schema_file::newtypes::PostId;
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::{
   FEDERATION_CONTEXT,

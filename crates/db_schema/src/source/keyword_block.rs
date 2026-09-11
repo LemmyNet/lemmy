@@ -1,4 +1,4 @@
-use crate::newtypes::LocalUserId;
+use lemmy_db_schema_file::newtypes::LocalUserId;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::local_user_keyword_block;
 use serde::{Deserialize, Serialize};

@@ -321,7 +321,6 @@ pub(crate) mod tests {
   use actix_web::web::Json;
   use lemmy_api_utils::context::LemmyContext;
   use lemmy_db_schema::{
-    newtypes::LanguageId,
     source::{
       community::{Community, CommunityActions, CommunityFollowerForm, CommunityInsertForm},
       person::Person,
@@ -329,6 +328,7 @@ pub(crate) mod tests {
     test_data::TestData,
     traits::Followable,
   };
+  use lemmy_db_schema_file::newtypes::LanguageId;
   use lemmy_db_views_community_follower::CommunityFollowerView;
   use lemmy_db_views_local_user::LocalUserView;
   use lemmy_diesel_utils::traits::Crud;

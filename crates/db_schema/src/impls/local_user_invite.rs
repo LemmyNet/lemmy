@@ -1,15 +1,12 @@
-use crate::{
-  newtypes::InvitationId,
-  source::local_user_invite::{
-    LocalUserInvite,
-    LocalUserInviteInsertForm,
-    LocalUserInviteUpdateForm,
-  },
+use crate::source::local_user_invite::{
+  LocalUserInvite,
+  LocalUserInviteInsertForm,
+  LocalUserInviteUpdateForm,
 };
 use chrono::Utc;
 use diesel::{ExpressionMethods, QueryDsl, insert_into};
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::local_user_invite;
+use lemmy_db_schema_file::{newtypes::InvitationId, schema::local_user_invite};
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   pagination::{CursorData, PaginationCursorConversion},
@@ -94,16 +91,14 @@ impl LocalUserInvite {
 
 #[cfg(test)]
 mod tests {
-  use crate::{
-    newtypes::{InvitationId, LocalUserId},
-    source::{
-      instance::Instance,
-      local_user::{LocalUser, LocalUserInsertForm},
-      local_user_invite::{LocalUserInvite, LocalUserInviteInsertForm, LocalUserInviteUpdateForm},
-      person::{Person, PersonInsertForm},
-    },
+  use crate::source::{
+    instance::Instance,
+    local_user::{LocalUser, LocalUserInsertForm},
+    local_user_invite::{LocalUserInvite, LocalUserInviteInsertForm, LocalUserInviteUpdateForm},
+    person::{Person, PersonInsertForm},
   };
   use chrono::{Duration, Utc};
+  use lemmy_db_schema_file::newtypes::{InvitationId, LocalUserId};
   use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use lemmy_utils::{error::LemmyResult, settings::structs::Settings};
   use pretty_assertions::assert_eq;
