@@ -109,7 +109,7 @@ pub enum LemmyErrorType {
   Unknown(String),
   UrlLengthOverflow,
   OauthAuthorizationInvalid,
-  OauthLoginFailed,
+  OauthLoginFailed(&'static str),
   OauthRegistrationClosed,
   NotFound,
   PostScheduleTimeMustBeInFuture,

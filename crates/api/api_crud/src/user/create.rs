@@ -324,7 +324,7 @@ pub async fn authenticate_with_oauth(
   .await?;
 
   let oauth_user_id = read_user_info(&user_info, oauth_provider.id_claim.as_str())
-    .ok_or(LemmyErrorType::OauthLoginFailed)?;
+    .ok_or(LemmyErrorType::OauthLoginFailed("id_claim_missing"))?;
 
   let require_registration_application =
     local_site.registration_mode == RegistrationMode::RequireApplication;
@@ -629,15 +629,22 @@ async fn oauth_request_access_token(
     .form(&form[..])
     .send()
     .await
-    .with_lemmy_type(LemmyErrorType::OauthLoginFailed)?
+    .with_lemmy_type(LemmyErrorType::OauthLoginFailed(
+      "token_request_send_failed",
+    ))?
     .error_for_status()
-    .with_lemmy_type(LemmyErrorType::OauthLoginFailed)?;
+    .with_lemmy_type(LemmyErrorType::OauthLoginFailed(
+      "token_request_error_status",
+    ))?;
 
   // Extract the access token
-  let token_response = response
-    .json::<TokenResponse>()
-    .await
-    .with_lemmy_type(LemmyErrorType::OauthLoginFailed)?;
+  let token_response =
+    response
+      .json::<TokenResponse>()
+      .await
+      .with_lemmy_type(LemmyErrorType::OauthLoginFailed(
+        "token_response_parse_failed",
+      ))?;
 
   Ok(token_response)
 }
@@ -655,15 +662,17 @@ async fn oidc_get_user_info(
     .bearer_auth(access_token)
     .send()
     .await
-    .with_lemmy_type(LemmyErrorType::OauthLoginFailed)?
+    .with_lemmy_type(LemmyErrorType::OauthLoginFailed(
+      "userinfo_request_send_failed",
+    ))?
     .error_for_status()
-    .with_lemmy_type(LemmyErrorType::OauthLoginFailed)?;
+    .with_lemmy_type(LemmyErrorType::OauthLoginFailed("userinfo_error_status"))?;
 
   // Extract the OAUTH user_id claim from the returned user_info
   let user_info = response
     .json::<serde_json::Value>()
     .await
-    .with_lemmy_type(LemmyErrorType::OauthLoginFailed)?;
+    .with_lemmy_type(LemmyErrorType::OauthLoginFailed("userinfo_parse_failed"))?;
 
   Ok(user_info)
 }
