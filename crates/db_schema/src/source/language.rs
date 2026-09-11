@@ -3,7 +3,7 @@ use crate::newtypes::LanguageId;
 use lemmy_db_schema_file::schema::language;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
 #[cfg_attr(feature = "full", diesel(table_name = language))]
 #[cfg_attr(feature = "full", diesel(check_for_backend(diesel::pg::Pg)))]

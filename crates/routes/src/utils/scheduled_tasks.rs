@@ -857,12 +857,7 @@ mod tests {
     let data = TestData::create(pool).await?;
     let community = Community::create(
       pool,
-      &CommunityInsertForm::new(
-        data.instance.id,
-        "name".to_owned(),
-        "title".to_owned(),
-        "pubkey".to_owned(),
-      ),
+      &CommunityInsertForm::new(data.instance.id, "name".to_owned(), "pubkey".to_owned()),
     )
     .await?;
     let person = Person::create(
@@ -917,12 +912,7 @@ mod tests {
     // insert some local data
     let community = Community::create(
       pool,
-      &CommunityInsertForm::new(
-        data.instance.id,
-        "name".to_owned(),
-        "title".to_owned(),
-        "pubkey".to_owned(),
-      ),
+      &CommunityInsertForm::new(data.instance.id, "name".to_owned(), "pubkey".to_owned()),
     )
     .await?;
     let person = Person::create(
@@ -942,12 +932,7 @@ mod tests {
     // insert some federated data
     let community = Community::create(
       pool,
-      &CommunityInsertForm::new(
-        instance0.id,
-        "name".to_owned(),
-        "title".to_owned(),
-        "pubkey".to_owned(),
-      ),
+      &CommunityInsertForm::new(instance0.id, "name".to_owned(), "pubkey".to_owned()),
     )
     .await?;
     let person = Person::create(
@@ -994,12 +979,7 @@ mod tests {
     let data = TestData::create(pool).await?;
     let community = Community::create(
       pool,
-      &CommunityInsertForm::new(
-        data.instance.id,
-        "name".to_owned(),
-        "title".to_owned(),
-        "pubkey".to_owned(),
-      ),
+      &CommunityInsertForm::new(data.instance.id, "name".to_owned(), "pubkey".to_owned()),
     )
     .await?;
     let person = Person::create(
