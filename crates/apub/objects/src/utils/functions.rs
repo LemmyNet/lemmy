@@ -8,7 +8,7 @@ use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
   kinds::public,
-  protocol::values::MediaTypeMarkdownOrHtml,
+  protocol::{values::MediaTypeMarkdownOrHtml, verification::verify_domains_match},
 };
 use either::Either;
 use lemmy_api_utils::context::LemmyContext;
@@ -134,6 +134,18 @@ pub async fn check_apub_id_valid_with_strictness(
     }
   }
   Ok(())
+}
+
+/// A wrapper function for verify_domains_match to handle optionals.
+pub fn verify_domains_match_opt(
+  a: &Url,
+  b: &Option<Url>,
+) -> Result<(), activitypub_federation::error::Error> {
+  if let Some(b) = &b {
+    verify_domains_match(a, b)
+  } else {
+    Ok(())
+  }
 }
 
 /// Checks if the ID is allowed for sending or receiving.
