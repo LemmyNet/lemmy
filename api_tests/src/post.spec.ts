@@ -246,6 +246,17 @@ test("Update a post", async () => {
   expect(betaPost?.post.name).toBe(updatedName);
   await assertPostFederation(betaPost!, updatedPost.post_view);
 
+  // Make sure URL removal federates
+  const updatePost2 = await editPost(alpha, postRes.post_view.post, "").then(
+    expectSuccess,
+  );
+  expect(updatePost2.post_view.post.url).toBe(undefined);
+  const betaPost2 = await waitUntilSuccess(
+    () => getPost(beta, betaPost!.post.id),
+    p => !p.post_view.post.url,
+  );
+  expect(betaPost2.post_view.post.url).toBe(undefined);
+
   // Make sure lemmy beta cannot update the post
   await jestLemmyError(
     () => editPost(beta, betaPost!.post).then(expectFailure),
