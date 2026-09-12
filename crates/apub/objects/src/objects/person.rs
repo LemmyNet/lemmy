@@ -253,6 +253,8 @@ pub(crate) mod tests {
     let mut json: crate::protocol::instance::Instance =
       file_to_json_object("../apub/assets/lemmy/objects/instance.json")?;
     json.id = ObjectId::parse("https://queer.hacktivis.me/")?;
+    json.inbox = Url::parse("https://queer.hacktivis.me/lanodan/inbox")?;
+    json.outbox = Url::parse("https://queer.hacktivis.me/lanodan/outbox")?;
     let url = Url::parse("https://queer.hacktivis.me/users/lanodan")?;
     ApubSite::verify(&json, &url, &context).await?;
     ApubSite::from_json(json, &context).await?;
