@@ -1,6 +1,5 @@
 use super::send_activity_from_user_or_community_or_multi;
 use crate::{
-  check_community_deleted_or_removed,
   generate_activity_id,
   protocol::{
     IdOrNestedObject,
@@ -13,7 +12,7 @@ use activitypub_federation::{
   protocol::verification::verify_urls_match,
   traits::{Activity, Actor, Object},
 };
-use lemmy_api_utils::context::LemmyContext;
+use lemmy_api_utils::{context::LemmyContext, utils::check_community_deleted_removed};
 use lemmy_db_schema::{
   source::{activity::ActivitySendTargets, community::CommunityActions},
   traits::Followable,
@@ -63,7 +62,7 @@ impl Activity for RejectFollow {
 
   async fn receive(self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     let community = self.actor.dereference(context).await?;
-    check_community_deleted_or_removed(&community)?;
+    check_community_deleted_removed(&community)?;
     let object = self.object.dereference(context).await?;
     let actor = object.actor.dereference(context).await?;
     let person = actor.left().ok_or(UntranslatedError::Unreachable)?;

@@ -33,7 +33,13 @@ use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::{
   error::LemmyResult,
   spawn_try_task,
-  utils::validation::{check_api_elements_count, check_blocking_keywords_are_valid},
+  utils::validation::{
+    check_api_elements_count,
+    check_blocking_keywords_are_valid,
+    is_valid_bio_field,
+    is_valid_display_name,
+    is_valid_matrix_id,
+  },
 };
 use serde::Deserialize;
 use std::{collections::HashMap, future::Future};
@@ -57,6 +63,18 @@ pub async fn import_user_settings(
   context: Data<LemmyContext>,
 ) -> LemmyResult<Json<SuccessResponse>> {
   check_local_user_banned_or_deleted(&local_user_view)?;
+  if let Some(bio) = &data.bio {
+    is_valid_bio_field(bio)?;
+  }
+
+  if let Some(display_name) = &data.display_name {
+    is_valid_display_name(display_name)?;
+  }
+
+  if let Some(matrix_user_id) = &data.matrix_id {
+    is_valid_matrix_id(matrix_user_id)?;
+  }
+
   let person_form = PersonUpdateForm {
     display_name: data.display_name.clone().map(Some),
     bio: data.bio.clone().map(Some),
@@ -303,7 +321,6 @@ pub(crate) mod tests {
   use actix_web::web::Json;
   use lemmy_api_utils::context::LemmyContext;
   use lemmy_db_schema::{
-    newtypes::LanguageId,
     source::{
       community::{Community, CommunityActions, CommunityFollowerForm, CommunityInsertForm},
       person::Person,
@@ -311,6 +328,7 @@ pub(crate) mod tests {
     test_data::TestData,
     traits::Followable,
   };
+  use lemmy_db_schema_file::newtypes::LanguageId;
   use lemmy_db_views_community_follower::CommunityFollowerView;
   use lemmy_db_views_local_user::LocalUserView;
   use lemmy_diesel_utils::traits::Crud;

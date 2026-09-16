@@ -375,7 +375,7 @@ fn create_http_server(
           webfinger::config(cfg);
         }
       })
-      .configure(feeds::config)
+      .configure(|cfg| feeds::config(cfg, &rate_limit))
       .configure(nodeinfo::config)
       .service(
         scope("/sitemap.xml")

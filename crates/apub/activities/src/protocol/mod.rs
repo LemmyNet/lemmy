@@ -58,7 +58,11 @@ impl<Kind: Id + DeserializeOwned + Clone + Send> IdOrNestedObject<Kind> {
 mod tests {
   use crate::protocol::{
     community::{announce::AnnounceActivity, report::Report},
-    create_or_update::{note::CreateOrUpdateNote, page::CreateOrUpdatePage},
+    create_or_update::{
+      note::CreateOrUpdateNote,
+      note_wrapper::CreateOrUpdateNoteWrapper,
+      page::CreateOrUpdatePage,
+    },
     deletion::delete::Delete,
     following::{accept::AcceptFollow, follow::Follow, undo_follow::UndoFollow},
     voting::{undo_vote::UndoVote, vote::Vote},
@@ -144,6 +148,9 @@ mod tests {
   #[test]
   fn test_parse_mitra_activities() -> LemmyResult<()> {
     test_json::<AcceptFollow>("../apub/assets/mitra/activities/accept.json")?;
+    // This one has type `Create/Note` but it should actually create a new post (not a comment or
+    // private message)
+    test_json::<CreateOrUpdateNoteWrapper>("../apub/assets/mitra/activities/create_post.json")?;
     Ok(())
   }
 }

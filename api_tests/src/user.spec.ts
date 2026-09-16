@@ -25,7 +25,6 @@ import {
   getMyUser,
   getPersonDetails,
   banPersonFromSite,
-  statusNotFound,
   statusUnauthorized,
   listPersonContent,
   password,
@@ -35,6 +34,7 @@ import {
   expectSuccess,
   expectFailure,
   waitUntilSuccess,
+  waitUntil,
 } from "./shared";
 import {
   EditSite,
@@ -125,17 +125,19 @@ test("Delete user", async () => {
     new LemmyError("incorrect_login", statusUnauthorized),
   );
 
-  await jestLemmyError(
+  // User deletion runs as a background task, so wait for it to complete
+  await waitUntil(
     () => getPersonDetails(user, person_id).then(expectFailure),
-    new LemmyError("not_found", statusNotFound),
+    e => e?.name === "not_found",
   );
 
   // check that posts and comments are marked as deleted on other instances.
   // use get methods to avoid refetching from origin instance
-  expect(
-    (await getPost(alpha, localPost.id).then(expectSuccess)).post_view.post
-      .deleted,
-  ).toBe(true);
+  const deletedLocalPost = await waitUntilSuccess(
+    () => getPost(alpha, localPost.id),
+    s => s.post_view.post.deleted,
+  );
+  expect(deletedLocalPost.post_view.post.deleted).toBe(true);
   // Make sure the remote post is deleted.
   // TODO this fails occasionally
   // Probably because it could return a not_found
@@ -151,9 +153,10 @@ test("Delete user", async () => {
     () => alpha.getComment({ id: remoteComment.id }),
     c => c.comment_view.comment.deleted,
   );
-  await jestLemmyError(
+  // User deletion runs as a background task, so wait for it to complete
+  await waitUntil(
     () => getPersonDetails(user, remoteComment.creator_id).then(expectFailure),
-    new LemmyError("not_found", statusNotFound),
+    e => e?.name === "not_found",
   );
 });
 
@@ -290,7 +293,10 @@ test("Make sure banned user can delete their account", async () => {
   expect(deleteAccount).toBeDefined();
 
   // Make sure post is gone
-  const postAfterDelete = await getPost(alpha, postId).then(expectSuccess);
+  const postAfterDelete = await waitUntilSuccess(
+    () => getPost(alpha, postId),
+    s => s.post_view.post.deleted,
+  );
   expect(postAfterDelete.post_view.post.deleted).toBe(true);
   expect(postAfterDelete.post_view.post.name).toBe("*Permanently Deleted*");
 });
@@ -340,8 +346,9 @@ test("Admins can view and ban deleted accounts", async () => {
   ).then(expectSuccess);
   expect(banUser.person_view.banned).toBe(true);
   // Make sure the post is removed
-  const postAfterBan = await getPost(beta, postRes.post_view.post.id).then(
-    expectSuccess,
+  const postAfterBan = await waitUntilSuccess(
+    () => getPost(beta, postRes.post_view.post.id),
+    s => s.post_view.post.removed,
   );
   expect(postAfterBan.post_view.post.removed).toBe(true);
 

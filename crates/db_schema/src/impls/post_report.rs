@@ -1,6 +1,5 @@
 use crate::{
-  newtypes::{PostId, PostReportId},
-  source::post_report::{PostReport, PostReportForm},
+  source::post_report::{PostReport, PostReportForm, UpdatePostReportForm},
   traits::Reportable,
 };
 use chrono::Utc;
@@ -11,12 +10,17 @@ use diesel::{
   dsl::{insert_into, update},
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::{PersonId, schema::post_report};
+use lemmy_db_schema_file::{
+  PersonId,
+  newtypes::{PostId, PostReportId},
+  schema::post_report,
+};
 use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Reportable for PostReport {
   type Form = PostReportForm;
+  type UpdateForm = UpdatePostReportForm;
   type IdType = PostReportId;
   type ObjectIdType = PostId;
 
@@ -32,16 +36,11 @@ impl Reportable for PostReport {
   async fn update_resolved(
     pool: &mut DbPool<'_>,
     report_id: Self::IdType,
-    by_resolver_id: PersonId,
-    is_resolved: bool,
+    form: &Self::UpdateForm,
   ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
     update(post_report::table.find(report_id))
-      .set((
-        post_report::resolved.eq(is_resolved),
-        post_report::resolver_id.eq(by_resolver_id),
-        post_report::updated_at.eq(Utc::now()),
-      ))
+      .set(form)
       .execute(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)
@@ -151,12 +150,16 @@ mod tests {
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
-    let resolved_count =
-      PostReport::update_resolved(pool, data.report.id, data.person.id, true).await?;
+    let update_form = UpdatePostReportForm {
+      resolver_id: Some(data.person.id),
+      resolved: Some(true),
+      ..Default::default()
+    };
+
+    let resolved_count = PostReport::update_resolved(pool, data.report.id, &update_form).await?;
     assert_eq!(resolved_count, 1);
 
-    let unresolved_count =
-      PostReport::update_resolved(pool, data.report.id, data.person.id, false).await?;
+    let unresolved_count = PostReport::update_resolved(pool, data.report.id, &update_form).await?;
     assert_eq!(unresolved_count, 1);
 
     cleanup(data, pool).await

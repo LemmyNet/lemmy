@@ -1,8 +1,10 @@
-use crate::newtypes::{PostId, PostReportId};
 use chrono::{DateTime, Utc};
-use lemmy_db_schema_file::PersonId;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::post_report;
+use lemmy_db_schema_file::{
+  PersonId,
+  newtypes::{PostId, PostReportId},
+};
 use lemmy_diesel_utils::dburl::DbUrl;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -35,6 +37,7 @@ pub struct PostReport {
   pub published_at: DateTime<Utc>,
   pub updated_at: Option<DateTime<Utc>>,
   pub violates_instance_rules: bool,
+  pub conclusion: Option<String>,
 }
 
 #[derive(Clone, Default)]
@@ -48,4 +51,14 @@ pub struct PostReportForm {
   pub original_post_body: Option<String>,
   pub reason: String,
   pub violates_instance_rules: bool,
+}
+
+#[derive(Clone, Default)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = post_report))]
+pub struct UpdatePostReportForm {
+  pub resolver_id: Option<PersonId>,
+  pub resolved: Option<bool>,
+  pub conclusion: Option<Option<String>>,
+  pub updated_at: Option<DateTime<Utc>>,
 }

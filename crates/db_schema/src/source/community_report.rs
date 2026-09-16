@@ -1,8 +1,10 @@
-use crate::newtypes::{CommunityId, CommunityReportId};
 use chrono::{DateTime, Utc};
-use lemmy_db_schema_file::PersonId;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::community_report;
+use lemmy_db_schema_file::{
+  PersonId,
+  newtypes::{CommunityId, CommunityReportId},
+};
 use lemmy_diesel_utils::dburl::DbUrl;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -37,6 +39,7 @@ pub struct CommunityReport {
   pub resolver_id: Option<PersonId>,
   pub published_at: DateTime<Utc>,
   pub updated_at: Option<DateTime<Utc>>,
+  pub conclusion: Option<String>,
 }
 
 #[derive(Clone)]
@@ -52,4 +55,14 @@ pub struct CommunityReportForm {
   pub original_community_icon: Option<DbUrl>,
   pub original_community_banner: Option<DbUrl>,
   pub reason: String,
+}
+
+#[derive(Clone, Default)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = community_report))]
+pub struct UpdateCommunityReportForm {
+  pub resolver_id: Option<PersonId>,
+  pub resolved: Option<bool>,
+  pub conclusion: Option<Option<String>>,
+  pub updated_at: Option<DateTime<Utc>>,
 }

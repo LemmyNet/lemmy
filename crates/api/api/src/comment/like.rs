@@ -13,7 +13,6 @@ use lemmy_api_utils::{
   },
 };
 use lemmy_db_schema::{
-  newtypes::PostOrCommentId,
   source::{
     comment::{CommentActions, CommentLikeForm},
     notification::Notification,
@@ -21,6 +20,7 @@ use lemmy_db_schema::{
   },
   traits::Likeable,
 };
+use lemmy_db_schema_file::newtypes::PostOrCommentId;
 use lemmy_db_views_comment::{
   CommentView,
   api::{CommentResponse, CreateCommentLike},

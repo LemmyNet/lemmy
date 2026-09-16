@@ -18,7 +18,6 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::{SortDirection, asc_if};
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommunityId, CommunityTagId, MultiCommunityId, PostId},
   source::{
     actor_language::LocalUserLanguage,
     community::CommunityActions,
@@ -43,6 +42,7 @@ use lemmy_db_schema_file::{
     creator_community_instance_actions_join,
     creator_home_instance_actions_join,
     creator_local_instance_actions_join,
+    creator_local_user_admin_join,
     image_details_join,
     my_community_actions_join,
     my_instance_communities_actions_join,
@@ -51,6 +51,7 @@ use lemmy_db_schema_file::{
     my_person_actions_join,
     my_post_actions_join,
   },
+  newtypes::{CommunityId, CommunityTagId, MultiCommunityId, PostId},
   schema::{community, person, post, post_actions, post_community_tag},
 };
 use lemmy_diesel_utils::{
@@ -129,6 +130,7 @@ impl PostView {
       .left_join(creator_home_instance_actions_join())
       .left_join(creator_community_instance_actions_join())
       .left_join(creator_local_instance_actions_join)
+      .left_join(creator_local_user_admin_join())
       .left_join(creator_community_actions_join())
       .left_join(my_community_actions_join)
       .left_join(my_person_actions_join)
@@ -161,6 +163,7 @@ impl PostView {
       .left_join(creator_home_instance_actions_join())
       .left_join(creator_community_instance_actions_join())
       .left_join(creator_local_instance_actions_join)
+      .left_join(creator_local_user_admin_join())
       .left_join(creator_community_actions_join())
       .left_join(my_community_actions_join)
       .left_join(my_person_actions_join)

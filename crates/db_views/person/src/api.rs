@@ -1,6 +1,6 @@
 use crate::PersonView;
 use lemmy_db_schema::{PersonListingType, PersonSortType, source::site::Site};
-use lemmy_db_schema_file::PersonId;
+use lemmy_db_schema_file::{PersonId, newtypes::CommunityId};
 use lemmy_db_views_community::MultiCommunityView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_diesel_utils::pagination::PaginationCursor;
@@ -114,6 +114,7 @@ pub struct ListPersons {
   pub sort: Option<PersonSortType>,
   pub search_term: Option<String>,
   pub search_title_only: Option<bool>,
+  pub community_id: Option<CommunityId>,
   pub page_cursor: Option<PaginationCursor>,
   pub limit: Option<i64>,
 }

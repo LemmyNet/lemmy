@@ -26,41 +26,29 @@ pub fn config(cfg: &mut web::ServiceConfig) {
   cfg
     .route("/", web::get().to(get_apub_site_http))
     .route("/site_outbox", web::get().to(get_apub_site_outbox))
+    .route("/c/{name}", web::get().to(get_apub_community_http))
     .route(
-      "/c/{community_name}",
-      web::get().to(get_apub_community_http),
-    )
-    .route(
-      "/c/{community_name}/followers",
+      "/c/{name}/followers",
       web::get().to(get_apub_community_followers),
     )
+    .route("/c/{name}/outbox", web::get().to(get_apub_community_outbox))
     .route(
-      "/c/{community_name}/outbox",
-      web::get().to(get_apub_community_outbox),
-    )
-    .route(
-      "/c/{community_name}/featured",
+      "/c/{name}/featured",
       web::get().to(get_apub_community_featured),
     )
     .route(
-      "/c/{community_name}/moderators",
+      "/c/{name}/moderators",
       web::get().to(get_apub_community_moderators),
     )
     .route(
-      "/c/{community_name}/tag/{tag_name}",
+      "/c/{name}/tag/{tag_name}",
       web::get().to(get_apub_community_tag_http),
     )
-    .route("/u/{user_name}", web::get().to(get_apub_person_http))
+    .route("/u/{name}", web::get().to(get_apub_person_http))
+    .route("/u/{name}/outbox", web::get().to(get_apub_person_outbox))
+    .route("/m/{name}", web::get().to(get_apub_person_multi_community))
     .route(
-      "/u/{user_name}/outbox",
-      web::get().to(get_apub_person_outbox),
-    )
-    .route(
-      "/m/{multi_name}",
-      web::get().to(get_apub_person_multi_community),
-    )
-    .route(
-      "/m/{multi_name}/following",
+      "/m/{name}/following",
       web::get().to(get_apub_person_multi_community_follows),
     )
     .route("/post/{post_id}", web::get().to(get_apub_post))

@@ -21,6 +21,7 @@ use lemmy_db_views_person::{
 };
 use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
+  spawn_try_task,
   utils::validation::is_valid_body_field,
 };
 
@@ -67,15 +68,20 @@ pub async fn ban_from_site(
   // Remove their data if that's desired
   if data.remove_or_restore_data.unwrap_or(false) {
     let removed = data.ban;
-    remove_or_restore_user_data(
-      my_person_id,
-      data.person_id,
-      removed,
-      &data.reason,
-      action.first().ok_or(LemmyErrorType::NotFound)?.id,
-      &context,
-    )
-    .await?;
+    let reason = data.reason.clone();
+    let ban_id = action.first().ok_or(LemmyErrorType::NotFound)?.id;
+    let context = context.clone();
+    spawn_try_task(async move {
+      remove_or_restore_user_data(
+        my_person_id,
+        data.person_id,
+        removed,
+        &reason,
+        ban_id,
+        &context,
+      )
+      .await
+    });
   };
 
   let person_view = PersonView::read(

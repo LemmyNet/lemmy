@@ -1,5 +1,4 @@
-use crate::newtypes::CommunityId;
-use lemmy_db_schema_file::schema::community_community_follow;
+use lemmy_db_schema_file::{newtypes::CommunityId, schema::community_community_follow};
 
 #[derive(Clone, Debug, PartialEq, Queryable, Selectable)]
 #[diesel(belongs_to(crate::source::community::Community))]

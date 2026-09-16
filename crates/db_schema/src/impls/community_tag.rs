@@ -1,6 +1,5 @@
 use crate::{
   diesel::SelectableHelper,
-  newtypes::{CommunityId, CommunityTagId, PostId},
   source::{
     community_tag::{
       CommunityTag,
@@ -25,7 +24,10 @@ use diesel::{
   upsert::excluded,
 };
 use diesel_async::{RunQueryDsl, scoped_futures::ScopedFutureExt};
-use lemmy_db_schema_file::schema::{community_tag, post_community_tag};
+use lemmy_db_schema_file::{
+  newtypes::{CommunityId, CommunityTagId, PostId},
+  schema::{community_tag, post_community_tag},
+};
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   dburl::DbUrl,

@@ -1,4 +1,4 @@
-use super::check_community_content_fetchable;
+use super::{ActorPath, check_community_content_fetchable};
 use crate::{
   collections::{
     community_featured::ApubCommunityFeatured,
@@ -42,25 +42,20 @@ use lemmy_utils::{
 use serde::Deserialize;
 
 #[derive(Deserialize, Clone)]
-pub(crate) struct CommunityPath {
-  community_name: String,
-}
-
-#[derive(Deserialize, Clone)]
 pub(crate) struct CommunityIsFollowerQuery {
   is_follower: Option<ObjectId<SiteOrMultiOrCommunityOrUser>>,
 }
 
-/// Return the ActivityPub json representation of a local community over HTTP.
+/// Return the ActivityPub json representation of a community over HTTP.
 pub(crate) async fn get_apub_community_http(
-  info: Path<CommunityPath>,
+  info: Path<ActorPath>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
-  let community: ApubCommunity =
-    Community::read_from_name(&mut context.pool(), &info.community_name, None, true)
-      .await?
-      .ok_or(LemmyErrorType::NotFound)?
-      .into();
+  let (name, domain) = info.split_name();
+  let community: ApubCommunity = Community::read_from_name(&mut context.pool(), name, domain, true)
+    .await?
+    .ok_or(LemmyErrorType::NotFound)?
+    .into();
 
   check_community_fetchable(&community)?;
 
@@ -69,12 +64,12 @@ pub(crate) async fn get_apub_community_http(
 
 /// Returns an empty followers collection, only populating the size (for privacy).
 pub(crate) async fn get_apub_community_followers(
-  info: Path<CommunityPath>,
+  info: Path<ActorPath>,
   query: Query<CommunityIsFollowerQuery>,
   context: Data<LemmyContext>,
   request: HttpRequest,
 ) -> LemmyResult<HttpResponse> {
-  let community = Community::read_from_name(&mut context.pool(), &info.community_name, None, false)
+  let community = Community::read_from_name(&mut context.pool(), &info.name, None, false)
     .await?
     .ok_or(LemmyErrorType::NotFound)?;
   if let Some(is_follower) = &query.is_follower {
@@ -122,12 +117,12 @@ async fn check_is_follower(
 /// Returns the community outbox, which is populated by a maximum of 20 posts (but no other
 /// activities like votes or comments).
 pub(crate) async fn get_apub_community_outbox(
-  info: Path<CommunityPath>,
+  info: Path<ActorPath>,
   context: Data<LemmyContext>,
   request: HttpRequest,
 ) -> LemmyResult<HttpResponse> {
   let community: ApubCommunity =
-    Community::read_from_name(&mut context.pool(), &info.community_name, None, false)
+    Community::read_from_name(&mut context.pool(), &info.name, None, false)
       .await?
       .ok_or(LemmyErrorType::NotFound)?
       .into();
@@ -137,11 +132,11 @@ pub(crate) async fn get_apub_community_outbox(
 }
 
 pub(crate) async fn get_apub_community_moderators(
-  info: Path<CommunityPath>,
+  info: Path<ActorPath>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
   let community: ApubCommunity =
-    Community::read_from_name(&mut context.pool(), &info.community_name, None, false)
+    Community::read_from_name(&mut context.pool(), &info.name, None, false)
       .await?
       .ok_or(LemmyErrorType::NotFound)?
       .into();
@@ -152,12 +147,12 @@ pub(crate) async fn get_apub_community_moderators(
 
 /// Returns collection of featured (stickied) posts.
 pub(crate) async fn get_apub_community_featured(
-  info: Path<CommunityPath>,
+  info: Path<ActorPath>,
   context: Data<LemmyContext>,
   request: HttpRequest,
 ) -> LemmyResult<HttpResponse> {
   let community: ApubCommunity =
-    Community::read_from_name(&mut context.pool(), &info.community_name, None, false)
+    Community::read_from_name(&mut context.pool(), &info.name, None, false)
       .await?
       .ok_or(LemmyErrorType::NotFound)?
       .into();
@@ -166,17 +161,13 @@ pub(crate) async fn get_apub_community_featured(
   Ok(create_http_response(featured, &FEDERATION_CONTEXT)?)
 }
 
-#[derive(Deserialize)]
-pub(crate) struct MultiCommunityQuery {
-  multi_name: String,
-}
-
 pub(crate) async fn get_apub_person_multi_community(
-  query: Path<MultiCommunityQuery>,
+  path: Path<ActorPath>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
+  let (name, domain) = path.split_name();
   let multi: ApubMultiCommunity =
-    MultiCommunity::read_from_name(&mut context.pool(), &query.multi_name, None, false)
+    MultiCommunity::read_from_name(&mut context.pool(), name, domain, false)
       .await?
       .ok_or(LemmyErrorType::NotFound)?
       .into();
@@ -185,10 +176,10 @@ pub(crate) async fn get_apub_person_multi_community(
 }
 
 pub(crate) async fn get_apub_person_multi_community_follows(
-  query: Path<MultiCommunityQuery>,
+  path: Path<ActorPath>,
   context: Data<LemmyContext>,
 ) -> LemmyResult<HttpResponse> {
-  let multi = MultiCommunity::read_from_name(&mut context.pool(), &query.multi_name, None, false)
+  let multi = MultiCommunity::read_from_name(&mut context.pool(), &path.name, None, false)
     .await?
     .ok_or(LemmyErrorType::NotFound)?
     .into();
@@ -250,7 +241,7 @@ pub(crate) mod tests {
     deleted: bool,
     visibility: CommunityVisibility,
     context: &Data<LemmyContext>,
-  ) -> LemmyResult<(TestData, Community, Path<CommunityPath>)> {
+  ) -> LemmyResult<(TestData, Community, Path<ActorPath>)> {
     let data = TestData::create(&mut context.pool()).await?;
 
     let community_form = CommunityInsertForm {
@@ -264,8 +255,8 @@ pub(crate) mod tests {
       )
     };
     let community = Community::create(&mut context.pool(), &community_form).await?;
-    let path: Path<CommunityPath> = CommunityPath {
-      community_name: community.name.clone(),
+    let path: Path<ActorPath> = ActorPath {
+      name: community.name.clone(),
     }
     .into();
     Ok((data, community, path))
@@ -285,8 +276,8 @@ pub(crate) mod tests {
     let request = TestRequest::default().to_http_request();
 
     // fetch invalid community
-    let query = CommunityPath {
-      community_name: "asd".to_string(),
+    let query = ActorPath {
+      name: "asd".to_string(),
     };
     let res = get_apub_community_http(query.into(), context.clone()).await;
     assert!(res.is_err());

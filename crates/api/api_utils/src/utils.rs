@@ -9,7 +9,6 @@ use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
 use enum_map::{EnumMap, enum_map};
 use lemmy_db_schema::{
-  newtypes::{CommunityId, CommunityTagId, ModlogId, PostId, PostOrCommentId},
   source::{
     comment::{Comment, CommentActions},
     community::{Community, CommunityActions, CommunityUpdateForm},
@@ -19,6 +18,7 @@ use lemmy_db_schema::{
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
+    login_token::LoginToken,
     modlog::{Modlog, ModlogInsertForm},
     oauth_account::OAuthAccount,
     person::{Person, PersonUpdateForm},
@@ -33,6 +33,7 @@ use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
   enums::{CommunityFollowerState, ImageMode, RegistrationMode, VoteSettings},
+  newtypes::{CommunityId, CommunityTagId, ModlogId, PostId, PostOrCommentId},
 };
 use lemmy_db_views_community_follower_approval::PendingFollowerView;
 use lemmy_db_views_community_moderator::{CommunityModeratorView, CommunityPersonBanView};
@@ -75,51 +76,25 @@ use webmention::{Webmention, WebmentionError};
 
 pub const AUTH_COOKIE_NAME: &str = "jwt";
 
-pub async fn check_is_mod_or_admin(
-  pool: &mut DbPool<'_>,
-  person_id: PersonId,
-  community_id: CommunityId,
-) -> LemmyResult<()> {
-  let is_mod = CommunityModeratorView::check_is_community_moderator(pool, community_id, person_id)
-    .await
-    .is_ok();
-  let is_admin = LocalUserView::read_person(pool, person_id)
-    .await
-    .is_ok_and(|t| t.local_user.admin);
-
-  if is_mod || is_admin {
-    Ok(())
-  } else {
-    Err(LemmyErrorType::NotAModOrAdmin.into())
-  }
-}
-
-/// Checks if a person is an admin, or moderator of any community.
-pub(crate) async fn check_is_mod_of_any_or_admin(
-  pool: &mut DbPool<'_>,
-  person_id: PersonId,
-) -> LemmyResult<()> {
-  let is_mod_of_any = CommunityModeratorView::is_community_moderator_of_any(pool, person_id)
-    .await
-    .is_ok();
-  let is_admin = LocalUserView::read_person(pool, person_id)
-    .await
-    .is_ok_and(|t| t.local_user.admin);
-
-  if is_mod_of_any || is_admin {
-    Ok(())
-  } else {
-    Err(LemmyErrorType::NotAModOrAdmin.into())
-  }
-}
-
 pub async fn is_mod_or_admin(
   pool: &mut DbPool<'_>,
   local_user_view: &LocalUserView,
   community_id: CommunityId,
 ) -> LemmyResult<()> {
   check_local_user_banned_or_deleted(local_user_view)?;
-  check_is_mod_or_admin(pool, local_user_view.person.id, community_id).await
+  let is_mod = CommunityModeratorView::check_is_community_moderator(
+    pool,
+    community_id,
+    local_user_view.person.id,
+  )
+  .await
+  .is_ok();
+
+  if is_mod || local_user_view.local_user.admin {
+    Ok(())
+  } else {
+    Err(LemmyErrorType::NotAModOrAdmin.into())
+  }
 }
 
 pub async fn is_mod_or_admin_opt(
@@ -148,7 +123,15 @@ pub async fn check_community_mod_of_any_or_admin_action(
   let person = &local_user_view.person;
 
   check_local_user_banned_or_deleted(local_user_view)?;
-  check_is_mod_of_any_or_admin(pool, person.id).await
+  let is_mod_of_any = CommunityModeratorView::is_community_moderator_of_any(pool, person.id)
+    .await
+    .is_ok();
+
+  if is_mod_of_any || local_user_view.local_user.admin {
+    Ok(())
+  } else {
+    Err(LemmyErrorType::NotAModOrAdmin.into())
+  }
 }
 
 pub fn is_admin(local_user_view: &LocalUserView) -> LemmyResult<()> {
@@ -791,6 +774,7 @@ pub async fn purge_user_account(
   // Delete the oauth accounts linked to the local user
   if let Ok(local_user) = LocalUserView::read_person(pool, person_id).await {
     OAuthAccount::delete_user_accounts(pool, local_user.local_user.id).await?;
+    LoginToken::invalidate_all(pool, local_user.local_user.id).await?;
   }
 
   Person::delete_account(pool, person_id, local_instance_id).await?;
@@ -871,6 +855,11 @@ pub async fn process_markdown(
 
   if local_site.image_mode == ImageMode::ProxyAllImages {
     let (text, links) = markdown_rewrite_image_links(text);
+
+    // Validate the IPs for the links before inserting to the remote image table to prevent SSRF.
+    for link in &links {
+      context.is_valid_ip(link).await?;
+    }
     RemoteImage::create(&mut context.pool(), links.clone()).await?;
 
     // Create images and image detail rows
@@ -1066,10 +1055,8 @@ pub async fn update_post_tags(
 mod tests {
   use super::*;
   use diesel_ltree::Ltree;
-  use lemmy_db_schema::{
-    newtypes::{CommentId, LanguageId},
-    test_data::TestData,
-  };
+  use lemmy_db_schema::test_data::TestData;
+  use lemmy_db_schema_file::newtypes::{CommentId, LanguageId};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 

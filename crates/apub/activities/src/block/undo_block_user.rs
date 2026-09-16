@@ -35,7 +35,10 @@ use lemmy_db_schema::{
   },
   traits::Bannable,
 };
-use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
+use lemmy_utils::{
+  error::{LemmyError, LemmyErrorType, LemmyResult},
+  spawn_try_task,
+};
 use url::Url;
 
 impl UndoBlockUser {
@@ -121,15 +124,18 @@ impl Activity for UndoBlockUser {
         if self.restore_data.unwrap_or(false) {
           if blocked_person.instance_id == site.instance_id {
             // user unbanned from home instance, restore all content
-            remove_or_restore_user_data(
-              mod_person.id,
-              blocked_person.id,
-              false,
-              &reason,
-              parent_id,
-              context,
-            )
-            .await?;
+            let context = context.clone();
+            spawn_try_task(async move {
+              remove_or_restore_user_data(
+                mod_person.id,
+                blocked_person.id,
+                false,
+                &reason,
+                parent_id,
+                &context,
+              )
+              .await
+            });
           } else {
             update_removed_for_instance(&blocked_person, &site, false, pool).await?;
           }
@@ -154,16 +160,19 @@ impl Activity for UndoBlockUser {
         notify_mod_action(action, context.app_data());
 
         if self.restore_data.unwrap_or(false) {
-          remove_or_restore_user_data_in_community(
-            community.id,
-            mod_person.id,
-            blocked_person.id,
-            false,
-            &reason,
-            parent_id,
-            &mut context.pool(),
-          )
-          .await?;
+          let context = context.clone();
+          spawn_try_task(async move {
+            remove_or_restore_user_data_in_community(
+              community.id,
+              mod_person.id,
+              blocked_person.id,
+              false,
+              &reason,
+              parent_id,
+              &mut context.pool(),
+            )
+            .await
+          });
         }
       }
     }

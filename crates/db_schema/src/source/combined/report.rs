@@ -1,20 +1,22 @@
-use crate::newtypes::{
-  CommentId,
-  CommentReportId,
-  CommunityId,
-  CommunityReportId,
-  PostId,
-  PostReportId,
-  PrivateMessageId,
-  PrivateMessageReportId,
-  ReportCombinedId,
-};
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;
-use lemmy_db_schema_file::PersonId;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::report_combined;
+use lemmy_db_schema_file::{
+  PersonId,
+  newtypes::{
+    CommentId,
+    CommentReportId,
+    CommunityId,
+    CommunityReportId,
+    PostId,
+    PostReportId,
+    PrivateMessageId,
+    PrivateMessageReportId,
+    ReportCombinedId,
+  },
+};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 

@@ -131,9 +131,12 @@ impl Object for ApubPerson {
     expected_domain: &Url,
     context: &Data<Self::DataType>,
   ) -> LemmyResult<()> {
-    verify_domains_match(person.id.inner(), expected_domain)?;
     verify_is_remote_object(&person.id, context)?;
     check_apub_id_valid_with_strictness(person.id.inner(), false, context).await?;
+
+    verify_domains_match(person.id.inner(), expected_domain)?;
+    verify_domains_match(person.id.inner(), &person.outbox)?;
+    verify_domains_match(person.id.inner(), &person.inbox)?;
 
     Ok(())
   }
@@ -250,6 +253,8 @@ pub(crate) mod tests {
     let mut json: crate::protocol::instance::Instance =
       file_to_json_object("../apub/assets/lemmy/objects/instance.json")?;
     json.id = ObjectId::parse("https://queer.hacktivis.me/")?;
+    json.inbox = Url::parse("https://queer.hacktivis.me/lanodan/inbox")?;
+    json.outbox = Url::parse("https://queer.hacktivis.me/lanodan/outbox")?;
     let url = Url::parse("https://queer.hacktivis.me/users/lanodan")?;
     ApubSite::verify(&json, &url, &context).await?;
     ApubSite::from_json(json, &context).await?;
@@ -262,7 +267,7 @@ pub(crate) mod tests {
     assert_eq!(person.name, "lanodan");
     assert!(!person.local);
     assert_eq!(context.request_count(), 0);
-    assert_eq!(person.bio.as_ref().map(std::string::String::len), Some(812));
+    assert_eq!(person.bio.as_ref().map(std::string::String::len), Some(734));
 
     test_data.delete(&mut context.pool()).await?;
     Instance::delete_all(&mut context.pool()).await?;

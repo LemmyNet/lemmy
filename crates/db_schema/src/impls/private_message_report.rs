@@ -1,6 +1,9 @@
 use crate::{
-  newtypes::{PrivateMessageId, PrivateMessageReportId},
-  source::private_message_report::{PrivateMessageReport, PrivateMessageReportForm},
+  source::private_message_report::{
+    PrivateMessageReport,
+    PrivateMessageReportForm,
+    UpdatePrivateMessageReportForm,
+  },
   traits::Reportable,
 };
 use chrono::Utc;
@@ -11,12 +14,17 @@ use diesel::{
   dsl::{insert_into, update},
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::{PersonId, schema::private_message_report};
+use lemmy_db_schema_file::{
+  PersonId,
+  newtypes::{PrivateMessageId, PrivateMessageReportId},
+  schema::private_message_report,
+};
 use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Reportable for PrivateMessageReport {
   type Form = PrivateMessageReportForm;
+  type UpdateForm = UpdatePrivateMessageReportForm;
   type IdType = PrivateMessageReportId;
   type ObjectIdType = PrivateMessageId;
 
@@ -32,16 +40,11 @@ impl Reportable for PrivateMessageReport {
   async fn update_resolved(
     pool: &mut DbPool<'_>,
     report_id: Self::IdType,
-    by_resolver_id: PersonId,
-    is_resolved: bool,
+    form: &Self::UpdateForm,
   ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
     update(private_message_report::table.find(report_id))
-      .set((
-        private_message_report::resolved.eq(is_resolved),
-        private_message_report::resolver_id.eq(by_resolver_id),
-        private_message_report::updated_at.eq(Utc::now()),
-      ))
+      .set(form)
       .execute(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)

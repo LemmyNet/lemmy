@@ -334,10 +334,22 @@ mod tests {
   use crate::{
     error::{LemmyErrorType, LemmyResult},
     utils::validation::{
-      BIO_MAX_LENGTH, SITE_NAME_MAX_LENGTH, SITE_SUMMARY_MAX_LENGTH, URL_MAX_LENGTH,
-      build_and_check_regex, check_urls_are_valid, is_url_blocked, is_valid_actor_name,
-      is_valid_bio_field, is_valid_display_name, is_valid_matrix_id, is_valid_post_title,
-      is_valid_url, site_name_length_check, summary_length_check, truncate_for_db,
+      BIO_MAX_LENGTH,
+      SITE_NAME_MAX_LENGTH,
+      SITE_SUMMARY_MAX_LENGTH,
+      URL_MAX_LENGTH,
+      build_and_check_regex,
+      check_urls_are_valid,
+      is_url_blocked,
+      is_valid_actor_name,
+      is_valid_bio_field,
+      is_valid_display_name,
+      is_valid_matrix_id,
+      is_valid_post_title,
+      is_valid_url,
+      site_name_length_check,
+      summary_length_check,
+      truncate_for_db,
     },
   };
   use pretty_assertions::assert_eq;

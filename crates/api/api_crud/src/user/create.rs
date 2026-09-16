@@ -24,7 +24,6 @@ use lemmy_api_utils::{
 };
 use lemmy_apub_objects::objects::community::ApubCommunity;
 use lemmy_db_schema::{
-  newtypes::OAuthProviderId,
   source::{
     actor_language::SiteLanguage,
     community::{Community, CommunityActions, CommunityInsertForm, CommunityModeratorForm},
@@ -40,7 +39,7 @@ use lemmy_db_schema::{
   },
   traits::{ApubActor, Likeable},
 };
-use lemmy_db_schema_file::enums::RegistrationMode;
+use lemmy_db_schema_file::{enums::RegistrationMode, newtypes::OAuthProviderId};
 use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
@@ -97,7 +96,7 @@ pub async fn register(
     let inv = LocalUserInvite::read_by_token(pool, token)
       .await
       .map_err(|_e| LemmyError::from(LemmyErrorType::InvalidInviteToken))?;
-    if !inv.is_expired() {
+    if inv.is_expired() {
       return Err(LemmyErrorType::InvalidInviteToken.into());
     }
     Some(inv)
@@ -278,18 +277,13 @@ pub async fn authenticate_with_oauth(
     return Err(LemmyErrorType::OauthAuthorizationInvalid.into());
   }
 
-  // validate the redirect_uri
-  let redirect_uri = &data.redirect_uri;
-  if redirect_uri.host_str().unwrap_or("").is_empty()
-    || !redirect_uri.path().eq(&String::from("/oauth/callback"))
-    || !redirect_uri.query().unwrap_or("").is_empty()
-  {
+  // redirect_uri must point exactly at this instance's oauth callback
+  let expected_redirect_uri = format!(
+    "{}/oauth/callback",
+    context.settings().get_protocol_and_hostname()
+  );
+  if data.redirect_uri.as_str() != expected_redirect_uri {
     return Err(LemmyErrorType::OauthAuthorizationInvalid.into());
-  }
-
-  // validate the PKCE challenge
-  if let Some(code_verifier) = &data.pkce_code_verifier {
-    check_code_verifier(code_verifier)?;
   }
 
   // Fetch the OAUTH provider and make sure it's enabled
@@ -303,12 +297,21 @@ pub async fn authenticate_with_oauth(
     return Err(LemmyErrorType::OauthAuthorizationInvalid.into());
   }
 
+  // validate the PKCE challenge
+  if oauth_provider.use_pkce {
+    let code_verifier = data
+      .pkce_code_verifier
+      .as_deref()
+      .ok_or(LemmyErrorType::OauthAuthorizationInvalid)?;
+    check_code_verifier(code_verifier)?;
+  }
+
   let token_response = oauth_request_access_token(
     &context,
     &oauth_provider,
     &data.code,
     data.pkce_code_verifier.as_deref(),
-    redirect_uri.as_str(),
+    data.redirect_uri.as_str(),
   )
   .await?;
 
@@ -319,7 +322,8 @@ pub async fn authenticate_with_oauth(
   )
   .await?;
 
-  let oauth_user_id = read_user_info(&user_info, oauth_provider.id_claim.as_str())?;
+  let oauth_user_id = read_user_info(&user_info, oauth_provider.id_claim.as_str())
+    .ok_or(LemmyErrorType::OauthLoginFailed)?;
 
   let require_registration_application =
     local_site.registration_mode == RegistrationMode::RequireApplication;
@@ -332,9 +336,11 @@ pub async fn authenticate_with_oauth(
 
   // Lookup user by oauth_user_id
   let mut local_user_view =
-    LocalUserView::find_by_oauth_id(pool, oauth_provider.id, &oauth_user_id).await;
+    LocalUserView::find_by_oauth_id(pool, oauth_provider.id, &oauth_user_id)
+      .await
+      .ok();
 
-  let local_user = if let Ok(user_view) = local_user_view {
+  let local_user = if let Some(user_view) = local_user_view {
     // user found by oauth_user_id => Login user
     let local_user = user_view.clone().local_user;
 
@@ -343,13 +349,9 @@ pub async fn authenticate_with_oauth(
     check_registration_application(&user_view, &site_view.local_site, pool).await?;
     local_user
   } else {
-    // user has never previously registered using oauth
-    login_response.registration_created = local_site.site_setup && require_registration_application;
-
-    // prevent registration if registration is closed
-    if local_site.registration_mode == RegistrationMode::Closed {
-      return Err(LemmyErrorType::RegistrationClosed.into());
-    }
+    // User has never previously registered using oauth
+    // Intentionally don't check for `local_site.registration_mode == RegistrationMode::Closed`
+    // because login with new oauth accounts should always be possible.
 
     // prevent registration if registration is closed for OAUTH providers
     if !local_site.oauth_registration {
@@ -357,12 +359,18 @@ pub async fn authenticate_with_oauth(
     }
 
     // Extract the OAUTH email claim from the returned user_info
-    let email = read_user_info(&user_info, "email")?;
+    // Some oauth providers like github return null for email in some cases.
+    // See https://github.com/LemmyNet/lemmy/issues/6609
+    let email = read_user_info(&user_info, "email").map(|e| e.to_lowercase());
 
     // Lookup user by OAUTH email and link accounts
-    local_user_view = LocalUserView::find_by_email(pool, &email).await;
+    local_user_view = if let Some(email) = &email {
+      LocalUserView::find_by_email(pool, email).await.ok()
+    } else {
+      None
+    };
 
-    if let Ok(user_view) = local_user_view {
+    if let Some(user_view) = local_user_view {
       // user found by email => link and login if linking is allowed
 
       // we only allow linking by email when email_verification is required otherwise emails cannot
@@ -390,6 +398,13 @@ pub async fn authenticate_with_oauth(
       }
     } else {
       // No user was found by email => Register as new user
+      login_response.registration_created =
+        local_site.site_setup && require_registration_application;
+
+      // Check if verification email can be sent before submitting transaction
+      if local_site.email_verification_required && email.is_none() {
+        return Err(LemmyErrorType::EmailRequired.into());
+      }
 
       // make sure the registration answer is provided when the registration application is required
       validate_registration_answer(require_registration_application, &data.answer)?;
@@ -420,7 +435,7 @@ pub async fn authenticate_with_oauth(
 
             // Create the local user
             let local_user_form = LocalUserInsertForm {
-              email: Some(str::to_lowercase(&email)),
+              email,
               show_nsfw: Some(show_nsfw),
               accepted_application: Some(!require_registration_application),
               email_verified: Some(oauth_provider.auto_verify_email),
@@ -652,13 +667,12 @@ async fn oidc_get_user_info(
   Ok(user_info)
 }
 
-fn read_user_info(user_info: &serde_json::Value, key: &str) -> LemmyResult<String> {
-  if let Some(value) = user_info.get(key) {
-    let result = serde_json::from_value::<String>(value.clone())
-      .with_lemmy_type(LemmyErrorType::OauthLoginFailed)?;
-    return Ok(result);
+fn read_user_info(user_info: &serde_json::Value, key: &str) -> Option<String> {
+  match user_info.get(key)? {
+    serde_json::Value::String(s) if !s.is_empty() => Some(s.clone()),
+    serde_json::Value::Number(n) => Some(n.to_string()),
+    _ => None,
   }
-  Err(LemmyErrorType::OauthLoginFailed.into())
 }
 
 #[expect(clippy::expect_used)]
