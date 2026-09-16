@@ -7,6 +7,7 @@ use crate::{
       check_apub_id_valid_with_strictness,
       community_visibility,
       read_from_string_or_source_opt,
+      verify_domains_match_opt,
     },
     markdown_links::markdown_rewrite_remote_links_opt,
     protocol::{AttributedTo, ImageObject, LanguageTag, Source},
@@ -160,6 +161,10 @@ impl Object for ApubCommunity {
   ) -> LemmyResult<()> {
     check_apub_id_valid_with_strictness(group.id.inner(), true, context).await?;
     verify_domains_match(expected_domain, group.id.inner())?;
+    verify_domains_match(group.id.inner(), &group.outbox)?;
+    verify_domains_match(group.id.inner(), &group.inbox)?;
+    verify_domains_match_opt(group.id.inner(), &group.followers)?;
+    verify_domains_match_opt(group.id.inner(), &group.featured)?;
 
     // Doesnt call verify_is_remote_object() because the community might be edited by a
     // remote mod. This is safe as we validate `expected_domain`.
