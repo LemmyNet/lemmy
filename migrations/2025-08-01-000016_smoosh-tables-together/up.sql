@@ -44,10 +44,6 @@ ALTER TABLE comment_actions
     ADD CONSTRAINT comment_actions_comment_id_fkey FOREIGN KEY (comment_id) REFERENCES COMMENT ON UPDATE CASCADE ON DELETE CASCADE,
     ADD CONSTRAINT comment_actions_check_liked CHECK (((liked IS NULL) = (vote_is_upvote IS NULL)));
 
--- TODO:
--- * for 1.0.0-beta.1 servers, add an additional migration to do `DROP IF EXISTS` on the indexes
--- * update down.sql
-
 -- Create new indexes, with `OR` being used to allow `IS NOT NULL` filters in queries to use either column in
 -- a group (e.g. `liked IS NOT NULL` and `vote_is_upvote IS NOT NULL` both work)
 CREATE INDEX idx_comment_actions_comment ON comment_actions (comment_id);
