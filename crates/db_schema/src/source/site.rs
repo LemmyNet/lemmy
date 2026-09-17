@@ -1,8 +1,7 @@
-use crate::newtypes::SiteId;
 use chrono::{DateTime, Utc};
-use lemmy_db_schema_file::InstanceId;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::site;
+use lemmy_db_schema_file::{InstanceId, newtypes::SiteId};
 use lemmy_diesel_utils::{dburl::DbUrl, sensitive::SensitiveString};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;

@@ -12,13 +12,11 @@ use activitypub_federation::config::FederationConfig;
 use anyhow::{Context, Result};
 use chrono::{DateTime, Days, TimeZone, Utc};
 use lemmy_api_utils::context::LemmyContext;
-use lemmy_db_schema::{
-  newtypes::ActivityId,
-  source::{
-    federation_queue_state::FederationQueueState,
-    instance::{Instance, InstanceForm},
-  },
+use lemmy_db_schema::source::{
+  federation_queue_state::FederationQueueState,
+  instance::{Instance, InstanceForm},
 };
+use lemmy_db_schema_file::newtypes::ActivityId;
 use lemmy_diesel_utils::connection::{ActualDbPool, DbPool};
 use lemmy_utils::{
   error::LemmyResult,

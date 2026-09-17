@@ -6,7 +6,6 @@ use lemmy_db_schema::{
   self,
   PersonContentType,
   impls::local_user::LocalUserOptionHelper,
-  newtypes::CommunityId,
   source::combined::person_content::{PersonContentCombined, person_content_combined_keys as key},
   traits::InternalToCombinedView,
   utils::{limit_fetch, queries::filters::filter_private_or_followed},
@@ -27,6 +26,7 @@ use lemmy_db_schema_file::{
     my_person_actions_join,
     my_post_actions_join,
   },
+  newtypes::CommunityId,
   schema::{comment, community, person, person_content_combined, post, post_actions},
 };
 use lemmy_db_views_post_comment_combined::{

@@ -1,5 +1,5 @@
-use crate::newtypes::LocalUserId;
 use chrono::{DateTime, Utc};
+use lemmy_db_schema_file::newtypes::LocalUserId;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::login_token;
 use lemmy_diesel_utils::sensitive::SensitiveString;

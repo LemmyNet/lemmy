@@ -1,8 +1,11 @@
 use super::actor_language::UNDETERMINED_ID;
-use crate::{diesel::ExpressionMethods, newtypes::LanguageId, source::language::Language};
+use crate::{diesel::ExpressionMethods, source::language::Language};
 use diesel::{QueryDsl, dsl::count};
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::{language, post};
+use lemmy_db_schema_file::{
+  newtypes::LanguageId,
+  schema::{language, post},
+};
 use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::{
   CacheLock,

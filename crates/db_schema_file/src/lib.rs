@@ -1,11 +1,17 @@
+#[cfg(feature = "full")]
+extern crate diesel;
+#[cfg(feature = "full")]
+#[macro_use]
+extern crate diesel_derive_newtype;
+
 use core::default::Default;
 #[cfg(feature = "full")]
 use diesel_derive_newtype::DieselNewType;
 use serde::{Deserialize, Serialize};
-
 pub mod enums;
 #[cfg(feature = "full")]
 pub mod joins;
+pub mod newtypes;
 #[cfg(feature = "full")]
 pub mod schema;
 #[cfg(feature = "full")]
@@ -32,13 +38,6 @@ pub mod aliases {
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// The person id.
 pub struct PersonId(pub i32);
-
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Default, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(DieselNewType))]
-#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
-#[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
-/// The community id.
-pub struct CommunityId(pub i32);
 
 #[derive(
   Debug, Copy, Clone, Hash, Eq, PartialEq, Serialize, Deserialize, Default, Ord, PartialOrd,

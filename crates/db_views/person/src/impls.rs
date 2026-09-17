@@ -12,7 +12,6 @@ use lemmy_db_schema::{
   PersonListingType,
   PersonSortType,
   impls::local_user::LocalUserOptionHelper,
-  newtypes::CommunityId,
   source::{
     local_user::LocalUser,
     person::{Person, person_keys as key},
@@ -30,6 +29,7 @@ use lemmy_db_schema_file::{
     my_person_actions_join,
     person_community_actions_join,
   },
+  newtypes::CommunityId,
   schema::{community_actions, local_user, person},
 };
 use lemmy_diesel_utils::{

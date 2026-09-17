@@ -1,11 +1,9 @@
 use crate::PostView;
-use lemmy_db_schema::{
-  PostFeatureType,
-  newtypes::{CommentId, CommunityId, CommunityTagId, LanguageId, MultiCommunityId, PostId},
-};
+use lemmy_db_schema::PostFeatureType;
 use lemmy_db_schema_file::{
   PersonId,
   enums::{ListingType, PostNotificationsMode, PostSortType},
+  newtypes::{CommentId, CommunityId, CommunityTagId, LanguageId, MultiCommunityId, PostId},
 };
 use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_community_moderator::CommunityModeratorView;

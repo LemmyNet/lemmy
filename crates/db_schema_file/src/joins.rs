@@ -1,5 +1,4 @@
 use crate::{
-  CommunityId,
   InstanceId,
   PersonId,
   aliases::{
@@ -10,6 +9,7 @@ use crate::{
     creator_local_user,
     my_instance_persons_actions,
   },
+  newtypes::CommunityId,
   schema::{
     comment,
     comment_actions,

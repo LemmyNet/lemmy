@@ -1,6 +1,5 @@
-use crate::newtypes::CommunityId;
 use diesel_uplete::UpleteCount;
-use lemmy_db_schema_file::PersonId;
+use lemmy_db_schema_file::{PersonId, newtypes::CommunityId};
 use lemmy_diesel_utils::{connection::DbPool, dburl::DbUrl};
 use lemmy_utils::{error::LemmyResult, settings::structs::Settings};
 use std::future::Future;

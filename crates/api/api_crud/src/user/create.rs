@@ -24,7 +24,6 @@ use lemmy_api_utils::{
 };
 use lemmy_apub_objects::objects::community::ApubCommunity;
 use lemmy_db_schema::{
-  newtypes::OAuthProviderId,
   source::{
     actor_language::SiteLanguage,
     community::{Community, CommunityActions, CommunityInsertForm, CommunityModeratorForm},
@@ -40,7 +39,7 @@ use lemmy_db_schema::{
   },
   traits::{ApubActor, Likeable},
 };
-use lemmy_db_schema_file::enums::RegistrationMode;
+use lemmy_db_schema_file::{enums::RegistrationMode, newtypes::OAuthProviderId};
 use lemmy_db_views_community::CommunityView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
@@ -97,7 +96,7 @@ pub async fn register(
     let inv = LocalUserInvite::read_by_token(pool, token)
       .await
       .map_err(|_e| LemmyError::from(LemmyErrorType::InvalidInviteToken))?;
-    if !inv.is_expired() {
+    if inv.is_expired() {
       return Err(LemmyErrorType::InvalidInviteToken.into());
     }
     Some(inv)

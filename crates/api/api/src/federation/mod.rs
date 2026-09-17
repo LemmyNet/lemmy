@@ -1,9 +1,9 @@
 use lemmy_apub_objects::objects::person::ApubPerson;
-use lemmy_db_schema::{
+use lemmy_db_schema::source::{local_site::LocalSite, local_user::LocalUser};
+use lemmy_db_schema_file::{
+  enums::{CommentSortType, ListingType, PostSortType},
   newtypes::CommunityId,
-  source::{local_site::LocalSite, local_user::LocalUser},
 };
-use lemmy_db_schema_file::enums::{CommentSortType, ListingType, PostSortType};
 
 mod fetcher;
 pub mod list_comments;

@@ -1,19 +1,16 @@
 use crate::context::LemmyContext;
 use activitypub_federation::config::Data;
 use either::Either;
-use lemmy_db_schema::{
-  newtypes::CommunityId,
-  source::{
-    comment::Comment,
-    community::Community,
-    multi_community::MultiCommunity,
-    person::Person,
-    post::Post,
-    private_message::PrivateMessage,
-    site::Site,
-  },
+use lemmy_db_schema::source::{
+  comment::Comment,
+  community::Community,
+  multi_community::MultiCommunity,
+  person::Person,
+  post::Post,
+  private_message::PrivateMessage,
+  site::Site,
 };
-use lemmy_db_schema_file::PersonId;
+use lemmy_db_schema_file::{PersonId, newtypes::CommunityId};
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_community::api::BanFromCommunity;
 use lemmy_db_views_post::PostView;

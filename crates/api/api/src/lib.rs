@@ -1,5 +1,5 @@
 use lemmy_api_utils::{context::LemmyContext, utils::is_mod_or_admin_opt};
-use lemmy_db_schema::newtypes::CommunityId;
+use lemmy_db_schema_file::newtypes::CommunityId;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},

@@ -1,9 +1,10 @@
-use crate::{newtypes::CommunityId, source::placeholder_apub_url};
+use crate::source::placeholder_apub_url;
 use chrono::{DateTime, Utc};
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
   enums::{CommunityFollowerState, CommunityNotificationsMode, CommunityVisibility},
+  newtypes::CommunityId,
 };
 use lemmy_diesel_utils::{dburl::DbUrl, sensitive::SensitiveString};
 use serde::{Deserialize, Serialize};
