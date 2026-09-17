@@ -350,10 +350,10 @@ CREATE INDEX idx_post_like_published ON post_like (published);
 
 CREATE INDEX idx_comment_like_published ON comment_like (published);
 
-DROP INDEX idx_person_actions_person, idx_person_actions_target, idx_post_actions_person, idx_post_actions_post;
+DROP INDEX idx_person_actions_target, idx_post_actions_post;
 
 -- Drop `NOT NULL` indexes of columns that still exist
-DROP INDEX idx_comment_actions_liked_not_null, idx_community_actions_followed_not_null, idx_person_actions_followed_not_null, idx_post_actions_read_not_null, idx_instance_actions_blocked_not_null, idx_comment_actions_person, idx_community_actions_person, idx_instance_actions_instance, idx_instance_actions_person;
+DROP INDEX idx_comment_actions_liked_not_null, idx_community_actions_followed_not_null, idx_person_actions_followed_not_null, idx_post_actions_read_not_null, idx_instance_actions_blocked_not_null, idx_instance_actions_instance;
 
 -- Drop statistics of columns that still exist
 DROP statistics comment_actions_liked_stat, community_actions_followed_stat, person_actions_followed_stat;
