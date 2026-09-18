@@ -78,10 +78,10 @@ pub struct LocalSite {
   pub default_post_time_range_seconds: Option<i32>,
   /// Block NSFW content being created
   pub nsfw_content_disallowed: bool,
-  pub users: i32,
-  pub posts: i32,
-  pub comments: i32,
-  pub communities: i32,
+  pub local_users: i32,
+  pub local_posts: i32,
+  pub local_comments: i32,
+  pub local_communities: i32,
   /// The number of users with any activity in the last day.
   pub users_active_day: i32,
   /// The number of users with any activity in the last week.
