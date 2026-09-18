@@ -43,7 +43,9 @@ DECLARE
     count_ integer;
 BEGIN
     SELECT
-        count(*) INTO count_
+        count(*)
+    INTO
+        count_
     FROM (
         SELECT
             c.creator_id
