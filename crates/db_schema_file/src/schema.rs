@@ -440,6 +440,7 @@ diesel::table! {
         total_communities -> Int4,
         user_retention_month_percent -> Float8,
         user_retention_half_year_percent -> Float8,
+        ban_rate -> Float8,
         max_invites_per_user_allowed -> Int4,
     }
 }

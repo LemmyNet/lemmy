@@ -120,6 +120,7 @@ pub struct LocalSite {
   pub total_communities: i32,
   pub user_retention_month_percent: f64,
   pub user_retention_half_year_percent: f64,
+  pub ban_rate: f64,
   /// How many active invite links a user can have
   pub max_invites_per_user_allowed: i32,
 }

@@ -127,6 +127,7 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
   // - Update total counts (posts, comments, users, communities)
   // - Update user retention percents
   // - Update language usage percents
+  // - Update banned user percent
   // - Overwrite deleted & removed posts and comments every day
   // - Delete old denied users
   // - Update instance software
@@ -158,6 +159,10 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
       update_language_usage_percents(&mut context.pool())
         .await
         .inspect_err(|e| warn!("Failed to update language usage breakdown: {e}"))
+        .ok();
+      update_banned_user_percent(&mut context.pool())
+        .await
+        .inspect_err(|e| warn!("Failed to update banner user percent: {e}"))
         .ok();
       overwrite_deleted_posts_and_comments(&mut context.pool())
         .await
@@ -640,11 +645,10 @@ async fn process_community_aggregates(
   Ok(())
 }
 
-async fn update_local_user_count(pool: &mut DbPool<'_>) -> LemmyResult<()> {
-  info!("Updating the local user count...");
-
-  let conn = &mut get_conn(pool).await?;
-  let user_count = local_user::table
+/// Approved, non-deleted local users, left joined to their ban action on the local instance.
+#[diesel::dsl::auto_type]
+fn approved_local_users() -> _ {
+  local_user::table
     .inner_join(
       person::table.left_join(
         instance_actions::table
@@ -653,16 +657,31 @@ async fn update_local_user_count(pool: &mut DbPool<'_>) -> LemmyResult<()> {
     )
     // only count approved users
     .filter(local_user::accepted_application)
-    // ignore banned and deleted accounts
-    .filter(instance_actions::received_ban_at.is_null())
+    // ignore deleted accounts
     .filter(not(person::deleted))
+}
+
+async fn update_local_user_count(pool: &mut DbPool<'_>) -> LemmyResult<()> {
+  info!("Updating the local user count...");
+
+  let conn = &mut get_conn(pool).await?;
+  let user_count = approved_local_users()
+    // ignore banned accounts
+    .filter(instance_actions::received_ban_at.is_null())
     .select(count(local_user::id))
     .first::<i64>(conn)
     .await
     .map(i32::try_from)??;
 
   update(local_site::table)
-    .set(local_site::users.eq(user_count))
+    .set(local_site::local_users.eq(user_count))
+    .execute(conn)
+    .await?;
+
+  info!("Done.");
+  Ok(())
+}
+
 async fn update_linked_instance_count(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   info!("Updating the linked instance count...");
 
@@ -947,6 +966,42 @@ async fn build_update_instance_form(
   .await;
 
   Some(instance_form)
+}
+
+async fn update_banned_user_percent(pool: &mut DbPool<'_>) -> LemmyResult<()> {
+  info!("Updating the banned rate...");
+
+  let conn = &mut get_conn(pool).await?;
+
+  let total_local_user_count = approved_local_users()
+    .select(count(local_user::id))
+    .first::<i64>(conn)
+    .await
+    .map(i32::try_from)??;
+
+  let banned_local_user_count = approved_local_users()
+    // only count banned accounts
+    .filter(instance_actions::received_ban_at.is_not_null())
+    .select(count(local_user::id))
+    .first::<i64>(conn)
+    .await
+    .map(i32::try_from)??;
+
+  let ban_rate = if total_local_user_count == 0 {
+    0.0
+  } else {
+    f64::from(banned_local_user_count) / f64::from(total_local_user_count) * 100.0
+  };
+
+  update(local_site::table)
+    .set(local_site::ban_rate.eq(ban_rate))
+    .execute(conn)
+    .await?;
+
+  info!(
+    "Finished ban_rate ({banned_local_user_count} out of {total_local_user_count} local users banned, {ban_rate:.2}%)"
+  );
+  Ok(())
 }
 
 #[cfg(test)]
