@@ -9,10 +9,10 @@ use diesel::{
   QueryDsl,
   QueryableByName,
   SelectableHelper,
-  dsl::{IntervalDsl, count, exists, not, update},
+  dsl::{IntervalDsl, count, count_star, exists, not, update},
   query_builder::AsQuery,
   sql_query,
-  sql_types::{BigInt, Integer, Timestamptz},
+  sql_types::{BigInt, Float8, Integer, Timestamptz},
 };
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use diesel_uplete::uplete;
@@ -123,6 +123,7 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
   // Daily tasks:
   // - Update site and community activity counts
   // - Update local user count
+  // - Update total counts (posts, comments, users, communities)
   // - Overwrite deleted & removed posts and comments every day
   // - Delete old denied users
   // - Update instance software
@@ -138,6 +139,10 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
       update_local_user_count(&mut context.pool())
         .await
         .inspect_err(|e| warn!("Failed to update local user count: {e}"))
+        .ok();
+      update_total_counts(&mut context.pool())
+        .await
+        .inspect_err(|e| warn!("Failed to update total counts: {e}"))
         .ok();
       overwrite_deleted_posts_and_comments(&mut context.pool())
         .await
@@ -535,9 +540,58 @@ async fn update_local_user_count(pool: &mut DbPool<'_>) -> LemmyResult<()> {
 
   update(local_site::table)
     .set(local_site::users.eq(user_count))
+async fn update_total_counts(pool: &mut DbPool<'_>) -> LemmyResult<()> {
+  info!("Updating total counts ...");
+
+  let conn = &mut get_conn(pool).await?;
+
+  let total_post_count = post::table
+    .filter(not(post::deleted.or(post::removed)))
+    .select(count_star())
+    .first::<i64>(conn)
+    .await
+    .map(i32::try_from)??;
+
+  let total_comment_count = comment::table
+    .filter(not(comment::deleted.or(comment::removed)))
+    .select(count_star())
+    .first::<i64>(conn)
+    .await
+    .map(i32::try_from)??;
+
+  let total_community_count = community::table
+    .filter(not(community::deleted.or(community::removed)))
+    .select(count_star())
+    .first::<i64>(conn)
+    .await
+    .map(i32::try_from)??;
+
+  let banned_on_home_instance = instance_actions::table
+    .find((person::id, person::instance_id))
+    .filter(instance_actions::received_ban_at.is_not_null());
+
+  let total_user_count = person::table
+    .filter(not(person::deleted))
+    .filter(not(exists(banned_on_home_instance)))
+    .select(count_star())
+    .first::<i64>(conn)
+    .await
+    .map(i32::try_from)??;
+
+  update(local_site::table)
+    .set((
+      local_site::total_posts.eq(total_post_count),
+      local_site::total_comments.eq(total_comment_count),
+      local_site::total_users.eq(total_user_count),
+      local_site::total_communities.eq(total_community_count),
+    ))
     .execute(conn)
     .await?;
 
+  info!("Done.");
+
+  Ok(())
+}
   info!("Done.");
   Ok(())
 }

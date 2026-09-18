@@ -113,6 +113,10 @@ pub struct LocalSite {
   /// This affects post and comment images, but not avatars and banners.
   pub image_allow_video_uploads: bool,
   pub image_upload_disabled: bool,
+  pub total_posts: i32,
+  pub total_comments: i32,
+  pub total_users: i32,
+  pub total_communities: i32,
   /// How many active invite links a user can have
   pub max_invites_per_user_allowed: i32,
 }
