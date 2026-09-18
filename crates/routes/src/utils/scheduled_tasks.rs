@@ -1010,7 +1010,9 @@ mod tests {
   use super::*;
   use lemmy_db_schema::{
     source::{
+      comment::{Comment, CommentInsertForm},
       community::{Community, CommunityInsertForm},
+      language::Language,
       person::{Person, PersonInsertForm},
       post::{Post, PostActions, PostInsertForm, PostLikeForm},
     },
@@ -1173,6 +1175,276 @@ mod tests {
       alive_stats.users_active_half_year, 1,
       "alive: users_active_half_year should be 1"
     );
+
+    data.delete(pool).await?;
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_update_total_counts() -> LemmyResult<()> {
+    let context = LemmyContext::init_test_context().await;
+    let pool = &mut context.pool();
+    // Setup local site
+    let data = TestData::create(pool).await?;
+    // insert some local data
+    let community = Community::create(
+      pool,
+      &CommunityInsertForm::new(data.instance.id, "name".to_owned(), "pubkey".to_owned()),
+    )
+    .await?;
+    let person = Person::create(
+      pool,
+      &PersonInsertForm::new("felicity".to_owned(), "pubkey".to_owned(), data.instance.id),
+    )
+    .await?;
+    let _post = Post::create(
+      pool,
+      &PostInsertForm::new("i am grrreat".to_owned(), person.id, community.id),
+    )
+    .await?;
+
+    let local_site_before = SiteView::read_local(pool).await?.local_site;
+    assert_eq!(0, local_site_before.total_posts);
+    assert_eq!(0, local_site_before.total_comments);
+    assert_eq!(0, local_site_before.total_users);
+    assert_eq!(0, local_site_before.total_communities);
+
+    // run the query
+    update_total_counts(pool).await?;
+    let local_site_after = SiteView::read_local(pool).await?.local_site;
+
+    assert_eq!(1, local_site_after.total_posts);
+    assert_eq!(0, local_site_after.total_comments);
+    assert_eq!(3, local_site_after.total_users);
+    assert_eq!(1, local_site_after.total_communities);
+
+    data.delete(pool).await?;
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_update_linked_instance_count() -> LemmyResult<()> {
+    let context = LemmyContext::init_test_context().await;
+    let pool = &mut context.pool();
+    // Setup local site
+    let data = TestData::create(pool).await?;
+
+    // insert linked instances
+    let instance0 = Instance::read_or_create(pool, "example0.com").await?;
+
+    // insert some federated data
+    let community = Community::create(
+      pool,
+      &CommunityInsertForm::new(instance0.id, "name".to_owned(), "pubkey".to_owned()),
+    )
+    .await?;
+    let person = Person::create(
+      pool,
+      &PersonInsertForm::new("felicity".to_owned(), "pubkey".to_owned(), instance0.id),
+    )
+    .await?;
+    let _post = Post::create(
+      pool,
+      &PostInsertForm::new("i am grrreat".to_owned(), person.id, community.id),
+    )
+    .await?;
+
+    let _instance1 = Instance::read_or_create(pool, "example1.com").await?;
+
+    let local_site_before = SiteView::read_local(pool).await?.local_site;
+    assert_eq!(0, local_site_before.linked_instances);
+
+    // run the query
+    update_linked_instance_count(pool).await?;
+    let local_site_after = SiteView::read_local(pool).await?.local_site;
+
+    assert_eq!(2, local_site_after.linked_instances);
+
+    data.delete(pool).await?;
+    Instance::delete_all(pool).await?;
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_update_language_usage_percents() -> LemmyResult<()> {
+    let context = LemmyContext::init_test_context().await;
+    let pool = &mut context.pool();
+
+    let data = TestData::create(pool).await?;
+    let community = Community::create(
+      pool,
+      &CommunityInsertForm::new(data.instance.id, "name".to_owned(), "pubkey".to_owned()),
+    )
+    .await?;
+    let person = Person::create(
+      pool,
+      &PersonInsertForm::new("felicity".to_owned(), "pubkey".to_owned(), data.instance.id),
+    )
+    .await?;
+
+    let en_id = Language::read_id_from_code(pool, "en").await?;
+    let de_id = Language::read_id_from_code(pool, "de").await?;
+
+    // Create 2 English posts and 1 German post (expect 67% and 33%)
+    for _ in 0..2 {
+      Post::create(
+        pool,
+        &PostInsertForm {
+          language_id: Some(en_id),
+          ..PostInsertForm::new("english post".to_owned(), person.id, community.id)
+        },
+      )
+      .await?;
+    }
+    let post = Post::create(
+      pool,
+      &PostInsertForm {
+        language_id: Some(de_id),
+        ..PostInsertForm::new("german post".to_owned(), person.id, community.id)
+      },
+    )
+    .await?;
+
+    // Create 1 English comment and 3 German comments (expect 25% and 75%)
+    Comment::create(
+      pool,
+      &CommentInsertForm {
+        language_id: Some(en_id),
+        ..CommentInsertForm::new(
+          person.id,
+          post.id,
+          community.id,
+          "english comment".to_owned(),
+        )
+      },
+      None,
+    )
+    .await?;
+    for _ in 0..3 {
+      Comment::create(
+        pool,
+        &CommentInsertForm {
+          language_id: Some(de_id),
+          ..CommentInsertForm::new(
+            person.id,
+            post.id,
+            community.id,
+            "german comment".to_owned(),
+          )
+        },
+        None,
+      )
+      .await?;
+    }
+
+    update_language_usage_percents(pool).await?;
+
+    let en_language = Language::read_from_id(pool, en_id).await?;
+    let de_language = Language::read_from_id(pool, de_id).await?;
+
+    assert_eq!(
+      (en_language.usage_in_local_posts * 100.0).round() / 100.0,
+      66.67
+    );
+    assert_eq!(
+      (de_language.usage_in_local_posts * 100.0).round() / 100.0,
+      33.33
+    );
+    assert_eq!(
+      (en_language.usage_in_local_comments * 100.0).round() / 100.0,
+      25.0
+    );
+    assert_eq!(
+      (de_language.usage_in_local_comments * 100.0).round() / 100.0,
+      75.0
+    );
+
+    data.delete(pool).await?;
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_process_user_retentions() -> LemmyResult<()> {
+    let context = LemmyContext::init_test_context().await;
+    let pool = &mut context.pool();
+
+    let data = TestData::create(pool).await?;
+    let community = Community::create(
+      pool,
+      &CommunityInsertForm::new(data.instance.id, "name".to_owned(), "pubkey".to_owned()),
+    )
+    .await?;
+
+    let retained_person = Person::create(
+      pool,
+      &PersonInsertForm::new("retained".to_owned(), "pubkey".to_owned(), data.instance.id),
+    )
+    .await?;
+    let churned_person = Person::create(
+      pool,
+      &PersonInsertForm::new("churned".to_owned(), "pubkey".to_owned(), data.instance.id),
+    )
+    .await?;
+    let new_person = Person::create(
+      pool,
+      &PersonInsertForm::new("newcomer".to_owned(), "pubkey".to_owned(), data.instance.id),
+    )
+    .await?;
+
+    let now = Utc::now();
+    // Active ~45 days ago (previous month window) and ~10 days ago (current month window)
+    Post::create(
+      pool,
+      &PostInsertForm {
+        published_at: Some(now - chrono::Duration::days(45)),
+        ..PostInsertForm::new(
+          "retained post 1".to_owned(),
+          retained_person.id,
+          community.id,
+        )
+      },
+    )
+    .await?;
+    Post::create(
+      pool,
+      &PostInsertForm {
+        published_at: Some(now - chrono::Duration::days(10)),
+        ..PostInsertForm::new(
+          "retained post 2".to_owned(),
+          retained_person.id,
+          community.id,
+        )
+      },
+    )
+    .await?;
+    // Active only ~45 days ago, churned by the current window
+    Post::create(
+      pool,
+      &PostInsertForm {
+        published_at: Some(now - chrono::Duration::days(45)),
+        ..PostInsertForm::new("churned post".to_owned(), churned_person.id, community.id)
+      },
+    )
+    .await?;
+    // Active only ~10 days ago, wasn't active in the previous window
+    Post::create(
+      pool,
+      &PostInsertForm {
+        published_at: Some(now - chrono::Duration::days(10)),
+        ..PostInsertForm::new("new post".to_owned(), new_person.id, community.id)
+      },
+    )
+    .await?;
+
+    let conn = &mut get_conn(pool).await?;
+    process_retention_percents(conn, ONE_MONTH).await?;
+
+    let local_site = SiteView::read_local(pool).await?.local_site;
+    assert_eq!(local_site.user_retention_month_percent, 50.0);
 
     data.delete(pool).await?;
     Ok(())
