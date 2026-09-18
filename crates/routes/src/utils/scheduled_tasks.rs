@@ -125,6 +125,7 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
   // - Update local user count
   // - Update linked instance count
   // - Update total counts (posts, comments, users, communities)
+  // - Update user retention percents
   // - Update language usage percents
   // - Overwrite deleted & removed posts and comments every day
   // - Delete old denied users
@@ -149,6 +150,10 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
       update_total_counts(&mut context.pool())
         .await
         .inspect_err(|e| warn!("Failed to update total counts: {e}"))
+        .ok();
+      all_user_retention_percents(&mut context.pool())
+        .await
+        .inspect_err(|e| warn!("Failed to update user retention percents: {e}"))
         .ok();
       update_language_usage_percents(&mut context.pool())
         .await
@@ -372,10 +377,20 @@ const SIX_MONTHS: (&str, &str) = ("6 months", "half_year");
 
 const ALL_ACTIVE_INTERVALS: [(&str, &str); 4] = [ONE_DAY, ONE_WEEK, ONE_MONTH, SIX_MONTHS];
 
+const ALL_RETENTION_INTERVALS: [(&str, &str); 2] = [ONE_MONTH, SIX_MONTHS];
+
 #[derive(QueryableByName)]
 struct SiteActivitySelectResult {
   #[diesel(sql_type = Integer)]
   site_aggregates_activity: i32,
+}
+
+#[derive(QueryableByName)]
+struct UserRetentionSelectResult {
+  #[diesel(sql_type = Integer)]
+  previous_count: i32,
+  #[diesel(sql_type = Integer)]
+  retained_count: i32,
 }
 
 #[derive(QueryableByName)]
@@ -420,6 +435,17 @@ async fn all_active_counts(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   Ok(())
 }
 
+/// Re-calculate the user retention percents
+async fn all_user_retention_percents(pool: &mut DbPool<'_>) -> LemmyResult<()> {
+  let conn = &mut get_conn(pool).await?;
+
+  for i in ALL_RETENTION_INTERVALS {
+    process_retention_percents(conn, i).await?;
+  }
+
+  Ok(())
+}
+
 async fn process_site_aggregates(
   conn: &mut AsyncPgConnection,
   interval: (&str, &str),
@@ -449,6 +475,93 @@ async fn process_site_aggregates(
   info!(
     "Finished site_aggregates active_{} (processed {} rows)",
     interval.1, processed_rows
+  );
+
+  Ok(())
+}
+
+/// Find local, non-bot users active in the period of `interval` length preceding the current
+/// one, then work out what percentage of them are also active in the current period.
+async fn process_retention_percents(
+  conn: &mut AsyncPgConnection,
+  interval: (&str, &str),
+) -> LemmyResult<()> {
+  let retention = sql_query(format!(
+    r#"WITH previous_active AS (
+         SELECT c.creator_id AS person_id FROM comment c
+           INNER JOIN person pe ON pe.id = c.creator_id
+           WHERE c.published_at >= (CURRENT_DATE - INTERVAL '{i}' * 2)
+             AND c.published_at < (CURRENT_DATE - INTERVAL '{i}')
+             AND pe.local = TRUE AND pe.bot_account = FALSE
+         UNION
+         SELECT p.creator_id FROM post p
+           INNER JOIN person pe ON pe.id = p.creator_id
+           WHERE p.published_at >= (CURRENT_DATE - INTERVAL '{i}' * 2)
+             AND p.published_at < (CURRENT_DATE - INTERVAL '{i}')
+             AND pe.local = TRUE AND pe.bot_account = FALSE
+         UNION
+         SELECT pa.person_id FROM post_actions pa
+           INNER JOIN person pe ON pe.id = pa.person_id
+           WHERE pa.voted_at >= (CURRENT_DATE - INTERVAL '{i}' * 2)
+             AND pa.voted_at < (CURRENT_DATE - INTERVAL '{i}')
+             AND pe.local = TRUE AND pe.bot_account = FALSE
+         UNION
+         SELECT ca.person_id FROM comment_actions ca
+           INNER JOIN person pe ON pe.id = ca.person_id
+           WHERE ca.voted_at >= (CURRENT_DATE - INTERVAL '{i}' * 2)
+             AND ca.voted_at < (CURRENT_DATE - INTERVAL '{i}')
+             AND pe.local = TRUE AND pe.bot_account = FALSE
+       ),
+       current_active AS (
+         SELECT c.creator_id AS person_id FROM comment c
+           INNER JOIN person pe ON pe.id = c.creator_id
+           WHERE c.published_at >= (CURRENT_DATE - INTERVAL '{i}')
+             AND pe.local = TRUE AND pe.bot_account = FALSE
+         UNION
+         SELECT p.creator_id FROM post p
+           INNER JOIN person pe ON pe.id = p.creator_id
+           WHERE p.published_at >= (CURRENT_DATE - INTERVAL '{i}')
+             AND pe.local = TRUE AND pe.bot_account = FALSE
+         UNION
+         SELECT pa.person_id FROM post_actions pa
+           INNER JOIN person pe ON pe.id = pa.person_id
+           WHERE pa.voted_at >= (CURRENT_DATE - INTERVAL '{i}')
+             AND pe.local = TRUE AND pe.bot_account = FALSE
+         UNION
+         SELECT ca.person_id FROM comment_actions ca
+           INNER JOIN person pe ON pe.id = ca.person_id
+           WHERE ca.voted_at >= (CURRENT_DATE - INTERVAL '{i}')
+             AND pe.local = TRUE AND pe.bot_account = FALSE
+       )
+       SELECT
+         (SELECT count(*) FROM previous_active)::integer AS previous_count,
+         (SELECT count(*) FROM previous_active
+            INNER JOIN current_active USING (person_id))::integer AS retained_count"#,
+    i = interval.0
+  ))
+  .get_result::<UserRetentionSelectResult>(conn)
+  .await
+  .inspect_err(|e| warn!("Failed to calculate user retention: {e}"))?;
+
+  let percent = if retention.previous_count == 0 {
+    0.0
+  } else {
+    f64::from(retention.retained_count) / f64::from(retention.previous_count) * 100.0
+  };
+
+  sql_query(format!(
+    "update local_site set user_retention_{}_percent = $1",
+    interval.1,
+  ))
+  .bind::<Float8, _>(percent)
+  .execute(conn)
+  .await
+  .inspect_err(|e| warn!("Failed to update user retention stats: {e}"))
+  .ok();
+
+  info!(
+    "Finished user retention_{} ({} out of {} retained)",
+    interval.1, retention.retained_count, retention.previous_count
   );
 
   Ok(())

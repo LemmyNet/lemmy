@@ -18,7 +18,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
 #[skip_serializing_none]
-#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(PartialEq, Debug, Clone, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
 #[cfg_attr(feature = "full", diesel(table_name = local_site))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::site::Site)))]
@@ -118,6 +118,8 @@ pub struct LocalSite {
   pub total_comments: i32,
   pub total_users: i32,
   pub total_communities: i32,
+  pub user_retention_month_percent: f64,
+  pub user_retention_half_year_percent: f64,
   /// How many active invite links a user can have
   pub max_invites_per_user_allowed: i32,
 }
