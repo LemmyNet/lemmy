@@ -433,6 +433,7 @@ diesel::table! {
         image_max_upload_size -> Int4,
         image_allow_video_uploads -> Bool,
         image_upload_disabled -> Bool,
+        linked_instances -> Int4,
         total_posts -> Int4,
         total_comments -> Int4,
         total_users -> Int4,

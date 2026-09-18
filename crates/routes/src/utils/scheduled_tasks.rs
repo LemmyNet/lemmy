@@ -47,7 +47,7 @@ use lemmy_db_schema_file::schema::{
   sent_activity,
   site,
 };
-use lemmy_db_views_site::SiteView;
+use lemmy_db_views_site::{FederatedInstanceView, SiteView};
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   traits::Crud,
@@ -123,6 +123,7 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
   // Daily tasks:
   // - Update site and community activity counts
   // - Update local user count
+  // - Update linked instance count
   // - Update total counts (posts, comments, users, communities)
   // - Update language usage percents
   // - Overwrite deleted & removed posts and comments every day
@@ -140,6 +141,10 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
       update_local_user_count(&mut context.pool())
         .await
         .inspect_err(|e| warn!("Failed to update local user count: {e}"))
+        .ok();
+      update_linked_instance_count(&mut context.pool())
+        .await
+        .inspect_err(|e| warn!("Failed to update linked instance count: {e}"))
         .ok();
       update_total_counts(&mut context.pool())
         .await
@@ -545,6 +550,22 @@ async fn update_local_user_count(pool: &mut DbPool<'_>) -> LemmyResult<()> {
 
   update(local_site::table)
     .set(local_site::users.eq(user_count))
+async fn update_linked_instance_count(pool: &mut DbPool<'_>) -> LemmyResult<()> {
+  info!("Updating the linked instance count...");
+
+  let linked_instance_count = FederatedInstanceView::count(pool).await?;
+
+  let conn = &mut get_conn(pool).await?;
+
+  update(local_site::table)
+    .set(local_site::linked_instances.eq(linked_instance_count))
+    .execute(conn)
+    .await?;
+
+  info!("Done.");
+  Ok(())
+}
+
 async fn update_total_counts(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   info!("Updating total counts ...");
 
