@@ -359,6 +359,8 @@ diesel::table! {
         #[max_length = 3]
         code -> Varchar,
         name -> Text,
+        usage_in_local_posts -> Float8,
+        usage_in_local_comments -> Float8,
     }
 }
 

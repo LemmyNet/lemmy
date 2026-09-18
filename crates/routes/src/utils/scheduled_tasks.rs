@@ -124,6 +124,7 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
   // - Update site and community activity counts
   // - Update local user count
   // - Update total counts (posts, comments, users, communities)
+  // - Update language usage percents
   // - Overwrite deleted & removed posts and comments every day
   // - Delete old denied users
   // - Update instance software
@@ -143,6 +144,10 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
       update_total_counts(&mut context.pool())
         .await
         .inspect_err(|e| warn!("Failed to update total counts: {e}"))
+        .ok();
+      update_language_usage_percents(&mut context.pool())
+        .await
+        .inspect_err(|e| warn!("Failed to update language usage breakdown: {e}"))
         .ok();
       overwrite_deleted_posts_and_comments(&mut context.pool())
         .await
@@ -592,6 +597,36 @@ async fn update_total_counts(pool: &mut DbPool<'_>) -> LemmyResult<()> {
 
   Ok(())
 }
+/// Update each language with its percentage share of local posts and local comments
+async fn update_language_usage_percents(pool: &mut DbPool<'_>) -> LemmyResult<()> {
+  info!("Calculating local language usage percentages ...");
+
+  let conn = &mut get_conn(pool).await?;
+
+  sql_query(
+    r#"
+    WITH post_counts AS (
+      SELECT language_id, COUNT(*) AS n FROM post WHERE local GROUP BY language_id
+    ),
+    comment_counts AS (
+      SELECT language_id, COUNT(*) AS n FROM comment WHERE local GROUP BY language_id
+    ),
+    totals AS (
+      SELECT local_posts, local_comments FROM local_site LIMIT 1
+    )
+    UPDATE language l SET
+      usage_in_local_posts = COALESCE(pc.n::float8 / NULLIF(t.local_posts, 0) * 100.0, 0), /* set usage_in_local_posts to 0 if t.local_posts is 0*/ 
+      usage_in_local_comments = COALESCE(cc.n::float8 / NULLIF(t.local_comments, 0) * 100.0, 0)
+    FROM language l2
+      CROSS JOIN totals t
+      LEFT JOIN post_counts pc ON pc.language_id = l2.id
+      LEFT JOIN comment_counts cc ON cc.language_id = l2.id
+    WHERE l.id = l2.id
+    "#,
+  )
+  .execute(conn)
+  .await?;
+
   info!("Done.");
   Ok(())
 }
