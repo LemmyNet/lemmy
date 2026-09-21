@@ -171,15 +171,15 @@ actix-web = { version = "4.13.0", default-features = false, features = [
   "rustls-0_23",
 ] }
 # Experiemnt
-opentelemetry = { version = "0.32.0", features = ["metrics"] }
-opentelemetry_sdk = { version = "0.32.0", features = ["trace", "metrics", "logs"] }
-opentelemetry-stdout = { version = "0.32.0", features = ["trace", "metrics", "logs"] }
-opentelemetry-appender-tracing = "0.32.0"
-opentelemetry-otlp = { version = "0.32.0", features = ["trace", "metrics", "logs", "http-proto", "grpc-tonic"] }
-tracing-opentelemetry = { version = "0.33.0" }
+opentelemetry = { version = "0.31.0", features = ["metrics"] }
+opentelemetry_sdk = { version = "0.31.0", features = ["trace", "metrics", "logs"] }
+# opentelemetry-stdout = { version = "0.22.0", features = ["trace", "metrics", "logs"] }
+# opentelemetry-appender-tracing = "0.22.0"
+opentelemetry-otlp = { version = "0.31.0", features = ["trace", "metrics", "logs", "http-proto", "grpc-tonic"] }
+tracing-opentelemetry = { version = "0.32.0" }
 
 tracing = { version = "0.1.44", default-features = false }
-tracing-actix-web = { version = "0.7.21", default-features = false }
+tracing-actix-web = { version = "0.7.21", features = ["opentelemetry_0_22"], default-features = false }
 tracing-subscriber = { version = "0.3.23", features = ["env-filter", "json"] }
 url = { version = "2.5.8", features = ["serde"] }
 reqwest = { version = "0.13.2", default-features = false, features = [

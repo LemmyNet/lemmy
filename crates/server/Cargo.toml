@@ -49,8 +49,8 @@ clap = { workspace = true }
 
 opentelemetry = { workspace = true }
 opentelemetry_sdk = { workspace = true }
-opentelemetry-stdout = { workspace = true }
-opentelemetry-appender-tracing = { workspace = true }
+# opentelemetry-stdout = { workspace = true }
+# opentelemetry-appender-tracing = { workspace = true }
 opentelemetry-otlp = { workspace = true }
 tracing-opentelemetry = { workspace = true }
 

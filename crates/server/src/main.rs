@@ -7,7 +7,7 @@ use opentelemetry::{
 };
 use opentelemetry_otlp::{Protocol, WithExportConfig};
 use opentelemetry_sdk::trace::SdkTracerProvider;
-use opentelemetry_stdout::SpanExporter;
+// use opentelemetry_stdout::SpanExporter;
 use std::sync::OnceLock;
 use tracing::{level_filters::LevelFilter, subscriber::set_default};
 use tracing_subscriber::{EnvFilter, Registry, fmt, layer::SubscriberExt, util::SubscriberInitExt};
