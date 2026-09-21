@@ -701,6 +701,7 @@ async fn update_linked_instance_count(pool: &mut DbPool<'_>) -> LemmyResult<()> 
 async fn update_total_counts(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   info!("Updating total counts ...");
 
+  let local_instance_id = SiteView::read_local(pool).await?.instance.id;
   let conn = &mut get_conn(pool).await?;
 
   let total_post_count = post::table
@@ -724,13 +725,14 @@ async fn update_total_counts(pool: &mut DbPool<'_>) -> LemmyResult<()> {
     .await
     .map(i32::try_from)??;
 
-  let banned_on_home_instance = instance_actions::table
-    .find((person::id, person::instance_id))
+  let banned_on_local_instance = instance_actions::table
+    .find((person::id, local_instance_id))
     .filter(instance_actions::received_ban_at.is_not_null());
 
   let total_user_count = person::table
     .filter(not(person::deleted))
-    .filter(not(exists(banned_on_home_instance)))
+    .filter(not(person::bot_account))
+    .filter(not(exists(banned_on_local_instance)))
     .select(count_star())
     .first::<i64>(conn)
     .await
@@ -1012,12 +1014,13 @@ mod tests {
     source::{
       comment::{Comment, CommentInsertForm},
       community::{Community, CommunityInsertForm},
+      instance::{InstanceActions, InstanceBanForm},
       language::Language,
       person::{Person, PersonInsertForm},
       post::{Post, PostActions, PostInsertForm, PostLikeForm},
     },
     test_data::TestData,
-    traits::Likeable,
+    traits::{Bannable, Likeable},
   };
   use lemmy_diesel_utils::traits::Crud;
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
@@ -1213,6 +1216,22 @@ mod tests {
     )
     .await?;
 
+    // bot user
+    let bot_form = PersonInsertForm {
+      bot_account: Some(true),
+      ..PersonInsertForm::new("bot".to_owned(), "pubkey".to_owned(), instance0.id)
+    };
+    Person::create(pool, &bot_form).await?;
+
+    // user banned only on their home instance, still included in the total user count
+    let home_banned_person = Person::create(
+      pool,
+      &PersonInsertForm::new("home_banned".to_owned(), "pubkey".to_owned(), instance0.id),
+    )
+    .await?;
+    let home_ban_form = InstanceBanForm::new(home_banned_person.id, instance0.id, None);
+    InstanceActions::ban(pool, &home_ban_form).await?;
+
     // local user posts in the local community and comments on it
     let local_post = Post::create(
       pool,
@@ -1259,7 +1278,7 @@ mod tests {
     // totals include both local and federated objects
     assert_eq!(2, local_site_after.total_posts);
     assert_eq!(2, local_site_after.total_comments);
-    assert_eq!(4, local_site_after.total_users);
+    assert_eq!(5, local_site_after.total_users);
     assert_eq!(2, local_site_after.total_communities);
     assert_eq!(2, local_site_after.linked_instances);
 
