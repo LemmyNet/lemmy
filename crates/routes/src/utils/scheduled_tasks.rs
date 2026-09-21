@@ -1187,79 +1187,80 @@ mod tests {
     let pool = &mut context.pool();
     // Setup local site
     let data = TestData::create(pool).await?;
-    // insert some local data
-    let community = Community::create(
+    // insert local community and user
+    let local_community = Community::create(
       pool,
-      &CommunityInsertForm::new(data.instance.id, "name".to_owned(), "pubkey".to_owned()),
+      &CommunityInsertForm::new(data.instance.id, "local".to_owned(), "pubkey".to_owned()),
     )
     .await?;
-    let person = Person::create(
+    let local_person = Person::create(
       pool,
       &PersonInsertForm::new("felicity".to_owned(), "pubkey".to_owned(), data.instance.id),
     )
     .await?;
-    let _post = Post::create(
+
+    // insert linked instance, with a user and a community
+    let instance0 = Instance::read_or_create(pool, "example0.com").await?;
+    Instance::read_or_create(pool, "example1.com").await?;
+    Community::create(
       pool,
-      &PostInsertForm::new("i am grrreat".to_owned(), person.id, community.id),
+      &CommunityInsertForm::new(instance0.id, "remote".to_owned(), "pubkey".to_owned()),
     )
     .await?;
+    let remote_person = Person::create(
+      pool,
+      &PersonInsertForm::new("remote".to_owned(), "pubkey".to_owned(), instance0.id),
+    )
+    .await?;
+
+    // local user posts in the local community and comments on it
+    let local_post = Post::create(
+      pool,
+      &PostInsertForm::new("local post".to_owned(), local_person.id, local_community.id),
+    )
+    .await?;
+    let local_comment = CommentInsertForm::new(
+      local_person.id,
+      local_post.id,
+      local_community.id,
+      "local".into(),
+    );
+    Comment::create(pool, &local_comment, None).await?;
+
+    // remote user comments on the local post
+    let remote_comment = CommentInsertForm::new(
+      remote_person.id,
+      local_post.id,
+      local_community.id,
+      "remote".into(),
+    );
+    Comment::create(pool, &remote_comment, None).await?;
+
+    // remote user posts in the local community
+    let remote_post = PostInsertForm::new(
+      "remote post".to_owned(),
+      remote_person.id,
+      local_community.id,
+    );
+    Post::create(pool, &remote_post).await?;
 
     let local_site_before = SiteView::read_local(pool).await?.local_site;
     assert_eq!(0, local_site_before.total_posts);
     assert_eq!(0, local_site_before.total_comments);
     assert_eq!(0, local_site_before.total_users);
     assert_eq!(0, local_site_before.total_communities);
-
-    // run the query
-    update_total_counts(pool).await?;
-    let local_site_after = SiteView::read_local(pool).await?.local_site;
-
-    assert_eq!(1, local_site_after.total_posts);
-    assert_eq!(0, local_site_after.total_comments);
-    assert_eq!(3, local_site_after.total_users);
-    assert_eq!(1, local_site_after.total_communities);
-
-    data.delete(pool).await?;
-    Ok(())
-  }
-
-  #[tokio::test]
-  #[serial]
-  async fn test_update_linked_instance_count() -> LemmyResult<()> {
-    let context = LemmyContext::init_test_context().await;
-    let pool = &mut context.pool();
-    // Setup local site
-    let data = TestData::create(pool).await?;
-
-    // insert linked instances
-    let instance0 = Instance::read_or_create(pool, "example0.com").await?;
-
-    // insert some federated data
-    let community = Community::create(
-      pool,
-      &CommunityInsertForm::new(instance0.id, "name".to_owned(), "pubkey".to_owned()),
-    )
-    .await?;
-    let person = Person::create(
-      pool,
-      &PersonInsertForm::new("felicity".to_owned(), "pubkey".to_owned(), instance0.id),
-    )
-    .await?;
-    let _post = Post::create(
-      pool,
-      &PostInsertForm::new("i am grrreat".to_owned(), person.id, community.id),
-    )
-    .await?;
-
-    let _instance1 = Instance::read_or_create(pool, "example1.com").await?;
-
-    let local_site_before = SiteView::read_local(pool).await?.local_site;
     assert_eq!(0, local_site_before.linked_instances);
 
-    // run the query
+    // run the queries
+    update_total_counts(pool).await?;
     update_linked_instance_count(pool).await?;
     let local_site_after = SiteView::read_local(pool).await?.local_site;
 
+    // totals include both local and federated objects
+    assert_eq!(2, local_site_after.total_posts);
+    assert_eq!(2, local_site_after.total_comments);
+    assert_eq!(4, local_site_after.total_users);
+    assert_eq!(2, local_site_after.total_communities);
     assert_eq!(2, local_site_after.linked_instances);
 
     data.delete(pool).await?;
