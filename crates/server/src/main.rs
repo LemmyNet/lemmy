@@ -3,23 +3,29 @@ use lemmy_server::{CmdArgs, start_lemmy_server};
 use lemmy_utils::{error::LemmyResult, settings::SETTINGS};
 use opentelemetry::{
   global::{self, BoxedTracer},
-  trace::{Span, SpanKind, Status, Tracer},
+  trace::{Span, SpanKind, Status, Tracer, TracerProvider},
 };
 use opentelemetry_otlp::{Protocol, WithExportConfig};
 use opentelemetry_sdk::trace::SdkTracerProvider;
 use opentelemetry_stdout::SpanExporter;
 use std::sync::OnceLock;
-use tracing::level_filters::LevelFilter;
-use tracing_subscriber::{EnvFilter, fmt};
+use tracing::{level_filters::LevelFilter, subscriber::set_default};
+use tracing_subscriber::{EnvFilter, Registry, fmt, layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
 pub async fn main() -> LemmyResult<()> {
-  let tracer_provider = init_tracer_provider();
-  let tracer = get_tracer();
-  let mut root_span = tracer
-    .span_builder("root server span")
-    .with_kind(SpanKind::Server)
-    .start(tracer);
+  let otlp_exporter = opentelemetry_otlp::SpanExporter::builder()
+    .with_tonic()
+    .build()?;
+
+  // Create a tracer provider with the exporter
+  let provider = opentelemetry_sdk::trace::SdkTracerProvider::builder()
+    .with_batch_exporter(otlp_exporter)
+    .build();
+
+  let tracer = provider.tracer("Lemmy Tracer");
+
+  let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
 
   let filter = EnvFilter::builder()
     .with_default_directive(LevelFilter::INFO.into())
@@ -31,27 +37,20 @@ pub async fn main() -> LemmyResult<()> {
   //   .with_thread_ids(true) // include the thread ID of the current thread
   //   .with_thread_names(true) // include the name of the current thread
   //   .compact(); // use the `Compact` formatting style.
-
+  let registry = Registry::default().with(filter).with(telemetry);
   if SETTINGS.json_logging {
-    tracing_subscriber::fmt()
-      .with_env_filter(filter)
-      .json()
-      .init();
+    // tracing_subscriber::fmt()
+    //   .with_env_filter(filter)
+    //   .json()
+    //   .init();
+    registry.with(fmt::layer().json()).init();
   } else {
-    tracing_subscriber::fmt()
-      // .event_format(format)
-      .with_env_filter(filter)
-      .init();
+    registry.with(fmt::layer()).init();
   }
 
+  // Trace executed code
   let args = CmdArgs::parse();
-  root_span.set_status(Status::Ok);
-
-  root_span.end();
   start_lemmy_server(args).await?;
-  if let Err(err) = tracer_provider.shutdown() {
-    eprintln!("Error shutting down tracer provider: {err:?}");
-  }
   Ok(())
 }
 

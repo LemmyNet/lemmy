@@ -58,7 +58,7 @@ use lemmy_utils::{
   error::{LemmyErrorType, LemmyResult},
 };
 use std::time::Duration;
-use tracing::{info, warn};
+use tracing::{info, instrument, warn};
 use url::Url;
 
 /// Schedules various cleanup tasks for lemmy in a background thread
@@ -127,7 +127,7 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
   // - Delete old denied users
   // - Update instance software
   // - Delete old outgoing activities
-  scheduler.every(CTimeUnits::days(1)).run(move || {
+  scheduler.every(CTimeUnits::seconds(30)).run(move || {
     let context = context_1.reset_request_count();
 
     async move {
@@ -513,6 +513,7 @@ async fn process_community_aggregates(
 }
 
 async fn update_local_user_count(pool: &mut DbPool<'_>) -> LemmyResult<()> {
+  tracing::info_span!("update local_user_count");
   info!("Updating the local user count...");
 
   let conn = &mut get_conn(pool).await?;
