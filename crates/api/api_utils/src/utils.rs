@@ -316,7 +316,6 @@ pub async fn check_vote_settings(
     PostOrCommentId::Comment(_) => (local_site.comment_downvotes, local_site.comment_upvotes),
   };
 
-  // TODO: make fn to reuse enum logic
   let check_vote_fn = async |vote_setting, context: &LemmyContext| {
     Ok::<bool, LemmyError>(match vote_setting {
       VoteSettings::All => true,
