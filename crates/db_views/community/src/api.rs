@@ -108,7 +108,7 @@ pub struct CreateCommunity {
   pub posting_restricted_to_mods: Option<bool>,
   pub discussion_languages: Option<Vec<LanguageId>>,
   pub visibility: Option<CommunityVisibility>,
-  pub downvote_mode: Option<VoteSettings>,
+  pub post_downvote_mode: Option<VoteSettings>,
 }
 
 #[skip_serializing_none]
@@ -140,7 +140,7 @@ pub struct EditCommunity {
   pub posting_restricted_to_mods: Option<bool>,
   pub discussion_languages: Option<Vec<LanguageId>>,
   pub visibility: Option<CommunityVisibility>,
-  pub downvote_mode: Option<VoteSettings>,
+  pub post_downvote_mode: Option<VoteSettings>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]

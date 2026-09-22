@@ -181,7 +181,7 @@ diesel::table! {
         report_count -> Int2,
         unresolved_report_count -> Int2,
         local_removed -> Bool,
-        downvote_mode -> VoteSettingsEnum,
+        post_downvote_mode -> VoteSettingsEnum,
     }
 }
 

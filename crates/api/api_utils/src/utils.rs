@@ -297,7 +297,7 @@ pub fn check_comment_deleted_or_removed(comment: &Comment) -> LemmyResult<()> {
 }
 
 /// Checks whether a vote is allowed, considering both the local site's federation vote settings
-/// (per post/comment) and the community's downvote settings.
+/// (per post/comment) and, for post downvotes, the community's post downvote setting.
 pub async fn check_vote_settings(
   vote: Option<bool>,
   post_or_comment_id: PostOrCommentId,
@@ -334,7 +334,13 @@ pub async fn check_vote_settings(
     check_vote_fn(downvote_setting, context).await?
   };
 
-  let community_allowed = check_vote_fn(upvote_setting, context).await?;
+  // The community vote setting only applies to post downvotes.
+  let community_allowed = if !is_upvote && let PostOrCommentId::Post(_) = post_or_comment_id {
+    check_vote_fn(community.post_downvote_mode, context).await?
+  } else {
+    true
+  };
+
   if site_allowed && community_allowed {
     Ok(())
   } else {

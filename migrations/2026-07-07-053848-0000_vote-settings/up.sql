@@ -4,5 +4,5 @@ ALTER TYPE vote_settings_enum
     ADD VALUE 'subscribed';
 
 ALTER TABLE community
-    ADD COLUMN downvote_mode vote_settings_enum DEFAULT 'All'::vote_settings_enum NOT NULL;
+    ADD COLUMN post_downvote_mode vote_settings_enum DEFAULT 'All'::vote_settings_enum NOT NULL;
 

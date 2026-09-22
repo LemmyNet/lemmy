@@ -1,5 +1,5 @@
 ALTER TABLE community
-    DROP COLUMN downvote_mode;
+    DROP COLUMN post_downvote_mode;
 
 CREATE TYPE federation_mode_enum AS ENUM (
     'All',
