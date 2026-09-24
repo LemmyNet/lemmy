@@ -159,7 +159,7 @@ mod tests {
 
   #[test]
   fn test_parse_pyfedi_activities() -> LemmyResult<()> {
-    test_json::<InnerActivities>("../apub/assets/pleroma/activities/create_note.json")?;
+    test_json::<InnerActivities>("../apub/assets/pyfedi/activities/like_pages.json")?;
     Ok(())
   }
 }
