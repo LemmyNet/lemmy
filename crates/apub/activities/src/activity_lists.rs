@@ -77,7 +77,7 @@ pub enum AnnouncableActivities {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-struct InnerActivities {
+pub struct InnerActivities {
   id: Url,
   total_activities: i32,
   activities: Vec<AnnouncableActivities>,
