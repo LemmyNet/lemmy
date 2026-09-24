@@ -278,8 +278,6 @@ mod test {
   async fn test_send_manager() -> LemmyResult<()> {
     let mut data = TestData::init(1, 1).await?;
 
-    println!("Hello from send manager");
-
     data.run().await?;
     assert_eq!(3, data.send_manager.workers.len());
     let workers: HashSet<_> = data.send_manager.workers.keys().cloned().collect();

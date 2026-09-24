@@ -24,7 +24,6 @@ mod tests {
 
   #[test]
   fn test_parse_lemmy_community_activities() -> LemmyResult<()> {
-    println!("Test no-capture");
     test_parse_lemmy_item::<AnnounceActivity>(
       "../apub/assets/lemmy/activities/community/announce_create_page.json",
     )?;

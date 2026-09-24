@@ -60,12 +60,11 @@ impl Activity for RawAnnouncableActivities {
     activity.verify(context).await?;
     let ap_id = activity.actor().clone().into();
     activity.receive(context).await?;
-    println!("hellp");
+
     // if community is local, send activity to followers
     if let Some(community) = community
       && community.local
     {
-      println!("sending activity to followers");
       verify_person_in_community(&ap_id, &community, context).await?;
       AnnounceActivity::send(self, &community, context).await?;
     }
@@ -157,7 +156,7 @@ impl Activity for AnnounceActivity {
 
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     let object: AnnouncableActivities = self.object.dereference(context).await?.try_into()?;
-    println!("actitibty received in communit");
+
     // This is only for sending, not receiving so we reject it.
     if let AnnouncableActivities::Page(_) = object {
       return Err(UntranslatedError::CannotReceivePage.into());

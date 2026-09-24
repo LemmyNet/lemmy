@@ -9,7 +9,7 @@ use lemmy_utils::{error::LemmyResult, settings::SETTINGS};
 // use opentelemetry_sdk::trace::SdkTracerProvider;
 // use opentelemetry_stdout::SpanExporter;
 use std::sync::OnceLock;
-use tracing::{level_filters::LevelFilter, subscriber::set_default};
+use tracing::level_filters::LevelFilter;
 use tracing_subscriber::{
   EnvFilter,
   Layer,
@@ -38,25 +38,14 @@ pub async fn main() -> LemmyResult<()> {
     .with_default_directive(LevelFilter::INFO.into())
     .from_env_lossy();
 
-  // let format = fmt::format()
-  //   .with_level(false) // don't include levels in formatted output
-  //   .with_target(false) // don't include targets
-  //   .with_thread_ids(true) // include the thread ID of the current thread
-  //   .with_thread_names(true) // include the name of the current thread
-  //   .compact(); // use the `Compact` formatting style.
   // let registry = Registry::default().with(filter).with(telemetry);
   let registry = Registry::default();
   if SETTINGS.json_logging {
-    // tracing_subscriber::fmt()
-    //   .with_env_filter(filter)
-    //   .json()
-    //   .init();
     registry.with(fmt::layer().json()).init();
   } else {
     registry.with(fmt::layer().with_filter(filter)).init();
   }
 
-  // Trace executed code
   let args = CmdArgs::parse();
   start_lemmy_server(args).await?;
   Ok(())

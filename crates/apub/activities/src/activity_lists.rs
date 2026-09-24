@@ -71,7 +71,6 @@ pub enum AnnouncableActivities {
   Report(Report),
   ResolveReport(ResolveReport),
   Warn(Warn),
-  // Votes(Votes),
   InnerActivities(InnerActivities),
   // For compatibility with Pleroma/Mastodon (send only)
   Page(Page),
