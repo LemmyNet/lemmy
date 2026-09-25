@@ -91,6 +91,7 @@ pub async fn edit_community(
     nsfw: data.nsfw,
     posting_restricted_to_mods: data.posting_restricted_to_mods,
     visibility: data.visibility,
+    post_downvote_mode: data.post_downvote_mode,
     updated_at: Some(Some(Utc::now())),
     ..Default::default()
   };

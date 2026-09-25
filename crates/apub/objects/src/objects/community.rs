@@ -150,6 +150,7 @@ impl Object for ApubCommunity {
         .into_iter()
         .map(ApubCommunityTag::to_json)
         .collect(),
+      post_downvote_mode: Some(self.post_downvote_mode),
     };
     Ok(group)
   }
@@ -242,6 +243,7 @@ impl Object for ApubCommunity {
       featured_url: group.featured.clone().clone().map(Into::into),
       title,
       visibility,
+      post_downvote_mode: Some(group.post_downvote_mode.unwrap_or_default()),
       ..CommunityInsertForm::new(instance_id, name, group.public_key.public_key_pem.clone())
     };
     let languages =
