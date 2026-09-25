@@ -86,7 +86,7 @@ impl Crud for Post {
 }
 
 impl Post {
-  pub async fn insert_apub(
+  pub async fn upsert_apub(
     pool: &mut DbPool<'_>,
     timestamp: DateTime<Utc>,
     form: &PostInsertForm,
