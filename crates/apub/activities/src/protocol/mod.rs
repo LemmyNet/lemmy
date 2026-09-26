@@ -50,6 +50,7 @@ impl<Kind: Id + DeserializeOwned + Clone + Send> IdOrNestedObject<Kind> {
         }
       }
       IdOrNestedObject::NestedObject(o) => Ok(o.clone()),
+      // IdOrNestedObject::NestedCollectionObject(c) => Ok(c.clone()),
     }
   }
 }

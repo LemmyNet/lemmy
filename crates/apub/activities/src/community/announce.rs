@@ -4,7 +4,12 @@ use crate::{
   generate_announce_activity_id,
   protocol::{
     IdOrNestedObject,
-    community::announce::{AnnounceActivity, RawAnnouncableActivities},
+    community::announce::{
+      AnnounceActivity,
+      OneOrManyActivity,
+      RawAnnouncableActivities,
+      RawAnnouncableActivitiesCollection,
+    },
   },
   send_lemmy_activity,
 };
@@ -79,6 +84,21 @@ impl Id for RawAnnouncableActivities {
   }
 }
 
+impl Id for RawAnnouncableActivitiesCollection {
+  fn id(&self) -> &Url {
+    &self.id
+  }
+}
+
+impl Id for OneOrManyActivity {
+  fn id(&self) -> &Url {
+    match self {
+      OneOrManyActivity::One(a) => lemmy_apub_objects::utils::protocol::Id::id(a),
+      OneOrManyActivity::Many(ac) => ac.id(),
+    }
+  }
+}
+
 impl AnnounceActivity {
   pub fn new(
     object: RawAnnouncableActivities,
@@ -95,7 +115,7 @@ impl AnnounceActivity {
     Ok(AnnounceActivity {
       actor: community.id().clone().into(),
       to: generate_to(community)?,
-      object: IdOrNestedObject::NestedObject(object),
+      object: IdOrNestedObject::NestedObject(OneOrManyActivity::One(object)),
       cc: community
         .followers_url
         .clone()
@@ -173,6 +193,7 @@ impl Activity for AnnounceActivity {
   }
 }
 
+// This won't be needed anymore I think
 impl TryFrom<RawAnnouncableActivities> for AnnouncableActivities {
   type Error = serde_json::error::Error;
 
@@ -181,6 +202,31 @@ impl TryFrom<RawAnnouncableActivities> for AnnouncableActivities {
     map.insert("id".to_string(), Value::String(value.id.to_string()));
     map.insert("actor".to_string(), Value::String(value.actor.to_string()));
     serde_json::from_value(Value::Object(map))
+  }
+}
+
+impl TryFrom<OneOrManyActivity> for AnnouncableActivities {
+  type Error = serde_json::error::Error;
+
+  fn try_from(value: OneOrManyActivity) -> Result<Self, Self::Error> {
+    match value {
+      OneOrManyActivity::One(a) => {
+        let mut map = a.other.clone();
+        map.insert("id".to_string(), Value::String(a.id.to_string()));
+        map.insert("actor".to_string(), Value::String(a.actor.to_string()));
+        serde_json::from_value(Value::Object(map))
+      }
+      OneOrManyActivity::Many(ac) => {
+        let mut activities = vec![];
+        for a in ac.ordered_items {
+          let mut map = a.other.clone();
+          map.insert("id".to_string(), Value::String(a.id.to_string()));
+          map.insert("actor".to_string(), Value::String(a.actor.to_string()));
+          activities.push(Value::Object(map));
+        }
+        serde_json::from_value(Value::Array(activities))
+      }
+    }
   }
 }
 

@@ -27,8 +27,9 @@ use lemmy_apub_objects::{
   protocol::page::Page,
   utils::protocol::InCommunity,
 };
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
 use serde::{Deserialize, Serialize};
+use std::io::ErrorKind::Unsupported;
 use url::Url;
 
 /// List of activities which the shared inbox can handle.
@@ -78,27 +79,27 @@ pub enum AnnouncableActivities {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct InnerActivities {
-  id: Url,
-  total_activities: i32,
+  // id: Url,
+  // total_activities: i32,
   activities: Vec<AnnouncableActivities>,
 }
 
 impl Activity for InnerActivities {
   #[doc = " App data type passed to handlers. Must be identical to"]
   #[doc = " [crate::config::FederationConfigBuilder::app_data] type."]
-  type DataType;
+  type DataType = LemmyContext;
 
   #[doc = " Error type returned by handler methods"]
-  type Error;
+  type Error = LemmyError;
 
   #[doc = " `id` field of the activity"]
   fn id(&self) -> &Url {
-    todo!()
+    unimplemented!()
   }
 
   #[doc = " `actor` field of activity"]
   fn actor(&self) -> &Url {
-    todo!()
+    unimplemented!()
   }
 
   #[doc = " Verifies that the received activity is valid."]
@@ -153,7 +154,9 @@ impl Activity for InnerActivities {
     'life0: 'async_trait,
     Self: 'async_trait,
   {
-    todo!()
+    for activity in &self.activities {
+      activity.receive(data);
+    }
   }
 }
 
