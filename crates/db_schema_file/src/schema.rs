@@ -359,6 +359,8 @@ diesel::table! {
         #[max_length = 3]
         code -> Varchar,
         name -> Text,
+        usage_in_local_posts -> Float8,
+        usage_in_local_comments -> Float8,
     }
 }
 
@@ -410,10 +412,10 @@ diesel::table! {
         comment_downvotes -> FederationModeEnum,
         default_post_time_range_seconds -> Nullable<Int4>,
         nsfw_content_disallowed -> Bool,
-        users -> Int4,
-        posts -> Int4,
-        comments -> Int4,
-        communities -> Int4,
+        local_users -> Int4,
+        local_posts -> Int4,
+        local_comments -> Int4,
+        local_communities -> Int4,
         users_active_day -> Int4,
         users_active_week -> Int4,
         users_active_month -> Int4,
@@ -431,6 +433,14 @@ diesel::table! {
         image_max_upload_size -> Int4,
         image_allow_video_uploads -> Bool,
         image_upload_disabled -> Bool,
+        linked_instances -> Int4,
+        total_posts -> Int4,
+        total_comments -> Int4,
+        total_users -> Int4,
+        total_communities -> Int4,
+        user_retention_month_percent -> Float8,
+        user_retention_half_year_percent -> Float8,
+        ban_rate -> Float8,
         max_invites_per_user_allowed -> Int4,
     }
 }

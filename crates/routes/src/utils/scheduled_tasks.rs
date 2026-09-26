@@ -9,10 +9,10 @@ use diesel::{
   QueryDsl,
   QueryableByName,
   SelectableHelper,
-  dsl::{IntervalDsl, count, exists, not, update},
+  dsl::{IntervalDsl, count, count_star, exists, not, update},
   query_builder::AsQuery,
   sql_query,
-  sql_types::{BigInt, Integer, Timestamptz},
+  sql_types::{BigInt, Float8, Integer, Timestamptz},
 };
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use diesel_uplete::uplete;
@@ -47,7 +47,7 @@ use lemmy_db_schema_file::schema::{
   sent_activity,
   site,
 };
-use lemmy_db_views_site::SiteView;
+use lemmy_db_views_site::{FederatedInstanceView, SiteView};
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   traits::Crud,
@@ -123,6 +123,11 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
   // Daily tasks:
   // - Update site and community activity counts
   // - Update local user count
+  // - Update linked instance count
+  // - Update total counts (posts, comments, users, communities)
+  // - Update user retention percents
+  // - Update language usage percents
+  // - Update banned user percent
   // - Overwrite deleted & removed posts and comments every day
   // - Delete old denied users
   // - Update instance software
@@ -138,6 +143,26 @@ pub async fn setup(context: Data<LemmyContext>) -> LemmyResult<()> {
       update_local_user_count(&mut context.pool())
         .await
         .inspect_err(|e| warn!("Failed to update local user count: {e}"))
+        .ok();
+      update_linked_instance_count(&mut context.pool())
+        .await
+        .inspect_err(|e| warn!("Failed to update linked instance count: {e}"))
+        .ok();
+      update_total_counts(&mut context.pool())
+        .await
+        .inspect_err(|e| warn!("Failed to update total counts: {e}"))
+        .ok();
+      all_user_retention_percents(&mut context.pool())
+        .await
+        .inspect_err(|e| warn!("Failed to update user retention percents: {e}"))
+        .ok();
+      update_language_usage_percents(&mut context.pool())
+        .await
+        .inspect_err(|e| warn!("Failed to update language usage breakdown: {e}"))
+        .ok();
+      update_banned_user_percent(&mut context.pool())
+        .await
+        .inspect_err(|e| warn!("Failed to update banner user percent: {e}"))
         .ok();
       overwrite_deleted_posts_and_comments(&mut context.pool())
         .await
@@ -357,10 +382,20 @@ const SIX_MONTHS: (&str, &str) = ("6 months", "half_year");
 
 const ALL_ACTIVE_INTERVALS: [(&str, &str); 4] = [ONE_DAY, ONE_WEEK, ONE_MONTH, SIX_MONTHS];
 
+const ALL_RETENTION_INTERVALS: [(&str, &str); 2] = [ONE_MONTH, SIX_MONTHS];
+
 #[derive(QueryableByName)]
 struct SiteActivitySelectResult {
   #[diesel(sql_type = Integer)]
   site_aggregates_activity: i32,
+}
+
+#[derive(QueryableByName)]
+struct UserRetentionSelectResult {
+  #[diesel(sql_type = Integer)]
+  previous_count: i32,
+  #[diesel(sql_type = Integer)]
+  retained_count: i32,
 }
 
 #[derive(QueryableByName)]
@@ -405,6 +440,17 @@ async fn all_active_counts(pool: &mut DbPool<'_>) -> LemmyResult<()> {
   Ok(())
 }
 
+/// Re-calculate the user retention percents
+async fn all_user_retention_percents(pool: &mut DbPool<'_>) -> LemmyResult<()> {
+  let conn = &mut get_conn(pool).await?;
+
+  for i in ALL_RETENTION_INTERVALS {
+    process_retention_percents(conn, i).await?;
+  }
+
+  Ok(())
+}
+
 async fn process_site_aggregates(
   conn: &mut AsyncPgConnection,
   interval: (&str, &str),
@@ -434,6 +480,93 @@ async fn process_site_aggregates(
   info!(
     "Finished site_aggregates active_{} (processed {} rows)",
     interval.1, processed_rows
+  );
+
+  Ok(())
+}
+
+/// Find local, non-bot users active in the period of `interval` length preceding the current
+/// one, then work out what percentage of them are also active in the current period.
+async fn process_retention_percents(
+  conn: &mut AsyncPgConnection,
+  interval: (&str, &str),
+) -> LemmyResult<()> {
+  let retention = sql_query(format!(
+    r#"WITH previous_active AS (
+         SELECT c.creator_id AS person_id FROM comment c
+           INNER JOIN person pe ON pe.id = c.creator_id
+           WHERE c.published_at >= (CURRENT_DATE - INTERVAL '{i}' * 2)
+             AND c.published_at < (CURRENT_DATE - INTERVAL '{i}')
+             AND pe.local = TRUE AND pe.bot_account = FALSE
+         UNION
+         SELECT p.creator_id FROM post p
+           INNER JOIN person pe ON pe.id = p.creator_id
+           WHERE p.published_at >= (CURRENT_DATE - INTERVAL '{i}' * 2)
+             AND p.published_at < (CURRENT_DATE - INTERVAL '{i}')
+             AND pe.local = TRUE AND pe.bot_account = FALSE
+         UNION
+         SELECT pa.person_id FROM post_actions pa
+           INNER JOIN person pe ON pe.id = pa.person_id
+           WHERE pa.voted_at >= (CURRENT_DATE - INTERVAL '{i}' * 2)
+             AND pa.voted_at < (CURRENT_DATE - INTERVAL '{i}')
+             AND pe.local = TRUE AND pe.bot_account = FALSE
+         UNION
+         SELECT ca.person_id FROM comment_actions ca
+           INNER JOIN person pe ON pe.id = ca.person_id
+           WHERE ca.voted_at >= (CURRENT_DATE - INTERVAL '{i}' * 2)
+             AND ca.voted_at < (CURRENT_DATE - INTERVAL '{i}')
+             AND pe.local = TRUE AND pe.bot_account = FALSE
+       ),
+       current_active AS (
+         SELECT c.creator_id AS person_id FROM comment c
+           INNER JOIN person pe ON pe.id = c.creator_id
+           WHERE c.published_at >= (CURRENT_DATE - INTERVAL '{i}')
+             AND pe.local = TRUE AND pe.bot_account = FALSE
+         UNION
+         SELECT p.creator_id FROM post p
+           INNER JOIN person pe ON pe.id = p.creator_id
+           WHERE p.published_at >= (CURRENT_DATE - INTERVAL '{i}')
+             AND pe.local = TRUE AND pe.bot_account = FALSE
+         UNION
+         SELECT pa.person_id FROM post_actions pa
+           INNER JOIN person pe ON pe.id = pa.person_id
+           WHERE pa.voted_at >= (CURRENT_DATE - INTERVAL '{i}')
+             AND pe.local = TRUE AND pe.bot_account = FALSE
+         UNION
+         SELECT ca.person_id FROM comment_actions ca
+           INNER JOIN person pe ON pe.id = ca.person_id
+           WHERE ca.voted_at >= (CURRENT_DATE - INTERVAL '{i}')
+             AND pe.local = TRUE AND pe.bot_account = FALSE
+       )
+       SELECT
+         (SELECT count(*) FROM previous_active)::integer AS previous_count,
+         (SELECT count(*) FROM previous_active
+            INNER JOIN current_active USING (person_id))::integer AS retained_count"#,
+    i = interval.0
+  ))
+  .get_result::<UserRetentionSelectResult>(conn)
+  .await
+  .inspect_err(|e| warn!("Failed to calculate user retention: {e}"))?;
+
+  let percent = if retention.previous_count == 0 {
+    0.0
+  } else {
+    f64::from(retention.retained_count) / f64::from(retention.previous_count) * 100.0
+  };
+
+  sql_query(format!(
+    "update local_site set user_retention_{}_percent = $1",
+    interval.1,
+  ))
+  .bind::<Float8, _>(percent)
+  .execute(conn)
+  .await
+  .inspect_err(|e| warn!("Failed to update user retention stats: {e}"))
+  .ok();
+
+  info!(
+    "Finished user retention_{} ({} out of {} retained)",
+    interval.1, retention.retained_count, retention.previous_count
   );
 
   Ok(())
@@ -512,11 +645,10 @@ async fn process_community_aggregates(
   Ok(())
 }
 
-async fn update_local_user_count(pool: &mut DbPool<'_>) -> LemmyResult<()> {
-  info!("Updating the local user count...");
-
-  let conn = &mut get_conn(pool).await?;
-  let user_count = local_user::table
+/// Approved, non-deleted local users, left joined to their ban action on the local instance.
+#[diesel::dsl::auto_type]
+fn approved_local_users() -> _ {
+  local_user::table
     .inner_join(
       person::table.left_join(
         instance_actions::table
@@ -525,18 +657,130 @@ async fn update_local_user_count(pool: &mut DbPool<'_>) -> LemmyResult<()> {
     )
     // only count approved users
     .filter(local_user::accepted_application)
-    // ignore banned and deleted accounts
-    .filter(instance_actions::received_ban_at.is_null())
+    // ignore deleted accounts
     .filter(not(person::deleted))
+}
+
+async fn update_local_user_count(pool: &mut DbPool<'_>) -> LemmyResult<()> {
+  info!("Updating the local user count...");
+
+  let conn = &mut get_conn(pool).await?;
+  let user_count = approved_local_users()
+    // ignore banned accounts
+    .filter(instance_actions::received_ban_at.is_null())
     .select(count(local_user::id))
     .first::<i64>(conn)
     .await
     .map(i32::try_from)??;
 
   update(local_site::table)
-    .set(local_site::users.eq(user_count))
+    .set(local_site::local_users.eq(user_count))
     .execute(conn)
     .await?;
+
+  info!("Done.");
+  Ok(())
+}
+
+async fn update_linked_instance_count(pool: &mut DbPool<'_>) -> LemmyResult<()> {
+  info!("Updating the linked instance count...");
+
+  let linked_instance_count = FederatedInstanceView::count(pool).await?;
+
+  let conn = &mut get_conn(pool).await?;
+
+  update(local_site::table)
+    .set(local_site::linked_instances.eq(linked_instance_count))
+    .execute(conn)
+    .await?;
+
+  info!("Done.");
+  Ok(())
+}
+
+async fn update_total_counts(pool: &mut DbPool<'_>) -> LemmyResult<()> {
+  info!("Updating total counts ...");
+
+  let local_instance_id = SiteView::read_local(pool).await?.instance.id;
+  let conn = &mut get_conn(pool).await?;
+
+  let total_post_count = post::table
+    .filter(not(post::deleted.or(post::removed)))
+    .select(count_star())
+    .first::<i64>(conn)
+    .await
+    .map(i32::try_from)??;
+
+  let total_comment_count = comment::table
+    .filter(not(comment::deleted.or(comment::removed)))
+    .select(count_star())
+    .first::<i64>(conn)
+    .await
+    .map(i32::try_from)??;
+
+  let total_community_count = community::table
+    .filter(not(community::deleted.or(community::removed)))
+    .select(count_star())
+    .first::<i64>(conn)
+    .await
+    .map(i32::try_from)??;
+
+  let banned_on_local_instance = instance_actions::table
+    .find((person::id, local_instance_id))
+    .filter(instance_actions::received_ban_at.is_not_null());
+
+  let total_user_count = person::table
+    .filter(not(person::deleted))
+    .filter(not(person::bot_account))
+    .filter(not(exists(banned_on_local_instance)))
+    .select(count_star())
+    .first::<i64>(conn)
+    .await
+    .map(i32::try_from)??;
+
+  update(local_site::table)
+    .set((
+      local_site::total_posts.eq(total_post_count),
+      local_site::total_comments.eq(total_comment_count),
+      local_site::total_users.eq(total_user_count),
+      local_site::total_communities.eq(total_community_count),
+    ))
+    .execute(conn)
+    .await?;
+
+  info!("Done.");
+
+  Ok(())
+}
+/// Update each language with its percentage share of local posts and local comments
+async fn update_language_usage_percents(pool: &mut DbPool<'_>) -> LemmyResult<()> {
+  info!("Calculating local language usage percentages ...");
+
+  let conn = &mut get_conn(pool).await?;
+
+  sql_query(
+    r#"
+    WITH post_counts AS (
+      SELECT language_id, COUNT(*) AS n FROM post WHERE local GROUP BY language_id
+    ),
+    comment_counts AS (
+      SELECT language_id, COUNT(*) AS n FROM comment WHERE local GROUP BY language_id
+    ),
+    totals AS (
+      SELECT local_posts, local_comments FROM local_site LIMIT 1
+    )
+    UPDATE language l SET
+      usage_in_local_posts = COALESCE(pc.n::float8 / NULLIF(t.local_posts, 0) * 100.0, 0), /* set usage_in_local_posts to 0 if t.local_posts is 0*/ 
+      usage_in_local_comments = COALESCE(cc.n::float8 / NULLIF(t.local_comments, 0) * 100.0, 0)
+    FROM language l2
+      CROSS JOIN totals t
+      LEFT JOIN post_counts pc ON pc.language_id = l2.id
+      LEFT JOIN comment_counts cc ON cc.language_id = l2.id
+    WHERE l.id = l2.id
+    "#,
+  )
+  .execute(conn)
+  .await?;
 
   info!("Done.");
   Ok(())
@@ -726,18 +970,57 @@ async fn build_update_instance_form(
   Some(instance_form)
 }
 
+async fn update_banned_user_percent(pool: &mut DbPool<'_>) -> LemmyResult<()> {
+  info!("Updating the banned rate...");
+
+  let conn = &mut get_conn(pool).await?;
+
+  let total_local_user_count = approved_local_users()
+    .select(count(local_user::id))
+    .first::<i64>(conn)
+    .await
+    .map(i32::try_from)??;
+
+  let banned_local_user_count = approved_local_users()
+    // only count banned accounts
+    .filter(instance_actions::received_ban_at.is_not_null())
+    .select(count(local_user::id))
+    .first::<i64>(conn)
+    .await
+    .map(i32::try_from)??;
+
+  let ban_rate = if total_local_user_count == 0 {
+    0.0
+  } else {
+    f64::from(banned_local_user_count) / f64::from(total_local_user_count) * 100.0
+  };
+
+  update(local_site::table)
+    .set(local_site::ban_rate.eq(ban_rate))
+    .execute(conn)
+    .await?;
+
+  info!(
+    "Finished ban_rate ({banned_local_user_count} out of {total_local_user_count} local users banned, {ban_rate:.2}%)"
+  );
+  Ok(())
+}
+
 #[cfg(test)]
 mod tests {
 
   use super::*;
   use lemmy_db_schema::{
     source::{
+      comment::{Comment, CommentInsertForm},
       community::{Community, CommunityInsertForm},
+      instance::{InstanceActions, InstanceBanForm},
+      language::Language,
       person::{Person, PersonInsertForm},
       post::{Post, PostActions, PostInsertForm, PostLikeForm},
     },
     test_data::TestData,
-    traits::Likeable,
+    traits::{Bannable, Likeable},
   };
   use lemmy_diesel_utils::traits::Crud;
   use lemmy_utils::error::{LemmyErrorType, LemmyResult};
@@ -895,6 +1178,293 @@ mod tests {
       alive_stats.users_active_half_year, 1,
       "alive: users_active_half_year should be 1"
     );
+
+    data.delete(pool).await?;
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_update_total_counts() -> LemmyResult<()> {
+    let context = LemmyContext::init_test_context().await;
+    let pool = &mut context.pool();
+    // Setup local site
+    let data = TestData::create(pool).await?;
+    // insert local community and user
+    let local_community = Community::create(
+      pool,
+      &CommunityInsertForm::new(data.instance.id, "local".to_owned(), "pubkey".to_owned()),
+    )
+    .await?;
+    let local_person = Person::create(
+      pool,
+      &PersonInsertForm::new("felicity".to_owned(), "pubkey".to_owned(), data.instance.id),
+    )
+    .await?;
+
+    // insert linked instance, with a user and a community
+    let instance0 = Instance::read_or_create(pool, "example0.com").await?;
+    Instance::read_or_create(pool, "example1.com").await?;
+    Community::create(
+      pool,
+      &CommunityInsertForm::new(instance0.id, "remote".to_owned(), "pubkey".to_owned()),
+    )
+    .await?;
+    let remote_person = Person::create(
+      pool,
+      &PersonInsertForm::new("remote".to_owned(), "pubkey".to_owned(), instance0.id),
+    )
+    .await?;
+
+    // bot user
+    let bot_form = PersonInsertForm {
+      bot_account: Some(true),
+      ..PersonInsertForm::new("bot".to_owned(), "pubkey".to_owned(), instance0.id)
+    };
+    Person::create(pool, &bot_form).await?;
+
+    // user banned only on their home instance, still included in the total user count
+    let home_banned_person = Person::create(
+      pool,
+      &PersonInsertForm::new("home_banned".to_owned(), "pubkey".to_owned(), instance0.id),
+    )
+    .await?;
+    let home_ban_form = InstanceBanForm::new(home_banned_person.id, instance0.id, None);
+    InstanceActions::ban(pool, &home_ban_form).await?;
+
+    // local user posts in the local community and comments on it
+    let local_post = Post::create(
+      pool,
+      &PostInsertForm::new("local post".to_owned(), local_person.id, local_community.id),
+    )
+    .await?;
+    let local_comment = CommentInsertForm::new(
+      local_person.id,
+      local_post.id,
+      local_community.id,
+      "local".into(),
+    );
+    Comment::create(pool, &local_comment, None).await?;
+
+    // remote user comments on the local post
+    let remote_comment = CommentInsertForm::new(
+      remote_person.id,
+      local_post.id,
+      local_community.id,
+      "remote".into(),
+    );
+    Comment::create(pool, &remote_comment, None).await?;
+
+    // remote user posts in the local community
+    let remote_post = PostInsertForm::new(
+      "remote post".to_owned(),
+      remote_person.id,
+      local_community.id,
+    );
+    Post::create(pool, &remote_post).await?;
+
+    let local_site_before = SiteView::read_local(pool).await?.local_site;
+    assert_eq!(0, local_site_before.total_posts);
+    assert_eq!(0, local_site_before.total_comments);
+    assert_eq!(0, local_site_before.total_users);
+    assert_eq!(0, local_site_before.total_communities);
+    assert_eq!(0, local_site_before.linked_instances);
+
+    // run the queries
+    update_total_counts(pool).await?;
+    update_linked_instance_count(pool).await?;
+    let local_site_after = SiteView::read_local(pool).await?.local_site;
+
+    // totals include both local and federated objects
+    assert_eq!(2, local_site_after.total_posts);
+    assert_eq!(2, local_site_after.total_comments);
+    assert_eq!(5, local_site_after.total_users);
+    assert_eq!(2, local_site_after.total_communities);
+    assert_eq!(2, local_site_after.linked_instances);
+
+    data.delete(pool).await?;
+    Instance::delete_all(pool).await?;
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_update_language_usage_percents() -> LemmyResult<()> {
+    let context = LemmyContext::init_test_context().await;
+    let pool = &mut context.pool();
+
+    let data = TestData::create(pool).await?;
+    let community = Community::create(
+      pool,
+      &CommunityInsertForm::new(data.instance.id, "name".to_owned(), "pubkey".to_owned()),
+    )
+    .await?;
+    let person = Person::create(
+      pool,
+      &PersonInsertForm::new("felicity".to_owned(), "pubkey".to_owned(), data.instance.id),
+    )
+    .await?;
+
+    let en_id = Language::read_id_from_code(pool, "en").await?;
+    let de_id = Language::read_id_from_code(pool, "de").await?;
+
+    // Create 2 English posts and 1 German post (expect 67% and 33%)
+    for _ in 0..2 {
+      Post::create(
+        pool,
+        &PostInsertForm {
+          language_id: Some(en_id),
+          ..PostInsertForm::new("english post".to_owned(), person.id, community.id)
+        },
+      )
+      .await?;
+    }
+    let post = Post::create(
+      pool,
+      &PostInsertForm {
+        language_id: Some(de_id),
+        ..PostInsertForm::new("german post".to_owned(), person.id, community.id)
+      },
+    )
+    .await?;
+
+    // Create 1 English comment and 3 German comments (expect 25% and 75%)
+    Comment::create(
+      pool,
+      &CommentInsertForm {
+        language_id: Some(en_id),
+        ..CommentInsertForm::new(
+          person.id,
+          post.id,
+          community.id,
+          "english comment".to_owned(),
+        )
+      },
+      None,
+    )
+    .await?;
+    for _ in 0..3 {
+      Comment::create(
+        pool,
+        &CommentInsertForm {
+          language_id: Some(de_id),
+          ..CommentInsertForm::new(
+            person.id,
+            post.id,
+            community.id,
+            "german comment".to_owned(),
+          )
+        },
+        None,
+      )
+      .await?;
+    }
+
+    update_language_usage_percents(pool).await?;
+
+    let en_language = Language::read_from_id(pool, en_id).await?;
+    let de_language = Language::read_from_id(pool, de_id).await?;
+
+    assert_eq!(
+      (en_language.usage_in_local_posts * 100.0).round() / 100.0,
+      66.67
+    );
+    assert_eq!(
+      (de_language.usage_in_local_posts * 100.0).round() / 100.0,
+      33.33
+    );
+    assert_eq!(
+      (en_language.usage_in_local_comments * 100.0).round() / 100.0,
+      25.0
+    );
+    assert_eq!(
+      (de_language.usage_in_local_comments * 100.0).round() / 100.0,
+      75.0
+    );
+
+    data.delete(pool).await?;
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_process_user_retentions() -> LemmyResult<()> {
+    let context = LemmyContext::init_test_context().await;
+    let pool = &mut context.pool();
+
+    let data = TestData::create(pool).await?;
+    let community = Community::create(
+      pool,
+      &CommunityInsertForm::new(data.instance.id, "name".to_owned(), "pubkey".to_owned()),
+    )
+    .await?;
+
+    let retained_person = Person::create(
+      pool,
+      &PersonInsertForm::new("retained".to_owned(), "pubkey".to_owned(), data.instance.id),
+    )
+    .await?;
+    let churned_person = Person::create(
+      pool,
+      &PersonInsertForm::new("churned".to_owned(), "pubkey".to_owned(), data.instance.id),
+    )
+    .await?;
+    let new_person = Person::create(
+      pool,
+      &PersonInsertForm::new("newcomer".to_owned(), "pubkey".to_owned(), data.instance.id),
+    )
+    .await?;
+
+    let now = Utc::now();
+    // Active ~45 days ago (previous month window) and ~10 days ago (current month window)
+    Post::create(
+      pool,
+      &PostInsertForm {
+        published_at: Some(now - chrono::Duration::days(45)),
+        ..PostInsertForm::new(
+          "retained post 1".to_owned(),
+          retained_person.id,
+          community.id,
+        )
+      },
+    )
+    .await?;
+    Post::create(
+      pool,
+      &PostInsertForm {
+        published_at: Some(now - chrono::Duration::days(10)),
+        ..PostInsertForm::new(
+          "retained post 2".to_owned(),
+          retained_person.id,
+          community.id,
+        )
+      },
+    )
+    .await?;
+    // Active only ~45 days ago, churned by the current window
+    Post::create(
+      pool,
+      &PostInsertForm {
+        published_at: Some(now - chrono::Duration::days(45)),
+        ..PostInsertForm::new("churned post".to_owned(), churned_person.id, community.id)
+      },
+    )
+    .await?;
+    // Active only ~10 days ago, wasn't active in the previous window
+    Post::create(
+      pool,
+      &PostInsertForm {
+        published_at: Some(now - chrono::Duration::days(10)),
+        ..PostInsertForm::new("new post".to_owned(), new_person.id, community.id)
+      },
+    )
+    .await?;
+
+    let conn = &mut get_conn(pool).await?;
+    process_retention_percents(conn, ONE_MONTH).await?;
+
+    let local_site = SiteView::read_local(pool).await?.local_site;
+    assert_eq!(local_site.user_retention_month_percent, 50.0);
 
     data.delete(pool).await?;
     Ok(())

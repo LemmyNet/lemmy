@@ -18,7 +18,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
 #[skip_serializing_none]
-#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(PartialEq, Debug, Clone, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "full", derive(Queryable, Selectable, Identifiable))]
 #[cfg_attr(feature = "full", diesel(table_name = local_site))]
 #[cfg_attr(feature = "full", diesel(belongs_to(crate::source::site::Site)))]
@@ -78,10 +78,10 @@ pub struct LocalSite {
   pub default_post_time_range_seconds: Option<i32>,
   /// Block NSFW content being created
   pub nsfw_content_disallowed: bool,
-  pub users: i32,
-  pub posts: i32,
-  pub comments: i32,
-  pub communities: i32,
+  pub local_users: i32,
+  pub local_posts: i32,
+  pub local_comments: i32,
+  pub local_communities: i32,
   /// The number of users with any activity in the last day.
   pub users_active_day: i32,
   /// The number of users with any activity in the last week.
@@ -113,6 +113,14 @@ pub struct LocalSite {
   /// This affects post and comment images, but not avatars and banners.
   pub image_allow_video_uploads: bool,
   pub image_upload_disabled: bool,
+  pub linked_instances: i32,
+  pub total_posts: i32,
+  pub total_comments: i32,
+  pub total_users: i32,
+  pub total_communities: i32,
+  pub user_retention_month_percent: f64,
+  pub user_retention_half_year_percent: f64,
+  pub ban_rate: f64,
   /// How many active invite links a user can have
   pub max_invites_per_user_allowed: i32,
 }
