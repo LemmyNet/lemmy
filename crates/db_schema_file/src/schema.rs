@@ -180,6 +180,8 @@ diesel::table! {
         report_count -> Int2,
         unresolved_report_count -> Int2,
         local_removed -> Bool,
+        #[max_length = 255]
+        redirect_url -> Nullable<Varchar>,
     }
 }
 
