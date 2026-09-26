@@ -13,20 +13,16 @@ use crate::protocol::{
   create_or_update::{note_wrapper::CreateOrUpdateNoteWrapper, page::CreateOrUpdatePage},
   deletion::{delete::Delete, undo_delete::UndoDelete},
   following::{
-    accept::AcceptFollow,
-    follow::Follow,
-    reject::RejectFollow,
-    undo_follow::UndoFollow,
+    accept::AcceptFollow, follow::Follow, reject::RejectFollow, undo_follow::UndoFollow,
   },
   voting::{undo_vote::UndoVote, vote::Vote},
 };
 use activitypub_federation::{config::Data, traits::Activity};
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
-  objects::community::ApubCommunity,
-  protocol::page::Page,
-  utils::protocol::InCommunity,
+  objects::community::ApubCommunity, protocol::page::Page, utils::protocol::InCommunity,
 };
+use lemmy_db_schema::source::instance::Instance;
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -38,7 +34,7 @@ use url::Url;
 /// are handled correctly.
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(untagged)]
-#[enum_delegate::implement(Activity)]
+#[enum_delegate::implement_conversions]
 pub enum SharedInboxActivities {
   Follow(Follow),
   AcceptFollow(AcceptFollow),
@@ -49,6 +45,72 @@ pub enum SharedInboxActivities {
   AnnounceActivity(AnnounceActivity),
   /// This is a catch-all and needs to be last
   RawAnnouncableActivities(RawAnnouncableActivities),
+}
+
+// Delegate all functions except receive, which should update instances
+#[async_trait::async_trait]
+impl Activity for SharedInboxActivities {
+  type DataType = LemmyContext;
+  type Error = lemmy_utils::error::LemmyError;
+
+  fn id(&self) -> &Url {
+    match self {
+      Self::Follow(a) => a.id(),
+      Self::AcceptFollow(a) => a.id(),
+      Self::RejectFollow(a) => a.id(),
+      Self::UndoFollow(a) => a.id(),
+      Self::Report(a) => a.id(),
+      Self::ResolveReport(a) => a.id(),
+      Self::AnnounceActivity(a) => a.id(),
+      Self::RawAnnouncableActivities(a) => a.id(),
+    }
+  }
+
+  fn actor(&self) -> &Url {
+    match self {
+      Self::Follow(a) => a.actor(),
+      Self::AcceptFollow(a) => a.actor(),
+      Self::RejectFollow(a) => a.actor(),
+      Self::UndoFollow(a) => a.actor(),
+      Self::Report(a) => a.actor(),
+      Self::ResolveReport(a) => a.actor(),
+      Self::AnnounceActivity(a) => a.actor(),
+      Self::RawAnnouncableActivities(a) => a.actor(),
+    }
+  }
+
+  async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
+    match self {
+      Self::Follow(a) => a.verify(context).await,
+      Self::AcceptFollow(a) => a.verify(context).await,
+      Self::RejectFollow(a) => a.verify(context).await,
+      Self::UndoFollow(a) => a.verify(context).await,
+      Self::Report(a) => a.verify(context).await,
+      Self::ResolveReport(a) => a.verify(context).await,
+      Self::AnnounceActivity(a) => a.verify(context).await,
+      Self::RawAnnouncableActivities(a) => a.verify(context).await,
+    }
+  }
+
+  // mark instance as alive, then delegate
+  async fn receive(self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
+    if let Some(domain) = self.actor().domain()
+      && let Err(e) = Instance::mark_alive(&mut context.pool(), domain).await
+    {
+      tracing::warn!("Failed to mark instance {domain} alive: {e}");
+    }
+
+    match self {
+      Self::Follow(a) => a.receive(context).await,
+      Self::AcceptFollow(a) => a.receive(context).await,
+      Self::RejectFollow(a) => a.receive(context).await,
+      Self::UndoFollow(a) => a.receive(context).await,
+      Self::Report(a) => a.receive(context).await,
+      Self::ResolveReport(a) => a.receive(context).await,
+      Self::AnnounceActivity(a) => a.receive(context).await,
+      Self::RawAnnouncableActivities(a) => a.receive(context).await,
+    }
+  }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

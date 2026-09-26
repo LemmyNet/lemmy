@@ -1,35 +1,22 @@
 use crate::{
   diesel::dsl::IntervalDsl,
   source::instance::{
-    Instance,
-    InstanceActions,
-    InstanceBanForm,
-    InstanceCommunitiesBlockForm,
-    InstanceForm,
+    Instance, InstanceActions, InstanceBanForm, InstanceCommunitiesBlockForm, InstanceForm,
     InstancePersonsBlockForm,
   },
   traits::Bannable,
 };
 use chrono::Utc;
 use diesel::{
-  ExpressionMethods,
-  NullableExpressionMethods,
-  OptionalExtension,
-  QueryDsl,
-  SelectableHelper,
+  ExpressionMethods, NullableExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper,
   dsl::{count_star, exists, insert_into, not, select},
 };
 use diesel_async::RunQueryDsl;
 use diesel_uplete::{UpleteCount, uplete};
 use lemmy_db_schema_file::{
-  InstanceId,
-  PersonId,
+  InstanceId, PersonId,
   schema::{
-    federation_allowlist,
-    federation_blocklist,
-    federation_queue_state,
-    instance,
-    instance_actions,
+    federation_allowlist, federation_blocklist, federation_queue_state, instance, instance_actions,
   },
 };
 use lemmy_diesel_utils::{
@@ -186,6 +173,21 @@ impl Instance {
         .await
         .with_lemmy_type(LemmyErrorType::NotFound)
     }
+  }
+
+  // if an instance exists in the database that matches the domain string input
+  // and the instance hasn't been updated in 24 hours
+  // set the updated_at to now,
+  // which has the effect of marking the instance as alive
+  pub async fn mark_alive(pool: &mut DbPool<'_>, domain: &str) -> LemmyResult<usize> {
+    let conn = &mut get_conn(pool).await?;
+    diesel::update(instance::table)
+      .filter(lower(instance::domain).eq(domain.to_lowercase()))
+      .filter(coalesce(instance::updated_at, instance::published_at).lt(now() - 1.days()))
+      .set(instance::updated_at.eq(now().nullable()))
+      .execute(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 }
 
