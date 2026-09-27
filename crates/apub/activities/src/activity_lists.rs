@@ -84,79 +84,28 @@ pub struct InnerActivities {
   activities: Vec<AnnouncableActivities>,
 }
 
+#[async_trait::async_trait]
 impl Activity for InnerActivities {
-  #[doc = " App data type passed to handlers. Must be identical to"]
-  #[doc = " [crate::config::FederationConfigBuilder::app_data] type."]
   type DataType = LemmyContext;
-
-  #[doc = " Error type returned by handler methods"]
   type Error = LemmyError;
 
-  #[doc = " `id` field of the activity"]
   fn id(&self) -> &Url {
     unimplemented!()
   }
 
-  #[doc = " `actor` field of activity"]
   fn actor(&self) -> &Url {
     unimplemented!()
   }
 
-  #[doc = " Verifies that the received activity is valid."]
-  #[doc = ""]
-  #[doc = " This needs to be a separate method, because it might be used for activities"]
-  #[doc = " like `Undo/Follow`, which shouldn\'t perform any database write for the inner `Follow`."]
-  #[must_use]
-  #[allow(
-    elided_named_lifetimes,
-    clippy::type_complexity,
-    clippy::type_repetition_in_bounds
-  )]
-  fn verify<'life0, 'life1, 'async_trait>(
-    &'life0 self,
-    data: &'life1 Data<Self::DataType>,
-  ) -> ::core::pin::Pin<
-    Box<
-      dyn ::core::future::Future<Output = Result<(), Self::Error>>
-        + ::core::marker::Send
-        + 'async_trait,
-    >,
-  >
-  where
-    'life0: 'async_trait,
-    'life1: 'async_trait,
-    Self: 'async_trait,
-  {
-    todo!()
+  async fn verify(&self, _context: &Data<Self::DataType>) -> LemmyResult<()> {
+    Ok(())
   }
 
-  #[doc = " Called when an activity is received."]
-  #[doc = ""]
-  #[doc = " Should perform validation and possibly write action to the database. In case the activity"]
-  #[doc = " has a nested `object` field, must call `object.from_json` handler."]
-  #[must_use]
-  #[allow(
-    elided_named_lifetimes,
-    clippy::type_complexity,
-    clippy::type_repetition_in_bounds
-  )]
-  fn receive<'life0, 'async_trait>(
-    self,
-    data: &'life0 Data<Self::DataType>,
-  ) -> ::core::pin::Pin<
-    Box<
-      dyn ::core::future::Future<Output = Result<(), Self::Error>>
-        + ::core::marker::Send
-        + 'async_trait,
-    >,
-  >
-  where
-    'life0: 'async_trait,
-    Self: 'async_trait,
-  {
+  async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     for activity in &self.activities {
-      activity.receive(data);
+      activity.receive(context).await?
     }
+    Ok(())
   }
 }
 
