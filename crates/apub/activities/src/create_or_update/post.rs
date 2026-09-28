@@ -49,11 +49,7 @@ impl CreateOrUpdatePage {
     kind: CreateOrUpdateType,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<CreateOrUpdatePage> {
-    let object_id = activity_object_id(
-      post.published_at,
-      post.updated_at,
-      (*post.ap_id.0).clone(),
-    );
+    let object_id = activity_object_id(post.published_at, post.updated_at, (*post.ap_id.0).clone());
     let id = generate_activity_id_with_object_id(kind.clone(), Some(&object_id), context)?;
     Ok(CreateOrUpdatePage {
       actor: actor.id().clone().into(),

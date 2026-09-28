@@ -26,11 +26,7 @@ pub(crate) async fn send_create_or_update_pm(
   let recipient: ApubPerson = pm_view.recipient.into();
 
   let pm = &pm_view.private_message;
-  let object_id = activity_object_id(
-    pm.published_at,
-    pm.updated_at,
-    (*pm.ap_id.0).clone(),
-  );
+  let object_id = activity_object_id(pm.published_at, pm.updated_at, (*pm.ap_id.0).clone());
   let id = generate_activity_id_with_object_id(kind.clone(), Some(&object_id), &context)?;
   let create_or_update = CreateOrUpdatePrivateMessage {
     id: id.clone(),
