@@ -1,24 +1,27 @@
-use crate::protocol::{
-  block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
-  community::{
-    announce::{AnnounceActivity, RawAnnouncableActivities},
-    collection_add::CollectionAdd,
-    collection_remove::CollectionRemove,
-    lock::{LockPageOrNote, UndoLockPageOrNote},
-    report::Report,
-    resolve_report::ResolveReport,
-    update::Update,
-    warn::Warn,
+use crate::{
+  community::announce::InnerActivities,
+  protocol::{
+    block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
+    community::{
+      announce::{AnnounceActivity, RawAnnouncableActivities},
+      collection_add::CollectionAdd,
+      collection_remove::CollectionRemove,
+      lock::{LockPageOrNote, UndoLockPageOrNote},
+      report::Report,
+      resolve_report::ResolveReport,
+      update::Update,
+      warn::Warn,
+    },
+    create_or_update::{note_wrapper::CreateOrUpdateNoteWrapper, page::CreateOrUpdatePage},
+    deletion::{delete::Delete, undo_delete::UndoDelete},
+    following::{
+      accept::AcceptFollow,
+      follow::Follow,
+      reject::RejectFollow,
+      undo_follow::UndoFollow,
+    },
+    voting::{undo_vote::UndoVote, vote::Vote},
   },
-  create_or_update::{note_wrapper::CreateOrUpdateNoteWrapper, page::CreateOrUpdatePage},
-  deletion::{delete::Delete, undo_delete::UndoDelete},
-  following::{
-    accept::AcceptFollow,
-    follow::Follow,
-    reject::RejectFollow,
-    undo_follow::UndoFollow,
-  },
-  voting::{undo_vote::UndoVote, vote::Vote},
 };
 use activitypub_federation::{config::Data, traits::Activity};
 use lemmy_api_utils::context::LemmyContext;
@@ -27,9 +30,8 @@ use lemmy_apub_objects::{
   protocol::page::Page,
   utils::protocol::InCommunity,
 };
-use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use serde::{Deserialize, Serialize};
-use std::io::ErrorKind::Unsupported;
 use url::Url;
 
 /// List of activities which the shared inbox can handle.
@@ -75,38 +77,6 @@ pub enum AnnouncableActivities {
   InnerActivities(InnerActivities),
   // For compatibility with Pleroma/Mastodon (send only)
   Page(Page),
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct InnerActivities {
-  // id: Url,
-  // total_activities: i32,
-  activities: Vec<AnnouncableActivities>,
-}
-
-#[async_trait::async_trait]
-impl Activity for InnerActivities {
-  type DataType = LemmyContext;
-  type Error = LemmyError;
-
-  fn id(&self) -> &Url {
-    unimplemented!()
-  }
-
-  fn actor(&self) -> &Url {
-    unimplemented!()
-  }
-
-  async fn verify(&self, _context: &Data<Self::DataType>) -> LemmyResult<()> {
-    Ok(())
-  }
-
-  async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    for activity in &self.activities {
-      activity.receive(context).await?
-    }
-    Ok(())
-  }
 }
 
 impl InCommunity for AnnouncableActivities {

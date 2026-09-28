@@ -29,6 +29,7 @@ use lemmy_apub_objects::{
 };
 use lemmy_db_schema::source::{activity::ActivitySendTargets, community::CommunityActions};
 use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult, UntranslatedError};
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use url::Url;
 
@@ -96,6 +97,38 @@ impl Id for OneOrManyActivity {
       OneOrManyActivity::One(a) => lemmy_apub_objects::utils::protocol::Id::id(a),
       OneOrManyActivity::Many(ac) => ac.id(),
     }
+  }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct InnerActivities {
+  id: Url,
+  total_activities: i32,
+  activities: Vec<AnnouncableActivities>,
+}
+
+#[async_trait::async_trait]
+impl Activity for InnerActivities {
+  type DataType = LemmyContext;
+  type Error = LemmyError;
+
+  fn id(&self) -> &Url {
+    &self.id
+  }
+
+  fn actor(&self) -> &Url {
+    unimplemented!()
+  }
+
+  async fn verify(&self, _context: &Data<Self::DataType>) -> LemmyResult<()> {
+    Ok(())
+  }
+
+  async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
+    for activity in self.activities {
+      activity.receive(context).await?
+    }
+    Ok(())
   }
 }
 
