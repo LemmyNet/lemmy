@@ -38,7 +38,7 @@ pub struct RawAnnouncableActivities {
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct RawAnnouncableActivitiesCollection {
+pub struct AnnouncableActivitiesCollection {
   pub(crate) r#type: OrderedCollectionType,
   pub(crate) id: Url,
   pub(crate) total_items: i32,
@@ -49,5 +49,5 @@ pub struct RawAnnouncableActivitiesCollection {
 #[serde(rename_all = "camelCase")]
 pub enum OneOrManyActivity {
   One(RawAnnouncableActivities),
-  Many(RawAnnouncableActivitiesCollection),
+  Many(AnnouncableActivitiesCollection),
 }

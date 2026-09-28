@@ -1,14 +1,17 @@
 use crate::{
-  activity_lists::AnnouncableActivities,
+  activity_lists::{
+    AnnouncableActivities,
+    AnnouncableActivitiesWrapper::{self, Many, Single},
+  },
   generate_activity_id,
   generate_announce_activity_id,
   protocol::{
     IdOrNestedObject,
     community::announce::{
+      AnnouncableActivitiesCollection,
       AnnounceActivity,
       OneOrManyActivity,
       RawAnnouncableActivities,
-      RawAnnouncableActivitiesCollection,
     },
   },
   send_lemmy_activity,
@@ -16,8 +19,8 @@ use crate::{
 use activitypub_federation::{
   config::Data,
   kinds::activity::AnnounceType,
-  protocol::verification::verify_urls_match,
-  traits::{Activity, Object},
+  protocol::verification::{verify_domains_match, verify_urls_match},
+  traits::{Activity, Collection, Object},
 };
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
@@ -29,7 +32,6 @@ use lemmy_apub_objects::{
 };
 use lemmy_db_schema::source::{activity::ActivitySendTargets, community::CommunityActions};
 use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult, UntranslatedError};
-use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use url::Url;
 
@@ -79,58 +81,118 @@ impl Activity for RawAnnouncableActivities {
   }
 }
 
-impl Id for RawAnnouncableActivities {
-  fn id(&self) -> &Url {
-    &self.id
-  }
-}
+// NOTE: This is no longer needed because the wrapper enum handles it
+// impl Id for RawAnnouncableActivities {
+//   fn id(&self) -> &Url {
+//     &self.id
+//   }
+// }
 
-impl Id for RawAnnouncableActivitiesCollection {
-  fn id(&self) -> &Url {
-    &self.id
+#[async_trait::async_trait]
+impl Collection for AnnouncableActivitiesCollection {
+  #[doc = " Actor or object that this collection belongs to"]
+  type Owner = ApubCommunity;
+
+  #[doc = " App data type passed to handlers. Must be identical to"]
+  #[doc = " [crate::config::FederationConfigBuilder::app_data] type."]
+  type DataType = LemmyContext;
+
+  #[doc = " The type of protocol struct which gets sent over network to federate this database struct."]
+  type Kind = AnnouncableActivitiesCollection;
+
+  #[doc = " Error type returned by handler methods"]
+  type Error = LemmyError;
+
+  #[doc = " Reads local collection from database and returns it as Activitypub JSON."]
+  #[expect(
+    mismatched_lifetime_syntaxes,
+    clippy::type_complexity,
+    clippy::type_repetition_in_bounds
+  )]
+  async fn read_local(
+    _owner: &Self::Owner,
+    _context: &Data<Self::DataType>,
+  ) -> Result<Self::Kind, Self::Error> {
+    todo!()
+  }
+
+  #[doc = " Verifies that the received object is valid."]
+  #[doc = ""]
+  #[doc = " You should check here that the domain of id matches `expected_domain`. Additionally you"]
+  #[doc = " should perform any application specific checks."]
+  #[expect(
+    mismatched_lifetime_syntaxes,
+    clippy::type_complexity,
+    clippy::type_repetition_in_bounds
+  )]
+  async fn verify(
+    json: &Self::Kind,
+    expected_domain: &Url,
+    _context: &Data<LemmyContext>,
+  ) -> LemmyResult<()> {
+    verify_domains_match(expected_domain, &json.id.clone())?;
+    Ok(())
+  }
+
+  #[doc = " Convert object from ActivityPub type to database type."]
+  #[doc = ""]
+  #[doc = " Called when an object is received from HTTP fetch or as part of an activity. This method"]
+  #[doc = " should also write the received object to database. Note that there is no distinction"]
+  #[doc = " between create and update, so an `upsert` operation should be used."]
+  #[expect(
+    mismatched_lifetime_syntaxes,
+    clippy::type_complexity,
+    clippy::type_repetition_in_bounds
+  )]
+  async fn from_json(
+    _json: Self::Kind,
+    _owner: &Self::Owner,
+    _context: &Data<LemmyContext>,
+  ) -> LemmyResult<Self> {
+    todo!()
   }
 }
 
 impl Id for OneOrManyActivity {
   fn id(&self) -> &Url {
     match self {
-      OneOrManyActivity::One(a) => lemmy_apub_objects::utils::protocol::Id::id(a),
-      OneOrManyActivity::Many(ac) => ac.id(),
+      OneOrManyActivity::One(a) => &a.id,
+      OneOrManyActivity::Many(ac) => &ac.id,
     }
   }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct InnerActivities {
-  id: Url,
-  total_activities: i32,
-  activities: Vec<AnnouncableActivities>,
-}
-
-#[async_trait::async_trait]
-impl Activity for InnerActivities {
-  type DataType = LemmyContext;
-  type Error = LemmyError;
-
-  fn id(&self) -> &Url {
-    &self.id
-  }
-
-  fn actor(&self) -> &Url {
-    unimplemented!()
-  }
-
-  async fn verify(&self, _context: &Data<Self::DataType>) -> LemmyResult<()> {
-    Ok(())
-  }
-
-  async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    for activity in self.activities {
-      activity.receive(context).await?
-    }
-    Ok(())
-  }
-}
+// NOTE: not needed because the nested object in AnnounceActivity is a collection, not an activity
+// type #[derive(Clone, Debug, Deserialize, Serialize)]
+// pub struct InnerActivities {
+//   id: Url,
+//   total_activities: i32,
+//   activities: Vec<AnnouncableActivities>,
+// }
+// #[async_trait::async_trait]
+// impl Activity for InnerActivities {
+//   type DataType = LemmyContext;
+//   type Error = LemmyError;
+//
+//   fn id(&self) -> &Url {
+//     &self.id
+//   }
+//
+//   fn actor(&self) -> &Url {
+//     unimplemented!()
+//   }
+//
+//   async fn verify(&self, _context: &Data<Self::DataType>) -> LemmyResult<()> {
+//     Ok(())
+//   }
+//
+//   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
+//     for activity in self.activities {
+//       activity.receive(context).await?
+//     }
+//     Ok(())
+//   }
+// }
 
 impl AnnounceActivity {
   pub fn new(
@@ -208,21 +270,25 @@ impl Activity for AnnounceActivity {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    let object: AnnouncableActivities = self.object.dereference(context).await?.try_into()?;
+    let wrapper: OneOrManyActivity = self.object.dereference(context).await?;
+    if let Ok(Single(object)) = wrapper.try_into() {
+      // This is only for sending, not receiving so we reject it.
+      if let AnnouncableActivities::Page(_) = object {
+        return Err(UntranslatedError::CannotReceivePage.into());
+      }
 
-    // This is only for sending, not receiving so we reject it.
-    if let AnnouncableActivities::Page(_) = object {
-      return Err(UntranslatedError::CannotReceivePage.into());
+      let community = object.community(context).await?;
+      verify_urls_match(community.ap_id.inner(), self.actor.inner())?;
+      verify_visibility(&self.to, &self.cc, &community)?;
+      can_accept_activity_in_community(&Some(community), context).await?;
+
+      // verify here in order to avoid fetching the object twice over http
+      object.verify(context).await?;
+      object.receive(context).await
+    } else if let Many(object_collection) = wrapper.try_into()? {
+      todo!()
     }
-
-    let community = object.community(context).await?;
-    verify_urls_match(community.ap_id.inner(), self.actor.inner())?;
-    verify_visibility(&self.to, &self.cc, &community)?;
-    can_accept_activity_in_community(&Some(community), context).await?;
-
-    // verify here in order to avoid fetching the object twice over http
-    object.verify(context).await?;
-    object.receive(context).await
+    // todo!()
   }
 }
 
@@ -238,7 +304,7 @@ impl TryFrom<RawAnnouncableActivities> for AnnouncableActivities {
   }
 }
 
-impl TryFrom<OneOrManyActivity> for AnnouncableActivities {
+impl TryFrom<OneOrManyActivity> for AnnouncableActivitiesWrapper {
   type Error = serde_json::error::Error;
 
   fn try_from(value: OneOrManyActivity) -> Result<Self, Self::Error> {

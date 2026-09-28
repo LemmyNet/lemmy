@@ -8,7 +8,6 @@ use lemmy_utils::{error::LemmyResult, settings::SETTINGS};
 // use opentelemetry_otlp::{Protocol, WithExportConfig};
 // use opentelemetry_sdk::trace::SdkTracerProvider;
 // use opentelemetry_stdout::SpanExporter;
-use std::sync::OnceLock;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::{
   EnvFilter,

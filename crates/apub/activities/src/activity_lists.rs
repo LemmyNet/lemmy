@@ -1,27 +1,24 @@
-use crate::{
-  community::announce::InnerActivities,
-  protocol::{
-    block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
-    community::{
-      announce::{AnnounceActivity, RawAnnouncableActivities},
-      collection_add::CollectionAdd,
-      collection_remove::CollectionRemove,
-      lock::{LockPageOrNote, UndoLockPageOrNote},
-      report::Report,
-      resolve_report::ResolveReport,
-      update::Update,
-      warn::Warn,
-    },
-    create_or_update::{note_wrapper::CreateOrUpdateNoteWrapper, page::CreateOrUpdatePage},
-    deletion::{delete::Delete, undo_delete::UndoDelete},
-    following::{
-      accept::AcceptFollow,
-      follow::Follow,
-      reject::RejectFollow,
-      undo_follow::UndoFollow,
-    },
-    voting::{undo_vote::UndoVote, vote::Vote},
+use crate::protocol::{
+  block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
+  community::{
+    announce::{AnnouncableActivitiesCollection, AnnounceActivity, RawAnnouncableActivities},
+    collection_add::CollectionAdd,
+    collection_remove::CollectionRemove,
+    lock::{LockPageOrNote, UndoLockPageOrNote},
+    report::Report,
+    resolve_report::ResolveReport,
+    update::Update,
+    warn::Warn,
   },
+  create_or_update::{note_wrapper::CreateOrUpdateNoteWrapper, page::CreateOrUpdatePage},
+  deletion::{delete::Delete, undo_delete::UndoDelete},
+  following::{
+    accept::AcceptFollow,
+    follow::Follow,
+    reject::RejectFollow,
+    undo_follow::UndoFollow,
+  },
+  voting::{undo_vote::UndoVote, vote::Vote},
 };
 use activitypub_federation::{config::Data, traits::Activity};
 use lemmy_api_utils::context::LemmyContext;
@@ -74,9 +71,15 @@ pub enum AnnouncableActivities {
   Report(Report),
   ResolveReport(ResolveReport),
   Warn(Warn),
-  InnerActivities(InnerActivities),
   // For compatibility with Pleroma/Mastodon (send only)
   Page(Page),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum AnnouncableActivitiesWrapper {
+  Single(AnnouncableActivities),
+  Many(AnnouncableActivitiesCollection),
 }
 
 impl InCommunity for AnnouncableActivities {
@@ -100,7 +103,6 @@ impl InCommunity for AnnouncableActivities {
       ResolveReport(a) => a.community(context).await,
       Warn(a) => a.community(context).await,
       Page(_) => Err(LemmyErrorType::NotFound.into()),
-      InnerActivities(_) => Err(LemmyErrorType::NotFound.into()),
     }
   }
 }
