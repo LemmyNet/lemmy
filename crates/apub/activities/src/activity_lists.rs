@@ -1,7 +1,7 @@
 use crate::protocol::{
   block::{block_user::BlockUser, undo_block_user::UndoBlockUser},
   community::{
-    announce::{AnnounceActivity, RawAnnouncableActivities},
+    announce::{AnnouncableActivitiesCollection, AnnounceActivity, RawAnnouncableActivities},
     collection_add::CollectionAdd,
     collection_remove::CollectionRemove,
     lock::{LockPageOrNote, UndoLockPageOrNote},
@@ -73,6 +73,13 @@ pub enum AnnouncableActivities {
   Warn(Warn),
   // For compatibility with Pleroma/Mastodon (send only)
   Page(Page),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum AnnouncableActivitiesWrapper {
+  Single(AnnouncableActivities),
+  Many(AnnouncableActivitiesCollection),
 }
 
 impl InCommunity for AnnouncableActivities {
