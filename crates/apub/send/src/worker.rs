@@ -12,13 +12,11 @@ use activitypub_federation::config::FederationConfig;
 use anyhow::{Context, Result};
 use chrono::{DateTime, Days, TimeZone, Utc};
 use lemmy_api_utils::context::LemmyContext;
-use lemmy_db_schema::{
-  newtypes::ActivityId,
-  source::{
-    federation_queue_state::FederationQueueState,
-    instance::{Instance, InstanceForm},
-  },
+use lemmy_db_schema::source::{
+  federation_queue_state::FederationQueueState,
+  instance::{Instance, InstanceForm},
 };
+use lemmy_db_schema_file::newtypes::ActivityId;
 use lemmy_diesel_utils::connection::{ActualDbPool, DbPool};
 use lemmy_utils::{
   error::LemmyResult,
@@ -55,7 +53,7 @@ const MIN_ACTIVITY_SEND_RESULTS_TO_HANDLE: usize = 0;
 ///      |                            |                             vvvv
 ///      |                            |                           fail or success
 ///      |                            |           <-report result--   |
-///      |               <---order and aggrate results---             |
+///      |               <---order and aggregate results---             |
 ///      |   <---send stats---        |                               |
 /// filter and print stats            |                               |
 pub(crate) struct InstanceWorker {
@@ -67,7 +65,7 @@ pub(crate) struct InstanceWorker {
   last_state_insert: DateTime<Utc>,
   pool: ActualDbPool,
   inbox_collector: RealCommunityInboxCollector,
-  // regularily send stats back to the SendManager
+  // regularly send stats back to the SendManager
   stats_sender: UnboundedSender<FederationQueueStateWithDomain>,
   // each HTTP send will report back to this channel concurrently
   receive_send_result: mpsc::UnboundedReceiver<SendActivityResult>,
@@ -413,7 +411,7 @@ impl InstanceWorker {
         );
         // An error in this location means there is some deeper internal issue with the activity,
         // for example the actor can't be loaded or similar. These issues are probably not
-        // solveable by retrying and would cause the federation for this instance to permanently be
+        // solvable by retrying and would cause the federation for this instance to permanently be
         // stuck in a retry loop. So we log the error and skip the activity (by reporting success to
         // the worker)
         report

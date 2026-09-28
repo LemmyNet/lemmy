@@ -1,7 +1,5 @@
-pub use lemmy_db_schema::{
-  newtypes::CommentId,
-  source::comment::{Comment, CommentActions, CommentInsertForm},
-};
+pub use lemmy_db_schema::source::comment::{Comment, CommentActions, CommentInsertForm};
+pub use lemmy_db_schema_file::newtypes::CommentId;
 pub use lemmy_db_views_comment::{
   CommentSlimView,
   CommentView,
@@ -12,8 +10,10 @@ pub mod actions {
   pub use lemmy_db_views_comment::api::{
     CreateComment,
     CreateCommentLike,
+    CreateCommentWarning,
     DeleteComment,
     EditComment,
+    LockComment,
     SaveComment,
   };
 

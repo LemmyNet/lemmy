@@ -13,7 +13,6 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  newtypes::CommunityId,
   source::{
     community::{Community, CommunityActions, community_actions_keys as key},
     person::Person,
@@ -25,6 +24,7 @@ use lemmy_db_schema_file::{
   PersonId,
   aliases,
   enums::{CommunityFollowerState, CommunityVisibility},
+  newtypes::CommunityId,
   schema::{community, community_actions, person},
 };
 use lemmy_diesel_utils::{
@@ -80,6 +80,11 @@ impl PendingFollowerView {
 
     let mut query = Self::joins()
       .filter(community_actions::became_moderator_at.is_not_null())
+      .filter(
+        follower_community_actions
+          .field(community_actions::became_moderator_at)
+          .is_null(),
+      )
       .filter(community::visibility.eq(CommunityVisibility::Private))
       .select((
         person1_select(),
@@ -263,7 +268,6 @@ mod tests {
       ..CommunityInsertForm::new(
         local_instance.id,
         "test_community_3".to_string(),
-        "nada".to_owned(),
         "pubkey".to_string(),
       )
     };
@@ -332,7 +336,6 @@ mod tests {
       ..CommunityInsertForm::new(
         local_instance.id,
         "test_community_3".to_string(),
-        "nada".to_owned(),
         "pubkey".to_string(),
       )
     };

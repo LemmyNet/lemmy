@@ -1,5 +1,4 @@
 use crate::{
-  newtypes::{CommunityId, PostId},
   source::post::{
     Post,
     PostActions,
@@ -31,7 +30,8 @@ use diesel_uplete::{UpleteCount, uplete};
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
-  enums::PostNotificationsMode,
+  enums::{CommunityVisibility, PostNotificationsMode},
+  newtypes::{CommunityId, PostId},
   schema::{community, local_user, person, post, post_actions},
 };
 use lemmy_diesel_utils::{
@@ -125,10 +125,18 @@ impl Post {
   ) -> LemmyResult<Vec<(DbUrl, chrono::DateTime<Utc>)>> {
     let conn = &mut get_conn(pool).await?;
     post::table
+      .inner_join(community::table)
       .select((post::ap_id, coalesce(post::updated_at, post::published_at)))
       .filter(post::local.eq(true))
       .filter(post::deleted.eq(false))
       .filter(post::removed.eq(false))
+      .filter(community::removed.eq(false))
+      .filter(community::deleted.eq(false))
+      .filter(community::visibility.eq_any([
+        CommunityVisibility::Public,
+        CommunityVisibility::Unlisted,
+        CommunityVisibility::LocalOnlyPublic,
+      ]))
       .filter(post::published_at.ge(Utc::now().naive_utc() - SITEMAP_DAYS))
       .order(post::published_at.desc())
       .limit(SITEMAP_LIMIT)
@@ -342,14 +350,6 @@ impl Post {
       Post::update(pool, self.id, &form).await?;
     }
     Ok(())
-  }
-
-  /// Return the post's ap_id with a timestamp fragment appended.
-  pub fn activity_object_id(&self) -> Url {
-    let timestamp = self.updated_at.unwrap_or(self.published_at);
-    let mut object_id = (*self.ap_id.0).clone();
-    object_id.set_fragment(Some(&timestamp.to_rfc3339()));
-    object_id
   }
 }
 
@@ -608,7 +608,6 @@ mod tests {
     let new_community = CommunityInsertForm::new(
       inserted_instance.id,
       "test community_3".to_string(),
-      "nada".to_owned(),
       "pubkey".to_string(),
     );
 
@@ -752,7 +751,6 @@ mod tests {
     let new_community = CommunityInsertForm::new(
       inserted_instance.id,
       "TIL_community_agg".into(),
-      "nada".to_owned(),
       "pubkey".to_string(),
     );
     let inserted_community = Community::create(pool, &new_community).await?;
@@ -855,7 +853,6 @@ mod tests {
     let new_community = CommunityInsertForm::new(
       inserted_instance.id,
       "TIL_community_agg".into(),
-      "nada".to_owned(),
       "pubkey".to_string(),
     );
     let inserted_community = Community::create(pool, &new_community).await?;

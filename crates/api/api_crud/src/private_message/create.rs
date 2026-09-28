@@ -6,7 +6,7 @@ use lemmy_api_utils::{
   plugins::{plugin_hook_after, plugin_hook_before},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
-    check_local_user_valid,
+    check_local_user_banned_or_deleted,
     check_private_messages_enabled,
     get_url_blocklist,
     process_markdown,
@@ -34,7 +34,7 @@ pub async fn create_private_message(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PrivateMessageResponse>> {
-  check_local_user_valid(&local_user_view)?;
+  check_local_user_banned_or_deleted(&local_user_view)?;
 
   let slur_regex = slur_regex(&context).await?;
   let url_blocklist = get_url_blocklist(&context).await?;

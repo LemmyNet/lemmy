@@ -8,7 +8,7 @@ use lemmy_api_utils::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
     check_community_user_action,
-    check_local_user_valid,
+    check_local_user_banned_or_deleted,
     check_post_deleted_or_removed,
     slur_regex,
   },
@@ -33,7 +33,7 @@ pub async fn create_post_report(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostReportResponse>> {
-  check_local_user_valid(&local_user_view)?;
+  check_local_user_banned_or_deleted(&local_user_view)?;
   let reason = data.reason.trim().to_string();
   let slur_regex = slur_regex(&context).await?;
   check_report_reason(&reason, &slur_regex)?;

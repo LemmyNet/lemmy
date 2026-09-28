@@ -1,6 +1,5 @@
 use crate::{
   diesel::{DecoratableTarget, OptionalExtension},
-  newtypes::{CommentId, CommunityId, PostId},
   source::comment::{
     Comment,
     CommentActions,
@@ -27,6 +26,7 @@ use diesel_uplete::{UpleteCount, uplete};
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
+  newtypes::{CommentId, CommunityId, PostId},
   schema::{comment, comment_actions, community, post},
 };
 use lemmy_diesel_utils::{
@@ -320,14 +320,6 @@ impl Comment {
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
-
-  /// Return the comment's ap_id with a timestamp fragment appended.
-  pub fn activity_object_id(&self) -> Url {
-    let timestamp = self.updated_at.unwrap_or(self.published_at);
-    let mut object_id = (*self.ap_id.0).clone();
-    object_id.set_fragment(Some(&timestamp.to_rfc3339()));
-    object_id
-  }
 }
 
 impl Crud for Comment {
@@ -450,7 +442,6 @@ mod tests {
 
   use super::*;
   use crate::{
-    newtypes::LanguageId,
     source::{
       community::{Community, CommunityInsertForm},
       instance::Instance,
@@ -461,6 +452,7 @@ mod tests {
     utils::RANK_DEFAULT,
   };
   use diesel_ltree::Ltree;
+  use lemmy_db_schema_file::newtypes::LanguageId;
   use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
@@ -482,7 +474,6 @@ mod tests {
     let new_community = CommunityInsertForm::new(
       inserted_instance.id,
       "test community".to_string(),
-      "nada".to_owned(),
       "pubkey".to_string(),
     );
     let inserted_community = Community::create(pool, &new_community).await?;
@@ -603,7 +594,6 @@ mod tests {
     let new_community = CommunityInsertForm::new(
       inserted_instance.id,
       "TIL_comment_agg".into(),
-      "nada".to_owned(),
       "pubkey".to_string(),
     );
     let inserted_community = Community::create(pool, &new_community).await?;
@@ -692,12 +682,8 @@ mod tests {
     let inserted_instance = Instance::read_or_create(pool, "mydomain.tld").await?;
     let new_person = PersonInsertForm::test_form(inserted_instance.id, "john");
     let inserted_person = Person::create(pool, &new_person).await?;
-    let new_community = CommunityInsertForm::new(
-      inserted_instance.id,
-      "test".into(),
-      "test".to_owned(),
-      "pubkey".to_string(),
-    );
+    let new_community =
+      CommunityInsertForm::new(inserted_instance.id, "test".into(), "pubkey".to_string());
     let inserted_community = Community::create(pool, &new_community).await?;
 
     let new_post = PostInsertForm::new(
@@ -753,6 +739,8 @@ mod tests {
 
     assert_eq!(3, locked_comments_num);
 
+    Instance::delete(pool, inserted_instance.id).await?;
+
     Ok(())
   }
 
@@ -765,12 +753,8 @@ mod tests {
     let inserted_instance = Instance::read_or_create(pool, "mydomain.tld").await?;
     let new_person = PersonInsertForm::test_form(inserted_instance.id, "sharah");
     let inserted_person = Person::create(pool, &new_person).await?;
-    let new_community = CommunityInsertForm::new(
-      inserted_instance.id,
-      "test".into(),
-      "test".to_owned(),
-      "pubkey".to_string(),
-    );
+    let new_community =
+      CommunityInsertForm::new(inserted_instance.id, "test".into(), "pubkey".to_string());
     let inserted_community = Community::create(pool, &new_community).await?;
     let new_post = PostInsertForm::new(
       "Post Title".to_string(),
@@ -813,6 +797,8 @@ mod tests {
     let updated_comments_num = updated_comments.iter().filter(|c| c.removed).count();
 
     assert_eq!(updated_comments_num, 3);
+
+    Instance::delete(pool, inserted_instance.id).await?;
 
     Ok(())
   }

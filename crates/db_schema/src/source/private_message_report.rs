@@ -1,8 +1,10 @@
-use crate::newtypes::{PrivateMessageId, PrivateMessageReportId};
 use chrono::{DateTime, Utc};
-use lemmy_db_schema_file::PersonId;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::private_message_report;
+use lemmy_db_schema_file::{
+  PersonId,
+  newtypes::{PrivateMessageId, PrivateMessageReportId},
+};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -32,6 +34,7 @@ pub struct PrivateMessageReport {
   pub resolver_id: Option<PersonId>,
   pub published_at: DateTime<Utc>,
   pub updated_at: Option<DateTime<Utc>>,
+  pub conclusion: Option<String>,
 }
 
 #[derive(Clone)]
@@ -42,4 +45,14 @@ pub struct PrivateMessageReportForm {
   pub private_message_id: PrivateMessageId,
   pub original_pm_text: String,
   pub reason: String,
+}
+
+#[derive(Clone, Default)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = private_message_report))]
+pub struct UpdatePrivateMessageReportForm {
+  pub resolver_id: Option<PersonId>,
+  pub resolved: Option<bool>,
+  pub conclusion: Option<Option<String>>,
+  pub updated_at: Option<DateTime<Utc>>,
 }

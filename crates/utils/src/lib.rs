@@ -41,20 +41,22 @@ pub const MAX_COMMENT_DEPTH_LIMIT: usize = 50;
 pub const DB_BATCH_SIZE: i64 = 1000;
 
 fn version() -> String {
+  let pkg_version = env!("CARGO_PKG_VERSION");
   if cfg!(debug_assertions) {
     // For debug simply use the version from Cargo.toml. We can't use git_version here
     // because it would cause a rebuild if any file in the repo is changed.
-    env!("CARGO_PKG_VERSION").to_string()
+    pkg_version.to_string()
   } else {
     // Event cron means its a nightly build
     // https://woodpecker-ci.org/docs/usage/environment
     if option_env!("CI_PIPELINE_EVENT") == Some("cron") {
-      format!("nightly-{}", Utc::now().date_naive())
+      let main_version = pkg_version.split("-").next().unwrap_or(pkg_version);
+      format!("{main_version}-nightly-{}", Utc::now().date_naive())
     } else {
       // For actual release builds use git binary for detailed version information.
       git_version::git_version!(
         args = ["--tags", "--dirty=-modified"],
-        fallback = env!("CARGO_PKG_VERSION")
+        fallback = pkg_version
       )
       .to_string()
     }
@@ -75,12 +77,13 @@ macro_rules! location_info {
 
 cfg_select! {
   feature = "full" => {
-    use moka::future::Cache;use std::fmt::Debug;use std::hash::Hash;
+    use moka::future::Cache;
     use serde_json::Value;
+    use std::{fmt::Debug, hash::Hash};
 
-    /// Only include a basic context to save space and bandwidth. The main context is hosted statically
-    /// on join-lemmy.org. Include activitystreams explicitly for better compat, but this could
-    /// theoretically also be moved.
+    /// Only include a basic context to save space and bandwidth. The main context is hosted
+    /// statically on join-lemmy.org. Include activitystreams explicitly for better compat, but
+    /// this could theoretically also be moved.
     pub static FEDERATION_CONTEXT: LazyLock<Value> = LazyLock::new(|| {
       Value::Array(vec![
         Value::String("https://join-lemmy.org/context.json".to_string()),
@@ -102,7 +105,7 @@ cfg_select! {
           }
         }
         .in_current_span(), /* this makes sure the inner tracing gets the same context as where
-                            * spawn was called */
+                             * spawn was called */
       );
     }
 

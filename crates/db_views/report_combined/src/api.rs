@@ -1,17 +1,14 @@
 use crate::{CommentReportView, CommunityReportView, PostReportView, PrivateMessageReportView};
-use lemmy_db_schema::{
-  ReportSortType,
-  ReportType,
-  newtypes::{
-    CommentId,
-    CommentReportId,
-    CommunityId,
-    CommunityReportId,
-    PostId,
-    PostReportId,
-    PrivateMessageId,
-    PrivateMessageReportId,
-  },
+use lemmy_db_schema::{ReportSortType, ReportType};
+use lemmy_db_schema_file::newtypes::{
+  CommentId,
+  CommentReportId,
+  CommunityId,
+  CommunityReportId,
+  PostId,
+  PostReportId,
+  PrivateMessageId,
+  PrivateMessageReportId,
 };
 use lemmy_diesel_utils::pagination::PaginationCursor;
 use serde::{Deserialize, Serialize};
@@ -91,40 +88,44 @@ pub struct CreatePostReport {
   pub violates_instance_rules: Option<bool>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Resolve a comment report (only doable by mods).
 pub struct ResolveCommentReport {
   pub report_id: CommentReportId,
   pub resolved: bool,
+  pub conclusion: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Resolve a community report.
 pub struct ResolveCommunityReport {
   pub report_id: CommunityReportId,
   pub resolved: bool,
+  pub conclusion: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Resolve a post report (mods only).
 pub struct ResolvePostReport {
   pub report_id: PostReportId,
   pub resolved: bool,
+  pub conclusion: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// Resolve a private message report.
 pub struct ResolvePrivateMessageReport {
   pub report_id: PrivateMessageReportId,
   pub resolved: bool,
+  pub conclusion: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]

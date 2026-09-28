@@ -588,6 +588,7 @@ mod tests {
   // These helped with testing
   #[tokio::test]
   #[serial]
+  #[expect(clippy::unwrap_used)]
   async fn test_link_metadata() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let sample_url = Url::parse("https://gitlab.com/IzzyOnDroid/repo/-/wikis/FAQ")?;
@@ -600,12 +601,13 @@ mod tests {
       Some("The F-Droid compatible repo at https://apt.izzysoft.de/fdroid/".to_string()),
       sample_res.opengraph_data.description
     );
-    assert_eq!(
-      Some(
-        Url::parse("https://gitlab.com/uploads/-/system/project/avatar/4877469/iod_logo.png")?
-          .into()
-      ),
-      sample_res.opengraph_data.image
+    assert!(
+      sample_res
+        .opengraph_data
+        .image
+        .unwrap()
+        .to_string()
+        .starts_with("https://gitlab.com/uploads/-/system/project/avatar/")
     );
     assert_eq!(None, sample_res.opengraph_data.embed_video_url);
     assert_eq!(

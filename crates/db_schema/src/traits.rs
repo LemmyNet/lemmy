@@ -1,6 +1,5 @@
-use crate::newtypes::CommunityId;
 use diesel_uplete::UpleteCount;
-use lemmy_db_schema_file::PersonId;
+use lemmy_db_schema_file::{PersonId, newtypes::CommunityId};
 use lemmy_diesel_utils::{connection::DbPool, dburl::DbUrl};
 use lemmy_utils::{error::LemmyResult, settings::structs::Settings};
 use std::future::Future;
@@ -96,6 +95,7 @@ pub trait Blockable: Sized {
 
 pub trait Reportable: Sized {
   type Form;
+  type UpdateForm;
   type IdType;
   type ObjectIdType;
   fn report(
@@ -105,8 +105,7 @@ pub trait Reportable: Sized {
   fn update_resolved(
     pool: &mut DbPool<'_>,
     report_id: Self::IdType,
-    resolver_id: PersonId,
-    is_resolved: bool,
+    form: &Self::UpdateForm,
   ) -> impl Future<Output = LemmyResult<usize>> + Send;
   fn resolve_apub(
     pool: &mut DbPool<'_>,

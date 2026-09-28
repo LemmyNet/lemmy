@@ -4,9 +4,12 @@ use markdown_it::{
   MarkdownIt,
   NodeValue,
   parser::linkfmt::LinkFormatter,
-  plugins::cmark::{
-    block::fence,
-    inline::{image, image::Image},
+  plugins::{
+    cmark::{
+      block::fence,
+      inline::image::{self, Image},
+    },
+    extra::linkify::{self, Linkified},
   },
 };
 use std::sync::LazyLock;
@@ -59,7 +62,10 @@ pub fn markdown_handle_title(src: &str, start: usize, end: usize) -> (&str, Opti
 }
 
 pub fn markdown_find_links(src: &str) -> Vec<(usize, usize)> {
-  find_urls::<Link>(src)
+  let mut res = vec![];
+  res.extend(find_urls::<Linkified>(src));
+  res.extend(find_urls::<Link>(src));
+  res
 }
 
 // Walk the syntax tree to find positions of image or link urls
@@ -69,6 +75,7 @@ fn find_urls<T: NodeValue + UrlAndTitle>(src: &str) -> Vec<(usize, usize)> {
   static PARSER: LazyLock<MarkdownIt> = LazyLock::new(|| {
     let mut p = MarkdownIt::new();
     p.link_formatter = Box::new(NoopLinkFormatter {});
+    linkify::add(&mut p);
     image::add(&mut p);
     fence::add(&mut p);
     link_rule::add(&mut p);
@@ -82,35 +89,49 @@ fn find_urls<T: NodeValue + UrlAndTitle>(src: &str) -> Vec<(usize, usize)> {
       && let Some(srcmap) = node.srcmap
     {
       let (_, node_offset) = srcmap.get_byte_offsets();
-      let start_offset = node_offset - image.url_len() - 1 - image.title_len();
-      let end_offset = node_offset - 1;
 
-      links_offsets.push((start_offset, end_offset));
+      links_offsets.push((
+        image.start_offset(node_offset),
+        image.end_offset(node_offset),
+      ));
     }
   });
   links_offsets
 }
 
 trait UrlAndTitle {
-  fn url_len(&self) -> usize;
-  fn title_len(&self) -> usize;
+  fn start_offset(&self, node_offset: usize) -> usize;
+  fn end_offset(&self, node_offset: usize) -> usize;
 }
 
 impl UrlAndTitle for Image {
-  fn url_len(&self) -> usize {
-    self.url.len()
+  fn start_offset(&self, node_offset: usize) -> usize {
+    start_offset_impl(&self.title, &self.url, node_offset)
   }
-
-  fn title_len(&self) -> usize {
-    self.title.as_ref().map(|t| t.len() + 3).unwrap_or_default()
+  fn end_offset(&self, node_offset: usize) -> usize {
+    node_offset - 1
   }
 }
 impl UrlAndTitle for Link {
-  fn url_len(&self) -> usize {
-    self.url.len()
+  fn start_offset(&self, node_offset: usize) -> usize {
+    start_offset_impl(&self.title, &self.url, node_offset)
   }
-  fn title_len(&self) -> usize {
-    self.title.as_ref().map(|t| t.len() + 3).unwrap_or_default()
+  fn end_offset(&self, node_offset: usize) -> usize {
+    node_offset - 1
+  }
+}
+
+fn start_offset_impl(title: &Option<String>, url: &str, node_offset: usize) -> usize {
+  let title_len = title.as_ref().map(|t| t.len() + 3).unwrap_or_default();
+  node_offset - url.len() - 1 - title_len
+}
+
+impl UrlAndTitle for Linkified {
+  fn start_offset(&self, node_offset: usize) -> usize {
+    node_offset - self.url.len() + 1
+  }
+  fn end_offset(&self, node_offset: usize) -> usize {
+    node_offset + 1
   }
 }
 

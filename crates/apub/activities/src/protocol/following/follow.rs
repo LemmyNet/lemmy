@@ -3,7 +3,10 @@ use activitypub_federation::{
   kinds::activity::FollowType,
   protocol::helpers::deserialize_skip_error,
 };
-use lemmy_apub_objects::objects::{UserOrCommunity, UserOrCommunityOrMulti};
+use lemmy_apub_objects::{
+  objects::{UserOrCommunity, UserOrCommunityOrMulti},
+  utils::protocol::Id,
+};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -18,4 +21,10 @@ pub struct Follow {
   #[serde(rename = "type")]
   pub(crate) kind: FollowType,
   pub(crate) id: Url,
+}
+
+impl Id for Follow {
+  fn id(&self) -> &Url {
+    &self.id
+  }
 }

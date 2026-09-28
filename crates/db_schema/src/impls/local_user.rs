@@ -1,10 +1,7 @@
-use crate::{
-  newtypes::{CommunityId, LanguageId, LocalUserId},
-  source::{
-    actor_language::LocalUserLanguage,
-    local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
-    site::Site,
-  },
+use crate::source::{
+  actor_language::LocalUserLanguage,
+  local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
+  site::Site,
 };
 use bcrypt::{DEFAULT_COST, hash};
 use diesel::{
@@ -18,8 +15,8 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::{
   PersonId,
-  enums::CommunityVisibility,
-  schema::{community, community_actions, local_user, person, registration_application},
+  newtypes::{CommunityId, LanguageId, LocalUserId},
+  schema::{community_actions, local_user, person, registration_application},
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
@@ -319,13 +316,7 @@ pub trait LocalUserOptionHelper {
   fn show_read_posts(&self) -> bool;
   fn is_admin(&self) -> bool;
   fn show_nsfw(&self, site: &Site) -> bool;
-  fn hide_media(&self) -> bool;
-  fn visible_communities_only<Q>(&self, query: Q) -> Q
-  where
-    Q: diesel::query_dsl::methods::FilterDsl<
-        diesel::dsl::Eq<community::visibility, CommunityVisibility>,
-        Output = Q,
-      >;
+  fn hide_posts_with_media(&self) -> bool;
 }
 
 impl LocalUserOptionHelper for Option<&LocalUser> {
@@ -355,23 +346,8 @@ impl LocalUserOptionHelper for Option<&LocalUser> {
       .unwrap_or(site.content_warning.is_some())
   }
 
-  fn hide_media(&self) -> bool {
-    self.map(|l| l.hide_media).unwrap_or(false)
-  }
-
-  // TODO: use this function for private community checks, but the generics get extremely confusing
-  fn visible_communities_only<Q>(&self, query: Q) -> Q
-  where
-    Q: diesel::query_dsl::methods::FilterDsl<
-        diesel::dsl::Eq<community::visibility, CommunityVisibility>,
-        Output = Q,
-      >,
-  {
-    if self.is_none() {
-      query.filter(community::visibility.eq(CommunityVisibility::Public))
-    } else {
-      query
-    }
+  fn hide_posts_with_media(&self) -> bool {
+    self.map(|l| l.hide_posts_with_media).unwrap_or(false)
   }
 }
 

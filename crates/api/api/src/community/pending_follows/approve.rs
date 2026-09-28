@@ -10,7 +10,7 @@ use lemmy_db_schema_file::enums::CommunityFollowerState;
 use lemmy_db_views_community::api::ApproveCommunityPendingFollower;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::api::SuccessResponse;
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn post_pending_follows_approve(
   Json(data): Json<ApproveCommunityPendingFollower>,
@@ -19,15 +19,28 @@ pub async fn post_pending_follows_approve(
 ) -> LemmyResult<Json<SuccessResponse>> {
   is_mod_or_admin(&mut context.pool(), &local_user_view, data.community_id).await?;
 
+  let community_actions =
+    CommunityActions::read(&mut context.pool(), data.community_id, data.follower_id).await?;
+  if community_actions.follow_state != Some(CommunityFollowerState::ApprovalRequired) {
+    return Err(LemmyErrorType::CouldntUpdate.into());
+  }
   let (state, activity_data) = if data.approve {
     (
       CommunityFollowerState::Accepted,
-      SendActivityData::AcceptFollower(data.community_id, data.follower_id),
+      SendActivityData::PrivateCommunityAcceptFollower {
+        community_id: data.community_id,
+        person_id: data.follower_id,
+        follow_activity_id: community_actions.follow_activity_id,
+      },
     )
   } else {
     (
       CommunityFollowerState::Denied,
-      SendActivityData::RejectFollower(data.community_id, data.follower_id),
+      SendActivityData::PrivateCommunityRejectFollower {
+        community_id: data.community_id,
+        person_id: data.follower_id,
+        follow_activity_id: community_actions.follow_activity_id,
+      },
     )
   };
   CommunityActions::approve_private_community_follower(

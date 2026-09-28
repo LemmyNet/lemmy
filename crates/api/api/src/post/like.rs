@@ -5,15 +5,9 @@ use lemmy_api_utils::{
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{
-    check_bot_account,
-    check_community_user_action,
-    check_local_user_valid,
-    check_local_vote_mode,
-  },
+  utils::{check_bot_account, check_community_user_action, check_local_vote_mode},
 };
 use lemmy_db_schema::{
-  newtypes::PostOrCommentId,
   source::{
     notification::Notification,
     person::PersonActions,
@@ -21,6 +15,7 @@ use lemmy_db_schema::{
   },
   traits::Likeable,
 };
+use lemmy_db_schema_file::newtypes::PostOrCommentId;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::{
   PostView,
@@ -35,7 +30,6 @@ pub async fn like_post(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
-  check_local_user_valid(&local_user_view)?;
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
   let local_instance_id = local_user_view.person.instance_id;
   let post_id = data.post_id;

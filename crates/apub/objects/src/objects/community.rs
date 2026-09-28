@@ -7,6 +7,7 @@ use crate::{
       check_apub_id_valid_with_strictness,
       community_visibility,
       read_from_string_or_source_opt,
+      verify_domains_match_opt,
     },
     markdown_links::markdown_rewrite_remote_links_opt,
     protocol::{AttributedTo, ImageObject, LanguageTag, Source},
@@ -44,7 +45,11 @@ use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::{sensitive::SensitiveString, traits::Crud};
 use lemmy_utils::{
   error::{LemmyError, LemmyResult},
-  utils::{markdown::markdown_to_html, slurs::remove_slurs, validation::truncate_summary},
+  utils::{
+    markdown::markdown_to_html,
+    slurs::remove_slurs,
+    validation::{DISPLAY_NAME_MAX_LENGTH, SITE_SUMMARY_MAX_LENGTH, truncate_for_db},
+  },
 };
 use regex::RegexSet;
 use std::{ops::Deref, sync::OnceLock};
@@ -118,7 +123,7 @@ impl Object for ApubCommunity {
       kind: GroupType::Group,
       id: self.id().clone().into(),
       preferred_username: self.name.clone(),
-      name: Some(self.title.clone()),
+      name: self.title.clone(),
       summary: self.sidebar.as_ref().map(|d| markdown_to_html(d)),
       source: self.sidebar.clone().map(Source::new),
       description: self.summary.clone(),
@@ -156,6 +161,10 @@ impl Object for ApubCommunity {
   ) -> LemmyResult<()> {
     check_apub_id_valid_with_strictness(group.id.inner(), true, context).await?;
     verify_domains_match(expected_domain, group.id.inner())?;
+    verify_domains_match(group.id.inner(), &group.outbox)?;
+    verify_domains_match(group.id.inner(), &group.inbox)?;
+    verify_domains_match_opt(group.id.inner(), &group.followers)?;
+    verify_domains_match_opt(group.id.inner(), &group.featured)?;
 
     // Doesnt call verify_is_remote_object() because the community might be edited by a
     // remote mod. This is safe as we validate `expected_domain`.
@@ -186,11 +195,15 @@ impl Object for ApubCommunity {
       .description
       .clone()
       .as_deref()
-      .map(truncate_summary)
+      .map(|s| truncate_for_db(s, SITE_SUMMARY_MAX_LENGTH))
       .map(|s| remove_slurs(&s, &slur_regex));
 
     let name = group.preferred_username.clone();
-    let title = remove_slurs(&group.name.clone().unwrap_or(name.clone()), &slur_regex);
+    let title = group
+      .name
+      .as_ref()
+      .map(|n| remove_slurs(n, &slur_regex))
+      .map(|s| truncate_for_db(&s, DISPLAY_NAME_MAX_LENGTH));
 
     // If NSFW is not allowed, then remove NSFW communities
     let removed = check_nsfw_allowed(group.sensitive, Some(&local_site))
@@ -227,13 +240,9 @@ impl Object for ApubCommunity {
         .and_then(AttributedTo::url),
       posting_restricted_to_mods: group.posting_restricted_to_mods,
       featured_url: group.featured.clone().clone().map(Into::into),
+      title,
       visibility,
-      ..CommunityInsertForm::new(
-        instance_id,
-        name,
-        title,
-        group.public_key.public_key_pem.clone(),
-      )
+      ..CommunityInsertForm::new(instance_id, name, group.public_key.public_key_pem.clone())
     };
     let languages =
       LanguageTag::to_language_id_multiple(group.language.clone(), &mut context.pool()).await?;
@@ -306,7 +315,7 @@ pub(crate) mod tests {
     parse_lemmy_instance(&context).await?;
     let community = parse_lemmy_community(&context).await?;
 
-    assert_eq!(community.title, "Ten Forward");
+    assert_eq!(community.title, Some("Ten Forward".to_string()));
     assert!(!community.local);
 
     // Test the sidebar and description

@@ -1,20 +1,19 @@
 use crate::context::LemmyContext;
 use activitypub_federation::config::Data;
 use either::Either;
-use lemmy_db_schema::{
-  newtypes::CommunityId,
-  source::{
-    comment::Comment,
-    community::Community,
-    multi_community::MultiCommunity,
-    person::Person,
-    post::Post,
-    private_message::PrivateMessage,
-    site::Site,
-  },
+use lemmy_db_schema::source::{
+  comment::Comment,
+  community::Community,
+  multi_community::MultiCommunity,
+  person::Person,
+  post::Post,
+  private_message::PrivateMessage,
+  site::Site,
 };
-use lemmy_db_schema_file::PersonId;
+use lemmy_db_schema_file::{PersonId, newtypes::CommunityId};
+use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_community::api::BanFromCommunity;
+use lemmy_db_views_post::PostView;
 use lemmy_db_views_private_message::PrivateMessageView;
 use lemmy_diesel_utils::dburl::DbUrl;
 use lemmy_utils::error::LemmyResult;
@@ -63,8 +62,16 @@ pub enum SendActivityData {
   },
   FollowCommunity(Community, Person, bool),
   FollowMultiCommunity(MultiCommunity, Person, bool),
-  AcceptFollower(CommunityId, PersonId),
-  RejectFollower(CommunityId, PersonId),
+  PrivateCommunityAcceptFollower {
+    community_id: CommunityId,
+    person_id: PersonId,
+    follow_activity_id: Option<DbUrl>,
+  },
+  PrivateCommunityRejectFollower {
+    community_id: CommunityId,
+    person_id: PersonId,
+    follow_activity_id: Option<DbUrl>,
+  },
   UpdateCommunity(Person, Community),
   DeleteCommunity(Person, Community, bool),
   RemoveCommunity {
@@ -110,6 +117,7 @@ pub enum SendActivityData {
     receiver: Either<Site, Community>,
   },
   UpdateMultiCommunity(MultiCommunity, Person),
+  Warning(Box<Either<PostView, CommentView>>, String, Person),
 }
 
 // TODO: instead of static, move this into LemmyContext. make sure that stopping the process with

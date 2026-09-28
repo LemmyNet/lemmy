@@ -6,7 +6,7 @@ import {
   CreatePost,
   ResolveObject,
 } from "lemmy-js-client-019";
-import { beta, betaUrl, setupLogins, unfollows } from "./shared";
+import { beta, betaUrl, expectSuccess, setupLogins, unfollows } from "./shared";
 import { CreateComment } from "lemmy-js-client";
 
 beforeAll(async () => {
@@ -16,18 +16,18 @@ beforeAll(async () => {
 afterAll(unfollows);
 
 test("API v3", async () => {
-  let login_form: Login = {
+  const login_form: Login = {
     username_or_email: "lemmy_beta",
     password: "lemmylemmy",
   };
-  const login = await beta.login(login_form);
+  const login = await beta.login(login_form).then(expectSuccess);
   expect(login.jwt).toBeDefined();
 
-  let user = new LemmyHttp(betaUrl, {
+  const user = new LemmyHttp(betaUrl, {
     headers: { Authorization: `Bearer ${login.jwt ?? ""}` },
   });
 
-  let resolve_form: ResolveObject = {
+  const resolve_form: ResolveObject = {
     q: "!main@lemmy-beta:8551",
   };
   const community = await user

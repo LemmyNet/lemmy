@@ -1,10 +1,14 @@
-use crate::newtypes::{CommentId, CommunityId, ModlogId, PostId};
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::modlog;
-use lemmy_db_schema_file::{InstanceId, PersonId, enums::ModlogKind};
+use lemmy_db_schema_file::{
+  InstanceId,
+  PersonId,
+  enums::ModlogKind,
+  newtypes::{CommentId, CommunityId, ModlogId, PostId},
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -37,6 +41,7 @@ pub struct Modlog {
   pub expires_at: Option<DateTime<Utc>>,
   pub published_at: DateTime<Utc>,
   pub bulk_action_parent_id: Option<ModlogId>,
+  pub child_count: i32,
 }
 
 #[derive(derive_new::new)]

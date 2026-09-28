@@ -1,6 +1,5 @@
 use crate::{
-  newtypes::{CommunityId, CommunityReportId},
-  source::community_report::{CommunityReport, CommunityReportForm},
+  source::community_report::{CommunityReport, CommunityReportForm, UpdateCommunityReportForm},
   traits::Reportable,
 };
 use chrono::Utc;
@@ -11,12 +10,17 @@ use diesel::{
   dsl::{insert_into, update},
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::{PersonId, schema::community_report};
+use lemmy_db_schema_file::{
+  PersonId,
+  newtypes::{CommunityId, CommunityReportId},
+  schema::community_report,
+};
 use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 
 impl Reportable for CommunityReport {
   type Form = CommunityReportForm;
+  type UpdateForm = UpdateCommunityReportForm;
   type IdType = CommunityReportId;
   type ObjectIdType = CommunityId;
   /// creates a community report and returns it
@@ -36,20 +40,15 @@ impl Reportable for CommunityReport {
   ///
   /// * `conn` - the postgres connection
   /// * `report_id` - the id of the report to resolve
-  /// * `by_resolver_id` - the id of the user resolving the report
+  /// * `form` - update report form
   async fn update_resolved(
     pool: &mut DbPool<'_>,
     report_id_: Self::IdType,
-    by_resolver_id: PersonId,
-    is_resolved: bool,
+    form: &Self::UpdateForm,
   ) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
     update(community_report::table.find(report_id_))
-      .set((
-        community_report::resolved.eq(is_resolved),
-        community_report::resolver_id.eq(by_resolver_id),
-        community_report::updated_at.eq(Utc::now()),
-      ))
+      .set(form)
       .execute(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntUpdate)

@@ -1,11 +1,14 @@
 use crate::CustomEmojiView;
 use diesel::{ExpressionMethods, JoinOnDsl, NullableExpressionMethods, QueryDsl, dsl::Nullable};
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema::{
-  newtypes::CustomEmojiId,
-  source::{custom_emoji::CustomEmoji, custom_emoji_keyword::CustomEmojiKeyword},
+use lemmy_db_schema::source::{
+  custom_emoji::CustomEmoji,
+  custom_emoji_keyword::CustomEmojiKeyword,
 };
-use lemmy_db_schema_file::schema::{custom_emoji, custom_emoji_keyword};
+use lemmy_db_schema_file::{
+  newtypes::CustomEmojiId,
+  schema::{custom_emoji, custom_emoji_keyword},
+};
 use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use std::collections::HashMap;

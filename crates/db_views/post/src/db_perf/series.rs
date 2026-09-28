@@ -12,7 +12,7 @@ use diesel::{
   sql_types,
 };
 
-/// Gererates a series of rows for insertion.
+/// Generates a series of rows for insertion.
 ///
 /// An inclusive range is created from `start` and `stop`. A row for each number is generated using
 /// `selection`, which can be a tuple. [`current_value`] is an expression that gets the current

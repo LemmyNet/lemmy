@@ -1,9 +1,11 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
+use either::Either;
 use lemmy_api_utils::{
   build_response::build_post_response,
   context::LemmyContext,
   notify::notify_mod_action,
+  send_activity::{ActivityChannel, SendActivityData},
   utils::check_community_mod_action,
 };
 use lemmy_db_schema::source::modlog::{Modlog, ModlogInsertForm};
@@ -49,7 +51,14 @@ pub async fn create_post_warning(
   let action = Modlog::create(&mut context.pool(), &[form]).await?;
   notify_mod_action(action, &context);
 
-  // TODO federate activity
+  ActivityChannel::submit_activity(
+    SendActivityData::Warning(
+      Box::new(Either::Left(orig_post.clone())),
+      data.reason,
+      local_user_view.person.clone(),
+    ),
+    &context,
+  )?;
 
   build_post_response(&context, orig_post.community.id, local_user_view, post_id).await
 }

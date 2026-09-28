@@ -1,14 +1,14 @@
-use crate::{
-  newtypes::{LocalUserId, RegistrationApplicationId},
-  source::registration_application::{
-    RegistrationApplication,
-    RegistrationApplicationInsertForm,
-    RegistrationApplicationUpdateForm,
-  },
+use crate::source::registration_application::{
+  RegistrationApplication,
+  RegistrationApplicationInsertForm,
+  RegistrationApplicationUpdateForm,
 };
 use diesel::{ExpressionMethods, QueryDsl, insert_into};
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::registration_application;
+use lemmy_db_schema_file::{
+  newtypes::{LocalUserId, RegistrationApplicationId},
+  schema::registration_application,
+};
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   traits::Crud,

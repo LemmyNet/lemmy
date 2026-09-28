@@ -1,17 +1,17 @@
 use crate::{
-  check_community_deleted_or_removed,
   community::{AnnouncableActivities, send_activity_in_community},
-  generate_activity_id_with_object_id,
+  generate_activity_id,
   protocol::community::update::Update,
   send_lemmy_activity,
 };
 use activitypub_federation::{
   config::Data,
   kinds::{activity::UpdateType, public},
+  protocol::verification::verify_urls_match,
   traits::{Activity, Object},
 };
 use either::Either;
-use lemmy_api_utils::context::LemmyContext;
+use lemmy_api_utils::{context::LemmyContext, utils::check_community_deleted_removed};
 use lemmy_apub_objects::{
   objects::{community::ApubCommunity, multi_community::ApubMultiCommunity, person::ApubPerson},
   utils::{
@@ -36,7 +36,7 @@ pub(crate) async fn send_update_community(
 ) -> LemmyResult<()> {
   let community: ApubCommunity = community.into();
   let actor: ApubPerson = actor.into();
-  let id = generate_activity_id_with_object_id(UpdateType::Update, &context)?;
+  let id = generate_activity_id(UpdateType::Update, &context)?;
   let update = Update {
     actor: actor.id().clone().into(),
     to: generate_to(&community)?,
@@ -66,7 +66,7 @@ pub(crate) async fn send_update_multi_community(
 ) -> LemmyResult<()> {
   let multi: ApubMultiCommunity = multi.into();
   let actor: ApubPerson = actor.into();
-  let id = generate_activity_id_with_object_id(UpdateType::Update, &context)?;
+  let id = generate_activity_id(UpdateType::Update, &context)?;
   let update = Update {
     actor: actor.id().clone().into(),
     to: vec![multi.ap_id.clone().into(), public()],
@@ -106,10 +106,13 @@ impl Activity for Update {
           .as_ref()
           .either(|l| l.id.inner(), |r| r.id.inner());
         verify_mod_action(&self.actor, object_id, &community, context).await?;
-        check_community_deleted_or_removed(&community)?;
+        check_community_deleted_removed(&community)?;
         ApubCommunity::verify(c, &community.ap_id.clone().into(), context).await?;
       }
-      Either::Right(m) => ApubMultiCommunity::verify(m, &self.id, context).await?,
+      Either::Right(m) => {
+        verify_urls_match(m.attributed_to.inner(), self.actor())?;
+        ApubMultiCommunity::verify(m, &self.id, context).await?
+      }
     }
     Ok(())
   }

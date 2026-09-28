@@ -13,18 +13,15 @@ use lemmy_api_utils::{
     slur_regex,
   },
 };
-use lemmy_db_schema::{
-  newtypes::MultiCommunityId,
-  source::{
-    actor_language::SiteLanguage,
-    local_site::{LocalSite, LocalSiteUpdateForm},
-    local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitUpdateForm},
-    local_site_url_blocklist::LocalSiteUrlBlocklist,
-    local_user::LocalUser,
-    site::{Site, SiteUpdateForm},
-  },
+use lemmy_db_schema::source::{
+  actor_language::SiteLanguage,
+  local_site::{LocalSite, LocalSiteUpdateForm},
+  local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitUpdateForm},
+  local_site_url_blocklist::LocalSiteUrlBlocklist,
+  local_user::LocalUser,
+  site::{Site, SiteUpdateForm},
 };
-use lemmy_db_schema_file::enums::RegistrationMode;
+use lemmy_db_schema_file::{enums::RegistrationMode, newtypes::MultiCommunityId};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::{
   SiteView,
@@ -140,6 +137,7 @@ pub async fn edit_site(
     image_max_upload_size: data.image_max_upload_size,
     image_allow_video_uploads: data.image_allow_video_uploads,
     image_upload_disabled: data.image_upload_disabled,
+    max_invites_per_user_allowed: data.max_invites_per_user_allowed,
   };
 
   let update_local_site = LocalSite::update(&mut context.pool(), &local_site_form)

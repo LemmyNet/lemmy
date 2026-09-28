@@ -80,12 +80,7 @@ async fn db_perf() -> LemmyResult<()> {
   println!("🌍 creating {} communities", args.communities);
   let mut community_ids = vec![];
   for i in 0..args.communities.get() {
-    let form = CommunityInsertForm::new(
-      instance.id,
-      format!("c{i}"),
-      i.to_string(),
-      "pubkey".to_string(),
-    );
+    let form = CommunityInsertForm::new(instance.id, format!("c{i}"), "pubkey".to_string());
     community_ids.push(Community::create(&mut conn.into(), &form).await?.id);
   }
 

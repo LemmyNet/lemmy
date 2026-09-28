@@ -1,9 +1,10 @@
-use crate::{newtypes::CommunityId, source::placeholder_apub_url};
+use crate::source::placeholder_apub_url;
 use chrono::{DateTime, Utc};
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
   enums::{CommunityFollowerState, CommunityNotificationsMode, CommunityVisibility},
+  newtypes::CommunityId,
 };
 use lemmy_diesel_utils::{dburl::DbUrl, sensitive::SensitiveString};
 use serde::{Deserialize, Serialize};
@@ -30,7 +31,7 @@ pub struct Community {
   pub id: CommunityId,
   pub name: String,
   /// A longer title, that can contain other characters, and doesn't have to be unique.
-  pub title: String,
+  pub title: Option<String>,
   /// A sidebar for the community in markdown.
   pub sidebar: Option<String>,
   /// Whether the community is removed by a mod.
@@ -102,7 +103,8 @@ pub struct Community {
 pub struct CommunityInsertForm {
   pub instance_id: InstanceId,
   pub name: String,
-  pub title: String,
+  #[new(default)]
+  pub title: Option<String>,
   pub public_key: String,
   #[new(default)]
   pub sidebar: Option<String>,
@@ -150,7 +152,7 @@ pub struct CommunityInsertForm {
 #[cfg_attr(feature = "full", derive(AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = community))]
 pub struct CommunityUpdateForm {
-  pub title: Option<String>,
+  pub title: Option<Option<String>>,
   pub sidebar: Option<Option<String>>,
   pub removed: Option<bool>,
   pub published_at: Option<DateTime<Utc>>,
@@ -211,6 +213,12 @@ pub struct CommunityActions {
   #[serde(skip)]
   pub follow_approver_id: Option<PersonId>,
   pub notifications: Option<CommunityNotificationsMode>,
+  /// For remote users following a local private community, store the ID of the follow activity.
+  /// This is so we can send the correct ID back when the follow is accepted or rejected later.
+  /// For follows to non-private communities this is not needed as the accept is sent back
+  /// immediately.
+  #[serde(skip)]
+  pub follow_activity_id: Option<DbUrl>,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -244,6 +252,9 @@ pub struct CommunityFollowerForm {
   pub follow_state: CommunityFollowerState,
   #[new(default)]
   pub follow_approver_id: Option<PersonId>,
+  /// Only needed when remote user follows a local, private community.
+  #[new(default)]
+  pub follow_activity_id: Option<DbUrl>,
   #[new(value = "Utc::now()")]
   pub followed_at: DateTime<Utc>,
 }

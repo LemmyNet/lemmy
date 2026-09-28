@@ -1,0 +1,9 @@
+{
+  "id": "http://enterprise.lemmy.ml/activities/warn/14f1654e-0843-4cd9-9c93-ec35a2bb64bb",
+  "actor": "http://enterprise.lemmy.ml/u/lemmy_beta",
+  "to": ["http://voyager.lemmy.ml/u/lemmy_alpha"],
+  "object": "http://voyager.lemmy.ml/post/1541",
+  "summary": "fU8HltC5wq",
+  "type": "Warn",
+  "audience": "http://enterprise.lemmy.ml/c/main"
+}

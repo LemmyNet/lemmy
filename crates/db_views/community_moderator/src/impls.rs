@@ -9,13 +9,10 @@ use diesel::{
   select,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema::{
-  impls::local_user::LocalUserOptionHelper,
-  newtypes::CommunityId,
-  source::local_user::LocalUser,
-};
+use lemmy_db_schema::{impls::local_user::LocalUserOptionHelper, source::local_user::LocalUser};
 use lemmy_db_schema_file::{
   PersonId,
+  newtypes::CommunityId,
   schema::{community, community_actions, person},
 };
 use lemmy_diesel_utils::connection::{DbPool, get_conn};
@@ -100,8 +97,6 @@ impl CommunityModeratorView {
       .filter(community_actions::person_id.eq(person_id))
       .select(Self::as_select())
       .into_boxed();
-
-    query = local_user.visible_communities_only(query);
 
     // only show deleted communities to creator
     if Some(person_id) != local_user.person_id() {

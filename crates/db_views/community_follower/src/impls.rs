@@ -9,11 +9,11 @@ use diesel::{
   select,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema::newtypes::CommunityId;
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
   enums::CommunityFollowerState,
+  newtypes::CommunityId,
   schema::{community, community_actions, person},
 };
 use lemmy_diesel_utils::{
@@ -84,7 +84,7 @@ impl CommunityFollowerView {
       .filter(community_actions::follow_state.ne(CommunityFollowerState::ApprovalRequired))
       .filter(community_actions::follow_state.ne(CommunityFollowerState::Denied))
       .select(Self::as_select())
-      .order_by(lower(community::title))
+      .order_by(lower(community::name))
       .load::<CommunityFollowerView>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::NotFound)

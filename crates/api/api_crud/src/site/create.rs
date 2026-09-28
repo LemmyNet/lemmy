@@ -14,14 +14,12 @@ use lemmy_api_utils::{
     slur_regex,
   },
 };
-use lemmy_db_schema::{
-  newtypes::MultiCommunityId,
-  source::{
-    local_site::{LocalSite, LocalSiteUpdateForm},
-    local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitUpdateForm},
-    site::{Site, SiteUpdateForm},
-  },
+use lemmy_db_schema::source::{
+  local_site::{LocalSite, LocalSiteUpdateForm},
+  local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitUpdateForm},
+  site::{Site, SiteUpdateForm},
 };
+use lemmy_db_schema_file::newtypes::MultiCommunityId;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::{
   SiteView,
@@ -133,6 +131,7 @@ pub async fn create_site(
     image_max_upload_size: data.image_max_upload_size,
     image_allow_video_uploads: data.image_allow_video_uploads,
     image_upload_disabled: data.image_upload_disabled,
+    max_invites_per_user_allowed: data.max_invites_per_user_allowed,
   };
 
   LocalSite::update(&mut context.pool(), &local_site_form).await?;

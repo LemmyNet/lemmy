@@ -19,6 +19,7 @@ pub mod local_site;
 pub mod local_site_rate_limit;
 pub mod local_site_url_blocklist;
 pub mod local_user;
+pub mod local_user_invite;
 pub mod login_token;
 pub mod modlog;
 pub mod multi_community;

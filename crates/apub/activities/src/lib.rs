@@ -15,7 +15,7 @@ use crate::{
   following::send_follow,
   protocol::{
     CreateOrUpdateType,
-    community::{report::Report, resolve_report::ResolveReport},
+    community::{report::Report, resolve_report::ResolveReport, warn::Warn},
     create_or_update::{note::CreateOrUpdateNote, page::CreateOrUpdatePage},
   },
   voting::send_like_activity,
@@ -44,7 +44,7 @@ use lemmy_db_schema::source::{
 use lemmy_db_views_post::PostView;
 use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::traits::Crud;
-use lemmy_utils::error::{LemmyError, LemmyResult, UntranslatedError};
+use lemmy_utils::error::{LemmyError, LemmyResult};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use tracing::info;
@@ -73,25 +73,18 @@ async fn verify_person(
   Ok(())
 }
 
-pub(crate) fn check_community_deleted_or_removed(community: &Community) -> LemmyResult<()> {
-  if community.deleted || community.removed {
-    Err(UntranslatedError::CannotCreatePostOrCommentInDeletedOrRemovedCommunity.into())
-  } else {
-    Ok(())
-  }
-}
-
-/// convenient function for generate_activity_id
-fn generate_activity_id_with_object_id<T>(kind: T, context: &LemmyContext) -> LemmyResult<Url>
+/// Generate a unique ID for an activity, in the format:
+/// `http(s)://example.com/activities/create/202daf0a-1489-45df-8d2e-c8a3173fed36`
+fn generate_activity_id<T>(kind: T, context: &LemmyContext) -> LemmyResult<Url>
 where
   T: ToString,
 {
-  generate_activity_id::<T>(kind, None, context)
+  generate_activity_id_with_object_id(kind, None, context)
 }
 
-/// Generate a unique ID for an activity, in the format:
-/// `http(s)://example.com/receive/create/202daf0a-1489-45df-8d2e-c8a3173fed36`
-fn generate_activity_id<T>(
+/// Generate a unique ID for an activity. When `object_id` is provided the ID is a
+/// deterministic sha256 of `{kind}:{object_id}` so the same activity always has the same URL.
+fn generate_activity_id_with_object_id<T>(
   kind: T,
   object_id: Option<&Url>,
   context: &LemmyContext,
@@ -102,18 +95,16 @@ where
   let hostname = context.settings().get_protocol_and_hostname();
   let kind_str = kind.to_string().to_lowercase();
 
-  let uuid_str = if let Some(o) = object_id {
+  let id_str = if let Some(o) = object_id {
     let input = format!("{}:{}", kind_str, o.as_str());
-    // hash
     let mut hasher = Sha256::new();
     hasher.update(input);
-    let digest = hasher.finalize(); // 32 bytes
-    format!("{:x}", digest)
+    format!("{:x}", hasher.finalize())
   } else {
     Uuid::new_v4().to_string()
   };
 
-  let id = format!("{}/activities/{}/{}", hostname, kind_str, uuid_str);
+  let id = format!("{}/activities/{}/{}", hostname, kind_str, id_str);
   Ok(Url::parse(&id)?)
 }
 
@@ -123,13 +114,11 @@ fn generate_announce_activity_id(
   protocol_and_hostname: &str,
   object_id: Option<&Url>,
 ) -> LemmyResult<Url> {
-  let uuid_str = if let Some(o) = object_id {
+  let id_str = if let Some(o) = object_id {
     let input = format!("announce:{}", o.as_str());
-    // hash
     let mut hasher = Sha256::new();
     hasher.update(input);
-    let digest = hasher.finalize();
-    format!("{:x}", digest)
+    format!("{:x}", hasher.finalize())
   } else {
     Uuid::new_v4().to_string()
   };
@@ -139,7 +128,7 @@ fn generate_announce_activity_id(
     protocol_and_hostname,
     AnnounceType::Announce.to_string().to_lowercase(),
     inner_kind.to_lowercase(),
-    uuid_str
+    id_str
   );
   Ok(Url::parse(&id)?)
 }
@@ -407,14 +396,27 @@ pub async fn match_outgoing_activities(
         )
         .await
       }
-      AcceptFollower(community_id, person_id) => {
-        send_accept_or_reject_follow(community_id, person_id, true, &context).await
+      PrivateCommunityAcceptFollower {
+        community_id,
+        person_id,
+        follow_activity_id,
+      } => {
+        send_accept_or_reject_follow(community_id, person_id, follow_activity_id, true, &context)
+          .await
       }
-      RejectFollower(community_id, person_id) => {
-        send_accept_or_reject_follow(community_id, person_id, false, &context).await
+      PrivateCommunityRejectFollower {
+        community_id,
+        person_id,
+        follow_activity_id,
+      } => {
+        send_accept_or_reject_follow(community_id, person_id, follow_activity_id, false, &context)
+          .await
       }
       UpdateMultiCommunity(multi, actor) => {
         send_update_multi_community(multi, actor, context).await
+      }
+      Warning(post_or_comment, reason, actor) => {
+        Warn::send(*post_or_comment, reason, actor.into(), context).await
       }
     }
   })

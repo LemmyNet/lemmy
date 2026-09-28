@@ -3,12 +3,12 @@ use lemmy_db_schema::{
   CommunitySortType,
   MultiCommunityListingType,
   MultiCommunitySortType,
-  newtypes::{CommunityId, CommunityTagId, LanguageId, MultiCommunityId},
   source::site::Site,
 };
 use lemmy_db_schema_file::{
   PersonId,
   enums::{CommunityNotificationsMode, CommunityVisibility, ListingType, TagColor},
+  newtypes::{CommunityId, CommunityTagId, LanguageId, MultiCommunityId},
 };
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_diesel_utils::pagination::PaginationCursor;
@@ -97,15 +97,11 @@ pub struct CreateCommunity {
   /// The unique name.
   pub name: String,
   /// A longer title.
-  pub title: String,
+  pub title: Option<String>,
   /// A sidebar for the community in markdown.
   pub sidebar: Option<String>,
   /// A shorter, one line summary of your community.
   pub summary: Option<String>,
-  /// An icon URL.
-  pub icon: Option<String>,
-  /// A banner URL.
-  pub banner: Option<String>,
   /// Whether its an NSFW community.
   pub nsfw: Option<bool>,
   /// Whether to restrict posting only to moderators.

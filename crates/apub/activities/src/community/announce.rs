@@ -1,6 +1,6 @@
 use crate::{
   activity_lists::AnnouncableActivities,
-  generate_activity_id_with_object_id,
+  generate_activity_id,
   generate_announce_activity_id,
   protocol::{
     IdOrNestedObject,
@@ -127,7 +127,7 @@ impl AnnounceActivity {
       // Hack: need to convert Page into a format which can be sent as activity, which requires
       //       adding actor field.
       let announcable_page = RawAnnouncableActivities {
-        id: generate_activity_id_with_object_id(AnnounceType::Announce, context)?,
+        id: generate_activity_id(AnnounceType::Announce, context)?,
         actor: c.actor.clone().into_inner(),
         other: serde_json::to_value(c.object)?
           .as_object()
@@ -159,7 +159,7 @@ impl Activity for AnnounceActivity {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    let object: AnnouncableActivities = self.object.object(context).await?.try_into()?;
+    let object: AnnouncableActivities = self.object.dereference(context).await?.try_into()?;
 
     // This is only for sending, not receiving so we reject it.
     if let AnnouncableActivities::Page(_) = object {

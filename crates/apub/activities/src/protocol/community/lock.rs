@@ -1,4 +1,4 @@
-use crate::post_or_comment_community;
+use crate::{post_or_comment_community, protocol::IdOrNestedObject};
 use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
@@ -8,7 +8,7 @@ use activitypub_federation::{
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
   objects::{PostOrComment, community::ApubCommunity, person::ApubPerson},
-  utils::protocol::InCommunity,
+  utils::protocol::{Id, InCommunity},
 };
 use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};
@@ -43,7 +43,7 @@ pub struct UndoLockPageOrNote {
   pub(crate) actor: ObjectId<ApubPerson>,
   #[serde(deserialize_with = "deserialize_one_or_many")]
   pub(crate) to: Vec<Url>,
-  pub(crate) object: LockPageOrNote,
+  pub(crate) object: IdOrNestedObject<LockPageOrNote>,
   #[serde(deserialize_with = "deserialize_one_or_many")]
   pub(crate) cc: Vec<Url>,
   #[serde(rename = "type")]
@@ -62,5 +62,22 @@ impl InCommunity for LockPageOrNote {
       verify_urls_match(audience.inner(), community.ap_id.inner())?;
     }
     Ok(community.into())
+  }
+}
+
+impl InCommunity for UndoLockPageOrNote {
+  async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
+    let object = self.object.dereference(context).await?;
+    let community = object.community(context).await?;
+    if let Some(audience) = &self.audience {
+      verify_urls_match(audience.inner(), community.ap_id.inner())?;
+    }
+    Ok(community)
+  }
+}
+
+impl Id for LockPageOrNote {
+  fn id(&self) -> &Url {
+    &self.id
   }
 }

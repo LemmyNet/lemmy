@@ -116,7 +116,6 @@ mod tests {
     let community_form = CommunityInsertForm::new(
       instance.id,
       "mod_community crepes".to_string(),
-      "nada".to_owned(),
       "pubkey".to_string(),
     );
     let community = Community::create(pool, &community_form).await?;
@@ -414,7 +413,6 @@ mod tests {
     let community_form = CommunityInsertForm::new(
       instance.id,
       "bulk_parent_community".to_string(),
-      "nada".to_owned(),
       "pubkey".to_string(),
     );
     let community = Community::create(pool, &community_form).await?;

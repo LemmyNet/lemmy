@@ -1,13 +1,9 @@
 #[cfg(feature = "full")]
 #[macro_use]
 extern crate diesel;
-#[cfg(feature = "full")]
-#[macro_use]
-extern crate diesel_derive_newtype;
 
 #[cfg(feature = "full")]
 pub mod impls;
-pub mod newtypes;
 pub mod source;
 #[cfg(feature = "full")]
 pub mod test_data;

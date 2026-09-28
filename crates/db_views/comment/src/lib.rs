@@ -13,14 +13,14 @@ use {
   diesel::{Queryable, Selectable},
   lemmy_db_schema::utils::queries::selects::{
     CreatorLocalHomeCommunityBanExpiresType,
-    comment_creator_is_admin,
     comment_select_remove_deletes,
     creator_ban_expires_from_community,
     creator_banned_from_community,
+    creator_is_admin,
     creator_is_moderator,
     creator_local_home_community_ban_expires,
     creator_local_home_community_banned,
-    local_user_can_mod_comment,
+    local_user_can_mod,
     post_community_tags_fragment,
   },
 };
@@ -57,7 +57,7 @@ pub struct CommentView {
   pub person_actions: Option<PersonActions>,
   #[cfg_attr(feature = "full",
     diesel(
-      select_expression = comment_creator_is_admin()
+      select_expression = creator_is_admin()
     )
   )]
   pub creator_is_admin: bool,
@@ -69,7 +69,7 @@ pub struct CommentView {
   pub tags: CommunityTagsView,
   #[cfg_attr(feature = "full",
     diesel(
-      select_expression = local_user_can_mod_comment()
+      select_expression = local_user_can_mod()
     )
   )]
   pub can_mod: bool,

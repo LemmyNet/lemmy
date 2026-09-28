@@ -1,6 +1,9 @@
-use crate::newtypes::{CommunityId, LanguageId, PostId};
 use chrono::{DateTime, Utc};
-use lemmy_db_schema_file::{PersonId, enums::PostNotificationsMode};
+use lemmy_db_schema_file::{
+  PersonId,
+  enums::PostNotificationsMode,
+  newtypes::{CommunityId, LanguageId, PostId},
+};
 use lemmy_diesel_utils::dburl::DbUrl;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -176,6 +179,7 @@ pub struct PostUpdateForm {
   pub federation_pending: Option<bool>,
 }
 
+#[skip_serializing_none]
 #[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(
   feature = "full",

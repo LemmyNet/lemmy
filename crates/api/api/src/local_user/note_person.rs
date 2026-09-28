@@ -2,7 +2,7 @@ use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_utils::{
   context::LemmyContext,
-  utils::{check_local_user_valid, get_url_blocklist, process_markdown, slur_regex},
+  utils::{check_local_user_banned_or_deleted, get_url_blocklist, process_markdown, slur_regex},
 };
 use lemmy_db_schema::source::person::{PersonActions, PersonNoteForm};
 use lemmy_db_views_local_user::LocalUserView;
@@ -21,7 +21,7 @@ pub async fn user_note_person(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PersonResponse>> {
-  check_local_user_valid(&local_user_view)?;
+  check_local_user_banned_or_deleted(&local_user_view)?;
 
   let target_id = data.person_id;
   let my_person_id = local_user_view.person.id;

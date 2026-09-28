@@ -1,4 +1,4 @@
-use crate::protocol::following::follow::Follow;
+use crate::protocol::{IdOrNestedObject, following::follow::Follow};
 use activitypub_federation::{
   fetch::object_id::ObjectId,
   kinds::activity::RejectType,
@@ -15,7 +15,7 @@ pub struct RejectFollow {
   /// Optional, for compatibility with platforms that always expect recipient field
   #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) to: Option<[ObjectId<ApubPerson>; 1]>,
-  pub(crate) object: Follow,
+  pub(crate) object: IdOrNestedObject<Follow>,
   #[serde(rename = "type")]
   pub(crate) kind: RejectType,
   pub(crate) id: Url,

@@ -12,10 +12,8 @@ use crate::federation::{
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};
 use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
-use lemmy_db_schema::{
-  newtypes::PostId,
-  source::{keyword_block::LocalUserKeywordBlock, post::PostActions},
-};
+use lemmy_db_schema::source::{keyword_block::LocalUserKeywordBlock, post::PostActions};
+use lemmy_db_schema_file::newtypes::PostId;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::{PostView, api::GetPosts, impls::PostQuery};
 use lemmy_db_views_site::SiteView;
@@ -63,12 +61,13 @@ pub async fn list_posts(
     show_read,
     // Show nsfw content if param is true, or if content_warning exists
     show_nsfw,
-    hide_media,
+    hide_posts_with_media,
     no_comments_only,
     search_term,
     search_title_only,
     search_url_only,
     page_cursor,
+    tag_id,
     ..
   } = data;
 
@@ -108,12 +107,13 @@ pub async fn list_posts(
     show_hidden,
     show_read,
     show_nsfw,
-    hide_media,
+    hide_posts_with_media,
     no_comments_only,
     keyword_blocks,
     search_term,
     search_title_only,
     search_url_only,
+    tag_id,
     page_cursor,
   }
   .list(&mut context.pool(), site, local_site)

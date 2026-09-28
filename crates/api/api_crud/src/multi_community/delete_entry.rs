@@ -4,7 +4,7 @@ use actix_web::web::Json;
 use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
-  utils::check_local_user_valid,
+  utils::check_local_user_banned_or_deleted,
 };
 use lemmy_db_schema::{
   source::{
@@ -24,7 +24,7 @@ pub async fn delete_multi_community_entry(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
-  check_local_user_valid(&local_user_view)?;
+  check_local_user_banned_or_deleted(&local_user_view)?;
 
   let multi = MultiCommunity::read(&mut context.pool(), data.id).await?;
   check_multi_community_creator(&multi, &local_user_view)?;

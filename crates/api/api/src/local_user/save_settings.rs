@@ -2,7 +2,12 @@ use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_utils::{
   context::LemmyContext,
-  utils::{check_local_user_valid, get_url_blocklist, process_markdown_opt, slur_regex},
+  utils::{
+    check_local_user_banned_or_deleted,
+    get_url_blocklist,
+    process_markdown_opt,
+    slur_regex,
+  },
 };
 use lemmy_db_schema::{
   source::{
@@ -39,7 +44,7 @@ pub async fn save_user_settings(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<SuccessResponse>> {
-  check_local_user_valid(&local_user_view)?;
+  check_local_user_banned_or_deleted(&local_user_view)?;
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
 
   let slur_regex = slur_regex(&context).await?;
@@ -154,6 +159,7 @@ pub async fn save_user_settings(
   let local_user_form = LocalUserUpdateForm {
     email,
     show_avatars: data.show_avatars,
+    show_media: data.show_media,
     show_read_posts: data.show_read_posts,
     send_notifications_to_email: data.send_notifications_to_email,
     show_nsfw: data.show_nsfw,
@@ -173,7 +179,7 @@ pub async fn save_user_settings(
     private_messages_enabled: data.private_messages_enabled,
     collapse_bot_comments: data.collapse_bot_comments,
     auto_mark_fetched_posts_as_read: data.auto_mark_fetched_posts_as_read,
-    hide_media: data.hide_media,
+    hide_posts_with_media: data.hide_posts_with_media,
     // Update the vote display modes
     show_score: data.show_score,
     show_upvotes: data.show_upvotes,

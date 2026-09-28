@@ -1,6 +1,5 @@
 use crate::{
   diesel::{DecoratableTarget, OptionalExtension},
-  newtypes::PrivateMessageId,
   source::{
     person::Person,
     private_message::{PrivateMessage, PrivateMessageInsertForm, PrivateMessageUpdateForm},
@@ -9,7 +8,7 @@ use crate::{
 use chrono::{DateTime, Utc};
 use diesel::{ExpressionMethods, QueryDsl, dsl::insert_into};
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::{PersonId, schema::private_message};
+use lemmy_db_schema_file::{PersonId, newtypes::PrivateMessageId, schema::private_message};
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   dburl::DbUrl,
@@ -108,14 +107,6 @@ impl PrivateMessage {
     if Some(self.creator_id) == my_person.map(|p| p.id) {
       self.deleted_by_recipient = false;
     }
-  }
-
-  /// Return the private message's ap_id with a timestamp fragment appended.
-  pub fn activity_object_id(&self) -> Url {
-    let timestamp = self.updated_at.unwrap_or(self.published_at);
-    let mut object_id = (*self.ap_id.0).clone();
-    object_id.set_fragment(Some(&timestamp.to_rfc3339()));
-    object_id
   }
 }
 

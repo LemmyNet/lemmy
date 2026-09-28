@@ -8,7 +8,7 @@ homepage.workspace = true
 documentation.workspace = true
 repository.workspace = true
 rust-version.workspace = true
-publish = false
+publish = true
 
 [lib]
 doctest = false

@@ -1,0 +1,20 @@
+{
+  "@context": [
+    "https://join-lemmy.org/context.json",
+    "https://www.w3.org/ns/activitystreams"
+  ],
+  "id": "https://enterprise.lemmy.ml/activities/create/dac79033-6c94-4136-892a-802cb6d86622",
+  "actor": "https://enterprise.lemmy.ml/u/nutomic",
+  "to": ["https://voyager.lemmy.ml/u/nutomic"],
+  "object": {
+    "type": "ChatMessage",
+    "id": "https://enterprise.lemmy.ml/private_message/29",
+    "attributedTo": "https://enterprise.lemmy.ml/u/nutomic",
+    "to": ["https://voyager.lemmy.ml/u/nutomic"],
+    "content": "<p>hi!</p>\n",
+    "mediaType": "text/html",
+    "source": { "content": "hi!", "mediaType": "text/markdown" },
+    "published": "2026-06-30T00:43:19.518259Z"
+  },
+  "type": "Create"
+}

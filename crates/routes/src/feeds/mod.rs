@@ -25,6 +25,7 @@ use lemmy_email::{translations::Lang, user_language};
 use lemmy_utils::{
   cache_header::cache_1hour,
   error::LemmyResult,
+  rate_limit::RateLimit,
   settings::structs::Settings,
   utils::markdown::markdown_to_html,
 };
@@ -57,9 +58,10 @@ impl Params {
   }
 }
 
-pub fn config(cfg: &mut web::ServiceConfig) {
+pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
   cfg.service(
     web::scope("/feeds")
+      .wrap(rate_limit.message())
       .route("/u/{user_name}.xml", web::get().to(get_feed_user))
       .route("/c/{community_name}.xml", web::get().to(get_feed_community))
       .route(
@@ -806,7 +808,7 @@ fn create_post_items(
       );
     }
     let category = Category {
-      name: p.community.title,
+      name: p.community.title.unwrap_or(p.community.name),
       domain: Some(p.community.ap_id.to_string()),
     };
 

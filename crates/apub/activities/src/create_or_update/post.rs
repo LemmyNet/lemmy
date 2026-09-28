@@ -1,9 +1,8 @@
 use crate::{
   activity_lists::AnnouncableActivities,
-  check_community_deleted_or_removed,
   community::send_activity_in_community,
-  create_or_update::{parse_apub_mentions, tagged_user_inboxes},
-  generate_activity_id,
+  create_or_update::{activity_object_id, parse_apub_mentions, tagged_user_inboxes},
+  generate_activity_id_with_object_id,
   protocol::{CreateOrUpdateType, create_or_update::page::CreateOrUpdatePage},
 };
 use activitypub_federation::{
@@ -12,7 +11,11 @@ use activitypub_federation::{
   traits::{Activity, Object},
 };
 use chrono::Utc;
-use lemmy_api_utils::{context::LemmyContext, notify::NotifyData};
+use lemmy_api_utils::{
+  context::LemmyContext,
+  notify::NotifyData,
+  utils::check_community_deleted_removed,
+};
 use lemmy_apub_objects::{
   objects::{
     community::ApubCommunity,
@@ -46,9 +49,12 @@ impl CreateOrUpdatePage {
     kind: CreateOrUpdateType,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<CreateOrUpdatePage> {
-    // get object_id
-    let object_id = post.activity_object_id();
-    let id = generate_activity_id(kind.clone(), Some(&object_id), context)?;
+    let object_id = activity_object_id(
+      post.published_at,
+      post.updated_at,
+      (*post.ap_id.0).clone(),
+    );
+    let id = generate_activity_id_with_object_id(kind.clone(), Some(&object_id), context)?;
     Ok(CreateOrUpdatePage {
       actor: actor.id().clone().into(),
       to: generate_to(community)?,
@@ -97,7 +103,7 @@ impl Activity for CreateOrUpdatePage {
   async fn verify(&self, context: &Data<LemmyContext>) -> LemmyResult<()> {
     let community = self.community(context).await?;
     verify_visibility(&self.to, &self.cc, &community)?;
-    check_community_deleted_or_removed(&community)?;
+    check_community_deleted_removed(&community)?;
     verify_domains_match(self.actor.inner(), self.object.id.inner())?;
     ApubPost::verify(&self.object, self.actor.inner(), context).await?;
     Ok(())
