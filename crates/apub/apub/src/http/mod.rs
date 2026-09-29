@@ -78,9 +78,7 @@ impl ReceiveActivityHook<SharedInboxActivities, UserOrCommunity, LemmyContext> f
       Either::Left(p) => p.instance_id,
       Either::Right(c) => c.instance_id,
     };
-    if let Err(e) = Instance::mark_alive(&mut context.pool(), instance_id).await {
-      warn!("Failed to mark instance alive: {e}");
-    }
+    Instance::mark_alive(&mut context.pool(), instance_id).await?;
 
     // Store received activities in the database. This ensures that the same activity doesn't get
     // received and processed more than once, which would be a waste of resources.
