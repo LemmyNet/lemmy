@@ -52,6 +52,8 @@ diesel_ltree = { workspace = true, optional = true }
 ts-rs = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
 i-love-jesus = { workspace = true, optional = true }
+anyhow = { workspace = true }
+moka = { workspace = true } 
 derive-new.workspace = true
 
 [dev-dependencies]

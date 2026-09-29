@@ -19,6 +19,7 @@ use lemmy_apub_objects::objects::{SiteOrMultiOrCommunityOrUser, UserOrCommunity}
 use lemmy_db_schema::source::{
   activity::{ReceivedActivity, SentActivity},
   community::Community,
+  instance::Instance,
 };
 use lemmy_db_schema_file::{InstanceId, enums::CommunityVisibility};
 use lemmy_db_views_community_follower_approval::PendingFollowerView;
@@ -29,7 +30,7 @@ use lemmy_utils::{
 use serde::Deserialize;
 use std::time::Duration;
 use tokio::time::timeout;
-use tracing::debug;
+use tracing::{debug, warn};
 use url::Url;
 
 mod comment;
@@ -65,9 +66,22 @@ impl ReceiveActivityHook<SharedInboxActivities, UserOrCommunity, LemmyContext> f
   async fn hook(
     self,
     activity: &SharedInboxActivities,
-    _actor: &UserOrCommunity,
+    actor: &UserOrCommunity,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
+    // Mark instance as alive
+    // HTTP signature has already been verified at this point, so the
+    // sending instance is authenticated and evidently online.
+    // mark_alive also uses a cache so shouldn't hit the database too
+    // often
+    let instance_id = match actor {
+      Either::Left(p) => p.instance_id,
+      Either::Right(c) => c.instance_id,
+    };
+    if let Err(e) = Instance::mark_alive(&mut context.pool(), instance_id).await {
+      warn!("Failed to mark instance {instance_id} alive: {e}");
+    }
+
     // Store received activities in the database. This ensures that the same activity doesn't get
     // received and processed more than once, which would be a waste of resources.
     debug!("Received activity {}", activity.id().to_string());

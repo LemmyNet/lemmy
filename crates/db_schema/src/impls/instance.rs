@@ -1,22 +1,35 @@
 use crate::{
   diesel::dsl::IntervalDsl,
   source::instance::{
-    Instance, InstanceActions, InstanceBanForm, InstanceCommunitiesBlockForm, InstanceForm,
+    Instance,
+    InstanceActions,
+    InstanceBanForm,
+    InstanceCommunitiesBlockForm,
+    InstanceForm,
     InstancePersonsBlockForm,
   },
   traits::Bannable,
 };
 use chrono::Utc;
 use diesel::{
-  ExpressionMethods, NullableExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper,
+  ExpressionMethods,
+  NullableExpressionMethods,
+  OptionalExtension,
+  QueryDsl,
+  SelectableHelper,
   dsl::{count_star, exists, insert_into, not, select},
 };
 use diesel_async::RunQueryDsl;
 use diesel_uplete::{UpleteCount, uplete};
 use lemmy_db_schema_file::{
-  InstanceId, PersonId,
+  InstanceId,
+  PersonId,
   schema::{
-    federation_allowlist, federation_blocklist, federation_queue_state, instance, instance_actions,
+    federation_allowlist,
+    federation_blocklist,
+    federation_queue_state,
+    instance,
+    instance_actions,
   },
 };
 use lemmy_diesel_utils::{
@@ -26,7 +39,15 @@ use lemmy_diesel_utils::{
     now,
   },
 };
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::{
+  CACHE_DURATION_FEDERATION,
+  CacheLock,
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+};
+use std::{
+  collections::HashSet,
+  sync::{Arc, LazyLock},
+};
 
 impl Instance {
   /// Attempt to read Instance column for the given domain. If it doesn't exist, insert a new one.
@@ -175,19 +196,43 @@ impl Instance {
     }
   }
 
-  // if an instance exists in the database that matches the domain string input
+  pub async fn dead_ids(pool: &mut DbPool<'_>) -> LemmyResult<HashSet<InstanceId>> {
+    let conn = &mut get_conn(pool).await?;
+    let ids = instance::table
+      .filter(coalesce(instance::updated_at, instance::published_at).lt(now() - 3.days()))
+      .select(instance::id)
+      .load::<InstanceId>(conn)
+      .await?;
+    Ok(ids.into_iter().collect())
+  }
+
+  // if an instance exists in the database that matches the instance_id
   // and the instance hasn't been updated in 24 hours
   // set the updated_at to now,
   // which has the effect of marking the instance as alive
-  pub async fn mark_alive(pool: &mut DbPool<'_>, domain: &str) -> LemmyResult<usize> {
-    let conn = &mut get_conn(pool).await?;
-    diesel::update(instance::table)
-      .filter(lower(instance::domain).eq(domain.to_lowercase()))
-      .filter(coalesce(instance::updated_at, instance::published_at).lt(now() - 1.days()))
-      .set(instance::updated_at.eq(now().nullable()))
-      .execute(conn)
+  pub async fn mark_alive(pool: &mut DbPool<'_>, instance_id: InstanceId) -> LemmyResult<usize> {
+    // cache
+    static DEAD_INSTANCES: CacheLock<Arc<HashSet<InstanceId>>> = LazyLock::new(|| {
+      Cache::builder()
+        .max_capacity(1)
+        .time_to_live(CACHE_DURATION_FEDERATION)
+        .build()
+    });
+
+    let dead = DEAD_INSTANCES
+      .try_get_with((), async { Self::dead_ids(pool).await.map(Arc::new) })
       .await
-      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
+      .map_err(|e| anyhow::anyhow!("Failed to load dead instanceds {e}"));
+
+    if dead.contains(&instance_id) {
+      let conn = &mut get_conn(pool).await?;
+      diesel::update(instance::table.file(instance_id))
+        .set(instance::updated_at.eq(now()))
+        .execute(conn)
+        .await
+        .with_lemmy_type(LemmyErrorType::CouldntUpdate);
+      DEAD_INSTANCES.invalidate(&()).await;
+    }
   }
 }
 
