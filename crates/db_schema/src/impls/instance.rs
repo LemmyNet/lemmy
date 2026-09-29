@@ -44,6 +44,7 @@ use lemmy_utils::{
   CacheLock,
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
 };
+use moka::future::Cache;
 use std::{
   collections::HashSet,
   sync::{Arc, LazyLock},
@@ -196,7 +197,9 @@ impl Instance {
     }
   }
 
-  pub async fn dead_ids(pool: &mut DbPool<'_>) -> LemmyResult<HashSet<InstanceId>> {
+  /// return hashset of dead instance ids
+  /// (instances that have not been updated in at least 3 days)
+  async fn dead_ids(pool: &mut DbPool<'_>) -> LemmyResult<HashSet<InstanceId>> {
     let conn = &mut get_conn(pool).await?;
     let ids = instance::table
       .filter(coalesce(instance::updated_at, instance::published_at).lt(now() - 3.days()))
@@ -206,12 +209,13 @@ impl Instance {
     Ok(ids.into_iter().collect())
   }
 
-  // if an instance exists in the database that matches the instance_id
-  // and the instance hasn't been updated in 24 hours
-  // set the updated_at to now,
-  // which has the effect of marking the instance as alive
-  pub async fn mark_alive(pool: &mut DbPool<'_>, instance_id: InstanceId) -> LemmyResult<usize> {
-    // cache
+  /// if an instance exists in the database that matches the instance_id
+  /// and the instance hasn't been updated in 3 days
+  /// set the updated_at to now,
+  /// which has the effect of marking the instance as alive
+  /// Dead instances are stored in a cache, so most hits wont hit the database
+  pub async fn mark_alive(pool: &mut DbPool<'_>, instance_id: InstanceId) -> LemmyResult<()> {
+    // cache. Stores Arc so each read clones a pointer instead of full set
     static DEAD_INSTANCES: CacheLock<Arc<HashSet<InstanceId>>> = LazyLock::new(|| {
       Cache::builder()
         .max_capacity(1)
@@ -222,17 +226,19 @@ impl Instance {
     let dead = DEAD_INSTANCES
       .try_get_with((), async { Self::dead_ids(pool).await.map(Arc::new) })
       .await
-      .map_err(|e| anyhow::anyhow!("Failed to load dead instanceds {e}"));
+      .map_err(|e| anyhow::anyhow!("Failed to load dead instances: {e}"))?;
 
     if dead.contains(&instance_id) {
       let conn = &mut get_conn(pool).await?;
-      diesel::update(instance::table.file(instance_id))
-        .set(instance::updated_at.eq(now()))
+      diesel::update(instance::table.find(instance_id))
+        .set(instance::updated_at.eq(now().nullable()))
         .execute(conn)
         .await
-        .with_lemmy_type(LemmyErrorType::CouldntUpdate);
+        .with_lemmy_type(LemmyErrorType::CouldntUpdate)?;
       DEAD_INSTANCES.invalidate(&()).await;
     }
+
+    Ok(())
   }
 }
 
