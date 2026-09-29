@@ -209,11 +209,10 @@ impl Instance {
     Ok(ids.into_iter().collect())
   }
 
-  /// if an instance exists in the database that matches the instance_id
-  /// and the instance hasn't been updated in 3 days
-  /// set the updated_at to now,
+  /// check instance ID against list of dead instance ids
+  /// if in list (dead), set the updated_at to now,
   /// which has the effect of marking the instance as alive
-  /// Dead instances are stored in a cache, so most hits wont hit the database
+  /// Dead instances are stored in a cache, so most calls wont hit the database
   pub async fn mark_alive(pool: &mut DbPool<'_>, instance_id: InstanceId) -> LemmyResult<()> {
     // cache. Stores Arc so each read clones a pointer instead of full set
     static DEAD_INSTANCES: CacheLock<Arc<HashSet<InstanceId>>> = LazyLock::new(|| {
