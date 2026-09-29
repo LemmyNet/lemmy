@@ -30,7 +30,7 @@ use lemmy_utils::{
 use serde::Deserialize;
 use std::time::Duration;
 use tokio::time::timeout;
-use tracing::{debug, warn};
+use tracing::debug;
 use url::Url;
 
 mod comment;
