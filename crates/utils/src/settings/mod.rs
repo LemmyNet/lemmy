@@ -128,24 +128,25 @@ impl Settings {
     Ok(url.into())
   }
 
-  /// Extracts the username, password, and Unix socket path from the configured database URL
+  /// Extracts the username, password, host, and port from the configured database URL. The
+  /// host may be a hostname/IP (for a TCP connection) or a decoded Unix socket path.
   #[expect(clippy::expect_used)]
-  pub fn get_database_unix_socket_parts(&self) -> (String, Option<String>, String) {
+  pub fn get_database_connection_parts(&self) -> (String, Option<String>, String, Option<u16>) {
     let url = Url::parse(&self.get_database_url()).expect("parse database url");
 
     let username = url.username().to_owned();
     let password = url.password().map(str::to_owned);
 
-    let socket_path = url
+    let host = url
       .host_str()
       .map(|h| {
         urlencoding::decode(h)
-          .expect("decode unix socket path")
+          .expect("decode database host")
           .into_owned()
       })
-      .expect("database url must specify a unix socket host");
+      .expect("database url must specify a host");
 
-    (username, password, socket_path)
+    (username, password, host, url.port())
   }
 }
 #[expect(clippy::expect_used)]

@@ -251,8 +251,18 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
 
 /// Builds a privileged Postgres configuration for the test database pool
 fn build_test_privileged_postgres_config() -> PrivilegedPostgresConfig {
-  let (username, password, socket_path) = SETTINGS.get_database_unix_socket_parts();
-  let host = PostgresHostConfig::UnixSocket(socket_path.into());
+  let (username, password, host, port) = SETTINGS.get_database_connection_parts();
+  // The configured database URL may point at a Unix socket (used for local dev/tests) or a TCP
+  // host (used e.g. in CI, where Postgres runs in a separate container). Pick the matching
+  // `PostgresHostConfig` variant accordingly.
+  let host = if host.starts_with('/') {
+    PostgresHostConfig::UnixSocket(host.into())
+  } else {
+    PostgresHostConfig::TcpIp {
+      host,
+      port: port.unwrap_or(5432),
+    }
+  };
 
   let options = Options::new(SETTINGS.get_all_connection_options());
   let parameters = Parameters::builder().options(options).build();
