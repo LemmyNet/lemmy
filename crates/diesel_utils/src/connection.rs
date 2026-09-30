@@ -307,6 +307,7 @@ pub async fn build_db_pool_for_tests()
           true,
           ["language", "__diesel_schema_migrations", "deps_saved_ddl"],
         )
+        .create_superuser_role(true)
         .create_database_pool()
         .await
         .expect("create db pool")

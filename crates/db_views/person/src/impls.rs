@@ -426,10 +426,9 @@ mod tests {
     Ok(())
   }
 
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared)]
   async fn list_community_followers_test() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
+    let pool = &build_db_pool_for_tests().await;
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
 
