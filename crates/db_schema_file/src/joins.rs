@@ -9,6 +9,7 @@ use crate::{
     creator_local_user,
     my_instance_persons_actions,
   },
+  newtypes::CommunityId,
   schema::{
     comment,
     comment_actions,
@@ -198,5 +199,15 @@ pub fn creator_community_actions_join() -> _ {
           .field(community_actions::community_id)
           .eq(community::id),
       ),
+  )
+}
+
+#[diesel::dsl::auto_type]
+pub fn person_community_actions_join(community_id: Option<CommunityId>) -> _ {
+  community_actions::table.on(
+    community_actions::community_id
+      .nullable()
+      .eq(community_id)
+      .and(community_actions::person_id.eq(person::id)),
   )
 }

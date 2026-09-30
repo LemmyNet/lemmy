@@ -1,6 +1,5 @@
 use crate::{
   activity_lists::AnnouncableActivities,
-  check_community_deleted_or_removed,
   community::send_activity_in_community,
   create_or_update::{parse_apub_mentions, tagged_user_inboxes},
   generate_activity_id,
@@ -14,11 +13,16 @@ use activitypub_federation::{
 use lemmy_api_utils::{
   context::LemmyContext,
   notify::NotifyData,
-  utils::{check_is_mod_or_admin, check_post_deleted_or_removed},
+  utils::{
+    check_comment_deleted_or_removed,
+    check_community_deleted_removed,
+    check_post_deleted_or_removed,
+  },
 };
 use lemmy_apub_objects::{
   objects::{comment::ApubComment, community::ApubCommunity, person::ApubPerson},
   utils::{
+    check_is_mod_or_admin,
     functions::{generate_to, verify_person_in_community, verify_visibility},
     protocol::InCommunity,
   },
@@ -94,14 +98,17 @@ impl Activity for CreateOrUpdateNote {
   }
 
   async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    let post = self.object.get_parents(context).await?.0;
+    let (post, parent_comment) = self.object.get_parents(context).await?;
     let community = self.community(context).await?;
     verify_visibility(&self.to, &self.cc, &community)?;
 
     verify_person_in_community(&self.actor, &community, context).await?;
     verify_domains_match(self.actor.inner(), self.object.id.inner())?;
-    check_community_deleted_or_removed(&community)?;
+    check_community_deleted_removed(&community)?;
     check_post_deleted_or_removed(&post)?;
+    if let Some(parent_comment) = parent_comment {
+      check_comment_deleted_or_removed(&parent_comment.0)?;
+    }
     verify_urls_match(self.actor.inner(), self.object.attributed_to.inner())?;
 
     ApubComment::verify(&self.object, self.actor.inner(), context).await?;

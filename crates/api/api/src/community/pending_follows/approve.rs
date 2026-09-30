@@ -10,7 +10,7 @@ use lemmy_db_schema_file::enums::CommunityFollowerState;
 use lemmy_db_views_community::api::ApproveCommunityPendingFollower;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::api::SuccessResponse;
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 
 pub async fn post_pending_follows_approve(
   Json(data): Json<ApproveCommunityPendingFollower>,
@@ -21,6 +21,9 @@ pub async fn post_pending_follows_approve(
 
   let community_actions =
     CommunityActions::read(&mut context.pool(), data.community_id, data.follower_id).await?;
+  if community_actions.follow_state != Some(CommunityFollowerState::ApprovalRequired) {
+    return Err(LemmyErrorType::CouldntUpdate.into());
+  }
   let (state, activity_data) = if data.approve {
     (
       CommunityFollowerState::Accepted,

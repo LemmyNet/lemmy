@@ -1,15 +1,15 @@
-use crate::{
-  newtypes::CustomEmojiId,
-  source::{
-    custom_emoji::{CustomEmoji, CustomEmojiInsertForm, CustomEmojiUpdateForm},
-    custom_emoji_keyword::{CustomEmojiKeyword, CustomEmojiKeywordInsertForm},
-  },
+use crate::source::{
+  custom_emoji::{CustomEmoji, CustomEmojiInsertForm, CustomEmojiUpdateForm},
+  custom_emoji_keyword::{CustomEmojiKeyword, CustomEmojiKeywordInsertForm},
 };
 use diesel::{ExpressionMethods, QueryDsl, dsl::insert_into};
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::{
-  custom_emoji::dsl::custom_emoji,
-  custom_emoji_keyword::dsl::{custom_emoji_id, custom_emoji_keyword},
+use lemmy_db_schema_file::{
+  newtypes::CustomEmojiId,
+  schema::{
+    custom_emoji::dsl::custom_emoji,
+    custom_emoji_keyword::dsl::{custom_emoji_id, custom_emoji_keyword},
+  },
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},

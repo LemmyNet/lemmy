@@ -129,8 +129,10 @@ impl Object for ApubMultiCommunity {
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
     check_apub_id_valid_with_strictness(json.id.inner(), true, context).await?;
-    verify_domains_match(expected_domain, json.id.inner())?;
     verify_is_remote_object(&json.id, context)?;
+
+    verify_domains_match(expected_domain, json.id.inner())?;
+    verify_domains_match(json.id.inner(), &json.inbox)?;
 
     Ok(())
   }

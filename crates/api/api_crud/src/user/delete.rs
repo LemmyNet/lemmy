@@ -15,7 +15,10 @@ use lemmy_db_schema::source::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::api::{DeleteAccount, DeleteUserForm, SuccessResponse};
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::{
+  error::{LemmyErrorType, LemmyResult},
+  spawn_try_task,
+};
 
 pub async fn delete_account(
   Json(data): Json<DeleteAccount>,
@@ -42,7 +45,10 @@ pub async fn delete_account(
 
   form = plugin_hook_before("local_user_before_delete", form).await?;
   if form.delete_content {
-    purge_user_account(local_user_view.person.id, local_instance_id, &context).await?;
+    let context = context.clone();
+    spawn_try_task(async move {
+      purge_user_account(local_user_view.person.id, local_instance_id, &context).await
+    });
   } else {
     // These are already run in purge_user_account,
     // but should be done anyway even if delete_content is false

@@ -1,11 +1,17 @@
+#[cfg(feature = "full")]
+extern crate diesel;
+#[cfg(feature = "full")]
+#[macro_use]
+extern crate diesel_derive_newtype;
+
 use core::default::Default;
 #[cfg(feature = "full")]
 use diesel_derive_newtype::DieselNewType;
 use serde::{Deserialize, Serialize};
-
 pub mod enums;
 #[cfg(feature = "full")]
 pub mod joins;
+pub mod newtypes;
 #[cfg(feature = "full")]
 pub mod schema;
 #[cfg(feature = "full")]

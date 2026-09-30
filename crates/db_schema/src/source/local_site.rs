@@ -1,4 +1,3 @@
-use crate::newtypes::{LocalSiteId, MultiCommunityId, SiteId};
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::local_site;
@@ -13,6 +12,7 @@ use lemmy_db_schema_file::{
     PostSortType,
     RegistrationMode,
   },
+  newtypes::{LocalSiteId, MultiCommunityId, SiteId},
 };
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;

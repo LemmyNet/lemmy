@@ -57,8 +57,9 @@ pub fn send_notification_email(
     }
     NotificationEmailData::PostSubscribed { post, comment } => {
       let content = markdown_to_html(&comment.content);
+      let post_name = markdown_to_html(&post.name);
       (
-        lang.notification_post_subscribed_subject(&post.name),
+        lang.notification_post_subscribed_subject(&post_name),
         lang.notification_post_subscribed_body(&content, &link, inbox_link),
       )
     }
@@ -68,9 +69,10 @@ pub fn send_notification_email(
         .as_ref()
         .map(|b| markdown_to_html(b))
         .unwrap_or_default();
+      let post_name = markdown_to_html(&post.name);
       (
         lang.notification_community_subscribed_subject(
-          &post.name,
+          &post_name,
           community.title.as_ref().unwrap_or(&community.name),
         ),
         lang.notification_community_subscribed_body(&content, &link, inbox_link),
@@ -83,14 +85,16 @@ pub fn send_notification_email(
       post,
     } => {
       let content = markdown_to_html(&comment.content);
+      let parent_comment_content = markdown_to_html(&parent_comment.content);
+      let post_name = markdown_to_html(&post.name);
       (
         lang.notification_comment_reply_subject(&person.name),
         lang.notification_comment_reply_body(
           link,
           &content,
           &inbox_link,
-          &parent_comment.content,
-          &post.name,
+          &parent_comment_content,
+          &post_name,
           &person.name,
         ),
       )
@@ -102,9 +106,10 @@ pub fn send_notification_email(
       post,
     } => {
       let content = markdown_to_html(&comment.content);
+      let post_name = markdown_to_html(&post.name);
       (
         lang.notification_post_reply_subject(&person.name),
-        lang.notification_post_reply_body(link, &content, &inbox_link, &post.name, &person.name),
+        lang.notification_post_reply_body(link, &content, &inbox_link, &post_name, &person.name),
       )
     }
     NotificationEmailData::PrivateMessage { sender, content } => {

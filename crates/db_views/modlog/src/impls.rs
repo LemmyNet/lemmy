@@ -12,7 +12,6 @@ use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   ModlogKindFilter,
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommentId, CommunityId, ModlogId, PostId},
   source::{
     local_site::LocalSite,
     local_user::LocalUser,
@@ -25,6 +24,7 @@ use lemmy_db_schema_file::{
   PersonId,
   aliases,
   enums::{CommunityFollowerState, CommunityVisibility, ListingType},
+  newtypes::{CommentId, CommunityId, ModlogId, PostId},
   schema::{comment, community, community_actions, instance, modlog, person, post},
 };
 use lemmy_diesel_utils::{

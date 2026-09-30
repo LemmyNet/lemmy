@@ -14,14 +14,12 @@ use lemmy_api_utils::{
     slur_regex,
   },
 };
-use lemmy_db_schema::{
-  newtypes::MultiCommunityId,
-  source::{
-    local_site::{LocalSite, LocalSiteUpdateForm},
-    local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitUpdateForm},
-    site::{Site, SiteUpdateForm},
-  },
+use lemmy_db_schema::source::{
+  local_site::{LocalSite, LocalSiteUpdateForm},
+  local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitUpdateForm},
+  site::{Site, SiteUpdateForm},
 };
+use lemmy_db_schema_file::newtypes::MultiCommunityId;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::{
   SiteView,
