@@ -21,6 +21,14 @@ use i_love_jesus::{SortDirection, asc_if};
 use lemmy_db_schema::{
   ReportSortType,
   ReportType,
+  source::{
+    combined::report::{ReportCombined, report_combined_keys as key},
+    person::Person,
+  },
+  traits::InternalToCombinedView,
+  utils::limit_fetch,
+};
+use lemmy_db_schema_file::{
   newtypes::{
     CommentReportId,
     CommunityId,
@@ -29,18 +37,7 @@ use lemmy_db_schema::{
     PostReportId,
     PrivateMessageReportId,
   },
-  source::{
-    combined::report::{ReportCombined, report_combined_keys as key},
-    person::Person,
-  },
-  traits::InternalToCombinedView,
-  utils::limit_fetch,
-};
-use lemmy_db_schema_file::schema::{
-  comment_report,
-  community_actions,
-  post_report,
-  report_combined,
+  schema::{comment_report, community_actions, post_report, report_combined},
 };
 use lemmy_db_views_report_combined_sql::report_combined_joins;
 use lemmy_diesel_utils::{

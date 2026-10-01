@@ -3,7 +3,6 @@ use crate::{ResolveObjectView, SiteView};
 use activitypub_federation::protocol::helpers::deserialize_skip_error;
 use lemmy_db_schema::{
   SearchType,
-  newtypes::{CommunityId, LanguageId, MultiCommunityId, OAuthProviderId, TaglineId},
   source::{
     comment::Comment,
     community::Community,
@@ -32,6 +31,7 @@ use lemmy_db_schema_file::{
     RegistrationMode,
     VoteShow,
   },
+  newtypes::{CommunityId, LanguageId, MultiCommunityId, OAuthProviderId, TaglineId},
 };
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_community::{CommunityView, MultiCommunityView};

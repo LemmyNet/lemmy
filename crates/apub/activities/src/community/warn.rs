@@ -1,5 +1,4 @@
 use crate::{
-  check_community_deleted_or_removed,
   community::verify_mod_or_admin_action,
   generate_activity_id,
   protocol::community::warn::{Warn, WarnType},
@@ -7,7 +6,11 @@ use crate::{
 };
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId, traits::Activity};
 use either::Either;
-use lemmy_api_utils::{context::LemmyContext, notify::notify_mod_action};
+use lemmy_api_utils::{
+  context::LemmyContext,
+  notify::notify_mod_action,
+  utils::check_community_deleted_removed,
+};
 use lemmy_apub_objects::{
   objects::{PostOrComment, person::ApubPerson},
   utils::protocol::InCommunity,
@@ -84,7 +87,7 @@ impl Activity for Warn {
 
   async fn verify(&self, context: &Data<Self::DataType>) -> LemmyResult<()> {
     let community = self.community(context).await?;
-    check_community_deleted_or_removed(&community)?;
+    check_community_deleted_removed(&community)?;
     verify_mod_or_admin_action(
       &self.actor,
       self.object.inner(),

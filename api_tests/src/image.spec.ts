@@ -32,6 +32,7 @@ import {
   sampleSite,
   getMyUser,
   expectSuccess,
+  waitUntil,
   waitUntilSuccess,
 } from "./shared";
 
@@ -164,9 +165,14 @@ test("Purge user, uploaded image removed", async () => {
   expect(delete_.success).toBe(true);
 
   // ensure that image is deleted
-  const response2 = await fetch(upload.image_url ?? "");
-  const content2 = await response2.text();
-  expect(content2).toBe("");
+  await waitUntil(
+    async () => {
+      const response2 = await fetch(upload.image_url ?? "");
+      const content2 = await response2.text();
+      return content2;
+    },
+    content => content === "",
+  );
 });
 
 test("Purge post, linked image removed", async () => {

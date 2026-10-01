@@ -10,7 +10,6 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  newtypes::RegistrationApplicationId,
   source::registration_application::{
     RegistrationApplication,
     registration_application_keys as key,
@@ -20,6 +19,7 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::{
   PersonId,
   aliases,
+  newtypes::RegistrationApplicationId,
   schema::{local_user, person, registration_application},
 };
 use lemmy_diesel_utils::{

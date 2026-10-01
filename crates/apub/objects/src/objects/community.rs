@@ -7,6 +7,7 @@ use crate::{
       check_apub_id_valid_with_strictness,
       community_visibility,
       read_from_string_or_source_opt,
+      verify_domains_match_opt,
     },
     markdown_links::markdown_rewrite_remote_links_opt,
     protocol::{AttributedTo, ImageObject, LanguageTag, Source},
@@ -47,7 +48,7 @@ use lemmy_utils::{
   utils::{
     markdown::markdown_to_html,
     slurs::remove_slurs,
-    validation::{SITE_SUMMARY_MAX_LENGTH, truncate_for_db},
+    validation::{DISPLAY_NAME_MAX_LENGTH, SITE_SUMMARY_MAX_LENGTH, truncate_for_db},
   },
 };
 use regex::RegexSet;
@@ -160,6 +161,10 @@ impl Object for ApubCommunity {
   ) -> LemmyResult<()> {
     check_apub_id_valid_with_strictness(group.id.inner(), true, context).await?;
     verify_domains_match(expected_domain, group.id.inner())?;
+    verify_domains_match(group.id.inner(), &group.outbox)?;
+    verify_domains_match(group.id.inner(), &group.inbox)?;
+    verify_domains_match_opt(group.id.inner(), &group.followers)?;
+    verify_domains_match_opt(group.id.inner(), &group.featured)?;
 
     // Doesnt call verify_is_remote_object() because the community might be edited by a
     // remote mod. This is safe as we validate `expected_domain`.
@@ -194,7 +199,11 @@ impl Object for ApubCommunity {
       .map(|s| remove_slurs(&s, &slur_regex));
 
     let name = group.preferred_username.clone();
-    let title = group.name.as_ref().map(|n| remove_slurs(n, &slur_regex));
+    let title = group
+      .name
+      .as_ref()
+      .map(|n| remove_slurs(n, &slur_regex))
+      .map(|s| truncate_for_db(&s, DISPLAY_NAME_MAX_LENGTH));
 
     // If NSFW is not allowed, then remove NSFW communities
     let removed = check_nsfw_allowed(group.sensitive, Some(&local_site))

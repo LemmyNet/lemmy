@@ -1,5 +1,5 @@
-use crate::newtypes::OAuthProviderId;
 use chrono::{DateTime, Utc};
+use lemmy_db_schema_file::newtypes::OAuthProviderId;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::oauth_provider;
 use lemmy_diesel_utils::{dburl::DbUrl, sensitive::SensitiveString};

@@ -1,5 +1,5 @@
-use lemmy_db_schema::{PersonContentType, newtypes::CommunityId};
-use lemmy_db_schema_file::PersonId;
+use lemmy_db_schema::PersonContentType;
+use lemmy_db_schema_file::{PersonId, newtypes::CommunityId};
 #[cfg(feature = "full")]
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_diesel_utils::pagination::PaginationCursor;

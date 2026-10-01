@@ -1,6 +1,5 @@
 use crate::{
   activity_lists::AnnouncableActivities,
-  check_community_deleted_or_removed,
   community::send_activity_in_community,
   generate_activity_id,
   protocol::community::{collection_add::CollectionAdd, collection_remove::CollectionRemove},
@@ -14,7 +13,7 @@ use activitypub_federation::{
 use lemmy_api_utils::{
   context::LemmyContext,
   notify::notify_mod_action,
-  utils::{generate_featured_url, generate_moderators_url},
+  utils::{check_community_deleted_removed, generate_featured_url, generate_moderators_url},
 };
 use lemmy_apub_objects::{
   objects::{community::ApubCommunity, person::ApubPerson, post::ApubPost},
@@ -25,7 +24,6 @@ use lemmy_apub_objects::{
 };
 use lemmy_db_schema::{
   impls::community::CollectionType,
-  newtypes::CommunityId,
   source::{
     activity::ActivitySendTargets,
     community::{Community, CommunityActions, CommunityModeratorForm},
@@ -34,7 +32,7 @@ use lemmy_db_schema::{
     post::{Post, PostUpdateForm},
   },
 };
-use lemmy_db_schema_file::PersonId;
+use lemmy_db_schema_file::{PersonId, newtypes::CommunityId};
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::{LemmyError, LemmyResult, UntranslatedError};
 use url::Url;
@@ -110,7 +108,7 @@ impl Activity for CollectionAdd {
     let community = self.community(context).await?;
     verify_visibility(&self.to, &self.cc, &community)?;
     verify_mod_action(&self.actor, &self.object, &community, context).await?;
-    check_community_deleted_or_removed(&community)?;
+    check_community_deleted_removed(&community)?;
     Ok(())
   }
 

@@ -2,11 +2,10 @@ use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  newtypes::LocalUserId,
   source::local_user_invite::{LocalUserInvite, invitation_keys as key},
   utils::limit_fetch,
 };
-use lemmy_db_schema_file::schema::local_user_invite;
+use lemmy_db_schema_file::{newtypes::LocalUserId, schema::local_user_invite};
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   pagination::{PagedResponse, PaginationCursor, PaginationCursorConversion, paginate_response},
@@ -63,15 +62,13 @@ impl LocalUserInviteQuery {
 #[cfg(test)]
 mod tests {
   use crate::impls::LocalUserInviteQuery;
-  use lemmy_db_schema::{
-    newtypes::LocalUserId,
-    source::{
-      instance::Instance,
-      local_user::{LocalUser, LocalUserInsertForm},
-      local_user_invite::{LocalUserInvite, LocalUserInviteInsertForm},
-      person::{Person, PersonInsertForm},
-    },
+  use lemmy_db_schema::source::{
+    instance::Instance,
+    local_user::{LocalUser, LocalUserInsertForm},
+    local_user_invite::{LocalUserInvite, LocalUserInviteInsertForm},
+    person::{Person, PersonInsertForm},
   };
+  use lemmy_db_schema_file::newtypes::LocalUserId;
   use lemmy_diesel_utils::{
     connection::{DbPool, build_db_pool_for_tests},
     traits::Crud,

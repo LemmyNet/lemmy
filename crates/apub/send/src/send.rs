@@ -8,7 +8,8 @@ use activitypub_federation::{
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use lemmy_api_utils::context::LemmyContext;
-use lemmy_db_schema::{newtypes::ActivityId, source::activity::SentActivity};
+use lemmy_db_schema::source::activity::SentActivity;
+use lemmy_db_schema_file::newtypes::ActivityId;
 use lemmy_utils::{
   FEDERATION_CONTEXT,
   error::{LemmyError, LemmyResult},
