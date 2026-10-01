@@ -363,8 +363,15 @@ pub async fn authenticate_with_oauth(
     // See https://github.com/LemmyNet/lemmy/issues/6609
     let email = read_user_info(&user_info, "email").map(|e| e.to_lowercase());
 
-    // Lookup user by OAUTH email and link accounts
-    local_user_view = if let Some(email) = &email {
+    // Lookup user by OAUTH email and link accounts. Only match by email if the provider
+    // explicitly verified it.
+    let email_verified = user_info
+      .get("email_verified")
+      .and_then(serde_json::Value::as_bool)
+      .unwrap_or(false);
+    local_user_view = if let Some(email) = &email
+      && email_verified
+    {
       LocalUserView::find_by_email(pool, email).await.ok()
     } else {
       None
@@ -438,7 +445,9 @@ pub async fn authenticate_with_oauth(
               email,
               show_nsfw: Some(show_nsfw),
               accepted_application: Some(!require_registration_application),
-              email_verified: Some(oauth_provider.auto_verify_email),
+              // Only mark the email as verified if the provider attests it and the admin
+              // opted into auto verification. Otherwise send a verification email instead.
+              email_verified: Some(oauth_provider.auto_verify_email && email_verified),
               ..LocalUserInsertForm::new(person.id, None)
             };
 
