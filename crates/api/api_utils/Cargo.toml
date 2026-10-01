@@ -56,6 +56,7 @@ lemmy_db_views_notification = { workspace = true }
 lemmy_db_views_registration_applications = { workspace = true }
 lemmy_email = { workspace = true }
 anyhow = { workspace = true }
+totp-rs = { version = "5.7.1", features = ["otpauth"] }
 serde = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
