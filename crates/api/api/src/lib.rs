@@ -6,7 +6,6 @@ use lemmy_utils::{
   utils::slurs::check_slurs,
 };
 use regex::Regex;
-use totp_rs::Secret;
 
 pub mod comment;
 pub mod community;
@@ -28,11 +27,6 @@ pub(crate) fn check_report_reason(reason: &str, slur_regex: &Regex) -> LemmyResu
     Ok(())
   }
 }
-
-pub(crate) fn generate_totp_2fa_secret() -> String {
-  Secret::generate_secret().to_string()
-}
-
 /// Only show the modlog names if:
 /// You're an admin or
 /// You're fetching the modlog for a single community, and you're a mod
@@ -50,18 +44,5 @@ async fn hide_modlog_names(
     !local_user_view
       .map(|l| l.local_user.admin)
       .unwrap_or_default()
-  }
-}
-
-#[cfg(test)]
-mod tests {
-
-  use super::*;
-
-  #[test]
-  fn test_build_totp() {
-    let generated_secret = generate_totp_2fa_secret();
-    let totp = build_totp_2fa("lemmy.ml", "my_name", &generated_secret);
-    assert!(totp.is_ok());
   }
 }

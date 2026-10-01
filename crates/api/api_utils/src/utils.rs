@@ -206,6 +206,10 @@ pub fn check_email_verified(
   Ok(())
 }
 
+pub fn generate_totp_2fa_secret() -> String {
+  Secret::generate_secret().to_string()
+}
+
 /// Check the given TOTP token against the user's secret, if they have 2FA enabled.
 pub fn check_totp_2fa_valid(
   local_user_view: &LocalUserView,
@@ -1200,5 +1204,12 @@ mod tests {
     comment.path = Ltree(path);
     assert!(check_comment_depth(&comment).is_err());
     Ok(())
+  }
+
+  #[test]
+  fn test_build_totp() {
+    let generated_secret = generate_totp_2fa_secret();
+    let totp = build_totp_2fa("lemmy.ml", "my_name", &generated_secret);
+    assert!(totp.is_ok());
   }
 }

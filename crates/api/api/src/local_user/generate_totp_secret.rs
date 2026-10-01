@@ -1,9 +1,8 @@
-use crate::generate_totp_2fa_secret;
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_utils::{
   context::LemmyContext,
-  utils::{build_totp_2fa, check_local_user_banned_or_deleted},
+  utils::{build_totp_2fa, check_local_user_banned_or_deleted, generate_totp_2fa_secret},
 };
 use lemmy_db_schema::source::local_user::{LocalUser, LocalUserUpdateForm};
 use lemmy_db_views_local_user::LocalUserView;
