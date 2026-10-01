@@ -287,8 +287,8 @@ pub async fn build_db_pool_for_tests()
 
       let backend = DieselAsyncPostgresBackend::new(
         config,
-        |manager| Pool::builder(manager).max_size(num_cpus::get()),
-        |manager| Pool::builder(manager).max_size(num_cpus::get()),
+        |manager| Pool::builder(manager).max_size(30),
+        |manager| Pool::builder(manager).max_size(2),
         None,
         move |conn| {
           Box::pin(async {
