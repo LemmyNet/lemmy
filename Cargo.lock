@@ -3335,7 +3335,6 @@ dependencies = [
  "serial_test",
  "sitemap-rs",
  "tokio",
- "totp-rs",
  "tracing",
  "url",
 ]
@@ -7382,7 +7381,6 @@ dependencies = [
  "base32",
  "constant_time_eq",
  "hmac",
- "rand 0.9.2",
  "sha1",
  "sha2",
  "url",
