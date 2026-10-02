@@ -582,12 +582,10 @@ mod tests {
   };
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
-  use serial_test::serial;
   use url::Url;
 
   // These helped with testing
-  #[tokio::test]
-  #[serial]
+  #[tokio_shared_rt::test(shared)]
   #[expect(clippy::unwrap_used)]
   async fn test_link_metadata() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;

@@ -1,4 +1,15 @@
-use deadpool::Runtime;
+use crate::schema_setup;
+use db_pool::{
+  r#async::{
+    DatabasePool,
+    DatabasePoolBuilderTrait,
+    DieselAsyncPostgresBackend,
+    DieselDeadpool,
+    ReusableConnectionPool,
+  },
+  postgres::{Options, Parameters, PostgresHostConfig, PrivilegedPostgresConfig},
+};
+use deadpool::{Runtime, Status};
 use diesel::result::{
   ConnectionError,
   ConnectionResult,
@@ -6,6 +17,7 @@ use diesel::result::{
 };
 use diesel_async::{
   AsyncConnection,
+  async_connection_wrapper::AsyncConnectionWrapper,
   pg::AsyncPgConnection,
   pooled_connection::{
     AsyncDieselConnectionManager,
@@ -37,9 +49,12 @@ use std::{
   sync::Arc,
   time::Duration,
 };
+use tokio::sync::OnceCell;
 use tracing::error;
 
 pub type ActualDbPool = Pool<AsyncPgConnection>;
+pub type ReusableDbPool =
+  ReusableConnectionPool<'static, DieselAsyncPostgresBackend<DieselDeadpool>>;
 
 /// References a pool or connection. Functions must take `&mut DbPool<'_>` to allow implicit
 /// reborrowing.
@@ -47,6 +62,7 @@ pub type ActualDbPool = Pool<AsyncPgConnection>;
 /// https://github.com/rust-lang/rfcs/issues/1403
 pub enum DbPool<'a> {
   Pool(&'a ActualDbPool),
+  ReusablePool(&'a ReusableDbPool),
   Conn(&'a mut AsyncPgConnection),
 }
 
@@ -55,12 +71,30 @@ pub enum DbConn<'a> {
   Conn(&'a mut AsyncPgConnection),
 }
 
+#[derive(Clone)]
+pub enum GenericDbPool {
+  Actual(ActualDbPool),
+  Reusable(Arc<ReusableDbPool>),
+}
+
+impl GenericDbPool {
+  pub fn status(&self) -> Status {
+    match self {
+      GenericDbPool::Actual(pool) => pool.status(),
+      GenericDbPool::Reusable(pool) => pool.status(),
+    }
+  }
+}
+
 pub async fn get_conn<'a, 'b: 'a>(pool: &'a mut DbPool<'b>) -> Result<DbConn<'a>, DieselError> {
   Ok(match pool {
     DbPool::Pool(pool) => DbConn::Pool(Box::new(
       pool.get().await.map_err(|e| QueryBuilderError(e.into()))?,
     )),
     DbPool::Conn(conn) => DbConn::Conn(conn),
+    DbPool::ReusablePool(pool) => DbConn::Pool(Box::new(
+      pool.get().await.map_err(|e| QueryBuilderError(e.into()))?,
+    )),
   })
 }
 
@@ -119,6 +153,21 @@ impl<'a> From<&'a ActualDbPool> for DbPool<'a> {
   }
 }
 
+impl<'a> From<&'a ReusableDbPool> for DbPool<'a> {
+  fn from(value: &'a ReusableDbPool) -> Self {
+    DbPool::ReusablePool(value)
+  }
+}
+
+impl<'a> From<&'a GenericDbPool> for DbPool<'a> {
+  fn from(value: &'a GenericDbPool) -> Self {
+    match value {
+      GenericDbPool::Actual(pool) => DbPool::Pool(pool),
+      GenericDbPool::Reusable(pool) => DbPool::ReusablePool(pool),
+    }
+  }
+}
+
 /// Runs multiple async functions that take `&mut DbPool<'_>` as input and return `Result`. Only
 /// works when the  `futures` crate is listed in `Cargo.toml`.
 ///
@@ -153,6 +202,13 @@ macro_rules! try_join_with_pool {
           }
         }),+))
       }.await,
+      // Run concurrently with `try_join`
+      $crate::connection::DbPool::ReusablePool(__pool) => ::futures_util::try_join!(
+        $(async {
+          let mut __dbpool = $crate::connection::DbPool::ReusablePool(__pool);
+          ($func)(&mut __dbpool).await
+        }),+
+      ),
     }
   }};
 }
@@ -193,9 +249,95 @@ pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
   Ok(pool)
 }
 
+/// Builds a privileged Postgres configuration for the test database pool
+fn build_test_privileged_postgres_config() -> PrivilegedPostgresConfig {
+  let (username, password, host, port) = SETTINGS.get_database_connection_parts();
+  // The configured database URL may point at a Unix socket (used for local dev/tests) or a TCP
+  // host (used e.g. in CI, where Postgres runs in a separate container). Pick the matching
+  // `PostgresHostConfig` variant accordingly.
+  let host = if host.starts_with('/') {
+    PostgresHostConfig::UnixSocket(host.into())
+  } else {
+    PostgresHostConfig::TcpIp {
+      host,
+      port: port.unwrap_or(5432),
+    }
+  };
+
+  let options = Options::new(SETTINGS.get_all_connection_options());
+  let parameters = Parameters::builder().options(options).build();
+
+  PrivilegedPostgresConfig::builder()
+    .username(username)
+    .maybe_password(password)
+    .host(host)
+    .unwrap_or_else(|_| panic!("valid postgres host config"))
+    .parameters(parameters)
+    .build()
+}
+
+/// Reads a test pool size override from the given env var
+fn test_pool_size_from_env(var: &str, default: usize) -> usize {
+  std::env::var(var)
+    .ok()
+    .and_then(|s| s.parse().ok())
+    .unwrap_or(default)
+}
+
 #[expect(clippy::expect_used)]
-pub fn build_db_pool_for_tests() -> ActualDbPool {
-  build_db_pool().expect("db pool missing")
+pub async fn build_db_pool_for_tests()
+-> ReusableConnectionPool<'static, DieselAsyncPostgresBackend<DieselDeadpool>> {
+  static POOL: OnceCell<DatabasePool<DieselAsyncPostgresBackend<DieselDeadpool>>> =
+    OnceCell::const_new();
+  let db_pool = POOL
+    .get_or_init(|| async {
+      let config = build_test_privileged_postgres_config();
+
+      // Max number of concurrent privileged connections (used for managing test databases)
+      // and restricted connections (used per test database) in the test db-pool library.
+      let privileged_pool_size = test_pool_size_from_env("LEMMY_TEST_DB_PRIVILEGED_POOL_SIZE", 60);
+      let restricted_pool_size = test_pool_size_from_env("LEMMY_TEST_DB_RESTRICTED_POOL_SIZE", 2);
+
+      let backend = DieselAsyncPostgresBackend::new(
+        config,
+        move |manager| Pool::builder(manager).max_size(privileged_pool_size),
+        move |manager| Pool::builder(manager).max_size(restricted_pool_size),
+        None,
+        move |conn| {
+          Box::pin(async {
+            let mut async_wrapper: AsyncConnectionWrapper<AsyncPgConnection> =
+              AsyncConnectionWrapper::from(conn);
+
+            tokio::task::spawn_blocking(move || {
+              schema_setup::run_with_connection(
+                schema_setup::Options::default().run(),
+                &mut async_wrapper,
+              )
+              .expect("run migrations")
+            })
+            .await
+            .expect("task panicked");
+
+            None
+          })
+        },
+      )
+      .await
+      .expect("diesel postgres backend");
+
+      backend
+        .clean_tables(
+          true,
+          ["language", "__diesel_schema_migrations", "deps_saved_ddl"],
+        )
+        .create_superuser_role(true)
+        .create_database_pool()
+        .await
+        .expect("create db pool")
+    })
+    .await;
+
+  db_pool.pull_immutable().await
 }
 
 fn establish_connection(config: &str) -> BoxFuture<'_, ConnectionResult<AsyncPgConnection>> {

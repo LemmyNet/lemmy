@@ -46,15 +46,15 @@ use lemmy_db_schema_file::{
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_diesel_utils::{
-  connection::{ActualDbPool, DbPool, build_db_pool, get_conn},
+  connection::{DbPool, ReusableDbPool, build_db_pool_for_tests, get_conn},
   pagination::PaginationCursor,
   traits::Crud,
 };
 use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
 use pretty_assertions::assert_eq;
-use serial_test::serial;
 use std::{
   collections::HashSet,
+  sync::Arc,
   time::{Duration, Instant},
 };
 use test_context::{AsyncTestContext, test_context};
@@ -72,7 +72,7 @@ fn names(post_views: &[PostView]) -> Vec<&str> {
 }
 
 struct Data {
-  pool: ActualDbPool,
+  pool: Arc<ReusableDbPool>,
   instance: Instance,
   tegan: LocalUserView,
   john: LocalUserView,
@@ -88,11 +88,11 @@ struct Data {
 }
 
 impl Data {
-  fn pool(&self) -> ActualDbPool {
-    self.pool.clone()
+  fn pool(&self) -> Arc<ReusableDbPool> {
+    Arc::clone(&self.pool)
   }
   pub fn pool2(&self) -> DbPool<'_> {
-    DbPool::Pool(&self.pool)
+    DbPool::ReusablePool(&self.pool)
   }
   fn default_post_query(&self) -> PostQuery<'_> {
     PostQuery {
@@ -103,7 +103,7 @@ impl Data {
   }
 
   async fn setup_inner() -> LemmyResult<Data> {
-    let actual_pool = build_db_pool()?;
+    let actual_pool = build_db_pool_for_tests().await;
     let pool = &mut (&actual_pool).into();
     let data = TestData::create(pool).await?;
 
@@ -244,7 +244,7 @@ impl Data {
     };
 
     Ok(Data {
-      pool: actual_pool,
+      pool: actual_pool.into(),
       instance: data.instance,
       tegan,
       john,
@@ -283,11 +283,11 @@ impl AsyncTestContext for Data {
 }
 
 #[test_context(Data)]
-#[tokio::test]
-#[serial]
+#[tokio_shared_rt::test(shared)]
 async fn post_listing_with_person(data: &mut Data) -> LemmyResult<()> {
-  let pool = &data.pool();
-  let pool = &mut pool.into();
+  let pool_arc = data.pool();
+  let pool_ref = &***pool_arc;
+  let pool = &mut pool_ref.into();
 
   let local_user_form = LocalUserUpdateForm {
     show_bot_accounts: Some(false),
@@ -343,11 +343,11 @@ async fn post_listing_with_person(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio::test]
-#[serial]
+#[tokio_shared_rt::test(shared)]
 async fn post_listing_no_person(data: &mut Data) -> LemmyResult<()> {
-  let pool = &data.pool();
-  let pool = &mut pool.into();
+  let pool_arc = data.pool();
+  let pool_ref = &***pool_arc;
+  let pool = &mut pool_ref.into();
 
   let read_post_listing_multiple_no_person = PostQuery {
     community_id: Some(data.community.id),
@@ -376,11 +376,11 @@ async fn post_listing_no_person(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio::test]
-#[serial]
+#[tokio_shared_rt::test(shared)]
 async fn post_listing_block_community(data: &mut Data) -> LemmyResult<()> {
-  let pool = &data.pool();
-  let pool = &mut pool.into();
+  let pool_arc = data.pool();
+  let pool_ref = &***pool_arc;
+  let pool = &mut pool_ref.into();
 
   let community_block = CommunityBlockForm::new(data.community.id, data.tegan.person.id);
   CommunityActions::block(pool, &community_block).await?;
@@ -399,11 +399,11 @@ async fn post_listing_block_community(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio::test]
-#[serial]
+#[tokio_shared_rt::test(shared)]
 async fn post_listing_like(data: &mut Data) -> LemmyResult<()> {
-  let pool = &data.pool();
-  let pool = &mut pool.into();
+  let pool_arc = data.pool();
+  let pool_ref = &***pool_arc;
+  let pool = &mut pool_ref.into();
 
   let post_like_form = PostLikeForm::new(data.post.id, data.tegan.person.id, Some(true));
 
@@ -465,11 +465,11 @@ async fn post_listing_like(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio::test]
-#[serial]
+#[tokio_shared_rt::test(shared)]
 async fn person_note(data: &mut Data) -> LemmyResult<()> {
-  let pool = &data.pool();
-  let pool = &mut pool.into();
+  let pool_arc = data.pool();
+  let pool_ref = &***pool_arc;
+  let pool = &mut pool_ref.into();
 
   let note_str = "Tegan loves cats.";
 
@@ -515,11 +515,11 @@ async fn person_note(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio::test]
-#[serial]
+#[tokio_shared_rt::test(shared)]
 async fn post_listing_person_vote_totals(data: &mut Data) -> LemmyResult<()> {
-  let pool = &data.pool();
-  let pool = &mut pool.into();
+  let pool_arc = data.pool();
+  let pool_ref = &***pool_arc;
+  let pool = &mut pool_ref.into();
 
   // Create a 2nd bot post, to do multiple votes
   let bot_post_2 = PostInsertForm::new(
@@ -690,11 +690,11 @@ async fn post_listing_person_vote_totals(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio::test]
-#[serial]
+#[tokio_shared_rt::test(shared)]
 async fn post_listing_read_only(data: &mut Data) -> LemmyResult<()> {
-  let pool = &data.pool();
-  let pool = &mut pool.into();
+  let pool_arc = data.pool();
+  let pool_ref = &***pool_arc;
+  let pool = &mut pool_ref.into();
 
   // Mark the bot post, then the tags post as read
   PostActions::mark_as_read(pool, data.tegan.person.id, &[data.bot_post.id]).await?;
@@ -714,11 +714,11 @@ async fn post_listing_read_only(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio::test]
-#[serial]
+#[tokio_shared_rt::test(shared)]
 async fn creator_info(data: &mut Data) -> LemmyResult<()> {
-  let pool = &data.pool();
-  let pool = &mut pool.into();
+  let pool_arc = data.pool();
+  let pool_ref = &***pool_arc;
+  let pool = &mut pool_ref.into();
   let community_id = data.community.id;
 
   let tegan_listings = PostQuery {
@@ -837,13 +837,13 @@ async fn creator_info(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio::test]
-#[serial]
+#[tokio_shared_rt::test(shared)]
 async fn post_listing_person_language(data: &mut Data) -> LemmyResult<()> {
   const EL_POSTO: &str = "el posto";
 
-  let pool = &data.pool();
-  let pool = &mut pool.into();
+  let pool_arc = data.pool();
+  let pool_ref = &***pool_arc;
+  let pool = &mut pool_ref.into();
 
   let spanish_id = Language::read_id_from_code(pool, "es").await?;
 
@@ -910,11 +910,11 @@ async fn post_listing_person_language(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio::test]
-#[serial]
+#[tokio_shared_rt::test(shared)]
 async fn post_listings_removed(data: &mut Data) -> LemmyResult<()> {
-  let pool = &data.pool();
-  let pool = &mut pool.into();
+  let pool_arc = data.pool();
+  let pool_ref = &***pool_arc;
+  let pool = &mut pool_ref.into();
 
   // Remove the post
   Post::update(
@@ -950,11 +950,11 @@ async fn post_listings_removed(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio::test]
-#[serial]
+#[tokio_shared_rt::test(shared)]
 async fn post_listings_deleted(data: &mut Data) -> LemmyResult<()> {
-  let pool = &data.pool();
-  let pool = &mut pool.into();
+  let pool_arc = data.pool();
+  let pool_ref = &***pool_arc;
+  let pool = &mut pool_ref.into();
 
   // Delete the post
   Post::update(
@@ -989,11 +989,11 @@ async fn post_listings_deleted(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio::test]
-#[serial]
+#[tokio_shared_rt::test(shared)]
 async fn post_listings_hidden_community(data: &mut Data) -> LemmyResult<()> {
-  let pool = &data.pool();
-  let pool = &mut pool.into();
+  let pool_arc = data.pool();
+  let pool_ref = &***pool_arc;
+  let pool = &mut pool_ref.into();
 
   Community::update(
     pool,
@@ -1036,8 +1036,7 @@ async fn post_listings_hidden_community(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio::test]
-#[serial]
+#[tokio_shared_rt::test(shared)]
 async fn post_listing_instance_block_communities(data: &mut Data) -> LemmyResult<()> {
   const POST_FROM_BLOCKED_INSTANCE_COMMS: &str = "post on blocked instance";
   const HOWARD_POST: &str = "howard post";
@@ -1049,8 +1048,9 @@ async fn post_listing_instance_block_communities(data: &mut Data) -> LemmyResult
     POST,
   ];
 
-  let pool = &data.pool();
-  let pool = &mut pool.into();
+  let pool_arc = data.pool();
+  let pool_ref = &***pool_arc;
+  let pool = &mut pool_ref.into();
 
   let blocked_instance_comms = Instance::read_or_create(pool, "another_domain.tld").await?;
 
@@ -1136,8 +1136,7 @@ async fn post_listing_instance_block_communities(data: &mut Data) -> LemmyResult
 }
 
 #[test_context(Data)]
-#[tokio::test]
-#[serial]
+#[tokio_shared_rt::test(shared)]
 async fn post_listing_instance_block_persons(data: &mut Data) -> LemmyResult<()> {
   const POST_FROM_BLOCKED_INSTANCE_USERS: &str = "post from blocked instance user";
   const POST_TO_UNBLOCKED_COMM: &str = "post to unblocked comm";
@@ -1149,8 +1148,9 @@ async fn post_listing_instance_block_persons(data: &mut Data) -> LemmyResult<()>
     POST,
   ];
 
-  let pool = &data.pool();
-  let pool = &mut pool.into();
+  let pool_arc = data.pool();
+  let pool_ref = &***pool_arc;
+  let pool = &mut pool_ref.into();
 
   let blocked_instance_persons = Instance::read_or_create(pool, "another_domain.tld").await?;
 
@@ -1225,11 +1225,11 @@ async fn post_listing_instance_block_persons(data: &mut Data) -> LemmyResult<()>
 }
 
 #[test_context(Data)]
-#[tokio::test]
-#[serial]
+#[tokio_shared_rt::test(shared)]
 async fn pagination_includes_each_post_once(data: &mut Data) -> LemmyResult<()> {
-  let pool = &data.pool();
-  let pool = &mut pool.into();
+  let pool_arc = data.pool();
+  let pool_ref = &***pool_arc;
+  let pool = &mut pool_ref.into();
 
   let community_form =
     CommunityInsertForm::new(data.instance.id, "yes".to_string(), "pubkey".to_string());
@@ -1321,12 +1321,12 @@ async fn pagination_includes_each_post_once(data: &mut Data) -> LemmyResult<()> 
 }
 
 #[test_context(Data)]
-#[tokio::test]
-#[serial]
+#[tokio_shared_rt::test(shared)]
 /// Test that last and first partial pages only have one cursor.
 async fn pagination_hidden_cursors(data: &mut Data) -> LemmyResult<()> {
-  let pool = &data.pool();
-  let pool = &mut pool.into();
+  let pool_arc = data.pool();
+  let pool_ref = &***pool_arc;
+  let pool = &mut pool_ref.into();
 
   let community_form =
     CommunityInsertForm::new(data.instance.id, "yes".to_string(), "pubkey".to_string());
@@ -1381,8 +1381,9 @@ async fn pagination_hidden_cursors(data: &mut Data) -> LemmyResult<()> {
   assert!(first_page2.prev_page.is_some());
   assert_eq!(first_page2.next_page, first_page.next_page);
 
-  let pool = &data.pool;
-  let pool = &mut pool.into();
+  let pool_arc = data.pool();
+  let pool_ref = &***pool_arc;
+  let pool = &mut pool_ref.into();
 
   // Mark first post as deleted
   let first_post_view = first_page.items.first().expect("first post");
@@ -1434,12 +1435,12 @@ async fn pagination_hidden_cursors(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio::test]
-#[serial]
+#[tokio_shared_rt::test(shared)]
 /// Test paging past the last and first page.
 async fn pagination_recovery_cursors(data: &mut Data) -> LemmyResult<()> {
-  let pool = &data.pool();
-  let pool = &mut pool.into();
+  let pool_arc = data.pool();
+  let pool_ref = &***pool_arc;
+  let pool = &mut pool_ref.into();
 
   let community_form =
     CommunityInsertForm::new(data.instance.id, "yes".to_string(), "pubkey".to_string());
@@ -1561,11 +1562,11 @@ async fn pagination_recovery_cursors(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio::test]
-#[serial]
+#[tokio_shared_rt::test(shared)]
 async fn post_listings_hide_read(data: &mut Data) -> LemmyResult<()> {
-  let pool = &data.pool();
-  let pool = &mut pool.into();
+  let pool_arc = data.pool();
+  let pool_ref = &***pool_arc;
+  let pool = &mut pool_ref.into();
 
   // Make sure local user hides read posts
   let local_user_form = LocalUserUpdateForm {
@@ -1612,11 +1613,11 @@ async fn post_listings_hide_read(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio::test]
-#[serial]
+#[tokio_shared_rt::test(shared)]
 async fn post_listings_hide_hidden(data: &mut Data) -> LemmyResult<()> {
-  let pool = &data.pool();
-  let pool = &mut pool.into();
+  let pool_arc = data.pool();
+  let pool_ref = &***pool_arc;
+  let pool = &mut pool_ref.into();
 
   // Mark a post as hidden
   let hide_form = PostHideForm::new(data.bot_post.id, data.tegan.person.id);
@@ -1661,11 +1662,11 @@ async fn post_listings_hide_hidden(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio::test]
-#[serial]
+#[tokio_shared_rt::test(shared)]
 async fn post_listings_hide_nsfw(data: &mut Data) -> LemmyResult<()> {
-  let pool = &data.pool();
-  let pool = &mut pool.into();
+  let pool_arc = data.pool();
+  let pool_ref = &***pool_arc;
+  let pool = &mut pool_ref.into();
 
   // Mark a post as nsfw
   let update_form = PostUpdateForm {
@@ -1709,11 +1710,11 @@ async fn post_listings_hide_nsfw(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio::test]
-#[serial]
+#[tokio_shared_rt::test(shared)]
 async fn local_only_instance(data: &mut Data) -> LemmyResult<()> {
-  let pool = &data.pool();
-  let pool = &mut pool.into();
+  let pool_arc = data.pool();
+  let pool_ref = &***pool_arc;
+  let pool = &mut pool_ref.into();
 
   Community::update(
     pool,
@@ -1758,11 +1759,11 @@ async fn local_only_instance(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio::test]
-#[serial]
+#[tokio_shared_rt::test(shared)]
 async fn post_listing_local_user_banned_from_community(data: &mut Data) -> LemmyResult<()> {
-  let pool = &data.pool();
-  let pool = &mut pool.into();
+  let pool_arc = data.pool();
+  let pool_ref = &***pool_arc;
+  let pool = &mut pool_ref.into();
 
   // Test that post view shows if local user is blocked from community
   let banned_from_comm_person = PersonInsertForm::test_form(data.instance.id, "jill");
@@ -1802,11 +1803,11 @@ async fn post_listing_local_user_banned_from_community(data: &mut Data) -> Lemmy
 }
 
 #[test_context(Data)]
-#[tokio::test]
-#[serial]
+#[tokio_shared_rt::test(shared)]
 async fn post_listing_local_user_not_banned_from_community(data: &mut Data) -> LemmyResult<()> {
-  let pool = &data.pool();
-  let pool = &mut pool.into();
+  let pool_arc = data.pool();
+  let pool_ref = &***pool_arc;
+  let pool = &mut pool_ref.into();
 
   let post_view = PostView::read(
     pool,
@@ -1830,11 +1831,11 @@ fn micros(dt: DateTime<Utc>) -> i64 {
 }
 
 #[test_context(Data)]
-#[tokio::test]
-#[serial]
+#[tokio_shared_rt::test(shared)]
 async fn post_listing_creator_banned(data: &mut Data) -> LemmyResult<()> {
-  let pool = &data.pool();
-  let pool = &mut pool.into();
+  let pool_arc = data.pool();
+  let pool_ref = &***pool_arc;
+  let pool = &mut pool_ref.into();
 
   let banned_person_form = PersonInsertForm::test_form(data.instance.id, "jill");
 
@@ -1881,11 +1882,11 @@ async fn post_listing_creator_banned(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio::test]
-#[serial]
+#[tokio_shared_rt::test(shared)]
 async fn post_listing_creator_community_banned(data: &mut Data) -> LemmyResult<()> {
-  let pool = &data.pool();
-  let pool = &mut pool.into();
+  let pool_arc = data.pool();
+  let pool_ref = &***pool_arc;
+  let pool = &mut pool_ref.into();
 
   let banned_person_form = PersonInsertForm::test_form(data.instance.id, "jarvis");
 
@@ -1936,11 +1937,11 @@ async fn post_listing_creator_community_banned(data: &mut Data) -> LemmyResult<(
 }
 
 #[test_context(Data)]
-#[tokio::test]
-#[serial]
+#[tokio_shared_rt::test(shared)]
 async fn speed_check(data: &mut Data) -> LemmyResult<()> {
-  let pool = &data.pool();
-  let pool = &mut pool.into();
+  let pool_arc = data.pool();
+  let pool_ref = &***pool_arc;
+  let pool = &mut pool_ref.into();
 
   // Make sure the post_view query is less than this time
   let duration_max = Duration::from_millis(120);
@@ -1988,11 +1989,11 @@ async fn speed_check(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio::test]
-#[serial]
+#[tokio_shared_rt::test(shared)]
 async fn post_listings_no_comments_only(data: &mut Data) -> LemmyResult<()> {
-  let pool = &data.pool();
-  let pool = &mut pool.into();
+  let pool_arc = data.pool();
+  let pool_ref = &***pool_arc;
+  let pool = &mut pool_ref.into();
 
   // Create a comment for a post
   let comment_form = CommentInsertForm::new(
@@ -2022,11 +2023,11 @@ async fn post_listings_no_comments_only(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio::test]
-#[serial]
+#[tokio_shared_rt::test(shared)]
 async fn post_listing_private_community(data: &mut Data) -> LemmyResult<()> {
-  let pool = &data.pool();
-  let pool = &mut pool.into();
+  let pool_arc = data.pool();
+  let pool_ref = &***pool_arc;
+  let pool = &mut pool_ref.into();
 
   // Mark community as private
   Community::update(
@@ -2120,11 +2121,11 @@ async fn post_listing_private_community(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio::test]
-#[serial]
-async fn post_listings_hide_posts_with_media(data: &mut Data) -> LemmyResult<()> {
-  let pool = &data.pool();
-  let pool = &mut pool.into();
+#[tokio_shared_rt::test(shared)]
+async fn post_listings_hide_media(data: &mut Data) -> LemmyResult<()> {
+  let pool_arc = data.pool();
+  let pool_ref = &***pool_arc;
+  let pool = &mut pool_ref.into();
 
   // Make one post an image post
   Post::update(
@@ -2180,11 +2181,11 @@ async fn post_listings_hide_posts_with_media(data: &mut Data) -> LemmyResult<()>
 }
 
 #[test_context(Data)]
-#[tokio::test]
-#[serial]
+#[tokio_shared_rt::test(shared)]
 async fn post_with_blocked_keywords(data: &mut Data) -> LemmyResult<()> {
-  let pool = &data.pool();
-  let pool = &mut pool.into();
+  let pool_arc = data.pool();
+  let pool_ref = &***pool_arc;
+  let pool = &mut pool_ref.into();
 
   let name_blocked = format!("post_{POST_KEYWORD_BLOCKED}");
   let name_blocked2 = format!("post2_{POST_KEYWORD_BLOCKED}2");
@@ -2253,11 +2254,11 @@ async fn post_with_blocked_keywords(data: &mut Data) -> LemmyResult<()> {
   Ok(())
 }
 #[test_context(Data)]
-#[tokio::test]
-#[serial]
+#[tokio_shared_rt::test(shared)]
 async fn post_tags_present(data: &mut Data) -> LemmyResult<()> {
-  let pool = &data.pool();
-  let pool = &mut pool.into();
+  let pool_arc = data.pool();
+  let pool_ref = &***pool_arc;
+  let pool = &mut pool_ref.into();
 
   let post_view = PostView::read(
     pool,
@@ -2312,11 +2313,11 @@ async fn post_tags_present(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio::test]
-#[serial]
+#[tokio_shared_rt::test(shared)]
 async fn post_listing_multi_community(data: &mut Data) -> LemmyResult<()> {
-  let pool = &data.pool();
-  let pool = &mut pool.into();
+  let pool_arc = data.pool();
+  let pool_ref = &***pool_arc;
+  let pool = &mut pool_ref.into();
 
   // create two more communities with one post each
   let form = CommunityInsertForm::new(
@@ -2393,11 +2394,11 @@ async fn post_listing_multi_community(data: &mut Data) -> LemmyResult<()> {
 }
 
 #[test_context(Data)]
-#[tokio::test]
-#[serial]
+#[tokio_shared_rt::test(shared)]
 async fn search(data: &mut Data) -> LemmyResult<()> {
-  let pool = &data.pool();
-  let pool = &mut pool.into();
+  let pool_arc = data.pool();
+  let pool_ref = &***pool_arc;
+  let pool = &mut pool_ref.into();
 
   // Using a term
   let search_by_name = PostQuery {
