@@ -276,6 +276,14 @@ fn build_test_privileged_postgres_config() -> PrivilegedPostgresConfig {
     .build()
 }
 
+/// Reads a test pool size override from the given env var
+fn test_pool_size_from_env(var: &str, default: usize) -> usize {
+  std::env::var(var)
+    .ok()
+    .and_then(|s| s.parse().ok())
+    .unwrap_or(default)
+}
+
 #[expect(clippy::expect_used)]
 pub async fn build_db_pool_for_tests()
 -> ReusableConnectionPool<'static, DieselAsyncPostgresBackend<DieselDeadpool>> {
@@ -285,10 +293,15 @@ pub async fn build_db_pool_for_tests()
     .get_or_init(|| async {
       let config = build_test_privileged_postgres_config();
 
+      // Max number of concurrent privileged connections (used for managing test databases)
+      // and restricted connections (used per test database) in the test db-pool library.
+      let privileged_pool_size = test_pool_size_from_env("LEMMY_TEST_DB_PRIVILEGED_POOL_SIZE", 60);
+      let restricted_pool_size = test_pool_size_from_env("LEMMY_TEST_DB_RESTRICTED_POOL_SIZE", 2);
+
       let backend = DieselAsyncPostgresBackend::new(
         config,
-        |manager| Pool::builder(manager).max_size(30),
-        |manager| Pool::builder(manager).max_size(2),
+        move |manager| Pool::builder(manager).max_size(privileged_pool_size),
+        move |manager| Pool::builder(manager).max_size(restricted_pool_size),
         None,
         move |conn| {
           Box::pin(async {
