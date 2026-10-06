@@ -8,7 +8,7 @@ use diesel_async::{AsyncPgConnection, scoped_futures::ScopedFutureExt};
 use lemmy_api_utils::{
   claims::Claims,
   context::LemmyContext,
-  plugins::{LemmyPlugins, plugin_validate_captcha},
+  plugins::{LemmyPlugins, plugin_hook_after, plugin_hook_before, plugin_validate_captcha},
   utils::{
     check_email_verified,
     check_local_user_banned_or_deleted,
@@ -153,6 +153,14 @@ pub async fn register(
 
   let language_tags = get_language_tags(&req);
 
+  // Clear password before calling plugin hook
+  let plugin_form = Register {
+    password: Default::default(),
+    password_verify: Default::default(),
+    ..data.clone()
+  };
+  plugin_hook_before("local_user_before_register", plugin_form).await?;
+
   // Wrap the insert person, insert local user, and create registration,
   // in a transaction, so that if any fail, the rows aren't created.
   let conn = &mut get_conn(pool).await?;
@@ -221,6 +229,8 @@ pub async fn register(
       .scope_boxed()
     })
     .await?;
+
+  plugin_hook_after("local_user_after_register", &user);
 
   // Email the admins, only if email verification is not required
   if local_site.application_email_admins && !local_site.email_verification_required {
@@ -414,6 +424,14 @@ pub async fn authenticate_with_oauth(
 
       let slur_regex = slur_regex(&context).await?;
 
+      // Clear auth data before calling plugin hook
+      let plugin_data = AuthenticateWithOauth {
+        code: String::new(),
+        pkce_code_verifier: None,
+        ..data.clone()
+      };
+      plugin_hook_before("local_user_oauth_before_register", plugin_data).await?;
+
       // Wrap the insert person, insert local user, and create registration,
       // in a transaction, so that if any fail, the rows aren't created.
       let conn = &mut get_conn(pool).await?;
@@ -486,6 +504,8 @@ pub async fn authenticate_with_oauth(
           .scope_boxed()
         })
         .await?;
+
+      plugin_hook_after("local_user_oauth_after_register", &user);
 
       // Check email is verified when required
       login_response.verify_email_sent = send_verification_email_if_required(
