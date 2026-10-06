@@ -13,6 +13,7 @@ use lemmy_api_utils::{
     check_email_verified,
     check_local_user_banned_or_deleted,
     check_registration_application,
+    check_totp_2fa_valid,
     generate_featured_url,
     generate_followers_url,
     generate_inbox_url,
@@ -347,6 +348,7 @@ pub async fn authenticate_with_oauth(
     check_local_user_banned_or_deleted(&user_view)?;
     check_email_verified(&user_view, &site_view)?;
     check_registration_application(&user_view, &site_view.local_site, pool).await?;
+    check_totp_2fa_if_enabled(&user_view, &data.totp_2fa_token, &context)?;
     local_user
   } else {
     // User has never previously registered using oauth
@@ -385,6 +387,7 @@ pub async fn authenticate_with_oauth(
         check_local_user_banned_or_deleted(&user_view)?;
         check_email_verified(&user_view, &site_view)?;
         check_registration_application(&user_view, &site_view.local_site, pool).await?;
+        check_totp_2fa_if_enabled(&user_view, &data.totp_2fa_token, &context)?;
 
         // Link with OAUTH => Login user
         let oauth_account_form =
@@ -673,6 +676,17 @@ fn read_user_info(user_info: &serde_json::Value, key: &str) -> Option<String> {
     serde_json::Value::Number(n) => Some(n.to_string()),
     _ => None,
   }
+}
+
+fn check_totp_2fa_if_enabled(
+  user_view: &LocalUserView,
+  totp_token: &Option<String>,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<()> {
+  if user_view.local_user.totp_2fa_enabled {
+    check_totp_2fa_valid(user_view, totp_token, &context.settings().hostname)?;
+  }
+  Ok(())
 }
 
 #[expect(clippy::expect_used)]
