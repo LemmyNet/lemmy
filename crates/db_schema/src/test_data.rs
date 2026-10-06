@@ -3,7 +3,7 @@ use crate::source::{
   local_site::{LocalSite, LocalSiteInsertForm},
   local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitInsertForm},
   person::{Person, PersonInsertForm},
-  site::{Site, SiteInsertForm},
+  site::{Site, SiteUpsertForm},
 };
 use lemmy_diesel_utils::{connection::DbPool, traits::Crud};
 use lemmy_utils::error::LemmyResult;
@@ -19,7 +19,7 @@ impl TestData {
   pub async fn create(pool: &mut DbPool<'_>) -> LemmyResult<Self> {
     let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
 
-    let site_form = SiteInsertForm::new("test site".to_string(), instance.id);
+    let site_form = SiteUpsertForm::new("test site".to_string(), instance.id);
     let site = Site::create(pool, &site_form).await?;
 
     let system_acct =

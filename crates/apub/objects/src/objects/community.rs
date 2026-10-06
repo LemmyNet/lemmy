@@ -35,7 +35,7 @@ use lemmy_api_utils::{
 use lemmy_db_schema::{
   source::{
     actor_language::CommunityLanguage,
-    community::{Community, CommunityInsertForm, CommunityUpdateForm, CommunityUpsertForm},
+    community::{Community, CommunityUpdateForm, CommunityUpsertForm},
     community_tag::CommunityTag,
   },
   traits::ApubActor,
