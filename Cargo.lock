@@ -3692,6 +3692,7 @@ dependencies = [
 name = "lemmy_db_schema"
 version = "1.0.0-beta.2"
 dependencies = [
+ "anyhow",
  "bcrypt",
  "chrono",
  "derive-new",
@@ -3703,6 +3704,7 @@ dependencies = [
  "lemmy_db_schema_file",
  "lemmy_diesel_utils",
  "lemmy_utils 1.0.0-beta.2",
+ "moka",
  "pretty_assertions",
  "serde",
  "serde_json",
