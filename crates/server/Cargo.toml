@@ -47,5 +47,13 @@ serde_json = { workspace = true }
 tokio.workspace = true
 clap = { workspace = true }
 
+opentelemetry = { workspace = true }
+opentelemetry_sdk = { workspace = true }
+# opentelemetry-stdout = { workspace = true }
+# opentelemetry-appender-tracing = { workspace = true }
+opentelemetry-otlp = { workspace = true }
+tracing-opentelemetry = { workspace = true }
+
+
 [target.'cfg(target_arch = "x86_64")'.dependencies]
 tikv-jemallocator = "0.7.0"

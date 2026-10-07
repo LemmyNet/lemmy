@@ -1,0 +1,28 @@
+{
+    "type": "OrderedCollection",
+    "id": "https://lemmy.world/activities/abcd9456-0960-4b9d15-561d1cef2991",
+    "totalItems": 3,
+    "orderedItems": [
+        {
+          "id": "https://lemmy.world/activities/like/aa6d9456-0960-4b9d15-561d1cef2991",
+          "actor": "https://lemmy.world/u/SpaceNo",
+          "object": "https://kbin.social/m/nostupidquestions@lemmy.world/t/433370/-/comment/2965",
+          "type": "Like",
+          "audience": "https://lemmy.world/c/nostupidquestions"
+        },
+        {
+          "id": "https://lemmy.world/activities/like/aa6d9456-094bf0-9d15-561d1cef299e",
+          "actor": "https://lemmy.world/u/Peter",
+          "object": "https://kbin.social/m/nostupidquestions@lemmy.world/t/433370/-/comment/2965",
+          "type": "Like",
+          "audience": "https://lemmy.world/c/nostupidquestions"
+        },
+        {
+          "id": "https://lemmy.world/activities/like/aa6d9456-0960-4bf0-9d15-56cef2994",
+          "actor": "https://lemmy.world/u/Rimu",
+          "object": "https://kbin.social/m/nostupidquestions@lemmy.world/t/433370/-/comment/2965",
+          "type": "Like",
+          "audience": "https://lemmy.world/c/nostupidquestions"
+        }
+    ],
+  }
