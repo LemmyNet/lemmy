@@ -662,9 +662,9 @@ mod tests {
 
   #[tokio::test]
   #[serial]
-  async fn test_nodeinfo_mastodon_social() -> LemmyResult<()> {
+  async fn test_nodeinfo_mastodon() -> LemmyResult<()> {
     let client = ClientBuilder::new(client_builder(&Settings::default()).build()?).build();
-    let form = build_update_instance_form("mastodon.social", &client)
+    let form = build_update_instance_form("mstdn.party", &client)
       .await
       .ok_or(LemmyErrorType::CouldntFindObject)?;
     assert_eq!(
