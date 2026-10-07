@@ -84,6 +84,8 @@ pub struct AuthenticateWithOauth {
   /// An answer is mandatory if require application is enabled on the server
   pub answer: Option<String>,
   pub pkce_code_verifier: Option<String>,
+  /// Required if the user has TOTP 2FA enabled.
+  pub totp_2fa_token: Option<String>,
   /// If this is true the login is valid forever, otherwise it expires after one week.
   pub stay_logged_in: Option<bool>,
 }
