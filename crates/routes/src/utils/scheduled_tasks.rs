@@ -1038,9 +1038,10 @@ mod tests {
   }
 
   #[tokio::test]
-  async fn test_nodeinfo_mastodon_social() -> LemmyResult<()> {
+  async fn test_nodeinfo_mastodon() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
-    let form = build_update_instance_form("mastodon.social", &context)
+    // We used to test mastodon.social, but they've started blocking nodeinfo requests.
+    let form = build_update_instance_form("mstdn.party", &context)
       .await
       .ok_or(LemmyErrorType::NotFound)?;
     assert_eq!(form.software.ok_or(LemmyErrorType::NotFound)?, "mastodon");
