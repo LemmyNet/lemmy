@@ -26,6 +26,7 @@ use activitypub_federation::{
   kinds::activity::AnnounceType,
   traits::{Activity, Actor},
 };
+use chrono::{DateTime, Utc};
 use either::Either;
 use following::send_accept_or_reject_follow;
 use lemmy_api_utils::{
@@ -79,14 +80,18 @@ fn generate_activity_id<T>(kind: T, context: &LemmyContext) -> LemmyResult<Url>
 where
   T: ToString,
 {
-  generate_activity_id_with_object_id(kind, None, context)
+  let hostname = context.settings().get_protocol_and_hostname();
+  let kind_str = kind.to_string().to_lowercase();
+  let id = format!("{}/activities/{}/{}", hostname, kind_str, Uuid::new_v4());
+  Ok(Url::parse(&id)?)
 }
 
-/// Generate a unique ID for an activity. When `object_id` is provided the ID is a
-/// deterministic sha256 of `{kind}:{object_id}` so the same activity always has the same URL.
+/// Deterministic activity ID from object URL + timestamp, so Create/Update IDs stay
+/// stable across outbox fetches and change when the object is edited.
 fn generate_activity_id_with_object_id<T>(
   kind: T,
-  object_id: Option<&Url>,
+  object_id: &Url,
+  timestamp: DateTime<Utc>,
   context: &LemmyContext,
 ) -> LemmyResult<Url>
 where
@@ -94,17 +99,13 @@ where
 {
   let hostname = context.settings().get_protocol_and_hostname();
   let kind_str = kind.to_string().to_lowercase();
-
-  let id_str = if let Some(o) = object_id {
-    let input = format!("{}:{}", kind_str, o.as_str());
-    let mut hasher = Sha256::new();
-    hasher.update(input);
-    format!("{:x}", hasher.finalize())
-  } else {
-    Uuid::new_v4().to_string()
-  };
-
-  let id = format!("{}/activities/{}/{}", hostname, kind_str, id_str);
+  let mut seed = object_id.clone();
+  seed.set_fragment(Some(&timestamp.to_rfc3339()));
+  let input = format!("{}:{}", kind_str, seed.as_str());
+  let mut hasher = Sha256::new();
+  hasher.update(input);
+  let digest = format!("{:x}", hasher.finalize());
+  let id = format!("{}/activities/{}/{}", hostname, kind_str, digest);
   Ok(Url::parse(&id)?)
 }
 

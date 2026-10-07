@@ -1,7 +1,7 @@
 use crate::{
   activity_lists::AnnouncableActivities,
   community::send_activity_in_community,
-  create_or_update::{activity_object_id, parse_apub_mentions, tagged_user_inboxes},
+  create_or_update::{parse_apub_mentions, tagged_user_inboxes},
   generate_activity_id_with_object_id,
   protocol::{CreateOrUpdateType, create_or_update::note::CreateOrUpdateNote},
 };
@@ -59,12 +59,12 @@ impl CreateOrUpdateNote {
       .await?
       .into();
 
-    let object_id = activity_object_id(
-      comment.published_at,
-      comment.updated_at,
-      (*comment.ap_id.0).clone(),
-    );
-    let id = generate_activity_id_with_object_id(kind.clone(), Some(&object_id), &context)?;
+    let id = generate_activity_id_with_object_id(
+      kind.clone(),
+      comment.ap_id.inner(),
+      comment.updated_at.unwrap_or(comment.published_at),
+      &context,
+    )?;
     let note = ApubComment(comment).into_json(&context).await?;
 
     let create_or_update = CreateOrUpdateNote {
