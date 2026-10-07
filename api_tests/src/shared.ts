@@ -244,11 +244,12 @@ export async function createPost(
   return api.createPost(form);
 }
 
-export async function editPost(api: LemmyHttp, post: Post) {
+export async function editPost(api: LemmyHttp, post: Post, url?: string) {
   const name = "A jest test federated post, updated";
   const form: EditPost = {
     name,
     post_id: post.id,
+    url,
   };
   return api.editPost(form);
 }

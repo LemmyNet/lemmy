@@ -11,6 +11,7 @@ use crate::{
       CommunityModeratorForm,
       CommunityPersonBanForm,
       CommunityUpdateForm,
+      CommunityUpsertForm,
     },
     post::Post,
   },
@@ -119,10 +120,10 @@ pub enum CollectionType {
 }
 
 impl Community {
-  pub async fn insert_apub(
+  pub async fn upsert_apub(
     pool: &mut DbPool<'_>,
     timestamp: DateTime<Utc>,
-    form: &CommunityInsertForm,
+    form: &CommunityUpsertForm,
   ) -> LemmyResult<Self> {
     let is_new_community = match &form.ap_id {
       Some(id) => Community::read_from_apub_id(pool, id).await?.is_none(),
@@ -130,7 +131,6 @@ impl Community {
     };
     let conn = &mut get_conn(pool).await?;
 
-    // Can't do separate insert/update commands because InsertForm/UpdateForm aren't convertible
     let community_ = insert_into(community::table)
       .values(form)
       .on_conflict(community::ap_id)

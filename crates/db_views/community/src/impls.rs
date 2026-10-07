@@ -411,7 +411,7 @@ mod tests {
       local_user::{LocalUser, LocalUserInsertForm},
       multi_community::{MultiCommunity, MultiCommunityFollowForm, MultiCommunityInsertForm},
       person::{Person, PersonInsertForm},
-      site::{Site, SiteInsertForm},
+      site::{Site, SiteUpsertForm},
     },
     traits::Followable,
   };
@@ -495,7 +495,7 @@ mod tests {
       .await?,
     ];
 
-    let site_form = SiteInsertForm::new("test site".to_string(), instance.id);
+    let site_form = SiteUpsertForm::new("test site".to_string(), instance.id);
     let site = Site::create(pool, &site_form).await?;
     let system_acct =
       Person::create(pool, &PersonInsertForm::test_form(instance.id, "langs")).await?;
