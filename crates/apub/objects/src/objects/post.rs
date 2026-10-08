@@ -45,7 +45,7 @@ use lemmy_db_schema::source::{
   community_tag::CommunityTag,
   local_site::LocalSite,
   person::Person,
-  post::{Post, PostInsertForm, PostUpdateForm},
+  post::{Post, PostUpdateForm, PostUpsertForm},
 };
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_site::SiteView;
@@ -289,24 +289,27 @@ impl Object for ApubPost {
     );
 
     let orig_post = Post::read_from_apub_id(&mut context.pool(), page.id.clone().into()).await;
-    let mut form = PostInsertForm {
-      url: url.map(Into::into),
-      body,
-      alt_text,
+    let mut form = PostUpsertForm {
+      creator_id: creator.id,
+      community_id: community.id,
+      name: Some(name),
+      url: Some(url.map(Into::into)),
+      body: Some(body),
+      alt_text: Some(alt_text),
       published_at: page.published,
-      updated_at: page.updated,
+      updated_at: Some(page.updated),
       deleted: Some(false),
       nsfw: post_nsfw(&page, &community, Some(&local_site), context).await?,
       ap_id: Some(page.id.clone().into()),
       // May be a local post which is updated by remote mod.
       local: Some(page.id.is_local(context)),
       language_id,
-      ..PostInsertForm::new(name, creator.id, community.id)
+      ..Default::default()
     };
     form = plugin_hook_before("federated_post_before_receive", form).await?;
 
     let timestamp = page.updated.or(page.published).unwrap_or_else(Utc::now);
-    let post = Post::insert_apub(&mut context.pool(), timestamp, &form).await?;
+    let post = Post::upsert_apub(&mut context.pool(), timestamp, &form).await?;
     plugin_hook_after("federated_post_after_receive", &post);
 
     update_apub_post_tags(&page, &post, context).await?;

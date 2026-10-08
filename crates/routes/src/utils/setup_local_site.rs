@@ -13,7 +13,7 @@ use lemmy_db_schema::{
     local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitInsertForm},
     local_user::{LocalUser, LocalUserInsertForm},
     person::{Person, PersonInsertForm},
-    site::{Site, SiteInsertForm},
+    site::{Site, SiteUpsertForm},
   },
   traits::ApubActor,
 };
@@ -91,13 +91,13 @@ pub async fn setup_local_site(pool: &mut DbPool<'_>, settings: &Settings) -> Lem
             .clone()
             .and_then(|s| s.site_name)
             .unwrap_or_else(|| "New Site".to_string());
-          let site_form = SiteInsertForm {
+          let site_form = SiteUpsertForm {
             ap_id: Some(site_ap_id.clone().into()),
             last_refreshed_at: Some(Utc::now()),
             inbox_url: Some(generate_inbox_url()?),
-            private_key: Some(site_key_pair.private_key),
+            private_key: Some(Some(site_key_pair.private_key)),
             public_key: Some(site_key_pair.public_key),
-            ..SiteInsertForm::new(name, instance.id)
+            ..SiteUpsertForm::new(name, instance.id)
           };
           let site = Site::create(&mut conn.into(), &site_form).await?;
           // create multi-comm follower account

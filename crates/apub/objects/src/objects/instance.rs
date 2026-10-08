@@ -28,7 +28,7 @@ use lemmy_api_utils::{
 use lemmy_db_schema::source::{
   actor_language::SiteLanguage,
   instance::Instance as DbInstance,
-  site::{Site, SiteInsertForm},
+  site::{Site, SiteUpsertForm},
 };
 use lemmy_db_schema_file::{InstanceId, enums::ActorType};
 use lemmy_db_views_site::SiteView;
@@ -144,21 +144,21 @@ impl Object for ApubSite {
     let icon = proxy_image_link_opt_apub(apub.icon.map(|i| i.url), &local_site, context).await?;
     let banner = proxy_image_link_opt_apub(apub.image.map(|i| i.url), &local_site, context).await?;
 
-    let site_form = SiteInsertForm {
+    let site_form = SiteUpsertForm {
       name: apub.name.clone(),
-      sidebar,
+      sidebar: Some(sidebar),
       published_at: apub.published,
-      updated_at: apub.updated,
-      icon,
-      banner,
-      summary,
+      updated_at: Some(apub.updated),
+      icon: Some(icon),
+      banner: Some(banner),
+      summary: Some(summary),
       ap_id: Some(apub.id.clone().into()),
       last_refreshed_at: Some(Utc::now()),
       inbox_url: Some(apub.inbox.clone().into()),
       public_key: Some(apub.public_key.public_key_pem.clone()),
       private_key: None,
       instance_id: instance.id,
-      content_warning: apub.content_warning,
+      content_warning: Some(apub.content_warning),
     };
     let languages =
       LanguageTag::to_language_id_multiple(apub.language, &mut context.pool()).await?;

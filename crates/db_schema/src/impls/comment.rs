@@ -163,10 +163,10 @@ impl Comment {
     comment_form: &CommentInsertForm,
     parent_path: Option<&Ltree>,
   ) -> LemmyResult<Comment> {
-    Self::insert_apub(pool, None, comment_form, parent_path).await
+    Self::upsert_apub(pool, None, comment_form, parent_path).await
   }
 
-  pub async fn insert_apub(
+  pub async fn upsert_apub(
     pool: &mut DbPool<'_>,
     timestamp: Option<DateTime<Utc>>,
     comment_form: &CommentInsertForm,
