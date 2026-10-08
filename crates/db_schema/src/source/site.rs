@@ -47,21 +47,21 @@ pub struct Site {
 #[derive(Clone, derive_new::new)]
 #[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = site))]
-pub struct SiteInsertForm {
+pub struct SiteUpsertForm {
   pub name: String,
   pub instance_id: InstanceId,
   #[new(default)]
-  pub sidebar: Option<String>,
+  pub sidebar: Option<Option<String>>,
   #[new(default)]
   pub published_at: Option<DateTime<Utc>>,
   #[new(default)]
-  pub updated_at: Option<DateTime<Utc>>,
+  pub updated_at: Option<Option<DateTime<Utc>>>,
   #[new(default)]
-  pub icon: Option<DbUrl>,
+  pub icon: Option<Option<DbUrl>>,
   #[new(default)]
-  pub banner: Option<DbUrl>,
+  pub banner: Option<Option<DbUrl>>,
   #[new(default)]
-  pub summary: Option<String>,
+  pub summary: Option<Option<String>>,
   #[new(default)]
   pub ap_id: Option<DbUrl>,
   #[new(default)]
@@ -69,11 +69,11 @@ pub struct SiteInsertForm {
   #[new(default)]
   pub inbox_url: Option<DbUrl>,
   #[new(default)]
-  pub private_key: Option<String>,
+  pub private_key: Option<Option<String>>,
   #[new(default)]
   pub public_key: Option<String>,
   #[new(default)]
-  pub content_warning: Option<String>,
+  pub content_warning: Option<Option<String>>,
 }
 
 #[derive(Clone, Default)]

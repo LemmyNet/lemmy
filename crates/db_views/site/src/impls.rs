@@ -216,7 +216,7 @@ mod tests {
       federation_allowlist::{FederationAllowList, FederationAllowListForm},
       federation_queue_state::FederationQueueState,
       instance::Instance,
-      site::{Site, SiteInsertForm},
+      site::{Site, SiteUpsertForm},
     },
   };
   use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
@@ -232,7 +232,7 @@ mod tests {
     // insert test data
     let instance0 = Instance::read_or_create(pool, "example0.com").await?;
     let instance1 = Instance::read_or_create(pool, "example1.com").await?;
-    let site_form = SiteInsertForm::new("Example".to_string(), instance0.id);
+    let site_form = SiteUpsertForm::new("Example".to_string(), instance0.id);
     let site = Site::create(pool, &site_form).await?;
     let form = FederationAllowListForm::new(instance0.id);
     let allow = FederationAllowList::allow(pool, &form).await?;

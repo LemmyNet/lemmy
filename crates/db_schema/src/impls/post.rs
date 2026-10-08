@@ -9,6 +9,7 @@ use crate::{
     PostReadForm,
     PostSavedForm,
     PostUpdateForm,
+    PostUpsertForm,
   },
   traits::{Likeable, Saveable},
   utils::{DELETED_REPLACEMENT_TEXT, FETCH_LIMIT_MAX, SITEMAP_DAYS, SITEMAP_LIMIT},
@@ -86,10 +87,10 @@ impl Crud for Post {
 }
 
 impl Post {
-  pub async fn insert_apub(
+  pub async fn upsert_apub(
     pool: &mut DbPool<'_>,
     timestamp: DateTime<Utc>,
-    form: &PostInsertForm,
+    form: &PostUpsertForm,
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     insert_into(post::table)

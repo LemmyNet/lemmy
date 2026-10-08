@@ -64,8 +64,11 @@ impl Collection for ApubCommunityOutbox {
       )
       .await
       {
-        let announcable = AnnouncableActivities::CreateOrUpdatePost(create);
-        if let Ok(announce) = AnnounceActivity::new(announcable.try_into()?, owner, data) {
+        let announcable = AnnouncableActivities::CreateOrUpdatePost(create.clone());
+        // create id is like https://lemmy.example.com/activities/create/{UUID}
+        if let Ok(announce) =
+          AnnounceActivity::new(announcable.try_into()?, owner, Some(create.id()), data)
+        {
           ordered_items.push(announce);
         }
       }

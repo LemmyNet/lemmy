@@ -50,7 +50,7 @@ impl Crud for PrivateMessage {
 }
 
 impl PrivateMessage {
-  pub async fn insert_apub(
+  pub async fn upsert_apub(
     pool: &mut DbPool<'_>,
     timestamp: DateTime<Utc>,
     form: &PrivateMessageInsertForm,

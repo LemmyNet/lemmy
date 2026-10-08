@@ -95,7 +95,7 @@ pub struct Post {
 
 // TODO: FromBytes, ToBytes are only needed to develop wasm plugin, could be behind feature flag
 #[derive(Debug, Clone, derive_new::new, Serialize, Deserialize)]
-#[cfg_attr(feature = "full", derive(Insertable, AsChangeset,))]
+#[cfg_attr(feature = "full", derive(Insertable))]
 #[cfg_attr(feature = "full", diesel(table_name = post))]
 pub struct PostInsertForm {
   pub name: String,
@@ -153,6 +153,41 @@ pub struct PostInsertForm {
 #[cfg_attr(feature = "full", derive(AsChangeset, Serialize, Deserialize))]
 #[cfg_attr(feature = "full", diesel(table_name = post))]
 pub struct PostUpdateForm {
+  pub name: Option<String>,
+  pub nsfw: Option<bool>,
+  pub url: Option<Option<DbUrl>>,
+  pub body: Option<Option<String>>,
+  pub removed: Option<bool>,
+  pub locked: Option<bool>,
+  pub published_at: Option<DateTime<Utc>>,
+  pub updated_at: Option<Option<DateTime<Utc>>>,
+  pub deleted: Option<bool>,
+  pub embed_title: Option<Option<String>>,
+  pub embed_description: Option<Option<String>>,
+  pub embed_video_url: Option<Option<DbUrl>>,
+  pub embed_video_width: Option<Option<i32>>,
+  pub embed_video_height: Option<Option<i32>>,
+  pub thumbnail_url: Option<Option<DbUrl>>,
+  pub ap_id: Option<DbUrl>,
+  pub local: Option<bool>,
+  pub language_id: Option<LanguageId>,
+  pub featured_community: Option<bool>,
+  pub featured_local: Option<bool>,
+  pub url_content_type: Option<Option<String>>,
+  pub alt_text: Option<Option<String>>,
+  pub scheduled_publish_time_at: Option<Option<DateTime<Utc>>>,
+  pub federation_pending: Option<bool>,
+}
+
+#[derive(Debug, Clone, Default)]
+#[cfg_attr(
+  feature = "full",
+  derive(Insertable, AsChangeset, Serialize, Deserialize)
+)]
+#[cfg_attr(feature = "full", diesel(table_name = post))]
+pub struct PostUpsertForm {
+  pub creator_id: PersonId,
+  pub community_id: CommunityId,
   pub name: Option<String>,
   pub nsfw: Option<bool>,
   pub url: Option<Option<DbUrl>>,
