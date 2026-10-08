@@ -21,11 +21,12 @@ pub async fn add_admin(
   // Make sure user is an admin
   is_admin(&local_user_view)?;
 
+  // Check that you're a higher admin.
+  // Do this even if you're adding an admin (so that lower admins can't re-order higher ones)
+  LocalUser::is_higher_admin_check(&mut context.pool(), my_person_id, vec![data.person_id]).await?;
+
   // If its an admin removal, also check that you're a higher admin
   if !data.added {
-    LocalUser::is_higher_admin_check(&mut context.pool(), my_person_id, vec![data.person_id])
-      .await?;
-
     // Dont allow removing the last admin
     let admins = PersonView::list_admins(
       None,
