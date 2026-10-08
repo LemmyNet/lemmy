@@ -1,4 +1,3 @@
--- This file should undo anything in `up.sql`
 ALTER TABLE local_site
     DROP COLUMN linked_instances,
     DROP COLUMN total_posts,

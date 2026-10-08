@@ -1,4 +1,3 @@
--- Your SQL goes here
 ALTER TABLE local_site
     ADD COLUMN linked_instances integer NOT NULL DEFAULT 0,
     ADD COLUMN total_posts integer NOT NULL DEFAULT 0,
