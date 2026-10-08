@@ -359,8 +359,8 @@ diesel::table! {
         #[max_length = 3]
         code -> Varchar,
         name -> Text,
-        usage_in_local_posts -> Float8,
-        usage_in_local_comments -> Float8,
+        usage_in_local_posts_percent -> Int2,
+        usage_in_local_comments_percent -> Int2,
     }
 }
 
@@ -438,9 +438,9 @@ diesel::table! {
         total_comments -> Int4,
         total_users -> Int4,
         total_communities -> Int4,
-        user_retention_month_percent -> Float8,
-        user_retention_half_year_percent -> Float8,
-        ban_rate -> Float8,
+        user_retention_month_percent -> Int2,
+        user_retention_half_year_percent -> Int2,
+        banned_users_percent -> Int2,
         max_invites_per_user_allowed -> Int4,
     }
 }

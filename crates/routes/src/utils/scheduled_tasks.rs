@@ -12,7 +12,7 @@ use diesel::{
   dsl::{IntervalDsl, count, count_star, exists, not, update},
   query_builder::AsQuery,
   sql_query,
-  sql_types::{BigInt, Float8, Integer, Timestamptz},
+  sql_types::{BigInt, Integer, SmallInt, Timestamptz},
 };
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use diesel_uplete::uplete;
@@ -548,17 +548,13 @@ async fn process_retention_percents(
   .await
   .inspect_err(|e| warn!("Failed to calculate user retention: {e}"))?;
 
-  let percent = if retention.previous_count == 0 {
-    0.0
-  } else {
-    f64::from(retention.retained_count) / f64::from(retention.previous_count) * 100.0
-  };
+  let percent = percent(retention.retained_count, retention.previous_count);
 
   sql_query(format!(
     "update local_site set user_retention_{}_percent = $1",
     interval.1,
   ))
-  .bind::<Float8, _>(percent)
+  .bind::<SmallInt, _>(percent)
   .execute(conn)
   .await
   .inspect_err(|e| warn!("Failed to update user retention stats: {e}"))
@@ -770,8 +766,8 @@ async fn update_language_usage_percents(pool: &mut DbPool<'_>) -> LemmyResult<()
       SELECT local_posts, local_comments FROM local_site LIMIT 1
     )
     UPDATE language l SET
-      usage_in_local_posts = COALESCE(pc.n::float8 / NULLIF(t.local_posts, 0) * 100.0, 0), /* set usage_in_local_posts to 0 if t.local_posts is 0*/ 
-      usage_in_local_comments = COALESCE(cc.n::float8 / NULLIF(t.local_comments, 0) * 100.0, 0)
+      usage_in_local_posts_percent = COALESCE(ROUND(pc.n * 100.0 / NULLIF(t.local_posts, 0)), 0)::smallint, /* set usage_in_local_posts_percent to 0 if t.local_posts is 0*/
+      usage_in_local_comments_percent = COALESCE(ROUND(cc.n * 100.0 / NULLIF(t.local_comments, 0)), 0)::smallint
     FROM language l2
       CROSS JOIN totals t
       LEFT JOIN post_counts pc ON pc.language_id = l2.id
@@ -989,21 +985,26 @@ async fn update_banned_user_percent(pool: &mut DbPool<'_>) -> LemmyResult<()> {
     .await
     .map(i32::try_from)??;
 
-  let ban_rate = if total_local_user_count == 0 {
-    0.0
-  } else {
-    f64::from(banned_local_user_count) / f64::from(total_local_user_count) * 100.0
-  };
+  let banned_users_percent = percent(banned_local_user_count, total_local_user_count);
 
   update(local_site::table)
-    .set(local_site::ban_rate.eq(ban_rate))
+    .set(local_site::banned_users_percent.eq(banned_users_percent))
     .execute(conn)
     .await?;
 
   info!(
-    "Finished ban_rate ({banned_local_user_count} out of {total_local_user_count} local users banned, {ban_rate:.2}%)"
+    "Finished banned_users_percent ({banned_local_user_count} out of {total_local_user_count} local users banned, {banned_users_percent}%)"
   );
   Ok(())
+}
+
+#[expect(clippy::as_conversions)]
+fn percent(part: i32, total: i32) -> i16 {
+  if total == 0 {
+    0
+  } else {
+    (f64::from(part) / f64::from(total) * 100.0).round() as i16
+  }
 }
 
 #[cfg(test)]
@@ -1366,22 +1367,10 @@ mod tests {
     let en_language = Language::read_from_id(pool, en_id).await?;
     let de_language = Language::read_from_id(pool, de_id).await?;
 
-    assert_eq!(
-      (en_language.usage_in_local_posts * 100.0).round() / 100.0,
-      66.67
-    );
-    assert_eq!(
-      (de_language.usage_in_local_posts * 100.0).round() / 100.0,
-      33.33
-    );
-    assert_eq!(
-      (en_language.usage_in_local_comments * 100.0).round() / 100.0,
-      25.0
-    );
-    assert_eq!(
-      (de_language.usage_in_local_comments * 100.0).round() / 100.0,
-      75.0
-    );
+    assert_eq!(en_language.usage_in_local_posts_percent, 67);
+    assert_eq!(de_language.usage_in_local_posts_percent, 33);
+    assert_eq!(en_language.usage_in_local_comments_percent, 25);
+    assert_eq!(de_language.usage_in_local_comments_percent, 75);
 
     data.delete(pool).await?;
     Ok(())
@@ -1465,7 +1454,7 @@ mod tests {
     process_retention_percents(conn, ONE_MONTH).await?;
 
     let local_site = SiteView::read_local(pool).await?.local_site;
-    assert_eq!(local_site.user_retention_month_percent, 50.0);
+    assert_eq!(local_site.user_retention_month_percent, 50);
 
     data.delete(pool).await?;
     Ok(())
