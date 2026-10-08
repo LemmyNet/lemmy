@@ -33,22 +33,10 @@ use lemmy_utils::{
   utils::validation::clean_url,
 };
 use regex::Regex;
-use rustls::{
-  client::danger::{
-    DangerousClientConfigBuilder,
-    HandshakeSignatureValid,
-    ServerCertVerified,
-    ServerCertVerifier,
-  },
-  crypto::{self, verify_tls12_signature, verify_tls13_signature},
-  pki_types::{CertificateDer, ServerName, UnixTime},
-  ClientConfig,
-  DigitallySignedStruct,
-  SignatureScheme,
-};
+use rustls::ClientConfig;
 use std::{
   ops::{Deref, DerefMut},
-  sync::{Arc, LazyLock},
+  sync::LazyLock,
   time::Duration,
 };
 use tracing::error;
@@ -329,11 +317,12 @@ fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConne
   let fut = async {
     // We only support TLS with sslmode=require currently
     let mut conn = if config.contains("sslmode=require") {
-      let rustls_config = DangerousClientConfigBuilder {
-        cfg: ClientConfig::builder(),
-      }
-      .with_custom_certificate_verifier(Arc::new(NoCertVerifier {}))
-      .with_no_client_auth();
+      let root_store =
+        rustls::RootCertStore::from_iter(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
+
+      let rustls_config = ClientConfig::builder()
+        .with_root_certificates(root_store)
+        .with_no_client_auth();
 
       let tls = tokio_postgres_rustls::MakeRustlsConnect::new(rustls_config);
       let (client, conn) = tokio_postgres::connect(config, tls)
@@ -370,57 +359,6 @@ fn establish_connection(config: &str) -> BoxFuture<ConnectionResult<AsyncPgConne
     Ok(conn)
   };
   fut.boxed()
-}
-
-#[derive(Debug)]
-struct NoCertVerifier {}
-
-impl ServerCertVerifier for NoCertVerifier {
-  fn verify_server_cert(
-    &self,
-    _end_entity: &CertificateDer,
-    _intermediates: &[CertificateDer],
-    _server_name: &ServerName,
-    _ocsp: &[u8],
-    _now: UnixTime,
-  ) -> Result<ServerCertVerified, rustls::Error> {
-    // Will verify all (even invalid) certs without any checks (sslmode=require)
-    Ok(ServerCertVerified::assertion())
-  }
-
-  fn verify_tls12_signature(
-    &self,
-    message: &[u8],
-    cert: &CertificateDer,
-    dss: &DigitallySignedStruct,
-  ) -> Result<HandshakeSignatureValid, rustls::Error> {
-    verify_tls12_signature(
-      message,
-      cert,
-      dss,
-      &crypto::ring::default_provider().signature_verification_algorithms,
-    )
-  }
-
-  fn verify_tls13_signature(
-    &self,
-    message: &[u8],
-    cert: &CertificateDer,
-    dss: &DigitallySignedStruct,
-  ) -> Result<HandshakeSignatureValid, rustls::Error> {
-    verify_tls13_signature(
-      message,
-      cert,
-      dss,
-      &crypto::ring::default_provider().signature_verification_algorithms,
-    )
-  }
-
-  fn supported_verify_schemes(&self) -> Vec<SignatureScheme> {
-    crypto::ring::default_provider()
-      .signature_verification_algorithms
-      .supported_schemes()
-  }
 }
 
 pub async fn build_db_pool() -> LemmyResult<ActualDbPool> {

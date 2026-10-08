@@ -166,6 +166,7 @@ ts-rs = { version = "7.1.1", features = [
   "no-serde-warnings",
 ] }
 rustls = { version = "0.23.43", features = ["ring"] }
+webpki-roots = "1.0.9"
 futures-util = "0.3.33"
 tokio-postgres = "0.7.16"
 tokio-postgres-rustls = "0.12.0"
