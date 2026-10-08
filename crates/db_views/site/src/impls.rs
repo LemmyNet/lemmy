@@ -10,6 +10,7 @@ use diesel::{
   PgTextExpressionMethods,
   QueryDsl,
   SelectableHelper,
+  dsl::count_star,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
@@ -133,6 +134,16 @@ impl FederatedInstanceView {
       .left_join(federation_blocklist::table)
       .left_join(federation_allowlist::table)
       .left_join(federation_queue_state::table)
+  }
+
+  pub async fn count(pool: &mut DbPool<'_>) -> LemmyResult<i32> {
+    let conn = &mut get_conn(pool).await?;
+    let count = Self::joins()
+      .filter(federation_blocklist::instance_id.is_null())
+      .select(count_star())
+      .first::<i64>(conn)
+      .await?;
+    Ok(i32::try_from(count)?)
   }
 
   pub async fn list(

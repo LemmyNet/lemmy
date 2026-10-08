@@ -78,10 +78,10 @@ pub struct LocalSite {
   pub default_post_time_range_seconds: Option<i32>,
   /// Block NSFW content being created
   pub nsfw_content_disallowed: bool,
-  pub users: i32,
-  pub posts: i32,
-  pub comments: i32,
-  pub communities: i32,
+  pub local_users: i32,
+  pub local_posts: i32,
+  pub local_comments: i32,
+  pub local_communities: i32,
   /// The number of users with any activity in the last day.
   pub users_active_day: i32,
   /// The number of users with any activity in the last week.
@@ -113,6 +113,14 @@ pub struct LocalSite {
   /// This affects post and comment images, but not avatars and banners.
   pub image_allow_video_uploads: bool,
   pub image_upload_disabled: bool,
+  pub linked_instances: i32,
+  pub total_posts: i32,
+  pub total_comments: i32,
+  pub total_users: i32,
+  pub total_communities: i32,
+  pub user_retention_month_percent: i16,
+  pub user_retention_half_year_percent: i16,
+  pub banned_users_percent: i16,
   /// How many active invite links a user can have
   pub max_invites_per_user_allowed: i32,
 }

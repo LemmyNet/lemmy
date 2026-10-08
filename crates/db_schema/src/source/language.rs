@@ -14,4 +14,6 @@ pub struct Language {
   pub id: LanguageId,
   pub code: String,
   pub name: String,
+  pub usage_in_local_posts_percent: i16,
+  pub usage_in_local_comments_percent: i16,
 }
