@@ -150,6 +150,7 @@ impl Object for ApubCommunity {
         .into_iter()
         .map(ApubCommunityTag::to_json)
         .collect(),
+      post_downvote_mode: Some(self.post_downvote_mode),
     };
     Ok(group)
   }
@@ -244,6 +245,7 @@ impl Object for ApubCommunity {
       featured_url: Some(group.featured.clone().clone().map(Into::into)),
       title: Some(title),
       visibility,
+      post_downvote_mode: Some(group.post_downvote_mode.unwrap_or_default()),
       instance_id,
       name,
       public_key: Some(group.public_key.public_key_pem.clone()),

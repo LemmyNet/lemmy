@@ -4,7 +4,7 @@ pub use lemmy_db_schema::source::{
   multi_community::{MultiCommunity, MultiCommunityFollow},
 };
 pub use lemmy_db_schema_file::{
-  enums::CommunityVisibility,
+  enums::{CommunityVisibility, VoteSettings},
   newtypes::{CommunityId, CommunityTagId, MultiCommunityId},
 };
 pub use lemmy_db_views_community::{
