@@ -2437,3 +2437,88 @@ async fn search(data: &mut Data) -> LemmyResult<()> {
 
   Ok(())
 }
+
+// Route 1 & 2: PostQuery (list) and PostView::read (GetPost) must hide scheduled posts
+// from non-creators.
+#[test_context(Data)]
+#[tokio::test]
+#[serial]
+async fn scheduled_post_hidden_from_non_creator(data: &mut Data) -> LemmyResult<()> {
+  let pool = &data.pool();
+  let pool = &mut pool.into();
+
+  let future_time = Utc::now()
+    .checked_add_days(Days::new(1))
+    .expect("future time");
+
+  // john creates a scheduled post
+  let scheduled_form = PostInsertForm {
+    scheduled_publish_time_at: Some(future_time),
+    ..PostInsertForm::new(
+      "john scheduled post".into(),
+      data.john.person.id,
+      data.community.id,
+    )
+  };
+  let scheduled_post = Post::create(pool, &scheduled_form).await?;
+
+  // PostQuery: only john can see it
+  for (local_user, should_see) in [
+    (None, false),
+    (Some(&data.tegan.local_user), false),
+    (Some(&data.john.local_user), true),
+  ] {
+    let contains = PostQuery {
+      local_user,
+      creator_id: Some(data.john.person.id),
+      ..Default::default()
+    }
+    .list(pool, &data.site, &data.local_site)
+    .await?
+    .iter()
+    .any(|p| p.post.id == scheduled_post.id);
+    assert_eq!(
+      should_see,
+      contains,
+      "PostQuery: local_user={} should_see={}",
+      local_user.is_some(),
+      should_see
+    );
+  }
+
+  // PostView::read: logged-out and non-creator must get NotFound
+  let logged_out = PostView::read(pool, scheduled_post.id, None, data.instance.id, false).await;
+  assert!(
+    logged_out.is_err(),
+    "PostView::read must return Err for logged-out user on scheduled post"
+  );
+
+  let other_user = PostView::read(
+    pool,
+    scheduled_post.id,
+    Some(&data.tegan.local_user),
+    data.instance.id,
+    true, // admin
+  )
+  .await;
+  assert!(
+    other_user.is_err(),
+    "PostView::read must return Err for admin non-creator on scheduled post"
+  );
+
+  let creator_view = PostView::read(
+    pool,
+    scheduled_post.id,
+    Some(&data.john.local_user),
+    data.instance.id,
+    false,
+  )
+  .await;
+  assert!(
+    creator_view.is_ok(),
+    "PostView::read must return Ok for the creator of a scheduled post"
+  );
+
+  Post::delete(pool, scheduled_post.id).await?;
+  Ok(())
+}

@@ -4007,6 +4007,7 @@ dependencies = [
 name = "lemmy_db_views_person_content_combined"
 version = "1.0.0-beta.2"
 dependencies = [
+ "chrono",
  "diesel",
  "diesel-async",
  "i-love-jesus",

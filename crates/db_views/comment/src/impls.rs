@@ -139,6 +139,13 @@ impl CommentView {
       query = query.filter(community::visibility.ne(CommunityVisibility::LocalOnlyPrivate));
     }
 
+    // Only the post creator can see comments on their own unpublished scheduled posts.
+    query = query.filter(
+      post::scheduled_publish_time_at
+        .is_null()
+        .or(post::creator_id.nullable().eq(my_local_user.person_id())),
+    );
+
     query
       .first::<Self>(conn)
       .await
@@ -264,6 +271,17 @@ impl CommentQuery<'_> {
       query = query.filter(community::visibility.ne(CommunityVisibility::LocalOnlyPrivate));
     }
 
+    // Only the post creator can see comments on their own unpublished scheduled posts.
+    if let Some(person_id) = my_person_id {
+      query = query.filter(
+        post::scheduled_publish_time_at
+          .is_null()
+          .or(post::creator_id.eq(person_id)),
+      );
+    } else {
+      query = query.filter(post::scheduled_publish_time_at.is_null());
+    }
+
     if !self.local_user.show_bot_accounts() {
       query = query.filter(person::bot_account.eq(false));
     };
@@ -364,11 +382,12 @@ impl CommentQuery<'_> {
 }
 
 #[cfg(test)]
-#[expect(clippy::indexing_slicing)]
+#[expect(clippy::indexing_slicing, clippy::expect_used)]
 mod tests {
 
   use super::*;
   use crate::{CommentView, impls::CommentQuery};
+  use chrono::{Days, Utc};
   use lemmy_db_schema::{
     assert_length,
     impls::actor_language::UNDETERMINED_ID,
@@ -1141,6 +1160,231 @@ mod tests {
 
     assert_length!(1, comment_search_by_name);
     assert_eq!(data.comment_2.id, comment_search_by_name[0].comment.id);
+
+    cleanup(data, pool).await
+  }
+
+  /// Comments on a scheduled (unpublished) post are hidden from everyone except the post creator,
+  /// regardless of admin or mod status.
+  #[tokio::test]
+  #[serial]
+  async fn scheduled_post_comments_hidden_from_non_creator() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    let future_time = Utc::now()
+      .checked_add_days(Days::new(1))
+      .expect("future time");
+
+    // timmy (admin, post creator) creates a scheduled post
+    let scheduled_post = Post::create(
+      pool,
+      &PostInsertForm {
+        scheduled_publish_time_at: Some(future_time),
+        ..PostInsertForm::new(
+          "timmy scheduled post".into(),
+          data.timmy.person.id,
+          data.community.id,
+        )
+      },
+    )
+    .await?;
+
+    // timmy (the post creator) also comments on their own scheduled post
+    // (done at the DB level, bypassing the API guard)
+    let comment_on_scheduled = Comment::create(
+      pool,
+      &CommentInsertForm::new(
+        data.timmy.person.id,
+        scheduled_post.id,
+        data.community.id,
+        "creator comment on scheduled post".into(),
+      ),
+      None,
+    )
+    .await?;
+
+    // --- CommentView::read checks ---
+
+    // Unauthenticated: must not see the comment
+    let res = CommentView::read(pool, comment_on_scheduled.id, None, data.instance.id).await;
+    assert!(
+      res.is_err(),
+      "unauthenticated user must not see comment on scheduled post"
+    );
+
+    // Non-creator (holly): must not see it
+    let res = CommentView::read(
+      pool,
+      comment_on_scheduled.id,
+      Some(&data.holly.local_user),
+      data.instance.id,
+    )
+    .await;
+    assert!(
+      res.is_err(),
+      "non-creator must not see comment on scheduled post"
+    );
+
+    // Post creator (timmy): must see it
+    let res = CommentView::read(
+      pool,
+      comment_on_scheduled.id,
+      Some(&data.timmy.local_user),
+      data.instance.id,
+    )
+    .await;
+    assert!(
+      res.is_ok(),
+      "post creator must see comment on their own scheduled post"
+    );
+
+    // --- CommentQuery::list checks ---
+
+    // No user: comment not in list
+    let comments_anon = CommentQuery {
+      post_id: Some(scheduled_post.id),
+      ..Default::default()
+    }
+    .list(pool, &data.site, &data.local_site)
+    .await?;
+    assert!(
+      !comments_anon
+        .iter()
+        .any(|c| c.comment.id == comment_on_scheduled.id),
+      "unauthenticated list must not include comment on scheduled post"
+    );
+
+    // type_=All, no post_id: comment not in list for holly
+    let comments_holly = CommentQuery {
+      listing_type: Some(lemmy_db_schema_file::enums::ListingType::All),
+      local_user: Some(&data.holly.local_user),
+      ..Default::default()
+    }
+    .list(pool, &data.site, &data.local_site)
+    .await?;
+    assert!(
+      !comments_holly
+        .iter()
+        .any(|c| c.comment.id == comment_on_scheduled.id),
+      "non-creator must not see comment on scheduled post in list"
+    );
+
+    // post_id filter: comment not in list for holly
+    let comments_holly_post = CommentQuery {
+      post_id: Some(scheduled_post.id),
+      local_user: Some(&data.holly.local_user),
+      ..Default::default()
+    }
+    .list(pool, &data.site, &data.local_site)
+    .await?;
+    assert!(
+      !comments_holly_post
+        .iter()
+        .any(|c| c.comment.id == comment_on_scheduled.id),
+      "non-creator must not see comment on scheduled post when filtering by post_id"
+    );
+
+    // Creator (timmy) can see the comment in list
+    let comments_timmy = CommentQuery {
+      post_id: Some(scheduled_post.id),
+      local_user: Some(&data.timmy.local_user),
+      ..Default::default()
+    }
+    .list(pool, &data.site, &data.local_site)
+    .await?;
+    assert!(
+      comments_timmy
+        .iter()
+        .any(|c| c.comment.id == comment_on_scheduled.id),
+      "post creator must see comment on their own scheduled post in list"
+    );
+
+    cleanup(data, pool).await
+  }
+
+  /// The /search endpoint calls CommentQuery with search_term; comments on a scheduled post must
+  /// not appear in search results for non-creators.
+  #[tokio::test]
+  #[serial]
+  async fn scheduled_post_comment_hidden_in_search() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    let future_time = Utc::now()
+      .checked_add_days(Days::new(1))
+      .expect("future time");
+
+    let scheduled_post = Post::create(
+      pool,
+      &PostInsertForm {
+        scheduled_publish_time_at: Some(future_time),
+        ..PostInsertForm::new(
+          "scheduled post for search".into(),
+          data.timmy.person.id,
+          data.community.id,
+        )
+      },
+    )
+    .await?;
+
+    Comment::create(
+      pool,
+      &CommentInsertForm::new(
+        data.timmy.person.id,
+        scheduled_post.id,
+        data.community.id,
+        "unique_search_term_xyz".into(),
+      ),
+      None,
+    )
+    .await?;
+
+    // Mimics CommentQuery used by /search: search_term + listing_type=All, no user
+    let results_anon = CommentQuery {
+      search_term: Some("unique_search_term_xyz".into()),
+      listing_type: Some(lemmy_db_schema_file::enums::ListingType::All),
+      ..Default::default()
+    }
+    .list(pool, &data.site, &data.local_site)
+    .await?;
+    assert_eq!(
+      0,
+      results_anon.len(),
+      "unauthenticated search must not return comment on scheduled post"
+    );
+
+    // Non-creator also gets nothing
+    let results_holly = CommentQuery {
+      search_term: Some("unique_search_term_xyz".into()),
+      listing_type: Some(lemmy_db_schema_file::enums::ListingType::All),
+      local_user: Some(&data.holly.local_user),
+      ..Default::default()
+    }
+    .list(pool, &data.site, &data.local_site)
+    .await?;
+    assert_eq!(
+      0,
+      results_holly.len(),
+      "non-creator search must not return comment on scheduled post"
+    );
+
+    // Post creator gets the comment in search results
+    let results_timmy = CommentQuery {
+      search_term: Some("unique_search_term_xyz".into()),
+      listing_type: Some(lemmy_db_schema_file::enums::ListingType::All),
+      local_user: Some(&data.timmy.local_user),
+      ..Default::default()
+    }
+    .list(pool, &data.site, &data.local_site)
+    .await?;
+    assert_eq!(
+      1,
+      results_timmy.len(),
+      "post creator must find their own comment via search"
+    );
 
     cleanup(data, pool).await
   }
