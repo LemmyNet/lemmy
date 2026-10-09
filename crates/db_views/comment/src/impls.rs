@@ -1303,4 +1303,89 @@ mod tests {
 
     cleanup(data, pool).await
   }
+
+  /// The /search endpoint calls CommentQuery with search_term; comments on a scheduled post must
+  /// not appear in search results for non-creators.
+  #[tokio::test]
+  #[serial]
+  async fn scheduled_post_comment_hidden_in_search() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    let future_time = Utc::now()
+      .checked_add_days(Days::new(1))
+      .expect("future time");
+
+    let scheduled_post = Post::create(
+      pool,
+      &PostInsertForm {
+        scheduled_publish_time_at: Some(future_time),
+        ..PostInsertForm::new(
+          "scheduled post for search".into(),
+          data.timmy.person.id,
+          data.community.id,
+        )
+      },
+    )
+    .await?;
+
+    Comment::create(
+      pool,
+      &CommentInsertForm::new(
+        data.timmy.person.id,
+        scheduled_post.id,
+        data.community.id,
+        "unique_search_term_xyz".into(),
+      ),
+      None,
+    )
+    .await?;
+
+    // Mimics CommentQuery used by /search: search_term + listing_type=All, no user
+    let results_anon = CommentQuery {
+      search_term: Some("unique_search_term_xyz".into()),
+      listing_type: Some(lemmy_db_schema_file::enums::ListingType::All),
+      ..Default::default()
+    }
+    .list(pool, &data.site, &data.local_site)
+    .await?;
+    assert_eq!(
+      0,
+      results_anon.len(),
+      "unauthenticated search must not return comment on scheduled post"
+    );
+
+    // Non-creator also gets nothing
+    let results_holly = CommentQuery {
+      search_term: Some("unique_search_term_xyz".into()),
+      listing_type: Some(lemmy_db_schema_file::enums::ListingType::All),
+      local_user: Some(&data.holly.local_user),
+      ..Default::default()
+    }
+    .list(pool, &data.site, &data.local_site)
+    .await?;
+    assert_eq!(
+      0,
+      results_holly.len(),
+      "non-creator search must not return comment on scheduled post"
+    );
+
+    // Post creator gets the comment in search results
+    let results_timmy = CommentQuery {
+      search_term: Some("unique_search_term_xyz".into()),
+      listing_type: Some(lemmy_db_schema_file::enums::ListingType::All),
+      local_user: Some(&data.timmy.local_user),
+      ..Default::default()
+    }
+    .list(pool, &data.site, &data.local_site)
+    .await?;
+    assert_eq!(
+      1,
+      results_timmy.len(),
+      "post creator must find their own comment via search"
+    );
+
+    cleanup(data, pool).await
+  }
 }

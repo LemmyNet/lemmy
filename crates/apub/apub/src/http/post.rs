@@ -91,6 +91,44 @@ mod tests {
     data.delete(&mut context.pool()).await?;
     Ok(())
   }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_get_apub_post_context_scheduled_is_not_found() -> LemmyResult<()> {
+    let context = LemmyContext::init_test_context().await;
+    let data = TestData::create(&mut context.pool()).await?;
+
+    let community = Community::create(
+      &mut context.pool(),
+      &CommunityInsertForm::new(data.instance.id, "apost_ctx_sched".into(), "pubkey3".into()),
+    )
+    .await?;
+
+    let future_time = Utc::now().checked_add_days(Days::new(1)).expect("future");
+    let scheduled_post = Post::create(
+      &mut context.pool(),
+      &PostInsertForm {
+        scheduled_publish_time_at: Some(future_time),
+        ..PostInsertForm::new("scheduled ctx".into(), data.person.id, community.id)
+      },
+    )
+    .await?;
+
+    let info = web::Path::from(PostQuery {
+      post_id: scheduled_post.id.0.to_string(),
+    });
+    let request = TestRequest::default().to_http_request();
+
+    // Context route must also return 404 for a scheduled post
+    let result = get_apub_post_context(info, context.clone(), request).await;
+    assert!(
+      result.is_err(),
+      "expected Err from context route for scheduled post, got Ok"
+    );
+
+    data.delete(&mut context.pool()).await?;
+    Ok(())
+  }
 }
 
 #[derive(Deserialize)]
