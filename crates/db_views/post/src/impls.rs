@@ -1,18 +1,8 @@
 use crate::PostView;
 use diesel::{
-  self,
-  BoolExpressionMethods,
-  ExpressionMethods,
-  JoinOnDsl,
-  NullableExpressionMethods,
-  PgTextExpressionMethods,
-  QueryDsl,
-  SelectableHelper,
-  TextExpressionMethods,
-  debug_query,
-  dsl::not,
-  pg::Pg,
-  query_builder::AsQuery,
+  self, BoolExpressionMethods, ExpressionMethods, JoinOnDsl, NullableExpressionMethods,
+  PgTextExpressionMethods, QueryDsl, SelectableHelper, TextExpressionMethods, debug_query,
+  dsl::not, pg::Pg, query_builder::AsQuery,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::{SortDirection, asc_if};
@@ -34,22 +24,14 @@ use lemmy_db_schema::{
   },
 };
 use lemmy_db_schema_file::{
-  InstanceId,
-  PersonId,
+  InstanceId, PersonId,
   enums::{CommunityVisibility, ListingType, PostSortType},
   joins::{
-    creator_community_actions_join,
-    creator_community_instance_actions_join,
-    creator_home_instance_actions_join,
-    creator_local_instance_actions_join,
-    creator_local_user_admin_join,
-    image_details_join,
-    my_community_actions_join,
-    my_instance_communities_actions_join,
-    my_instance_persons_actions_join_1,
-    my_local_user_admin_join,
-    my_person_actions_join,
-    my_post_actions_join,
+    creator_community_actions_join, creator_community_instance_actions_join,
+    creator_home_instance_actions_join, creator_local_instance_actions_join,
+    creator_local_user_admin_join, image_details_join, my_community_actions_join,
+    my_instance_communities_actions_join, my_instance_persons_actions_join_1,
+    my_local_user_admin_join, my_person_actions_join, my_post_actions_join,
   },
   newtypes::{CommunityId, CommunityTagId, MultiCommunityId, PostId},
   schema::{community, person, post, post_actions, post_community_tag},
@@ -57,11 +39,7 @@ use lemmy_db_schema_file::{
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   pagination::{
-    CursorData,
-    PagedResponse,
-    PaginationCursor,
-    PaginationCursorConversion,
-    paginate_response,
+    CursorData, PagedResponse, PaginationCursor, PaginationCursorConversion, paginate_response,
   },
   traits::Crud,
   utils::{CoalesceKey, Commented, fuzzy_search, now, seconds_to_pg_interval},
@@ -190,6 +168,13 @@ impl PostView {
     if my_local_user.is_none() {
       query = query.filter(community::visibility.ne(CommunityVisibility::LocalOnlyPrivate));
     }
+
+    // Only the creator can see their own unpublished scheduled posts.
+    query = query.filter(
+      post::scheduled_publish_time_at
+        .is_null()
+        .or(post::creator_id.nullable().eq(my_person_id)),
+    );
 
     // Hide deleted and removed for non-admins or mods
     if !is_mod_or_admin {
