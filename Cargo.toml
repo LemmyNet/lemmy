@@ -213,6 +213,7 @@ ts-rs = { version = "12.0.1", features = [
   "url-impl",
 ] }
 rustls = { version = "0.23.37", features = ["ring"], default-features = false }
+webpki-roots = "1.0.9"
 tokio-postgres = "0.7.16"
 tokio-postgres-rustls = "0.13.0"
 urlencoding = "2.1.3"
