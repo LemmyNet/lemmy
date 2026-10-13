@@ -230,7 +230,7 @@ mod tests {
       local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
       person::{Person, PersonActions, PersonInsertForm, PersonNoteForm, PersonUpdateForm},
       post::{Post, PostActions, PostInsertForm, PostLikeForm},
-      site::SiteInsertForm,
+      site::SiteUpsertForm,
     },
     traits::{Bannable, Followable, Likeable},
   };
@@ -252,7 +252,7 @@ mod tests {
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
     let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
-    let site_form = SiteInsertForm::new("test_site".to_string(), instance.id);
+    let site_form = SiteUpsertForm::new("test_site".to_string(), instance.id);
     let site = Site::create(pool, &site_form).await?;
 
     let alice_form = PersonInsertForm {

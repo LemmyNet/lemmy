@@ -1,6 +1,8 @@
-use crate::check_totp_2fa_valid;
 use actix_web::web::{Data, Json};
-use lemmy_api_utils::{context::LemmyContext, utils::check_local_user_banned_or_deleted};
+use lemmy_api_utils::{
+  context::LemmyContext,
+  utils::{check_local_user_banned_or_deleted, check_totp_2fa_valid},
+};
 use lemmy_db_schema::source::local_user::{LocalUser, LocalUserUpdateForm};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::api::{EditTotp, EditTotpResponse};

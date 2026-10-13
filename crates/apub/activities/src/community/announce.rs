@@ -198,6 +198,7 @@ impl AnnounceActivity {
   pub fn new(
     object: RawAnnouncableActivities,
     community: &ApubCommunity,
+    object_id: Option<&Url>,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<AnnounceActivity> {
     let inner_kind = object
@@ -205,8 +206,11 @@ impl AnnounceActivity {
       .get("type")
       .and_then(serde_json::Value::as_str)
       .unwrap_or("other");
-    let id =
-      generate_announce_activity_id(inner_kind, &context.settings().get_protocol_and_hostname())?;
+    let id = generate_announce_activity_id(
+      inner_kind,
+      &context.settings().get_protocol_and_hostname(),
+      object_id,
+    )?;
     Ok(AnnounceActivity {
       actor: community.id().clone().into(),
       to: generate_to(community)?,
@@ -227,7 +231,7 @@ impl AnnounceActivity {
     community: &ApubCommunity,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    let announce = AnnounceActivity::new(object.clone(), community, context)?;
+    let announce = AnnounceActivity::new(object.clone(), community, None, context)?;
     let inboxes = ActivitySendTargets::to_local_community_followers(community.id);
     send_lemmy_activity(context, announce, community, inboxes.clone(), false).await?;
 
@@ -245,7 +249,7 @@ impl AnnounceActivity {
           .ok_or(UntranslatedError::Unreachable)?
           .clone(),
       };
-      let announce_compat = AnnounceActivity::new(announcable_page, community, context)?;
+      let announce_compat = AnnounceActivity::new(announcable_page, community, None, context)?;
       send_lemmy_activity(context, announce_compat, community, inboxes, false).await?;
     }
     Ok(())

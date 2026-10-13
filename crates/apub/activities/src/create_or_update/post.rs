@@ -2,7 +2,7 @@ use crate::{
   activity_lists::AnnouncableActivities,
   community::send_activity_in_community,
   create_or_update::{parse_apub_mentions, tagged_user_inboxes},
-  generate_activity_id,
+  generate_activity_id_with_object_id,
   protocol::{CreateOrUpdateType, create_or_update::page::CreateOrUpdatePage},
 };
 use activitypub_federation::{
@@ -49,7 +49,12 @@ impl CreateOrUpdatePage {
     kind: CreateOrUpdateType,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<CreateOrUpdatePage> {
-    let id = generate_activity_id(kind.clone(), context)?;
+    let id = generate_activity_id_with_object_id(
+      kind.clone(),
+      post.ap_id.inner(),
+      post.updated_at.unwrap_or(post.published_at),
+      context,
+    )?;
     Ok(CreateOrUpdatePage {
       actor: actor.id().clone().into(),
       to: generate_to(community)?,

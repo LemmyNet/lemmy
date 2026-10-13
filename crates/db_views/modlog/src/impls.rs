@@ -234,7 +234,7 @@ mod tests {
     modlog::{Modlog, ModlogInsertForm},
     person::{Person, PersonInsertForm},
     post::{Post, PostInsertForm},
-    site::{Site, SiteInsertForm},
+    site::{Site, SiteUpsertForm},
   };
   use lemmy_db_schema_file::enums::ModlogKind;
   use lemmy_diesel_utils::{
@@ -261,7 +261,7 @@ mod tests {
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
     let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
-    let site_form = SiteInsertForm::new("test site".to_string(), instance.id);
+    let site_form = SiteUpsertForm::new("test site".to_string(), instance.id);
     let site = Site::create(pool, &site_form).await?;
     let system_acct =
       Person::create(pool, &PersonInsertForm::test_form(instance.id, "langs")).await?;

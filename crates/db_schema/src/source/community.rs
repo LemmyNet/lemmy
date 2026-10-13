@@ -98,7 +98,7 @@ pub struct Community {
 }
 
 #[derive(Debug, Clone, derive_new::new)]
-#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", derive(Insertable))]
 #[cfg_attr(feature = "full", diesel(table_name = community))]
 pub struct CommunityInsertForm {
   pub instance_id: InstanceId,
@@ -145,6 +145,36 @@ pub struct CommunityInsertForm {
   #[new(default)]
   pub summary: Option<String>,
   #[new(default)]
+  pub local_removed: Option<bool>,
+}
+
+#[derive(Debug, Clone, Default)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = community))]
+pub struct CommunityUpsertForm {
+  pub instance_id: InstanceId,
+  pub name: String,
+  pub title: Option<Option<String>>,
+  pub sidebar: Option<Option<String>>,
+  pub removed: Option<bool>,
+  pub published_at: Option<DateTime<Utc>>,
+  pub updated_at: Option<Option<DateTime<Utc>>>,
+  pub deleted: Option<bool>,
+  pub nsfw: Option<bool>,
+  pub ap_id: Option<DbUrl>,
+  pub local: Option<bool>,
+  pub public_key: Option<String>,
+  pub private_key: Option<Option<String>>,
+  pub last_refreshed_at: Option<DateTime<Utc>>,
+  pub icon: Option<Option<DbUrl>>,
+  pub banner: Option<Option<DbUrl>>,
+  pub followers_url: Option<DbUrl>,
+  pub inbox_url: Option<DbUrl>,
+  pub moderators_url: Option<Option<DbUrl>>,
+  pub featured_url: Option<Option<DbUrl>>,
+  pub posting_restricted_to_mods: Option<bool>,
+  pub visibility: Option<CommunityVisibility>,
+  pub summary: Option<Option<String>>,
   pub local_removed: Option<bool>,
 }
 

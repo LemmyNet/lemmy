@@ -3368,7 +3368,6 @@ dependencies = [
  "serial_test",
  "sitemap-rs",
  "tokio",
- "totp-rs",
  "tracing",
  "url",
 ]
@@ -3554,6 +3553,7 @@ dependencies = [
  "serde",
  "serial_test",
  "tokio",
+ "totp-rs",
  "tracing",
  "url",
  "urlencoding",
@@ -3621,6 +3621,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
+ "sha2",
  "strum 0.28.0",
  "tracing",
  "url",
@@ -3725,6 +3726,7 @@ dependencies = [
 name = "lemmy_db_schema"
 version = "1.0.0-beta.2"
 dependencies = [
+ "anyhow",
  "bcrypt",
  "chrono",
  "derive-new",
@@ -3736,6 +3738,7 @@ dependencies = [
  "lemmy_db_schema_file",
  "lemmy_diesel_utils",
  "lemmy_utils 1.0.0-beta.2",
+ "moka",
  "pretty_assertions",
  "serde",
  "serde_json",

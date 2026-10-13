@@ -8,11 +8,12 @@ use diesel_async::{AsyncPgConnection, scoped_futures::ScopedFutureExt};
 use lemmy_api_utils::{
   claims::Claims,
   context::LemmyContext,
-  plugins::{LemmyPlugins, plugin_validate_captcha},
+  plugins::{LemmyPlugins, plugin_hook_after, plugin_hook_before, plugin_validate_captcha},
   utils::{
     check_email_verified,
     check_local_user_banned_or_deleted,
     check_registration_application,
+    check_totp_2fa_valid,
     generate_featured_url,
     generate_followers_url,
     generate_inbox_url,
@@ -152,6 +153,14 @@ pub async fn register(
 
   let language_tags = get_language_tags(&req);
 
+  // Clear password before calling plugin hook
+  let plugin_form = Register {
+    password: Default::default(),
+    password_verify: Default::default(),
+    ..data.clone()
+  };
+  plugin_hook_before("local_user_before_register", plugin_form).await?;
+
   // Wrap the insert person, insert local user, and create registration,
   // in a transaction, so that if any fail, the rows aren't created.
   let conn = &mut get_conn(pool).await?;
@@ -220,6 +229,8 @@ pub async fn register(
       .scope_boxed()
     })
     .await?;
+
+  plugin_hook_after("local_user_after_register", &user);
 
   // Email the admins, only if email verification is not required
   if local_site.application_email_admins && !local_site.email_verification_required {
@@ -347,6 +358,7 @@ pub async fn authenticate_with_oauth(
     check_local_user_banned_or_deleted(&user_view)?;
     check_email_verified(&user_view, &site_view)?;
     check_registration_application(&user_view, &site_view.local_site, pool).await?;
+    check_totp_2fa_if_enabled(&user_view, &data.totp_2fa_token, &context)?;
     local_user
   } else {
     // User has never previously registered using oauth
@@ -363,8 +375,15 @@ pub async fn authenticate_with_oauth(
     // See https://github.com/LemmyNet/lemmy/issues/6609
     let email = read_user_info(&user_info, "email").map(|e| e.to_lowercase());
 
-    // Lookup user by OAUTH email and link accounts
-    local_user_view = if let Some(email) = &email {
+    // Lookup user by OAUTH email and link accounts. Only match by email if the provider
+    // explicitly verified it.
+    let email_verified = user_info
+      .get("email_verified")
+      .and_then(serde_json::Value::as_bool)
+      .unwrap_or(false);
+    local_user_view = if let Some(email) = &email
+      && email_verified
+    {
       LocalUserView::find_by_email(pool, email).await.ok()
     } else {
       None
@@ -385,6 +404,7 @@ pub async fn authenticate_with_oauth(
         check_local_user_banned_or_deleted(&user_view)?;
         check_email_verified(&user_view, &site_view)?;
         check_registration_application(&user_view, &site_view.local_site, pool).await?;
+        check_totp_2fa_if_enabled(&user_view, &data.totp_2fa_token, &context)?;
 
         // Link with OAUTH => Login user
         let oauth_account_form =
@@ -410,6 +430,14 @@ pub async fn authenticate_with_oauth(
       validate_registration_answer(require_registration_application, &data.answer)?;
 
       let slur_regex = slur_regex(&context).await?;
+
+      // Clear auth data before calling plugin hook
+      let plugin_data = AuthenticateWithOauth {
+        code: String::new(),
+        pkce_code_verifier: None,
+        ..data.clone()
+      };
+      plugin_hook_before("local_user_oauth_before_register", plugin_data).await?;
 
       // Wrap the insert person, insert local user, and create registration,
       // in a transaction, so that if any fail, the rows aren't created.
@@ -438,7 +466,9 @@ pub async fn authenticate_with_oauth(
               email,
               show_nsfw: Some(show_nsfw),
               accepted_application: Some(!require_registration_application),
-              email_verified: Some(oauth_provider.auto_verify_email),
+              // Only mark the email as verified if the provider attests it and the admin
+              // opted into auto verification. Otherwise send a verification email instead.
+              email_verified: Some(oauth_provider.auto_verify_email && email_verified),
               ..LocalUserInsertForm::new(person.id, None)
             };
 
@@ -483,6 +513,8 @@ pub async fn authenticate_with_oauth(
           .scope_boxed()
         })
         .await?;
+
+      plugin_hook_after("local_user_oauth_after_register", &user);
 
       // Check email is verified when required
       login_response.verify_email_sent = send_verification_email_if_required(
@@ -673,6 +705,17 @@ fn read_user_info(user_info: &serde_json::Value, key: &str) -> Option<String> {
     serde_json::Value::Number(n) => Some(n.to_string()),
     _ => None,
   }
+}
+
+fn check_totp_2fa_if_enabled(
+  user_view: &LocalUserView,
+  totp_token: &Option<String>,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<()> {
+  if user_view.local_user.totp_2fa_enabled {
+    check_totp_2fa_valid(user_view, totp_token, &context.settings().hostname)?;
+  }
+  Ok(())
 }
 
 #[expect(clippy::expect_used)]

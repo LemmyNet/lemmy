@@ -26,6 +26,7 @@ use activitypub_federation::{
   kinds::activity::AnnounceType,
   traits::{Activity, Actor},
 };
+use chrono::{DateTime, Utc};
 use either::Either;
 use following::send_accept_or_reject_follow;
 use lemmy_api_utils::{
@@ -46,8 +47,9 @@ use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use serde::Serialize;
+use sha2::{Digest, Sha256};
 use tracing::info;
-use url::{ParseError, Url};
+use url::Url;
 use uuid::Uuid;
 
 pub mod activity_lists;
@@ -73,33 +75,63 @@ async fn verify_person(
 }
 
 /// Generate a unique ID for an activity, in the format:
-/// `http(s)://example.com/receive/create/202daf0a-1489-45df-8d2e-c8a3173fed36`
-fn generate_activity_id<T>(kind: T, context: &LemmyContext) -> Result<Url, ParseError>
+/// `http(s)://example.com/activities/create/202daf0a-1489-45df-8d2e-c8a3173fed36`
+fn generate_activity_id<T>(kind: T, context: &LemmyContext) -> LemmyResult<Url>
 where
   T: ToString,
 {
-  let id = format!(
-    "{}/activities/{}/{}",
-    &context.settings().get_protocol_and_hostname(),
-    kind.to_string().to_lowercase(),
-    Uuid::new_v4()
-  );
-  Url::parse(&id)
+  let hostname = context.settings().get_protocol_and_hostname();
+  let kind_str = kind.to_string().to_lowercase();
+  let id = format!("{}/activities/{}/{}", hostname, kind_str, Uuid::new_v4());
+  Ok(Url::parse(&id)?)
+}
+
+/// Deterministic activity ID from object URL + timestamp, so Create/Update IDs stay
+/// stable across outbox fetches and change when the object is edited.
+fn generate_activity_id_with_object_id<T>(
+  kind: T,
+  object_id: &Url,
+  timestamp: DateTime<Utc>,
+  context: &LemmyContext,
+) -> LemmyResult<Url>
+where
+  T: ToString,
+{
+  let hostname = context.settings().get_protocol_and_hostname();
+  let kind_str = kind.to_string().to_lowercase();
+  let mut seed = object_id.clone();
+  seed.set_fragment(Some(&timestamp.to_rfc3339()));
+  let input = format!("{}:{}", kind_str, seed.as_str());
+  let mut hasher = Sha256::new();
+  hasher.update(input);
+  let digest = format!("{:x}", hasher.finalize());
+  let id = format!("{}/activities/{}/{}", hostname, kind_str, digest);
+  Ok(Url::parse(&id)?)
 }
 
 /// like generate_activity_id but also add the inner kind for easier debugging
 fn generate_announce_activity_id(
   inner_kind: &str,
   protocol_and_hostname: &str,
-) -> Result<Url, ParseError> {
+  object_id: Option<&Url>,
+) -> LemmyResult<Url> {
+  let id_str = if let Some(o) = object_id {
+    let input = format!("announce:{}", o.as_str());
+    let mut hasher = Sha256::new();
+    hasher.update(input);
+    format!("{:x}", hasher.finalize())
+  } else {
+    Uuid::new_v4().to_string()
+  };
+
   let id = format!(
     "{}/activities/{}/{}/{}",
     protocol_and_hostname,
     AnnounceType::Announce.to_string().to_lowercase(),
     inner_kind.to_lowercase(),
-    Uuid::new_v4()
+    id_str
   );
-  Url::parse(&id)
+  Ok(Url::parse(&id)?)
 }
 
 async fn send_lemmy_activity<A, ActorT>(
