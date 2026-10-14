@@ -4,15 +4,20 @@ use crate::{
   generate_announce_activity_id,
   protocol::{
     IdOrNestedObject,
-    community::announce::{AnnounceActivity, RawAnnouncableActivities},
+    community::announce::{
+      AnnouncableActivitiesCollection,
+      AnnounceActivity,
+      OneOrManyActivity,
+      RawAnnouncableActivities,
+    },
   },
   send_lemmy_activity,
 };
 use activitypub_federation::{
   config::Data,
   kinds::activity::AnnounceType,
-  protocol::verification::verify_urls_match,
-  traits::{Activity, Object},
+  protocol::verification::{verify_domains_match, verify_urls_match},
+  traits::{Activity, Collection, Object},
 };
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
@@ -25,6 +30,7 @@ use lemmy_apub_objects::{
 use lemmy_db_schema::source::{activity::ActivitySendTargets, community::CommunityActions};
 use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult, UntranslatedError};
 use serde_json::Value;
+use tracing::warn;
 use url::Url;
 
 #[async_trait::async_trait]
@@ -73,9 +79,52 @@ impl Activity for RawAnnouncableActivities {
   }
 }
 
-impl Id for RawAnnouncableActivities {
+/// Marker type for receiving a batch of activities (FEP-1a11), where `Announce.object` is an
+/// `OrderedCollection` of activities.
+#[derive(Clone, Debug)]
+pub struct ApubAnnouncedBatch(());
+
+#[async_trait::async_trait]
+impl Collection for ApubAnnouncedBatch {
+  type Owner = ApubCommunity;
+  type DataType = LemmyContext;
+  type Kind = AnnouncableActivitiesCollection;
+  type Error = LemmyError;
+
+  async fn read_local(
+    _owner: &Self::Owner,
+    _context: &Data<Self::DataType>,
+  ) -> LemmyResult<Self::Kind> {
+    // Unsupported for now. Could later serve batches persisted for crash recovery (see from_json).
+    Err(LemmyErrorType::NotFound.into())
+  }
+
+  async fn verify(
+    json: &Self::Kind,
+    expected_domain: &Url,
+    _context: &Data<Self::DataType>,
+  ) -> LemmyResult<()> {
+    verify_domains_match(expected_domain, &json.id)?;
+    Ok(())
+  }
+
+  async fn from_json(
+    _json: Self::Kind,
+    _owner: &Self::Owner,
+    _context: &Data<Self::DataType>,
+  ) -> LemmyResult<Self> {
+    // Unsupported for now. Could later persist received batches temporarily, so unprocessed items
+    // can be recovered after a crash.
+    Err(LemmyErrorType::NotFound.into())
+  }
+}
+
+impl Id for OneOrManyActivity {
   fn id(&self) -> &Url {
-    &self.id
+    match self {
+      OneOrManyActivity::One(a) => &a.id,
+      OneOrManyActivity::Many(c) => &c.id,
+    }
   }
 }
 
@@ -99,7 +148,7 @@ impl AnnounceActivity {
     Ok(AnnounceActivity {
       actor: community.id().clone().into(),
       to: generate_to(community)?,
-      object: IdOrNestedObject::NestedObject(object),
+      object: IdOrNestedObject::NestedObject(OneOrManyActivity::One(object)),
       cc: community
         .followers_url
         .clone()
@@ -159,22 +208,72 @@ impl Activity for AnnounceActivity {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    let object: AnnouncableActivities = self.object.dereference(context).await?.try_into()?;
+    match self.object.dereference(context).await? {
+      OneOrManyActivity::One(raw) => {
+        let object: AnnouncableActivities = raw.try_into()?;
 
-    // This is only for sending, not receiving so we reject it.
-    if let AnnouncableActivities::Page(_) = object {
-      return Err(UntranslatedError::CannotReceivePage.into());
+        // This is only for sending, not receiving so we reject it.
+        if let AnnouncableActivities::Page(_) = object {
+          return Err(UntranslatedError::CannotReceivePage.into());
+        }
+
+        let community = object.community(context).await?;
+        verify_urls_match(community.ap_id.inner(), self.actor.inner())?;
+        verify_visibility(&self.to, &self.cc, &community)?;
+        can_accept_activity_in_community(&Some(community), context).await?;
+
+        // verify here in order to avoid fetching the object twice over http
+        object.verify(context).await?;
+        object.receive(context).await
+      }
+      OneOrManyActivity::Many(batch) => {
+        let community = self.actor.dereference(context).await?;
+        verify_visibility(&self.to, &self.cc, &community)?;
+        can_accept_activity_in_community(&Some(community.clone()), context).await?;
+        ApubAnnouncedBatch::verify(&batch, self.actor.inner(), context).await?;
+        receive_batch(batch, &community, context).await
+      }
     }
-
-    let community = object.community(context).await?;
-    verify_urls_match(community.ap_id.inner(), self.actor.inner())?;
-    verify_visibility(&self.to, &self.cc, &community)?;
-    can_accept_activity_in_community(&Some(community), context).await?;
-
-    // verify here in order to avoid fetching the object twice over http
-    object.verify(context).await?;
-    object.receive(context).await
   }
+}
+
+/// Receives each activity of a batch in order. A failing activity is logged and skipped, so that it
+/// doesn't prevent the rest of the batch from being received.
+async fn receive_batch(
+  batch: AnnouncableActivitiesCollection,
+  community: &ApubCommunity,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<()> {
+  for raw in batch.ordered_items {
+    let id = raw.id.clone();
+    if let Err(e) = receive_batch_item(raw, community, context).await {
+      warn!("Skipping activity {id} in batch {}: {e}", batch.id);
+    }
+  }
+  Ok(())
+}
+
+async fn receive_batch_item(
+  raw: RawAnnouncableActivities,
+  community: &ApubCommunity,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<()> {
+  let activity: AnnouncableActivities = raw.try_into()?;
+  if !can_batch(&activity) {
+    return Err(LemmyErrorType::NotFound.into());
+  }
+  let activity_community = activity.community(context).await?;
+  verify_urls_match(activity_community.ap_id.inner(), community.ap_id.inner())?;
+  activity.verify(context).await?;
+  activity.receive(context).await
+}
+
+/// Activity types which are accepted as part of a batch. Initially only votes, as in FEP-1a11.
+fn can_batch(activity: &AnnouncableActivities) -> bool {
+  matches!(
+    activity,
+    AnnouncableActivities::Vote(_) | AnnouncableActivities::UndoVote(_)
+  )
 }
 
 impl TryFrom<RawAnnouncableActivities> for AnnouncableActivities {
