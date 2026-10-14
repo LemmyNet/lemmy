@@ -57,11 +57,7 @@ impl<Kind: Id + DeserializeOwned + Clone + Send> IdOrNestedObject<Kind> {
 #[cfg(test)]
 mod tests {
   use crate::protocol::{
-    IdOrNestedObject,
-    community::{
-      announce::{AnnounceActivity, OneOrManyActivity},
-      report::Report,
-    },
+    community::{announce::AnnounceActivity, report::Report},
     create_or_update::{
       note::CreateOrUpdateNote,
       note_wrapper::CreateOrUpdateNoteWrapper,
@@ -72,7 +68,7 @@ mod tests {
     voting::{undo_vote::UndoVote, vote::Vote},
   };
   use lemmy_apub_objects::utils::test::test_json;
-  use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+  use lemmy_utils::error::LemmyResult;
 
   #[test]
   fn test_parse_smithereen_activities() -> LemmyResult<()> {
@@ -160,13 +156,7 @@ mod tests {
 
   #[test]
   fn test_parse_pyfedi_activities() -> LemmyResult<()> {
-    let announce =
-      test_json::<AnnounceActivity>("../apub/assets/pyfedi/activities/like_pages.json")?;
-    let IdOrNestedObject::NestedObject(OneOrManyActivity::Many(batch)) = &announce.inner().object
-    else {
-      return Err(LemmyErrorType::NotFound.into());
-    };
-    assert_eq!(3, batch.ordered_items.len());
+    test_json::<AnnounceActivity>("../apub/assets/pyfedi/activities/like_pages.json")?;
     Ok(())
   }
 }

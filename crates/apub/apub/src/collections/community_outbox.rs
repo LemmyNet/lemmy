@@ -11,7 +11,7 @@ use lemmy_apub_activities::{
   activity_lists::AnnouncableActivities,
   protocol::{
     CreateOrUpdateType,
-    community::announce::AnnounceActivity,
+    community::announce::{AnnounceActivity, OneOrManyActivity},
     create_or_update::page::CreateOrUpdatePage,
   },
 };
@@ -120,12 +120,10 @@ impl Collection for ApubCommunityOutbox {
         // Receiving announce requires at least one local community follower for anti spam purposes.
         // This won't be the case for newly fetched communities, so we extract the inner activity
         // and handle it directly to bypass this check.
-        let inner = activity
-          .object
-          .dereference(data)
-          .await
-          .map(TryInto::try_into);
-        if let Ok(Ok(AnnouncableActivities::CreateOrUpdatePost(inner))) = inner {
+        let inner = activity.object.dereference(data).await;
+        if let Ok(OneOrManyActivity::One(raw)) = inner
+          && let Ok(AnnouncableActivities::CreateOrUpdatePost(inner)) = raw.try_into()
+        {
           let verify = inner.verify(data).await;
           if verify.is_ok() {
             inner.receive(data).await.ok();
