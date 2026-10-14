@@ -149,7 +149,7 @@ impl Object for ApubPost {
     // Add automatic hashtag based on community name
     let hashtag = Hashtag {
       href: self.ap_id.clone().into(),
-      name: format!("#{}", &community.name),
+      name: format!("#{}", community.name),
       kind: HashtagType::Hashtag,
     };
     tags.push(ApubTag::Hashtag(hashtag));

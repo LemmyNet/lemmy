@@ -80,7 +80,7 @@ get_first = "deny"
 implicit_clone = "deny"
 indexing_slicing = "deny"
 inefficient_to_string = "deny"
-items-after-statements = "deny"
+items_after_statements = "deny"
 manual_string_new = "deny"
 needless_collect = "deny"
 perf = { level = "deny", priority = -1 }
@@ -224,12 +224,12 @@ derive-new = "0.7.0"
 html2text = "0.16.7"
 async-trait = "0.1.89"
 either = { version = "1.15.0", features = ["serde"] }
-extism = { version = "1.20.0", default-features = false, features = [
+extism = { version = "1.41.0", default-features = false, features = [
   "http",
   "register-filesystem",
   "register-http",
 ] }
-extism-convert = "1.20.0"
+extism-convert = "1.41.0"
 unified-diff = "0.2.1"
 diesel-uplete = { version = "0.2.0" }
 

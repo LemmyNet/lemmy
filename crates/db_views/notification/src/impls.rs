@@ -240,6 +240,7 @@ fn map_to_enum(
   hide_modlog_name: bool,
   my_person: &Person,
 ) -> Option<NotificationView> {
+  #[expect(clippy::question_mark)]
   let data = if let Some(modlog) = v.modlog {
     let m = ModlogView {
       modlog,

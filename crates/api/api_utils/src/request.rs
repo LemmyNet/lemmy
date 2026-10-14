@@ -440,7 +440,7 @@ pub async fn purge_image_from_pictrs(alias: &str, context: &LemmyContext) -> Lem
 /// before calling this function (the user is an admin or the image belongs to the user).
 pub async fn delete_image_alias(alias: &str, context: &LemmyContext) -> LemmyResult<()> {
   let pictrs_config = context.settings().pictrs()?;
-  let url = format!("{}internal/delete?alias={}", pictrs_config.url, &alias);
+  let url = format!("{}internal/delete?alias={}", pictrs_config.url, alias);
 
   // Send the delete request to pictrs.
   context
