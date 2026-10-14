@@ -645,7 +645,7 @@ fn create_modlog_items(
           &modlog_url,
           format!(
             "Warned user {} about comment {}",
-            &&target_person_name, &&target_comment_content
+            target_person_name, target_comment_content
           ),
           settings,
         ),
@@ -654,7 +654,7 @@ fn create_modlog_items(
           &modlog_url,
           format!(
             "Warned user {} about post {}",
-            &&target_person_name, &&target_post_name
+            target_person_name, target_post_name
           ),
           settings,
         ),

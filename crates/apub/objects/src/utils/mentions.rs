@@ -40,8 +40,8 @@ pub(crate) async fn collect_non_local_mentions(
       href: parent_creator.id().clone().into(),
       name: Some(format!(
         "@{}@{}",
-        &parent_creator.name,
-        &parent_creator
+        parent_creator.name,
+        parent_creator
           .id()
           .domain()
           .ok_or(UntranslatedError::UrlWithoutDomain)?
@@ -82,8 +82,8 @@ pub(crate) async fn collect_non_local_mentions(
     href: community.ap_id.clone().into(),
     name: Some(format!(
       "@{}@{}",
-      &community.name,
-      &community
+      community.name,
+      community
         .ap_id
         .domain()
         .ok_or(UntranslatedError::UrlWithoutDomain)?
