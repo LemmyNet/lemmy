@@ -7,7 +7,9 @@ use lemmy_api_utils::{
   plugins::plugin_hook_after,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
-    check_community_user_action, check_local_user_banned_or_deleted, check_post_deleted_or_removed,
+    check_community_user_action,
+    check_local_user_banned_or_deleted,
+    check_post_deleted_or_removed,
     slur_regex,
   },
 };

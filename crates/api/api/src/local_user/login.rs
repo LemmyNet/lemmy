@@ -7,7 +7,9 @@ use lemmy_api_utils::{
   claims::Claims,
   context::LemmyContext,
   utils::{
-    check_email_verified, check_local_user_deleted, check_registration_application,
+    check_email_verified,
+    check_local_user_deleted,
+    check_registration_application,
     check_totp_2fa_valid,
   },
 };

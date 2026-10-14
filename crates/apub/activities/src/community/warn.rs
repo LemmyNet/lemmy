@@ -7,7 +7,9 @@ use crate::{
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId, traits::Activity};
 use either::Either;
 use lemmy_api_utils::{
-  context::LemmyContext, notify::notify_mod_action, utils::check_community_deleted_removed,
+  context::LemmyContext,
+  notify::notify_mod_action,
+  utils::check_community_deleted_removed,
 };
 use lemmy_apub_objects::{
   objects::{PostOrComment, person::ApubPerson},

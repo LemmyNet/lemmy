@@ -1,6 +1,8 @@
 use crate::protocol::collections::group_followers::GroupFollowers;
 use activitypub_federation::{
-  config::Data, kinds::collection::CollectionType, protocol::verification::verify_domains_match,
+  config::Data,
+  kinds::collection::CollectionType,
+  protocol::verification::verify_domains_match,
   traits::Collection,
 };
 use lemmy_api_utils::{context::LemmyContext, utils::generate_followers_url};

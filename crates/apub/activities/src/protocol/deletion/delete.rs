@@ -4,7 +4,9 @@ use activitypub_federation::{
   fetch::object_id::ObjectId,
   kinds::activity::DeleteType,
   protocol::{
-    helpers::deserialize_one_or_many, tombstone::Tombstone, verification::verify_urls_match,
+    helpers::deserialize_one_or_many,
+    tombstone::Tombstone,
+    verification::verify_urls_match,
   },
 };
 use anyhow::anyhow;

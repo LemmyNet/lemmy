@@ -3,8 +3,13 @@ use crate::{
   utils::{
     check_is_mod_or_admin,
     functions::{
-      append_attachments_to_comment, check_apub_id_valid_with_strictness, context_url, generate_to,
-      read_from_string_or_source, verify_person_in_community, verify_visibility,
+      append_attachments_to_comment,
+      check_apub_id_valid_with_strictness,
+      context_url,
+      generate_to,
+      read_from_string_or_source,
+      verify_person_in_community,
+      verify_visibility,
     },
     markdown_links::markdown_rewrite_remote_links,
     mentions::{collect_non_local_mentions, get_comment_parent_creator},

@@ -1,5 +1,6 @@
 use actix_web::{
-  HttpResponse, HttpResponseBuilder,
+  HttpResponse,
+  HttpResponseBuilder,
   http::{
     StatusCode,
     header::{CacheControl, CacheDirective},

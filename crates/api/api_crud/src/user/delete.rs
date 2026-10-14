@@ -8,7 +8,10 @@ use lemmy_api_utils::{
   utils::purge_user_account,
 };
 use lemmy_db_schema::source::{
-  community::CommunityActions, login_token::LoginToken, oauth_account::OAuthAccount, person::Person,
+  community::CommunityActions,
+  login_token::LoginToken,
+  oauth_account::OAuthAccount,
+  person::Person,
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::api::{DeleteAccount, DeleteUserForm, SuccessResponse};

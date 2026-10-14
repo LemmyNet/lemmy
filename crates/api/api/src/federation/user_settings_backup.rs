@@ -4,7 +4,10 @@ use futures::{StreamExt, future::try_join_all};
 use itertools::Itertools;
 use lemmy_api_utils::{context::LemmyContext, utils::check_local_user_banned_or_deleted};
 use lemmy_apub_objects::objects::{
-  comment::ApubComment, community::ApubCommunity, person::ApubPerson, post::ApubPost,
+  comment::ApubComment,
+  community::ApubCommunity,
+  person::ApubPerson,
+  post::ApubPost,
 };
 use lemmy_db_schema::{
   source::{
@@ -31,8 +34,11 @@ use lemmy_utils::{
   error::LemmyResult,
   spawn_try_task,
   utils::validation::{
-    check_api_elements_count, check_blocking_keywords_are_valid, is_valid_bio_field,
-    is_valid_display_name, is_valid_matrix_id,
+    check_api_elements_count,
+    check_blocking_keywords_are_valid,
+    is_valid_bio_field,
+    is_valid_display_name,
+    is_valid_matrix_id,
   },
 };
 use serde::Deserialize;

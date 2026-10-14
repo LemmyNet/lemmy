@@ -1,6 +1,8 @@
 use crate::source::notification::{Notification, NotificationInsertForm};
 use diesel::{
-  ExpressionMethods, QueryDsl, delete,
+  ExpressionMethods,
+  QueryDsl,
+  delete,
   dsl::{insert_into, update},
 };
 use diesel_async::RunQueryDsl;

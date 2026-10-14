@@ -1,20 +1,37 @@
 pub use lemmy_db_schema::{
   ReportType,
   source::{
-    comment_report::CommentReport, community_report::CommunityReport, post_report::PostReport,
+    comment_report::CommentReport,
+    community_report::CommunityReport,
+    post_report::PostReport,
     private_message_report::PrivateMessageReport,
   },
 };
 pub use lemmy_db_schema_file::newtypes::{
-  CommentReportId, CommunityReportId, PostReportId, PrivateMessageReportId,
+  CommentReportId,
+  CommunityReportId,
+  PostReportId,
+  PrivateMessageReportId,
 };
 pub use lemmy_db_views_report_combined::{
-  CommentReportView, CommunityReportView, PostReportView, PrivateMessageReportView,
+  CommentReportView,
+  CommunityReportView,
+  PostReportView,
+  PrivateMessageReportView,
   ReportCombinedView,
   api::{
-    CommentReportResponse, CommunityReportResponse, CreateCommentReport, CreateCommunityReport,
-    CreatePostReport, CreatePrivateMessageReport, ListReports, PostReportResponse,
-    PrivateMessageReportResponse, ResolveCommentReport, ResolveCommunityReport, ResolvePostReport,
+    CommentReportResponse,
+    CommunityReportResponse,
+    CreateCommentReport,
+    CreateCommunityReport,
+    CreatePostReport,
+    CreatePrivateMessageReport,
+    ListReports,
+    PostReportResponse,
+    PrivateMessageReportResponse,
+    ResolveCommentReport,
+    ResolveCommunityReport,
+    ResolvePostReport,
     ResolvePrivateMessageReport,
   },
 };

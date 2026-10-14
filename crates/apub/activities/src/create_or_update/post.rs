@@ -12,7 +12,9 @@ use activitypub_federation::{
 };
 use chrono::Utc;
 use lemmy_api_utils::{
-  context::LemmyContext, notify::NotifyData, utils::check_community_deleted_removed,
+  context::LemmyContext,
+  notify::NotifyData,
+  utils::check_community_deleted_removed,
 };
 use lemmy_apub_objects::{
   objects::{

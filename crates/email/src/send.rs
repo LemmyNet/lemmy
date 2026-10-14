@@ -5,7 +5,9 @@ use lemmy_utils::{
   spawn_try_task,
 };
 use lettre::{
-  Address, AsyncTransport, Message,
+  Address,
+  AsyncTransport,
+  Message,
   message::{Mailbox, MultiPart},
   transport::smtp::extension::ClientId,
 };

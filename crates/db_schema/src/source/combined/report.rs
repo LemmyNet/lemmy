@@ -6,8 +6,15 @@ use lemmy_db_schema_file::schema::report_combined;
 use lemmy_db_schema_file::{
   PersonId,
   newtypes::{
-    CommentId, CommentReportId, CommunityId, CommunityReportId, PostId, PostReportId,
-    PrivateMessageId, PrivateMessageReportId, ReportCombinedId,
+    CommentId,
+    CommentReportId,
+    CommunityId,
+    CommunityReportId,
+    PostId,
+    PostReportId,
+    PrivateMessageId,
+    PrivateMessageReportId,
+    ReportCombinedId,
   },
 };
 use serde::{Deserialize, Serialize};

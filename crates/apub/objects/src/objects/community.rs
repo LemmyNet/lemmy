@@ -3,8 +3,11 @@ use crate::{
   protocol::{group::Group, tags::ApubCommunityTag},
   utils::{
     functions::{
-      GetActorType, check_apub_id_valid_with_strictness, community_visibility,
-      read_from_string_or_source_opt, verify_domains_match_opt,
+      GetActorType,
+      check_apub_id_valid_with_strictness,
+      community_visibility,
+      read_from_string_or_source_opt,
+      verify_domains_match_opt,
     },
     markdown_links::markdown_rewrite_remote_links_opt,
     protocol::{AttributedTo, ImageObject, LanguageTag, Source},
@@ -20,8 +23,13 @@ use chrono::{DateTime, Utc};
 use lemmy_api_utils::{
   context::LemmyContext,
   utils::{
-    check_nsfw_allowed, generate_featured_url, generate_moderators_url, generate_outbox_url,
-    process_markdown_opt, proxy_image_link_opt_apub, slur_regex,
+    check_nsfw_allowed,
+    generate_featured_url,
+    generate_moderators_url,
+    generate_outbox_url,
+    process_markdown_opt,
+    proxy_image_link_opt_apub,
+    slur_regex,
   },
 };
 use lemmy_db_schema::{

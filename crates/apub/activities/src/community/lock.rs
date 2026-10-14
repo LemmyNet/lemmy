@@ -2,17 +2,23 @@ use crate::{
   MOD_ACTION_DEFAULT_REASON,
   activity_lists::AnnouncableActivities,
   community::send_activity_in_community,
-  generate_activity_id, post_or_comment_community,
+  generate_activity_id,
+  post_or_comment_community,
   protocol::{
     IdOrNestedObject,
     community::lock::{LockPageOrNote, LockType, UndoLockPageOrNote},
   },
 };
 use activitypub_federation::{
-  config::Data, fetch::object_id::ObjectId, kinds::activity::UndoType, traits::Activity,
+  config::Data,
+  fetch::object_id::ObjectId,
+  kinds::activity::UndoType,
+  traits::Activity,
 };
 use lemmy_api_utils::{
-  context::LemmyContext, notify::notify_mod_action, utils::check_community_deleted_removed,
+  context::LemmyContext,
+  notify::notify_mod_action,
+  utils::check_community_deleted_removed,
 };
 use lemmy_apub_objects::{
   objects::{PostOrComment, community::ApubCommunity},

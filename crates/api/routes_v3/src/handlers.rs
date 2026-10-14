@@ -1,10 +1,26 @@
 use crate::convert::{
-  convert_comment, convert_comment_listing_sort, convert_comment_response, convert_comment_view,
-  convert_community, convert_community_listing_sort, convert_community_view, convert_language_ids,
-  convert_listing_type, convert_login_response, convert_my_user, convert_person,
-  convert_person_view, convert_post, convert_post_listing_sort, convert_post_response,
-  convert_post_view, convert_resolve_object_response, convert_score, convert_search_response,
-  convert_site, convert_site_view,
+  convert_comment,
+  convert_comment_listing_sort,
+  convert_comment_response,
+  convert_comment_view,
+  convert_community,
+  convert_community_listing_sort,
+  convert_community_view,
+  convert_language_ids,
+  convert_listing_type,
+  convert_login_response,
+  convert_my_user,
+  convert_person,
+  convert_person_view,
+  convert_post,
+  convert_post_listing_sort,
+  convert_post_response,
+  convert_post_view,
+  convert_resolve_object_response,
+  convert_score,
+  convert_search_response,
+  convert_site,
+  convert_site_view,
 };
 use activitypub_federation::config::Data as ApubData;
 use actix_web::{HttpRequest, HttpResponse, web::*};
@@ -12,55 +28,75 @@ use lemmy_api::{
   comment::{like::like_comment, save::save_comment},
   community::{block::user_block_community, follow::follow_community},
   federation::{
-    list_comments::list_comments, list_posts::list_posts, read_community::get_community,
-    resolve_object::resolve_object, search::search,
+    list_comments::list_comments,
+    list_posts::list_posts,
+    read_community::get_community,
+    resolve_object::resolve_object,
+    search::search,
   },
   local_user::{
-    block::user_block_person, login::login, logout::logout,
+    block::user_block_person,
+    login::login,
+    logout::logout,
     notifications::mark_all_read::mark_all_notifications_read,
   },
   post::{like::like_post, save::save_post},
   reports::{
-    comment_report::create::create_comment_report, post_report::create::create_post_report,
+    comment_report::create::create_comment_report,
+    post_report::create::create_post_report,
   },
 };
 use lemmy_api_019::{
   comment::{
-    CommentReportResponse as CommentReportResponseV3, CommentResponse as CommentResponseV3,
-    CreateCommentLike as CreateCommentLikeV3, GetComments as GetCommentsV3,
+    CommentReportResponse as CommentReportResponseV3,
+    CommentResponse as CommentResponseV3,
+    CreateCommentLike as CreateCommentLikeV3,
+    GetComments as GetCommentsV3,
     GetCommentsResponse as GetCommentsResponseV3,
   },
   community::{
-    BlockCommunityResponse as BlockCommunityResponseV3, CommunityResponse as CommunityResponseV3,
-    GetCommunityResponse as GetCommunityResponseV3, ListCommunities as ListCommunitiesV3,
+    BlockCommunityResponse as BlockCommunityResponseV3,
+    CommunityResponse as CommunityResponseV3,
+    GetCommunityResponse as GetCommunityResponseV3,
+    ListCommunities as ListCommunitiesV3,
     ListCommunitiesResponse as ListCommunitiesResponseV3,
   },
   lemmy_db_schema::{
     SubscribedType as SubscribedTypeV3,
     newtypes::LanguageId as LanguageIdV3,
     source::{
-      comment_report::CommentReport as CommentReportV3, language::Language as LanguageV3,
+      comment_report::CommentReport as CommentReportV3,
+      language::Language as LanguageV3,
       local_site_url_blocklist::LocalSiteUrlBlocklist as LocalSiteUrlBlocklistV3,
-      post_report::PostReport as PostReportV3, tagline::Tagline as TaglineV3,
+      post_report::PostReport as PostReportV3,
+      tagline::Tagline as TaglineV3,
     },
   },
   lemmy_db_views::structs::{
-    CommentReportView as CommentReportViewV3, PostReportView as PostReportViewV3,
+    CommentReportView as CommentReportViewV3,
+    PostReportView as PostReportViewV3,
   },
   lemmy_db_views_actor::structs::CommunityModeratorView as CommunityModeratorViewV3,
   person::{
-    BlockPersonResponse as BlockPersonResponseV3, GetRepliesResponse as GetRepliesResponseV3,
-    GetUnreadCountResponse as GetUnreadCountResponseV3, LoginResponse as LoginResponseV3,
+    BlockPersonResponse as BlockPersonResponseV3,
+    GetRepliesResponse as GetRepliesResponseV3,
+    GetUnreadCountResponse as GetUnreadCountResponseV3,
+    LoginResponse as LoginResponseV3,
   },
   post::{
-    CreatePost as CreatePostV3, CreatePostLike as CreatePostLikeV3,
-    GetPostResponse as GetPostResponseV3, GetPosts as GetPostsV3,
-    GetPostsResponse as GetPostsResponseV3, PostReportResponse as PostReportResponseV3,
+    CreatePost as CreatePostV3,
+    CreatePostLike as CreatePostLikeV3,
+    GetPostResponse as GetPostResponseV3,
+    GetPosts as GetPostsV3,
+    GetPostsResponse as GetPostsResponseV3,
+    PostReportResponse as PostReportResponseV3,
     PostResponse as PostResponseV3,
   },
   site::{
-    GetSiteResponse as GetSiteResponseV3, ResolveObjectResponse as ResolveObjectResponseV3,
-    Search as SearchV3, SearchResponse as SearchResponseV3,
+    GetSiteResponse as GetSiteResponseV3,
+    ResolveObjectResponse as ResolveObjectResponseV3,
+    Search as SearchV3,
+    SearchResponse as SearchResponseV3,
   },
 };
 use lemmy_api_crud::{
@@ -73,15 +109,29 @@ use lemmy_api_crud::{
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema_file::newtypes::{CommentId, CommunityId, LanguageId, PostId};
 use lemmy_db_views_comment::api::{
-  CreateComment, CreateCommentLike, DeleteComment, EditComment, GetComments, SaveComment,
+  CreateComment,
+  CreateCommentLike,
+  DeleteComment,
+  EditComment,
+  GetComments,
+  SaveComment,
 };
 use lemmy_db_views_community::api::{
-  BlockCommunity, FollowCommunity, GetCommunity, ListCommunities,
+  BlockCommunity,
+  FollowCommunity,
+  GetCommunity,
+  ListCommunities,
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::api::BlockPerson;
 use lemmy_db_views_post::api::{
-  CreatePost, CreatePostLike, DeletePost, EditPost, GetPost, GetPosts, SavePost,
+  CreatePost,
+  CreatePostLike,
+  DeletePost,
+  EditPost,
+  GetPost,
+  GetPosts,
+  SavePost,
 };
 use lemmy_db_views_registration_applications::api::Register;
 use lemmy_db_views_report_combined::api::{CreateCommentReport, CreatePostReport};

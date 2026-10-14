@@ -1,6 +1,8 @@
 use crate::source::password_reset_request::{PasswordResetRequest, PasswordResetRequestForm};
 use diesel::{
-  ExpressionMethods, IntoSql, delete,
+  ExpressionMethods,
+  IntoSql,
+  delete,
   dsl::{IntervalDsl, insert_into, now},
   sql_types::Timestamptz,
 };

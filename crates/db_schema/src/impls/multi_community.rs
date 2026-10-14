@@ -3,24 +3,36 @@ use crate::{
   source::{
     community::Community,
     multi_community::{
-      MultiCommunity, MultiCommunityEntry, MultiCommunityEntryForm, MultiCommunityFollow,
-      MultiCommunityFollowForm, MultiCommunityInsertForm, MultiCommunityUpdateForm,
+      MultiCommunity,
+      MultiCommunityEntry,
+      MultiCommunityEntryForm,
+      MultiCommunityFollow,
+      MultiCommunityFollowForm,
+      MultiCommunityInsertForm,
+      MultiCommunityUpdateForm,
     },
   },
   traits::ApubActor,
   utils::format_actor_url,
 };
 use diesel::{
-  ExpressionMethods, QueryDsl,
+  ExpressionMethods,
+  QueryDsl,
   dsl::{delete, exists, insert_into, not},
-  select, update,
+  select,
+  update,
 };
 use diesel_async::RunQueryDsl;
 use lemmy_db_schema_file::{
   PersonId,
   newtypes::{CommunityId, MultiCommunityId},
   schema::{
-    community, instance, multi_community, multi_community_entry, multi_community_follow, person,
+    community,
+    instance,
+    multi_community,
+    multi_community_entry,
+    multi_community_follow,
+    person,
   },
 };
 use lemmy_diesel_utils::{

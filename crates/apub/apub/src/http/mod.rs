@@ -8,7 +8,8 @@ use activitypub_federation::{
   traits::{Activity, Object},
 };
 use actix_web::{
-  HttpRequest, HttpResponse,
+  HttpRequest,
+  HttpResponse,
   web::{self, Bytes},
 };
 use either::Either;

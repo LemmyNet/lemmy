@@ -1,5 +1,6 @@
 use crate::{
-  activity_lists::AnnouncableActivities, protocol::community::announce::AnnounceActivity,
+  activity_lists::AnnouncableActivities,
+  protocol::community::announce::AnnounceActivity,
   send_lemmy_activity,
 };
 use activitypub_federation::{config::Data, fetch::object_id::ObjectId, traits::Actor};
@@ -7,7 +8,10 @@ use either::Either;
 use lemmy_api_utils::{context::LemmyContext, utils::is_admin};
 use lemmy_apub_objects::{
   objects::{
-    PostOrComment, ReportableObjects, community::ApubCommunity, instance::ApubSite,
+    PostOrComment,
+    ReportableObjects,
+    community::ApubCommunity,
+    instance::ApubSite,
     person::ApubPerson,
   },
   utils::functions::verify_mod_action,

@@ -1,7 +1,9 @@
 use crate::federation::{
-  comment_sort_type_with_default, fetch_limit_with_default,
+  comment_sort_type_with_default,
+  fetch_limit_with_default,
   fetcher::{resolve_community_identifier, resolve_person_identifier},
-  listing_type_with_default, post_time_range_seconds_with_default,
+  listing_type_with_default,
+  post_time_range_seconds_with_default,
 };
 use activitypub_federation::config::Data;
 use actix_web::web::{Json, Query};

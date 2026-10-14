@@ -1,16 +1,26 @@
 use crate::{
-  CommentReportView, CommunityReportView, LocalUserView, PostReportView, PrivateMessageReportView,
-  ReportCombinedView, ReportCombinedViewInternal,
+  CommentReportView,
+  CommunityReportView,
+  LocalUserView,
+  PostReportView,
+  PrivateMessageReportView,
+  ReportCombinedView,
+  ReportCombinedViewInternal,
 };
 use chrono::{DateTime, Days, Utc};
 use diesel::{
-  BoolExpressionMethods, ExpressionMethods, PgExpressionMethods, QueryDsl, SelectableHelper,
+  BoolExpressionMethods,
+  ExpressionMethods,
+  PgExpressionMethods,
+  QueryDsl,
+  SelectableHelper,
   dsl::not,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::{SortDirection, asc_if};
 use lemmy_db_schema::{
-  ReportSortType, ReportType,
+  ReportSortType,
+  ReportType,
   source::{
     combined::report::{ReportCombined, report_combined_keys as key},
     person::Person,
@@ -20,7 +30,12 @@ use lemmy_db_schema::{
 };
 use lemmy_db_schema_file::{
   newtypes::{
-    CommentReportId, CommunityId, CommunityReportId, PostId, PostReportId, PrivateMessageReportId,
+    CommentReportId,
+    CommunityId,
+    CommunityReportId,
+    PostId,
+    PostReportId,
+    PrivateMessageReportId,
   },
   schema::{comment_report, community_actions, post_report, report_combined},
 };
@@ -28,7 +43,11 @@ use lemmy_db_views_report_combined_sql::report_combined_joins;
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   pagination::{
-    CursorData, PagedResponse, PaginationCursor, PaginationCursorConversion, paginate_response,
+    CursorData,
+    PagedResponse,
+    PaginationCursor,
+    PaginationCursorConversion,
+    paginate_response,
   },
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
@@ -404,13 +423,17 @@ impl InternalToCombinedView for ReportCombinedViewInternal {
 mod tests {
 
   use crate::{
-    LocalUserView, ReportCombinedView, ReportCombinedViewInternal, impls::ReportCombinedQuery,
+    LocalUserView,
+    ReportCombinedView,
+    ReportCombinedViewInternal,
+    impls::ReportCombinedQuery,
   };
   use chrono::{Days, Utc};
   use diesel::{ExpressionMethods, QueryDsl, update};
   use diesel_async::RunQueryDsl;
   use lemmy_db_schema::{
-    ReportType, assert_length,
+    ReportType,
+    assert_length,
     source::{
       comment::{Comment, CommentInsertForm},
       comment_report::{CommentReport, CommentReportForm, UpdateCommentReportForm},
@@ -423,7 +446,9 @@ mod tests {
       post_report::{PostReport, PostReportForm, UpdatePostReportForm},
       private_message::{PrivateMessage, PrivateMessageInsertForm},
       private_message_report::{
-        PrivateMessageReport, PrivateMessageReportForm, UpdatePrivateMessageReportForm,
+        PrivateMessageReport,
+        PrivateMessageReportForm,
+        UpdatePrivateMessageReportForm,
       },
     },
     traits::{Bannable, Reportable},

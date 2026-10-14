@@ -1,11 +1,17 @@
 use crate::{CommunityView, MultiCommunityView};
 use diesel::{
-  BoolExpressionMethods, ExpressionMethods, PgTextExpressionMethods, QueryDsl, SelectableHelper,
+  BoolExpressionMethods,
+  ExpressionMethods,
+  PgTextExpressionMethods,
+  QueryDsl,
+  SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::asc_if;
 use lemmy_db_schema::{
-  CommunitySortType, MultiCommunityListingType, MultiCommunitySortType,
+  CommunitySortType,
+  MultiCommunityListingType,
+  MultiCommunitySortType,
   impls::local_user::LocalUserOptionHelper,
   source::{
     community::{Community, community_keys as key},
@@ -20,19 +26,30 @@ use lemmy_db_schema_file::{
   PersonId,
   enums::{CommunityVisibility, ListingType},
   joins::{
-    my_community_actions_join, my_instance_communities_actions_join, my_local_user_admin_join,
+    my_community_actions_join,
+    my_instance_communities_actions_join,
+    my_local_user_admin_join,
     my_multi_community_follower_join,
   },
   newtypes::{CommunityId, MultiCommunityId},
   schema::{
-    community, community_actions, instance_actions, multi_community, multi_community_entry,
-    multi_community_follow, person,
+    community,
+    community_actions,
+    instance_actions,
+    multi_community,
+    multi_community_entry,
+    multi_community_follow,
+    person,
   },
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   pagination::{
-    CursorData, PagedResponse, PaginationCursor, PaginationCursorConversion, paginate_response,
+    CursorData,
+    PagedResponse,
+    PaginationCursor,
+    PaginationCursorConversion,
+    paginate_response,
   },
   traits::Crud,
   utils::{LowerKey, fuzzy_search, now, seconds_to_pg_interval},
@@ -378,11 +395,16 @@ mod tests {
     impls::{CommunityQuery, MultiCommunityListingType, MultiCommunityQuery},
   };
   use lemmy_db_schema::{
-    CommunitySortType, assert_length,
+    CommunitySortType,
+    assert_length,
     source::{
       community::{
-        Community, CommunityActions, CommunityFollowerForm, CommunityInsertForm,
-        CommunityModeratorForm, CommunityUpdateForm,
+        Community,
+        CommunityActions,
+        CommunityFollowerForm,
+        CommunityInsertForm,
+        CommunityModeratorForm,
+        CommunityUpdateForm,
       },
       instance::Instance,
       local_site::{LocalSite, LocalSiteInsertForm},

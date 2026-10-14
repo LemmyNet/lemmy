@@ -1,6 +1,8 @@
 use activitypub_federation::config::{FederationConfig, FederationMiddleware};
 use actix_web::{
-  App, HttpResponse, HttpServer,
+  App,
+  HttpResponse,
+  HttpServer,
   dev::{ServerHandle, ServiceResponse},
   middleware::{self, Condition, ErrorHandlerResponse, ErrorHandlers},
   web::{Data, get, scope},
@@ -8,11 +10,16 @@ use actix_web::{
 use clap::{Parser, Subcommand};
 use lemmy_api::sitemap::get_sitemap;
 use lemmy_api_utils::{
-  context::LemmyContext, plugins::LemmyPlugins, request::client_builder,
-  send_activity::ActivityChannel, utils::local_site_rate_limit_to_rate_limit_config,
+  context::LemmyContext,
+  plugins::LemmyPlugins,
+  request::client_builder,
+  send_activity::ActivityChannel,
+  utils::local_site_rate_limit_to_rate_limit_config,
 };
 use lemmy_apub::{
-  FEDERATION_HTTP_FETCH_LIMIT, VerifyUrlData, collections::fetch_community_collections,
+  FEDERATION_HTTP_FETCH_LIMIT,
+  VerifyUrlData,
+  collections::fetch_community_collections,
 };
 use lemmy_apub_activities::handle_outgoing_activities;
 use lemmy_apub_objects::objects::{community::FETCH_COMMUNITY_COLLECTIONS, instance::ApubSite};

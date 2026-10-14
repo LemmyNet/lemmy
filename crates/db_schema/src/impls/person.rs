@@ -1,7 +1,12 @@
 use crate::{
   diesel::{BoolExpressionMethods, NullableExpressionMethods, OptionalExtension},
   source::person::{
-    Person, PersonActions, PersonBlockForm, PersonFollowerForm, PersonInsertForm, PersonNoteForm,
+    Person,
+    PersonActions,
+    PersonBlockForm,
+    PersonFollowerForm,
+    PersonInsertForm,
+    PersonNoteForm,
     PersonUpdateForm,
   },
   traits::{ApubActor, Blockable, Followable},
@@ -9,14 +14,17 @@ use crate::{
 };
 use chrono::Utc;
 use diesel::{
-  ExpressionMethods, JoinOnDsl, QueryDsl,
+  ExpressionMethods,
+  JoinOnDsl,
+  QueryDsl,
   dsl::{exists, insert_into, not, select},
   expression::SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use diesel_uplete::{UpleteCount, uplete};
 use lemmy_db_schema_file::{
-  InstanceId, PersonId,
+  InstanceId,
+  PersonId,
   newtypes::{CommunityId, LocalUserId},
   schema::{instance, instance_actions, local_user, person, person_actions},
 };

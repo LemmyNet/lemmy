@@ -9,7 +9,11 @@ use lemmy_db_schema_file::{newtypes::TaglineId, schema::tagline};
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   pagination::{
-    CursorData, PagedResponse, PaginationCursor, PaginationCursorConversion, paginate_response,
+    CursorData,
+    PagedResponse,
+    PaginationCursor,
+    PaginationCursorConversion,
+    paginate_response,
   },
   traits::Crud,
   utils::functions::random,

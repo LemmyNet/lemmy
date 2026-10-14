@@ -1,8 +1,10 @@
 use super::{ActorPath, check_community_content_fetchable};
 use crate::{
   collections::{
-    community_featured::ApubCommunityFeatured, community_follower::ApubCommunityFollower,
-    community_moderators::ApubCommunityModerators, community_outbox::ApubCommunityOutbox,
+    community_featured::ApubCommunityFeatured,
+    community_follower::ApubCommunityFollower,
+    community_moderators::ApubCommunityModerators,
+    community_outbox::ApubCommunityOutbox,
   },
   http::{check_community_fetchable, get_instance_id},
 };
@@ -13,13 +15,16 @@ use activitypub_federation::{
   traits::{Collection, Object},
 };
 use actix_web::{
-  HttpRequest, HttpResponse,
+  HttpRequest,
+  HttpResponse,
   web::{Path, Query},
 };
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
   objects::{
-    SiteOrMultiOrCommunityOrUser, community::ApubCommunity, multi_community::ApubMultiCommunity,
+    SiteOrMultiOrCommunityOrUser,
+    community::ApubCommunity,
+    multi_community::ApubMultiCommunity,
     multi_community_collection::ApubFeedCollection,
   },
   protocol::tags::ApubCommunityTag,

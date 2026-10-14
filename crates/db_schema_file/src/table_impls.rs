@@ -1,5 +1,9 @@
 use crate::schema::{
-  comment_actions, community_actions, instance_actions, person_actions, post_actions,
+  comment_actions,
+  community_actions,
+  instance_actions,
+  person_actions,
+  post_actions,
 };
 
 impl diesel_uplete::SupportedTable for comment_actions::table {

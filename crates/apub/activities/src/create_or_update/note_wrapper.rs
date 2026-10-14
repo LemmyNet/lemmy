@@ -1,5 +1,7 @@
 use crate::protocol::create_or_update::{
-  note::CreateOrUpdateNote, note_wrapper::CreateOrUpdateNoteWrapper, page::CreateOrUpdatePage,
+  note::CreateOrUpdateNote,
+  note_wrapper::CreateOrUpdateNoteWrapper,
+  page::CreateOrUpdatePage,
   private_message::CreateOrUpdatePrivateMessage,
 };
 use activitypub_federation::{config::Data, traits::Activity};

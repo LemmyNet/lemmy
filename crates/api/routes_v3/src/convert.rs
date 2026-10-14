@@ -3,36 +3,55 @@ use chrono::Utc;
 use lemmy_api_019::{
   comment::CommentResponse as CommentResponseV3,
   lemmy_db_schema::{
-    CommentSortType as CommentSortTypeV3, ListingType as ListingTypeV3,
-    RegistrationMode as RegistrationModeV3, SearchType as SearchTypeV3, SortType as SortTypeV3,
+    CommentSortType as CommentSortTypeV3,
+    ListingType as ListingTypeV3,
+    RegistrationMode as RegistrationModeV3,
+    SearchType as SearchTypeV3,
+    SortType as SortTypeV3,
     SubscribedType as SubscribedTypeV3,
     aggregates::structs::{
-      CommentAggregates, CommunityAggregates, PersonAggregates, PostAggregates, SiteAggregates,
+      CommentAggregates,
+      CommunityAggregates,
+      PersonAggregates,
+      PostAggregates,
+      SiteAggregates,
     },
     newtypes::{
-      CommentId as CommentIdV3, CommunityId as CommunityIdV3, DbUrl as DbUrlV3, InstanceId,
-      LanguageId as LanguageIdV3, LocalUserId as LocalUserIdV3, PersonId as PersonIdV3,
-      PostId as PostIdV3, SiteId as SiteIdV3,
+      CommentId as CommentIdV3,
+      CommunityId as CommunityIdV3,
+      DbUrl as DbUrlV3,
+      InstanceId,
+      LanguageId as LanguageIdV3,
+      LocalUserId as LocalUserIdV3,
+      PersonId as PersonIdV3,
+      PostId as PostIdV3,
+      SiteId as SiteIdV3,
     },
     sensitive::SensitiveString as SensitiveStringV3,
     source::{
-      comment::Comment as CommentV3, community::Community as CommunityV3,
+      comment::Comment as CommentV3,
+      community::Community as CommunityV3,
       local_site::LocalSite as LocalSiteV3,
       local_site_rate_limit::LocalSiteRateLimit as LocalSiteRateLimitV3,
       local_user::LocalUser as LocalUserV3,
       local_user_vote_display_mode::LocalUserVoteDisplayMode as LocalUserVoteDisplayModeV3,
-      person::Person as PersonV3, post::Post as PostV3, site::Site as SiteV3,
+      person::Person as PersonV3,
+      post::Post as PostV3,
+      site::Site as SiteV3,
     },
   },
   lemmy_db_views::structs::{
-    CommentView as CommentViewV3, LocalUserView as LocalUserViewV3, PostView as PostViewV3,
+    CommentView as CommentViewV3,
+    LocalUserView as LocalUserViewV3,
+    PostView as PostViewV3,
     SiteView as SiteViewV3,
   },
   lemmy_db_views_actor::structs::{CommunityView as CommunityViewV3, PersonView as PersonViewV3},
   person::LoginResponse as LoginResponseV3,
   post::PostResponse as PostResponseV3,
   site::{
-    MyUserInfo as MyUserInfoV3, ResolveObjectResponse as ResolveObjectResponseV3,
+    MyUserInfo as MyUserInfoV3,
+    ResolveObjectResponse as ResolveObjectResponseV3,
     SearchResponse as SearchResponseV3,
   },
 };
@@ -40,8 +59,13 @@ use lemmy_api_utils::plugins::LemmyPlugins;
 use lemmy_db_schema::{
   CommunitySortType,
   source::{
-    comment::Comment, community::Community, local_site::LocalSite, local_user::LocalUser,
-    person::Person, post::Post, site::Site,
+    comment::Comment,
+    community::Community,
+    local_site::LocalSite,
+    local_user::LocalUser,
+    person::Person,
+    post::Post,
+    site::Site,
   },
 };
 use lemmy_db_schema_file::{
@@ -54,7 +78,8 @@ use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
 use lemmy_db_views_post::{PostView, api::PostResponse};
 use lemmy_db_views_site::{
-  ResolveObjectView, SiteView,
+  ResolveObjectView,
+  SiteView,
   api::{LoginResponse, MyUserInfo, SearchResponse},
 };
 use lemmy_diesel_utils::{dburl::DbUrl, sensitive::SensitiveString};

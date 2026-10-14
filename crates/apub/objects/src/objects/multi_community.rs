@@ -3,7 +3,9 @@ use crate::{
   protocol::multi_community::Feed,
   utils::{
     functions::{
-      GetActorType, check_apub_id_valid_with_strictness, read_from_string_or_source_opt,
+      GetActorType,
+      check_apub_id_valid_with_strictness,
+      read_from_string_or_source_opt,
     },
     markdown_links::markdown_rewrite_remote_links_opt,
     protocol::Source,
@@ -38,7 +40,10 @@ use lemmy_utils::{
     markdown::markdown_to_html,
     slurs::remove_slurs,
     validation::{
-      SITE_SUMMARY_MAX_LENGTH, is_valid_body_field, is_valid_display_name, summary_length_check,
+      SITE_SUMMARY_MAX_LENGTH,
+      is_valid_body_field,
+      is_valid_display_name,
+      summary_length_check,
       truncate_for_db,
     },
   },

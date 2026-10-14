@@ -1,5 +1,6 @@
 use diesel::{
-  BoolExpressionMethods, ExpressionMethods,
+  BoolExpressionMethods,
+  ExpressionMethods,
   dsl::IsNotNull,
   helper_types::{Eq, NotEq, Or},
 };

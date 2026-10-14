@@ -1,7 +1,11 @@
 use crate::LocalUserView;
 use actix_web::{FromRequest, HttpMessage, HttpRequest, dev::Payload};
 use diesel::{
-  BoolExpressionMethods, ExpressionMethods, NullableExpressionMethods, QueryDsl, SelectableHelper,
+  BoolExpressionMethods,
+  ExpressionMethods,
+  NullableExpressionMethods,
+  QueryDsl,
+  SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::asc_if;
@@ -23,7 +27,11 @@ use lemmy_db_schema_file::{
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   pagination::{
-    CursorData, PagedResponse, PaginationCursor, PaginationCursorConversion, paginate_response,
+    CursorData,
+    PagedResponse,
+    PaginationCursor,
+    PaginationCursorConversion,
+    paginate_response,
   },
   traits::Crud,
   utils::{

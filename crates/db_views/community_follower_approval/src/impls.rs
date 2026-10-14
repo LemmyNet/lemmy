@@ -1,6 +1,10 @@
 use crate::PendingFollowerView;
 use diesel::{
-  BoolExpressionMethods, ExpressionMethods, JoinOnDsl, NullableExpressionMethods, QueryDsl,
+  BoolExpressionMethods,
+  ExpressionMethods,
+  JoinOnDsl,
+  NullableExpressionMethods,
+  QueryDsl,
   dsl::{count, exists, sql},
   pg::sql_types::Array,
   select,
@@ -16,7 +20,9 @@ use lemmy_db_schema::{
   utils::{limit_fetch, queries::selects::person1_select},
 };
 use lemmy_db_schema_file::{
-  InstanceId, PersonId, aliases,
+  InstanceId,
+  PersonId,
+  aliases,
   enums::{CommunityFollowerState, CommunityVisibility},
   newtypes::CommunityId,
   schema::{community, community_actions, person},
@@ -24,7 +30,11 @@ use lemmy_db_schema_file::{
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   pagination::{
-    CursorData, PagedResponse, PaginationCursor, PaginationCursorConversion, paginate_response,
+    CursorData,
+    PagedResponse,
+    PaginationCursor,
+    PaginationCursorConversion,
+    paginate_response,
   },
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
@@ -231,7 +241,10 @@ mod tests {
     assert_length,
     source::{
       community::{
-        CommunityActions, CommunityFollowerForm, CommunityInsertForm, CommunityModeratorForm,
+        CommunityActions,
+        CommunityFollowerForm,
+        CommunityInsertForm,
+        CommunityModeratorForm,
       },
       instance::Instance,
       person::PersonInsertForm,
