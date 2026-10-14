@@ -1,8 +1,5 @@
 use crate::{
-  activity_lists::{
-    AnnouncableActivities,
-    AnnouncableActivitiesWrapper::{self, Many, Single},
-  },
+  activity_lists::AnnouncableActivities,
   generate_activity_id,
   generate_announce_activity_id,
   protocol::{
@@ -33,6 +30,7 @@ use lemmy_apub_objects::{
 use lemmy_db_schema::source::{activity::ActivitySendTargets, community::CommunityActions};
 use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult, UntranslatedError};
 use serde_json::Value;
+use tracing::warn;
 use url::Url;
 
 #[async_trait::async_trait]
@@ -81,75 +79,43 @@ impl Activity for RawAnnouncableActivities {
   }
 }
 
-// NOTE: This is no longer needed because the wrapper enum handles it
-// impl Id for RawAnnouncableActivities {
-//   fn id(&self) -> &Url {
-//     &self.id
-//   }
-// }
+/// Marker type for receiving a batch of activities (FEP-1a11), where `Announce.object` is an
+/// `OrderedCollection` of activities.
+#[derive(Clone, Debug)]
+pub struct ApubAnnouncedBatch(());
 
 #[async_trait::async_trait]
-impl Collection for AnnouncableActivitiesCollection {
-  #[doc = " Actor or object that this collection belongs to"]
+impl Collection for ApubAnnouncedBatch {
   type Owner = ApubCommunity;
-
-  #[doc = " App data type passed to handlers. Must be identical to"]
-  #[doc = " [crate::config::FederationConfigBuilder::app_data] type."]
   type DataType = LemmyContext;
-
-  #[doc = " The type of protocol struct which gets sent over network to federate this database struct."]
   type Kind = AnnouncableActivitiesCollection;
-
-  #[doc = " Error type returned by handler methods"]
   type Error = LemmyError;
 
-  #[doc = " Reads local collection from database and returns it as Activitypub JSON."]
-  #[expect(
-    mismatched_lifetime_syntaxes,
-    clippy::type_complexity,
-    clippy::type_repetition_in_bounds
-  )]
   async fn read_local(
     _owner: &Self::Owner,
     _context: &Data<Self::DataType>,
-  ) -> Result<Self::Kind, Self::Error> {
-    todo!()
+  ) -> LemmyResult<Self::Kind> {
+    // Unsupported for now. Could later serve batches persisted for crash recovery (see from_json).
+    Err(LemmyErrorType::NotFound.into())
   }
 
-  #[doc = " Verifies that the received object is valid."]
-  #[doc = ""]
-  #[doc = " You should check here that the domain of id matches `expected_domain`. Additionally you"]
-  #[doc = " should perform any application specific checks."]
-  #[expect(
-    mismatched_lifetime_syntaxes,
-    clippy::type_complexity,
-    clippy::type_repetition_in_bounds
-  )]
   async fn verify(
     json: &Self::Kind,
     expected_domain: &Url,
-    _context: &Data<LemmyContext>,
+    _context: &Data<Self::DataType>,
   ) -> LemmyResult<()> {
-    verify_domains_match(expected_domain, &json.id.clone())?;
+    verify_domains_match(expected_domain, &json.id)?;
     Ok(())
   }
 
-  #[doc = " Convert object from ActivityPub type to database type."]
-  #[doc = ""]
-  #[doc = " Called when an object is received from HTTP fetch or as part of an activity. This method"]
-  #[doc = " should also write the received object to database. Note that there is no distinction"]
-  #[doc = " between create and update, so an `upsert` operation should be used."]
-  #[expect(
-    mismatched_lifetime_syntaxes,
-    clippy::type_complexity,
-    clippy::type_repetition_in_bounds
-  )]
   async fn from_json(
     _json: Self::Kind,
     _owner: &Self::Owner,
-    _context: &Data<LemmyContext>,
+    _context: &Data<Self::DataType>,
   ) -> LemmyResult<Self> {
-    todo!()
+    // Unsupported for now. Could later persist received batches temporarily, so unprocessed items
+    // can be recovered after a crash.
+    Err(LemmyErrorType::NotFound.into())
   }
 }
 
@@ -157,42 +123,10 @@ impl Id for OneOrManyActivity {
   fn id(&self) -> &Url {
     match self {
       OneOrManyActivity::One(a) => &a.id,
-      OneOrManyActivity::Many(ac) => &ac.id,
+      OneOrManyActivity::Many(c) => &c.id,
     }
   }
 }
-
-// NOTE: not needed because the nested object in AnnounceActivity is a collection, not an activity
-// type #[derive(Clone, Debug, Deserialize, Serialize)]
-// pub struct InnerActivities {
-//   id: Url,
-//   total_activities: i32,
-//   activities: Vec<AnnouncableActivities>,
-// }
-// #[async_trait::async_trait]
-// impl Activity for InnerActivities {
-//   type DataType = LemmyContext;
-//   type Error = LemmyError;
-//
-//   fn id(&self) -> &Url {
-//     &self.id
-//   }
-//
-//   fn actor(&self) -> &Url {
-//     unimplemented!()
-//   }
-//
-//   async fn verify(&self, _context: &Data<Self::DataType>) -> LemmyResult<()> {
-//     Ok(())
-//   }
-//
-//   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-//     for activity in self.activities {
-//       activity.receive(context).await?
-//     }
-//     Ok(())
-//   }
-// }
 
 impl AnnounceActivity {
   pub fn new(
@@ -274,29 +208,74 @@ impl Activity for AnnounceActivity {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    let wrapper: OneOrManyActivity = self.object.dereference(context).await?;
-    if let Ok(Single(object)) = wrapper.try_into() {
-      // This is only for sending, not receiving so we reject it.
-      if let AnnouncableActivities::Page(_) = object {
-        return Err(UntranslatedError::CannotReceivePage.into());
+    match self.object.dereference(context).await? {
+      OneOrManyActivity::One(raw) => {
+        let object: AnnouncableActivities = raw.try_into()?;
+
+        // This is only for sending, not receiving so we reject it.
+        if let AnnouncableActivities::Page(_) = object {
+          return Err(UntranslatedError::CannotReceivePage.into());
+        }
+
+        let community = object.community(context).await?;
+        verify_urls_match(community.ap_id.inner(), self.actor.inner())?;
+        verify_visibility(&self.to, &self.cc, &community)?;
+        can_accept_activity_in_community(&Some(community), context).await?;
+
+        // verify here in order to avoid fetching the object twice over http
+        object.verify(context).await?;
+        object.receive(context).await
       }
-
-      let community = object.community(context).await?;
-      verify_urls_match(community.ap_id.inner(), self.actor.inner())?;
-      verify_visibility(&self.to, &self.cc, &community)?;
-      can_accept_activity_in_community(&Some(community), context).await?;
-
-      // verify here in order to avoid fetching the object twice over http
-      object.verify(context).await?;
-      object.receive(context).await
-    } else if let Many(object_collection) = wrapper.try_into()? {
-      todo!()
+      OneOrManyActivity::Many(batch) => {
+        let community = self.actor.dereference(context).await?;
+        verify_visibility(&self.to, &self.cc, &community)?;
+        can_accept_activity_in_community(&Some(community.clone()), context).await?;
+        ApubAnnouncedBatch::verify(&batch, self.actor.inner(), context).await?;
+        receive_batch(batch, &community, context).await
+      }
     }
-    // todo!()
   }
 }
 
-// This won't be needed anymore I think
+/// Receives each activity of a batch in order. A failing activity is logged and skipped, so that it
+/// doesn't prevent the rest of the batch from being received.
+async fn receive_batch(
+  batch: AnnouncableActivitiesCollection,
+  community: &ApubCommunity,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<()> {
+  for raw in batch.ordered_items {
+    let id = raw.id.clone();
+    if let Err(e) = receive_batch_item(raw, community, context).await {
+      warn!("Skipping activity {id} in batch {}: {e}", batch.id);
+    }
+  }
+  Ok(())
+}
+
+async fn receive_batch_item(
+  raw: RawAnnouncableActivities,
+  community: &ApubCommunity,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<()> {
+  let activity: AnnouncableActivities = raw.try_into()?;
+  if !can_batch(&activity) {
+    return Err(LemmyErrorType::NotFound.into());
+  }
+  let activity_community = activity.community(context).await?;
+  verify_urls_match(activity_community.ap_id.inner(), community.ap_id.inner())?;
+  activity.verify(context).await?;
+  activity.receive(context).await
+}
+
+/// Activity types which are accepted as part of a batch. Initially only votes, as in FEP-1a11.
+fn can_batch(activity: &AnnouncableActivities) -> bool {
+  matches!(
+    activity,
+    AnnouncableActivities::Vote(_) | AnnouncableActivities::UndoVote(_)
+  )
+}
+
 impl TryFrom<RawAnnouncableActivities> for AnnouncableActivities {
   type Error = serde_json::error::Error;
 
@@ -305,31 +284,6 @@ impl TryFrom<RawAnnouncableActivities> for AnnouncableActivities {
     map.insert("id".to_string(), Value::String(value.id.to_string()));
     map.insert("actor".to_string(), Value::String(value.actor.to_string()));
     serde_json::from_value(Value::Object(map))
-  }
-}
-
-impl TryFrom<OneOrManyActivity> for AnnouncableActivitiesWrapper {
-  type Error = serde_json::error::Error;
-
-  fn try_from(value: OneOrManyActivity) -> Result<Self, Self::Error> {
-    match value {
-      OneOrManyActivity::One(a) => {
-        let mut map = a.other.clone();
-        map.insert("id".to_string(), Value::String(a.id.to_string()));
-        map.insert("actor".to_string(), Value::String(a.actor.to_string()));
-        serde_json::from_value(Value::Object(map))
-      }
-      OneOrManyActivity::Many(ac) => {
-        let mut activities = vec![];
-        for a in ac.ordered_items {
-          let mut map = a.other.clone();
-          map.insert("id".to_string(), Value::String(a.id.to_string()));
-          map.insert("actor".to_string(), Value::String(a.actor.to_string()));
-          activities.push(Value::Object(map));
-        }
-        serde_json::from_value(Value::Array(activities))
-      }
-    }
   }
 }
 

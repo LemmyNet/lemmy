@@ -15,9 +15,6 @@ pub struct AnnounceActivity {
   pub(crate) actor: ObjectId<ApubCommunity>,
   #[serde(deserialize_with = "deserialize_one_or_many")]
   pub(crate) to: Vec<Url>,
-  // #[serde(deserialize_with = "deserialize_one_or_many")]
-  // pub object: Vec<IdOrNestedObject<RawAnnouncableActivities>>,
-  // pub object: IdOrNestedObject<OneOrManyActivity>,
   pub object: IdOrNestedObject<OneOrManyActivity>,
   #[serde(deserialize_with = "deserialize_one_or_many")]
   pub(crate) cc: Vec<Url>,
@@ -46,8 +43,8 @@ pub struct AnnouncableActivitiesCollection {
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
+#[serde(untagged)]
 pub enum OneOrManyActivity {
-  One(RawAnnouncableActivities),
   Many(AnnouncableActivitiesCollection),
+  One(RawAnnouncableActivities),
 }
