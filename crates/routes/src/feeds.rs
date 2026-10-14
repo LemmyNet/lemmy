@@ -1,5 +1,13 @@
 use crate::local_user_view_from_jwt;
-use actix_web::{error::ErrorBadRequest, web, Error, HttpRequest, HttpResponse, Result};
+use actix_web::{
+  error::ErrorBadRequest,
+  http::header::CACHE_CONTROL,
+  web,
+  Error,
+  HttpRequest,
+  HttpResponse,
+  Result,
+};
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use lemmy_api_common::{context::LemmyContext, utils::check_private_instance};
@@ -62,6 +70,7 @@ impl Params {
   }
 }
 
+#[derive(PartialEq)]
 enum RequestType {
   Community,
   User,
@@ -229,11 +238,12 @@ async fn get_feed(
 
   let rss = builder.to_string();
 
-  Ok(
-    HttpResponse::Ok()
-      .content_type("application/rss+xml")
-      .body(rss),
-  )
+  let mut response = HttpResponse::Ok();
+  // Prevent caching of private feeds
+  if request_type == RequestType::Front || request_type == RequestType::Inbox {
+    response.insert_header((CACHE_CONTROL, "private"));
+  }
+  Ok(response.content_type("application/rss+xml").body(rss))
 }
 
 #[tracing::instrument(skip_all)]
