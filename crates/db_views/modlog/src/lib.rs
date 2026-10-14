@@ -1,9 +1,5 @@
 use lemmy_db_schema::source::{
-  comment::Comment,
-  community::Community,
-  instance::Instance,
-  modlog::Modlog,
-  person::Person,
+  comment::Comment, community::Community, instance::Instance, modlog::Modlog, person::Person,
   post::Post,
 };
 use serde::{Deserialize, Serialize};

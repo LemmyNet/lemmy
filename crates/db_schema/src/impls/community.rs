@@ -3,15 +3,8 @@ use crate::{
   source::{
     actor_language::CommunityLanguage,
     community::{
-      Community,
-      CommunityActions,
-      CommunityBlockForm,
-      CommunityFollowerForm,
-      CommunityInsertForm,
-      CommunityModeratorForm,
-      CommunityPersonBanForm,
-      CommunityUpdateForm,
-      CommunityUpsertForm,
+      Community, CommunityActions, CommunityBlockForm, CommunityFollowerForm, CommunityInsertForm,
+      CommunityModeratorForm, CommunityPersonBanForm, CommunityUpdateForm, CommunityUpsertForm,
     },
     post::Post,
   },
@@ -20,14 +13,10 @@ use crate::{
 };
 use chrono::{DateTime, Utc};
 use diesel::{
-  BoolExpressionMethods,
-  ExpressionMethods,
-  NullableExpressionMethods,
-  QueryDsl,
+  BoolExpressionMethods, ExpressionMethods, NullableExpressionMethods, QueryDsl,
   dsl::{exists, insert_into, not},
   expression::SelectableHelper,
-  select,
-  update,
+  select, update,
 };
 use diesel_async::RunQueryDsl;
 use diesel_uplete::{UpleteCount, uplete};
@@ -670,13 +659,8 @@ mod tests {
     source::{
       comment::{Comment, CommentInsertForm},
       community::{
-        Community,
-        CommunityActions,
-        CommunityFollowerForm,
-        CommunityInsertForm,
-        CommunityModeratorForm,
-        CommunityPersonBanForm,
-        CommunityUpdateForm,
+        Community, CommunityActions, CommunityFollowerForm, CommunityInsertForm,
+        CommunityModeratorForm, CommunityPersonBanForm, CommunityUpdateForm,
       },
       instance::Instance,
       local_user::LocalUser,

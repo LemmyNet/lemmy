@@ -1,10 +1,6 @@
 use crate::{CommunityModeratorView, CommunityPersonBanView};
 use diesel::{
-  ExpressionMethods,
-  JoinOnDsl,
-  OptionalExtension,
-  QueryDsl,
-  SelectableHelper,
+  ExpressionMethods, JoinOnDsl, OptionalExtension, QueryDsl, SelectableHelper,
   dsl::{exists, not},
   select,
 };

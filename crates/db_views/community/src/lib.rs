@@ -11,8 +11,7 @@ use serde_with::skip_serializing_none;
 use {
   diesel::{NullableExpressionMethods, Queryable, Selectable},
   lemmy_db_schema::utils::queries::selects::{
-    community_tags_fragment,
-    local_user_community_can_mod,
+    community_tags_fragment, local_user_community_can_mod,
   },
   lemmy_db_schema_file::schema::multi_community_follow,
 };

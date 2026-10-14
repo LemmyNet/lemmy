@@ -5,10 +5,7 @@ use crate::source::{
 };
 use bcrypt::{DEFAULT_COST, hash};
 use diesel::{
-  CombineDsl,
-  ExpressionMethods,
-  JoinOnDsl,
-  QueryDsl,
+  CombineDsl, ExpressionMethods, JoinOnDsl, QueryDsl,
   dsl::{IntervalDsl, insert_into, not},
   result::Error,
 };
@@ -159,15 +156,8 @@ impl LocalUser {
     person_id_: PersonId,
   ) -> LemmyResult<UserBackupLists> {
     use lemmy_db_schema_file::schema::{
-      comment,
-      comment_actions,
-      community,
-      community_actions,
-      instance,
-      instance_actions,
-      person_actions,
-      post,
-      post_actions,
+      comment, comment_actions, community, community_actions, instance, instance_actions,
+      person_actions, post, post_actions,
     };
     let conn = &mut get_conn(pool).await?;
 

@@ -3,10 +3,7 @@ use crate::{
   protocol::tags::{ApubTag, Mention},
 };
 use activitypub_federation::{
-  config::Data,
-  fetch::webfinger::webfinger_resolve_actor,
-  kinds::link::MentionType,
-  traits::Object,
+  config::Data, fetch::webfinger::webfinger_resolve_actor, kinds::link::MentionType, traits::Object,
 };
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_db_schema::source::{comment::Comment, community::Community, person::Person, post::Post};

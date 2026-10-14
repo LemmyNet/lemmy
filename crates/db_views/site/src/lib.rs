@@ -1,13 +1,9 @@
 #[cfg(feature = "full")]
 use diesel::{Queryable, Selectable};
 use lemmy_db_schema::source::{
-  federation_allowlist::FederationAllowList,
-  federation_blocklist::FederationBlockList,
-  federation_queue_state::FederationQueueState,
-  instance::Instance,
-  local_site::LocalSite,
-  local_site_rate_limit::LocalSiteRateLimit,
-  site::Site,
+  federation_allowlist::FederationAllowList, federation_blocklist::FederationBlockList,
+  federation_queue_state::FederationQueueState, instance::Instance, local_site::LocalSite,
+  local_site_rate_limit::LocalSiteRateLimit, site::Site,
 };
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_community::{CommunityView, MultiCommunityView};

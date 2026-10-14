@@ -1,16 +1,10 @@
 use crate::{
-  FederatedInstanceView,
-  SiteView,
+  FederatedInstanceView, SiteView,
   api::{GetFederatedInstances, GetFederatedInstancesKind, UserSettingsBackup},
 };
 use diesel::{
-  ExpressionMethods,
-  JoinOnDsl,
-  OptionalExtension,
-  PgTextExpressionMethods,
-  QueryDsl,
-  SelectableHelper,
-  dsl::count_star,
+  ExpressionMethods, JoinOnDsl, OptionalExtension, PgTextExpressionMethods, QueryDsl,
+  SelectableHelper, dsl::count_star,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
@@ -28,13 +22,8 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::{
   InstanceId,
   schema::{
-    federation_allowlist,
-    federation_blocklist,
-    federation_queue_state,
-    instance,
-    local_site,
-    local_site_rate_limit,
-    site,
+    federation_allowlist, federation_blocklist, federation_queue_state, instance, local_site,
+    local_site_rate_limit, site,
   },
 };
 use lemmy_db_views_local_user::LocalUserView;
@@ -45,8 +34,7 @@ use lemmy_diesel_utils::{
   utils::fuzzy_search,
 };
 use lemmy_utils::{
-  CacheLock,
-  build_cache,
+  CacheLock, build_cache,
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
 };
 use std::{

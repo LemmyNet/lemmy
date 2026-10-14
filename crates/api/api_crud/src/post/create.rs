@@ -10,14 +10,8 @@ use lemmy_api_utils::{
   request::generate_post_link_metadata,
   send_activity::SendActivityData,
   utils::{
-    check_community_user_action,
-    check_nsfw_allowed,
-    get_url_blocklist,
-    honeypot_check,
-    process_markdown_opt,
-    send_webmention,
-    slur_regex,
-    update_post_tags,
+    check_community_user_action, check_nsfw_allowed, get_url_blocklist, honeypot_check,
+    process_markdown_opt, send_webmention, slur_regex, update_post_tags,
   },
 };
 use lemmy_db_schema::{
@@ -36,10 +30,7 @@ use lemmy_utils::{
   utils::{
     slurs::check_slurs,
     validation::{
-      is_url_blocked,
-      is_valid_alt_text_field,
-      is_valid_body_field,
-      is_valid_post_title,
+      is_url_blocked, is_valid_alt_text_field, is_valid_body_field, is_valid_post_title,
       is_valid_url,
     },
   },

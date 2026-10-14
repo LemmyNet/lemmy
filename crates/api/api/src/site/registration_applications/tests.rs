@@ -1,8 +1,7 @@
 use crate::{
   local_user::unread_counts::get_unread_counts,
   site::registration_applications::{
-    approve::approve_registration_application,
-    list::list_registration_applications,
+    approve::approve_registration_application, list::list_registration_applications,
   },
 };
 use activitypub_federation::config::Data;
@@ -21,8 +20,7 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::{InstanceId, enums::RegistrationMode};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_registration_applications::{
-  RegistrationApplicationView,
-  api::ApproveRegistrationApplication,
+  RegistrationApplicationView, api::ApproveRegistrationApplication,
 };
 use lemmy_db_views_site::api::EditSite;
 use lemmy_diesel_utils::{connection::DbPool, traits::Crud};

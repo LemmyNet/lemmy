@@ -3,9 +3,7 @@ use crate::{
   protocol::person::{Person, UserTypes},
   utils::{
     functions::{
-      GetActorType,
-      check_apub_id_valid_with_strictness,
-      read_from_string_or_source_opt,
+      GetActorType, check_apub_id_valid_with_strictness, read_from_string_or_source_opt,
     },
     markdown_links::markdown_rewrite_remote_links_opt,
     protocol::{ImageObject, Source},
@@ -20,10 +18,7 @@ use chrono::{DateTime, Utc};
 use lemmy_api_utils::{
   context::LemmyContext,
   utils::{
-    generate_outbox_url,
-    get_url_blocklist,
-    process_markdown_opt,
-    proxy_image_link_opt_apub,
+    generate_outbox_url, get_url_blocklist, process_markdown_opt, proxy_image_link_opt_apub,
     slur_regex,
   },
 };

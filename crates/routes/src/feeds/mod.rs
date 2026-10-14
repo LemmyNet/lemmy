@@ -8,9 +8,7 @@ use lemmy_api_utils::{
 use lemmy_db_schema::{
   PersonContentType,
   source::{
-    community::Community,
-    multi_community::MultiCommunity,
-    notification::Notification,
+    community::Community, multi_community::MultiCommunity, notification::Notification,
     person::Person,
   },
   traits::ApubActor,
@@ -23,19 +21,12 @@ use lemmy_db_views_post::{PostView, impls::PostQuery};
 use lemmy_db_views_site::SiteView;
 use lemmy_email::{translations::Lang, user_language};
 use lemmy_utils::{
-  cache_header::cache_1hour,
-  error::LemmyResult,
-  rate_limit::RateLimit,
-  settings::structs::Settings,
-  utils::markdown::markdown_to_html,
+  cache_header::cache_1hour, error::LemmyResult, rate_limit::RateLimit,
+  settings::structs::Settings, utils::markdown::markdown_to_html,
 };
 use negotiate_content::get_lang_or_negotiate;
 use rss::{
-  Category,
-  Channel,
-  EnclosureBuilder,
-  Guid,
-  Item,
+  Category, Channel, EnclosureBuilder, Guid, Item,
   extension::{ExtensionBuilder, ExtensionMap, dublincore::DublinCoreExtension},
 };
 use serde::Deserialize;

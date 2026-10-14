@@ -1,9 +1,6 @@
 use crate::{CommunityView, MultiCommunityView};
 use lemmy_db_schema::{
-  CommunitySortType,
-  MultiCommunityListingType,
-  MultiCommunitySortType,
-  source::site::Site,
+  CommunitySortType, MultiCommunityListingType, MultiCommunitySortType, source::site::Site,
 };
 use lemmy_db_schema_file::{
   PersonId,

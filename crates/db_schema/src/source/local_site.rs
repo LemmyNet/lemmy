@@ -4,12 +4,7 @@ use lemmy_db_schema_file::schema::local_site;
 use lemmy_db_schema_file::{
   PersonId,
   enums::{
-    CommentSortType,
-    FederationMode,
-    ImageMode,
-    ListingType,
-    PostListingMode,
-    PostSortType,
+    CommentSortType, FederationMode, ImageMode, ListingType, PostListingMode, PostSortType,
     RegistrationMode,
   },
   newtypes::{LocalSiteId, MultiCommunityId, SiteId},

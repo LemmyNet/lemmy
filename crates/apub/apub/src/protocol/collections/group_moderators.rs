@@ -1,6 +1,5 @@
 use activitypub_federation::{
-  fetch::object_id::ObjectId,
-  kinds::collection::OrderedCollectionType,
+  fetch::object_id::ObjectId, kinds::collection::OrderedCollectionType,
 };
 use lemmy_apub_objects::objects::person::ApubPerson;
 use serde::{Deserialize, Serialize};

@@ -7,12 +7,8 @@ use actix_web::web::{Json, Query};
 use itertools::Itertools;
 use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
 use lemmy_db_schema::{
-  CommunitySortType,
-  MultiCommunityListingType,
-  MultiCommunitySortType,
-  PersonListingType,
-  PersonSortType,
-  SearchType,
+  CommunitySortType, MultiCommunityListingType, MultiCommunitySortType, PersonListingType,
+  PersonSortType, SearchType,
 };
 use lemmy_db_schema_file::enums::{CommentSortType, ListingType};
 use lemmy_db_views_comment::impls::CommentQuery;

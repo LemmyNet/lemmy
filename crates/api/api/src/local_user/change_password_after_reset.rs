@@ -1,9 +1,7 @@
 use actix_web::web::{Data, Json};
 use lemmy_api_utils::{context::LemmyContext, utils::password_length_check};
 use lemmy_db_schema::source::{
-  local_user::LocalUser,
-  login_token::LoginToken,
-  password_reset_request::PasswordResetRequest,
+  local_user::LocalUser, login_token::LoginToken, password_reset_request::PasswordResetRequest,
 };
 use lemmy_db_views_site::api::{ChangePasswordAfterReset, SuccessResponse};
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};

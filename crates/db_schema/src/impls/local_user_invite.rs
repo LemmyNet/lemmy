@@ -1,7 +1,5 @@
 use crate::source::local_user_invite::{
-  LocalUserInvite,
-  LocalUserInviteInsertForm,
-  LocalUserInviteUpdateForm,
+  LocalUserInvite, LocalUserInviteInsertForm, LocalUserInviteUpdateForm,
 };
 use chrono::Utc;
 use diesel::{ExpressionMethods, QueryDsl, insert_into};

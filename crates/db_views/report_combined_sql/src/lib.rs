@@ -1,36 +1,17 @@
 use diesel::{
-  BoolExpressionMethods,
-  ExpressionMethods,
-  JoinOnDsl,
-  NullableExpressionMethods,
-  QueryDsl,
+  BoolExpressionMethods, ExpressionMethods, JoinOnDsl, NullableExpressionMethods, QueryDsl,
 };
 use lemmy_db_schema_file::{
-  InstanceId,
-  PersonId,
-  aliases,
+  InstanceId, PersonId, aliases,
   aliases::creator_community_actions,
   joins::{
-    creator_community_instance_actions_join,
-    creator_home_instance_actions_join,
+    creator_community_instance_actions_join, creator_home_instance_actions_join,
     creator_local_instance_actions_join,
   },
   schema::{
-    comment,
-    comment_actions,
-    comment_report,
-    community,
-    community_actions,
-    community_report,
-    local_user,
-    person,
-    person_actions,
-    post,
-    post_actions,
-    post_report,
-    private_message,
-    private_message_report,
-    report_combined,
+    comment, comment_actions, comment_report, community, community_actions, community_report,
+    local_user, person, person_actions, post, post_actions, post_report, private_message,
+    private_message_report, report_combined,
   },
 };
 

@@ -9,9 +9,7 @@ use serde_with::skip_serializing_none;
 use {
   diesel::{NullableExpressionMethods, Queryable, Selectable, helper_types::Nullable},
   lemmy_db_schema::utils::queries::selects::{
-    CreatorLocalHomeBanExpiresType,
-    creator_local_home_ban_expires,
-    creator_local_home_banned,
+    CreatorLocalHomeBanExpiresType, creator_local_home_ban_expires, creator_local_home_banned,
   },
   lemmy_db_schema_file::schema::local_user,
   lemmy_diesel_utils::utils::functions::coalesce,

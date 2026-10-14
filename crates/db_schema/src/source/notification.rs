@@ -1,8 +1,5 @@
 use crate::source::{
-  comment::Comment,
-  modlog::Modlog,
-  post::Post,
-  private_message::PrivateMessage,
+  comment::Comment, modlog::Modlog, post::Post, private_message::PrivateMessage,
 };
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
@@ -10,8 +7,7 @@ use i_love_jesus::CursorKeysModule;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::notification;
 use lemmy_db_schema_file::{
-  InstanceId,
-  PersonId,
+  InstanceId, PersonId,
   enums::NotificationType,
   newtypes::{CommentId, CommunityId, ModlogId, NotificationId, PostId, PrivateMessageId},
 };

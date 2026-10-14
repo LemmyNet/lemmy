@@ -2,12 +2,8 @@ use crate::{
   diesel::JoinOnDsl,
   source::{
     actor_language::{
-      CommunityLanguage,
-      CommunityLanguageForm,
-      LocalUserLanguage,
-      LocalUserLanguageForm,
-      SiteLanguage,
-      SiteLanguageForm,
+      CommunityLanguage, CommunityLanguageForm, LocalUserLanguage, LocalUserLanguageForm,
+      SiteLanguage, SiteLanguageForm,
     },
     language::Language,
     site::Site,
@@ -218,9 +214,7 @@ impl CommunityLanguage {
     for_instance_id: InstanceId,
   ) -> LemmyResult<()> {
     use lemmy_db_schema_file::schema::{
-      community::dsl as c,
-      community_language::dsl as cl,
-      site_language::dsl as sl,
+      community::dsl as c, community_language::dsl as cl, site_language::dsl as sl,
     };
     let community_languages: Vec<LanguageId> = cl::community_language
       .left_outer_join(sl::site_language.on(cl::language_id.eq(sl::language_id)))
@@ -244,9 +238,7 @@ impl CommunityLanguage {
     for_community_id: CommunityId,
   ) -> LemmyResult<Vec<LanguageId>> {
     use lemmy_db_schema_file::schema::community_language::dsl::{
-      community_id,
-      community_language,
-      language_id,
+      community_id, community_language, language_id,
     };
     let conn = &mut get_conn(pool).await?;
     community_language

@@ -1,6 +1,5 @@
 use crate::{
-  collections::community_moderators::handle_community_moderators,
-  is_new_instance,
+  collections::community_moderators::handle_community_moderators, is_new_instance,
   protocol::collections::url_collection::UrlCollection,
 };
 use activitypub_federation::{

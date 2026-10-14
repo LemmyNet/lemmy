@@ -19,17 +19,10 @@ use lemmy_db_schema::{
   },
 };
 use lemmy_db_schema_file::{
-  InstanceId,
-  PersonId,
+  InstanceId, PersonId,
   enums::{
-    CommentSortType,
-    FederationMode,
-    ImageMode,
-    ListingType,
-    PostListingMode,
-    PostSortType,
-    RegistrationMode,
-    VoteShow,
+    CommentSortType, FederationMode, ImageMode, ListingType, PostListingMode, PostSortType,
+    RegistrationMode, VoteShow,
   },
   newtypes::{CommunityId, LanguageId, MultiCommunityId, OAuthProviderId, TaglineId},
 };

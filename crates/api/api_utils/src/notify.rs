@@ -377,8 +377,7 @@ mod tests {
     notify::{NotifyData, notify_private_message_internal},
   };
   use lemmy_db_schema::{
-    NotificationTypeFilter,
-    assert_length,
+    NotificationTypeFilter, assert_length,
     source::{
       comment::{Comment, CommentInsertForm},
       community::{Community, CommunityInsertForm},

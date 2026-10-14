@@ -1,15 +1,13 @@
 use deadpool::Runtime;
 use diesel::result::{
-  ConnectionError,
-  ConnectionResult,
+  ConnectionError, ConnectionResult,
   Error::{self as DieselError, QueryBuilderError},
 };
 use diesel_async::{
   AsyncConnection,
   pg::AsyncPgConnection,
   pooled_connection::{
-    AsyncDieselConnectionManager,
-    ManagerConfig,
+    AsyncDieselConnectionManager, ManagerConfig,
     deadpool::{Hook, HookError, Object as PooledConnection, Pool},
   },
   scoped_futures::ScopedBoxFuture,
@@ -20,14 +18,9 @@ use lemmy_utils::{
   settings::SETTINGS,
 };
 use rustls::{
-  ClientConfig,
-  DigitallySignedStruct,
-  SignatureScheme,
+  ClientConfig, DigitallySignedStruct, SignatureScheme,
   client::danger::{
-    DangerousClientConfigBuilder,
-    HandshakeSignatureValid,
-    ServerCertVerified,
-    ServerCertVerifier,
+    DangerousClientConfigBuilder, HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier,
   },
   crypto::{self, verify_tls12_signature, verify_tls13_signature},
   pki_types::{CertificateDer, ServerName, UnixTime},

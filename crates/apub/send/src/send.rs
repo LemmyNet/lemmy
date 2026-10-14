@@ -1,8 +1,6 @@
 use crate::util::get_actor_cached;
 use activitypub_federation::{
-  activity_sending::SendActivityTask,
-  config::Data,
-  protocol::context::WithContext,
+  activity_sending::SendActivityTask, config::Data, protocol::context::WithContext,
   traits::Activity,
 };
 use anyhow::{Context, Result};

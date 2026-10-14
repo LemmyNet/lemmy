@@ -10,8 +10,7 @@ use diesel_async::RunQueryDsl;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::modlog;
 use lemmy_db_schema_file::{
-  InstanceId,
-  PersonId,
+  InstanceId, PersonId,
   enums::ModlogKind,
   newtypes::{CommunityId, ModlogId},
 };

@@ -3,10 +3,7 @@ use actix_web::web::Json;
 use lemmy_api_utils::{
   context::LemmyContext,
   utils::{
-    check_local_user_banned_or_deleted,
-    get_url_blocklist,
-    process_markdown_opt,
-    slur_regex,
+    check_local_user_banned_or_deleted, get_url_blocklist, process_markdown_opt, slur_regex,
   },
 };
 use lemmy_db_schema::{
@@ -26,10 +23,7 @@ use lemmy_utils::{
   utils::{
     slurs::check_slurs,
     validation::{
-      is_valid_actor_name,
-      is_valid_body_field,
-      is_valid_display_name,
-      summary_length_check,
+      is_valid_actor_name, is_valid_body_field, is_valid_display_name, summary_length_check,
     },
   },
 };

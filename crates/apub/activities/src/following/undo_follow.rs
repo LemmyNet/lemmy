@@ -17,12 +17,9 @@ use lemmy_api_utils::{context::LemmyContext, utils::check_community_deleted_remo
 use lemmy_apub_objects::objects::{CommunityOrMulti, person::ApubPerson};
 use lemmy_db_schema::{
   source::{
-    activity::ActivitySendTargets,
-    community::CommunityActions,
-    community_community_follow::CommunityCommunityFollow,
-    instance::InstanceActions,
-    multi_community::MultiCommunity,
-    person::PersonActions,
+    activity::ActivitySendTargets, community::CommunityActions,
+    community_community_follow::CommunityCommunityFollow, instance::InstanceActions,
+    multi_community::MultiCommunity, person::PersonActions,
   },
   traits::Followable,
 };

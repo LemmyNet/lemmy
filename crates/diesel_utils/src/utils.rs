@@ -1,8 +1,6 @@
 use crate::dburl::DbUrl;
 use diesel::{
-  Expression,
-  IntoSql,
-  dsl,
+  Expression, IntoSql, dsl,
   helper_types::AsExprOf,
   pg::{Pg, data_types::PgInterval},
   query_builder::{Query, QueryFragment, QueryId},

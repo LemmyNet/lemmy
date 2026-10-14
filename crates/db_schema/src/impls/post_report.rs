@@ -4,9 +4,7 @@ use crate::{
 };
 use chrono::Utc;
 use diesel::{
-  BoolExpressionMethods,
-  ExpressionMethods,
-  QueryDsl,
+  BoolExpressionMethods, ExpressionMethods, QueryDsl,
   dsl::{insert_into, update},
 };
 use diesel_async::RunQueryDsl;

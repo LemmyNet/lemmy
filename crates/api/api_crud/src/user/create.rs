@@ -1,7 +1,5 @@
 use activitypub_federation::{
-  config::Data,
-  fetch::object_id::ObjectId,
-  http_signatures::generate_actor_keypair,
+  config::Data, fetch::object_id::ObjectId, http_signatures::generate_actor_keypair,
 };
 use actix_web::{HttpRequest, rt::time::sleep, web::Json};
 use diesel_async::{AsyncPgConnection, scoped_futures::ScopedFutureExt};
@@ -10,17 +8,9 @@ use lemmy_api_utils::{
   context::LemmyContext,
   plugins::{LemmyPlugins, plugin_hook_after, plugin_hook_before, plugin_validate_captcha},
   utils::{
-    check_email_verified,
-    check_local_user_banned_or_deleted,
-    check_registration_application,
-    check_totp_2fa_valid,
-    generate_featured_url,
-    generate_followers_url,
-    generate_inbox_url,
-    generate_moderators_url,
-    honeypot_check,
-    password_length_check,
-    slur_regex,
+    check_email_verified, check_local_user_banned_or_deleted, check_registration_application,
+    check_totp_2fa_valid, generate_featured_url, generate_followers_url, generate_inbox_url,
+    generate_moderators_url, honeypot_check, password_length_check, slur_regex,
   },
 };
 use lemmy_apub_objects::objects::community::ApubCommunity;
@@ -51,8 +41,7 @@ use lemmy_db_views_site::{
 };
 use lemmy_diesel_utils::{connection::get_conn, pagination::PagedResponse, traits::Crud};
 use lemmy_email::{
-  account::send_verification_email_if_required,
-  admin::send_new_applicant_email_to_admins,
+  account::send_verification_email_if_required, admin::send_new_applicant_email_to_admins,
   user_language,
 };
 use lemmy_utils::{

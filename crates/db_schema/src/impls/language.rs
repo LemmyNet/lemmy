@@ -8,8 +8,7 @@ use lemmy_db_schema_file::{
 };
 use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::{
-  CacheLock,
-  build_cache,
+  CacheLock, build_cache,
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
 };
 use std::sync::LazyLock;

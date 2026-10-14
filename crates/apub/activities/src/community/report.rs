@@ -18,17 +18,13 @@ use either::Either;
 use lemmy_api_utils::{
   context::LemmyContext,
   utils::{
-    check_comment_deleted_or_removed,
-    check_community_deleted_removed,
+    check_comment_deleted_or_removed, check_community_deleted_removed,
     check_post_deleted_or_removed,
   },
 };
 use lemmy_apub_objects::{
   objects::{
-    PostOrComment,
-    ReportableObjects,
-    community::ApubCommunity,
-    instance::ApubSite,
+    PostOrComment, ReportableObjects, community::ApubCommunity, instance::ApubSite,
     person::ApubPerson,
   },
   utils::functions::{verify_person_in_community, verify_person_in_site_or_community},

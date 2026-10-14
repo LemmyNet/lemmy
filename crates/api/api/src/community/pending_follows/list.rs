@@ -1,8 +1,7 @@
 use actix_web::web::{Data, Json, Query};
 use lemmy_api_utils::{context::LemmyContext, utils::check_community_mod_of_any_or_admin_action};
 use lemmy_db_views_community_follower_approval::{
-  PendingFollowerView,
-  api::ListCommunityPendingFollows,
+  PendingFollowerView, api::ListCommunityPendingFollows,
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_diesel_utils::pagination::PagedResponse;

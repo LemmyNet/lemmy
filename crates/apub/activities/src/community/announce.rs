@@ -1,7 +1,6 @@
 use crate::{
   activity_lists::AnnouncableActivities,
-  generate_activity_id,
-  generate_announce_activity_id,
+  generate_activity_id, generate_announce_activity_id,
   protocol::{
     IdOrNestedObject,
     community::announce::{AnnounceActivity, RawAnnouncableActivities},

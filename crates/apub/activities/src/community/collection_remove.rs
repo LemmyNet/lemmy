@@ -1,8 +1,6 @@
 use crate::{
-  activity_lists::AnnouncableActivities,
-  community::send_activity_in_community,
-  generate_activity_id,
-  protocol::community::collection_remove::CollectionRemove,
+  activity_lists::AnnouncableActivities, community::send_activity_in_community,
+  generate_activity_id, protocol::community::collection_remove::CollectionRemove,
 };
 use activitypub_federation::{
   config::Data,

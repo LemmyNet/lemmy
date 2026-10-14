@@ -2,9 +2,7 @@ use actix_web::web::{Data, Json, Query};
 use lemmy_api_utils::{context::LemmyContext, utils::check_community_mod_of_any_or_admin_action};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_report_combined::{
-  ReportCombinedView,
-  api::ListReports,
-  impls::ReportCombinedQuery,
+  ReportCombinedView, api::ListReports, impls::ReportCombinedQuery,
 };
 use lemmy_diesel_utils::pagination::PagedResponse;
 use lemmy_utils::error::LemmyResult;

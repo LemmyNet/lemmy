@@ -17,16 +17,13 @@ use lemmy_db_views_post::api::{LinkMetadata, OpenGraphData};
 use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::{
-  REQWEST_TIMEOUT,
-  VERSION,
+  REQWEST_TIMEOUT, VERSION,
   error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult, UntranslatedError},
   settings::structs::Settings,
 };
 use mime::{Mime, TEXT_HTML};
 use reqwest::{
-  Client,
-  ClientBuilder,
-  Response,
+  Client, ClientBuilder, Response,
   header::{CONTENT_TYPE, LOCATION, RANGE},
   redirect::Policy,
 };

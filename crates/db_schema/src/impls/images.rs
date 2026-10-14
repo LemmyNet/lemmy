@@ -1,17 +1,8 @@
 use crate::source::images::{
-  ImageDetails,
-  ImageDetailsInsertForm,
-  LocalImage,
-  LocalImageForm,
-  RemoteImage,
+  ImageDetails, ImageDetailsInsertForm, LocalImage, LocalImageForm, RemoteImage,
 };
 use diesel::{
-  BoolExpressionMethods,
-  ExpressionMethods,
-  QueryDsl,
-  dsl::exists,
-  insert_into,
-  select,
+  BoolExpressionMethods, ExpressionMethods, QueryDsl, dsl::exists, insert_into, select,
 };
 use diesel_async::{RunQueryDsl, scoped_futures::ScopedFutureExt};
 use lemmy_db_schema_file::{

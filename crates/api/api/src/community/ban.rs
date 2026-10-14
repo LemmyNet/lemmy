@@ -6,9 +6,7 @@ use lemmy_api_utils::{
   notify::notify_mod_action,
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
-    check_community_mod_action,
-    check_expire_time,
-    remove_or_restore_user_data_in_community,
+    check_community_mod_action, check_expire_time, remove_or_restore_user_data_in_community,
   },
 };
 use lemmy_db_schema::{

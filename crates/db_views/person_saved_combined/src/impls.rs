@@ -1,10 +1,6 @@
 use crate::LocalUserView;
 use diesel::{
-  BoolExpressionMethods,
-  ExpressionMethods,
-  JoinOnDsl,
-  PgTextExpressionMethods,
-  QueryDsl,
+  BoolExpressionMethods, ExpressionMethods, JoinOnDsl, PgTextExpressionMethods, QueryDsl,
   SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
@@ -16,35 +12,23 @@ use lemmy_db_schema::{
   utils::{limit_fetch, queries::filters::filter_private_or_followed},
 };
 use lemmy_db_schema_file::{
-  InstanceId,
-  PersonId,
+  InstanceId, PersonId,
   joins::{
-    creator_community_actions_join,
-    creator_community_instance_actions_join,
-    creator_home_instance_actions_join,
-    creator_local_instance_actions_join,
-    creator_local_user_admin_join,
-    image_details_join,
-    my_comment_actions_join,
-    my_community_actions_join,
-    my_local_user_admin_join,
-    my_person_actions_join,
+    creator_community_actions_join, creator_community_instance_actions_join,
+    creator_home_instance_actions_join, creator_local_instance_actions_join,
+    creator_local_user_admin_join, image_details_join, my_comment_actions_join,
+    my_community_actions_join, my_local_user_admin_join, my_person_actions_join,
     my_post_actions_join,
   },
   schema::{comment, community, person, person_saved_combined, post},
 };
 use lemmy_db_views_post_comment_combined::{
-  PostCommentCombinedView,
-  PostCommentCombinedViewInternal,
+  PostCommentCombinedView, PostCommentCombinedViewInternal,
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   pagination::{
-    CursorData,
-    PagedResponse,
-    PaginationCursor,
-    PaginationCursorConversion,
-    paginate_response,
+    CursorData, PagedResponse, PaginationCursor, PaginationCursorConversion, paginate_response,
   },
   utils::fuzzy_search,
 };

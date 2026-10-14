@@ -5,9 +5,7 @@ pub mod undo_delete;
 #[cfg(test)]
 mod tests {
   use crate::protocol::deletion::{
-    delete::Delete,
-    delete_user::DeleteUser,
-    undo_delete::UndoDelete,
+    delete::Delete, delete_user::DeleteUser, undo_delete::UndoDelete,
   };
   use lemmy_apub_objects::utils::test::test_parse_lemmy_item;
   use lemmy_utils::error::LemmyResult;

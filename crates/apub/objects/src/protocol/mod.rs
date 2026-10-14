@@ -10,11 +10,7 @@ pub mod tags;
 #[cfg(test)]
 mod tests {
   use super::{
-    group::Group,
-    instance::Instance,
-    note::Note,
-    page::Page,
-    person::Person,
+    group::Group, instance::Instance, note::Note, page::Page, person::Person,
     private_message::PrivateMessage,
   };
   use crate::utils::test::{test_json, test_parse_lemmy_item};

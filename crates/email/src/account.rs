@@ -8,9 +8,7 @@ use lemmy_db_schema_file::enums::RegistrationMode;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_diesel_utils::{connection::DbPool, sensitive::SensitiveString};
 use lemmy_utils::{
-  error::LemmyResult,
-  settings::structs::Settings,
-  utils::markdown::markdown_to_html,
+  error::LemmyResult, settings::structs::Settings, utils::markdown::markdown_to_html,
 };
 
 pub async fn send_password_reset_email(

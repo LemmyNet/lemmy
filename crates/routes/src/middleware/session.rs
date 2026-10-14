@@ -1,6 +1,5 @@
 use actix_web::{
-  Error,
-  HttpMessage,
+  Error, HttpMessage,
   body::MessageBody,
   dev::{Service, ServiceRequest, ServiceResponse, Transform, forward_ready},
   http::header::{CACHE_CONTROL, HeaderValue},

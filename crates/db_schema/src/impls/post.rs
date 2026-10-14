@@ -1,36 +1,22 @@
 use crate::{
   source::post::{
-    Post,
-    PostActions,
-    PostHideForm,
-    PostInsertForm,
-    PostLikeForm,
-    PostReadCommentsForm,
-    PostReadForm,
-    PostSavedForm,
-    PostUpdateForm,
-    PostUpsertForm,
+    Post, PostActions, PostHideForm, PostInsertForm, PostLikeForm, PostReadCommentsForm,
+    PostReadForm, PostSavedForm, PostUpdateForm, PostUpsertForm,
   },
   traits::{Likeable, Saveable},
   utils::{DELETED_REPLACEMENT_TEXT, FETCH_LIMIT_MAX, SITEMAP_DAYS, SITEMAP_LIMIT},
 };
 use chrono::{DateTime, Utc};
 use diesel::{
-  BoolExpressionMethods,
-  DecoratableTarget,
-  ExpressionMethods,
-  JoinOnDsl,
-  NullableExpressionMethods,
-  OptionalExtension,
-  QueryDsl,
+  BoolExpressionMethods, DecoratableTarget, ExpressionMethods, JoinOnDsl,
+  NullableExpressionMethods, OptionalExtension, QueryDsl,
   dsl::{count, insert_into, not, update},
   expression::SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use diesel_uplete::{UpleteCount, uplete};
 use lemmy_db_schema_file::{
-  InstanceId,
-  PersonId,
+  InstanceId, PersonId,
   enums::{CommunityVisibility, PostNotificationsMode},
   newtypes::{CommunityId, PostId},
   schema::{community, local_user, person, post, post_actions},

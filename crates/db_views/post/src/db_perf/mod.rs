@@ -2,8 +2,7 @@ mod series;
 
 use crate::{db_perf::series::ValuesFromSeries, impls::PostQuery};
 use diesel::{
-  ExpressionMethods,
-  IntoSql,
+  ExpressionMethods, IntoSql,
   dsl::{self, sql},
   sql_types,
 };

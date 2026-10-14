@@ -1,11 +1,7 @@
 use crate::{CommentSlimView, CommentView};
 use diesel::{
-  BoolExpressionMethods,
-  ExpressionMethods,
-  NullableExpressionMethods,
-  PgTextExpressionMethods,
-  QueryDsl,
-  SelectableHelper,
+  BoolExpressionMethods, ExpressionMethods, NullableExpressionMethods, PgTextExpressionMethods,
+  QueryDsl, SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use diesel_ltree::{Ltree, LtreeExtensions, nlevel};
@@ -24,33 +20,22 @@ use lemmy_db_schema::{
   utils::{
     limit_fetch,
     queries::filters::{
-      filter_blocked,
-      filter_is_subscribed,
-      filter_private_or_followed,
-      filter_unlisted_or_followed,
+      filter_blocked, filter_is_subscribed, filter_private_or_followed, filter_unlisted_or_followed,
     },
   },
 };
 use lemmy_db_schema_file::{
-  InstanceId,
-  PersonId,
+  InstanceId, PersonId,
   enums::{
     CommentSortType::{self, *},
-    CommunityVisibility,
-    ListingType,
+    CommunityVisibility, ListingType,
   },
   joins::{
-    creator_community_actions_join,
-    creator_community_instance_actions_join,
-    creator_home_instance_actions_join,
-    creator_local_instance_actions_join,
-    creator_local_user_admin_join,
-    my_comment_actions_join,
-    my_community_actions_join,
-    my_instance_communities_actions_join,
-    my_instance_persons_actions_join_1,
-    my_local_user_admin_join,
-    my_person_actions_join,
+    creator_community_actions_join, creator_community_instance_actions_join,
+    creator_home_instance_actions_join, creator_local_instance_actions_join,
+    creator_local_user_admin_join, my_comment_actions_join, my_community_actions_join,
+    my_instance_communities_actions_join, my_instance_persons_actions_join_1,
+    my_local_user_admin_join, my_person_actions_join,
   },
   newtypes::{CommentId, CommunityId, PostId},
   schema::{comment, community, person, post},
@@ -58,11 +43,7 @@ use lemmy_db_schema_file::{
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   pagination::{
-    CursorData,
-    PagedResponse,
-    PaginationCursor,
-    PaginationCursorConversion,
-    paginate_response,
+    CursorData, PagedResponse, PaginationCursor, PaginationCursorConversion, paginate_response,
   },
   traits::Crud,
   utils::{Subpath, fuzzy_search, now, seconds_to_pg_interval},
@@ -395,13 +376,8 @@ mod tests {
       actor_language::LocalUserLanguage,
       comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm, CommentUpdateForm},
       community::{
-        Community,
-        CommunityActions,
-        CommunityFollowerForm,
-        CommunityInsertForm,
-        CommunityModeratorForm,
-        CommunityPersonBanForm,
-        CommunityUpdateForm,
+        Community, CommunityActions, CommunityFollowerForm, CommunityInsertForm,
+        CommunityModeratorForm, CommunityPersonBanForm, CommunityUpdateForm,
       },
       instance::Instance,
       language::Language,
@@ -1164,11 +1140,10 @@ mod tests {
     cleanup(data, pool).await
   }
 
-  /// Comments on a scheduled (unpublished) post are hidden from everyone except the post creator,
-  /// regardless of admin or mod status.
+  /// CommentView::read must hide comments on scheduled posts from everyone except the post creator.
   #[tokio::test]
   #[serial]
-  async fn scheduled_post_comments_hidden_from_non_creator() -> LemmyResult<()> {
+  async fn scheduled_post_comment_hidden_in_read() -> LemmyResult<()> {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
     let data = init_data(pool).await?;
@@ -1177,13 +1152,12 @@ mod tests {
       .checked_add_days(Days::new(1))
       .expect("future time");
 
-    // timmy (admin, post creator) creates a scheduled post
     let scheduled_post = Post::create(
       pool,
       &PostInsertForm {
         scheduled_publish_time_at: Some(future_time),
         ..PostInsertForm::new(
-          "timmy scheduled post".into(),
+          "scheduled post for read".into(),
           data.timmy.person.id,
           data.community.id,
         )
@@ -1191,21 +1165,17 @@ mod tests {
     )
     .await?;
 
-    // timmy (the post creator) also comments on their own scheduled post
-    // (done at the DB level, bypassing the API guard)
     let comment_on_scheduled = Comment::create(
       pool,
       &CommentInsertForm::new(
         data.timmy.person.id,
         scheduled_post.id,
         data.community.id,
-        "creator comment on scheduled post".into(),
+        "comment on scheduled post".into(),
       ),
       None,
     )
     .await?;
-
-    // --- CommentView::read checks ---
 
     // Unauthenticated: must not see the comment
     let res = CommentView::read(pool, comment_on_scheduled.id, None, data.instance.id).await;
@@ -1240,7 +1210,45 @@ mod tests {
       "post creator must see comment on their own scheduled post"
     );
 
-    // --- CommentQuery::list checks ---
+    cleanup(data, pool).await
+  }
+
+  /// CommentQuery::list must hide comments on scheduled posts from everyone except the post creator.
+  #[tokio::test]
+  #[serial]
+  async fn scheduled_post_comment_hidden_in_list() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    let future_time = Utc::now()
+      .checked_add_days(Days::new(1))
+      .expect("future time");
+
+    let scheduled_post = Post::create(
+      pool,
+      &PostInsertForm {
+        scheduled_publish_time_at: Some(future_time),
+        ..PostInsertForm::new(
+          "scheduled post for list".into(),
+          data.timmy.person.id,
+          data.community.id,
+        )
+      },
+    )
+    .await?;
+
+    let comment_on_scheduled = Comment::create(
+      pool,
+      &CommentInsertForm::new(
+        data.timmy.person.id,
+        scheduled_post.id,
+        data.community.id,
+        "comment on scheduled post".into(),
+      ),
+      None,
+    )
+    .await?;
 
     // No user: comment not in list
     let comments_anon = CommentQuery {

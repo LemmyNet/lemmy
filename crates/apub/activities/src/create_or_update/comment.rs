@@ -14,8 +14,7 @@ use lemmy_api_utils::{
   context::LemmyContext,
   notify::NotifyData,
   utils::{
-    check_comment_deleted_or_removed,
-    check_community_deleted_removed,
+    check_comment_deleted_or_removed, check_community_deleted_removed,
     check_post_deleted_or_removed,
   },
 };

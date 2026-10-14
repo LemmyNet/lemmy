@@ -1,8 +1,7 @@
 use crate::{
   generate_activity_id_with_object_id,
   protocol::{CreateOrUpdateType, create_or_update::private_message::CreateOrUpdatePrivateMessage},
-  send_lemmy_activity,
-  verify_person,
+  send_lemmy_activity, verify_person,
 };
 use activitypub_federation::{
   config::Data,

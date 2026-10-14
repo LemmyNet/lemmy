@@ -1,9 +1,7 @@
 use crate::{
   objects::{
-    community::ApubCommunity,
-    multi_community::ApubMultiCommunity,
-    multi_community_collection::ApubFeedCollection,
-    person::ApubPerson,
+    community::ApubCommunity, multi_community::ApubMultiCommunity,
+    multi_community_collection::ApubFeedCollection, person::ApubPerson,
   },
   utils::protocol::Source,
 };

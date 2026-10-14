@@ -1,6 +1,5 @@
 use activitypub_federation::{
-  fetch::object_id::ObjectId,
-  kinds::activity::DeleteType,
+  fetch::object_id::ObjectId, kinds::activity::DeleteType,
   protocol::helpers::deserialize_one_or_many,
 };
 use lemmy_apub_objects::objects::person::ApubPerson;

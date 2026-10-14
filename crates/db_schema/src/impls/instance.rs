@@ -1,22 +1,14 @@
 use crate::{
   diesel::dsl::IntervalDsl,
   source::instance::{
-    Instance,
-    InstanceActions,
-    InstanceBanForm,
-    InstanceCommunitiesBlockForm,
-    InstanceForm,
+    Instance, InstanceActions, InstanceBanForm, InstanceCommunitiesBlockForm, InstanceForm,
     InstancePersonsBlockForm,
   },
   traits::Bannable,
 };
 use chrono::Utc;
 use diesel::{
-  ExpressionMethods,
-  IntoSql,
-  NullableExpressionMethods,
-  OptionalExtension,
-  QueryDsl,
+  ExpressionMethods, IntoSql, NullableExpressionMethods, OptionalExtension, QueryDsl,
   SelectableHelper,
   dsl::{AsExprOf, count_star, exists, insert_into, not, select},
   pg::data_types::PgInterval,
@@ -25,14 +17,9 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use diesel_uplete::{UpleteCount, uplete};
 use lemmy_db_schema_file::{
-  InstanceId,
-  PersonId,
+  InstanceId, PersonId,
   schema::{
-    federation_allowlist,
-    federation_blocklist,
-    federation_queue_state,
-    instance,
-    instance_actions,
+    federation_allowlist, federation_blocklist, federation_queue_state, instance, instance_actions,
   },
 };
 use lemmy_diesel_utils::{
@@ -43,8 +30,7 @@ use lemmy_diesel_utils::{
   },
 };
 use lemmy_utils::{
-  CACHE_DURATION_FEDERATION,
-  CacheLock,
+  CACHE_DURATION_FEDERATION, CacheLock,
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
 };
 use moka::future::Cache;

@@ -1,16 +1,11 @@
 use crate::PersonView;
 use diesel::{
-  BoolExpressionMethods,
-  ExpressionMethods,
-  PgTextExpressionMethods,
-  QueryDsl,
-  SelectableHelper,
+  BoolExpressionMethods, ExpressionMethods, PgTextExpressionMethods, QueryDsl, SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::asc_if;
 use lemmy_db_schema::{
-  PersonListingType,
-  PersonSortType,
+  PersonListingType, PersonSortType,
   impls::local_user::LocalUserOptionHelper,
   source::{
     local_user::LocalUser,
@@ -20,14 +15,11 @@ use lemmy_db_schema::{
   utils::limit_fetch,
 };
 use lemmy_db_schema_file::{
-  InstanceId,
-  PersonId,
+  InstanceId, PersonId,
   enums::CommunityFollowerState,
   joins::{
-    creator_home_instance_actions_join,
-    creator_local_instance_actions_join,
-    my_person_actions_join,
-    person_community_actions_join,
+    creator_home_instance_actions_join, creator_local_instance_actions_join,
+    my_person_actions_join, person_community_actions_join,
   },
   newtypes::CommunityId,
   schema::{community_actions, local_user, person},
@@ -35,11 +27,7 @@ use lemmy_db_schema_file::{
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   pagination::{
-    CursorData,
-    PagedResponse,
-    PaginationCursor,
-    PaginationCursorConversion,
-    paginate_response,
+    CursorData, PagedResponse, PaginationCursor, PaginationCursorConversion, paginate_response,
   },
   traits::Crud,
   utils::fuzzy_search,
@@ -220,10 +208,7 @@ mod tests {
     assert_length,
     source::{
       community::{
-        Community,
-        CommunityActions,
-        CommunityFollowerForm,
-        CommunityInsertForm,
+        Community, CommunityActions, CommunityFollowerForm, CommunityInsertForm,
         CommunityPersonBanForm,
       },
       instance::Instance,

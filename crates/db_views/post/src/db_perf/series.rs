@@ -1,10 +1,5 @@
 use diesel::{
-  AppearsOnTable,
-  Expression,
-  Insertable,
-  QueryId,
-  SelectableExpression,
-  dsl,
+  AppearsOnTable, Expression, Insertable, QueryId, SelectableExpression, dsl,
   expression::{ValidGrouping, is_aggregate},
   pg::Pg,
   query_builder::{AsQuery, AstPass, QueryFragment},

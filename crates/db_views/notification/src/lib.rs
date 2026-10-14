@@ -26,17 +26,11 @@ use {
   lemmy_db_schema::{
     Person1AliasAllColumnsTuple,
     utils::queries::selects::{
-      CreatorLocalHomeBanExpiresType,
-      creator_is_admin,
-      creator_is_moderator,
-      creator_local_home_ban_expires,
-      creator_local_home_banned,
-      local_user_can_mod,
+      CreatorLocalHomeBanExpiresType, creator_is_admin, creator_is_moderator,
+      creator_local_home_ban_expires, creator_local_home_banned, local_user_can_mod,
     },
     utils::queries::selects::{
-      creator_ban_expires_from_community,
-      creator_banned_from_community,
-      person1_select,
+      creator_ban_expires_from_community, creator_banned_from_community, person1_select,
       post_community_tags_fragment,
     },
   },

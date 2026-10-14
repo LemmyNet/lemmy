@@ -10,8 +10,7 @@ use lemmy_api_utils::{context::LemmyContext, utils::generate_outbox_url};
 use lemmy_apub_activities::{
   activity_lists::AnnouncableActivities,
   protocol::{
-    CreateOrUpdateType,
-    community::announce::AnnounceActivity,
+    CreateOrUpdateType, community::announce::AnnounceActivity,
     create_or_update::page::CreateOrUpdatePage,
   },
 };

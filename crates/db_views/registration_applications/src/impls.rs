@@ -1,35 +1,24 @@
 use crate::RegistrationApplicationView;
 use diesel::{
-  ExpressionMethods,
-  JoinOnDsl,
-  NullableExpressionMethods,
-  QueryDsl,
-  SelectableHelper,
-  dsl::count,
+  ExpressionMethods, JoinOnDsl, NullableExpressionMethods, QueryDsl, SelectableHelper, dsl::count,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   source::registration_application::{
-    RegistrationApplication,
-    registration_application_keys as key,
+    RegistrationApplication, registration_application_keys as key,
   },
   utils::limit_fetch,
 };
 use lemmy_db_schema_file::{
-  PersonId,
-  aliases,
+  PersonId, aliases,
   newtypes::RegistrationApplicationId,
   schema::{local_user, person, registration_application},
 };
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   pagination::{
-    CursorData,
-    PagedResponse,
-    PaginationCursor,
-    PaginationCursorConversion,
-    paginate_response,
+    CursorData, PagedResponse, PaginationCursor, PaginationCursorConversion, paginate_response,
   },
   traits::Crud,
 };
@@ -161,9 +150,7 @@ mod tests {
     local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
     person::{Person, PersonInsertForm},
     registration_application::{
-      RegistrationApplication,
-      RegistrationApplicationInsertForm,
-      RegistrationApplicationUpdateForm,
+      RegistrationApplication, RegistrationApplicationInsertForm, RegistrationApplicationUpdateForm,
     },
   };
   use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};

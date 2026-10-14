@@ -1,8 +1,7 @@
 #[cfg(feature = "full")]
 use diesel::Queryable;
 use lemmy_db_schema::source::{
-  custom_emoji::CustomEmoji,
-  custom_emoji_keyword::CustomEmojiKeyword,
+  custom_emoji::CustomEmoji, custom_emoji_keyword::CustomEmojiKeyword,
 };
 use serde::{Deserialize, Serialize};
 

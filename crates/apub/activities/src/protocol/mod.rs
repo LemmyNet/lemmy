@@ -59,9 +59,7 @@ mod tests {
   use crate::protocol::{
     community::{announce::AnnounceActivity, report::Report},
     create_or_update::{
-      note::CreateOrUpdateNote,
-      note_wrapper::CreateOrUpdateNoteWrapper,
-      page::CreateOrUpdatePage,
+      note::CreateOrUpdateNote, note_wrapper::CreateOrUpdateNoteWrapper, page::CreateOrUpdatePage,
     },
     deletion::delete::Delete,
     following::{accept::AcceptFollow, follow::Follow, undo_follow::UndoFollow},

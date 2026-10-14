@@ -1,8 +1,6 @@
 use crate::post_or_comment_community;
 use activitypub_federation::{
-  config::Data,
-  fetch::object_id::ObjectId,
-  protocol::verification::verify_urls_match,
+  config::Data, fetch::object_id::ObjectId, protocol::verification::verify_urls_match,
 };
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{

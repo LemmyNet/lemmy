@@ -3,11 +3,7 @@ use activitypub_federation::config::Data;
 use chrono::{DateTime, TimeZone, Utc};
 use clokwerk::{AsyncScheduler, TimeUnits as CTimeUnits};
 use diesel::{
-  BoolExpressionMethods,
-  ExpressionMethods,
-  NullableExpressionMethods,
-  QueryDsl,
-  QueryableByName,
+  BoolExpressionMethods, ExpressionMethods, NullableExpressionMethods, QueryDsl, QueryableByName,
   SelectableHelper,
   dsl::{IntervalDsl, count, count_star, exists, not, update},
   query_builder::AsQuery,
@@ -32,20 +28,8 @@ use lemmy_db_schema::{
   utils::DELETED_REPLACEMENT_TEXT,
 };
 use lemmy_db_schema_file::schema::{
-  comment,
-  community,
-  community_actions,
-  federation_blocklist,
-  instance,
-  instance_actions,
-  local_site,
-  local_user,
-  local_user_invite,
-  person,
-  post,
-  received_activity,
-  sent_activity,
-  site,
+  comment, community, community_actions, federation_blocklist, instance, instance_actions,
+  local_site, local_user, local_user_invite, person, post, received_activity, sent_activity, site,
 };
 use lemmy_db_views_site::{FederatedInstanceView, SiteView};
 use lemmy_diesel_utils::{

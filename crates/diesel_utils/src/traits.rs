@@ -6,8 +6,7 @@ use diesel::{
   query_dsl::methods::{FindDsl, LimitDsl},
 };
 use diesel_async::{
-  AsyncPgConnection,
-  RunQueryDsl,
+  AsyncPgConnection, RunQueryDsl,
   methods::{ExecuteDsl, LoadQuery},
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};

@@ -1,7 +1,5 @@
 use actix_web::{
-  Error,
-  HttpMessage,
-  HttpResponse,
+  Error, HttpMessage, HttpResponse,
   body::EitherBody,
   dev::{Service, ServiceRequest, ServiceResponse, Transform, forward_ready},
   http::Method,

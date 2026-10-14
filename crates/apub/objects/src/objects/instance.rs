@@ -2,9 +2,7 @@ use crate::{
   protocol::instance::Instance,
   utils::{
     functions::{
-      GetActorType,
-      check_apub_id_valid_with_strictness,
-      read_from_string_or_source_opt,
+      GetActorType, check_apub_id_valid_with_strictness, read_from_string_or_source_opt,
     },
     markdown_links::markdown_rewrite_remote_links_opt,
     protocol::{ImageObject, LanguageTag, Source},

@@ -1,7 +1,6 @@
 use crate::{NotificationData, NotificationView, impls::NotificationQuery};
 use lemmy_db_schema::{
-  NotificationTypeFilter,
-  assert_length,
+  NotificationTypeFilter, assert_length,
   source::{
     comment::{Comment, CommentInsertForm},
     community::{Community, CommunityInsertForm},

@@ -1,9 +1,7 @@
 use super::vote::Vote;
 use crate::protocol::IdOrNestedObject;
 use activitypub_federation::{
-  config::Data,
-  fetch::object_id::ObjectId,
-  kinds::activity::UndoType,
+  config::Data, fetch::object_id::ObjectId, kinds::activity::UndoType,
   protocol::verification::verify_urls_match,
 };
 use lemmy_api_utils::context::LemmyContext;

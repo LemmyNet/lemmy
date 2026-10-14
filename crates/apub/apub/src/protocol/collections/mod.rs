@@ -8,11 +8,8 @@ pub mod url_collection;
 #[expect(clippy::as_conversions)]
 mod tests {
   use crate::protocol::collections::{
-    group_featured::GroupFeatured,
-    group_followers::GroupFollowers,
-    group_moderators::GroupModerators,
-    group_outbox::GroupOutbox,
-    url_collection::UrlCollection,
+    group_featured::GroupFeatured, group_followers::GroupFollowers,
+    group_moderators::GroupModerators, group_outbox::GroupOutbox, url_collection::UrlCollection,
   };
   use lemmy_apub_objects::utils::test::{test_json, test_parse_lemmy_item};
   use lemmy_utils::error::LemmyResult;

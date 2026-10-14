@@ -2,18 +2,12 @@ mod diff_check;
 use anyhow::{Context, anyhow};
 use chrono::TimeDelta;
 use diesel::{
-  BoolExpressionMethods,
-  Connection,
-  ExpressionMethods,
-  PgConnection,
-  QueryDsl,
-  RunQueryDsl,
+  BoolExpressionMethods, Connection, ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl,
   connection::SimpleConnection,
   dsl::exists,
   migration::{Migration, MigrationVersion},
   pg::Pg,
-  select,
-  update,
+  select, update,
 };
 use diesel_migrations::MigrationHarness;
 use std::time::Instant;

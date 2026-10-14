@@ -2,15 +2,11 @@ use activitypub_federation::config::Data;
 use actix_web::web::Json;
 use lemmy_api_utils::{context::LemmyContext, utils::check_local_user_banned_or_deleted};
 use lemmy_db_schema::source::instance::{
-  InstanceActions,
-  InstanceCommunitiesBlockForm,
-  InstancePersonsBlockForm,
+  InstanceActions, InstanceCommunitiesBlockForm, InstancePersonsBlockForm,
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::api::{
-  SuccessResponse,
-  UserBlockInstanceCommunitiesParams,
-  UserBlockInstancePersonsParams,
+  SuccessResponse, UserBlockInstanceCommunitiesParams, UserBlockInstancePersonsParams,
 };
 use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 

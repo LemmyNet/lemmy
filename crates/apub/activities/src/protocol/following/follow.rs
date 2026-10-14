@@ -1,6 +1,5 @@
 use activitypub_federation::{
-  fetch::object_id::ObjectId,
-  kinds::activity::FollowType,
+  fetch::object_id::ObjectId, kinds::activity::FollowType,
   protocol::helpers::deserialize_skip_error,
 };
 use lemmy_apub_objects::{

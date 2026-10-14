@@ -1,16 +1,12 @@
 use crate::{
   source::private_message_report::{
-    PrivateMessageReport,
-    PrivateMessageReportForm,
-    UpdatePrivateMessageReportForm,
+    PrivateMessageReport, PrivateMessageReportForm, UpdatePrivateMessageReportForm,
   },
   traits::Reportable,
 };
 use chrono::Utc;
 use diesel::{
-  BoolExpressionMethods,
-  ExpressionMethods,
-  QueryDsl,
+  BoolExpressionMethods, ExpressionMethods, QueryDsl,
   dsl::{insert_into, update},
 };
 use diesel_async::RunQueryDsl;

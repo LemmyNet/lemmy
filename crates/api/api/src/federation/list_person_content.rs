@@ -4,8 +4,7 @@ use actix_web::web::{Json, Query};
 use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person_content_combined::{
-  ListPersonContent,
-  impls::PersonContentCombinedQuery,
+  ListPersonContent, impls::PersonContentCombinedQuery,
 };
 use lemmy_db_views_post_comment_combined::PostCommentCombinedView;
 use lemmy_db_views_site::SiteView;

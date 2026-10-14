@@ -4,26 +4,16 @@ use lemmy_api_utils::{
   build_response::build_community_response,
   context::LemmyContext,
   utils::{
-    check_local_user_banned_or_deleted,
-    check_nsfw_allowed,
-    generate_featured_url,
-    generate_followers_url,
-    generate_inbox_url,
-    generate_moderators_url,
-    get_url_blocklist,
-    is_admin,
-    process_markdown_opt,
-    slur_regex,
+    check_local_user_banned_or_deleted, check_nsfw_allowed, generate_featured_url,
+    generate_followers_url, generate_inbox_url, generate_moderators_url, get_url_blocklist,
+    is_admin, process_markdown_opt, slur_regex,
   },
 };
 use lemmy_db_schema::{
   source::{
     actor_language::{CommunityLanguage, LocalUserLanguage, SiteLanguage},
     community::{
-      Community,
-      CommunityActions,
-      CommunityFollowerForm,
-      CommunityInsertForm,
+      Community, CommunityActions, CommunityFollowerForm, CommunityInsertForm,
       CommunityModeratorForm,
     },
   },
@@ -39,10 +29,7 @@ use lemmy_utils::{
   utils::{
     slurs::{check_slurs, check_slurs_opt},
     validation::{
-      is_valid_actor_name,
-      is_valid_body_field,
-      is_valid_display_name,
-      summary_length_check,
+      is_valid_actor_name, is_valid_body_field, is_valid_display_name, summary_length_check,
     },
   },
 };

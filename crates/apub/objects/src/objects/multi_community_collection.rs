@@ -1,9 +1,7 @@
 use super::multi_community::ApubMultiCommunity;
 use crate::protocol::multi_community::FeedCollection;
 use activitypub_federation::{
-  config::Data,
-  protocol::verification::verify_domains_match,
-  traits::Collection,
+  config::Data, protocol::verification::verify_domains_match, traits::Collection,
 };
 use futures::future::join_all;
 use lemmy_api_utils::{

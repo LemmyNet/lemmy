@@ -1,9 +1,7 @@
 use crate::{
   diesel::OptionalExtension,
   source::local_site_rate_limit::{
-    LocalSiteRateLimit,
-    LocalSiteRateLimitInsertForm,
-    LocalSiteRateLimitUpdateForm,
+    LocalSiteRateLimit, LocalSiteRateLimitInsertForm, LocalSiteRateLimitUpdateForm,
   },
 };
 use diesel::dsl::insert_into;

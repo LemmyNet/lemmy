@@ -7,11 +7,8 @@ use lemmy_api_utils::{
   plugins::{plugin_hook_after, plugin_hook_before},
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
-    check_local_user_banned_or_deleted,
-    check_private_messages_enabled,
-    get_url_blocklist,
-    process_markdown,
-    slur_regex,
+    check_local_user_banned_or_deleted, check_private_messages_enabled, get_url_blocklist,
+    process_markdown, slur_regex,
   },
 };
 use lemmy_db_schema::{
