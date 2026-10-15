@@ -1,6 +1,6 @@
 use crate::federation::fetcher::resolve_community_identifier;
 use activitypub_federation::config::Data;
-use actix_web::web::{Json, Query};
+use actix_web::{HttpResponse, web::Query};
 use lemmy_api_utils::{
   context::LemmyContext,
   utils::{check_private_instance, is_mod_or_admin_opt, read_site_for_actor},
@@ -19,7 +19,7 @@ pub async fn get_community(
   Query(data): Query<GetCommunity>,
   context: Data<LemmyContext>,
   local_user_view: Option<LocalUserView>,
-) -> LemmyResult<Json<GetCommunityResponse>> {
+) -> LemmyResult<HttpResponse> {
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
 
   check_private_instance(&local_user_view, &local_site)?;
@@ -45,6 +45,14 @@ pub async fn get_community(
     is_mod_or_admin,
   )
   .await?;
+  // If this community has a redirect URL set, return HTTP 301 redirect
+  if let Some(redirect_url) = &community_view.community.redirect_url{
+    return Ok(
+      HttpResponse::MovedPermanently()
+        .append_header(("Location", redirect_url.to_string()))
+        .finish(),
+    );
+  }
 
   let moderators = CommunityModeratorView::for_community(&mut context.pool(), community_id).await?;
 
@@ -53,10 +61,13 @@ pub async fn get_community(
   let community_id = community_view.community.id;
   let discussion_languages = CommunityLanguage::read(&mut context.pool(), community_id).await?;
 
-  Ok(Json(GetCommunityResponse {
-    community_view,
-    site,
-    moderators,
-    discussion_languages,
-  }))
+  Ok(
+    HttpResponse::Ok()
+      .json(GetCommunityResponse {
+        community_view,
+        site,
+        moderators,
+        discussion_languages,
+      })
+  )
 }
