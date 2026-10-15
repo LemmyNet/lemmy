@@ -407,12 +407,13 @@ mod tests {
         CommunityUpdateForm,
       },
       instance::Instance,
-      local_site::{LocalSite, LocalSiteInsertForm},
+      local_site::LocalSite,
       local_user::{LocalUser, LocalUserInsertForm},
       multi_community::{MultiCommunity, MultiCommunityFollowForm, MultiCommunityInsertForm},
       person::{Person, PersonInsertForm},
-      site::{Site, SiteUpsertForm},
+      site::Site,
     },
+    test_data::TestData,
     traits::Followable,
   };
   use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility};
@@ -436,13 +437,11 @@ mod tests {
   }
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
-    let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
-
-    let person_name = "tegan".to_string();
-
-    let new_person = PersonInsertForm::test_form(instance.id, &person_name);
-
-    let inserted_person = Person::create(pool, &new_person).await?;
+    let data = TestData::create(pool).await?;
+    let instance = data.instance.clone();
+    let site = data.site.clone();
+    let local_site = data.local_site.clone();
+    let inserted_person = data.person.clone();
 
     let local_user_form = LocalUserInsertForm::test_form(inserted_person.id);
     let local_user = LocalUser::create(pool, &local_user_form, vec![]).await?;
@@ -494,13 +493,6 @@ mod tests {
       )
       .await?,
     ];
-
-    let site_form = SiteUpsertForm::new("test site".to_string(), instance.id);
-    let site = Site::create(pool, &site_form).await?;
-    let system_acct =
-      Person::create(pool, &PersonInsertForm::test_form(instance.id, "langs")).await?;
-    let local_site_form = LocalSiteInsertForm::new(site.id, system_acct.id);
-    let local_site = LocalSite::create(pool, &local_site_form).await?;
 
     Ok(Data {
       instance,

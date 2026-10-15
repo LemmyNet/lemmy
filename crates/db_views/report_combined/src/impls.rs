@@ -451,6 +451,7 @@ mod tests {
         UpdatePrivateMessageReportForm,
       },
     },
+    test_data::TestData,
     traits::{Bannable, Reportable},
   };
   use lemmy_db_schema_file::schema::report_combined;
@@ -476,7 +477,8 @@ mod tests {
   }
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
+    let data = TestData::create(pool).await?;
+    let inserted_instance = data.instance.clone();
 
     let timmy_form = PersonInsertForm::test_form(inserted_instance.id, "timmy_rcv");
     let inserted_timmy = Person::create(pool, &timmy_form).await?;

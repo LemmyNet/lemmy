@@ -247,16 +247,14 @@ mod tests {
   use lemmy_db_schema::{
     assert_length,
     source::{
-      instance::{Instance, InstanceActions, InstanceBanForm},
+      instance::{InstanceActions, InstanceBanForm},
       local_user::{LocalUser, LocalUserInsertForm},
-      person::{Person, PersonInsertForm},
+      person::Person,
     },
+    test_data::TestData,
     traits::Bannable,
   };
-  use lemmy_diesel_utils::{
-    connection::{DbPool, build_db_pool_for_tests},
-    traits::Crud,
-  };
+  use lemmy_diesel_utils::connection::{DbPool, build_db_pool_for_tests};
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
@@ -266,13 +264,8 @@ mod tests {
   }
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
-    let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
-
-    let alice_form = PersonInsertForm {
-      local: Some(true),
-      ..PersonInsertForm::test_form(instance.id, "alice")
-    };
-    let alice = Person::create(pool, &alice_form).await?;
+    let data = TestData::create(pool).await?;
+    let alice = data.person;
     let alice_local_user_form = LocalUserInsertForm::test_form(alice.id);
     LocalUser::create(pool, &alice_local_user_form, vec![]).await?;
 

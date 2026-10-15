@@ -190,10 +190,10 @@ mod tests {
     source::{
       comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm},
       community::{Community, CommunityActions, CommunityInsertForm, CommunityPersonBanForm},
-      instance::Instance,
       person::{Person, PersonInsertForm},
       post::{Post, PostActions, PostInsertForm, PostLikeForm},
     },
+    test_data::TestData,
     traits::{Bannable, Likeable},
   };
   use lemmy_db_schema_file::InstanceId;
@@ -208,18 +208,15 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
+    let data = TestData::create(pool).await?;
+    let inserted_timmy = data.person.clone();
 
-    let new_person = PersonInsertForm::test_form(inserted_instance.id, "timmy_vv");
-
-    let inserted_timmy = Person::create(pool, &new_person).await?;
-
-    let new_person_2 = PersonInsertForm::test_form(inserted_instance.id, "sara_vv");
+    let new_person_2 = PersonInsertForm::test_form(data.instance.id, "sara_vv");
 
     let inserted_sara = Person::create(pool, &new_person_2).await?;
 
     let new_community = CommunityInsertForm::new(
-      inserted_instance.id,
+      data.instance.id,
       "test community vv".to_string(),
       "pubkey".to_string(),
     );
@@ -323,8 +320,7 @@ mod tests {
         .is_some_and(|p| p.creator_banned_from_community)
     );
 
-    // Cleanup
-    Instance::delete(pool, inserted_instance.id).await?;
+    data.delete(pool).await?;
 
     Ok(())
   }

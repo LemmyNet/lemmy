@@ -102,14 +102,11 @@ mod tests {
 
   use actix_web::test::TestRequest;
   use lemmy_api_utils::{claims::Claims, context::LemmyContext};
-  use lemmy_db_schema::source::{
-    instance::Instance,
-    local_user::{LocalUser, LocalUserInsertForm},
-    person::{Person, PersonInsertForm},
+  use lemmy_db_schema::{
+    source::local_user::{LocalUser, LocalUserInsertForm},
+    test_data::TestData,
   };
-  use lemmy_diesel_utils::traits::Crud;
   use lemmy_utils::error::LemmyResult;
-  use pretty_assertions::assert_eq;
   use serial_test::serial;
 
   #[tokio::test]
@@ -118,14 +115,9 @@ mod tests {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
+    let data = TestData::create(pool).await?;
 
-    let new_person = PersonInsertForm::test_form(inserted_instance.id, "Gerry9812");
-
-    let inserted_person = Person::create(pool, &new_person).await?;
-
-    let local_user_form = LocalUserInsertForm::test_form(inserted_person.id);
-
+    let local_user_form = LocalUserInsertForm::test_form(data.person.id);
     let inserted_local_user = LocalUser::create(pool, &local_user_form, vec![]).await?;
 
     let req = TestRequest::default().to_http_request();
@@ -134,10 +126,7 @@ mod tests {
     let valid = Claims::validate(&jwt, &context).await;
     assert!(valid.is_ok());
 
-    let num_deleted = Person::delete(pool, inserted_person.id).await?;
-    assert_eq!(1, num_deleted);
-
-    Instance::delete(pool, inserted_instance.id).await?;
+    data.delete(pool).await?;
 
     Ok(())
   }

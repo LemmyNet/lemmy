@@ -62,11 +62,14 @@ impl LocalUserInviteQuery {
 #[cfg(test)]
 mod tests {
   use crate::impls::LocalUserInviteQuery;
-  use lemmy_db_schema::source::{
-    instance::Instance,
-    local_user::{LocalUser, LocalUserInsertForm},
-    local_user_invite::{LocalUserInvite, LocalUserInviteInsertForm},
-    person::{Person, PersonInsertForm},
+  use lemmy_db_schema::{
+    source::{
+      instance::Instance,
+      local_user::{LocalUser, LocalUserInsertForm},
+      local_user_invite::{LocalUserInvite, LocalUserInviteInsertForm},
+      person::{Person, PersonInsertForm},
+    },
+    test_data::TestData,
   };
   use lemmy_db_schema_file::newtypes::LocalUserId;
   use lemmy_diesel_utils::{
@@ -135,7 +138,8 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
-    let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
+    let data = TestData::create(pool).await?;
+    let instance = data.instance.clone();
     let (timmy_person, timmy_local_user) = create_local_user(pool, &instance, "timmy_inv").await?;
 
     let invite_1 = create_invite(pool, timmy_local_user.id, "token_one").await?;
@@ -145,7 +149,7 @@ mod tests {
     assert_eq!(count(pool, timmy_local_user.id).await?, 2);
 
     Person::delete(pool, timmy_person.id).await?;
-    Instance::delete(pool, instance.id).await?;
+    data.delete(pool).await?;
 
     Ok(())
   }
@@ -156,7 +160,8 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
-    let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
+    let data = TestData::create(pool).await?;
+    let instance = data.instance.clone();
     let (timmy_person, timmy_local_user) = create_local_user(pool, &instance, "timmy_inv2").await?;
     let (sara_person, sara_local_user) = create_local_user(pool, &instance, "sara_inv").await?;
 
@@ -170,7 +175,7 @@ mod tests {
 
     Person::delete(pool, timmy_person.id).await?;
     Person::delete(pool, sara_person.id).await?;
-    Instance::delete(pool, instance.id).await?;
+    data.delete(pool).await?;
 
     Ok(())
   }

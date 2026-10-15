@@ -213,6 +213,7 @@ mod tests {
       person::{Person, PersonInsertForm},
       post::{Post, PostActions, PostInsertForm, PostSavedForm},
     },
+    test_data::TestData,
     traits::Saveable,
   };
   use lemmy_diesel_utils::{
@@ -234,7 +235,8 @@ mod tests {
   }
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
-    let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
+    let data = TestData::create(pool).await?;
+    let instance = data.instance;
 
     let timmy_form = PersonInsertForm::test_form(instance.id, "timmy_pcv");
     let timmy = Person::create(pool, &timmy_form).await?;

@@ -226,15 +226,16 @@ impl ModlogView {
 #[expect(clippy::indexing_slicing)]
 mod tests {
   use super::*;
-  use lemmy_db_schema::source::{
-    comment::{Comment, CommentInsertForm},
-    community::{Community, CommunityInsertForm},
-    instance::Instance,
-    local_site::LocalSiteInsertForm,
-    modlog::{Modlog, ModlogInsertForm},
-    person::{Person, PersonInsertForm},
-    post::{Post, PostInsertForm},
-    site::{Site, SiteUpsertForm},
+  use lemmy_db_schema::{
+    source::{
+      comment::{Comment, CommentInsertForm},
+      community::{Community, CommunityInsertForm},
+      instance::Instance,
+      modlog::{Modlog, ModlogInsertForm},
+      person::{Person, PersonInsertForm},
+      post::{Post, PostInsertForm},
+    },
+    test_data::TestData,
   };
   use lemmy_db_schema_file::enums::ModlogKind;
   use lemmy_diesel_utils::{
@@ -260,13 +261,9 @@ mod tests {
   }
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
-    let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
-    let site_form = SiteUpsertForm::new("test site".to_string(), instance.id);
-    let site = Site::create(pool, &site_form).await?;
-    let system_acct =
-      Person::create(pool, &PersonInsertForm::test_form(instance.id, "langs")).await?;
-    let local_site_form = LocalSiteInsertForm::new(site.id, system_acct.id);
-    let local_site = LocalSite::create(pool, &local_site_form).await?;
+    let data = TestData::create(pool).await?;
+    let instance = data.instance;
+    let local_site = data.local_site;
 
     let timmy_form = PersonInsertForm::test_form(instance.id, "timmy_rcv");
     let timmy = Person::create(pool, &timmy_form).await?;

@@ -678,11 +678,11 @@ mod tests {
         CommunityPersonBanForm,
         CommunityUpdateForm,
       },
-      instance::Instance,
       local_user::LocalUser,
       person::{Person, PersonInsertForm},
       post::{Post, PostInsertForm},
     },
+    test_data::TestData,
     traits::{Bannable, Followable},
     utils::RANK_DEFAULT,
   };
@@ -697,16 +697,14 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
+    let data = TestData::create(pool).await?;
+    let inserted_bobby = data.person.clone();
 
-    let bobby_person = PersonInsertForm::test_form(inserted_instance.id, "bobby");
-    let inserted_bobby = Person::create(pool, &bobby_person).await?;
-
-    let artemis_person = PersonInsertForm::test_form(inserted_instance.id, "artemis");
+    let artemis_person = PersonInsertForm::test_form(data.instance.id, "artemis");
     let inserted_artemis = Person::create(pool, &artemis_person).await?;
 
     let new_community =
-      CommunityInsertForm::new(inserted_instance.id, "TIL".into(), "pubkey".to_string());
+      CommunityInsertForm::new(data.instance.id, "TIL".into(), "pubkey".to_string());
     let inserted_community = Community::create(pool, &new_community).await?;
 
     let mut expected_community = Community {
@@ -732,7 +730,7 @@ mod tests {
       moderators_url: None,
       featured_url: None,
       posting_restricted_to_mods: false,
-      instance_id: inserted_instance.id,
+      instance_id: data.instance.id,
       visibility: CommunityVisibility::Public,
       random_number: inserted_community.random_number,
       subscribers: 1,
@@ -823,9 +821,8 @@ mod tests {
     let left_community = CommunityActions::leave(pool, &bobby_moderator_form).await?;
     let unban = CommunityActions::unban(pool, &community_person_ban_form).await?;
     let num_deleted = Community::delete(pool, inserted_community.id).await?;
-    Person::delete(pool, inserted_bobby.id).await?;
     Person::delete(pool, inserted_artemis.id).await?;
-    Instance::delete(pool, inserted_instance.id).await?;
+    data.delete(pool).await?;
 
     assert_eq!(expected_community, read_community);
     expected_community.title = Some("nada".to_string());
@@ -845,25 +842,22 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
+    let data = TestData::create(pool).await?;
+    let inserted_person = data.person.clone();
 
-    let new_person = PersonInsertForm::test_form(inserted_instance.id, "thommy_community_agg");
-
-    let inserted_person = Person::create(pool, &new_person).await?;
-
-    let another_person = PersonInsertForm::test_form(inserted_instance.id, "jerry_community_agg");
+    let another_person = PersonInsertForm::test_form(data.instance.id, "jerry_community_agg");
 
     let another_inserted_person = Person::create(pool, &another_person).await?;
 
     let new_community = CommunityInsertForm::new(
-      inserted_instance.id,
+      data.instance.id,
       "TIL_community_agg".into(),
       "pubkey".to_string(),
     );
     let inserted_community = Community::create(pool, &new_community).await?;
 
     let another_community = CommunityInsertForm::new(
-      inserted_instance.id,
+      data.instance.id,
       "TIL_community_agg_2".into(),
       "pubkey".to_string(),
     );
@@ -976,7 +970,7 @@ mod tests {
     let after_delete = Community::read(pool, inserted_community.id).await;
     assert!(after_delete.is_err());
 
-    Instance::delete(pool, inserted_instance.id).await?;
+    data.delete(pool).await?;
 
     Ok(())
   }

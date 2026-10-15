@@ -156,15 +156,18 @@ impl RegistrationApplicationQuery {
 mod tests {
 
   use crate::{RegistrationApplicationView, impls::RegistrationApplicationQuery};
-  use lemmy_db_schema::source::{
-    instance::Instance,
-    local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
-    person::{Person, PersonInsertForm},
-    registration_application::{
-      RegistrationApplication,
-      RegistrationApplicationInsertForm,
-      RegistrationApplicationUpdateForm,
+  use lemmy_db_schema::{
+    source::{
+      instance::Instance,
+      local_user::{LocalUser, LocalUserInsertForm, LocalUserUpdateForm},
+      person::{Person, PersonInsertForm},
+      registration_application::{
+        RegistrationApplication,
+        RegistrationApplicationInsertForm,
+        RegistrationApplicationUpdateForm,
+      },
     },
+    test_data::TestData,
   };
   use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use lemmy_utils::error::LemmyResult;
@@ -177,7 +180,8 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
-    let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
+    let data = TestData::create(pool).await?;
+    let instance = data.instance.clone();
 
     let timmy_person_form = PersonInsertForm::test_form(instance.id, "timmy_rav");
 

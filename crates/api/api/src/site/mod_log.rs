@@ -56,13 +56,13 @@ mod tests {
       comment::{Comment, CommentActions, CommentInsertForm, CommentLikeForm},
       community::{Community, CommunityInsertForm},
       instance::Instance,
-      local_site::{LocalSite, LocalSiteInsertForm},
+      local_site::LocalSite,
       local_user::{LocalUser, LocalUserInsertForm},
       modlog::{Modlog, ModlogInsertForm},
       person::{Person, PersonInsertForm},
       post::{Post, PostActions, PostInsertForm, PostLikeForm},
-      site::{Site, SiteUpsertForm},
     },
+    test_data::TestData,
     traits::Likeable,
   };
   use lemmy_db_schema_file::enums::ModlogKind;
@@ -80,17 +80,10 @@ mod tests {
   }
 
   async fn init_data(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
-    let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
-    let system_acct =
-      Person::create(pool, &PersonInsertForm::test_form(instance.id, "langs")).await?;
-    let site_form = SiteUpsertForm::new("test site".to_string(), instance.id);
-    let site = Site::create(pool, &site_form).await?;
-    let local_site_form = LocalSiteInsertForm::new(site.id, system_acct.id);
-    let local_site = LocalSite::create(pool, &local_site_form).await?;
-
+    let data = TestData::create(pool).await?;
     Ok(Data {
-      instance,
-      local_site,
+      instance: data.instance,
+      local_site: data.local_site,
     })
   }
   #[tokio::test]

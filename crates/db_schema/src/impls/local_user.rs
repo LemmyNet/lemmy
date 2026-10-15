@@ -376,10 +376,12 @@ pub struct UserBackupLists {
 
 #[cfg(test)]
 mod tests {
-  use crate::source::{
-    instance::Instance,
-    local_user::{LocalUser, LocalUserInsertForm},
-    person::{Person, PersonInsertForm},
+  use crate::{
+    source::{
+      local_user::{LocalUser, LocalUserInsertForm},
+      person::{Person, PersonInsertForm},
+    },
+    test_data::TestData,
   };
   use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use lemmy_utils::error::LemmyResult;
@@ -391,16 +393,16 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
+    let data = TestData::create(pool).await?;
 
-    let fiona_person = PersonInsertForm::test_form(inserted_instance.id, "fiona");
+    let fiona_person = PersonInsertForm::test_form(data.instance.id, "fiona");
     let inserted_fiona_person = Person::create(pool, &fiona_person).await?;
 
     let fiona_local_user_form = LocalUserInsertForm::test_form_admin(inserted_fiona_person.id);
     let _inserted_fiona_local_user =
       LocalUser::create(pool, &fiona_local_user_form, vec![]).await?;
 
-    let delores_person = PersonInsertForm::test_form(inserted_instance.id, "delores");
+    let delores_person = PersonInsertForm::test_form(data.instance.id, "delores");
     let inserted_delores_person = Person::create(pool, &delores_person).await?;
     let delores_local_user_form = LocalUserInsertForm::test_form_admin(inserted_delores_person.id);
     let _inserted_delores_local_user =
@@ -419,7 +421,7 @@ mod tests {
       LocalUser::is_higher_admin_check(pool, inserted_delores_person.id, admin_person_ids).await;
     assert!(delores_higher_check.is_err());
 
-    Instance::delete(pool, inserted_instance.id).await?;
+    data.delete(pool).await?;
 
     Ok(())
   }
@@ -432,9 +434,8 @@ mod tests {
 
     let darwin_email = "charles.darwin@gmail.com";
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
-
-    let darwin_person = PersonInsertForm::test_form(inserted_instance.id, "darwin");
+    let data = TestData::create(pool).await?;
+    let darwin_person = PersonInsertForm::test_form(data.instance.id, "darwin");
     let inserted_darwin_person = Person::create(pool, &darwin_person).await?;
 
     let mut darwin_local_user_form =
@@ -449,7 +450,7 @@ mod tests {
     let passed_check = LocalUser::check_is_email_taken(pool, "not_charles@gmail.com").await;
     assert!(passed_check.is_ok());
 
-    Instance::delete(pool, inserted_instance.id).await?;
+    data.delete(pool).await?;
 
     Ok(())
   }

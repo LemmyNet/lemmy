@@ -579,10 +579,10 @@ mod tests {
     source::{
       comment::{Comment, CommentInsertForm, CommentUpdateForm},
       community::{Community, CommunityInsertForm},
-      instance::Instance,
       person::{Person, PersonInsertForm},
       post::{Post, PostActions, PostInsertForm, PostLikeForm, PostSavedForm, PostUpdateForm},
     },
+    test_data::TestData,
     traits::{Likeable, Saveable},
     utils::RANK_DEFAULT,
   };
@@ -600,14 +600,11 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
-
-    let new_person = PersonInsertForm::test_form(inserted_instance.id, "jim");
-
-    let inserted_person = Person::create(pool, &new_person).await?;
+    let data = TestData::create(pool).await?;
+    let inserted_person = data.person.clone();
 
     let new_community = CommunityInsertForm::new(
-      inserted_instance.id,
+      data.instance.id,
       "test community_3".to_string(),
       "pubkey".to_string(),
     );
@@ -724,8 +721,7 @@ mod tests {
 
     assert_eq!(3, num_deleted);
     Community::delete(pool, inserted_community.id).await?;
-    Person::delete(pool, inserted_person.id).await?;
-    Instance::delete(pool, inserted_instance.id).await?;
+    data.delete(pool).await?;
 
     assert_eq!(expected_post, read_post);
     assert_eq!(expected_post, updated_post);
@@ -739,18 +735,15 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
+    let data = TestData::create(pool).await?;
+    let inserted_person = data.person.clone();
 
-    let new_person = PersonInsertForm::test_form(inserted_instance.id, "thommy_community_agg");
-
-    let inserted_person = Person::create(pool, &new_person).await?;
-
-    let another_person = PersonInsertForm::test_form(inserted_instance.id, "jerry_community_agg");
+    let another_person = PersonInsertForm::test_form(data.instance.id, "jerry_community_agg");
 
     let another_inserted_person = Person::create(pool, &another_person).await?;
 
     let new_community = CommunityInsertForm::new(
-      inserted_instance.id,
+      data.instance.id,
       "TIL_community_agg".into(),
       "pubkey".to_string(),
     );
@@ -834,7 +827,7 @@ mod tests {
     let after_delete = Post::read(pool, inserted_post.id).await;
     assert!(after_delete.is_err());
 
-    Instance::delete(pool, inserted_instance.id).await?;
+    data.delete(pool).await?;
 
     Ok(())
   }
@@ -845,14 +838,11 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
-
-    let new_person = PersonInsertForm::test_form(inserted_instance.id, "thommy_community_agg");
-
-    let inserted_person = Person::create(pool, &new_person).await?;
+    let data = TestData::create(pool).await?;
+    let inserted_person = data.person.clone();
 
     let new_community = CommunityInsertForm::new(
-      inserted_instance.id,
+      data.instance.id,
       "TIL_community_agg".into(),
       "pubkey".to_string(),
     );
@@ -928,9 +918,8 @@ mod tests {
 
     Comment::delete(pool, inserted_comment.id).await?;
     Post::delete(pool, inserted_post.id).await?;
-    Person::delete(pool, inserted_person.id).await?;
     Community::delete(pool, inserted_community.id).await?;
-    Instance::delete(pool, inserted_instance.id).await?;
+    data.delete(pool).await?;
 
     Ok(())
   }

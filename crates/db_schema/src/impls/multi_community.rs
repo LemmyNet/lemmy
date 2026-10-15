@@ -362,11 +362,14 @@ impl MultiCommunityEntry {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::source::{
-    community::{Community, CommunityInsertForm},
-    instance::Instance,
-    multi_community::{MultiCommunity, MultiCommunityInsertForm},
-    person::{Person, PersonInsertForm},
+  use crate::{
+    source::{
+      community::{Community, CommunityInsertForm},
+      instance::Instance,
+      multi_community::{MultiCommunity, MultiCommunityInsertForm},
+      person::Person,
+    },
+    test_data::TestData,
   };
   use lemmy_db_schema_file::enums::CommunityFollowerState;
   use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
@@ -382,10 +385,9 @@ mod tests {
   }
 
   async fn setup(pool: &mut DbPool<'_>) -> LemmyResult<Data> {
-    let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
-
-    let form = PersonInsertForm::test_form(instance.id, "bobby");
-    let person = Person::create(pool, &form).await?;
+    let data = TestData::create(pool).await?;
+    let instance = data.instance;
+    let person = data.person;
 
     let form = CommunityInsertForm::new(instance.id, "TIL".into(), "pubkey".to_string());
     let community = Community::create(pool, &form).await?;

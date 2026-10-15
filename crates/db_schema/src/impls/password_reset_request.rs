@@ -43,13 +43,14 @@ impl PasswordResetRequest {
 #[cfg(test)]
 mod tests {
 
-  use crate::source::{
-    instance::Instance,
-    local_user::{LocalUser, LocalUserInsertForm},
-    password_reset_request::PasswordResetRequest,
-    person::{Person, PersonInsertForm},
+  use crate::{
+    source::{
+      local_user::{LocalUser, LocalUserInsertForm},
+      password_reset_request::PasswordResetRequest,
+    },
+    test_data::TestData,
   };
-  use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
+  use lemmy_diesel_utils::connection::build_db_pool_for_tests;
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
@@ -60,11 +61,8 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
-    // Setup
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
-    let new_person = PersonInsertForm::test_form(inserted_instance.id, "thommy prw");
-    let inserted_person = Person::create(pool, &new_person).await?;
-    let new_local_user = LocalUserInsertForm::test_form(inserted_person.id);
+    let data = TestData::create(pool).await?;
+    let new_local_user = LocalUserInsertForm::test_form(data.person.id);
     let inserted_local_user = LocalUser::create(pool, &new_local_user, vec![]).await?;
 
     // Create password reset token
@@ -95,11 +93,7 @@ mod tests {
     let read_password_reset_request = PasswordResetRequest::read_and_delete(pool, token).await;
     assert!(read_password_reset_request.is_err());
 
-    // Cleanup
-    let num_deleted = Person::delete(pool, inserted_person.id).await?;
-    assert_eq!(1, num_deleted);
-
-    Instance::delete(pool, inserted_instance.id).await?;
+    data.delete(pool).await?;
     Ok(())
   }
 }

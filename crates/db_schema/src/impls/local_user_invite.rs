@@ -91,15 +91,16 @@ impl LocalUserInvite {
 
 #[cfg(test)]
 mod tests {
-  use crate::source::{
-    instance::Instance,
-    local_user::{LocalUser, LocalUserInsertForm},
-    local_user_invite::{LocalUserInvite, LocalUserInviteInsertForm, LocalUserInviteUpdateForm},
-    person::{Person, PersonInsertForm},
+  use crate::{
+    source::{
+      local_user::{LocalUser, LocalUserInsertForm},
+      local_user_invite::{LocalUserInvite, LocalUserInviteInsertForm, LocalUserInviteUpdateForm},
+    },
+    test_data::TestData,
   };
   use chrono::{Duration, Utc};
   use lemmy_db_schema_file::newtypes::{InvitationId, LocalUserId};
-  use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
+  use lemmy_diesel_utils::connection::build_db_pool_for_tests;
   use lemmy_utils::{error::LemmyResult, settings::structs::Settings};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
@@ -154,10 +155,8 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
-    let new_person = PersonInsertForm::test_form(inserted_instance.id, "invite_tester");
-    let inserted_person = Person::create(pool, &new_person).await?;
-    let new_local_user = LocalUserInsertForm::test_form(inserted_person.id);
+    let data = TestData::create(pool).await?;
+    let new_local_user = LocalUserInsertForm::test_form(data.person.id);
     let inserted_local_user = LocalUser::create(pool, &new_local_user, vec![]).await?;
 
     let token = "test_invite_token_abc";
@@ -185,8 +184,7 @@ mod tests {
     let read_after_delete = LocalUserInvite::read_by_token(pool, token).await;
     assert!(read_after_delete.is_err());
 
-    Person::delete(pool, inserted_person.id).await?;
-    Instance::delete(pool, inserted_instance.id).await?;
+    data.delete(pool).await?;
     Ok(())
   }
 
@@ -196,10 +194,8 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
-    let new_person = PersonInsertForm::test_form(inserted_instance.id, "invite_updater");
-    let inserted_person = Person::create(pool, &new_person).await?;
-    let new_local_user = LocalUserInsertForm::test_form(inserted_person.id);
+    let data = TestData::create(pool).await?;
+    let new_local_user = LocalUserInsertForm::test_form(data.person.id);
     let inserted_local_user = LocalUser::create(pool, &new_local_user, vec![]).await?;
 
     let token = "test_update_token_xyz";
@@ -219,8 +215,7 @@ mod tests {
     assert_eq!(updated.uses_count, 2);
 
     LocalUserInvite::delete_by_token(pool, token).await?;
-    Person::delete(pool, inserted_person.id).await?;
-    Instance::delete(pool, inserted_instance.id).await?;
+    data.delete(pool).await?;
     Ok(())
   }
 }

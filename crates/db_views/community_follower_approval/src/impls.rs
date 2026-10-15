@@ -249,6 +249,7 @@ mod tests {
       instance::Instance,
       person::PersonInsertForm,
     },
+    test_data::TestData,
     traits::Followable,
   };
   use lemmy_db_schema_file::enums::CommunityVisibility;
@@ -261,8 +262,10 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
+    let data = TestData::create(pool).await?;
+    let local_instance = data.instance.clone();
+
     // insert local community
-    let local_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
     let community_form = CommunityInsertForm {
       visibility: Some(CommunityVisibility::Private),
       ..CommunityInsertForm::new(
@@ -329,8 +332,10 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
+    let data = TestData::create(pool).await?;
+    let local_instance = data.instance.clone();
+
     // insert local community
-    let local_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
     let community_form = CommunityInsertForm {
       visibility: Some(CommunityVisibility::Private),
       ..CommunityInsertForm::new(

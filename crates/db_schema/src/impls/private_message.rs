@@ -113,10 +113,12 @@ impl PrivateMessage {
 #[cfg(test)]
 mod tests {
 
-  use crate::source::{
-    instance::Instance,
-    person::{Person, PersonInsertForm},
-    private_message::{PrivateMessage, PrivateMessageInsertForm, PrivateMessageUpdateForm},
+  use crate::{
+    source::{
+      person::{Person, PersonInsertForm},
+      private_message::{PrivateMessage, PrivateMessageInsertForm, PrivateMessageUpdateForm},
+    },
+    test_data::TestData,
   };
   use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use lemmy_utils::error::LemmyResult;
@@ -130,13 +132,10 @@ mod tests {
     let pool = &build_db_pool_for_tests();
     let pool = &mut pool.into();
 
-    let inserted_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
+    let data = TestData::create(pool).await?;
+    let inserted_creator = data.person.clone();
 
-    let creator_form = PersonInsertForm::test_form(inserted_instance.id, "creator_pm");
-
-    let inserted_creator = Person::create(pool, &creator_form).await?;
-
-    let recipient_form = PersonInsertForm::test_form(inserted_instance.id, "recipient_pm");
+    let recipient_form = PersonInsertForm::test_form(data.instance.id, "recipient_pm");
 
     let inserted_recipient = Person::create(pool, &recipient_form).await?;
 
@@ -188,9 +187,8 @@ mod tests {
       },
     )
     .await?;
-    Person::delete(pool, inserted_creator.id).await?;
     Person::delete(pool, inserted_recipient.id).await?;
-    Instance::delete(pool, inserted_instance.id).await?;
+    data.delete(pool).await?;
 
     assert_eq!(expected_private_message, read_private_message);
     assert_eq!(expected_private_message, updated_private_message);
