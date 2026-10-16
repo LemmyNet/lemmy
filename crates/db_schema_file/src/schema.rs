@@ -181,7 +181,10 @@ diesel::table! {
         report_count -> Int2,
         unresolved_report_count -> Int2,
         local_removed -> Bool,
+        post_upvote_mode -> VoteSettingsEnum,
         post_downvote_mode -> VoteSettingsEnum,
+        comment_upvote_mode -> VoteSettingsEnum,
+        comment_downvote_mode -> VoteSettingsEnum,
     }
 }
 
@@ -408,10 +411,10 @@ diesel::table! {
         default_post_sort_type -> PostSortTypeEnum,
         default_comment_sort_type -> CommentSortTypeEnum,
         oauth_registration -> Bool,
-        post_upvotes -> VoteSettingsEnum,
-        post_downvotes -> VoteSettingsEnum,
-        comment_upvotes -> VoteSettingsEnum,
-        comment_downvotes -> VoteSettingsEnum,
+        default_post_upvotes -> VoteSettingsEnum,
+        default_post_downvotes -> VoteSettingsEnum,
+        default_comment_upvotes -> VoteSettingsEnum,
+        default_comment_downvotes -> VoteSettingsEnum,
         default_post_time_range_seconds -> Nullable<Int4>,
         nsfw_content_disallowed -> Bool,
         local_users -> Int4,

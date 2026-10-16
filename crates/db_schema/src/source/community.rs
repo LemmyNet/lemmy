@@ -95,7 +95,10 @@ pub struct Community {
   pub report_count: i16,
   pub unresolved_report_count: i16,
   pub local_removed: bool,
+  pub post_upvote_mode: VoteSettings,
   pub post_downvote_mode: VoteSettings,
+  pub comment_upvote_mode: VoteSettings,
+  pub comment_downvote_mode: VoteSettings,
 }
 
 #[derive(Debug, Clone, derive_new::new)]
@@ -148,7 +151,13 @@ pub struct CommunityInsertForm {
   #[new(default)]
   pub local_removed: Option<bool>,
   #[new(default)]
+  pub post_upvote_mode: Option<VoteSettings>,
+  #[new(default)]
   pub post_downvote_mode: Option<VoteSettings>,
+  #[new(default)]
+  pub comment_upvote_mode: Option<VoteSettings>,
+  #[new(default)]
+  pub comment_downvote_mode: Option<VoteSettings>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -179,7 +188,10 @@ pub struct CommunityUpsertForm {
   pub visibility: Option<CommunityVisibility>,
   pub summary: Option<Option<String>>,
   pub local_removed: Option<bool>,
+  pub post_upvote_mode: Option<VoteSettings>,
   pub post_downvote_mode: Option<VoteSettings>,
+  pub comment_upvote_mode: Option<VoteSettings>,
+  pub comment_downvote_mode: Option<VoteSettings>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -208,7 +220,10 @@ pub struct CommunityUpdateForm {
   pub visibility: Option<CommunityVisibility>,
   pub summary: Option<Option<String>>,
   pub local_removed: Option<bool>,
+  pub post_upvote_mode: Option<VoteSettings>,
   pub post_downvote_mode: Option<VoteSettings>,
+  pub comment_upvote_mode: Option<VoteSettings>,
+  pub comment_downvote_mode: Option<VoteSettings>,
 }
 
 #[skip_serializing_none]

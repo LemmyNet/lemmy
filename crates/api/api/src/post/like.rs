@@ -5,12 +5,7 @@ use lemmy_api_utils::{
   context::LemmyContext,
   plugins::{plugin_hook_after, plugin_hook_before},
   send_activity::{ActivityChannel, SendActivityData},
-  utils::{
-    check_bot_account,
-    check_community_user_action,
-    check_local_user_banned_or_deleted,
-    check_vote_settings,
-  },
+  utils::{check_bot_account, check_community_user_action, check_vote_settings},
 };
 use lemmy_db_schema::{
   source::{
@@ -34,7 +29,6 @@ pub async fn like_post(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<PostResponse>> {
-  check_local_user_banned_or_deleted(&local_user_view)?;
   let local_instance_id = local_user_view.person.instance_id;
   let post_id = data.post_id;
   let my_person_id = local_user_view.person.id;
@@ -47,16 +41,15 @@ pub async fn like_post(
     false,
   )
   .await?;
-  check_bot_account(&local_user_view.person)?;
-
   check_vote_settings(
     data.is_upvote,
     PostOrCommentId::Post(post_id),
     &orig_post.community,
     &local_user_view.person,
-    &context,
+    &mut context.pool(),
   )
   .await?;
+  check_bot_account(&local_user_view.person)?;
 
   let previous_is_upvote = orig_post.post_actions.and_then(|p| p.vote_is_upvote);
 

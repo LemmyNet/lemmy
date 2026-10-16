@@ -69,19 +69,19 @@ impl Activity for Vote {
       PostOrComment::Left(p) => PostOrCommentId::Post(p.id),
       PostOrComment::Right(c) => PostOrCommentId::Comment(c.id),
     };
-
     check_vote_settings(
       Some(self.kind == VoteType::Like),
       post_or_comment_id,
       &community,
       &actor,
-      context,
+      &mut context.pool(),
     )
     .await?;
 
     match object {
-      PostOrComment::Left(p) => vote_post(&self.kind, actor, &p, context).await,
-      PostOrComment::Right(c) => vote_comment(&self.kind, actor, &c, context).await,
+      PostOrComment::Left(p) => vote_post(&self.kind, actor, &p, context).await?,
+      PostOrComment::Right(c) => vote_comment(&self.kind, actor, &c, context).await?,
     }
+    Ok(())
   }
 }

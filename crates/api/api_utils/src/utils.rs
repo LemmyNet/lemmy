@@ -10,7 +10,7 @@ use chrono::{DateTime, Days, Local, TimeZone, Utc};
 use enum_map::{EnumMap, enum_map};
 use lemmy_db_schema::{
   source::{
-    comment::{Comment, CommentActions},
+    comment::{Comment, CommentActions, CommentLikeForm},
     community::{Community, CommunityActions, CommunityUpdateForm},
     community_tag::{CommunityTag, PostCommunityTag},
     images::{ImageDetails, RemoteImage},
@@ -22,7 +22,7 @@ use lemmy_db_schema::{
     modlog::{Modlog, ModlogInsertForm},
     oauth_account::OAuthAccount,
     person::{Person, PersonUpdateForm},
-    post::{Post, PostActions, PostReadCommentsForm},
+    post::{Post, PostActions, PostLikeForm, PostReadCommentsForm},
     private_message::PrivateMessage,
     registration_application::RegistrationApplication,
     site::Site,
@@ -345,56 +345,61 @@ pub fn check_comment_deleted_or_removed(comment: &Comment) -> LemmyResult<()> {
   }
 }
 
-/// Checks whether a vote is allowed, considering both the local site's federation vote settings
-/// (per post/comment) and, for post downvotes, the community's post downvote setting.
+/// Checks whether a vote is allowed according to the community's vote settings.
+/// If the vote isn't allowed, any previous vote on the item is removed and an error is returned.
 pub async fn check_vote_settings(
   vote: Option<bool>,
   post_or_comment_id: PostOrCommentId,
   community: &Community,
   person: &Person,
-  context: &LemmyContext,
+  pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
-  let is_upvote = vote.unwrap_or_default();
-  let local_site = SiteView::read_local(&mut context.pool())
-    .await
-    .map(|s| s.local_site)
-    .unwrap_or_default();
-
-  let (downvote_setting, upvote_setting) = match post_or_comment_id {
-    PostOrCommentId::Post(_) => (local_site.post_downvotes, local_site.post_upvotes),
-    PostOrCommentId::Comment(_) => (local_site.comment_downvotes, local_site.comment_upvotes),
+  // Vote removal with None is always allowed
+  let Some(is_upvote) = vote else {
+    return Ok(());
   };
 
-  let check_vote_fn = async |vote_setting, context: &LemmyContext| {
-    Ok::<bool, LemmyError>(match vote_setting {
+  let (downvote_mode, upvote_mode) = match post_or_comment_id {
+    PostOrCommentId::Post(_) => (community.post_downvote_mode, community.post_upvote_mode),
+    PostOrCommentId::Comment(_) => (
+      community.comment_downvote_mode,
+      community.comment_upvote_mode,
+    ),
+  };
+
+  let mut vote_allowed = async |vote_mode: VoteSettings| {
+    Ok::<bool, LemmyError>(match vote_mode {
       VoteSettings::All => true,
       VoteSettings::Local => person.local,
       VoteSettings::Subscribed => {
-        let actions = CommunityActions::read(&mut context.pool(), community.id, person.id).await?;
+        let actions = CommunityActions::read(pool, community.id, person.id).await?;
         actions.followed_at.is_some()
           && actions.follow_state == Some(CommunityFollowerState::Accepted)
       }
       VoteSettings::Disable => false,
     })
   };
-  let site_allowed = if is_upvote {
-    check_vote_fn(upvote_setting, context).await?
+  let allowed = if is_upvote {
+    vote_allowed(upvote_mode).await?
   } else {
-    check_vote_fn(downvote_setting, context).await?
+    vote_allowed(downvote_mode).await?
   };
 
-  // The community vote setting only applies to post downvotes.
-  let community_allowed = if !is_upvote && let PostOrCommentId::Post(_) = post_or_comment_id {
-    check_vote_fn(community.post_downvote_mode, context).await?
-  } else {
-    true
-  };
-
-  if site_allowed && community_allowed {
-    Ok(())
-  } else {
-    Err(UntranslatedError::VoteNotAllowed.into())
+  // Undo previous vote for item if new vote fails
+  if !allowed {
+    match post_or_comment_id {
+      PostOrCommentId::Post(post_id) => {
+        let form = PostLikeForm::new(post_id, person.id, None);
+        PostActions::like(pool, &form).await?;
+      }
+      PostOrCommentId::Comment(comment_id) => {
+        let form = CommentLikeForm::new(comment_id, person.id, None);
+        CommentActions::like(pool, &form).await?;
+      }
+    };
+    return Err(UntranslatedError::VoteNotAllowed.into());
   }
+  Ok(())
 }
 
 /// Dont allow bots to do certain actions, like voting

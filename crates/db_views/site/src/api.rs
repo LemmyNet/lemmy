@@ -155,10 +155,10 @@ pub struct CreateSite {
   pub content_warning: Option<String>,
   pub reports_email_admins: Option<bool>,
   pub federation_signed_fetch: Option<bool>,
-  pub post_upvotes: Option<VoteSettings>,
-  pub post_downvotes: Option<VoteSettings>,
-  pub comment_upvotes: Option<VoteSettings>,
-  pub comment_downvotes: Option<VoteSettings>,
+  pub default_post_upvotes: Option<VoteSettings>,
+  pub default_post_downvotes: Option<VoteSettings>,
+  pub default_comment_upvotes: Option<VoteSettings>,
+  pub default_comment_downvotes: Option<VoteSettings>,
   pub nsfw_content_disallowed: Option<bool>,
   pub email_notifications_disabled: Option<bool>,
   pub suggested_multi_community_id: Option<MultiCommunityId>,
@@ -279,14 +279,14 @@ pub struct EditSite {
   pub content_warning: Option<String>,
   /// Whether or not external auth methods can auto-register users.
   pub oauth_registration: Option<bool>,
-  /// What kind of post upvotes your site allows.
-  pub post_upvotes: Option<VoteSettings>,
-  /// What kind of post downvotes your site allows.
-  pub post_downvotes: Option<VoteSettings>,
-  /// What kind of comment upvotes your site allows.
-  pub comment_upvotes: Option<VoteSettings>,
-  /// What kind of comment downvotes your site allows.
-  pub comment_downvotes: Option<VoteSettings>,
+  /// Default post upvote mode for newly created local communities.
+  pub default_post_upvotes: Option<VoteSettings>,
+  /// Default post downvote mode for newly created local communities.
+  pub default_post_downvotes: Option<VoteSettings>,
+  /// Default comment upvote mode for newly created local communities.
+  pub default_comment_upvotes: Option<VoteSettings>,
+  /// Default comment downvote mode for newly created local communities.
+  pub default_comment_downvotes: Option<VoteSettings>,
   /// Block NSFW content being created
   pub nsfw_content_disallowed: Option<bool>,
   /// Dont send email notifications to users for new replies, mentions etc
