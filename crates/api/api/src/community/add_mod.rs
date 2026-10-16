@@ -27,16 +27,17 @@ pub async fn add_mod_to_community(
   // Verify that only mods or admins can add mod
   check_community_mod_action(&local_user_view, &community, false, &mut context.pool()).await?;
 
-  // If it's a mod removal, also check that you're a higher mod.
-  if !data.added {
-    LocalUser::is_higher_mod_or_admin_check(
-      &mut context.pool(),
-      community.id,
-      local_user_view.person.id,
-      vec![data.person_id],
-    )
-    .await?;
+  // Check that you're a higher mod.
+  // Do this even if you're adding a mod (so that lower mods can't re-order higher ones)
+  LocalUser::is_higher_mod_or_admin_check(
+    &mut context.pool(),
+    community.id,
+    local_user_view.person.id,
+    vec![data.person_id],
+  )
+  .await?;
 
+  if !data.added {
     // Dont allow the last community mod to remove himself
     let mods = CommunityModeratorView::for_community(&mut context.pool(), community.id).await?;
     if !local_user_view.local_user.admin && mods.len() == 1 {

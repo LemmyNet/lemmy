@@ -147,7 +147,9 @@ impl PersonLikedCombinedQuery {
         PersonContentType::Comments => {
           query.filter(person_liked_combined::comment_id.is_not_null())
         }
-        PersonContentType::Posts => query.filter(person_liked_combined::post_id.is_not_null()),
+        // Cannot use `person_liked_combined::post_id.is_not_null()` because comments also include
+        // post_id
+        PersonContentType::Posts => query.filter(person_liked_combined::comment_id.is_null()),
       }
     }
 

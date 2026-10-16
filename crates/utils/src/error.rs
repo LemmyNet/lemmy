@@ -200,7 +200,7 @@ cfg_select! {
         let cause = t.into();
         let error_type = match cause.downcast_ref::<diesel::result::Error>() {
           Some(&diesel::NotFound) => LemmyErrorType::NotFound,
-          _ => LemmyErrorType::Unknown(format!("{}", &cause)),
+          _ => LemmyErrorType::Unknown(format!("{}", cause)),
         };
         LemmyError {
           error_type,
@@ -222,7 +222,7 @@ cfg_select! {
 
     impl fmt::Display for LemmyError {
       fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}: ", &self.error_type)?;
+        write!(f, "{}: ", self.error_type)?;
         write!(f, "{}", self.caller)?;
         write!(f, "{}", self.cause)?;
         Ok(())
