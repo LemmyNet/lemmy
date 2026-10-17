@@ -1,5 +1,12 @@
 use crate::LocalUserView;
-use diesel::{ExpressionMethods, JoinOnDsl, QueryDsl, SelectableHelper};
+use diesel::{
+  BoolExpressionMethods,
+  ExpressionMethods,
+  JoinOnDsl,
+  NullableExpressionMethods,
+  QueryDsl,
+  SelectableHelper,
+};
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
@@ -167,6 +174,13 @@ impl PersonContentCombinedQuery {
     // Hide the hidden content
     query = query.filter(post_actions::hidden_at.is_null());
 
+    // Only the creator can see their own unpublished scheduled posts.
+    query = query.filter(
+      post::scheduled_publish_time_at
+        .is_null()
+        .or(post::creator_id.nullable().eq(my_person_id)),
+    );
+
     // Sorting by published
     let paginated_query =
       PostCommentCombinedViewWrapper::paginate(query, &self.page_cursor, SortDirection::Desc, pool)
@@ -197,9 +211,10 @@ impl PersonContentCombinedQuery {
 }
 
 #[cfg(test)]
-#[expect(clippy::indexing_slicing)]
+#[expect(clippy::indexing_slicing, clippy::expect_used)]
 mod tests {
   use super::*;
+  use chrono::{Days, Utc};
   use lemmy_db_schema::{
     source::{
       comment::{Comment, CommentInsertForm},
@@ -486,6 +501,87 @@ mod tests {
 
     cleanup(data, pool).await?;
 
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn scheduled_post_hidden_from_non_creator() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    let future_time = Utc::now()
+      .checked_add_days(Days::new(1))
+      .expect("future time");
+
+    // timmy creates a scheduled post
+    let scheduled_form = PostInsertForm {
+      scheduled_publish_time_at: Some(future_time),
+      ..PostInsertForm::new("timmy scheduled post".into(), data.timmy.id, {
+        // reuse the first public community (not private_community)
+        let community_form =
+          CommunityInsertForm::new(data.instance.id, "pcv_sched_comm".into(), "pubkey2".into());
+        Community::create(pool, &community_form).await?.id
+      })
+    };
+    let scheduled_post = Post::create(pool, &scheduled_form).await?;
+
+    // Non-creator (None = logged out / RSS) must not see the scheduled post
+    let content_logged_out = PersonContentCombinedQuery {
+      creator_id: data.timmy.id,
+      ..Default::default()
+    }
+    .list(pool, None, data.instance.id)
+    .await?
+    .items;
+    assert!(
+      !content_logged_out
+        .iter()
+        .any(|v| matches!(v, PostCommentCombinedView::Post(p) if p.post.id == scheduled_post.id)),
+      "logged-out must not see scheduled post in person content"
+    );
+
+    // Other authenticated user must not see it either
+    let sara_view = LocalUserView {
+      local_user: {
+        let sara_lu_form = LocalUserInsertForm::test_form(data.sara.id);
+        LocalUser::create(pool, &sara_lu_form, vec![]).await?
+      },
+      person: data.sara.clone(),
+      banned: false,
+      ban_expires_at: None,
+    };
+    let content_sara = PersonContentCombinedQuery {
+      creator_id: data.timmy.id,
+      ..Default::default()
+    }
+    .list(pool, Some(&sara_view), data.instance.id)
+    .await?
+    .items;
+    assert!(
+      !content_sara
+        .iter()
+        .any(|v| matches!(v, PostCommentCombinedView::Post(p) if p.post.id == scheduled_post.id)),
+      "non-creator must not see scheduled post in person content"
+    );
+
+    // Creator (timmy) must still see it
+    let content_timmy = PersonContentCombinedQuery {
+      creator_id: data.timmy.id,
+      ..Default::default()
+    }
+    .list(pool, Some(&data.timmy_view), data.instance.id)
+    .await?
+    .items;
+    assert!(
+      content_timmy
+        .iter()
+        .any(|v| matches!(v, PostCommentCombinedView::Post(p) if p.post.id == scheduled_post.id)),
+      "creator must see their own scheduled post in person content"
+    );
+
+    cleanup(data, pool).await?;
     Ok(())
   }
 }
