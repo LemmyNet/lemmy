@@ -66,7 +66,11 @@ mod tests {
   use actix_web::test::TestRequest;
   use chrono::{Days, Utc};
   use lemmy_db_schema::{
-    source::{comment::CommentInsertForm, community::CommunityInsertForm, post::PostInsertForm},
+    source::{
+      comment::CommentInsertForm,
+      community::CommunityInsertForm,
+      post::{PostInsertForm, PostUpdateForm},
+    },
     test_data::TestData,
   };
   use lemmy_diesel_utils::traits::Crud;
@@ -85,7 +89,7 @@ mod tests {
     .await?;
 
     let future_time = Utc::now().checked_add_days(Days::new(1)).expect("future");
-    let mut post = Post::create(
+    let post = Post::create(
       &mut context.pool(),
       &PostInsertForm {
         scheduled_publish_time_at: Some(future_time),
@@ -128,8 +132,7 @@ mod tests {
     );
 
     // Update post to be published (clear scheduled_publish_time_at)
-    use lemmy_db_schema::source::post::PostUpdateForm;
-    post = Post::update(
+    Post::update(
       &mut context.pool(),
       post.id,
       &PostUpdateForm {
