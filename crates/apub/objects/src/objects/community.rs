@@ -150,10 +150,10 @@ impl Object for ApubCommunity {
         .into_iter()
         .map(ApubCommunityTag::to_json)
         .collect(),
-      post_upvote_mode: Some(self.post_upvote_mode),
-      post_downvote_mode: Some(self.post_downvote_mode),
-      comment_upvote_mode: Some(self.comment_upvote_mode),
-      comment_downvote_mode: Some(self.comment_downvote_mode),
+      post_upvotes: Some(self.post_upvotes),
+      post_downvotes: Some(self.post_downvotes),
+      comment_upvotes: Some(self.comment_upvotes),
+      comment_downvotes: Some(self.comment_downvotes),
     };
     Ok(group)
   }
@@ -248,10 +248,10 @@ impl Object for ApubCommunity {
       featured_url: Some(group.featured.clone().clone().map(Into::into)),
       title: Some(title),
       visibility,
-      post_upvote_mode: Some(group.post_upvote_mode.unwrap_or_default()),
-      post_downvote_mode: Some(group.post_downvote_mode.unwrap_or_default()),
-      comment_upvote_mode: Some(group.comment_upvote_mode.unwrap_or_default()),
-      comment_downvote_mode: Some(group.comment_downvote_mode.unwrap_or_default()),
+      post_upvotes: Some(group.post_upvotes.unwrap_or_default()),
+      post_downvotes: Some(group.post_downvotes.unwrap_or_default()),
+      comment_upvotes: Some(group.comment_upvotes.unwrap_or_default()),
+      comment_downvotes: Some(group.comment_downvotes.unwrap_or_default()),
       instance_id,
       name,
       public_key: Some(group.public_key.public_key_pem.clone()),

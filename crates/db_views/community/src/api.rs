@@ -108,10 +108,10 @@ pub struct CreateCommunity {
   pub posting_restricted_to_mods: Option<bool>,
   pub discussion_languages: Option<Vec<LanguageId>>,
   pub visibility: Option<CommunityVisibility>,
-  pub post_upvote_mode: Option<VoteSettings>,
-  pub post_downvote_mode: Option<VoteSettings>,
-  pub comment_upvote_mode: Option<VoteSettings>,
-  pub comment_downvote_mode: Option<VoteSettings>,
+  pub post_upvotes: Option<VoteSettings>,
+  pub post_downvotes: Option<VoteSettings>,
+  pub comment_upvotes: Option<VoteSettings>,
+  pub comment_downvotes: Option<VoteSettings>,
 }
 
 #[skip_serializing_none]
@@ -143,10 +143,10 @@ pub struct EditCommunity {
   pub posting_restricted_to_mods: Option<bool>,
   pub discussion_languages: Option<Vec<LanguageId>>,
   pub visibility: Option<CommunityVisibility>,
-  pub post_upvote_mode: Option<VoteSettings>,
-  pub post_downvote_mode: Option<VoteSettings>,
-  pub comment_upvote_mode: Option<VoteSettings>,
-  pub comment_downvote_mode: Option<VoteSettings>,
+  pub post_upvotes: Option<VoteSettings>,
+  pub post_downvotes: Option<VoteSettings>,
+  pub comment_upvotes: Option<VoteSettings>,
+  pub comment_downvotes: Option<VoteSettings>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]

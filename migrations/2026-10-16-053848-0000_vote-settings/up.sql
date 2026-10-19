@@ -12,8 +12,8 @@ ALTER TABLE local_site RENAME COLUMN comment_upvotes TO default_comment_upvotes;
 ALTER TABLE local_site RENAME COLUMN comment_downvotes TO default_comment_downvotes;
 
 ALTER TABLE community
-    ADD COLUMN post_upvote_mode vote_settings_enum DEFAULT 'All'::vote_settings_enum NOT NULL,
-    ADD COLUMN post_downvote_mode vote_settings_enum DEFAULT 'All'::vote_settings_enum NOT NULL,
-    ADD COLUMN comment_upvote_mode vote_settings_enum DEFAULT 'All'::vote_settings_enum NOT NULL,
-    ADD COLUMN comment_downvote_mode vote_settings_enum DEFAULT 'All'::vote_settings_enum NOT NULL;
+    ADD COLUMN post_upvotes vote_settings_enum DEFAULT 'All'::vote_settings_enum NOT NULL,
+    ADD COLUMN post_downvotes vote_settings_enum DEFAULT 'All'::vote_settings_enum NOT NULL,
+    ADD COLUMN comment_upvotes vote_settings_enum DEFAULT 'All'::vote_settings_enum NOT NULL,
+    ADD COLUMN comment_downvotes vote_settings_enum DEFAULT 'All'::vote_settings_enum NOT NULL;
 

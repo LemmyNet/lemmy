@@ -66,8 +66,8 @@ pub struct Group {
   #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) tag: Vec<ApubCommunityTag>,
   // lemmy extension
-  pub(crate) post_upvote_mode: Option<VoteSettings>,
-  pub(crate) post_downvote_mode: Option<VoteSettings>,
-  pub(crate) comment_upvote_mode: Option<VoteSettings>,
-  pub(crate) comment_downvote_mode: Option<VoteSettings>,
+  pub(crate) post_upvotes: Option<VoteSettings>,
+  pub(crate) post_downvotes: Option<VoteSettings>,
+  pub(crate) comment_upvotes: Option<VoteSettings>,
+  pub(crate) comment_downvotes: Option<VoteSettings>,
 }

@@ -360,11 +360,8 @@ pub async fn check_vote_settings(
   };
 
   let (downvote_mode, upvote_mode) = match post_or_comment_id {
-    PostOrCommentId::Post(_) => (community.post_downvote_mode, community.post_upvote_mode),
-    PostOrCommentId::Comment(_) => (
-      community.comment_downvote_mode,
-      community.comment_upvote_mode,
-    ),
+    PostOrCommentId::Post(_) => (community.post_downvotes, community.post_upvotes),
+    PostOrCommentId::Comment(_) => (community.comment_downvotes, community.comment_upvotes),
   };
 
   let mut vote_allowed = async |vote_mode: VoteSettings| {
