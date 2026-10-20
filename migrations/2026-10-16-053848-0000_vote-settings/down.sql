@@ -19,6 +19,12 @@ CREATE TYPE federation_mode_enum AS ENUM (
 );
 
 ALTER TABLE local_site
+    ALTER COLUMN post_upvotes DROP DEFAULT,
+    ALTER COLUMN post_downvotes DROP DEFAULT,
+    ALTER COLUMN comment_upvotes DROP DEFAULT,
+    ALTER COLUMN comment_downvotes DROP DEFAULT;
+
+ALTER TABLE local_site
     ALTER COLUMN post_upvotes TYPE federation_mode_enum
     USING post_upvotes::text::federation_mode_enum,
     ALTER COLUMN post_downvotes TYPE federation_mode_enum
@@ -27,6 +33,12 @@ ALTER TABLE local_site
     USING comment_upvotes::text::federation_mode_enum,
     ALTER COLUMN comment_downvotes TYPE federation_mode_enum
     USING comment_downvotes::text::federation_mode_enum;
+
+ALTER TABLE local_site
+    ALTER COLUMN post_upvotes SET DEFAULT 'All'::federation_mode_enum,
+    ALTER COLUMN post_downvotes SET DEFAULT 'All'::federation_mode_enum,
+    ALTER COLUMN comment_upvotes SET DEFAULT 'All'::federation_mode_enum,
+    ALTER COLUMN comment_downvotes SET DEFAULT 'All'::federation_mode_enum;
 
 DROP TYPE vote_settings_enum;
 
