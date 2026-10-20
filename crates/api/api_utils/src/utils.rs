@@ -32,7 +32,7 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
-  enums::{FederationMode, ImageMode, RegistrationMode},
+  enums::{CommunityFollowerState, ImageMode, RegistrationMode, VoteSettings},
   newtypes::{CommunityId, CommunityTagId, ModlogId, PostId, PostOrCommentId},
 };
 use lemmy_db_views_community_follower_approval::PendingFollowerView;
@@ -345,33 +345,56 @@ pub fn check_comment_deleted_or_removed(comment: &Comment) -> LemmyResult<()> {
   }
 }
 
-pub async fn check_local_vote_mode(
-  is_upvote: Option<bool>,
+/// Checks whether a vote is allowed according to the community's vote settings.
+/// If the vote isn't allowed, any previous vote on the item is removed and an error is returned.
+pub async fn check_vote_settings(
+  vote: Option<bool>,
   post_or_comment_id: PostOrCommentId,
-  local_site: &LocalSite,
-  person_id: PersonId,
+  community: &Community,
+  person: &Person,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
-  let (downvote_setting, upvote_setting) = match post_or_comment_id {
-    PostOrCommentId::Post(_) => (local_site.post_downvotes, local_site.post_upvotes),
-    PostOrCommentId::Comment(_) => (local_site.comment_downvotes, local_site.comment_upvotes),
+  // Vote removal with None is always allowed
+  let Some(is_upvote) = vote else {
+    return Ok(());
   };
 
-  let downvote_fail = is_upvote == Some(false) && downvote_setting == FederationMode::Disable;
-  let upvote_fail = is_upvote == Some(true) && upvote_setting == FederationMode::Disable;
+  let (downvote_mode, upvote_mode) = match post_or_comment_id {
+    PostOrCommentId::Post(_) => (community.post_downvotes, community.post_upvotes),
+    PostOrCommentId::Comment(_) => (community.comment_downvotes, community.comment_upvotes),
+  };
+
+  let mut vote_allowed = async |vote_mode: VoteSettings| {
+    Ok::<bool, LemmyError>(match vote_mode {
+      VoteSettings::All => true,
+      VoteSettings::Local => person.local,
+      VoteSettings::Subscribed => {
+        let actions = CommunityActions::read(pool, community.id, person.id).await?;
+        actions.followed_at.is_some()
+          && actions.follow_state == Some(CommunityFollowerState::Accepted)
+      }
+      VoteSettings::Disable => false,
+    })
+  };
+  let allowed = if is_upvote {
+    vote_allowed(upvote_mode).await?
+  } else {
+    vote_allowed(downvote_mode).await?
+  };
 
   // Undo previous vote for item if new vote fails
-  if downvote_fail || upvote_fail {
+  if !allowed {
     match post_or_comment_id {
       PostOrCommentId::Post(post_id) => {
-        let form = PostLikeForm::new(post_id, person_id, None);
+        let form = PostLikeForm::new(post_id, person.id, None);
         PostActions::like(pool, &form).await?;
       }
       PostOrCommentId::Comment(comment_id) => {
-        let form = CommentLikeForm::new(comment_id, person_id, None);
+        let form = CommentLikeForm::new(comment_id, person.id, None);
         CommentActions::like(pool, &form).await?;
       }
     };
+    return Err(UntranslatedError::VoteNotAllowed.into());
   }
   Ok(())
 }
