@@ -24,7 +24,7 @@ use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
   kinds::public,
-  protocol::verification::{verify_domains_match, verify_urls_match},
+  protocol::verification::verify_domains_match,
   traits::{Actor, Object},
 };
 use lemmy_api_common::{context::LemmyContext, utils::purge_user_account};
@@ -183,7 +183,7 @@ pub(in crate::activities) async fn verify_delete_activity(
     DeletableObjects::Person(person) => {
       verify_is_public(&activity.to, &[])?;
       verify_person(&activity.actor, context).await?;
-      verify_urls_match(person.actor_id.inner(), activity.object.id())?;
+      verify_domains_match(activity.actor.inner(), &person.id())?;
     }
     DeletableObjects::Post(p) => {
       verify_is_public(&activity.to, &[])?;
