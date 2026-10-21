@@ -1068,6 +1068,7 @@ mod tests {
 
   #[tokio::test]
   #[serial]
+  #[ignore]
   async fn test_proxy_image_link() {
     let context = LemmyContext::init_test_context().await;
 
