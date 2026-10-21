@@ -876,7 +876,7 @@ pub async fn process_markdown(
 
     // Validate the IPs for the links before inserting to the remote image table to prevent SSRF.
     for link in &links {
-      validate_link_ip(link).await?;
+      validate_link_ip(link, context.settings()).await?;
     }
     RemoteImage::create(&mut context.pool(), links.clone()).await?;
 
@@ -920,7 +920,7 @@ async fn proxy_image_link_internal(
   image_mode: PictrsImageMode,
   context: &LemmyContext,
 ) -> LemmyResult<DbUrl> {
-  validate_link_ip(&link).await?;
+  validate_link_ip(&link, context.settings()).await?;
   // Dont rewrite links pointing to local domain.
   if link.domain() == Some(&context.settings().hostname) {
     Ok(link.into())

@@ -33,6 +33,7 @@ full = [
   "tokio",
   "uuid",
   "reqwest",
+  "hyper",
   "actix-web",
   "futures",
   "jsonwebtoken",
@@ -58,6 +59,9 @@ futures = { workspace = true, optional = true }
 uuid = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true }
+hyper = { version = "0.14", default-features = false, features = [
+  "client",
+], optional = true }
 ts-rs = { workspace = true, optional = true }
 moka.workspace = true
 anyhow.workspace = true

@@ -178,7 +178,9 @@ pub async fn create_post(
   mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
 
   if let Some(url) = inserted_post.url.clone() {
-    if community.visibility == CommunityVisibility::Public && validate_link_ip(&url).await.is_ok() {
+    if community.visibility == CommunityVisibility::Public
+      && validate_link_ip(&url, context.settings()).await.is_ok()
+    {
       spawn_try_task(async move {
         let mut webmention =
           Webmention::new::<Url>(inserted_post.ap_id.clone().into(), url.clone().into())?;

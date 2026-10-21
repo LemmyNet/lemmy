@@ -3155,6 +3155,7 @@ dependencies = [
  "enum-map",
  "futures",
  "getrandom 0.2.17",
+ "hyper 0.14.32",
  "infer",
  "jsonwebtoken",
  "lemmy_db_schema",

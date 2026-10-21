@@ -9,6 +9,7 @@ use activitypub_federation::config::Data;
 use chrono::{DateTime, Utc};
 use encoding_rs::{Encoding, UTF_8};
 use futures::StreamExt;
+use hyper::client::connect::dns::Name;
 use lemmy_db_schema::{
   newtypes::DbUrl,
   source::{
@@ -19,13 +20,14 @@ use lemmy_db_schema::{
   },
 };
 use lemmy_utils::{
-  error::{LemmyError, LemmyErrorType, LemmyResult},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::{PictrsImageMode, Settings},
   REQWEST_TIMEOUT,
   VERSION,
 };
 use mime::{Mime, TEXT_HTML};
 use reqwest::{
+  dns::{Addrs, Resolve, Resolving},
   header::{CONTENT_TYPE, LOCATION, RANGE},
   redirect::Policy,
   Client,
@@ -34,7 +36,12 @@ use reqwest::{
 };
 use reqwest_middleware::ClientWithMiddleware;
 use serde::{Deserialize, Serialize};
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+use std::{
+  env,
+  io,
+  net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr},
+  sync::Arc,
+};
 use tokio::net::lookup_host;
 use tracing::{info, warn};
 use url::{Host, Url};
@@ -51,6 +58,118 @@ pub fn client_builder(settings: &Settings) -> ClientBuilder {
     // Workaround for https://github.com/LemmyNet/lemmy/issues/5742
     .http1_only()
     .redirect(Policy::none())
+    // Validate resolved IPs on every connection to prevent SSRF and DNS rebinding attacks.
+    .dns_resolver(Arc::new(ValidatingDnsResolver::new(settings)))
+}
+
+/// DNS resolver which rejects hostnames that resolve to internal IPs.
+///
+/// Attached to the reqwest client, so that IP validation happens at the exact moment of
+/// connecting. This way attackers-controlled domain can't bypass the check with IP rebind.
+struct ValidatingDnsResolver {
+  settings: Settings,
+}
+
+impl ValidatingDnsResolver {
+  fn new(settings: &Settings) -> Self {
+    Self {
+      settings: settings.clone(),
+    }
+  }
+}
+
+impl Resolve for ValidatingDnsResolver {
+  fn resolve(&self, name: Name) -> Resolving {
+    let host = name.as_str().trim_end_matches('.').to_owned();
+    let settings = self.settings.clone();
+    Box::pin(async move {
+      // Resolver has no access to port, so allowlisted hosts are matched by name only.
+      let addrs = resolve_and_validate_host(&host, None, &settings).await?;
+      let addrs: Addrs = Box::new(addrs.into_iter());
+      Ok(addrs)
+    })
+  }
+}
+
+/// Allow access to local Lemmy instance and internal pict-rs
+fn allow_hosts(settings: &Settings) -> Vec<(String, u16)> {
+  let mut allow_hosts = vec![];
+  if let Ok(url) = settings.get_protocol_and_hostname().parse::<Url>() {
+    if let Some(host) = url.host_str() {
+      allow_hosts.push((
+        normalize_host(host),
+        url.port_or_known_default().unwrap_or(443),
+      ));
+    }
+  }
+  if let Ok(pictrs) = settings.pictrs_config() {
+    if let Some(host) = pictrs.url.host_str() {
+      allow_hosts.push((
+        normalize_host(host),
+        pictrs.url.port_or_known_default().unwrap_or(8080),
+      ));
+    }
+  }
+  allow_hosts
+}
+
+/// Resolve the given hostname (or IP literal) and return the resolved addresses, so they can be
+/// used directly for connecting. Must return io::Result for `impl Resolve`.
+async fn resolve_and_validate_host(
+  host: &str,
+  port: Option<u16>,
+  settings: &Settings,
+) -> io::Result<Vec<SocketAddr>> {
+  let host = normalize_host(host);
+  // Port is only used to construct SocketAddr, which is later discarded.
+  let default_port = port.unwrap_or(0);
+  // Parse host as plain IP, otherwise resolve domain via DNS
+  let addrs: Vec<SocketAddr> = match host.parse::<IpAddr>() {
+    Ok(ip) => vec![SocketAddr::new(ip.to_canonical(), default_port)],
+    Err(_) => lookup_host((host.as_str(), default_port)).await?.collect(),
+  };
+
+  let is_allowed_host = allow_hosts(settings)
+    .iter()
+    .any(|(allowed_host, allowed_port)| {
+      allowed_host == &host && (port.is_none() || Some(allowed_port) == port.as_ref())
+    });
+
+  if cfg!(debug_assertions)
+    || env::var("DANGER_FEDERATION_ALLOW_LOCAL_IP").is_ok()
+    || is_allowed_host
+  {
+    return Ok(addrs);
+  }
+
+  if let Some(ip) = addrs
+    .iter()
+    .map(|a| a.ip().to_canonical())
+    .find(|ip| match ip {
+      IpAddr::V4(ipv4) => v4_is_invalid(*ipv4),
+      IpAddr::V6(ipv6) => v6_is_invalid(*ipv6),
+    })
+  {
+    return Err(io::Error::other(format!(
+      "Hostname {host} resolves to internal IP {ip}. This may indicate an attacker attempting to access internal services. If intentional, you can ignore this error by setting DANGER_FEDERATION_ALLOW_LOCAL_IP=1"
+    )));
+  }
+  Ok(addrs)
+}
+
+/// Strips trailing dot and port from a hostname, lowercases it. Preserves bare IPv6 addresses.
+fn normalize_host(host: &str) -> String {
+  let host = host.trim_end_matches('.').to_ascii_lowercase();
+  if let Some(stripped) = host.strip_prefix('[') {
+    if let Some((ipv6, _)) = stripped.split_once(']') {
+      return ipv6.to_owned();
+    }
+  }
+  // An IPv6 address contains multiple colons, dont strip anything in that case.
+  if host.matches(':').count() > 1 {
+    return host;
+  }
+  host.split(':').next().unwrap_or(&host).to_owned()
 }
 
 /// Fetches metadata for the given link and optionally generates thumbnail.
@@ -64,7 +183,7 @@ pub async fn fetch_link_metadata(
     return Err(LemmyErrorType::InvalidUrl.into());
   }
 
-  validate_link_ip(url).await?;
+  validate_link_ip(url, context.settings()).await?;
   info!("Fetching site metadata for url: {}", url);
   // We only fetch the first MB of data in order to not waste bandwidth especially for large
   // binary files. This high limit is particularly needed for youtube, which includes a lot of
@@ -144,38 +263,26 @@ pub async fn fetch_link_metadata(
   })
 }
 
-/// Resolve the domain and throw an error if it points to any internal IP.
-pub async fn validate_link_ip(url: &Url) -> LemmyResult<()> {
-  if cfg!(debug_assertions) {
-    return Ok(());
-  }
-  // Resolve the domain and throw an error if it points to any internal IP,
-  // using logic from nightly IpAddr::is_global.
-
-  // TODO: Replace with IpAddr::is_global() once stabilized
-  //       https://doc.rust-lang.org/std/net/enum.IpAddr.html#method.is_global
-  let mut ip = vec![];
-  match url.host().ok_or(LemmyErrorType::UrlWithoutDomain)? {
-    Host::Domain(domain) => ip.extend(
-      lookup_host((domain.to_owned(), 80))
-        .await?
-        .map(|s| s.ip().to_canonical()),
-    ),
-    Host::Ipv4(ipv4) => ip.push(ipv4.into()),
-    Host::Ipv6(ipv6) => ip.push(ipv6.into()),
+/// Throw an error if the link points to an internal IP, either as literal IP or as domain which
+/// resolves to an internal IP.
+pub async fn validate_link_ip(url: &Url, settings: &Settings) -> LemmyResult<()> {
+  let host = match url.host().ok_or(LemmyErrorType::UrlWithoutDomain)? {
+    Host::Domain(domain) => domain.to_owned(),
+    Host::Ipv4(ipv4) => ipv4.to_string(),
+    Host::Ipv6(ipv6) => ipv6.to_string(),
   };
-
-  let invalid_ip = ip.into_iter().any(|addr| match addr {
-    IpAddr::V4(addr) => v4_is_invalid(addr),
-    IpAddr::V6(addr) => v6_is_invalid(addr),
-  });
-  if invalid_ip {
-    return Err(LemmyErrorType::InvalidUrl.into());
-  }
+  resolve_and_validate_host(&host, url.port_or_known_default(), settings)
+    .await
+    .with_lemmy_type(LemmyErrorType::InvalidUrl)?;
   Ok(())
 }
 
+/// Checks if the address is in a non-global range, mirroring
+/// `std::net::Ipv4Addr::is_global()` (unstable, see https://github.com/rust-lang/rust/issues/27709).
+/// Ranges which cannot connect to internal services (e.g. IETF protocol assignments,
+/// benchmarking) are not checked.
 fn v4_is_invalid(v4: Ipv4Addr) -> bool {
+  let octets = v4.octets();
   v4.is_private()
     || v4.is_loopback()
     || v4.is_link_local()
@@ -183,20 +290,41 @@ fn v4_is_invalid(v4: Ipv4Addr) -> bool {
     || v4.is_documentation()
     || v4.is_unspecified()
     || v4.is_broadcast()
+    // 0.0.0.0/8: connecting to 0.x.x.x reaches loopback on Linux
+    || octets[0] == 0
+    // 100.64.0.0/10: shared address space (CGNAT), used for internal services by cloud providers
+    || (octets[0] == 100 && (octets[1] & 0xc0) == 0x40)
+    || octets[0] >= 240 // reserved 240.0.0.0/4
 }
 
+/// Checks if the address is in a non-global range, mirroring
+/// `std::net::Ipv6Addr::is_global()` (unstable, see https://github.com/rust-lang/rust/issues/27709).
+/// Ranges which cannot connect to internal services (e.g. Teredo, discard-only)
+/// are not checked.
 fn v6_is_invalid(v6: Ipv6Addr) -> bool {
-  let is_documentation = matches!(
-    v6.segments(),
+  let segments = v6.segments();
+  // NAT64 well-known prefix (64:ff9b::/96) embeds an IPv4 address in the low 32 bits.
+  if matches!(segments, [0x64, 0xff9b, 0, 0, 0, 0, ..]) {
+    let [a, b] = segments[6].to_be_bytes();
+    let [c, d] = segments[7].to_be_bytes();
+    return v4_is_invalid(Ipv4Addr::from([a, b, c, d]));
+  }
+  matches!(
+    segments,
+    // documentation (2001:db8::/32, 3fff::/20)
     [0x2001, 0xdb8, ..] | [0x3fff, 0..=0x0fff, ..]
-  );
-  is_documentation
-    || v6.is_loopback()
+    // IPv4-compatible (::/96, deprecated) and IPv4-mapped (::ffff:0:0/96)
+    | [0, 0, 0, 0, 0, 0, ..]
+    | [0, 0, 0, 0, 0, 0xffff, ..]
+    // local-use NAT64 prefix (64:ff9b:1::/48)
+    | [0x64, 0xff9b, 1, ..]
+    // 6to4 (2002::/16, deprecated)
+    | [0x2002, ..]
+  ) || v6.is_loopback()
     || v6.is_multicast()
-        || (v6.segments()[0] & 0xfe00) == 0xfc00 // is_unique_local
-        || (v6.segments()[0] & 0xffc0) == 0xfe80 // is_unicast_link_local
+    || (segments[0] & 0xfe00) == 0xfc00 // unique local fc00::/7
+    || (segments[0] & 0xffc0) == 0xfe80 // link-local fe80::/10
     || v6.is_unspecified()
-    || v6.to_ipv4_mapped().is_some_and(v4_is_invalid)
 }
 
 async fn collect_bytes_until_limit(
@@ -404,7 +532,7 @@ struct PictrsPurgeResponse {
 /// - It might not be an image
 /// - Pictrs might not be set up
 pub async fn purge_image_from_pictrs(image_url: &Url, context: &LemmyContext) -> LemmyResult<()> {
-  validate_link_ip(image_url).await?;
+  validate_link_ip(image_url, context.settings()).await?;
   is_image_content_type(context.client(), image_url).await?;
 
   let alias = image_url
@@ -458,7 +586,7 @@ pub async fn delete_image_from_pictrs(
 /// Retrieves the image with local pict-rs and generates a thumbnail. Returns the thumbnail url.
 #[tracing::instrument(skip_all)]
 async fn generate_pictrs_thumbnail(image_url: &Url, context: &LemmyContext) -> LemmyResult<Url> {
-  validate_link_ip(image_url).await?;
+  validate_link_ip(image_url, context.settings()).await?;
   let pictrs_config = context.settings().pictrs_config()?;
 
   match pictrs_config.image_mode() {
@@ -518,7 +646,7 @@ pub async fn fetch_pictrs_proxied_image_details(
   image_url: &Url,
   context: &LemmyContext,
 ) -> LemmyResult<PictrsFileDetails> {
-  validate_link_ip(image_url).await?;
+  validate_link_ip(image_url, context.settings()).await?;
   let pictrs_url = context.settings().pictrs_config()?.url;
   let encoded_image_url = encode(image_url.as_str());
 
@@ -611,8 +739,17 @@ mod tests {
 
   use crate::{
     context::LemmyContext,
-    request::{extract_opengraph_data, fetch_link_metadata},
+    request::{
+      allow_hosts,
+      extract_opengraph_data,
+      fetch_link_metadata,
+      normalize_host,
+      resolve_and_validate_host,
+      v4_is_invalid,
+      v6_is_invalid,
+    },
   };
+  use lemmy_utils::settings::structs::Settings;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
   use url::Url;
@@ -687,5 +824,110 @@ mod tests {
       metadata.image,
       Some(Url::parse("https://example.com/image.jpg").unwrap().into())
     );
+  }
+
+  #[test]
+  fn test_invalid_ipv4() {
+    for ip in [
+      "0.0.0.1",    // this network, reaches loopback on Linux
+      "10.0.0.1",   // private
+      "100.64.0.1", // CGNAT
+      "100.127.255.254",
+      "127.0.0.1",       // loopback
+      "169.254.1.1",     // link-local, cloud metadata endpoint
+      "172.16.0.1",      // private
+      "192.0.2.1",       // documentation
+      "224.0.0.1",       // multicast
+      "240.0.0.1",       // reserved
+      "255.255.255.255", // broadcast
+    ] {
+      assert!(v4_is_invalid(ip.parse().unwrap()), "{ip}");
+    }
+  }
+
+  #[test]
+  fn test_valid_ipv4() {
+    for ip in [
+      "1.2.3.4",
+      "8.8.8.8",
+      "100.128.0.1", // just above CGNAT
+      "192.0.0.9",   // globally reachable IETF protocol assignments
+      "192.0.0.10",
+      // not checked because they cannot reach internal services
+      "192.0.0.1",   // IETF protocol assignments
+      "192.88.99.1", // 6to4 relay anycast (deprecated)
+      "198.18.0.1",  // benchmarking
+    ] {
+      assert!(!v4_is_invalid(ip.parse().unwrap()), "{ip}");
+    }
+  }
+
+  #[test]
+  fn test_invalid_ipv6() {
+    for ip in [
+      "::1",              // loopback
+      "fc00::1",          // unique local
+      "fe80::1",          // link-local
+      "ff01::1",          // multicast
+      "2001:db8::1",      // documentation
+      "3fff:10::1",       // documentation
+      "::ffff:127.0.0.1", // IPv4-mapped
+      "::7f00:1",         // IPv4-compatible (deprecated)
+      "64:ff9b::7f00:1",  // NAT64, embedded loopback
+      "64:ff9b::10.0.0.1",
+      "64:ff9b:1::1",    // local-use NAT64 prefix
+      "2002:7f00:1::",   // 6to4 (deprecated)
+      "2002:c0a8:101::", // 6to4, embedded 192.168.1.1
+    ] {
+      assert!(v6_is_invalid(ip.parse().unwrap()), "{ip}");
+    }
+  }
+
+  #[test]
+  fn test_valid_ipv6() {
+    for ip in [
+      "2606:4700::1",
+      // NAT64 with embedded public IP, keeps IPv6-only hosts using DNS64/NAT64 working
+      "64:ff9b::801:1010",
+      // IETF protocol assignment exceptions (public anycast)
+      "2001:1::1",
+      "2001:3::1",
+      "2001:20::1",
+      // not checked because they cannot reach internal services
+      "2001::1",     // Teredo
+      "2001:100::1", // IETF protocol assignments
+      "100::1",      // discard-only
+      "5f00::1",     // segment routing
+    ] {
+      assert!(!v6_is_invalid(ip.parse().unwrap()), "{ip}");
+    }
+  }
+
+  #[test]
+  fn test_normalize_host() {
+    assert_eq!("example.com", normalize_host("example.com"));
+    assert_eq!("example.com", normalize_host("EXAMPLE.COM."));
+    assert_eq!("localhost", normalize_host("localhost:8080"));
+    assert_eq!("::1", normalize_host("[::1]:8080"));
+    assert_eq!("::1", normalize_host("[::1]"));
+    assert_eq!("::1", normalize_host("::1"));
+    assert_eq!("2001:db8::1", normalize_host("2001:DB8::1."));
+  }
+
+  #[test]
+  fn test_allow_hosts() {
+    let allow_hosts = allow_hosts(&Settings::default());
+    assert!(allow_hosts.contains(&("localhost".to_owned(), 8080u16)));
+    assert!(!allow_hosts.contains(&("internal.attacker.com".to_owned(), 80u16)));
+  }
+
+  #[tokio::test]
+  async fn test_resolver_path_allowlisted_host() {
+    let settings = Settings::default();
+    // Debug builds skip validation, so this only checks that resolution succeeds.
+    let addrs = resolve_and_validate_host("localhost", None, &settings)
+      .await
+      .expect("allowlisted host should resolve");
+    assert!(!addrs.is_empty());
   }
 }
