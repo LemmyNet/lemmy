@@ -114,10 +114,21 @@ async fn check_is_follower(
   }
 }
 
-/// Returns the community outbox, which is populated by a maximum of 20 posts (but no other
-/// activities like votes or comments).
+#[derive(Deserialize, Clone, Default)]
+pub(crate) struct CommunityOutboxQuery {
+  /// If set, return an `OrderedCollectionPage` instead of the collection.
+  /// `true` is the first page; any other value is a pagination cursor.
+  page: Option<String>,
+}
+
+/// Returns the community outbox (posts only, not comments or votes).
+///
+/// Without query parameters this is an `OrderedCollection` with the first page of items
+/// inlined (at most `FETCH_LIMIT_MAX`) plus a `first` link. `GET .../outbox?page=true`
+/// (and later `?page={cursor}`) returns `OrderedCollectionPage`s with `next`/`prev`.
 pub(crate) async fn get_apub_community_outbox(
   info: Path<ActorPath>,
+  query: Query<CommunityOutboxQuery>,
   context: Data<LemmyContext>,
   request: HttpRequest,
 ) -> LemmyResult<HttpResponse> {
@@ -127,8 +138,13 @@ pub(crate) async fn get_apub_community_outbox(
       .ok_or(LemmyErrorType::NotFound)?
       .into();
   check_community_content_fetchable(&community, &request, &context).await?;
-  let outbox = ApubCommunityOutbox::read_local(&community, &context).await?;
-  Ok(create_http_response(outbox, &FEDERATION_CONTEXT)?)
+  if let Some(page) = &query.page {
+    let outbox = ApubCommunityOutbox::read_local_page(&community, &context, page).await?;
+    Ok(create_http_response(outbox, &FEDERATION_CONTEXT)?)
+  } else {
+    let outbox = ApubCommunityOutbox::read_local(&community, &context).await?;
+    Ok(create_http_response(outbox, &FEDERATION_CONTEXT)?)
+  }
 }
 
 pub(crate) async fn get_apub_community_moderators(
@@ -221,6 +237,7 @@ pub(crate) async fn get_apub_community_tag_http(
 pub(crate) mod tests {
 
   use super::*;
+  use crate::protocol::collections::group_outbox::{GroupOutbox, GroupOutboxPage};
   use activitypub_federation::protocol::tombstone::Tombstone;
   use actix_web::{body::to_bytes, test::TestRequest};
   use lemmy_apub_objects::protocol::group::Group;
@@ -231,6 +248,7 @@ pub(crate) mod tests {
       post::{Post, PostInsertForm},
     },
     test_data::TestData,
+    utils::FETCH_LIMIT_MAX,
   };
   use lemmy_diesel_utils::traits::Crud;
   use serde::de::DeserializeOwned;
@@ -268,6 +286,34 @@ pub(crate) mod tests {
     Ok(serde_json::from_str(body)?)
   }
 
+  fn outbox_query(page: Option<&str>) -> Query<CommunityOutboxQuery> {
+    Query(CommunityOutboxQuery {
+      page: page.map(str::to_owned),
+    })
+  }
+
+  fn page_query_value(url: &Url) -> Option<String> {
+    url
+      .query_pairs()
+      .find(|(key, _)| key == "page")
+      .map(|(_, value)| value.into_owned())
+  }
+
+  fn announce_ids(
+    items: &[lemmy_apub_activities::protocol::community::announce::AnnounceActivity],
+  ) -> Vec<String> {
+    items
+      .iter()
+      .filter_map(|activity| {
+        serde_json::to_value(activity)
+          .ok()?
+          .get("id")?
+          .as_str()
+          .map(str::to_owned)
+      })
+      .collect()
+  }
+
   #[tokio::test]
   #[serial]
   async fn test_get_community() -> LemmyResult<()> {
@@ -300,7 +346,7 @@ pub(crate) mod tests {
     assert_eq!(200, res.status());
     let res = get_apub_community_moderators(path.clone().into(), context.clone()).await?;
     assert_eq!(200, res.status());
-    let res = get_apub_community_outbox(path, context.clone(), request).await?;
+    let res = get_apub_community_outbox(path, outbox_query(None), context.clone(), request).await?;
     assert_eq!(200, res.status());
 
     data.delete(&mut context.pool()).await?;
@@ -330,7 +376,7 @@ pub(crate) mod tests {
     assert!(res.is_err());
     let res = get_apub_community_moderators(path.clone().into(), context.clone()).await;
     assert!(res.is_err());
-    let res = get_apub_community_outbox(path, context.clone(), request).await;
+    let res = get_apub_community_outbox(path, outbox_query(None), context.clone(), request).await;
     assert!(res.is_err());
 
     data.delete(&mut context.pool()).await?;
@@ -356,7 +402,7 @@ pub(crate) mod tests {
     assert!(res.is_err());
     let res = get_apub_community_moderators(path.clone().into(), context.clone()).await;
     assert!(res.is_err());
-    let res = get_apub_community_outbox(path, context.clone(), request).await;
+    let res = get_apub_community_outbox(path, outbox_query(None), context.clone(), request).await;
     assert!(res.is_err());
 
     data.delete(&mut context.pool()).await?;
@@ -378,8 +424,83 @@ pub(crate) mod tests {
     let form = PostInsertForm::new("title".to_string(), person.id, community.id);
     Post::create(&mut context.pool(), &form).await?;
 
-    let res = get_apub_community_outbox(path, context.clone(), request).await?;
+    let res = get_apub_community_outbox(path, outbox_query(None), context.clone(), request).await?;
     assert_eq!(200, res.status());
+
+    data.delete(&mut context.pool()).await?;
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_outbox_pagination() -> LemmyResult<()> {
+    let context = LemmyContext::init_test_context().await;
+    let (data, community, path) = init(false, CommunityVisibility::Public, &context).await?;
+    let request = TestRequest::default().to_http_request();
+    let post_count = i32::try_from(FETCH_LIMIT_MAX)? + 1;
+
+    for i in 0..post_count {
+      let form = PostInsertForm::new(format!("post {i}"), data.person.id, community.id);
+      Post::create(&mut context.pool(), &form).await?;
+    }
+
+    let res = get_apub_community_outbox(
+      path.clone().into(),
+      outbox_query(None),
+      context.clone(),
+      request.clone(),
+    )
+    .await?;
+    assert_eq!(200, res.status());
+    let collection: GroupOutbox = decode_response(res).await?;
+    assert_eq!(post_count, collection.total_items);
+    assert_eq!(FETCH_LIMIT_MAX, collection.ordered_items.len());
+    assert_eq!(
+      Some("true".to_string()),
+      collection.first.as_ref().and_then(page_query_value)
+    );
+
+    let res = get_apub_community_outbox(
+      path.clone().into(),
+      outbox_query(Some("true")),
+      context.clone(),
+      request.clone(),
+    )
+    .await?;
+    assert_eq!(200, res.status());
+    let first_page: GroupOutboxPage = decode_response(res).await?;
+    assert_eq!(collection.id, first_page.part_of);
+    assert_eq!(post_count, first_page.total_items);
+    assert_eq!(FETCH_LIMIT_MAX, first_page.ordered_items.len());
+    assert_eq!(None, first_page.prev);
+    let next_page_param = first_page
+      .next
+      .as_ref()
+      .and_then(page_query_value)
+      .ok_or(LemmyErrorType::NotFound)?;
+    assert_ne!("true", next_page_param);
+    assert_eq!(
+      announce_ids(&collection.ordered_items),
+      announce_ids(&first_page.ordered_items),
+    );
+
+    let res = get_apub_community_outbox(
+      path,
+      outbox_query(Some(&next_page_param)),
+      context.clone(),
+      request,
+    )
+    .await?;
+    assert_eq!(200, res.status());
+    let second_page: GroupOutboxPage = decode_response(res).await?;
+    assert_eq!(collection.id, second_page.part_of);
+    assert_eq!(1, second_page.ordered_items.len());
+    assert!(second_page.next.is_none());
+    assert!(second_page.prev.is_some());
+    assert_ne!(
+      announce_ids(&first_page.ordered_items),
+      announce_ids(&second_page.ordered_items)
+    );
 
     data.delete(&mut context.pool()).await?;
     Ok(())
