@@ -1209,10 +1209,7 @@ mod tests {
 
     // Unauthenticated: must not see the comment
     let res = CommentView::read(pool, comment_on_scheduled.id, None, data.instance.id).await;
-    assert!(
-      res.is_err(),
-      "unauthenticated user must not see comment on scheduled post"
-    );
+    assert!(res.is_err());
 
     // Non-creator (holly): must not see it
     let res = CommentView::read(
@@ -1222,10 +1219,7 @@ mod tests {
       data.instance.id,
     )
     .await;
-    assert!(
-      res.is_err(),
-      "non-creator must not see comment on scheduled post"
-    );
+    assert!(res.is_err());
 
     // Post creator (timmy): must see it
     let res = CommentView::read(
@@ -1235,10 +1229,7 @@ mod tests {
       data.instance.id,
     )
     .await;
-    assert!(
-      res.is_ok(),
-      "post creator must see comment on their own scheduled post"
-    );
+    assert!(res.is_ok());
 
     // --- CommentQuery::list checks ---
 
@@ -1252,8 +1243,7 @@ mod tests {
     assert!(
       !comments_anon
         .iter()
-        .any(|c| c.comment.id == comment_on_scheduled.id),
-      "unauthenticated list must not include comment on scheduled post"
+        .any(|c| c.comment.id == comment_on_scheduled.id)
     );
 
     // type_=All, no post_id: comment not in list for holly
@@ -1267,8 +1257,7 @@ mod tests {
     assert!(
       !comments_holly
         .iter()
-        .any(|c| c.comment.id == comment_on_scheduled.id),
-      "non-creator must not see comment on scheduled post in list"
+        .any(|c| c.comment.id == comment_on_scheduled.id)
     );
 
     // post_id filter: comment not in list for holly
@@ -1282,8 +1271,7 @@ mod tests {
     assert!(
       !comments_holly_post
         .iter()
-        .any(|c| c.comment.id == comment_on_scheduled.id),
-      "non-creator must not see comment on scheduled post when filtering by post_id"
+        .any(|c| c.comment.id == comment_on_scheduled.id)
     );
 
     // Creator (timmy) can see the comment in list
@@ -1297,8 +1285,7 @@ mod tests {
     assert!(
       comments_timmy
         .iter()
-        .any(|c| c.comment.id == comment_on_scheduled.id),
-      "post creator must see comment on their own scheduled post in list"
+        .any(|c| c.comment.id == comment_on_scheduled.id)
     );
 
     // --- search checks (CommentQuery with search_term, as used by /search) ---
@@ -1311,11 +1298,7 @@ mod tests {
     }
     .list(pool, &data.site, &data.local_site)
     .await?;
-    assert_eq!(
-      0,
-      results_anon.len(),
-      "unauthenticated search must not return comment on scheduled post"
-    );
+    assert_eq!(0, results_anon.len());
 
     // Non-creator also gets nothing
     let results_holly = CommentQuery {
@@ -1326,11 +1309,7 @@ mod tests {
     }
     .list(pool, &data.site, &data.local_site)
     .await?;
-    assert_eq!(
-      0,
-      results_holly.len(),
-      "non-creator search must not return comment on scheduled post"
-    );
+    assert_eq!(0, results_holly.len());
 
     // Post creator gets the comment in search results
     let results_timmy = CommentQuery {
@@ -1341,11 +1320,7 @@ mod tests {
     }
     .list(pool, &data.site, &data.local_site)
     .await?;
-    assert_eq!(
-      1,
-      results_timmy.len(),
-      "post creator must find their own comment via search"
-    );
+    assert_eq!(1, results_timmy.len());
 
     cleanup(data, pool).await
   }

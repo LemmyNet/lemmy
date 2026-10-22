@@ -105,17 +105,14 @@ mod tests {
       post_id: post_id.clone(),
     });
     let result = get_post(info, &context, &request).await;
-    assert!(result.is_err(), "expected Err for scheduled post, got Ok");
+    assert!(result.is_err());
 
     // Context route must also return 404 for a scheduled post
     let info = web::Path::from(PostQuery {
       post_id: post_id.clone(),
     });
     let result = get_apub_post_context(info, context.clone(), request.clone()).await;
-    assert!(
-      result.is_err(),
-      "expected Err from context route for scheduled post, got Ok"
-    );
+    assert!(result.is_err());
 
     // Update post to be published (clear scheduled_publish_time_at)
     Post::update(
@@ -133,15 +130,12 @@ mod tests {
       post_id: post_id.clone(),
     });
     let result = get_post(info, &context, &request).await;
-    assert!(result.is_ok(), "expected Ok for published post, got Err");
+    assert!(result.is_ok());
 
     // Context route must also work after publishing
     let info = web::Path::from(PostQuery { post_id });
     let result = get_apub_post_context(info, context.clone(), request).await;
-    assert!(
-      result.is_ok(),
-      "expected Ok from context route for published post, got Err"
-    );
+    assert!(result.is_ok());
 
     data.delete(&mut context.pool()).await?;
     Ok(())

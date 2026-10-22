@@ -538,8 +538,7 @@ mod tests {
     assert!(
       !content_logged_out
         .iter()
-        .any(|v| matches!(v, PostCommentCombinedView::Post(p) if p.post.id == scheduled_post.id)),
-      "logged-out must not see scheduled post in person content"
+        .any(|v| matches!(v, PostCommentCombinedView::Post(p) if p.post.id == scheduled_post.id))
     );
 
     // Other authenticated user must not see it either
@@ -562,8 +561,7 @@ mod tests {
     assert!(
       !content_sara
         .iter()
-        .any(|v| matches!(v, PostCommentCombinedView::Post(p) if p.post.id == scheduled_post.id)),
-      "non-creator must not see scheduled post in person content"
+        .any(|v| matches!(v, PostCommentCombinedView::Post(p) if p.post.id == scheduled_post.id))
     );
 
     // Creator (timmy) must still see it
@@ -577,8 +575,7 @@ mod tests {
     assert!(
       content_timmy
         .iter()
-        .any(|v| matches!(v, PostCommentCombinedView::Post(p) if p.post.id == scheduled_post.id)),
-      "creator must see their own scheduled post in person content"
+        .any(|v| matches!(v, PostCommentCombinedView::Post(p) if p.post.id == scheduled_post.id))
     );
 
     cleanup(data, pool).await?;

@@ -118,18 +118,12 @@ mod tests {
     // When post is scheduled, comment must not be exposed via ActivityPub
     let info = Path::from(comment_query.clone());
     let result = get_comment(info, &context, &request).await;
-    assert!(
-      result.is_err(),
-      "expected Err for comment on scheduled post, got Ok"
-    );
+    assert!(result.is_err());
 
     // Context route must also return 404 when the post is scheduled
     let info = Path::from(comment_query.clone());
     let result = get_apub_comment_context(info, context.clone(), request.clone()).await;
-    assert!(
-      result.is_err(),
-      "expected Err from context route for comment on scheduled post, got Ok"
-    );
+    assert!(result.is_err());
 
     // Update post to be published (clear scheduled_publish_time_at)
     Post::update(
@@ -145,18 +139,12 @@ mod tests {
     // After publishing, comment must be accessible via ActivityPub
     let info = Path::from(comment_query.clone());
     let result = get_comment(info, &context, &request).await;
-    assert!(
-      result.is_ok(),
-      "expected Ok for comment on published post, got Err"
-    );
+    assert!(result.is_ok());
 
     // Context route must also work after publishing
     let info = Path::from(comment_query);
     let result = get_apub_comment_context(info, context.clone(), request).await;
-    assert!(
-      result.is_ok(),
-      "expected Ok from context route for comment on published post, got Err"
-    );
+    assert!(result.is_ok());
 
     data.delete(&mut context.pool()).await?;
     Ok(())

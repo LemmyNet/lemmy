@@ -1977,12 +1977,7 @@ async fn speed_check(data: &mut Data) -> LemmyResult<()> {
   let elapsed = now.elapsed();
   println!("Elapsed: {:.0?}", elapsed);
 
-  assert!(
-    elapsed.lt(&duration_max),
-    "Query took {:.0?}, longer than the max of {:.0?}",
-    elapsed,
-    duration_max
-  );
+  assert!(elapsed.lt(&duration_max));
 
   Ok(())
 }
@@ -2477,21 +2472,12 @@ async fn scheduled_post_hidden_from_non_creator(data: &mut Data) -> LemmyResult<
     .await?
     .iter()
     .any(|p| p.post.id == scheduled_post.id);
-    assert_eq!(
-      should_see,
-      contains,
-      "PostQuery: local_user={} should_see={}",
-      local_user.is_some(),
-      should_see
-    );
+    assert_eq!(should_see, contains);
   }
 
   // PostView::read: logged-out and non-creator must get NotFound
   let logged_out = PostView::read(pool, scheduled_post.id, None, data.instance.id, false).await;
-  assert!(
-    logged_out.is_err(),
-    "PostView::read must return Err for logged-out user on scheduled post"
-  );
+  assert!(logged_out.is_err());
 
   let other_user = PostView::read(
     pool,
@@ -2501,10 +2487,7 @@ async fn scheduled_post_hidden_from_non_creator(data: &mut Data) -> LemmyResult<
     true, // admin
   )
   .await;
-  assert!(
-    other_user.is_err(),
-    "PostView::read must return Err for admin non-creator on scheduled post"
-  );
+  assert!(other_user.is_err());
 
   let creator_view = PostView::read(
     pool,
@@ -2514,10 +2497,7 @@ async fn scheduled_post_hidden_from_non_creator(data: &mut Data) -> LemmyResult<
     false,
   )
   .await;
-  assert!(
-    creator_view.is_ok(),
-    "PostView::read must return Ok for the creator of a scheduled post"
-  );
+  assert!(creator_view.is_ok());
 
   Post::delete(pool, scheduled_post.id).await?;
   Ok(())
