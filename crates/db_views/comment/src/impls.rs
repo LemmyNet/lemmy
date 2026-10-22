@@ -356,6 +356,9 @@ impl CommentQuery<'_> {
       Top => pq.then_order_by(key::score),
     };
 
+    // finally use unique comment id as tie breaker
+    pq = pq.then_order_by(key::id);
+
     let conn = &mut get_conn(pool).await?;
     let res = pq.load::<CommentView>(conn).await?;
 
