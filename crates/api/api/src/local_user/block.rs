@@ -28,10 +28,6 @@ pub async fn user_block_person(
 
   let person_block_form = PersonBlockForm::new(my_person_id, target_id);
 
-  let target_user = LocalUserView::read_person(&mut context.pool(), target_id)
-    .await
-    .ok();
-
   if data.block {
     PersonActions::block(&mut context.pool(), &person_block_form).await?;
   } else {
