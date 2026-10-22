@@ -1977,12 +1977,7 @@ async fn speed_check(data: &mut Data) -> LemmyResult<()> {
   let elapsed = now.elapsed();
   println!("Elapsed: {:.0?}", elapsed);
 
-  assert!(
-    elapsed.lt(&duration_max),
-    "Query took {:.0?}, longer than the max of {:.0?}",
-    elapsed,
-    duration_max
-  );
+  assert!(elapsed.lt(&duration_max));
 
   Ok(())
 }
@@ -2435,5 +2430,75 @@ async fn search(data: &mut Data) -> LemmyResult<()> {
   assert_length!(1, search_url_only);
   assert_eq!(POST_WITH_TAGS, search_url_only[0].post.name);
 
+  Ok(())
+}
+
+// Route 1 & 2: PostQuery (list) and PostView::read (GetPost) must hide scheduled posts
+// from non-creators.
+#[test_context(Data)]
+#[tokio::test]
+#[serial]
+async fn scheduled_post_hidden_from_non_creator(data: &mut Data) -> LemmyResult<()> {
+  let pool = &data.pool();
+  let pool = &mut pool.into();
+
+  let future_time = Utc::now()
+    .checked_add_days(Days::new(1))
+    .expect("future time");
+
+  // john creates a scheduled post
+  let scheduled_form = PostInsertForm {
+    scheduled_publish_time_at: Some(future_time),
+    ..PostInsertForm::new(
+      "john scheduled post".into(),
+      data.john.person.id,
+      data.community.id,
+    )
+  };
+  let scheduled_post = Post::create(pool, &scheduled_form).await?;
+
+  // PostQuery: only john can see it
+  for (local_user, should_see) in [
+    (None, false),
+    (Some(&data.tegan.local_user), false),
+    (Some(&data.john.local_user), true),
+  ] {
+    let contains = PostQuery {
+      local_user,
+      creator_id: Some(data.john.person.id),
+      ..Default::default()
+    }
+    .list(pool, &data.site, &data.local_site)
+    .await?
+    .iter()
+    .any(|p| p.post.id == scheduled_post.id);
+    assert_eq!(should_see, contains);
+  }
+
+  // PostView::read: logged-out and non-creator must get NotFound
+  let logged_out = PostView::read(pool, scheduled_post.id, None, data.instance.id, false).await;
+  assert!(logged_out.is_err());
+
+  let other_user = PostView::read(
+    pool,
+    scheduled_post.id,
+    Some(&data.tegan.local_user),
+    data.instance.id,
+    true, // admin
+  )
+  .await;
+  assert!(other_user.is_err());
+
+  let creator_view = PostView::read(
+    pool,
+    scheduled_post.id,
+    Some(&data.john.local_user),
+    data.instance.id,
+    false,
+  )
+  .await;
+  assert!(creator_view.is_ok());
+
+  Post::delete(pool, scheduled_post.id).await?;
   Ok(())
 }

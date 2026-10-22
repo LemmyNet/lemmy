@@ -191,6 +191,13 @@ impl PostView {
       query = query.filter(community::visibility.ne(CommunityVisibility::LocalOnlyPrivate));
     }
 
+    // Only the creator can see their own unpublished scheduled posts.
+    query = query.filter(
+      post::scheduled_publish_time_at
+        .is_null()
+        .or(post::creator_id.nullable().eq(my_person_id)),
+    );
+
     // Hide deleted and removed for non-admins or mods
     if !is_mod_or_admin {
       query = query
