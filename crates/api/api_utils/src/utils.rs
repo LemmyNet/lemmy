@@ -70,10 +70,8 @@ use moka::future::Cache;
 use regex::{Regex, RegexSet, escape};
 use std::{collections::HashSet, sync::LazyLock};
 use totp_rs::{Secret, TOTP};
-use tracing::Instrument;
 use url::{ParseError, Url};
 use urlencoding::encode;
-use webmention::{Webmention, WebmentionError};
 
 pub const AUTH_COOKIE_NAME: &str = "jwt";
 
@@ -1049,29 +1047,6 @@ pub fn read_auth_token(req: &HttpRequest) -> LemmyResult<Option<String>> {
   else {
     Ok(None)
   }
-}
-
-pub fn send_webmention(post: Post, community: &Community, context: Data<LemmyContext>) {
-  if let Some(url) = post.url.clone()
-    && community.visibility.can_view_without_login()
-  {
-    spawn_try_task(async move {
-      if context.is_valid_ip(&url).await.is_err() {
-        return Ok(());
-      }
-      let mut webmention = Webmention::new::<Url>(post.ap_id.clone().into(), url.clone().into())?;
-      webmention.set_checked(true);
-      match webmention
-        .send()
-        .instrument(tracing::info_span!("Sending webmention"))
-        .await
-      {
-        Err(WebmentionError::NoEndpointDiscovered(_)) => Ok(()),
-        Ok(_) => Ok(()),
-        Err(e) => Err(e).with_lemmy_type(UntranslatedError::CouldntSendWebmention.into()),
-      }
-    });
-  };
 }
 
 /// Returns error if new comment exceeds maximum depth.
