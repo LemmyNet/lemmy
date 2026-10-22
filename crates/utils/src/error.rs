@@ -164,7 +164,6 @@ pub enum LemmyErrorType {
   CaptchaIncorrect,
   CouldntCreateAudioCaptcha,
   InvalidUrlScheme,
-  CouldntSendWebmention,
   ContradictingFilters,
   InstanceBlockAlreadyExists,
   /// Thrown when an API call is submitted with more than 1000 array elements, see

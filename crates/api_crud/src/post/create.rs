@@ -4,7 +4,7 @@ use lemmy_api_common::{
   build_response::build_post_response,
   context::LemmyContext,
   post::{CreatePost, PostResponse},
-  request::{generate_post_link_metadata, validate_link_ip},
+  request::generate_post_link_metadata,
   send_activity::SendActivityData,
   utils::{
     check_community_user_action,
@@ -25,13 +25,11 @@ use lemmy_db_schema::{
   },
   traits::{Crud, Likeable},
   utils::diesel_url_create,
-  CommunityVisibility,
 };
 use lemmy_db_views::structs::LocalUserView;
 use lemmy_db_views_actor::structs::CommunityModeratorView;
 use lemmy_utils::{
   error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
-  spawn_try_task,
   utils::{
     slurs::check_slurs,
     validation::{
@@ -43,9 +41,6 @@ use lemmy_utils::{
     },
   },
 };
-use tracing::Instrument;
-use url::Url;
-use webmention::{Webmention, WebmentionError};
 
 #[tracing::instrument(skip(context))]
 pub async fn create_post(
@@ -176,27 +171,6 @@ pub async fn create_post(
     .with_lemmy_type(LemmyErrorType::CouldntLikePost)?;
 
   mark_post_as_read(person_id, post_id, &mut context.pool()).await?;
-
-  if let Some(url) = inserted_post.url.clone() {
-    if community.visibility == CommunityVisibility::Public
-      && validate_link_ip(&url, context.settings()).await.is_ok()
-    {
-      spawn_try_task(async move {
-        let mut webmention =
-          Webmention::new::<Url>(inserted_post.ap_id.clone().into(), url.clone().into())?;
-        webmention.set_checked(true);
-        match webmention
-          .send()
-          .instrument(tracing::info_span!("Sending webmention"))
-          .await
-        {
-          Err(WebmentionError::NoEndpointDiscovered(_)) => Ok(()),
-          Ok(_) => Ok(()),
-          Err(e) => Err(e).with_lemmy_type(LemmyErrorType::CouldntSendWebmention),
-        }
-      });
-    }
-  };
 
   build_post_response(&context, community_id, local_user_view, post_id).await
 }
