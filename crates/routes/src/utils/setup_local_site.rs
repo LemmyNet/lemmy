@@ -4,7 +4,7 @@ use diesel::{
   dsl::{exists, not, select},
   query_builder::AsQuery,
 };
-use diesel_async::{RunQueryDsl, scoped_futures::ScopedFutureExt};
+use diesel_async::{AsyncConnection, RunQueryDsl};
 use lemmy_api_utils::utils::generate_inbox_url;
 use lemmy_db_schema::{
   source::{
@@ -25,7 +25,7 @@ use lemmy_diesel_utils::{
   traits::Crud,
 };
 use lemmy_utils::{
-  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+  error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult},
   settings::structs::Settings,
 };
 use rand::{RngExt, distr::Alphanumeric};
@@ -47,87 +47,84 @@ pub async fn setup_local_site(pool: &mut DbPool<'_>, settings: &Settings) -> Lem
     let mut site_setup = false;
 
     conn
-      .run_transaction(|conn| {
-        async move {
-          // Upsert this to the instance table
-          let instance = Instance::read_or_create(&mut conn.into(), &domain).await?;
+      .transaction::<(), LemmyError, _>(async |conn| {
+        // Upsert this to the instance table
+        let instance = Instance::read_or_create(&mut conn.into(), &domain).await?;
 
-          let setup = settings.setup.as_ref();
-          if let Some(setup) = setup
-            && let Some(admin_username) = &setup.admin_username
-            && let Some(admin_password) = &setup.admin_password
-          {
-            let person_keypair = generate_actor_keypair()?;
-            let person_ap_id = Person::generate_local_actor_url(admin_username, settings)?;
+        let setup = settings.setup.as_ref();
+        if let Some(setup) = setup
+          && let Some(admin_username) = &setup.admin_username
+          && let Some(admin_password) = &setup.admin_password
+        {
+          let person_keypair = generate_actor_keypair()?;
+          let person_ap_id = Person::generate_local_actor_url(admin_username, settings)?;
 
-            // Register the user if there's a site setup
-            let person_form = PersonInsertForm {
-              ap_id: Some(person_ap_id.clone()),
-              inbox_url: Some(generate_inbox_url()?),
-              private_key: Some(person_keypair.private_key),
-              ..PersonInsertForm::new(
-                admin_username.clone(),
-                person_keypair.public_key,
-                instance.id,
-              )
-            };
-            let person_inserted = Person::create(&mut conn.into(), &person_form).await?;
-
-            let local_user_form = LocalUserInsertForm {
-              email: setup.admin_email.clone(),
-              admin: Some(true),
-              ..LocalUserInsertForm::new(person_inserted.id, Some(admin_password.clone()))
-            };
-            LocalUser::create(&mut conn.into(), &local_user_form, vec![]).await?;
-            site_setup = true;
-          };
-
-          // Add an entry for the site table
-          let site_key_pair = generate_actor_keypair()?;
-          let site_ap_id = Url::parse(&settings.get_protocol_and_hostname())?;
-
-          let name = settings
-            .setup
-            .clone()
-            .and_then(|s| s.site_name)
-            .unwrap_or_else(|| "New Site".to_string());
-          let site_form = SiteUpsertForm {
-            ap_id: Some(site_ap_id.clone().into()),
-            last_refreshed_at: Some(Utc::now()),
+          // Register the user if there's a site setup
+          let person_form = PersonInsertForm {
+            ap_id: Some(person_ap_id.clone()),
             inbox_url: Some(generate_inbox_url()?),
-            private_key: Some(Some(site_key_pair.private_key)),
-            public_key: Some(site_key_pair.public_key),
-            ..SiteUpsertForm::new(name, instance.id)
+            private_key: Some(person_keypair.private_key),
+            ..PersonInsertForm::new(
+              admin_username.clone(),
+              person_keypair.public_key,
+              instance.id,
+            )
           };
-          let site = Site::create(&mut conn.into(), &site_form).await?;
-          // create multi-comm follower account
-          let r: String = rand::rng()
-            .sample_iter(&Alphanumeric)
-            .take(14)
-            .map(char::from)
-            .collect();
-          let name = format!("lemmy_{}", r);
-          let form = PersonInsertForm {
-            private_key: site.private_key.map(SensitiveString::into_inner),
-            inbox_url: Some(site.inbox_url),
-            bot_account: Some(true),
-            ..PersonInsertForm::new(name, site.public_key, instance.id)
-          };
-          let system_account = Person::create(&mut conn.into(), &form).await?;
+          let person_inserted = Person::create(&mut conn.into(), &person_form).await?;
 
-          // Finally create the local_site row
-          let local_site_form = LocalSiteInsertForm {
-            site_setup: Some(site_setup),
-            ..LocalSiteInsertForm::new(site.id, system_account.id)
+          let local_user_form = LocalUserInsertForm {
+            email: setup.admin_email.clone(),
+            admin: Some(true),
+            ..LocalUserInsertForm::new(person_inserted.id, Some(admin_password.clone()))
           };
-          let local_site = LocalSite::create(&mut conn.into(), &local_site_form).await?;
+          LocalUser::create(&mut conn.into(), &local_user_form, vec![]).await?;
+          site_setup = true;
+        };
 
-          // Create the rate limit table
-          let local_site_rate_limit_form = LocalSiteRateLimitInsertForm::new(local_site.id);
-          LocalSiteRateLimit::create(&mut conn.into(), &local_site_rate_limit_form).await?;
-          Ok(())
-        }
-        .scope_boxed()
+        // Add an entry for the site table
+        let site_key_pair = generate_actor_keypair()?;
+        let site_ap_id = Url::parse(&settings.get_protocol_and_hostname())?;
+
+        let name = settings
+          .setup
+          .clone()
+          .and_then(|s| s.site_name)
+          .unwrap_or_else(|| "New Site".to_string());
+        let site_form = SiteUpsertForm {
+          ap_id: Some(site_ap_id.clone().into()),
+          last_refreshed_at: Some(Utc::now()),
+          inbox_url: Some(generate_inbox_url()?),
+          private_key: Some(Some(site_key_pair.private_key)),
+          public_key: Some(site_key_pair.public_key),
+          ..SiteUpsertForm::new(name, instance.id)
+        };
+        let site = Site::create(&mut conn.into(), &site_form).await?;
+        // create multi-comm follower account
+        let r: String = rand::rng()
+          .sample_iter(&Alphanumeric)
+          .take(14)
+          .map(char::from)
+          .collect();
+        let name = format!("lemmy_{}", r);
+        let form = PersonInsertForm {
+          private_key: site.private_key.map(SensitiveString::into_inner),
+          inbox_url: Some(site.inbox_url),
+          bot_account: Some(true),
+          ..PersonInsertForm::new(name, site.public_key, instance.id)
+        };
+        let system_account = Person::create(&mut conn.into(), &form).await?;
+
+        // Finally create the local_site row
+        let local_site_form = LocalSiteInsertForm {
+          site_setup: Some(site_setup),
+          ..LocalSiteInsertForm::new(site.id, system_account.id)
+        };
+        let local_site = LocalSite::create(&mut conn.into(), &local_site_form).await?;
+
+        // Create the rate limit table
+        let local_site_rate_limit_form = LocalSiteRateLimitInsertForm::new(local_site.id);
+        LocalSiteRateLimit::create(&mut conn.into(), &local_site_rate_limit_form).await?;
+        Ok(())
       })
       .await?;
   }

@@ -4,7 +4,7 @@ use activitypub_federation::{
   http_signatures::generate_actor_keypair,
 };
 use actix_web::{HttpRequest, rt::time::sleep, web::Json};
-use diesel_async::{AsyncPgConnection, scoped_futures::ScopedFutureExt};
+use diesel_async::{AsyncConnection, AsyncPgConnection};
 use lemmy_api_utils::{
   claims::Claims,
   context::LemmyContext,
@@ -167,66 +167,63 @@ pub async fn register(
   let tx_data = data.clone();
   let tx_context = context.clone();
   let user = conn
-    .run_transaction(|conn| {
-      async move {
-        // We have to create both a person, and local_user
-        let person = create_person(tx_data.username.clone(), &site_view, &tx_context, conn).await?;
+    .transaction::<LocalUserView, LemmyError, _>(async |conn| {
+      // We have to create both a person, and local_user
+      let person = create_person(tx_data.username.clone(), &site_view, &tx_context, conn).await?;
 
-        // Create the local user
-        let local_user_form = LocalUserInsertForm {
-          email: tx_data.email.as_deref().map(str::to_lowercase),
-          show_nsfw: Some(show_nsfw),
-          accepted_application,
-          invited_by_local_user_id: local_user_invite.as_ref().map(|inv| inv.local_user_id),
-          ..LocalUserInsertForm::new(person.id, Some(tx_data.password.to_string()))
+      // Create the local user
+      let local_user_form = LocalUserInsertForm {
+        email: tx_data.email.as_deref().map(str::to_lowercase),
+        show_nsfw: Some(show_nsfw),
+        accepted_application,
+        invited_by_local_user_id: local_user_invite.as_ref().map(|inv| inv.local_user_id),
+        ..LocalUserInsertForm::new(person.id, Some(tx_data.password.to_string()))
+      };
+
+      let local_user = create_local_user(
+        conn,
+        language_tags,
+        local_user_form,
+        &site_view.local_site,
+        &tx_context,
+      )
+      .await?;
+
+      if site_view.local_site.site_setup
+        && require_registration_application
+        && let Some(answer) = tx_data.answer.clone()
+      {
+        // Create the registration application
+        let form = RegistrationApplicationInsertForm {
+          local_user_id: local_user.id,
+          answer,
         };
 
-        let local_user = create_local_user(
-          conn,
-          language_tags,
-          local_user_form,
-          &site_view.local_site,
-          &tx_context,
-        )
-        .await?;
-
-        if site_view.local_site.site_setup
-          && require_registration_application
-          && let Some(answer) = tx_data.answer.clone()
-        {
-          // Create the registration application
-          let form = RegistrationApplicationInsertForm {
-            local_user_id: local_user.id,
-            answer,
-          };
-
-          RegistrationApplication::create(&mut conn.into(), &form).await?;
-        }
-
-        if let Some(inv) = local_user_invite {
-          let new_uses_count = inv.uses_count + 1;
-          if inv.max_uses.map(|m| new_uses_count >= m).unwrap_or(false) {
-            LocalUserInvite::delete_by_token(&mut conn.into(), &inv.token).await?;
-          } else {
-            LocalUserInvite::update(
-              &mut conn.into(),
-              inv.id,
-              &LocalUserInviteUpdateForm {
-                uses_count: Some(new_uses_count),
-              },
-            )
-            .await?;
-          }
-        }
-
-        Ok(LocalUserView {
-          person,
-          local_user,
-          banned: false,
-          ban_expires_at: None,
-        })
+        RegistrationApplication::create(&mut conn.into(), &form).await?;
       }
-      .scope_boxed()
+
+      if let Some(inv) = local_user_invite {
+        let new_uses_count = inv.uses_count + 1;
+        if inv.max_uses.map(|m| new_uses_count >= m).unwrap_or(false) {
+          LocalUserInvite::delete_by_token(&mut conn.into(), &inv.token).await?;
+        } else {
+          LocalUserInvite::update(
+            &mut conn.into(),
+            inv.id,
+            &LocalUserInviteUpdateForm {
+              uses_count: Some(new_uses_count),
+            },
+          )
+          .await?;
+        }
+      }
+
+      Ok(LocalUserView {
+        person,
+        local_user,
+        banned: false,
+        ban_expires_at: None,
+      })
     })
     .await?;
 
@@ -445,72 +442,69 @@ pub async fn authenticate_with_oauth(
       let tx_data = data.clone();
       let tx_context = context.clone();
       let user = conn
-        .run_transaction(|conn| {
-          async move {
-            // make sure the username is provided
-            let username = tx_data
-              .username
-              .as_ref()
-              .ok_or(LemmyErrorType::RegistrationUsernameRequired)?;
+        .transaction::<LocalUserView, LemmyError, _>(async |conn| {
+          // make sure the username is provided
+          let username = tx_data
+            .username
+            .as_ref()
+            .ok_or(LemmyErrorType::RegistrationUsernameRequired)?;
 
-            check_slurs(username, &slur_regex)?;
-            check_slurs_opt(&tx_data.answer, &slur_regex)?;
+          check_slurs(username, &slur_regex)?;
+          check_slurs_opt(&tx_data.answer, &slur_regex)?;
 
-            Person::check_username_taken(&mut conn.into(), username).await?;
+          Person::check_username_taken(&mut conn.into(), username).await?;
 
-            // We have to create a person, a local_user, and an oauth_account
-            let person = create_person(username.clone(), &site_view, &tx_context, conn).await?;
+          // We have to create a person, a local_user, and an oauth_account
+          let person = create_person(username.clone(), &site_view, &tx_context, conn).await?;
 
-            // Create the local user
-            let local_user_form = LocalUserInsertForm {
-              email,
-              show_nsfw: Some(show_nsfw),
-              accepted_application: Some(!require_registration_application),
-              // Only mark the email as verified if the provider attests it and the admin
-              // opted into auto verification. Otherwise send a verification email instead.
-              email_verified: Some(oauth_provider.auto_verify_email && email_verified),
-              ..LocalUserInsertForm::new(person.id, None)
-            };
+          // Create the local user
+          let local_user_form = LocalUserInsertForm {
+            email,
+            show_nsfw: Some(show_nsfw),
+            accepted_application: Some(!require_registration_application),
+            // Only mark the email as verified if the provider attests it and the admin
+            // opted into auto verification. Otherwise send a verification email instead.
+            email_verified: Some(oauth_provider.auto_verify_email && email_verified),
+            ..LocalUserInsertForm::new(person.id, None)
+          };
 
-            let local_user = create_local_user(
-              conn,
-              language_tags,
-              local_user_form,
-              &site_view.local_site,
-              &tx_context,
+          let local_user = create_local_user(
+            conn,
+            language_tags,
+            local_user_form,
+            &site_view.local_site,
+            &tx_context,
+          )
+          .await?;
+
+          // Create the oauth account
+          let oauth_account_form =
+            OAuthAccountInsertForm::new(local_user.id, oauth_provider.id, oauth_user_id);
+
+          OAuthAccount::create(&mut conn.into(), &oauth_account_form).await?;
+
+          // prevent sign in until application is accepted
+          if login_response.registration_created {
+            // Create the registration application
+            RegistrationApplication::create(
+              &mut conn.into(),
+              &RegistrationApplicationInsertForm {
+                local_user_id: local_user.id,
+                // We already check earlier that this Some, however using `ok_or` is cleaner
+                // than unwrap or expect (which also requires clippy allow).
+                answer: data
+                  .answer
+                  .ok_or(LemmyErrorType::RegistrationApplicationAnswerRequired)?,
+              },
             )
             .await?;
-
-            // Create the oauth account
-            let oauth_account_form =
-              OAuthAccountInsertForm::new(local_user.id, oauth_provider.id, oauth_user_id);
-
-            OAuthAccount::create(&mut conn.into(), &oauth_account_form).await?;
-
-            // prevent sign in until application is accepted
-            if login_response.registration_created {
-              // Create the registration application
-              RegistrationApplication::create(
-                &mut conn.into(),
-                &RegistrationApplicationInsertForm {
-                  local_user_id: local_user.id,
-                  // We already check earlier that this Some, however using `ok_or` is cleaner
-                  // than unwrap or expect (which also requires clippy allow).
-                  answer: data
-                    .answer
-                    .ok_or(LemmyErrorType::RegistrationApplicationAnswerRequired)?,
-                },
-              )
-              .await?;
-            }
-            Ok(LocalUserView {
-              person,
-              local_user,
-              banned: false,
-              ban_expires_at: None,
-            })
           }
-          .scope_boxed()
+          Ok(LocalUserView {
+            person,
+            local_user,
+            banned: false,
+            ban_expires_at: None,
+          })
         })
         .await?;
 

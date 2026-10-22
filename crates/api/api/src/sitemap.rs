@@ -8,15 +8,18 @@ use lemmy_db_schema::source::post::Post;
 use lemmy_db_views_site::SiteView;
 use lemmy_diesel_utils::dburl::DbUrl;
 use lemmy_utils::error::LemmyResult;
-use sitemap_rs::{url::Url, url_set::UrlSet};
+use sitemap_rs::{jiff::Zoned, url::Url, url_set::UrlSet};
 use tracing::info;
 
 fn generate_urlset(posts: Vec<(DbUrl, chrono::DateTime<chrono::Utc>)>) -> LemmyResult<UrlSet> {
   let urls = posts
     .into_iter()
     .map_while(|(url, date_time)| {
+      // Convert chrono to jiff zoned time
+      let zoned_time: Zoned = date_time.to_rfc3339().parse().unwrap_or_default();
+
       Url::builder(url.to_string())
-        .last_modified(date_time.into())
+        .last_modified(zoned_time)
         .build()
         .ok()
     })

@@ -12,13 +12,9 @@ use diesel_async::{
     ManagerConfig,
     deadpool::{Hook, HookError, Object as PooledConnection, Pool},
   },
-  scoped_futures::ScopedBoxFuture,
 };
 use futures_util::{FutureExt, future::BoxFuture};
-use lemmy_utils::{
-  error::{LemmyError, LemmyResult},
-  settings::SETTINGS,
-};
+use lemmy_utils::{error::LemmyResult, settings::SETTINGS};
 use rustls::ClientConfig;
 use std::{
   ops::{Deref, DerefMut},
@@ -49,21 +45,6 @@ pub async fn get_conn<'a, 'b: 'a>(pool: &'a mut DbPool<'b>) -> Result<DbConn<'a>
     )),
     DbPool::Conn(conn) => DbConn::Conn(conn),
   })
-}
-
-impl DbConn<'_> {
-  pub async fn run_transaction<'a, R, F>(&mut self, callback: F) -> LemmyResult<R>
-  where
-    F: for<'r> FnOnce(&'r mut AsyncPgConnection) -> ScopedBoxFuture<'a, 'r, LemmyResult<R>>
-      + Send
-      + 'a,
-    R: Send + 'a,
-  {
-    self
-      .deref_mut()
-      .transaction::<_, LemmyError, _>(callback)
-      .await
-  }
 }
 
 impl Deref for DbConn<'_> {

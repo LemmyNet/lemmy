@@ -26,6 +26,7 @@ use activitypub_federation::{
   kinds::activity::AnnounceType,
   traits::{Activity, Actor},
 };
+use base16ct::HexDisplay;
 use chrono::{DateTime, Utc};
 use either::Either;
 use following::send_accept_or_reject_follow;
@@ -104,7 +105,7 @@ where
   let input = format!("{}:{}", kind_str, seed.as_str());
   let mut hasher = Sha256::new();
   hasher.update(input);
-  let digest = format!("{:x}", hasher.finalize());
+  let digest = format!("{:x}", HexDisplay(&hasher.finalize()));
   let id = format!("{}/activities/{}/{}", hostname, kind_str, digest);
   Ok(Url::parse(&id)?)
 }
@@ -119,7 +120,7 @@ fn generate_announce_activity_id(
     let input = format!("announce:{}", o.as_str());
     let mut hasher = Sha256::new();
     hasher.update(input);
-    format!("{:x}", hasher.finalize())
+    format!("{:x}", HexDisplay(&hasher.finalize()))
   } else {
     Uuid::new_v4().to_string()
   };

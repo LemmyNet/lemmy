@@ -69,7 +69,7 @@ use lemmy_utils::{
 use moka::future::Cache;
 use regex::{Regex, RegexSet, escape};
 use std::{collections::HashSet, sync::LazyLock};
-use totp_rs::{Secret, TOTP};
+use totp_rs::{Secret, Totp};
 use url::{ParseError, Url};
 use urlencoding::encode;
 
@@ -205,7 +205,7 @@ pub fn check_email_verified(
 }
 
 pub fn generate_totp_2fa_secret() -> String {
-  Secret::generate_secret().to_string()
+  Secret::generate().to_string()
 }
 
 /// Check the given TOTP token against the user's secret, if they have 2FA enabled.
@@ -226,7 +226,7 @@ pub fn check_totp_2fa_valid(
 
   let totp = build_totp_2fa(site_name, &local_user_view.person.name, secret)?;
 
-  let check_passed = totp.check_current(token)?;
+  let check_passed = totp.check_current(token).is_some();
   if !check_passed {
     return Err(LemmyErrorType::IncorrectTotpToken.into());
   }
@@ -234,22 +234,16 @@ pub fn check_totp_2fa_valid(
   Ok(())
 }
 
-pub fn build_totp_2fa(hostname: &str, username: &str, secret: &str) -> LemmyResult<TOTP> {
-  let sec = Secret::Raw(secret.as_bytes().to_vec());
-  let sec_bytes = sec
-    .to_bytes()
-    .with_lemmy_type(LemmyErrorType::CouldntParseTotpSecret)?;
+pub fn build_totp_2fa(hostname: &str, username: &str, secret: &str) -> LemmyResult<Totp> {
+  let sec = Secret::new(secret.as_bytes().into());
+  let sec_bytes = sec.as_bytes();
 
-  TOTP::new(
-    totp_rs::Algorithm::SHA1,
-    6,
-    1,
-    30,
-    sec_bytes,
-    Some(hostname.to_string()),
-    username.to_string(),
-  )
-  .with_lemmy_type(LemmyErrorType::CouldntGenerateTotp)
+  totp_rs::Builder::new()
+    .with_secret(sec_bytes)
+    .with_issuer(Some(hostname.to_string()))
+    .with_account_name(username.to_string())
+    .build()
+    .with_lemmy_type(LemmyErrorType::CouldntGenerateTotp)
 }
 
 pub async fn check_registration_application(

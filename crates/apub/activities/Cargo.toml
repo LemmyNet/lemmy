@@ -51,7 +51,8 @@ serde_with.workspace = true
 enum_delegate = "0.2.0"
 either = { workspace = true }
 lemmy_diesel_utils = { workspace = true }
-sha2 = "0.10.9"
+sha2 = "0.11.1"
+base16ct = "1.0.0"
 
 [dev-dependencies]
 
