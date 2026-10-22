@@ -80,7 +80,7 @@ get_first = "deny"
 implicit_clone = "deny"
 indexing_slicing = "deny"
 inefficient_to_string = "deny"
-items-after-statements = "deny"
+items_after_statements = "deny"
 manual_string_new = "deny"
 needless_collect = "deny"
 perf = { level = "deny", priority = -1 }
@@ -107,6 +107,9 @@ redundant_type_annotations = "deny"
 if_then_some_else_none = "deny"
 allow_attributes = "deny"
 unchecked_time_subtraction = "deny"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
 
 [workspace.dependencies]
 lemmy_api = { version = "=1.0.0-beta.2", path = "./crates/api/api" }
@@ -213,6 +216,7 @@ ts-rs = { version = "12.0.1", features = [
   "url-impl",
 ] }
 rustls = { version = "0.23.37", features = ["ring"], default-features = false }
+webpki-roots = "1.0.9"
 tokio-postgres = "0.7.16"
 tokio-postgres-rustls = "0.13.0"
 urlencoding = "2.1.3"
@@ -224,12 +228,12 @@ derive-new = "0.7.0"
 html2text = "0.16.7"
 async-trait = "0.1.89"
 either = { version = "1.15.0", features = ["serde"] }
-extism = { version = "1.20.0", default-features = false, features = [
+extism = { version = "1.41.0", default-features = false, features = [
   "http",
   "register-filesystem",
   "register-http",
 ] }
-extism-convert = "1.20.0"
+extism-convert = "1.41.0"
 unified-diff = "0.2.1"
 diesel-uplete = { version = "0.2.0" }
 

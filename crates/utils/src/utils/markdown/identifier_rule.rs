@@ -18,7 +18,7 @@ impl NodeValue for Identifier {
   fn render(&self, node: &Node, fmt: &mut dyn Renderer) {
     let mut attrs = node.attrs.clone();
     let path = if self.is_community { 'c' } else { 'u' };
-    attrs.push(("href", format!("/{path}/{}@{}", &self.name, &self.domain)));
+    attrs.push(("href", format!("/{path}/{}@{}", self.name, self.domain)));
     attrs.push(("rel", "nofollow".to_string()));
     attrs.push(("class", "u-url".to_string()));
     attrs.push(("class", "mention".to_string()));

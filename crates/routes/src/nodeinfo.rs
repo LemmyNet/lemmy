@@ -35,7 +35,7 @@ async fn node_info_well_known(context: web::Data<LemmyContext>) -> LemmyResult<H
       rel: Url::parse("http://nodeinfo.diaspora.software/ns/schema/2.1")?,
       href: Url::parse(&format!(
         "{}/nodeinfo/2.1",
-        &context.settings().get_protocol_and_hostname(),
+        context.settings().get_protocol_and_hostname(),
       ))?,
     }],
   };

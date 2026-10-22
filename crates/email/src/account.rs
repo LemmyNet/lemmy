@@ -24,7 +24,7 @@ pub async fn send_password_reset_email(
   let lang = user_language(&user.local_user);
   let subject = lang.password_reset_subject(&user.person.name);
   let protocol_and_hostname = settings.get_protocol_and_hostname();
-  let reset_link = format!("{}/password_change/{}", protocol_and_hostname, &token);
+  let reset_link = format!("{}/password_change/{}", protocol_and_hostname, token);
   let email = user_email(user)?;
   let body = lang.password_reset_body(reset_link, &user.person.name);
   send_email(subject, email, user.person.name.clone(), body, settings);
@@ -52,7 +52,7 @@ pub async fn send_verification_email(
   let verify_link = format!(
     "{}/verify_email/{}",
     settings.get_protocol_and_hostname(),
-    &form.verification_token
+    form.verification_token
   );
   EmailVerification::create(pool, &form).await?;
 

@@ -748,6 +748,10 @@ mod tests {
       unresolved_report_count: 0,
       interactions_month: 0,
       local_removed: false,
+      post_upvotes: Default::default(),
+      post_downvotes: Default::default(),
+      comment_upvotes: Default::default(),
+      comment_downvotes: Default::default(),
     };
 
     let community_follower_form = CommunityFollowerForm::new(
