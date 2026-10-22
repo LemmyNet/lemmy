@@ -40,15 +40,15 @@ url = { workspace = true }
 futures = { workspace = true }
 futures-util = { workspace = true }
 itertools = { workspace = true }
-async-trait = "0.1.89"
+async-trait = "0.1.92"
 anyhow = { workspace = true }
 moka.workspace = true
 serde_with.workspace = true
-html-to-markdown-rs = "3.0"
+html-to-markdown-rs = "3.18"
 html2text = { workspace = true }
 stringreader = "0.1.1"
-semver = "1.0.27"
-either = "1.15.0"
+semver = "1.0.28"
+either = "1.19.0"
 assert-json-diff = "2.0.2"
 lemmy_diesel_utils = { workspace = true }
 regex = { workspace = true }

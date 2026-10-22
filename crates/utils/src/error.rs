@@ -162,7 +162,6 @@ pub enum UntranslatedError {
   InvalidFollow(String),
   PurgeInvalidImageUrl,
   Unreachable,
-  CouldntSendWebmention,
   VoteNotAllowed,
   /// A remote community sent an activity to us, but actually no local user follows the community
   /// so the activity was rejected.
