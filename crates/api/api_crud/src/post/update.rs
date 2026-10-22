@@ -20,9 +20,7 @@ use lemmy_api_utils::{
 };
 use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
-  source::{
-    post::{Post, PostUpdateForm},
-  },
+  source::post::{Post, PostUpdateForm},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::{
