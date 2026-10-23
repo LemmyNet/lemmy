@@ -165,7 +165,7 @@ diesel_migrations = "2.3.2"
 diesel-async = "0.9.2"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_with = "3.24.0"
-actix-web = { version = "4.17.0", default-features = false, features = [
+actix-web = { version = "4.18.0", default-features = false, features = [
   "compress-brotli",
   "compress-gzip",
   "compress-zstd",
@@ -195,7 +195,7 @@ chrono = { version = "0.4.45", features = [
 serde_json = { version = "1.0.154", features = ["preserve_order"] }
 base64 = "0.23.1"
 rand = "0.10.3"
-uuid = { version = "1.28.0", features = ["serde"] }
+uuid = { version = "1.29.0", features = ["serde"] }
 anyhow = { version = "1.0.104", features = ["backtrace"] }
 diesel_ltree = "0.4.0"
 serial_test = "4.0.1"
@@ -216,7 +216,7 @@ ts-rs = { version = "12.0.1", features = [
   "url-impl",
 ] }
 rustls = { version = "0.23.46", features = ["ring"], default-features = false }
-webpki-roots = "1.0.10"
+webpki-roots = "1.0.11"
 tokio-postgres = "0.7.18"
 tokio-postgres-rustls = "0.14.0"
 urlencoding = "2.1.3"
