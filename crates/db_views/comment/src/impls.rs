@@ -372,7 +372,9 @@ impl CommentQuery<'_> {
       Controversial => pq.then_order_by(key::controversy_rank),
       Old | New => pq.then_order_by(key::published_at),
       Top => pq.then_order_by(key::score),
-    };
+    }
+    // Tie breaker
+    .then_order_by(key::id);
 
     let conn = &mut get_conn(pool).await?;
     let res = pq.load::<CommentView>(conn).await?;

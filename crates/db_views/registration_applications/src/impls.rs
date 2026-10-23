@@ -141,7 +141,9 @@ impl RegistrationApplicationQuery {
     let paginated_query =
       RegistrationApplicationView::paginate(query, &self.page_cursor, SortDirection::Desc, pool)
         .await?
-        .then_order_by(key::published_at);
+        .then_order_by(key::published_at)
+        // Tie breaker
+        .then_order_by(key::id);
 
     let conn = &mut get_conn(pool).await?;
     let res = paginated_query
