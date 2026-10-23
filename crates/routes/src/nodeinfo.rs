@@ -14,15 +14,12 @@ use url::Url;
 /// A description of the nodeinfo endpoint is here:
 /// https://github.com/jhass/nodeinfo/blob/main/PROTOCOL.md
 pub fn config(cfg: &mut web::ServiceConfig) {
+  let to = || web::get().to(node_info).wrap(cache_1hour());
   cfg
-    .route(
-      "/nodeinfo/2.1",
-      web::get().to(node_info).wrap(cache_1hour()),
-    )
-    .service(web::redirect("/version", "/nodeinfo/2.1"))
-    // For backwards compatibility, can be removed after Lemmy 0.20
-    .service(web::redirect("/nodeinfo/2.0.json", "/nodeinfo/2.1"))
-    .service(web::redirect("/nodeinfo/2.1.json", "/nodeinfo/2.1"))
+    .route("/nodeinfo/2.1", to())
+    .route("/version", to())
+    .route("/nodeinfo/2.0.json", to())
+    .route("/nodeinfo/2.1.json", to())
     .route(
       "/.well-known/nodeinfo",
       web::get().to(node_info_well_known).wrap(cache_3days()),
