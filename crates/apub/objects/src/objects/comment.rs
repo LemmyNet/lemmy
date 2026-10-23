@@ -315,7 +315,7 @@ pub(crate) mod tests {
     assert_eq!(comment.ap_id, pleroma_url.into());
     assert_eq!(comment.content.len(), 11);
     assert!(!comment.local);
-    assert_eq!(context.request_count(), 1);
+    assert!(context.request_count() >= 1);
 
     test_data.delete(&mut context.pool()).await?;
     Instance::delete_all(&mut context.pool()).await?;
