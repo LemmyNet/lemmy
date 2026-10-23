@@ -56,33 +56,32 @@ lemmy_db_views_notification = { workspace = true }
 lemmy_db_views_registration_applications = { workspace = true }
 lemmy_email = { workspace = true }
 anyhow = { workspace = true }
-totp-rs = { version = "5.7.1", features = ["gen_secret", "otpauth"] }
+totp-rs = { version = "6.0.0", features = ["gen_secret", "otpauth"] }
 serde = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 lemmy_utils = { workspace = true }
 extism = { workspace = true, optional = true }
 extism-convert = { workspace = true, optional = true }
-extism-manifest = { version = "1.20.0", optional = true }
+extism-manifest = { version = "1.41.0", optional = true }
 reqwest-middleware = { workspace = true }
 activitypub_federation = { workspace = true }
 mime = { version = "0.3.17" }
 mime_guess = "2.0.5"
-infer = "0.19.0"
+infer = "0.22.0"
 chrono = { workspace = true }
-encoding_rs = "0.8.35"
+encoding_rs = "0.8.42"
 futures = { workspace = true }
 reqwest = { workspace = true }
 actix-web = { workspace = true }
-actix-web-httpauth = { version = "0.8.2" }
+actix-web-httpauth = { version = "0.8.3" }
 enum-map = { workspace = true }
 url = { workspace = true }
 moka = { workspace = true }
-webmention = { version = "0.6.0" }
 urlencoding = { workspace = true }
-webpage = { version = "2.0", default-features = false, features = ["serde"] }
+webpage = { version = "2.1", default-features = false, features = ["serde"] }
 regex = { workspace = true }
-jsonwebtoken = { version = "10.3.0", features = ["rust_crypto"] }
+jsonwebtoken = { version = "11.1.0", features = ["rust_crypto"] }
 either.workspace = true
 derive-new.workspace = true
 lemmy_diesel_utils = { workspace = true }

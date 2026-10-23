@@ -1,6 +1,6 @@
 use actix_web::web::{Data, Json};
 use anyhow::Context;
-use diesel_async::scoped_futures::ScopedFutureExt;
+use diesel_async::AsyncConnection;
 use lemmy_api_utils::{
   context::LemmyContext,
   notify::notify_mod_action,
@@ -18,7 +18,7 @@ use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_diesel_utils::{connection::get_conn, traits::Crud};
 use lemmy_utils::{
-  error::{LemmyErrorType, LemmyResult},
+  error::{LemmyError, LemmyErrorType, LemmyResult},
   location_info,
 };
 
@@ -58,28 +58,25 @@ pub async fn transfer_community(
   let conn = &mut get_conn(pool).await?;
   let tx_data = data.clone();
   let action = conn
-    .run_transaction(|conn| {
-      async move {
-        CommunityActions::delete_mods_for_community(&mut conn.into(), community_id).await?;
+    .transaction::<Vec<Modlog>, LemmyError, _>(async |conn| {
+      CommunityActions::delete_mods_for_community(&mut conn.into(), community_id).await?;
 
-        // TODO: this should probably be a bulk operation
-        // Re-add the mods, in the new order
-        for cmod in &community_mods {
-          let community_moderator_form =
-            CommunityModeratorForm::new(cmod.community.id, cmod.moderator.id);
+      // TODO: this should probably be a bulk operation
+      // Re-add the mods, in the new order
+      for cmod in &community_mods {
+        let community_moderator_form =
+          CommunityModeratorForm::new(cmod.community.id, cmod.moderator.id);
 
-          CommunityActions::join(&mut conn.into(), &community_moderator_form).await?;
-        }
-
-        // Mod tables
-        let form = ModlogInsertForm::mod_transfer_community(
-          local_user_view.person.id,
-          tx_data.community_id,
-          tx_data.person_id,
-        );
-        Modlog::create(&mut conn.into(), &[form]).await
+        CommunityActions::join(&mut conn.into(), &community_moderator_form).await?;
       }
-      .scope_boxed()
+
+      // Mod tables
+      let form = ModlogInsertForm::mod_transfer_community(
+        local_user_view.person.id,
+        tx_data.community_id,
+        tx_data.person_id,
+      );
+      Modlog::create(&mut conn.into(), &[form]).await
     })
     .await?;
   notify_mod_action(action.clone(), &context);

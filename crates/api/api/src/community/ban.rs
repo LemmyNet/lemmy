@@ -1,6 +1,6 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
-use diesel_async::scoped_futures::ScopedFutureExt;
+use diesel_async::AsyncConnection;
 use lemmy_api_utils::{
   context::LemmyContext,
   notify::notify_mod_action,
@@ -24,7 +24,7 @@ use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::{PersonView, api::PersonResponse};
 use lemmy_diesel_utils::{connection::get_conn, traits::Crud};
 use lemmy_utils::{
-  error::{LemmyErrorType, LemmyResult},
+  error::{LemmyError, LemmyErrorType, LemmyResult},
   spawn_try_task,
   utils::validation::is_valid_body_field,
 };
@@ -62,33 +62,30 @@ pub async fn ban_from_community(
   let conn = &mut get_conn(pool).await?;
   let tx_data = data.clone();
   let action = conn
-    .run_transaction(|conn| {
-      async move {
-        if tx_data.ban {
-          CommunityActions::ban(&mut conn.into(), &community_user_ban_form).await?;
+    .transaction::<Vec<Modlog>, LemmyError, _>(async |conn| {
+      if tx_data.ban {
+        CommunityActions::ban(&mut conn.into(), &community_user_ban_form).await?;
 
-          // Also unsubscribe them from the community, if they are subscribed
-          CommunityActions::unfollow(&mut conn.into(), banned_person_id, tx_data.community_id)
-            .await
-            .ok();
-        } else {
-          CommunityActions::unban(&mut conn.into(), &community_user_ban_form).await?;
-        }
-
-        // Mod tables - create ban entry first so bulk actions can reference it as parent
-        let form = ModlogInsertForm::mod_ban_from_community(
-          my_person_id,
-          tx_data.community_id,
-          tx_data.person_id,
-          tx_data.ban,
-          expires_at,
-          &tx_data.reason,
-        );
-        let action = Modlog::create(&mut conn.into(), &[form]).await?;
-
-        Ok(action)
+        // Also unsubscribe them from the community, if they are subscribed
+        CommunityActions::unfollow(&mut conn.into(), banned_person_id, tx_data.community_id)
+          .await
+          .ok();
+      } else {
+        CommunityActions::unban(&mut conn.into(), &community_user_ban_form).await?;
       }
-      .scope_boxed()
+
+      // Mod tables - create ban entry first so bulk actions can reference it as parent
+      let form = ModlogInsertForm::mod_ban_from_community(
+        my_person_id,
+        tx_data.community_id,
+        tx_data.person_id,
+        tx_data.ban,
+        expires_at,
+        &tx_data.reason,
+      );
+      let action = Modlog::create(&mut conn.into(), &[form]).await?;
+
+      Ok(action)
     })
     .await?;
   notify_mod_action(action.clone(), &context);

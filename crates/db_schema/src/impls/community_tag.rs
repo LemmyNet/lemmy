@@ -23,7 +23,7 @@ use diesel::{
   sql_types::{Json, Nullable},
   upsert::excluded,
 };
-use diesel_async::{RunQueryDsl, scoped_futures::ScopedFutureExt};
+use diesel_async::{AsyncConnection, RunQueryDsl};
 use lemmy_db_schema_file::{
   newtypes::{CommunityId, CommunityTagId, PostId},
   schema::{community_tag, post_community_tag},
@@ -33,7 +33,7 @@ use lemmy_diesel_utils::{
   dburl::DbUrl,
   traits::Crud,
 };
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
 use std::collections::HashSet;
 
 impl Crud for CommunityTag {
@@ -101,25 +101,21 @@ impl CommunityTag {
         color: Some(t.color),
       });
     forms.extend(delete_forms);
-
     conn
-      .run_transaction(|conn| {
-        async move {
-          insert_into(community_tag::table)
-            .values(&forms)
-            .on_conflict(community_tag::ap_id)
-            .do_update()
-            .set((
-              community_tag::display_name.eq(excluded(community_tag::display_name)),
-              community_tag::summary.eq(excluded(community_tag::summary)),
-              community_tag::deleted.eq(excluded(community_tag::deleted)),
-            ))
-            .execute(conn)
-            .await?;
+      .transaction::<(), LemmyError, _>(async |conn| {
+        insert_into(community_tag::table)
+          .values(&forms)
+          .on_conflict(community_tag::ap_id)
+          .do_update()
+          .set((
+            community_tag::display_name.eq(excluded(community_tag::display_name)),
+            community_tag::summary.eq(excluded(community_tag::summary)),
+            community_tag::deleted.eq(excluded(community_tag::deleted)),
+          ))
+          .execute(conn)
+          .await?;
 
-          Ok(())
-        }
-        .scope_boxed()
+        Ok(())
       })
       .await?;
 
@@ -184,28 +180,25 @@ impl PostCommunityTag {
     let conn = &mut get_conn(pool).await?;
 
     conn
-      .run_transaction(|conn| {
-        async move {
-          delete(post_community_tag::table.filter(post_community_tag::post_id.eq(post.id)))
-            .execute(conn)
-            .await
-            .with_lemmy_type(LemmyErrorType::Deleted)?;
+      .transaction::<Vec<Self>, LemmyError, _>(async |conn| {
+        delete(post_community_tag::table.filter(post_community_tag::post_id.eq(post.id)))
+          .execute(conn)
+          .await
+          .with_lemmy_type(LemmyErrorType::Deleted)?;
 
-          let forms = community_tag_ids
-            .iter()
-            .map(|tag_id| PostCommunityTagForm {
-              post_id: post.id,
-              community_tag_id: *tag_id,
-            })
-            .collect::<Vec<_>>();
-          insert_into(post_community_tag::table)
-            .values(forms)
-            .returning(Self::as_select())
-            .get_results(conn)
-            .await
-            .with_lemmy_type(LemmyErrorType::CouldntCreate)
-        }
-        .scope_boxed()
+        let forms = community_tag_ids
+          .iter()
+          .map(|tag_id| PostCommunityTagForm {
+            post_id: post.id,
+            community_tag_id: *tag_id,
+          })
+          .collect::<Vec<_>>();
+        insert_into(post_community_tag::table)
+          .values(forms)
+          .returning(Self::as_select())
+          .get_results(conn)
+          .await
+          .with_lemmy_type(LemmyErrorType::CouldntCreate)
       })
       .await
   }
