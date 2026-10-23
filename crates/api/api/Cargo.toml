@@ -62,6 +62,7 @@ chrono = { workspace = true }
 url = { workspace = true }
 regex = { workspace = true }
 sitemap-rs = "0.7.0"
+jiff-chrono-conversions = "0.1.1"
 diesel-async = { workspace = true, features = ["deadpool", "postgres"] }
 either = { workspace = true }
 futures = { workspace = true }

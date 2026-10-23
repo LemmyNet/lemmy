@@ -2960,6 +2960,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "jiff-chrono-conversions"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "13b31acd6581fc84411ed7442f57a0442015bcaa97fdfccf7da0753ed9b0ba59"
+dependencies = [
+ "chrono",
+ "jiff",
+ "thiserror 2.0.21",
+]
+
+[[package]]
 name = "jiff-core"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3147,6 +3158,7 @@ dependencies = [
  "elementtree",
  "futures",
  "itertools 0.15.0",
+ "jiff-chrono-conversions",
  "lemmy_api_crud",
  "lemmy_api_utils",
  "lemmy_apub_objects",
