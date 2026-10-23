@@ -78,7 +78,6 @@ pub enum LemmyErrorType {
   InvalidBodyField,
   BioLengthOverflow,
   AltTextLengthOverflow,
-  CouldntParseTotpSecret,
   CouldntGenerateTotp,
   MissingTotpToken,
   MissingTotpSecret,
