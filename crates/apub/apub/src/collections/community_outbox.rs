@@ -1,7 +1,10 @@
-use crate::{is_new_instance, protocol::collections::group_outbox::GroupOutbox};
+use crate::{
+  is_new_instance,
+  protocol::collections::group_outbox::{GroupOutbox, GroupOutboxPage},
+};
 use activitypub_federation::{
   config::Data,
-  kinds::collection::OrderedCollectionType,
+  kinds::collection::{OrderedCollectionPageType, OrderedCollectionType},
   protocol::verification::verify_domains_match,
   traits::{Activity, Collection},
 };
@@ -18,13 +21,55 @@ use lemmy_apub_activities::{
 use lemmy_apub_objects::objects::community::ApubCommunity;
 use lemmy_db_schema::utils::FETCH_LIMIT_MAX;
 use lemmy_db_schema_file::enums::PostSortType;
-use lemmy_db_views_post::impls::PostQuery;
+use lemmy_db_views_post::{PostView, impls::PostQuery};
 use lemmy_db_views_site::SiteView;
+use lemmy_diesel_utils::pagination::{PagedResponse, PaginationCursor};
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
+/// Query value for the first outbox page (`GET .../outbox?page=true`), matching Mastodon.
+pub(crate) const OUTBOX_FIRST_PAGE: &str = "true";
+
 #[derive(Clone, Debug)]
 pub(crate) struct ApubCommunityOutbox(());
+
+impl ApubCommunityOutbox {
+  /// ActivityPub `OrderedCollectionPage` for `GET /c/{name}/outbox?page=...`.
+  ///
+  /// `page` is `true` for the first page, or a `PaginationCursor` string for later pages.
+  pub(crate) async fn read_local_page(
+    owner: &ApubCommunity,
+    data: &Data<LemmyContext>,
+    page: &str,
+  ) -> LemmyResult<GroupOutboxPage> {
+    let page_cursor = if page == OUTBOX_FIRST_PAGE {
+      None
+    } else {
+      Some(PaginationCursor(page.to_owned()))
+    };
+    let posts = list_outbox_posts(owner, data, page_cursor).await?;
+    let collection_id = outbox_collection_id(owner)?;
+    let next = posts
+      .next_page
+      .as_ref()
+      .map(|cursor| outbox_page_url(&collection_id, &cursor.0));
+    let prev = posts
+      .prev_page
+      .as_ref()
+      .map(|cursor| outbox_page_url(&collection_id, &cursor.0));
+    let ordered_items = announces_from_posts(posts.items, owner, data).await?;
+
+    Ok(GroupOutboxPage {
+      r#type: OrderedCollectionPageType::OrderedCollectionPage,
+      id: outbox_page_url(&collection_id, page),
+      part_of: collection_id,
+      total_items: owner.posts,
+      next,
+      prev,
+      ordered_items,
+    })
+  }
+}
 
 #[async_trait::async_trait]
 impl Collection for ApubCommunityOutbox {
@@ -34,50 +79,15 @@ impl Collection for ApubCommunityOutbox {
   type Error = LemmyError;
 
   async fn read_local(owner: &Self::Owner, data: &Data<Self::DataType>) -> LemmyResult<Self::Kind> {
-    let site_view = SiteView::read_local(&mut data.pool()).await?;
-
-    let mut post_views = Box::pin(
-      PostQuery {
-        community_id: Some(owner.id),
-        sort: Some(PostSortType::New),
-        limit: Some(FETCH_LIMIT_MAX.try_into()?),
-        ..Default::default()
-      }
-      .list(&mut data.pool(), &site_view.site, &site_view.local_site),
-    )
-    .await?
-    .items;
-
-    // Outbox must be sorted reverse chronological (newest items first). This is already done
-    // via SQL, but featured posts are always at the top so we need to manually sort it here.
-    post_views.sort_unstable_by_key(|p2| std::cmp::Reverse(p2.post.published_at));
-
-    let mut ordered_items = vec![];
-    for post_view in post_views {
-      // ignore errors, in particular if post creator was deleted
-      if let Ok(create) = CreateOrUpdatePage::new(
-        post_view.post.into(),
-        &post_view.creator.into(),
-        owner,
-        CreateOrUpdateType::Create,
-        data,
-      )
-      .await
-      {
-        let announcable = AnnouncableActivities::CreateOrUpdatePost(create.clone());
-        // create id is like https://lemmy.example.com/activities/create/{UUID}
-        if let Ok(announce) =
-          AnnounceActivity::new(announcable.try_into()?, owner, Some(create.id()), data)
-        {
-          ordered_items.push(announce);
-        }
-      }
-    }
+    let posts = list_outbox_posts(owner, data, None).await?;
+    let ordered_items = announces_from_posts(posts.items, owner, data).await?;
+    let id = outbox_collection_id(owner)?;
 
     Ok(GroupOutbox {
       r#type: OrderedCollectionType::OrderedCollection,
-      id: generate_outbox_url(&owner.ap_id)?.into(),
+      id: id.clone(),
       total_items: owner.posts,
+      first: Some(outbox_page_url(&id, OUTBOX_FIRST_PAGE)),
       ordered_items,
     })
   }
@@ -138,4 +148,65 @@ impl Collection for ApubCommunityOutbox {
     // This return value is unused, so just set an empty vec
     Ok(ApubCommunityOutbox(()))
   }
+}
+
+fn outbox_collection_id(owner: &ApubCommunity) -> LemmyResult<Url> {
+  Ok(generate_outbox_url(&owner.ap_id)?.into())
+}
+
+fn outbox_page_url(collection_id: &Url, page: &str) -> Url {
+  let mut url = collection_id.clone();
+  url.query_pairs_mut().append_pair("page", page);
+  url
+}
+
+async fn list_outbox_posts(
+  owner: &ApubCommunity,
+  data: &Data<LemmyContext>,
+  page_cursor: Option<PaginationCursor>,
+) -> LemmyResult<PagedResponse<PostView>> {
+  let site_view = SiteView::read_local(&mut data.pool()).await?;
+
+  // `PostSortType::New` is already reverse chronological (newest first). Do not re-sort
+  // after the query: pagination cursors are tied to SQL order.
+  Box::pin(
+    PostQuery {
+      community_id: Some(owner.id),
+      sort: Some(PostSortType::New),
+      limit: Some(FETCH_LIMIT_MAX.try_into()?),
+      page_cursor,
+      ..Default::default()
+    }
+    .list(&mut data.pool(), &site_view.site, &site_view.local_site),
+  )
+  .await
+}
+
+async fn announces_from_posts(
+  post_views: Vec<PostView>,
+  owner: &ApubCommunity,
+  data: &Data<LemmyContext>,
+) -> LemmyResult<Vec<AnnounceActivity>> {
+  let mut ordered_items = vec![];
+  for post_view in post_views {
+    // ignore errors, in particular if post creator was deleted
+    if let Ok(create) = CreateOrUpdatePage::new(
+      post_view.post.into(),
+      &post_view.creator.into(),
+      owner,
+      CreateOrUpdateType::Create,
+      data,
+    )
+    .await
+    {
+      let announcable = AnnouncableActivities::CreateOrUpdatePost(create.clone());
+      // create id is like https://lemmy.example.com/activities/create/{UUID}
+      if let Ok(announce) =
+        AnnounceActivity::new(announcable.try_into()?, owner, Some(create.id()), data)
+      {
+        ordered_items.push(announce);
+      }
+    }
+  }
+  Ok(ordered_items)
 }

@@ -2,6 +2,7 @@
   "type": "OrderedCollection",
   "id": "https://ds9.lemmy.ml/c/testcom/outbox",
   "totalItems": 2,
+  "first": "https://ds9.lemmy.ml/c/testcom/outbox?page=true",
   "orderedItems": [
     {
       "actor": "https://ds9.lemmy.ml/c/testcom",
