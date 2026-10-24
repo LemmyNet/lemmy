@@ -153,4 +153,10 @@ mod tests {
     test_json::<CreateOrUpdateNoteWrapper>("../apub/assets/mitra/activities/create_post.json")?;
     Ok(())
   }
+
+  #[test]
+  fn test_parse_pyfedi_activities() -> LemmyResult<()> {
+    test_json::<AnnounceActivity>("../apub/assets/pyfedi/activities/like_pages.json")?;
+    Ok(())
+  }
 }
