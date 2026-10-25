@@ -25,6 +25,7 @@ use lemmy_apub_objects::{
 use lemmy_db_schema::source::{activity::ActivitySendTargets, community::CommunityActions};
 use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult, UntranslatedError};
 use serde_json::Value;
+use tracing::{debug, info};
 use url::Url;
 
 #[async_trait::async_trait]
@@ -177,9 +178,67 @@ impl Activity for AnnounceActivity {
         object.verify(context).await?;
         object.receive(context).await
       }
-      _ => Err(LemmyErrorType::Unknown("Batched announce is not supported yet".to_string()).into()),
+      batch => {
+        let community = self.actor.dereference(context).await?;
+        verify_visibility(&self.to, &self.cc, &community)?;
+        can_accept_activity_in_community(&Some(community.clone()), context).await?;
+        receive_batch(batch, &self.id, &community, context).await
+      }
     }
   }
+}
+
+async fn receive_batch(
+  batch: &[IdOrNestedObject<RawAnnouncableActivities>],
+  announce_id: &Url,
+  community: &ApubCommunity,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<()> {
+  let mut received = 0;
+  for item in batch {
+    match receive_batch_item(item, community, context).await {
+      Ok(()) => received += 1,
+      Err(e) => debug!(
+        "Skipping activity {} in batch {announce_id}: {e}",
+        item.id()
+      ),
+    }
+  }
+  info!(
+    "Received {received}/{} activities in batch {announce_id}",
+    batch.len()
+  );
+  Ok(())
+}
+
+async fn receive_batch_item(
+  item: &IdOrNestedObject<RawAnnouncableActivities>,
+  community: &ApubCommunity,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<()> {
+  let raw = item.dereference(context).await?;
+  let kind = raw
+    .other
+    .get("type")
+    .and_then(serde_json::Value::as_str)
+    .unwrap_or("other")
+    .to_string();
+  let activity: AnnouncableActivities = raw.try_into()?;
+  if !is_receivable_in_batch(&activity) {
+    return Err(UntranslatedError::CannotReceiveActivityTypeInBatch(kind).into());
+  }
+  let activity_community = activity.community(context).await?;
+  verify_urls_match(activity_community.ap_id.inner(), community.ap_id.inner())?;
+  activity.verify(context).await?;
+  activity.receive(context).await
+}
+
+/// Activity types which can be received as part of a batch. Initially only votes, as in FEP-1a11.
+fn is_receivable_in_batch(activity: &AnnouncableActivities) -> bool {
+  matches!(
+    activity,
+    AnnouncableActivities::Vote(_) | AnnouncableActivities::UndoVote(_)
+  )
 }
 
 impl TryFrom<RawAnnouncableActivities> for AnnouncableActivities {
