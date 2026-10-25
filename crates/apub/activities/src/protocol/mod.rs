@@ -3,7 +3,14 @@ use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::utils::protocol::Id;
 use lemmy_db_schema::source::activity::SentActivity;
 use lemmy_utils::error::LemmyResult;
-use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use serde::{
+  Deserialize,
+  Deserializer,
+  Serialize,
+  Serializer,
+  de::{DeserializeOwned, Error},
+};
+use serde_json::Value;
 use strum::Display;
 use url::Url;
 
@@ -51,6 +58,43 @@ impl<Kind: Id + DeserializeOwned + Clone + Send> IdOrNestedObject<Kind> {
       }
       IdOrNestedObject::NestedObject(o) => Ok(o.clone()),
     }
+  }
+}
+
+pub(crate) fn deserialize_one_or_many_objects<'de, T, D>(
+  deserializer: D,
+) -> Result<Vec<T>, D::Error>
+where
+  T: DeserializeOwned,
+  D: Deserializer<'de>,
+{
+  #[derive(Deserialize)]
+  #[serde(untagged)]
+  enum OneOrMany {
+    Many(Vec<Value>),
+    One(Value),
+  }
+
+  let result: OneOrMany = Deserialize::deserialize(deserializer)?;
+  let values = match result {
+    OneOrMany::One(value) => vec![value],
+    OneOrMany::Many(values) => values,
+  };
+
+  values
+    .into_iter()
+    .map(|value| T::deserialize(value).map_err(D::Error::custom))
+    .collect()
+}
+
+pub(crate) fn serialize_one_or_many<T, S>(values: &[T], serializer: S) -> Result<S::Ok, S::Error>
+where
+  T: Serialize,
+  S: Serializer,
+{
+  match values {
+    [value] => value.serialize(serializer),
+    values => values.serialize(serializer),
   }
 }
 
