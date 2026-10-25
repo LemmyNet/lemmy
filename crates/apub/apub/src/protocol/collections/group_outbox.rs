@@ -9,10 +9,10 @@ pub struct GroupOutbox {
   pub(crate) r#type: OrderedCollectionType,
   pub(crate) id: Url,
   pub(crate) total_items: i32,
-  /// First collection page. Present on locally generated outboxes; optional so older
-  /// remote collections without paging still parse.
+  /// Next collection page. Present when locally generated outboxes have more items than
+  /// fit in `ordered_items`. Optional so older remote collections still parse.
   #[serde(default, skip_serializing_if = "Option::is_none")]
-  pub(crate) first: Option<Url>,
+  pub(crate) next: Option<Url>,
   pub(crate) ordered_items: Vec<AnnounceActivity>,
 }
 

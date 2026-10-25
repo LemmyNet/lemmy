@@ -24,7 +24,7 @@ mod tests {
     let outbox =
       test_parse_lemmy_item::<GroupOutbox>("assets/lemmy/collections/group_outbox.json")?;
     assert_eq!(outbox.ordered_items.len(), outbox.total_items as usize);
-    assert!(outbox.first.is_some());
+    assert!(outbox.next.is_none());
     let outbox_page =
       test_parse_lemmy_item::<GroupOutboxPage>("assets/lemmy/collections/group_outbox_page.json")?;
     assert_eq!(outbox_page.ordered_items.len(), outbox.ordered_items.len());

@@ -116,16 +116,16 @@ async fn check_is_follower(
 
 #[derive(Deserialize, Clone, Default)]
 pub(crate) struct CommunityOutboxQuery {
-  /// If set, return an `OrderedCollectionPage` instead of the collection.
-  /// `true` is the first page; any other value is a pagination cursor.
+  /// If set, return an `OrderedCollectionPage` for this pagination cursor.
+  /// The first page is the collection itself (no `page` query).
   page: Option<String>,
 }
 
 /// Returns the community outbox (posts only, not comments or votes).
 ///
 /// Without query parameters this is an `OrderedCollection` with the first page of items
-/// inlined (at most `FETCH_LIMIT_MAX`) plus a `first` link. `GET .../outbox?page=true`
-/// (and later `?page={cursor}`) returns `OrderedCollectionPage`s with `next`/`prev`.
+/// inlined (at most `FETCH_LIMIT_MAX`) and `next` when more pages exist.
+/// `GET .../outbox?page={cursor}` returns an `OrderedCollectionPage` with `next`/`prev`.
 pub(crate) async fn get_apub_community_outbox(
   info: Path<ActorPath>,
   query: Query<CommunityOutboxQuery>,
@@ -138,7 +138,7 @@ pub(crate) async fn get_apub_community_outbox(
       .ok_or(LemmyErrorType::NotFound)?
       .into();
   check_community_content_fetchable(&community, &request, &context).await?;
-  if let Some(page) = &query.page {
+  if let Some(page) = query.page.as_deref().filter(|page| !page.is_empty()) {
     let outbox = ApubCommunityOutbox::read_local_page(&community, &context, page).await?;
     Ok(create_http_response(outbox, &FEDERATION_CONTEXT)?)
   } else {
@@ -455,34 +455,11 @@ pub(crate) mod tests {
     let collection: GroupOutbox = decode_response(res).await?;
     assert_eq!(post_count, collection.total_items);
     assert_eq!(FETCH_LIMIT_MAX, collection.ordered_items.len());
-    assert_eq!(
-      Some("true".to_string()),
-      collection.first.as_ref().and_then(page_query_value)
-    );
-
-    let res = get_apub_community_outbox(
-      path.clone().into(),
-      outbox_query(Some("true")),
-      context.clone(),
-      request.clone(),
-    )
-    .await?;
-    assert_eq!(200, res.status());
-    let first_page: GroupOutboxPage = decode_response(res).await?;
-    assert_eq!(collection.id, first_page.part_of);
-    assert_eq!(post_count, first_page.total_items);
-    assert_eq!(FETCH_LIMIT_MAX, first_page.ordered_items.len());
-    assert_eq!(None, first_page.prev);
-    let next_page_param = first_page
+    let next_page_param = collection
       .next
       .as_ref()
       .and_then(page_query_value)
       .ok_or(LemmyErrorType::NotFound)?;
-    assert_ne!("true", next_page_param);
-    assert_eq!(
-      announce_ids(&collection.ordered_items),
-      announce_ids(&first_page.ordered_items),
-    );
 
     let res = get_apub_community_outbox(
       path,
@@ -494,11 +471,12 @@ pub(crate) mod tests {
     assert_eq!(200, res.status());
     let second_page: GroupOutboxPage = decode_response(res).await?;
     assert_eq!(collection.id, second_page.part_of);
+    assert_eq!(post_count, second_page.total_items);
     assert_eq!(1, second_page.ordered_items.len());
     assert!(second_page.next.is_none());
     assert!(second_page.prev.is_some());
     assert_ne!(
-      announce_ids(&first_page.ordered_items),
+      announce_ids(&collection.ordered_items),
       announce_ids(&second_page.ordered_items)
     );
 

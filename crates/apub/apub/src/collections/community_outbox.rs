@@ -27,27 +27,19 @@ use lemmy_diesel_utils::pagination::{PagedResponse, PaginationCursor};
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use url::Url;
 
-/// Query value for the first outbox page (`GET .../outbox?page=true`), matching Mastodon.
-pub(crate) const OUTBOX_FIRST_PAGE: &str = "true";
-
 #[derive(Clone, Debug)]
 pub(crate) struct ApubCommunityOutbox(());
 
 impl ApubCommunityOutbox {
-  /// ActivityPub `OrderedCollectionPage` for `GET /c/{name}/outbox?page=...`.
+  /// ActivityPub `OrderedCollectionPage` for `GET /c/{name}/outbox?page={cursor}`.
   ///
-  /// `page` is `true` for the first page, or a `PaginationCursor` string for later pages.
+  /// `page` is a `PaginationCursor`. The first page is the collection itself (no query).
   pub(crate) async fn read_local_page(
     owner: &ApubCommunity,
     data: &Data<LemmyContext>,
     page: &str,
   ) -> LemmyResult<GroupOutboxPage> {
-    let page_cursor = if page == OUTBOX_FIRST_PAGE {
-      None
-    } else {
-      Some(PaginationCursor(page.to_owned()))
-    };
-    let posts = list_outbox_posts(owner, data, page_cursor).await?;
+    let posts = list_outbox_posts(owner, data, Some(PaginationCursor(page.to_owned()))).await?;
     let collection_id = outbox_collection_id(owner)?;
     let next = posts
       .next_page
@@ -87,7 +79,10 @@ impl Collection for ApubCommunityOutbox {
       r#type: OrderedCollectionType::OrderedCollection,
       id: id.clone(),
       total_items: owner.posts,
-      first: Some(outbox_page_url(&id, OUTBOX_FIRST_PAGE)),
+      next: posts
+        .next_page
+        .as_ref()
+        .map(|cursor| outbox_page_url(&id, &cursor.0)),
       ordered_items,
     })
   }
