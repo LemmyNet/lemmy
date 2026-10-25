@@ -99,7 +99,7 @@ impl AnnounceActivity {
     Ok(AnnounceActivity {
       actor: community.id().clone().into(),
       to: generate_to(community)?,
-      object: IdOrNestedObject::NestedObject(object),
+      object: vec![IdOrNestedObject::NestedObject(object)],
       cc: community
         .followers_url
         .clone()
@@ -159,21 +159,26 @@ impl Activity for AnnounceActivity {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    let object: AnnouncableActivities = self.object.dereference(context).await?.try_into()?;
+    match self.object.as_slice() {
+      [one] => {
+        let object: AnnouncableActivities = one.dereference(context).await?.try_into()?;
 
-    // This is only for sending, not receiving so we reject it.
-    if let AnnouncableActivities::Page(_) = object {
-      return Err(UntranslatedError::CannotReceivePage.into());
+        // This is only for sending, not receiving so we reject it.
+        if let AnnouncableActivities::Page(_) = object {
+          return Err(UntranslatedError::CannotReceivePage.into());
+        }
+
+        let community = object.community(context).await?;
+        verify_urls_match(community.ap_id.inner(), self.actor.inner())?;
+        verify_visibility(&self.to, &self.cc, &community)?;
+        can_accept_activity_in_community(&Some(community), context).await?;
+
+        // verify here in order to avoid fetching the object twice over http
+        object.verify(context).await?;
+        object.receive(context).await
+      }
+      _ => Err(LemmyErrorType::Unknown("Batched announce is not supported yet".to_string()).into()),
     }
-
-    let community = object.community(context).await?;
-    verify_urls_match(community.ap_id.inner(), self.actor.inner())?;
-    verify_visibility(&self.to, &self.cc, &community)?;
-    can_accept_activity_in_community(&Some(community), context).await?;
-
-    // verify here in order to avoid fetching the object twice over http
-    object.verify(context).await?;
-    object.receive(context).await
   }
 }
 
