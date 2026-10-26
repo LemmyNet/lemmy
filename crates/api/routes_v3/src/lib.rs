@@ -19,6 +19,7 @@ use crate::handlers::{
   login_v3,
   logout_v3,
   mark_all_notifications_read_v3,
+  read_person_v3,
   register_v3,
   resolve_object_v3,
   save_comment_v3,
@@ -107,6 +108,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
       .service(
         scope("/user")
           .wrap(rate_limit.message())
+          .route("", get().to(read_person_v3))
           .route("/logout", post().to(logout_v3))
           .route("/unread_count", get().to(unread_count_v3))
           .route("/block", post().to(block_person_v3))
