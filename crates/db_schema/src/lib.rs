@@ -155,6 +155,7 @@ pub enum NotificationTypeFilter {
   #[default]
   All,
   #[serde(untagged)]
+  #[cfg_attr(feature = "ts-rs", ts(inline))]
   Other(NotificationType),
 }
 
@@ -169,6 +170,7 @@ pub enum ModlogKindFilter {
   #[default]
   All,
   #[serde(untagged)]
+  #[cfg_attr(feature = "ts-rs", ts(inline))]
   Other(ModlogKind),
 }
 
