@@ -29,8 +29,10 @@ use lemmy_api::{
   community::{block::user_block_community, follow::follow_community},
   federation::{
     list_comments::list_comments,
+    list_person_content::list_person_content,
     list_posts::list_posts,
     read_community::get_community,
+    read_person::read_person,
     resolve_object::resolve_object,
     search::search,
   },
@@ -79,6 +81,8 @@ use lemmy_api_019::{
   lemmy_db_views_actor::structs::CommunityModeratorView as CommunityModeratorViewV3,
   person::{
     BlockPersonResponse as BlockPersonResponseV3,
+    GetPersonDetails as GetPersonDetailsV3,
+    GetPersonDetailsResponse as GetPersonDetailsResponseV3,
     GetRepliesResponse as GetRepliesResponseV3,
     GetUnreadCountResponse as GetUnreadCountResponseV3,
     LoginResponse as LoginResponseV3,
@@ -107,7 +111,10 @@ use lemmy_api_crud::{
   user::{create::register, my_user::get_my_user},
 };
 use lemmy_api_utils::context::LemmyContext;
-use lemmy_db_schema_file::newtypes::{CommentId, CommunityId, LanguageId, PostId};
+use lemmy_db_schema_file::{
+  PersonId,
+  newtypes::{CommentId, CommunityId, LanguageId, PostId},
+};
 use lemmy_db_views_comment::api::{
   CreateComment,
   CreateCommentLike,
@@ -123,7 +130,8 @@ use lemmy_db_views_community::api::{
   ListCommunities,
 };
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_db_views_person::api::BlockPerson;
+use lemmy_db_views_person::api::{BlockPerson, GetPersonDetails};
+use lemmy_db_views_person_content_combined::ListPersonContent;
 use lemmy_db_views_post::api::{
   CreatePost,
   CreatePostLike,
@@ -133,6 +141,7 @@ use lemmy_db_views_post::api::{
   GetPosts,
   SavePost,
 };
+use lemmy_db_views_post_comment_combined::PostCommentCombinedView;
 use lemmy_db_views_registration_applications::api::Register;
 use lemmy_db_views_report_combined::api::{CreateCommentReport, CreatePostReport};
 use lemmy_db_views_site::api::{GetSiteResponse, Login, ResolveObject, Search};
@@ -551,6 +560,64 @@ pub(crate) async fn get_community_v3(
       })
       .collect(),
     discussion_languages: convert_language_ids(res.discussion_languages),
+  }))
+}
+
+pub(crate) async fn read_person_v3(
+  data: Query<GetPersonDetailsV3>,
+  context: ApubData<LemmyContext>,
+  local_user_view: Option<LocalUserView>,
+) -> LemmyResult<Json<GetPersonDetailsResponseV3>> {
+  let GetPersonDetailsV3 {
+    person_id,
+    username,
+    limit,
+    community_id,
+    ..
+  } = data.0;
+  let data = GetPersonDetails {
+    person_id: person_id.map(|id| PersonId(id.0)),
+    username: username.clone(),
+  };
+  let res = read_person(Query(data), context.clone(), local_user_view.clone())
+    .await?
+    .0;
+  let content = list_person_content(
+    Query(ListPersonContent {
+      type_: None,
+      person_id: person_id.map(|id| PersonId(id.0)),
+      username: username.clone(),
+      community_id: community_id.map(|id| CommunityId(id.0)),
+      community_name: None,
+      page_cursor: None,
+      limit,
+    }),
+    context,
+    local_user_view,
+  )
+  .await?
+  .0;
+  let mut posts = vec![];
+  let mut comments = vec![];
+  for item in content.items {
+    match item {
+      PostCommentCombinedView::Post(pv) => posts.push(convert_post_view(pv)),
+      PostCommentCombinedView::Comment(cv) => comments.push(convert_comment_view(cv)),
+    }
+  }
+  Ok(Json(GetPersonDetailsResponseV3 {
+    person_view: convert_person_view(res.person_view),
+    site: res.site.map(convert_site),
+    comments,
+    posts,
+    moderates: res
+      .moderates
+      .into_iter()
+      .map(|m| CommunityModeratorViewV3 {
+        community: convert_community(m.community),
+        moderator: convert_person(m.moderator).0,
+      })
+      .collect(),
   }))
 }
 
