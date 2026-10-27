@@ -20,7 +20,7 @@ use std::{
   ops::{Deref, DerefMut},
   time::Duration,
 };
-use tracing::error;
+use tracing::{error, info};
 
 pub type ActualDbPool = Pool<AsyncPgConnection>;
 
@@ -127,6 +127,11 @@ macro_rules! try_join_with_pool {
 
 pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
   let db_url = SETTINGS.get_database_url_with_options()?;
+  if db_url.contains("sslmode=require") {
+    info!("PostgreSQL connection: TLS enabled (sslmode=require)");
+  } else {
+    info!("PostgreSQL connection: TLS disabled");
+  }
   // diesel-async does not support any TLS connections out of the box, so we need to manually
   // provide a setup function which handles creating the connection
   let mut config = ManagerConfig::default();
@@ -166,10 +171,21 @@ pub fn build_db_pool_for_tests() -> ActualDbPool {
   build_db_pool().expect("db pool missing")
 }
 
+fn sslmode_require(url: &str) -> bool {
+  url.contains("sslmode=require")
+}
+
 fn establish_connection(config: &str) -> BoxFuture<'_, ConnectionResult<AsyncPgConnection>> {
   let fut = async {
-    // We only support TLS with sslmode=require currently
-    let conn = if config.contains("sslmode=require") {
+    // We only support TLS with sslmode=require currently. Check both the rewritten URL and the
+    // original admin config so a dropped query param cannot silently fall back to plaintext.
+    let require_tls = sslmode_require(config) || sslmode_require(&SETTINGS.get_database_url());
+    let conn = if require_tls {
+      if !sslmode_require(config) {
+        return Err(ConnectionError::BadConnection(
+          "sslmode=require was configured but missing from the rewritten database URL".into(),
+        ));
+      }
       let root_store =
         rustls::RootCertStore::from_iter(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
 
