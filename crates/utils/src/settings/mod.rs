@@ -4,6 +4,7 @@ use deser_hjson::from_str;
 use std::{env, fs, sync::LazyLock};
 use structs::{PictrsConfig, Settings};
 use url::Url;
+use urlencoding::encode;
 
 pub mod structs;
 
@@ -102,26 +103,24 @@ fn inject_postgres_connection_options(
 
   // Set `lemmy.protocol_and_hostname` so triggers can use it
   let hostname_option = format!("lemmy.protocol_and_hostname={protocol_and_hostname}");
+  // Encode each option ourselves. `Url::set_query` and `query_pairs_mut` would either drop
+  // existing params or encode `=` a second time (`%253D`), which Postgres does not decode back
+  // to `=`. libpq requires the equals signs to arrive as `%3D`.
+  // https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING
   let options_segments = CONNECTION_OPTIONS
     .iter()
     .copied()
     .chain(std::iter::once(hostname_option.as_str()))
-    .map(|o| format!("-c {o}"))
+    .map(|o| format!("-c {}", encode(o)))
     .collect::<Vec<_>>()
     .join(" ");
 
-  // Append to the existing query string instead of replacing it. `Url::set_query` would
-  // drop admin-configured params such as `sslmode=require`.
-  // https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING
-  url
-    .query_pairs_mut()
-    .append_pair("options", &options_segments);
-  let result = url.to_string();
-
-  if database_url.contains("sslmode=require") && !result.contains("sslmode=require") {
-    return Err(anyhow!("sslmode=require was dropped from the database connection URL").into());
-  }
-  Ok(result)
+  let query = match url.query() {
+    Some(existing) => format!("{existing}&options={options_segments}"),
+    None => format!("options={options_segments}"),
+  };
+  url.set_query(Some(&query));
+  Ok(url.to_string())
 }
 #[expect(clippy::expect_used)]
 /// Necessary to avoid URL expect failures
@@ -152,6 +151,8 @@ mod tests {
       "sslmode=require must survive options injection: {url}"
     );
     assert!(url.contains("options="), "options= must be appended: {url}");
+    assert!(url.contains("%3D"), "{url}");
+    assert!(!url.contains("%253D"), "{url}");
     Ok(())
   }
 
@@ -164,6 +165,9 @@ mod tests {
     assert!(url.contains("options="), "{url}");
     assert!(url.contains("geqo_threshold"), "{url}");
     assert!(url.contains("lemmy.protocol_and_hostname"), "{url}");
+    // libpq expects a single percent-encoding of `=` inside `options`.
+    assert!(url.contains("%3D"), "{url}");
+    assert!(!url.contains("%253D"), "{url}");
     Ok(())
   }
 }
