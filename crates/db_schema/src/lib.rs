@@ -154,9 +154,27 @@ pub enum PersonListingType {
 pub enum NotificationTypeFilter {
   #[default]
   All,
-  #[serde(untagged)]
-  #[cfg_attr(feature = "ts-rs", ts(inline))]
-  Other(NotificationType),
+  Mention,
+  Reply,
+  Subscribed,
+  PrivateMessage,
+  ModAction,
+}
+
+// A necessary extension due to tsoa / OpenAPI spec issues with union enums.
+// See https://github.com/LemmyNet/lemmy-js-client/issues/1039
+impl From<NotificationTypeFilter> for NotificationType {
+  fn from(value: NotificationTypeFilter) -> Self {
+    match value {
+      // All is ignored, and handled by the API
+      NotificationTypeFilter::All => Self::Mention,
+      NotificationTypeFilter::Mention => Self::Mention,
+      NotificationTypeFilter::Reply => Self::Reply,
+      NotificationTypeFilter::Subscribed => Self::Subscribed,
+      NotificationTypeFilter::PrivateMessage => Self::PrivateMessage,
+      NotificationTypeFilter::ModAction => Self::ModAction,
+    }
+  }
 }
 
 #[derive(
@@ -169,9 +187,59 @@ pub enum NotificationTypeFilter {
 pub enum ModlogKindFilter {
   #[default]
   All,
-  #[serde(untagged)]
-  #[cfg_attr(feature = "ts-rs", ts(inline))]
-  Other(ModlogKind),
+  AdminAdd,
+  AdminBan,
+  AdminAllowInstance,
+  AdminBlockInstance,
+  AdminPurgeComment,
+  AdminPurgeCommunity,
+  AdminPurgePerson,
+  AdminPurgePost,
+  ModAddToCommunity,
+  ModBanFromCommunity,
+  AdminFeaturePostSite,
+  ModFeaturePostCommunity,
+  ModChangeCommunityVisibility,
+  ModLockPost,
+  ModRemoveComment,
+  AdminRemoveCommunity,
+  ModRemovePost,
+  ModTransferCommunity,
+  ModLockComment,
+  ModWarnComment,
+  ModWarnPost,
+}
+
+// A necessary extension due to tsoa / OpenAPI spec issues with union enums.
+// See https://github.com/LemmyNet/lemmy-js-client/issues/1039
+impl From<ModlogKindFilter> for ModlogKind {
+  fn from(value: ModlogKindFilter) -> Self {
+    match value {
+      // All is ignored, and handled by the API
+      ModlogKindFilter::All => Self::AdminAdd,
+      ModlogKindFilter::AdminAdd => Self::AdminAdd,
+      ModlogKindFilter::AdminBan => Self::AdminBan,
+      ModlogKindFilter::AdminAllowInstance => Self::AdminAllowInstance,
+      ModlogKindFilter::AdminBlockInstance => Self::AdminBlockInstance,
+      ModlogKindFilter::AdminPurgeComment => Self::AdminPurgeComment,
+      ModlogKindFilter::AdminPurgeCommunity => Self::AdminPurgeCommunity,
+      ModlogKindFilter::AdminPurgePerson => Self::AdminPurgePerson,
+      ModlogKindFilter::AdminPurgePost => Self::AdminPurgePost,
+      ModlogKindFilter::ModAddToCommunity => Self::ModAddToCommunity,
+      ModlogKindFilter::ModBanFromCommunity => Self::ModBanFromCommunity,
+      ModlogKindFilter::AdminFeaturePostSite => Self::AdminFeaturePostSite,
+      ModlogKindFilter::ModFeaturePostCommunity => Self::ModFeaturePostCommunity,
+      ModlogKindFilter::ModChangeCommunityVisibility => Self::ModChangeCommunityVisibility,
+      ModlogKindFilter::ModLockPost => Self::ModLockPost,
+      ModlogKindFilter::ModRemoveComment => Self::ModRemoveComment,
+      ModlogKindFilter::AdminRemoveCommunity => Self::AdminRemoveCommunity,
+      ModlogKindFilter::ModRemovePost => Self::ModRemovePost,
+      ModlogKindFilter::ModTransferCommunity => Self::ModTransferCommunity,
+      ModlogKindFilter::ModLockComment => Self::ModLockComment,
+      ModlogKindFilter::ModWarnComment => Self::ModWarnComment,
+      ModlogKindFilter::ModWarnPost => Self::ModWarnPost,
+    }
+  }
 }
 
 #[derive(EnumString, Display, Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]

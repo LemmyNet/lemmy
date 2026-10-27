@@ -128,9 +128,7 @@ async fn test_private_message() -> LemmyResult<()> {
 
   // But when filtering by the private message type, it should include your own messages also
   let notifs = NotificationQuery {
-    type_: Some(NotificationTypeFilter::Other(
-      NotificationType::PrivateMessage,
-    )),
+    type_: Some(NotificationTypeFilter::PrivateMessage),
     ..NotificationQuery::default()
   }
   .list(pool, &data.alice)
@@ -140,9 +138,7 @@ async fn test_private_message() -> LemmyResult<()> {
   // Bob filter should be only the messages between you and bob
   let notifs = NotificationQuery {
     creator_id: Some(data.bob.id),
-    type_: Some(NotificationTypeFilter::Other(
-      NotificationType::PrivateMessage,
-    )),
+    type_: Some(NotificationTypeFilter::PrivateMessage),
     ..NotificationQuery::default()
   }
   .list(pool, &data.alice)
