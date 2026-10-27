@@ -6,7 +6,12 @@ use crate::{
     deletion::{delete::Delete, undo_delete::UndoDelete},
   },
 };
-use activitypub_federation::{config::Data, kinds::activity::UndoType, traits::Activity};
+use activitypub_federation::{
+  config::Data,
+  kinds::activity::UndoType,
+  protocol::verification::verify_urls_match,
+  traits::Activity,
+};
 use lemmy_api_utils::{context::LemmyContext, notify::notify_mod_action};
 use lemmy_apub_objects::objects::person::ApubPerson;
 use lemmy_db_schema::source::{
@@ -35,6 +40,7 @@ impl Activity for UndoDelete {
 
   async fn verify(&self, context: &Data<Self::DataType>) -> Result<(), Self::Error> {
     let object = self.object.dereference(context).await?;
+    verify_urls_match(self.actor.inner(), object.actor.inner())?;
     object.verify(context).await?;
     verify_delete_activity(&object, object.summary.is_some(), context).await?;
     Ok(())
