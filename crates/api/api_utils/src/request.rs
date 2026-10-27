@@ -3,7 +3,7 @@ use crate::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::proxy_image_link,
 };
-use activitypub_federation::config::Data;
+use activitypub_federation::{config::Data, resolver::ValidatingDnsResolver};
 use chrono::{DateTime, Utc};
 use encoding_rs::{Encoding, UTF_8};
 use futures::StreamExt;
@@ -47,11 +47,25 @@ pub fn client_builder(settings: &Settings) -> ClientBuilder {
     settings.get_protocol_and_hostname()
   );
 
+  // Validate resolved IPs on every connection to prevent SSRF and DNS rebinding attacks.
+  // Allow local requests to pictrs and the local domain, including on the actual ports.
+  let mut allow_hosts = vec![];
+  if let Ok(url) = settings.get_protocol_and_hostname().parse::<Url>() {
+    allow_hosts.push(url);
+  }
+  if let Ok(pictrs) = settings.pictrs() {
+    allow_hosts.push(pictrs.url);
+  }
+
   Client::builder()
     .user_agent(user_agent.clone())
     .timeout(REQWEST_TIMEOUT)
     .connect_timeout(REQWEST_TIMEOUT)
     .redirect(Policy::none())
+    .dns_resolver(ValidatingDnsResolver::new(
+      allow_hosts,
+      !cfg!(debug_assertions),
+    ))
 }
 
 /// Fetches metadata for the given link and optionally generates thumbnail.
