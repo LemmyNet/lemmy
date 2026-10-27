@@ -88,10 +88,7 @@ impl Settings {
 
   /// Sets a few additional config options necessary for starting lemmy
   pub fn get_database_url_with_options(&self) -> LemmyResult<String> {
-    inject_postgres_connection_options(
-      &self.get_database_url(),
-      &self.get_protocol_and_hostname(),
-    )
+    inject_postgres_connection_options(&self.get_database_url(), &self.get_protocol_and_hostname())
   }
 }
 
@@ -122,9 +119,7 @@ fn inject_postgres_connection_options(
   let result = url.to_string();
 
   if database_url.contains("sslmode=require") && !result.contains("sslmode=require") {
-    return Err(
-      anyhow!("sslmode=require was dropped from the database connection URL").into(),
-    );
+    return Err(anyhow!("sslmode=require was dropped from the database connection URL").into());
   }
   Ok(result)
 }
