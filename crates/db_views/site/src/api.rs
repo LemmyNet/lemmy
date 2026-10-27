@@ -352,6 +352,8 @@ pub struct GetSiteResponse {
   pub admin_oauth_providers: Vec<AdminOAuthProvider>,
   pub blocked_urls: Vec<LocalSiteUrlBlocklist>,
   pub active_plugins: Vec<PluginMetadata>,
+  /// JWT for authenticated RSS feeds (readonly)
+  pub my_feed_token: Option<SensitiveString>,
   /// The number of seconds between the last application published, and approved / denied time.
   ///
   /// Useful for estimating when your application will be approved.
