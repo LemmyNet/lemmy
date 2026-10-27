@@ -324,6 +324,7 @@ pub enum CommunityNotificationsMode {
   ExistingTypePath = "crate::schema::sql_types::NotificationTypeEnum"
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 /// Types of notifications which can be received in inbox
 pub enum NotificationType {
   // Necessary for enumstring
@@ -343,6 +344,7 @@ pub enum NotificationType {
   ExistingTypePath = "crate::schema::sql_types::ModlogKind"
 )]
 #[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 /// A list of possible types for the various modlog actions.
 pub enum ModlogKind {
   // Necessary for enumstring
