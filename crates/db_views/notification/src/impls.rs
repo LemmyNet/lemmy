@@ -151,11 +151,7 @@ impl NotificationQuery {
           // The recipient filter (IE only show replies to you)
           .filter(notification::recipient_id.eq(my_person.id))
           .filter(notification::read.eq(false));
-      } else if self.type_
-        == Some(NotificationTypeFilter::Other(
-          NotificationType::PrivateMessage,
-        ))
-      {
+      } else if self.type_ == Some(NotificationTypeFilter::PrivateMessage) {
         // A special case for private messages: show messages FROM you also.
         // Use a not-null check to catch the others
         query = query.filter(
@@ -174,18 +170,14 @@ impl NotificationQuery {
       if let Some(type_) = self.type_ {
         query = match type_ {
           NotificationTypeFilter::All => query,
-          NotificationTypeFilter::Other(kind) => query.filter(notification::kind.eq(kind)),
+          _ => query.filter(notification::kind.eq(NotificationType::from(type_))),
         }
       }
 
       // The creator_id filter
       // For private messages, to create a conversation view, also include your own messages to them
       if let Some(creator_id) = self.creator_id {
-        if self.type_
-          == Some(NotificationTypeFilter::Other(
-            NotificationType::PrivateMessage,
-          ))
-        {
+        if self.type_ == Some(NotificationTypeFilter::PrivateMessage) {
           query = query.filter(
             // Them to me
             notification::recipient_id
