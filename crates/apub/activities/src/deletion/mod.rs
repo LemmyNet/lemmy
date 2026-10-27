@@ -232,7 +232,7 @@ pub(crate) async fn verify_delete_activity(
     DeletableObjects::Person(person) => {
       verify_is_public(&activity.to, &[])?;
       verify_person(&activity.actor, context).await?;
-      verify_domains_match(activity.actor.inner(), &person.id())?;
+      verify_domains_match(activity.actor.inner(), person.id())?;
     }
     DeletableObjects::Post(p) => {
       let community = activity.community(context).await?;
