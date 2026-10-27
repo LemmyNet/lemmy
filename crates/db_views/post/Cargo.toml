@@ -50,5 +50,5 @@ lemmy_db_views_local_user = { workspace = true }
 serial_test = { workspace = true }
 tokio = { workspace = true }
 pretty_assertions = { workspace = true }
-test-context = "0.5.5"
+test-context = "0.5.8"
 diesel-uplete.workspace = true

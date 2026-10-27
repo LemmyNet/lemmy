@@ -114,6 +114,22 @@ pub async fn create_community(
     featured_url: Some(generate_featured_url(&ap_id)?),
     posting_restricted_to_mods: data.posting_restricted_to_mods,
     visibility: data.visibility,
+    post_upvotes: Some(data.post_upvotes.unwrap_or(local_site.default_post_upvotes)),
+    post_downvotes: Some(
+      data
+        .post_downvotes
+        .unwrap_or(local_site.default_post_downvotes),
+    ),
+    comment_upvotes: Some(
+      data
+        .comment_upvotes
+        .unwrap_or(local_site.default_comment_upvotes),
+    ),
+    comment_downvotes: Some(
+      data
+        .comment_downvotes
+        .unwrap_or(local_site.default_comment_downvotes),
+    ),
     ..CommunityInsertForm::new(site.instance_id, data.name.clone(), keypair.public_key)
   };
 

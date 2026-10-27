@@ -32,7 +32,7 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
-  enums::{FederationMode, ImageMode, RegistrationMode},
+  enums::{CommunityFollowerState, ImageMode, RegistrationMode, VoteSettings},
   newtypes::{CommunityId, CommunityTagId, ModlogId, PostId, PostOrCommentId},
 };
 use lemmy_db_views_community_follower_approval::PendingFollowerView;
@@ -69,11 +69,9 @@ use lemmy_utils::{
 use moka::future::Cache;
 use regex::{Regex, RegexSet, escape};
 use std::{collections::HashSet, sync::LazyLock};
-use totp_rs::{Secret, TOTP};
-use tracing::Instrument;
+use totp_rs::{Secret, Totp};
 use url::{ParseError, Url};
 use urlencoding::encode;
-use webmention::{Webmention, WebmentionError};
 
 pub const AUTH_COOKIE_NAME: &str = "jwt";
 
@@ -207,7 +205,7 @@ pub fn check_email_verified(
 }
 
 pub fn generate_totp_2fa_secret() -> String {
-  Secret::generate_secret().to_string()
+  Secret::generate().to_string()
 }
 
 /// Check the given TOTP token against the user's secret, if they have 2FA enabled.
@@ -228,7 +226,7 @@ pub fn check_totp_2fa_valid(
 
   let totp = build_totp_2fa(site_name, &local_user_view.person.name, secret)?;
 
-  let check_passed = totp.check_current(token)?;
+  let check_passed = totp.check_current(token).is_some();
   if !check_passed {
     return Err(LemmyErrorType::IncorrectTotpToken.into());
   }
@@ -236,22 +234,16 @@ pub fn check_totp_2fa_valid(
   Ok(())
 }
 
-pub fn build_totp_2fa(hostname: &str, username: &str, secret: &str) -> LemmyResult<TOTP> {
-  let sec = Secret::Raw(secret.as_bytes().to_vec());
-  let sec_bytes = sec
-    .to_bytes()
-    .with_lemmy_type(LemmyErrorType::CouldntParseTotpSecret)?;
+pub fn build_totp_2fa(hostname: &str, username: &str, secret: &str) -> LemmyResult<Totp> {
+  let sec = Secret::new(secret.as_bytes().into());
+  let sec_bytes = sec.as_bytes();
 
-  TOTP::new(
-    totp_rs::Algorithm::SHA1,
-    6,
-    1,
-    30,
-    sec_bytes,
-    Some(hostname.to_string()),
-    username.to_string(),
-  )
-  .with_lemmy_type(LemmyErrorType::CouldntGenerateTotp)
+  totp_rs::Builder::new()
+    .with_secret(sec_bytes)
+    .with_issuer(Some(hostname.to_string()))
+    .with_account_name(username.to_string())
+    .build()
+    .with_lemmy_type(LemmyErrorType::CouldntGenerateTotp)
 }
 
 pub async fn check_registration_application(
@@ -345,33 +337,56 @@ pub fn check_comment_deleted_or_removed(comment: &Comment) -> LemmyResult<()> {
   }
 }
 
-pub async fn check_local_vote_mode(
-  is_upvote: Option<bool>,
+/// Checks whether a vote is allowed according to the community's vote settings.
+/// If the vote isn't allowed, any previous vote on the item is removed and an error is returned.
+pub async fn check_vote_settings(
+  vote: Option<bool>,
   post_or_comment_id: PostOrCommentId,
-  local_site: &LocalSite,
-  person_id: PersonId,
+  community: &Community,
+  person: &Person,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
-  let (downvote_setting, upvote_setting) = match post_or_comment_id {
-    PostOrCommentId::Post(_) => (local_site.post_downvotes, local_site.post_upvotes),
-    PostOrCommentId::Comment(_) => (local_site.comment_downvotes, local_site.comment_upvotes),
+  // Vote removal with None is always allowed
+  let Some(is_upvote) = vote else {
+    return Ok(());
   };
 
-  let downvote_fail = is_upvote == Some(false) && downvote_setting == FederationMode::Disable;
-  let upvote_fail = is_upvote == Some(true) && upvote_setting == FederationMode::Disable;
+  let (downvote_mode, upvote_mode) = match post_or_comment_id {
+    PostOrCommentId::Post(_) => (community.post_downvotes, community.post_upvotes),
+    PostOrCommentId::Comment(_) => (community.comment_downvotes, community.comment_upvotes),
+  };
+
+  let mut vote_allowed = async |vote_mode: VoteSettings| {
+    Ok::<bool, LemmyError>(match vote_mode {
+      VoteSettings::All => true,
+      VoteSettings::Local => person.local,
+      VoteSettings::Subscribed => {
+        let actions = CommunityActions::read(pool, community.id, person.id).await?;
+        actions.followed_at.is_some()
+          && actions.follow_state == Some(CommunityFollowerState::Accepted)
+      }
+      VoteSettings::Disable => false,
+    })
+  };
+  let allowed = if is_upvote {
+    vote_allowed(upvote_mode).await?
+  } else {
+    vote_allowed(downvote_mode).await?
+  };
 
   // Undo previous vote for item if new vote fails
-  if downvote_fail || upvote_fail {
+  if !allowed {
     match post_or_comment_id {
       PostOrCommentId::Post(post_id) => {
-        let form = PostLikeForm::new(post_id, person_id, None);
+        let form = PostLikeForm::new(post_id, person.id, None);
         PostActions::like(pool, &form).await?;
       }
       PostOrCommentId::Comment(comment_id) => {
-        let form = CommentLikeForm::new(comment_id, person_id, None);
+        let form = CommentLikeForm::new(comment_id, person.id, None);
         CommentActions::like(pool, &form).await?;
       }
     };
+    return Err(UntranslatedError::VoteNotAllowed.into());
   }
   Ok(())
 }
@@ -1026,29 +1041,6 @@ pub fn read_auth_token(req: &HttpRequest) -> LemmyResult<Option<String>> {
   else {
     Ok(None)
   }
-}
-
-pub fn send_webmention(post: Post, community: &Community, context: Data<LemmyContext>) {
-  if let Some(url) = post.url.clone()
-    && community.visibility.can_view_without_login()
-  {
-    spawn_try_task(async move {
-      if context.is_valid_ip(&url).await.is_err() {
-        return Ok(());
-      }
-      let mut webmention = Webmention::new::<Url>(post.ap_id.clone().into(), url.clone().into())?;
-      webmention.set_checked(true);
-      match webmention
-        .send()
-        .instrument(tracing::info_span!("Sending webmention"))
-        .await
-      {
-        Err(WebmentionError::NoEndpointDiscovered(_)) => Ok(()),
-        Ok(_) => Ok(()),
-        Err(e) => Err(e).with_lemmy_type(UntranslatedError::CouldntSendWebmention.into()),
-      }
-    });
-  };
 }
 
 /// Returns error if new comment exceeds maximum depth.

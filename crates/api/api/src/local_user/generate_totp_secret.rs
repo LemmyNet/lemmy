@@ -23,7 +23,7 @@ pub async fn generate_totp_secret(
   }
 
   let secret = generate_totp_2fa_secret();
-  let secret_url = build_totp_2fa(&site.name, &local_user_view.person.name, &secret)?.get_url();
+  let secret_url = build_totp_2fa(&site.name, &local_user_view.person.name, &secret)?.to_url()?;
 
   let local_user_form = LocalUserUpdateForm {
     totp_2fa_secret: Some(Some(secret)),

@@ -80,7 +80,7 @@ get_first = "deny"
 implicit_clone = "deny"
 indexing_slicing = "deny"
 inefficient_to_string = "deny"
-items-after-statements = "deny"
+items_after_statements = "deny"
 manual_string_new = "deny"
 needless_collect = "deny"
 perf = { level = "deny", priority = -1 }
@@ -107,6 +107,9 @@ redundant_type_annotations = "deny"
 if_then_some_else_none = "deny"
 allow_attributes = "deny"
 unchecked_time_subtraction = "deny"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
 
 [workspace.dependencies]
 lemmy_api = { version = "=1.0.0-beta.2", path = "./crates/api/api" }
@@ -148,21 +151,21 @@ lemmy_db_views_report_combined_sql = { version = "=1.0.0-beta.2", path = "./crat
 lemmy_db_views_site = { version = "=1.0.0-beta.2", path = "./crates/db_views/site" }
 lemmy_db_views_vote = { version = "=1.0.0-beta.2", path = "./crates/db_views/vote" }
 lemmy_db_views_local_user_invite = { version = "=1.0.0-beta.2", path = "./crates/db_views/local_user_invite" }
-activitypub_federation = { path = "../activitypub-federation-rust", default-features = false, features = [
+activitypub_federation = { git = "https://github.com/LemmyNet/activitypub-federation-rust.git", branch = "improve-ip-validation", default-features = false, features = [
   "actix-web",
 ] }
-diesel = { version = "2.3.7", features = [
+diesel = { version = "2.3.14", features = [
   "64-column-tables",
   "chrono",
   "postgres",
   "serde_json",
   "uuid",
 ] }
-diesel_migrations = "2.3.1"
-diesel-async = "0.8.0"
-serde = { version = "1.0.228", features = ["derive"] }
-serde_with = "3.18.0"
-actix-web = { version = "4.13.0", default-features = false, features = [
+diesel_migrations = "2.3.2"
+diesel-async = "0.9.2"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_with = "3.24.0"
+actix-web = { version = "4.18.1", default-features = false, features = [
   "compress-brotli",
   "compress-gzip",
   "compress-zstd",
@@ -171,65 +174,66 @@ actix-web = { version = "4.13.0", default-features = false, features = [
   "rustls-0_23",
 ] }
 tracing = { version = "0.1.44", default-features = false }
-tracing-actix-web = { version = "0.7.21", default-features = false }
+tracing-actix-web = { version = "0.7.25", default-features = false }
 tracing-subscriber = { version = "0.3.23", features = ["env-filter", "json"] }
 url = { version = "2.5.8", features = ["serde"] }
-reqwest = { version = "0.13.2", default-features = false, features = [
+reqwest = { version = "0.13.5", default-features = false, features = [
   "gzip",
   "json",
   "form",
   "rustls-no-provider",
 ] }
-reqwest-middleware = { version = "0.5.1", features = ["form", "query"] }
-reqwest-tracing = "0.7.0"
+reqwest-middleware = { version = "0.5.2", features = ["form", "query"] }
+reqwest-tracing = "0.7.1"
 clokwerk = "0.4.0"
-doku = { version = "0.21.1", features = ["url-2"] }
-bcrypt = "0.19.0"
-chrono = { version = "0.4.44", features = [
+doku = { version = "0.22.0", features = ["url-2"] }
+bcrypt = "0.19.3"
+chrono = { version = "0.4.45", features = [
   "now",
   "serde",
 ], default-features = false }
-serde_json = { version = "1.0.149", features = ["preserve_order"] }
-base64 = "0.22.1"
-rand = "0.10.0"
-uuid = { version = "1.22.0", features = ["serde"] }
-anyhow = { version = "1.0.102", features = ["backtrace"] }
+serde_json = { version = "1.0.154", features = ["preserve_order"] }
+base64 = "0.23.1"
+rand = "0.10.3"
+uuid = { version = "1.29.0", features = ["serde"] }
+anyhow = { version = "1.0.104", features = ["backtrace"] }
 diesel_ltree = "0.4.0"
-serial_test = "3.4.0"
-tokio = { version = "1.50.0", features = ["full"] }
-regex = "1.12.3"
-diesel-derive-newtype = "2.1.2"
+serial_test = "4.0.1"
+tokio = { version = "1.54.1", features = ["full"] }
+regex = "1.13.1"
+diesel-derive-newtype = "2.1.3"
 diesel-derive-enum = { version = "2.1.0", features = ["postgres"] }
 enum-map = { version = "2.7" }
 strum = { version = "0.28.0", features = ["derive"] }
-itertools = "0.14.0"
-futures = "0.3.32"
-futures-util = "0.3.32"
-http = "1.4"
-rosetta-i18n = "0.1.3"
+itertools = "0.15.0"
+futures = "0.3.34"
+futures-util = "0.3.34"
+http = "1.5"
+rosetta-i18n = "0.1.4"
 ts-rs = { version = "12.0.1", features = [
   "chrono-impl",
   "no-serde-warnings",
   "url-impl",
 ] }
-rustls = { version = "0.23.37", features = ["ring"], default-features = false }
-tokio-postgres = "0.7.16"
-tokio-postgres-rustls = "0.13.0"
+rustls = { version = "0.23.46", features = ["ring"], default-features = false }
+webpki-roots = "1.0.11"
+tokio-postgres = "0.7.18"
+tokio-postgres-rustls = "0.14.0"
 urlencoding = "2.1.3"
-moka = { version = "0.12.15", features = ["future"] }
+moka = { version = "0.12.16", features = ["future"] }
 i-love-jesus = { version = "0.3.0" }
-clap = { version = "4.6.0", features = ["derive", "env"] }
+clap = { version = "4.6.7", features = ["derive", "env"] }
 pretty_assertions = "1.4.1"
 derive-new = "0.7.0"
-html2text = "0.16.7"
-async-trait = "0.1.89"
-either = { version = "1.15.0", features = ["serde"] }
-extism = { version = "1.20.0", default-features = false, features = [
+html2text = "0.17.4"
+async-trait = "0.1.92"
+either = { version = "1.19.0", features = ["serde"] }
+extism = { version = "1.41.0", default-features = false, features = [
   "http",
   "register-filesystem",
   "register-http",
 ] }
-extism-convert = "1.20.0"
+extism-convert = "1.41.0"
 unified-diff = "0.2.1"
 diesel-uplete = { version = "0.2.0" }
 

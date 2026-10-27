@@ -44,7 +44,7 @@ tokio = { workspace = true, features = ["full"] }
 serde.workspace = true
 tracing.workspace = true
 moka.workspace = true
-tokio-util = "0.7.18"
+tokio-util = "0.7.20"
 lemmy_diesel_utils = { workspace = true }
 
 [dev-dependencies]
@@ -53,8 +53,8 @@ url.workspace = true
 actix-web.workspace = true
 tracing-test = "0.2.6"
 uuid.workspace = true
-test-context = "0.5.5"
-mockall = "0.14.0"
+test-context = "0.5.8"
+mockall = "0.15.0"
 
 [lib]
 doctest = false
