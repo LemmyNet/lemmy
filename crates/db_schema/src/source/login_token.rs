@@ -27,6 +27,7 @@ pub struct LoginToken {
   pub ip: Option<String>,
   pub user_agent: Option<String>,
   /// If true, this token is only for RSS feed endpoints (max one per user)
+  #[serde(skip)]
   pub feed_only: bool,
 }
 
