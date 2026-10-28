@@ -11,8 +11,9 @@ use lemmy_db_schema_file::{
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   sensitive::SensitiveString,
+  traits::Crud,
 };
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult, UntranslatedError};
 
 impl LoginToken {
   pub async fn create(pool: &mut DbPool<'_>, form: LoginTokenCreateForm) -> LemmyResult<Self> {
@@ -56,34 +57,19 @@ impl LoginToken {
       .with_lemmy_type(LemmyErrorType::NotFound)
   }
 
-  /// Returns existing feed-only token for the user, or inserts new one. Always use the returned
-  /// token, as the one passed in may be dropped.
-  pub async fn get_or_create_feed_only(
+  /// Returns existing feed-only token for the user, if any.
+  pub async fn read_feed_only(
     pool: &mut DbPool<'_>,
     user_id_: LocalUserId,
-    token_: SensitiveString,
-  ) -> LemmyResult<Self> {
+  ) -> LemmyResult<Option<Self>> {
     let conn = &mut get_conn(pool).await?;
-    if let Some(existing) = login_token
+    login_token
       .filter(user_id.eq(user_id_))
       .filter(feed_only.eq(true))
       .first::<Self>(conn)
       .await
-      .optional()?
-    {
-      return Ok(existing);
-    }
-    insert_into(login_token)
-      .values(LoginTokenCreateForm {
-        token: token_,
-        user_id: user_id_,
-        ip: None,
-        user_agent: None,
-        feed_only: true,
-      })
-      .get_result::<Self>(conn)
-      .await
-      .with_lemmy_type(LemmyErrorType::CouldntCreate)
+      .optional()
+      .map_err(Into::into)
   }
 
   /// Invalidate specific token on user logout.
@@ -94,7 +80,6 @@ impl LoginToken {
       .await
       .with_lemmy_type(LemmyErrorType::Deleted)
   }
-
   /// Invalidate all logins of given user on password reset/change, or account deletion.
   /// Feed-only tokens are kept so that existing RSS feed urls keep working.
   pub async fn invalidate_all(pool: &mut DbPool<'_>, user_id_: LocalUserId) -> LemmyResult<usize> {
@@ -107,6 +92,26 @@ impl LoginToken {
     .execute(conn)
     .await
     .with_lemmy_type(LemmyErrorType::Deleted)
+  }
+}
+
+impl Crud for LoginToken {
+  type InsertForm = LoginTokenCreateForm;
+  type UpdateForm = LoginTokenCreateForm;
+  type IdType = SensitiveString;
+
+  /// Use [[LoginToken::create]]
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> LemmyResult<Self> {
+    LoginToken::create(pool, form.clone()).await
+  }
+
+  /// Login tokens cannot be updated.
+  async fn update(
+    _pool: &mut DbPool<'_>,
+    _token: Self::IdType,
+    _form: &Self::UpdateForm,
+  ) -> LemmyResult<Self> {
+    Err(UntranslatedError::Unreachable.into())
   }
 }
 
@@ -150,6 +155,27 @@ mod tests {
         ip: None,
         user_agent: None,
         feed_only: false,
+      },
+    )
+    .await
+  }
+
+  async fn get_or_create_feed_only(
+    pool: &mut DbPool<'_>,
+    user_id: lemmy_db_schema_file::newtypes::LocalUserId,
+    token: SensitiveString,
+  ) -> LemmyResult<LoginToken> {
+    if let Some(existing) = LoginToken::read_feed_only(pool, user_id).await? {
+      return Ok(existing);
+    }
+    LoginToken::create(
+      pool,
+      LoginTokenCreateForm {
+        token,
+        user_id,
+        ip: None,
+        user_agent: None,
+        feed_only: true,
       },
     )
     .await

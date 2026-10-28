@@ -30,7 +30,7 @@ pub struct LoginToken {
   pub feed_only: bool,
 }
 
-#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", derive(Clone, Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = login_token))]
 pub struct LoginTokenCreateForm {
   pub token: SensitiveString,

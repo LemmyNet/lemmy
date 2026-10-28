@@ -89,14 +89,24 @@ impl Claims {
     Ok(token)
   }
 
-  pub async fn generate_feed_only(
+  pub async fn get_or_generate_feed_only(
     user_id: LocalUserId,
     context: &LemmyContext,
   ) -> LemmyResult<SensitiveString> {
+    let pool = &mut context.pool();
+    if let Some(token) = LoginToken::read_feed_only(pool, user_id).await? {
+      return Ok(token.token);
+    }
     let token = Claims::generate_token(user_id, context, DateTime::<Utc>::MAX_UTC)?;
-    LoginToken::get_or_create_feed_only(&mut context.pool(), user_id, token)
-      .await
-      .map(|t| t.token)
+    let form = LoginTokenCreateForm {
+      token: token.clone(),
+      user_id,
+      ip: None,
+      user_agent: None,
+      feed_only: true,
+    };
+    LoginToken::create(pool, form).await?;
+    Ok(token)
   }
 }
 
