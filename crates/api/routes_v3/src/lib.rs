@@ -30,7 +30,10 @@ use crate::handlers::{
   update_post_v3,
 };
 use actix_web::{guard, web::*};
-use lemmy_api::local_user::mark_donation_dialog_shown::mark_donation_dialog_shown;
+use lemmy_api::local_user::{
+  mark_donation_dialog_shown::mark_donation_dialog_shown,
+  validate_auth::validate_auth,
+};
 use lemmy_utils::rate_limit::RateLimit;
 
 mod convert;
@@ -116,6 +119,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
             "/mark_all_as_read",
             post().to(mark_all_notifications_read_v3),
           )
+          .route("/validate_auth", get().to(validate_auth))
           .route(
             "/donation_dialog_shown",
             post().to(mark_donation_dialog_shown),
