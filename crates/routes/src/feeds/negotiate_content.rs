@@ -13,7 +13,7 @@ pub(crate) async fn get_lang_or_negotiate(
   let jwt = read_auth_token(req)?;
 
   let lang = if let Some(jwt) = jwt {
-    let local_user_view = local_user_view_from_jwt(&jwt, context).await?;
+    let local_user_view = local_user_view_from_jwt(&jwt, context, true).await?;
     user_language(&local_user_view.local_user)
   } else if req.headers().contains_key(ACCEPT_LANGUAGE) {
     negotiate_lang(req).unwrap_or(Lang::En)

@@ -316,7 +316,7 @@ async fn get_feed_front(
 ) -> Result<HttpResponse, Error> {
   let jwt: String = req.match_info().get("jwt").unwrap_or("none").parse()?;
   let site_view = SiteView::read_local(&mut context.pool()).await?;
-  let local_user = local_user_view_from_jwt(&jwt, &context).await?;
+  let local_user = local_user_view_from_jwt(&jwt, &context, true).await?;
   let lang = user_language(&local_user.local_user);
 
   check_private_instance(&Some(local_user.clone()), &site_view.local_site)?;
@@ -379,7 +379,7 @@ async fn get_feed_notifs(
 ) -> Result<HttpResponse, Error> {
   let jwt: String = req.match_info().get("jwt").unwrap_or("none").parse()?;
   let site_view = SiteView::read_local(&mut context.pool()).await?;
-  let local_user = local_user_view_from_jwt(&jwt, &context).await?;
+  let local_user = local_user_view_from_jwt(&jwt, &context, true).await?;
   let show_bot_accounts = Some(local_user.local_user.show_bot_accounts);
   let lang = user_language(&local_user.local_user);
 
@@ -410,7 +410,7 @@ async fn get_feed_modlog(
 ) -> Result<HttpResponse, Error> {
   let jwt: String = req.match_info().get("jwt").unwrap_or("none").parse()?;
   let site_view = SiteView::read_local(&mut context.pool()).await?;
-  let local_user = local_user_view_from_jwt(&jwt, &context).await?;
+  let local_user = local_user_view_from_jwt(&jwt, &context, true).await?;
   let lang = user_language(&local_user.local_user);
   check_private_instance(&Some(local_user.clone()), &site_view.local_site)?;
 

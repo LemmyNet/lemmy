@@ -1018,8 +1018,9 @@ fn build_proxied_image_url(
 pub async fn local_user_view_from_jwt(
   jwt: &str,
   context: &LemmyContext,
+  feed_only: bool,
 ) -> LemmyResult<LocalUserView> {
-  let local_user_id = Claims::validate(jwt, context)
+  let local_user_id = Claims::validate(jwt, context, feed_only)
     .await
     .with_lemmy_type(LemmyErrorType::NotLoggedIn)?;
   let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id).await?;

@@ -566,6 +566,7 @@ diesel::table! {
         published_at -> Timestamptz,
         ip -> Nullable<Text>,
         user_agent -> Nullable<Text>,
+        feed_only -> Bool,
     }
 }
 
