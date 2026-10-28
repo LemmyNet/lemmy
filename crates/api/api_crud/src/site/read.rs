@@ -34,10 +34,10 @@ pub async fn get_site(
   }
 
   // Return the feed-only token so the frontend can generate RSS feed urls
-  site_response.my_feed_token = match &local_user_view {
-    Some(l) => Some(Claims::get_or_generate_feed_only(l.local_user.id, &context).await?),
-    None => None,
-  };
+  if let Some(l) = &local_user_view {
+    site_response.my_feed_token =
+      Some(Claims::get_or_generate_feed_only(l.local_user.id, &context).await?);
+  }
 
   Ok(Json(site_response))
 }

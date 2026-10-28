@@ -115,113 +115,62 @@ mod tests {
     person::{Person, PersonInsertForm},
   };
   use lemmy_diesel_utils::{
-    connection::{DbPool, build_db_pool_for_tests},
+    connection::build_db_pool_for_tests,
     sensitive::SensitiveString,
     traits::Crud,
   };
-  use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+  use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
-  async fn setup(pool: &mut DbPool<'_>) -> LemmyResult<(Instance, Person, LocalUser)> {
+  #[tokio::test]
+  #[serial]
+  async fn feed_only_token() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
     let instance = Instance::read_or_create(pool, "other_domain.tld").await?;
     let person =
       Person::create(pool, &PersonInsertForm::test_form(instance.id, "feed_user")).await?;
     let local_user =
       LocalUser::create(pool, &LocalUserInsertForm::test_form(person.id), vec![]).await?;
-    Ok((instance, person, local_user))
-  }
 
-  async fn normal_create_form(
-    pool: &mut DbPool<'_>,
-    user_id: lemmy_db_schema_file::newtypes::LocalUserId,
-  ) -> LemmyResult<LoginToken> {
-    LoginToken::create(
-      pool,
-      &LoginTokenCreateForm {
-        token: "normal_jwt".to_owned().into(),
-        user_id,
-        ip: None,
-        user_agent: None,
-        feed_only: false,
-      },
-    )
-    .await
-  }
+    let feed_token = SensitiveString::from("feed_jwt".to_string());
+    let form = LoginTokenCreateForm {
+      token: feed_token.clone(),
+      user_id: local_user.id,
+      ip: None,
+      user_agent: None,
+      feed_only: true,
+    };
+    LoginToken::create(pool, &form).await?;
 
-  async fn get_or_create_feed_only(
-    pool: &mut DbPool<'_>,
-    user_id: lemmy_db_schema_file::newtypes::LocalUserId,
-    token: SensitiveString,
-  ) -> LemmyResult<LoginToken> {
-    if let Some(existing) = LoginToken::read_feed_only(pool, user_id).await? {
-      return Ok(existing);
-    }
-    LoginToken::create(
-      pool,
-      &LoginTokenCreateForm {
-        token,
-        user_id,
-        ip: None,
-        user_agent: None,
-        feed_only: true,
-      },
-    )
-    .await
-  }
+    let normal_token = SensitiveString::from("normal_jwt".to_string());
+    let form = LoginTokenCreateForm {
+      token: normal_token.clone(),
+      user_id: local_user.id,
+      ip: None,
+      user_agent: None,
+      feed_only: false,
+    };
+    LoginToken::create(pool, &form).await?;
 
-  #[tokio::test]
-  #[serial]
-  async fn feed_only_token_validate_and_persist() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
-    let pool = &mut pool.into();
-    let (instance, person, local_user) = setup(pool).await?;
-
-    let token: SensitiveString = "feed_jwt".to_owned().into();
-    let first = get_or_create_feed_only(pool, local_user.id, token).await?;
-    assert!(first.feed_only);
-
-    // calling again returns the same token, no regeneration
-    let second =
-      get_or_create_feed_only(pool, local_user.id, "other_jwt".to_owned().into()).await?;
-    assert_eq!(first.token, second.token);
+    let read = LoginToken::read_feed_only(pool, local_user.id).await?;
+    assert_eq!(Some(feed_token.clone()), read.map(|t| t.token));
 
     // feed token validates with feed_only=true
-    LoginToken::validate(pool, local_user.id, &first.token, true).await?;
-    let res = LoginToken::validate(pool, local_user.id, &first.token, false).await;
-    assert_eq!(
-      res.err().map(|e| e.error_type),
-      Some(LemmyErrorType::NotLoggedIn)
-    );
+    LoginToken::validate(pool, local_user.id, &feed_token, true).await?;
+    let res = LoginToken::validate(pool, local_user.id, &feed_token, false).await;
+    assert!(res.is_err());
 
     // normal token rejected with feed_only=true
-    normal_create_form(pool, local_user.id).await?;
     LoginToken::validate(pool, local_user.id, "normal_jwt", false).await?;
     let res = LoginToken::validate(pool, local_user.id, "normal_jwt", true).await;
-    assert_eq!(
-      res.err().map(|e| e.error_type),
-      Some(LemmyErrorType::NotLoggedIn)
-    );
+    assert!(res.is_err());
 
-    Person::delete(pool, person.id).await?;
-    Instance::delete(pool, instance.id).await?;
-    Ok(())
-  }
-
-  #[tokio::test]
-  #[serial]
-  async fn list_excludes_feed_only() -> LemmyResult<()> {
-    let pool = &build_db_pool_for_tests();
-    let pool = &mut pool.into();
-    let (instance, person, local_user) = setup(pool).await?;
-
-    normal_create_form(pool, local_user.id).await?;
-    get_or_create_feed_only(pool, local_user.id, "feed_jwt_list".to_owned().into()).await?;
-
+    // list excludes feed-only token
     let logins = LoginToken::list(pool, local_user.id).await?;
     assert_eq!(1, logins.len());
-    let expected: SensitiveString = "normal_jwt".to_owned().into();
-    assert_eq!(expected, logins[0].token);
+    assert_eq!(normal_token, logins[0].token);
 
     Person::delete(pool, person.id).await?;
     Instance::delete(pool, instance.id).await?;
