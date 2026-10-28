@@ -15,8 +15,12 @@ use lemmy_diesel_utils::{
 };
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult, UntranslatedError};
 
-impl LoginToken {
-  pub async fn create(pool: &mut DbPool<'_>, form: LoginTokenCreateForm) -> LemmyResult<Self> {
+impl Crud for LoginToken {
+  type InsertForm = LoginTokenCreateForm;
+  type UpdateForm = LoginTokenCreateForm;
+  type IdType = SensitiveString;
+
+  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     insert_into(login_token)
       .values(form)
@@ -25,6 +29,16 @@ impl LoginToken {
       .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
+  async fn update(
+    _pool: &mut DbPool<'_>,
+    _token: Self::IdType,
+    _form: &Self::UpdateForm,
+  ) -> LemmyResult<Self> {
+    Err(UntranslatedError::Unreachable.into())
+  }
+}
+
+impl LoginToken {
   /// Check if the given token is valid for user. `feed_only` must match the type of the
   /// stored token, so that feed-only tokens are rejected for normal api calls and vice versa.
   pub async fn validate(
@@ -95,26 +109,6 @@ impl LoginToken {
   }
 }
 
-impl Crud for LoginToken {
-  type InsertForm = LoginTokenCreateForm;
-  type UpdateForm = LoginTokenCreateForm;
-  type IdType = SensitiveString;
-
-  /// Use [[LoginToken::create]]
-  async fn create(pool: &mut DbPool<'_>, form: &Self::InsertForm) -> LemmyResult<Self> {
-    LoginToken::create(pool, form.clone()).await
-  }
-
-  /// Login tokens cannot be updated.
-  async fn update(
-    _pool: &mut DbPool<'_>,
-    _token: Self::IdType,
-    _form: &Self::UpdateForm,
-  ) -> LemmyResult<Self> {
-    Err(UntranslatedError::Unreachable.into())
-  }
-}
-
 #[cfg(test)]
 #[expect(clippy::indexing_slicing)]
 mod tests {
@@ -149,7 +143,7 @@ mod tests {
   ) -> LemmyResult<LoginToken> {
     LoginToken::create(
       pool,
-      LoginTokenCreateForm {
+      &LoginTokenCreateForm {
         token: "normal_jwt".to_owned().into(),
         user_id,
         ip: None,
@@ -170,7 +164,7 @@ mod tests {
     }
     LoginToken::create(
       pool,
-      LoginTokenCreateForm {
+      &LoginTokenCreateForm {
         token,
         user_id,
         ip: None,
@@ -189,13 +183,12 @@ mod tests {
     let (instance, person, local_user) = setup(pool).await?;
 
     let token: SensitiveString = "feed_jwt".to_owned().into();
-    let first = LoginToken::get_or_create_feed_only(pool, local_user.id, token).await?;
+    let first = get_or_create_feed_only(pool, local_user.id, token).await?;
     assert!(first.feed_only);
 
     // calling again returns the same token, no regeneration
     let second =
-      LoginToken::get_or_create_feed_only(pool, local_user.id, "other_jwt".to_owned().into())
-        .await?;
+      get_or_create_feed_only(pool, local_user.id, "other_jwt".to_owned().into()).await?;
     assert_eq!(first.token, second.token);
 
     // feed token validates with feed_only=true
@@ -228,8 +221,7 @@ mod tests {
     let (instance, person, local_user) = setup(pool).await?;
 
     normal_create_form(pool, local_user.id).await?;
-    LoginToken::get_or_create_feed_only(pool, local_user.id, "feed_jwt_list".to_owned().into())
-      .await?;
+    get_or_create_feed_only(pool, local_user.id, "feed_jwt_list".to_owned().into()).await?;
 
     let logins = LoginToken::list(pool, local_user.id).await?;
     assert_eq!(1, logins.len());

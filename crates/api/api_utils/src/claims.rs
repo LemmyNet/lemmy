@@ -4,7 +4,7 @@ use chrono::{DateTime, Duration, Utc};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use lemmy_db_schema::source::login_token::{LoginToken, LoginTokenCreateForm};
 use lemmy_db_schema_file::newtypes::LocalUserId;
-use lemmy_diesel_utils::sensitive::SensitiveString;
+use lemmy_diesel_utils::{sensitive::SensitiveString, traits::Crud};
 use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
 use serde::{Deserialize, Serialize};
 
@@ -85,7 +85,7 @@ impl Claims {
       user_agent,
       feed_only: false,
     };
-    LoginToken::create(&mut context.pool(), form).await?;
+    LoginToken::create(&mut context.pool(), &form).await?;
     Ok(token)
   }
 
@@ -105,7 +105,7 @@ impl Claims {
       user_agent: None,
       feed_only: true,
     };
-    LoginToken::create(pool, form).await?;
+    LoginToken::create(pool, &form).await?;
     Ok(token)
   }
 }
