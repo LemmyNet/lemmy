@@ -95,17 +95,12 @@ impl LoginToken {
       .with_lemmy_type(LemmyErrorType::Deleted)
   }
   /// Invalidate all logins of given user on password reset/change, or account deletion.
-  /// Feed-only tokens are kept so that existing RSS feed urls keep working.
   pub async fn invalidate_all(pool: &mut DbPool<'_>, user_id_: LocalUserId) -> LemmyResult<usize> {
     let conn = &mut get_conn(pool).await?;
-    delete(
-      login_token
-        .filter(user_id.eq(user_id_))
-        .filter(feed_only.eq(false)),
-    )
-    .execute(conn)
-    .await
-    .with_lemmy_type(LemmyErrorType::Deleted)
+    delete(login_token.filter(user_id.eq(user_id_)))
+      .execute(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::Deleted)
   }
 }
 
