@@ -3320,6 +3320,7 @@ dependencies = [
  "lemmy_db_schema_file",
  "lemmy_db_views_comment",
  "lemmy_db_views_community",
+ "lemmy_db_views_custom_emoji",
  "lemmy_db_views_local_user",
  "lemmy_db_views_person",
  "lemmy_db_views_person_content_combined",
@@ -3328,8 +3329,10 @@ dependencies = [
  "lemmy_db_views_registration_applications",
  "lemmy_db_views_report_combined",
  "lemmy_db_views_site",
+ "lemmy_db_views_vote",
  "lemmy_diesel_utils",
  "lemmy_utils 1.0.0-beta.3",
+ "serde_json",
  "url",
 ]
 
