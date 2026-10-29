@@ -21,6 +21,7 @@ workspace = true
 default = []
 
 [dependencies]
+serde_json = { workspace = true }
 lemmy_api = { workspace = true }
 lemmy_api_crud = { workspace = true }
 lemmy_db_schema = { workspace = true }
@@ -36,6 +37,8 @@ chrono = { workspace = true }
 url = { workspace = true }
 lemmy_api_019 = { package = "lemmy_api_common", version = "0.19.20" }
 lemmy_db_views_comment = { workspace = true, features = ["full"] }
+lemmy_db_views_custom_emoji = { workspace = true }
+lemmy_db_views_vote = { workspace = true }
 lemmy_db_views_community = { workspace = true, features = ["full"] }
 lemmy_db_views_person = { workspace = true, features = ["full"] }
 lemmy_db_views_person_content_combined = { workspace = true }
