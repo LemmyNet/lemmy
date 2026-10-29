@@ -58,6 +58,7 @@ use lemmy_api_019::{
 use lemmy_api_utils::plugins::LemmyPlugins;
 use lemmy_db_schema::{
   CommunitySortType,
+  SearchType,
   source::{
     comment::Comment,
     community::Community,
@@ -834,6 +835,19 @@ pub(crate) fn convert_community_listing_sort(
     SortTypeV3::TopSixMonths => top(6 * MONTH),
     SortTypeV3::TopNineMonths => top(9 * MONTH),
     SortTypeV3::TopYear => top(YEAR),
+  }
+}
+
+pub(crate) fn convert_search_type(
+  search_type: Option<SearchTypeV3>,
+) -> Option<SearchType> {
+  match search_type {
+    Some(SearchTypeV3::All) => Some(SearchType::All),
+    Some(SearchTypeV3::Comments) => Some(SearchType::Comments),
+    Some(SearchTypeV3::Posts) => Some(SearchType::Posts),
+    Some(SearchTypeV3::Communities) => Some(SearchType::Communities),
+    Some(SearchTypeV3::Users) => Some(SearchType::Users),
+    Some(SearchTypeV3::Url) | None => None,
   }
 }
 

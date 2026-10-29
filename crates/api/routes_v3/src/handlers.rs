@@ -19,6 +19,7 @@ use crate::convert::{
   convert_resolve_object_response,
   convert_score,
   convert_search_response,
+  convert_search_type,
   convert_site,
   convert_site_view,
 };
@@ -76,6 +77,7 @@ use lemmy_api_019::{
   },
   lemmy_db_views::structs::{
     CommentReportView as CommentReportViewV3,
+    PaginationCursor as V3PaginationCursor,
     PostReportView as PostReportViewV3,
   },
   lemmy_db_views_actor::structs::CommunityModeratorView as CommunityModeratorViewV3,
@@ -145,6 +147,7 @@ use lemmy_db_views_post_comment_combined::PostCommentCombinedView;
 use lemmy_db_views_registration_applications::api::Register;
 use lemmy_db_views_report_combined::api::{CreateCommentReport, CreatePostReport};
 use lemmy_db_views_site::api::{GetSiteResponse, Login, ResolveObject, Search};
+use lemmy_diesel_utils::pagination::PaginationCursor;
 use lemmy_utils::error::LemmyResult;
 
 pub(crate) async fn get_post_v3(
@@ -180,6 +183,7 @@ pub(crate) async fn list_posts_v3(
     type_,
     sort,
     page,
+    page_cursor,
     ..
   } = datav3.0;
   let (sort, time_range_seconds) = convert_post_listing_sort(sort);
@@ -192,14 +196,15 @@ pub(crate) async fn list_posts_v3(
     show_hidden,
     show_read,
     show_nsfw,
+    page_cursor: page_cursor.map(|c| PaginationCursor(c.0)),
     page,
     limit,
     ..Default::default()
   };
   let res = list_posts(Query(data), context, local_user_view).await?.0;
   Ok(Json(GetPostsResponseV3 {
-    posts: res.into_iter().map(convert_post_view).collect(),
-    next_page: None,
+    posts: res.items.into_iter().map(convert_post_view).collect(),
+    next_page: res.next_page.map(|c| V3PaginationCursor(c.0)),
   }))
 }
 
@@ -394,12 +399,24 @@ pub(crate) async fn search_v3(
   let SearchV3 {
     type_,
     q: search_term,
+    community_id,
+    community_name,
+    creator_id,
+    sort,
+    limit,
     post_title_only: title_only,
     ..
   } = data;
+  let time_range_seconds = convert_post_listing_sort(sort).1;
   let form = Search {
     search_term,
+    community_id: community_id.map(|id| CommunityId(id.0)),
+    community_name,
+    creator_id: creator_id.map(|id| PersonId(id.0)),
+    limit,
+    time_range_seconds,
     title_only,
+    type_: convert_search_type(type_),
     ..Default::default()
   };
   let data = Box::pin(search(Query(form), context, local_user_view)).await?;
