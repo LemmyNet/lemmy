@@ -1033,10 +1033,7 @@ pub(crate) async fn mark_post_as_read_v3(
 ) -> LemmyResult<Json<PostResponseV3>> {
   let post_ids: Vec<PostId> = data.post_ids.iter().map(|id| PostId(id.0)).collect();
   PostActions::mark_as_read(&mut context.pool(), local_user_view.person.id, &post_ids).await?;
-  let last = post_ids
-    .last()
-    .copied()
-    .ok_or(lemmy_utils::error::LemmyErrorType::NoIdGiven)?;
+  let last = post_ids.last().copied().ok_or(LemmyErrorType::NoIdGiven)?;
   let form = GetPost {
     id: Some(last),
     comment_id: None,
@@ -1061,7 +1058,7 @@ pub(crate) async fn hide_post_v3(
     };
     res = Some(hide_post(Json(form), context.clone(), local_user_view.clone()).await?);
   }
-  let res = res.ok_or_else(|| LemmyErrorType::NoIdGiven)?;
+  let res = res.ok_or(LemmyErrorType::NoIdGiven)?;
   convert_post_response(res)
 }
 
