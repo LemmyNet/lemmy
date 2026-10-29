@@ -163,57 +163,60 @@ impl Activity for AnnounceActivity {
     match self.object.as_slice() {
       [one] => {
         let object: AnnouncableActivities = one.dereference(context).await?.try_into()?;
-
-        // This is only for sending, not receiving so we reject it.
-        if let AnnouncableActivities::Page(_) = object {
-          return Err(UntranslatedError::CannotReceivePage.into());
-        }
-
-        let community = object.community(context).await?;
-        verify_urls_match(community.ap_id.inner(), self.actor.inner())?;
-        verify_visibility(&self.to, &self.cc, &community)?;
-        can_accept_activity_in_community(&Some(community), context).await?;
+        checks(&object, &self, context).await?;
 
         // verify here in order to avoid fetching the object twice over http
         object.verify(context).await?;
         object.receive(context).await
       }
-      batch => {
-        let community = self.actor.dereference(context).await?;
-        verify_visibility(&self.to, &self.cc, &community)?;
-        can_accept_activity_in_community(&Some(community.clone()), context).await?;
-        receive_batch(batch, &self.id, &community, context).await
-      }
+      batch => receive_batch(batch, &self, context).await,
     }
   }
 }
 
+async fn checks(
+  object: &AnnouncableActivities,
+  announce: &AnnounceActivity,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<()> {
+  // This is only for sending, not receiving so we reject it.
+  if let AnnouncableActivities::Page(_) = object {
+    return Err(UntranslatedError::CannotReceivePage.into());
+  }
+
+  let community = object.community(context).await?;
+  verify_urls_match(community.ap_id.inner(), announce.actor.inner())?;
+  verify_visibility(&announce.to, &announce.cc, &community)?;
+  can_accept_activity_in_community(&Some(community), context).await
+}
+
 async fn receive_batch(
   batch: &[IdOrNestedObject<RawAnnouncableActivities>],
-  announce_id: &Url,
-  community: &ApubCommunity,
+  announce: &AnnounceActivity,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let mut received = 0;
   for item in batch {
-    match receive_batch_item(item, community, context).await {
+    match receive_batch_item(item, announce, context).await {
       Ok(()) => received += 1,
       Err(e) => debug!(
-        "Skipping activity {} in batch {announce_id}: {e}",
-        item.id()
+        "Skipping activity {} in batch {}: {e}",
+        item.id(),
+        announce.id
       ),
     }
   }
   info!(
-    "Received {received}/{} activities in batch {announce_id}",
-    batch.len()
+    "Received {received}/{} activities in batch {}",
+    batch.len(),
+    announce.id
   );
   Ok(())
 }
 
 async fn receive_batch_item(
   item: &IdOrNestedObject<RawAnnouncableActivities>,
-  community: &ApubCommunity,
+  announce: &AnnounceActivity,
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let raw = item.dereference(context).await?;
@@ -227,8 +230,7 @@ async fn receive_batch_item(
   if !is_receivable_in_batch(&activity) {
     return Err(UntranslatedError::CannotReceiveActivityTypeInBatch(kind).into());
   }
-  let activity_community = activity.community(context).await?;
-  verify_urls_match(activity_community.ap_id.inner(), community.ap_id.inner())?;
+  checks(&activity, announce, context).await?;
   activity.verify(context).await?;
   activity.receive(context).await
 }
