@@ -2,6 +2,8 @@ use actix_web::web::Json;
 use chrono::Utc;
 use lemmy_api_019::{
   comment::CommentResponse as CommentResponseV3,
+  community::CommunityResponse as CommunityResponseV3,
+  custom_emoji::CustomEmojiResponse as CustomEmojiResponseV3,
   lemmy_db_schema::{
     CommentSortType as CommentSortTypeV3,
     ListingType as ListingTypeV3,
@@ -19,6 +21,7 @@ use lemmy_api_019::{
     newtypes::{
       CommentId as CommentIdV3,
       CommunityId as CommunityIdV3,
+      CustomEmojiId as V3CustomEmojiId,
       DbUrl as DbUrlV3,
       InstanceId,
       LanguageId as LanguageIdV3,
@@ -31,6 +34,8 @@ use lemmy_api_019::{
     source::{
       comment::Comment as CommentV3,
       community::Community as CommunityV3,
+      custom_emoji::CustomEmoji as CustomEmojiV3,
+      custom_emoji_keyword::CustomEmojiKeyword as CustomEmojiKeywordV3,
       local_site::LocalSite as LocalSiteV3,
       local_site_rate_limit::LocalSiteRateLimit as LocalSiteRateLimitV3,
       local_user::LocalUser as LocalUserV3,
@@ -42,9 +47,11 @@ use lemmy_api_019::{
   },
   lemmy_db_views::structs::{
     CommentView as CommentViewV3,
+    CustomEmojiView as CustomEmojiViewV3,
     LocalUserView as LocalUserViewV3,
     PostView as PostViewV3,
     SiteView as SiteViewV3,
+    VoteView as VoteViewV3,
   },
   lemmy_db_views_actor::structs::{CommunityView as CommunityViewV3, PersonView as PersonViewV3},
   person::LoginResponse as LoginResponseV3,
@@ -58,6 +65,7 @@ use lemmy_api_019::{
 use lemmy_api_utils::plugins::LemmyPlugins;
 use lemmy_db_schema::{
   CommunitySortType,
+  SearchType,
   source::{
     comment::Comment,
     community::Community,
@@ -73,7 +81,8 @@ use lemmy_db_schema_file::{
   newtypes::LanguageId,
 };
 use lemmy_db_views_comment::{CommentView, api::CommentResponse};
-use lemmy_db_views_community::CommunityView;
+use lemmy_db_views_community::{CommunityView, api::CommunityResponse};
+use lemmy_db_views_custom_emoji::{CustomEmojiView, api::CustomEmojiResponse};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::PersonView;
 use lemmy_db_views_post::{PostView, api::PostResponse};
@@ -82,7 +91,8 @@ use lemmy_db_views_site::{
   SiteView,
   api::{LoginResponse, MyUserInfo, SearchResponse},
 };
-use lemmy_diesel_utils::{dburl::DbUrl, sensitive::SensitiveString};
+use lemmy_db_views_vote::VoteView;
+use lemmy_diesel_utils::{dburl::DbUrl, pagination::PagedResponse, sensitive::SensitiveString};
 use lemmy_utils::error::LemmyResult;
 use std::sync::LazyLock;
 use url::Url;
@@ -837,6 +847,17 @@ pub(crate) fn convert_community_listing_sort(
   }
 }
 
+pub(crate) fn convert_search_type(search_type: Option<SearchTypeV3>) -> Option<SearchType> {
+  match search_type {
+    Some(SearchTypeV3::All) => Some(SearchType::All),
+    Some(SearchTypeV3::Comments) => Some(SearchType::Comments),
+    Some(SearchTypeV3::Posts) => Some(SearchType::Posts),
+    Some(SearchTypeV3::Communities) => Some(SearchType::Communities),
+    Some(SearchTypeV3::Users) => Some(SearchType::Users),
+    Some(SearchTypeV3::Url) | None => None,
+  }
+}
+
 pub(crate) fn convert_listing_type(listing_type: ListingTypeV3) -> ListingType {
   match listing_type {
     ListingTypeV3::All => ListingType::All,
@@ -845,6 +866,23 @@ pub(crate) fn convert_listing_type(listing_type: ListingTypeV3) -> ListingType {
     ListingTypeV3::ModeratorView => ListingType::ModeratorView,
   }
 }
+pub(crate) fn convert_community_response(
+  res: Json<CommunityResponse>,
+) -> LemmyResult<Json<CommunityResponseV3>> {
+  Ok(Json(CommunityResponseV3 {
+    community_view: convert_community_view(res.0.community_view),
+    discussion_languages: convert_language_ids(res.0.discussion_languages),
+  }))
+}
+
+pub(crate) fn convert_custom_emoji_response(
+  res: CustomEmojiResponse,
+) -> LemmyResult<Json<CustomEmojiResponseV3>> {
+  Ok(Json(CustomEmojiResponseV3 {
+    custom_emoji: convert_custom_emoji_view(res.custom_emoji),
+  }))
+}
+
 pub(crate) fn convert_post_response(res: Json<PostResponse>) -> LemmyResult<Json<PostResponseV3>> {
   Ok(Json(PostResponseV3 {
     post_view: convert_post_view(res.0.post_view),
@@ -874,4 +912,43 @@ pub(crate) fn convert_login_response(res: LoginResponse) -> LemmyResult<Json<Log
     registration_created,
     verify_email_sent,
   }))
+}
+
+pub(crate) fn convert_votes_to_v3(votes: Json<PagedResponse<VoteView>>) -> Vec<VoteViewV3> {
+  votes
+    .0
+    .items
+    .into_iter()
+    .map(|v| VoteViewV3 {
+      creator: convert_person(v.creator).0,
+      creator_banned_from_community: v.creator_banned_from_community,
+      score: if v.is_upvote { 1 } else { -1 },
+    })
+    .collect()
+}
+
+pub(crate) fn convert_custom_emoji_view(emoji: CustomEmojiView) -> CustomEmojiViewV3 {
+  CustomEmojiViewV3 {
+    custom_emoji: CustomEmojiV3 {
+      id: V3CustomEmojiId(emoji.custom_emoji.id.0),
+      local_site_id: Default::default(),
+      shortcode: emoji.custom_emoji.shortcode,
+      image_url: {
+        let url: Url = emoji.custom_emoji.image_url.into();
+        url.into()
+      },
+      alt_text: emoji.custom_emoji.alt_text,
+      category: emoji.custom_emoji.category,
+      published: emoji.custom_emoji.published_at,
+      updated: emoji.custom_emoji.updated_at,
+    },
+    keywords: emoji
+      .keywords
+      .into_iter()
+      .map(|k| CustomEmojiKeywordV3 {
+        custom_emoji_id: V3CustomEmojiId(k.custom_emoji_id.0),
+        keyword: k.keyword,
+      })
+      .collect(),
+  }
 }

@@ -20,7 +20,7 @@ use std::{
   ops::{Deref, DerefMut},
   time::Duration,
 };
-use tracing::error;
+use tracing::{debug, error};
 
 pub type ActualDbPool = Pool<AsyncPgConnection>;
 
@@ -127,6 +127,11 @@ macro_rules! try_join_with_pool {
 
 pub fn build_db_pool() -> LemmyResult<ActualDbPool> {
   let db_url = SETTINGS.get_database_url_with_options()?;
+  if db_url.contains("sslmode=require") {
+    debug!("PostgreSQL connection: TLS enabled (sslmode=require)");
+  } else {
+    debug!("PostgreSQL connection: TLS disabled");
+  }
   // diesel-async does not support any TLS connections out of the box, so we need to manually
   // provide a setup function which handles creating the connection
   let mut config = ManagerConfig::default();

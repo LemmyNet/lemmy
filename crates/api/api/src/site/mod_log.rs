@@ -178,7 +178,7 @@ mod tests {
     // Verify that their posts and comments are removed.
     // Posts
     let post_modlog = ModlogQuery {
-      type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemovePost)),
+      type_: Some(ModlogKindFilter::ModRemovePost),
       show_bulk: Some(true),
       ..Default::default()
     }
@@ -213,7 +213,7 @@ mod tests {
 
     // Comments
     let comment_modlog = ModlogQuery {
-      type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemoveComment)),
+      type_: Some(ModlogKindFilter::ModRemoveComment),
       show_bulk: Some(true),
       ..Default::default()
     }
@@ -283,7 +283,7 @@ mod tests {
 
     // Posts
     let post_modlog = ModlogQuery {
-      type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemovePost)),
+      type_: Some(ModlogKindFilter::ModRemovePost),
       show_bulk: Some(true),
       ..Default::default()
     }
@@ -336,7 +336,7 @@ mod tests {
 
     // Comments
     let comment_modlog = ModlogQuery {
-      type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemoveComment)),
+      type_: Some(ModlogKindFilter::ModRemoveComment),
       show_bulk: Some(true),
       ..Default::default()
     }
@@ -449,7 +449,7 @@ mod tests {
     .await?;
 
     let post_modlog = ModlogQuery {
-      type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemovePost)),
+      type_: Some(ModlogKindFilter::ModRemovePost),
       show_bulk: Some(true),
       ..Default::default()
     }
@@ -465,7 +465,7 @@ mod tests {
     );
 
     let comment_modlog = ModlogQuery {
-      type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemoveComment)),
+      type_: Some(ModlogKindFilter::ModRemoveComment),
       show_bulk: Some(true),
       ..Default::default()
     }

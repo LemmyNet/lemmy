@@ -26,13 +26,17 @@ pub struct LoginToken {
   /// Could be stored in truncated format, or store derived information for better privacy.
   pub ip: Option<String>,
   pub user_agent: Option<String>,
+  /// If true, this token is only for RSS feed endpoints (max one per user)
+  #[serde(skip)]
+  pub feed_only: bool,
 }
 
-#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", derive(Clone, Insertable, AsChangeset))]
 #[cfg_attr(feature = "full", diesel(table_name = login_token))]
 pub struct LoginTokenCreateForm {
   pub token: SensitiveString,
   pub user_id: LocalUserId,
   pub ip: Option<String>,
   pub user_agent: Option<String>,
+  pub feed_only: bool,
 }

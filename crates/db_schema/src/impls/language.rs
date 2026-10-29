@@ -1,11 +1,8 @@
 use super::actor_language::UNDETERMINED_ID;
 use crate::{diesel::ExpressionMethods, source::language::Language};
-use diesel::{QueryDsl, dsl::count};
+use diesel::QueryDsl;
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::{
-  newtypes::LanguageId,
-  schema::{language, post},
-};
+use lemmy_db_schema_file::{newtypes::LanguageId, schema::language};
 use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::{
   CacheLock,
@@ -21,13 +18,7 @@ impl Language {
     CACHE
       .try_get_with((), async move {
         let conn = &mut get_conn(pool).await?;
-        language::table
-          .left_join(post::table)
-          .group_by(language::id)
-          .order_by(count(post::id).desc())
-          .select(language::all_columns)
-          .load(conn)
-          .await
+        language::table.load(conn).await
       })
       .await
       .map_err(|_e| LemmyErrorType::NotFound.into())
@@ -74,8 +65,7 @@ mod tests {
 
     let mut all = Language::read_all(pool).await?;
 
-    // Languages are returned in order of popularity, so to make this test work we need to
-    // manually sort them by id.
+    // Languages may have a different sort order, so manually sort them by id just in case.
     all.sort_by_key(|a| a.id.0);
 
     assert_eq!(184, all.len());

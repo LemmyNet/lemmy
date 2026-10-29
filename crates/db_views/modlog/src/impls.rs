@@ -23,7 +23,7 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::{
   PersonId,
   aliases,
-  enums::{CommunityFollowerState, CommunityVisibility, ListingType},
+  enums::{CommunityFollowerState, CommunityVisibility, ListingType, ModlogKind},
   newtypes::{CommentId, CommunityId, ModlogId, PostId},
   schema::{comment, community, community_actions, instance, modlog, person, post},
 };
@@ -152,7 +152,7 @@ impl ModlogQuery<'_> {
     if let Some(type_) = self.type_ {
       query = match type_ {
         ModlogKindFilter::All => query,
-        ModlogKindFilter::Other(kind) => query.filter(modlog::kind.eq(kind)),
+        _ => query.filter(modlog::kind.eq(ModlogKind::from(type_))),
       };
     }
 
@@ -455,9 +455,7 @@ mod tests {
 
     // Filter by type
     let modlog_type_filter = ModlogQuery {
-      type_: Some(ModlogKindFilter::Other(
-        ModlogKind::ModChangeCommunityVisibility,
-      )),
+      type_: Some(ModlogKindFilter::ModChangeCommunityVisibility),
       ..Default::default()
     }
     .list(pool, &data.local_site)
@@ -860,7 +858,7 @@ mod tests {
 
     // Filter by type
     let modlog_type_filter = ModlogQuery {
-      type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemoveComment)),
+      type_: Some(ModlogKindFilter::ModRemoveComment),
       ..Default::default()
     }
     .list(pool, &data.local_site)
@@ -934,7 +932,7 @@ mod tests {
     Modlog::create(pool, &[form]).await?;
 
     let modlog = ModlogQuery {
-      type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemovePost)),
+      type_: Some(ModlogKindFilter::ModRemovePost),
       ..Default::default()
     }
     .list(pool, &data.local_site)
@@ -991,7 +989,7 @@ mod tests {
 
     // show_bulk: Some(true) now includes bulk and non-bulk (show all)
     let all_with_show_true = ModlogQuery {
-      type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemovePost)),
+      type_: Some(ModlogKindFilter::ModRemovePost),
       show_bulk: Some(true),
       ..Default::default()
     }
@@ -1013,7 +1011,7 @@ mod tests {
 
     // show_bulk: Some(false) returns only the non-bulk entry
     let non_bulk = ModlogQuery {
-      type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemovePost)),
+      type_: Some(ModlogKindFilter::ModRemovePost),
       show_bulk: Some(false),
       ..Default::default()
     }
@@ -1024,7 +1022,7 @@ mod tests {
     assert!(non_bulk[0].modlog.bulk_action_parent_id.is_none());
     // show_bulk: None behaves like false (hide bulk) and returns only the non-bulk entry
     let none_behaviour = ModlogQuery {
-      type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemovePost)),
+      type_: Some(ModlogKindFilter::ModRemovePost),
       ..Default::default()
     }
     .list(pool, &data.local_site)

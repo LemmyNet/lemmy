@@ -9,7 +9,7 @@ use activitypub_federation::{
   config::Data,
   fetch::object_id::ObjectId,
   kinds::public,
-  protocol::verification::{verify_domains_match, verify_urls_match},
+  protocol::verification::verify_domains_match,
   traits::{Actor, Object},
 };
 use lemmy_api_utils::{
@@ -232,7 +232,7 @@ pub(crate) async fn verify_delete_activity(
     DeletableObjects::Person(person) => {
       verify_is_public(&activity.to, &[])?;
       verify_person(&activity.actor, context).await?;
-      verify_urls_match(person.ap_id.inner(), activity.object.id())?;
+      verify_domains_match(activity.actor.inner(), person.id())?;
     }
     DeletableObjects::Post(p) => {
       let community = activity.community(context).await?;
