@@ -173,4 +173,11 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           ),
       ),
   );
+
+  // A few additional image redirects.
+  // See https://github.com/LemmyNet/lemmy/issues/6734
+  cfg
+    .service(redirect("/pictrs/image", "/api/v4/image"))
+    .service(redirect("/pictrs/healthz", "/api/v4/health"))
+    .service(redirect("/api/v3/image_proxy", "/api/v4/proxy"));
 }
