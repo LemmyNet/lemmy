@@ -2502,3 +2502,124 @@ async fn scheduled_post_hidden_from_non_creator(data: &mut Data) -> LemmyResult<
   Post::delete(pool, scheduled_post.id).await?;
   Ok(())
 }
+
+#[test_context(Data)]
+#[tokio::test]
+#[serial]
+/// Test to make sure featured locals / featured community are showing in the correct places.
+async fn featured_listings(data: &mut Data) -> LemmyResult<()> {
+  let pool = &data.pool();
+  let pool = &mut pool.into();
+
+  // Create two communities
+  let form = CommunityInsertForm::new(
+    data.instance.id,
+    "test_community_4".to_string(),
+    "pubkey".to_string(),
+  );
+  let community_1 = Community::create(pool, &form).await?;
+
+  let form = CommunityInsertForm::new(
+    data.instance.id,
+    "test_community_5".to_string(),
+    "pubkey".to_string(),
+  );
+
+  let community_2 = Community::create(pool, &form).await?;
+
+  // One featured local post
+  let form = PostInsertForm {
+    featured_local: Some(true),
+    ..PostInsertForm::new(
+      "featured_local_post".to_string(),
+      data.tegan.person.id,
+      community_1.id,
+    )
+  };
+  let _featured_local_post = Post::create(pool, &form).await?;
+
+  // One featured community post
+  let form = PostInsertForm {
+    featured_community: Some(true),
+    ..PostInsertForm::new(
+      "featured_community_post".to_string(),
+      data.tegan.person.id,
+      community_1.id,
+    )
+  };
+  let _featured_community_post = Post::create(pool, &form).await?;
+
+  // A regular post to community 2
+  let form = PostInsertForm::new("post_2".to_string(), data.tegan.person.id, community_2.id);
+  let _post_2 = Post::create(pool, &form).await?;
+
+  // One regular post to community 1
+  let form = PostInsertForm::new(POST.to_string(), data.tegan.person.id, community_1.id);
+  let _regular_post = Post::create(pool, &form).await?;
+
+  // Create a multi_community
+  let form = MultiCommunityInsertForm::new(
+    data.tegan.person.id,
+    data.tegan.person.instance_id,
+    "test multi".to_string(),
+    String::new(),
+  );
+  let multi = MultiCommunity::create(pool, &form).await?;
+  MultiCommunity::update_entries(pool, multi.id, &vec![community_1.id, community_2.id]).await?;
+
+  // Subscribe to both communities
+  for community in [&community_1, &community_2] {
+    let follow_form = CommunityFollowerForm::new(
+      community.id,
+      data.tegan.person.id,
+      CommunityFollowerState::Accepted,
+    );
+    CommunityActions::follow(pool, &follow_form).await?;
+  }
+
+  // The All feed should have featured_local first
+  let all_listing = PostQuery {
+    local_user: Some(&data.tegan.local_user),
+    listing_type: Some(ListingType::All),
+    ..Default::default()
+  }
+  .list(pool, &data.site, &data.local_site)
+  .await?;
+  assert_eq!(names(&all_listing).first(), Some(&"featured_local_post"));
+
+  // The first community fetch should have featured_community first
+  let community_listing = PostQuery {
+    local_user: Some(&data.tegan.local_user),
+    community_id: Some(community_1.id),
+    ..Default::default()
+  }
+  .list(pool, &data.site, &data.local_site)
+  .await?;
+  assert_eq!(
+    names(&community_listing).first(),
+    Some(&"featured_community_post")
+  );
+  assert_length!(3, community_listing);
+
+  // The Subscribed feed should have the regular first (IE no featureds)
+  let subscribed_listing = PostQuery {
+    local_user: Some(&data.tegan.local_user),
+    listing_type: Some(ListingType::Subscribed),
+    ..Default::default()
+  }
+  .list(pool, &data.site, &data.local_site)
+  .await?;
+  assert_eq!(names(&subscribed_listing).first(), Some(&POST));
+
+  // The multi-community should also have the regular first
+  let multi_listing = PostQuery {
+    local_user: Some(&data.tegan.local_user),
+    multi_community_id: Some(multi.id),
+    ..Default::default()
+  }
+  .list(pool, &data.site, &data.local_site)
+  .await?;
+  assert_eq!(names(&multi_listing).first(), Some(&POST));
+
+  Ok(())
+}
