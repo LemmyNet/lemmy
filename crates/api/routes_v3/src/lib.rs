@@ -35,6 +35,8 @@ use crate::handlers::{
   mark_all_notifications_read_v3,
   mark_post_as_read_v3,
   read_person_v3,
+  redirect_pictrs_image,
+  redirect_with_query_string,
   register_v3,
   remove_comment_v3,
   remove_community_v3,
@@ -59,6 +61,16 @@ mod convert;
 mod handlers;
 
 pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
+  // A few additional image redirects.
+  // See https://github.com/LemmyNet/lemmy/issues/6734
+  cfg
+    .service(resource("/pictrs/image/{file}").route(get().to(redirect_pictrs_image)))
+    .service(
+      resource("/api/v3/image_proxy")
+        .route(get().to(|req| redirect_with_query_string(req, "/api/v4/image/proxy"))),
+    )
+    .service(redirect("/pictrs/healthz", "/api/v4/image/health"));
+
   cfg.service(
     scope("/api/v3")
       .wrap(rate_limit.message())
@@ -173,11 +185,4 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           ),
       ),
   );
-
-  // A few additional image redirects.
-  // See https://github.com/LemmyNet/lemmy/issues/6734
-  cfg
-    .service(redirect("/pictrs/image", "/api/v4/image"))
-    .service(redirect("/pictrs/healthz", "/api/v4/health"))
-    .service(redirect("/api/v3/image_proxy", "/api/v4/proxy"));
 }

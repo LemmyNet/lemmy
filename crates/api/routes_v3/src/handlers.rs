@@ -1209,3 +1209,25 @@ pub(crate) async fn delete_custom_emoji_v3(
   delete_custom_emoji(Json(form), context, local_user_view).await?;
   Ok(Json(SuccessResponseV3::default()))
 }
+
+/// Actix redirect doesn't work with path segments, so it needs to be extracted manually.
+pub(crate) async fn redirect_pictrs_image(req: HttpRequest, path: Path<String>) -> Redirect {
+  let file = path.into_inner();
+  let new_path = format!("/api/v4/image/{file}");
+
+  redirect_with_query_string(req, &new_path).await
+}
+
+/// Actix redirect does not by default pass query params.
+/// This is necessary for the image proxy endpoint, which needs to pass ?url=...
+pub(crate) async fn redirect_with_query_string(req: HttpRequest, new_path: &str) -> Redirect {
+  let query = req.query_string();
+
+  // Construct target URL and append original query string
+  let target = if query.is_empty() {
+    new_path.to_string()
+  } else {
+    format!("{new_path}?{query}")
+  };
+  Redirect::to(target)
+}
