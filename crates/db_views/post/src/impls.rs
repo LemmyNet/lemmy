@@ -583,7 +583,7 @@ impl PostQuery<'_> {
       }
       // Only sort by featured_community if there's a single community.
       // Multi-communities / subscribed views should not show featured communities on the top.
-      else if community_ids.as_ref().map(|ids| ids.len()) == Some(1) {
+      else if community_ids.as_ref().map(std::vec::Vec::len) == Some(1) {
         pq.then_order_by(key::featured_community)
       } else {
         pq
