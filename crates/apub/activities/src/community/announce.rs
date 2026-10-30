@@ -25,6 +25,7 @@ use lemmy_apub_objects::{
 use lemmy_db_schema::source::{activity::ActivitySendTargets, community::CommunityActions};
 use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult, UntranslatedError};
 use serde_json::Value;
+use tracing::{debug, info};
 use url::Url;
 
 #[async_trait::async_trait]
@@ -99,7 +100,7 @@ impl AnnounceActivity {
     Ok(AnnounceActivity {
       actor: community.id().clone().into(),
       to: generate_to(community)?,
-      object: IdOrNestedObject::NestedObject(object),
+      object: vec![IdOrNestedObject::NestedObject(object)],
       cc: community
         .followers_url
         .clone()
@@ -159,22 +160,87 @@ impl Activity for AnnounceActivity {
   }
 
   async fn receive(self, context: &Data<Self::DataType>) -> LemmyResult<()> {
-    let object: AnnouncableActivities = self.object.dereference(context).await?.try_into()?;
+    match self.object.as_slice() {
+      [one] => {
+        let object: AnnouncableActivities = one.dereference(context).await?.try_into()?;
+        checks(&object, &self, context).await?;
 
-    // This is only for sending, not receiving so we reject it.
-    if let AnnouncableActivities::Page(_) = object {
-      return Err(UntranslatedError::CannotReceivePage.into());
+        // verify here in order to avoid fetching the object twice over http
+        object.verify(context).await?;
+        object.receive(context).await
+      }
+      batch => receive_batch(batch, &self, context).await,
     }
-
-    let community = object.community(context).await?;
-    verify_urls_match(community.ap_id.inner(), self.actor.inner())?;
-    verify_visibility(&self.to, &self.cc, &community)?;
-    can_accept_activity_in_community(&Some(community), context).await?;
-
-    // verify here in order to avoid fetching the object twice over http
-    object.verify(context).await?;
-    object.receive(context).await
   }
+}
+
+async fn checks(
+  object: &AnnouncableActivities,
+  announce: &AnnounceActivity,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<()> {
+  // This is only for sending, not receiving so we reject it.
+  if let AnnouncableActivities::Page(_) = object {
+    return Err(UntranslatedError::CannotReceivePage.into());
+  }
+
+  let community = object.community(context).await?;
+  verify_urls_match(community.ap_id.inner(), announce.actor.inner())?;
+  verify_visibility(&announce.to, &announce.cc, &community)?;
+  can_accept_activity_in_community(&Some(community), context).await
+}
+
+async fn receive_batch(
+  batch: &[IdOrNestedObject<RawAnnouncableActivities>],
+  announce: &AnnounceActivity,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<()> {
+  let mut received = 0;
+  for item in batch {
+    match receive_batch_item(item, announce, context).await {
+      Ok(()) => received += 1,
+      Err(e) => debug!(
+        "Skipping activity {} in batch {}: {e}",
+        item.id(),
+        announce.id
+      ),
+    }
+  }
+  info!(
+    "Received {received}/{} activities in batch {}",
+    batch.len(),
+    announce.id
+  );
+  Ok(())
+}
+
+async fn receive_batch_item(
+  item: &IdOrNestedObject<RawAnnouncableActivities>,
+  announce: &AnnounceActivity,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<()> {
+  let raw = item.dereference(context).await?;
+  let kind = raw
+    .other
+    .get("type")
+    .and_then(serde_json::Value::as_str)
+    .unwrap_or("other")
+    .to_string();
+  let activity: AnnouncableActivities = raw.try_into()?;
+  if !is_receivable_in_batch(&activity) {
+    return Err(UntranslatedError::CannotReceiveActivityTypeInBatch(kind).into());
+  }
+  checks(&activity, announce, context).await?;
+  activity.verify(context).await?;
+  activity.receive(context).await
+}
+
+/// Activity types which can be received as part of a batch. Initially only votes, as in FEP-1a11.
+fn is_receivable_in_batch(activity: &AnnouncableActivities) -> bool {
+  matches!(
+    activity,
+    AnnouncableActivities::Vote(_) | AnnouncableActivities::UndoVote(_)
+  )
 }
 
 impl TryFrom<RawAnnouncableActivities> for AnnouncableActivities {
