@@ -577,11 +577,17 @@ impl PostQuery<'_> {
     // featured posts first
     // Don't do for new / old sorts
     if sort != PostSortType::New && sort != PostSortType::Old {
+      // Only sort by featured local if there are no communities given
       pq = if community_ids.is_none() {
         pq.then_order_by(key::featured_local)
-      } else {
+      }
+      // Only sort by featured_community if there's a single community.
+      // Multi-communities / subscribed views should not show featured communities on the top.
+      else if community_ids.as_ref().map(|ids| ids.len()) == Some(1) {
         pq.then_order_by(key::featured_community)
-      };
+      } else {
+        pq
+      }
     }
 
     // then use the main sort
