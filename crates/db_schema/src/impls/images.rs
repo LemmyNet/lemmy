@@ -13,7 +13,7 @@ use diesel::{
   insert_into,
   select,
 };
-use diesel_async::{RunQueryDsl, scoped_futures::ScopedFutureExt};
+use diesel_async::{AsyncConnection, RunQueryDsl};
 use lemmy_db_schema_file::{
   PersonId,
   schema::{image_details, local_image, remote_image},
@@ -22,7 +22,7 @@ use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   dburl::DbUrl,
 };
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyError, LemmyErrorExt, LemmyErrorType, LemmyResult};
 use url::Url;
 
 impl LocalImage {
@@ -33,19 +33,16 @@ impl LocalImage {
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     conn
-      .run_transaction(|conn| {
-        async move {
-          let local_insert = insert_into(local_image::table)
-            .values(form)
-            .get_result::<Self>(conn)
-            .await
-            .with_lemmy_type(LemmyErrorType::CouldntCreate);
+      .transaction::<Self, LemmyError, _>(async |conn| {
+        let local_insert = insert_into(local_image::table)
+          .values(form)
+          .get_result::<Self>(conn)
+          .await
+          .with_lemmy_type(LemmyErrorType::CouldntCreate);
 
-          ImageDetails::create(&mut conn.into(), image_details_form).await?;
+        ImageDetails::create(&mut conn.into(), image_details_form).await?;
 
-          local_insert
-        }
-        .scope_boxed()
+        local_insert
       })
       .await
   }

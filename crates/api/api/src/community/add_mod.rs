@@ -1,6 +1,6 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
-use diesel_async::scoped_futures::ScopedFutureExt;
+use diesel_async::AsyncConnection;
 use lemmy_api_utils::{
   context::LemmyContext,
   notify::notify_mod_action,
@@ -16,7 +16,7 @@ use lemmy_db_views_community::api::{AddModToCommunity, AddModToCommunityResponse
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_diesel_utils::{connection::get_conn, traits::Crud};
-use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult};
 
 pub async fn add_mod_to_community(
   Json(data): Json<AddModToCommunity>,
@@ -27,16 +27,17 @@ pub async fn add_mod_to_community(
   // Verify that only mods or admins can add mod
   check_community_mod_action(&local_user_view, &community, false, &mut context.pool()).await?;
 
-  // If it's a mod removal, also check that you're a higher mod.
-  if !data.added {
-    LocalUser::is_higher_mod_or_admin_check(
-      &mut context.pool(),
-      community.id,
-      local_user_view.person.id,
-      vec![data.person_id],
-    )
-    .await?;
+  // Check that you're a higher mod.
+  // Do this even if you're adding a mod (so that lower mods can't re-order higher ones)
+  LocalUser::is_higher_mod_or_admin_check(
+    &mut context.pool(),
+    community.id,
+    local_user_view.person.id,
+    vec![data.person_id],
+  )
+  .await?;
 
+  if !data.added {
     // Dont allow the last community mod to remove himself
     let mods = CommunityModeratorView::for_community(&mut context.pool(), community.id).await?;
     if !local_user_view.local_user.admin && mods.len() == 1 {
@@ -60,27 +61,24 @@ pub async fn add_mod_to_community(
   let conn = &mut get_conn(pool).await?;
   let tx_data = data.clone();
   let action = conn
-    .run_transaction(|conn| {
-      async move {
-        // Update in local database
-        let community_moderator_form =
-          CommunityModeratorForm::new(tx_data.community_id, tx_data.person_id);
-        if tx_data.added {
-          CommunityActions::join(&mut conn.into(), &community_moderator_form).await?;
-        } else {
-          CommunityActions::leave(&mut conn.into(), &community_moderator_form).await?;
-        }
-
-        // Mod tables
-        let form = ModlogInsertForm::mod_add_to_community(
-          local_user_view.person.id,
-          tx_data.community_id,
-          tx_data.person_id,
-          !tx_data.added,
-        );
-        Modlog::create(&mut conn.into(), &[form]).await
+    .transaction::<Vec<Modlog>, LemmyError, _>(async |conn| {
+      // Update in local database
+      let community_moderator_form =
+        CommunityModeratorForm::new(tx_data.community_id, tx_data.person_id);
+      if tx_data.added {
+        CommunityActions::join(&mut conn.into(), &community_moderator_form).await?;
+      } else {
+        CommunityActions::leave(&mut conn.into(), &community_moderator_form).await?;
       }
-      .scope_boxed()
+
+      // Mod tables
+      let form = ModlogInsertForm::mod_add_to_community(
+        local_user_view.person.id,
+        tx_data.community_id,
+        tx_data.person_id,
+        !tx_data.added,
+      );
+      Modlog::create(&mut conn.into(), &[form]).await
     })
     .await?;
   notify_mod_action(action.clone(), &context);

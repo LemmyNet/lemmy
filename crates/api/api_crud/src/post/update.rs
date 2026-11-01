@@ -14,17 +14,13 @@ use lemmy_api_utils::{
     check_nsfw_allowed,
     get_url_blocklist,
     process_markdown_opt,
-    send_webmention,
     slur_regex,
     update_post_tags,
   },
 };
 use lemmy_db_schema::{
   impls::actor_language::validate_post_language,
-  source::{
-    community::Community,
-    post::{Post, PostUpdateForm},
-  },
+  source::post::{Post, PostUpdateForm},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_post::{
@@ -176,15 +172,13 @@ pub async fn edit_post(
   )
   .send(&context);
 
-  // send out federation/webmention if necessary
+  // send out federation if necessary
   match (
     orig_post.post.scheduled_publish_time_at,
     data.scheduled_publish_time_at,
   ) {
-    // schedule was removed, send create activity and webmention
+    // schedule was removed, send create activity
     (Some(_), None) => {
-      let community = Community::read(&mut context.pool(), orig_post.community.id).await?;
-      send_webmention(updated_post.clone(), &community, context.clone());
       generate_post_link_metadata(
         updated_post.clone(),
         custom_thumbnail.flatten().map(Into::into),

@@ -1,7 +1,6 @@
 use super::{local_community, report_inboxes};
 use crate::{
   activity_lists::AnnouncableActivities,
-  check_community_deleted_or_removed,
   generate_activity_id,
   protocol::community::{
     announce::AnnounceActivity,
@@ -106,7 +105,7 @@ impl Activity for Report {
         let community: ApubCommunity = Community::read(&mut context.pool(), post.community_id)
           .await?
           .into();
-        check_community_deleted_or_removed(&community)?;
+        check_community_deleted_removed(&community)?;
         verify_person_in_community(&self.actor, &community, context).await?;
         check_post_deleted_or_removed(&post)?;
       }
@@ -116,7 +115,7 @@ impl Activity for Report {
           .await?
           .into();
         verify_person_in_community(&self.actor, &community, context).await?;
-        check_community_deleted_or_removed(&community)?;
+        check_community_deleted_removed(&community)?;
         check_comment_deleted_or_removed(&comment)?;
       }
       ReportableObjects::Right(Either::Left(community)) => {
@@ -183,7 +182,7 @@ impl Activity for Report {
       // forward to remote mods
       let object_id = self.object.object_id(context).await?;
       let announce = AnnouncableActivities::Report(self);
-      let announce = AnnounceActivity::new(announce.try_into()?, community, context)?;
+      let announce = AnnounceActivity::new(announce.try_into()?, community, None, context)?;
       let inboxes = report_inboxes(object_id, &receiver, &actor, context).await?;
       send_lemmy_activity(context, announce, community, inboxes.clone(), false).await?;
     }

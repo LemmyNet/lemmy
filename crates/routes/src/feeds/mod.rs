@@ -1,5 +1,13 @@
 mod negotiate_content;
-use actix_web::{Error, HttpRequest, HttpResponse, Result, error::ErrorBadRequest, web};
+use actix_web::{
+  Error,
+  HttpRequest,
+  HttpResponse,
+  Result,
+  error::ErrorBadRequest,
+  http::header::CACHE_CONTROL,
+  web,
+};
 use chrono::{DateTime, Utc};
 use lemmy_api_utils::{
   context::LemmyContext,
@@ -25,6 +33,7 @@ use lemmy_email::{translations::Lang, user_language};
 use lemmy_utils::{
   cache_header::cache_1hour,
   error::LemmyResult,
+  rate_limit::RateLimit,
   settings::structs::Settings,
   utils::markdown::markdown_to_html,
 };
@@ -57,9 +66,10 @@ impl Params {
   }
 }
 
-pub fn config(cfg: &mut web::ServiceConfig) {
+pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
   cfg.service(
     web::scope("/feeds")
+      .wrap(rate_limit.message())
       .route("/u/{user_name}.xml", web::get().to(get_feed_user))
       .route("/c/{community_name}.xml", web::get().to(get_feed_community))
       .route(
@@ -161,7 +171,9 @@ async fn get_feed_data(
 
   let link = context.settings().get_protocol_and_hostname();
   let items = create_post_items(posts, context.settings(), lang)?;
-  Ok(send_feed_response(title, link, None, items, site_view))
+  Ok(send_feed_response(
+    title, link, None, items, site_view, false,
+  ))
 }
 
 async fn get_feed_user(
@@ -203,7 +215,7 @@ async fn get_feed_user(
   let link = person.ap_id.to_string();
   let items = create_post_items(posts, context.settings(), lang)?;
   Ok(send_feed_response(
-    title, link, person.bio, items, site_view,
+    title, link, person.bio, items, site_view, false,
   ))
 }
 
@@ -255,6 +267,7 @@ async fn get_feed_community(
     community.summary,
     items,
     site_view,
+    false,
   ))
 }
 
@@ -292,6 +305,7 @@ async fn get_feed_multi_community(
     multi_community.summary,
     items,
     site_view,
+    false,
   ))
 }
 
@@ -302,7 +316,7 @@ async fn get_feed_front(
 ) -> Result<HttpResponse, Error> {
   let jwt: String = req.match_info().get("jwt").unwrap_or("none").parse()?;
   let site_view = SiteView::read_local(&mut context.pool()).await?;
-  let local_user = local_user_view_from_jwt(&jwt, &context).await?;
+  let local_user = local_user_view_from_jwt(&jwt, &context, true).await?;
   let lang = user_language(&local_user.local_user);
 
   check_private_instance(&Some(local_user.clone()), &site_view.local_site)?;
@@ -321,7 +335,9 @@ async fn get_feed_front(
   let title = format!("{} - {}", site_view.site.name, lang.subscribed());
   let link = context.settings().get_protocol_and_hostname();
   let items = create_post_items(posts, context.settings(), lang)?;
-  Ok(send_feed_response(title, link, None, items, site_view))
+  Ok(send_feed_response(
+    title, link, None, items, site_view, true,
+  ))
 }
 
 fn send_feed_response(
@@ -330,6 +346,7 @@ fn send_feed_response(
   description: Option<String>,
   items: Vec<Item>,
   site_view: SiteView,
+  private: bool,
 ) -> HttpResponse {
   let mut channel = Channel {
     namespaces: RSS_NAMESPACE.clone(),
@@ -344,7 +361,13 @@ fn send_feed_response(
     channel.set_description(markdown_to_html(&desc));
   }
 
-  HttpResponse::Ok()
+  let mut response = HttpResponse::Ok();
+  // Prevent caching of private feeds
+  if private {
+    response.insert_header((CACHE_CONTROL, "private"));
+  }
+
+  response
     .content_type("application/rss+xml")
     .body(channel.to_string())
 }
@@ -356,7 +379,7 @@ async fn get_feed_notifs(
 ) -> Result<HttpResponse, Error> {
   let jwt: String = req.match_info().get("jwt").unwrap_or("none").parse()?;
   let site_view = SiteView::read_local(&mut context.pool()).await?;
-  let local_user = local_user_view_from_jwt(&jwt, &context).await?;
+  let local_user = local_user_view_from_jwt(&jwt, &context, true).await?;
   let show_bot_accounts = Some(local_user.local_user.show_bot_accounts);
   let lang = user_language(&local_user.local_user);
 
@@ -374,7 +397,9 @@ async fn get_feed_notifs(
   let title = format!("{} - {}", site_view.site.name, lang.notifications());
   let link = format!("{protocol_and_hostname}/notifications");
   let items = create_reply_and_mention_items(notifications, &context, lang)?;
-  Ok(send_feed_response(title, link, None, items, site_view))
+  Ok(send_feed_response(
+    title, link, None, items, site_view, true,
+  ))
 }
 
 /// Gets your ModeratorView modlog
@@ -385,7 +410,7 @@ async fn get_feed_modlog(
 ) -> Result<HttpResponse, Error> {
   let jwt: String = req.match_info().get("jwt").unwrap_or("none").parse()?;
   let site_view = SiteView::read_local(&mut context.pool()).await?;
-  let local_user = local_user_view_from_jwt(&jwt, &context).await?;
+  let local_user = local_user_view_from_jwt(&jwt, &context, true).await?;
   let lang = user_language(&local_user.local_user);
   check_private_instance(&Some(local_user.clone()), &site_view.local_site)?;
 
@@ -403,7 +428,9 @@ async fn get_feed_modlog(
   let title = format!("{} - {}", local_user.person.name, lang.modlog());
   let link = format!("{protocol_and_hostname}/modlog");
   let items = create_modlog_items(modlog, context.settings(), lang)?;
-  Ok(send_feed_response(title, link, None, items, site_view))
+  Ok(send_feed_response(
+    title, link, None, items, site_view, true,
+  ))
 }
 
 fn create_reply_and_mention_items(
@@ -643,7 +670,7 @@ fn create_modlog_items(
           &modlog_url,
           format!(
             "Warned user {} about comment {}",
-            &&target_person_name, &&target_comment_content
+            target_person_name, target_comment_content
           ),
           settings,
         ),
@@ -652,7 +679,7 @@ fn create_modlog_items(
           &modlog_url,
           format!(
             "Warned user {} about post {}",
-            &&target_person_name, &&target_post_name
+            target_person_name, target_post_name
           ),
           settings,
         ),

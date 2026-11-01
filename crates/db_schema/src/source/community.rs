@@ -1,9 +1,10 @@
-use crate::{newtypes::CommunityId, source::placeholder_apub_url};
+use crate::source::placeholder_apub_url;
 use chrono::{DateTime, Utc};
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
-  enums::{CommunityFollowerState, CommunityNotificationsMode, CommunityVisibility},
+  enums::{CommunityFollowerState, CommunityNotificationsMode, CommunityVisibility, VoteSettings},
+  newtypes::CommunityId,
 };
 use lemmy_diesel_utils::{dburl::DbUrl, sensitive::SensitiveString};
 use serde::{Deserialize, Serialize};
@@ -94,10 +95,14 @@ pub struct Community {
   pub report_count: i16,
   pub unresolved_report_count: i16,
   pub local_removed: bool,
+  pub post_upvotes: VoteSettings,
+  pub post_downvotes: VoteSettings,
+  pub comment_upvotes: VoteSettings,
+  pub comment_downvotes: VoteSettings,
 }
 
 #[derive(Debug, Clone, derive_new::new)]
-#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", derive(Insertable))]
 #[cfg_attr(feature = "full", diesel(table_name = community))]
 pub struct CommunityInsertForm {
   pub instance_id: InstanceId,
@@ -145,6 +150,48 @@ pub struct CommunityInsertForm {
   pub summary: Option<String>,
   #[new(default)]
   pub local_removed: Option<bool>,
+  #[new(default)]
+  pub post_upvotes: Option<VoteSettings>,
+  #[new(default)]
+  pub post_downvotes: Option<VoteSettings>,
+  #[new(default)]
+  pub comment_upvotes: Option<VoteSettings>,
+  #[new(default)]
+  pub comment_downvotes: Option<VoteSettings>,
+}
+
+#[derive(Debug, Clone, Default)]
+#[cfg_attr(feature = "full", derive(Insertable, AsChangeset))]
+#[cfg_attr(feature = "full", diesel(table_name = community))]
+pub struct CommunityUpsertForm {
+  pub instance_id: InstanceId,
+  pub name: String,
+  pub title: Option<Option<String>>,
+  pub sidebar: Option<Option<String>>,
+  pub removed: Option<bool>,
+  pub published_at: Option<DateTime<Utc>>,
+  pub updated_at: Option<Option<DateTime<Utc>>>,
+  pub deleted: Option<bool>,
+  pub nsfw: Option<bool>,
+  pub ap_id: Option<DbUrl>,
+  pub local: Option<bool>,
+  pub public_key: Option<String>,
+  pub private_key: Option<Option<String>>,
+  pub last_refreshed_at: Option<DateTime<Utc>>,
+  pub icon: Option<Option<DbUrl>>,
+  pub banner: Option<Option<DbUrl>>,
+  pub followers_url: Option<DbUrl>,
+  pub inbox_url: Option<DbUrl>,
+  pub moderators_url: Option<Option<DbUrl>>,
+  pub featured_url: Option<Option<DbUrl>>,
+  pub posting_restricted_to_mods: Option<bool>,
+  pub visibility: Option<CommunityVisibility>,
+  pub summary: Option<Option<String>>,
+  pub local_removed: Option<bool>,
+  pub post_upvotes: Option<VoteSettings>,
+  pub post_downvotes: Option<VoteSettings>,
+  pub comment_upvotes: Option<VoteSettings>,
+  pub comment_downvotes: Option<VoteSettings>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -173,6 +220,10 @@ pub struct CommunityUpdateForm {
   pub visibility: Option<CommunityVisibility>,
   pub summary: Option<Option<String>>,
   pub local_removed: Option<bool>,
+  pub post_upvotes: Option<VoteSettings>,
+  pub post_downvotes: Option<VoteSettings>,
+  pub comment_upvotes: Option<VoteSettings>,
+  pub comment_downvotes: Option<VoteSettings>,
 }
 
 #[skip_serializing_none]

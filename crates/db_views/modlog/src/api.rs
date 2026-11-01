@@ -1,8 +1,9 @@
-use lemmy_db_schema::{
-  ModlogKindFilter,
+use lemmy_db_schema::ModlogKindFilter;
+use lemmy_db_schema_file::{
+  PersonId,
+  enums::ListingType,
   newtypes::{CommentId, CommunityId, ModlogId, PostId},
 };
-use lemmy_db_schema_file::{PersonId, enums::ListingType};
 use lemmy_diesel_utils::pagination::PaginationCursor;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;

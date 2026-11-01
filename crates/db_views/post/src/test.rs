@@ -7,7 +7,6 @@ use diesel_uplete::UpleteCount;
 use lemmy_db_schema::{
   assert_length,
   impls::actor_language::UNDETERMINED_ID,
-  newtypes::{LanguageId, PostId},
   source::{
     actor_language::LocalUserLanguage,
     comment::{Comment, CommentInsertForm},
@@ -41,12 +40,9 @@ use lemmy_db_schema::{
   test_data::TestData,
   traits::{Bannable, Blockable, Followable, Likeable},
 };
-use lemmy_db_schema_file::enums::{
-  CommunityFollowerState,
-  CommunityVisibility,
-  ListingType,
-  PostSortType,
-  TagColor,
+use lemmy_db_schema_file::{
+  enums::{CommunityFollowerState, CommunityVisibility, ListingType, PostSortType, TagColor},
+  newtypes::{LanguageId, PostId},
 };
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_diesel_utils::{
@@ -1981,12 +1977,7 @@ async fn speed_check(data: &mut Data) -> LemmyResult<()> {
   let elapsed = now.elapsed();
   println!("Elapsed: {:.0?}", elapsed);
 
-  assert!(
-    elapsed.lt(&duration_max),
-    "Query took {:.0?}, longer than the max of {:.0?}",
-    elapsed,
-    duration_max
-  );
+  assert!(elapsed.lt(&duration_max));
 
   Ok(())
 }
@@ -2438,6 +2429,197 @@ async fn search(data: &mut Data) -> LemmyResult<()> {
   .await?;
   assert_length!(1, search_url_only);
   assert_eq!(POST_WITH_TAGS, search_url_only[0].post.name);
+
+  Ok(())
+}
+
+// Route 1 & 2: PostQuery (list) and PostView::read (GetPost) must hide scheduled posts
+// from non-creators.
+#[test_context(Data)]
+#[tokio::test]
+#[serial]
+async fn scheduled_post_hidden_from_non_creator(data: &mut Data) -> LemmyResult<()> {
+  let pool = &data.pool();
+  let pool = &mut pool.into();
+
+  let future_time = Utc::now()
+    .checked_add_days(Days::new(1))
+    .expect("future time");
+
+  // john creates a scheduled post
+  let scheduled_form = PostInsertForm {
+    scheduled_publish_time_at: Some(future_time),
+    ..PostInsertForm::new(
+      "john scheduled post".into(),
+      data.john.person.id,
+      data.community.id,
+    )
+  };
+  let scheduled_post = Post::create(pool, &scheduled_form).await?;
+
+  // PostQuery: only john can see it
+  for (local_user, should_see) in [
+    (None, false),
+    (Some(&data.tegan.local_user), false),
+    (Some(&data.john.local_user), true),
+  ] {
+    let contains = PostQuery {
+      local_user,
+      creator_id: Some(data.john.person.id),
+      ..Default::default()
+    }
+    .list(pool, &data.site, &data.local_site)
+    .await?
+    .iter()
+    .any(|p| p.post.id == scheduled_post.id);
+    assert_eq!(should_see, contains);
+  }
+
+  // PostView::read: logged-out and non-creator must get NotFound
+  let logged_out = PostView::read(pool, scheduled_post.id, None, data.instance.id, false).await;
+  assert!(logged_out.is_err());
+
+  let other_user = PostView::read(
+    pool,
+    scheduled_post.id,
+    Some(&data.tegan.local_user),
+    data.instance.id,
+    true, // admin
+  )
+  .await;
+  assert!(other_user.is_err());
+
+  let creator_view = PostView::read(
+    pool,
+    scheduled_post.id,
+    Some(&data.john.local_user),
+    data.instance.id,
+    false,
+  )
+  .await;
+  assert!(creator_view.is_ok());
+
+  Post::delete(pool, scheduled_post.id).await?;
+  Ok(())
+}
+
+#[test_context(Data)]
+#[tokio::test]
+#[serial]
+/// Test to make sure featured locals / featured community are showing in the correct places.
+async fn featured_listings(data: &mut Data) -> LemmyResult<()> {
+  let pool = &data.pool();
+  let pool = &mut pool.into();
+
+  // Create two communities
+  let form = CommunityInsertForm::new(
+    data.instance.id,
+    "test_community_4".to_string(),
+    "pubkey".to_string(),
+  );
+  let community_1 = Community::create(pool, &form).await?;
+
+  let form = CommunityInsertForm::new(
+    data.instance.id,
+    "test_community_5".to_string(),
+    "pubkey".to_string(),
+  );
+
+  let community_2 = Community::create(pool, &form).await?;
+
+  // One featured local post
+  let form = PostInsertForm {
+    featured_local: Some(true),
+    ..PostInsertForm::new(
+      "featured_local_post".to_string(),
+      data.tegan.person.id,
+      community_1.id,
+    )
+  };
+  let _featured_local_post = Post::create(pool, &form).await?;
+
+  // One featured community post
+  let form = PostInsertForm {
+    featured_community: Some(true),
+    ..PostInsertForm::new(
+      "featured_community_post".to_string(),
+      data.tegan.person.id,
+      community_1.id,
+    )
+  };
+  let _featured_community_post = Post::create(pool, &form).await?;
+
+  // A regular post to community 2
+  let form = PostInsertForm::new("post_2".to_string(), data.tegan.person.id, community_2.id);
+  let _post_2 = Post::create(pool, &form).await?;
+
+  // One regular post to community 1
+  let form = PostInsertForm::new(POST.to_string(), data.tegan.person.id, community_1.id);
+  let _regular_post = Post::create(pool, &form).await?;
+
+  // Create a multi_community
+  let form = MultiCommunityInsertForm::new(
+    data.tegan.person.id,
+    data.tegan.person.instance_id,
+    "test multi".to_string(),
+    String::new(),
+  );
+  let multi = MultiCommunity::create(pool, &form).await?;
+  MultiCommunity::update_entries(pool, multi.id, &vec![community_1.id, community_2.id]).await?;
+
+  // Subscribe to both communities
+  for community in [&community_1, &community_2] {
+    let follow_form = CommunityFollowerForm::new(
+      community.id,
+      data.tegan.person.id,
+      CommunityFollowerState::Accepted,
+    );
+    CommunityActions::follow(pool, &follow_form).await?;
+  }
+
+  // The All feed should have featured_local first
+  let all_listing = PostQuery {
+    local_user: Some(&data.tegan.local_user),
+    listing_type: Some(ListingType::All),
+    ..Default::default()
+  }
+  .list(pool, &data.site, &data.local_site)
+  .await?;
+  assert_eq!(names(&all_listing).first(), Some(&"featured_local_post"));
+
+  // The first community fetch should have featured_community first
+  let community_listing = PostQuery {
+    local_user: Some(&data.tegan.local_user),
+    community_id: Some(community_1.id),
+    ..Default::default()
+  }
+  .list(pool, &data.site, &data.local_site)
+  .await?;
+  assert_eq!(
+    names(&community_listing).first(),
+    Some(&"featured_community_post")
+  );
+  assert_length!(3, community_listing);
+
+  // The Subscribed feed should have the regular first (IE no featureds)
+  let subscribed_listing = PostQuery {
+    local_user: Some(&data.tegan.local_user),
+    listing_type: Some(ListingType::Subscribed),
+    ..Default::default()
+  }
+  .list(pool, &data.site, &data.local_site)
+  .await?;
+  assert_eq!(names(&subscribed_listing).first(), Some(&POST));
+
+  // The multi-community should also have the regular first
+  let multi_listing = PostQuery {
+    local_user: Some(&data.tegan.local_user),
+    multi_community_id: Some(multi.id),
+    ..Default::default()
+  }
+  .list(pool, &data.site, &data.local_site)
+  .await?;
+  assert_eq!(names(&multi_listing).first(), Some(&POST));
 
   Ok(())
 }

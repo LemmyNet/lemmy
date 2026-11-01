@@ -340,7 +340,6 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
       // User
       .service(
         scope("/account/auth")
-          .guard(guard::Post())
           .wrap(rate_limit.register())
           .route("/register", post().to(register))
           .route("/login", post().to(login))

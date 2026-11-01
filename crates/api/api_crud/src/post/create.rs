@@ -15,7 +15,6 @@ use lemmy_api_utils::{
     get_url_blocklist,
     honeypot_check,
     process_markdown_opt,
-    send_webmention,
     slur_regex,
     update_post_tags,
   },
@@ -150,7 +149,6 @@ pub async fn create_post(
 
   let community_id = community.id;
   let federate_post = if scheduled_publish_time_at.is_none() {
-    send_webmention(inserted_post.clone(), community, context.clone());
     |post| Some(SendActivityData::CreatePost(post))
   } else {
     |_| None

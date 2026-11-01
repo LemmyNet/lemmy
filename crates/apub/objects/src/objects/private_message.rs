@@ -169,7 +169,7 @@ impl Object for ApubPrivateMessage {
     };
     form = plugin_hook_before("federated_private_message_before_receive", form).await?;
     let timestamp = note.updated.or(note.published).unwrap_or_else(Utc::now);
-    let pm = DbPrivateMessage::insert_apub(&mut context.pool(), timestamp, &form).await?;
+    let pm = DbPrivateMessage::upsert_apub(&mut context.pool(), timestamp, &form).await?;
     plugin_hook_after("federated_private_message_after_receive", &pm);
     let view = PrivateMessageView::read(&mut context.pool(), pm.id, None).await?;
     notify_private_message(&view, pm.updated_at.is_none(), context);
@@ -242,7 +242,7 @@ mod tests {
     let pm = ApubPrivateMessage::from_json(json, &context).await?;
 
     assert_eq!(pm.ap_id, pleroma_url.into());
-    assert_eq!(pm.content.len(), 3);
+    assert_eq!(pm.content.len(), 4);
     assert_eq!(context.request_count(), 0);
 
     test_data.delete(&mut context.pool()).await?;

@@ -80,10 +80,10 @@ pub async fn delete_community_banner(
   let community = Community::read(&mut context.pool(), data.id).await?;
   is_mod_or_admin(&mut context.pool(), &local_user_view, community.id).await?;
 
-  delete_old_image(&community.icon, &context).await?;
+  delete_old_image(&community.banner, &context).await?;
 
   let form = CommunityUpdateForm {
-    icon: Some(None),
+    banner: Some(None),
     ..Default::default()
   };
   Community::update(&mut context.pool(), community.id, &form).await?;

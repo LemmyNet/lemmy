@@ -10,6 +10,7 @@ use diesel::{
   PgTextExpressionMethods,
   QueryDsl,
   SelectableHelper,
+  dsl::count_star,
 };
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
@@ -135,6 +136,16 @@ impl FederatedInstanceView {
       .left_join(federation_queue_state::table)
   }
 
+  pub async fn count(pool: &mut DbPool<'_>) -> LemmyResult<i32> {
+    let conn = &mut get_conn(pool).await?;
+    let count = Self::joins()
+      .filter(federation_blocklist::instance_id.is_null())
+      .select(count_star())
+      .first::<i64>(conn)
+      .await?;
+    Ok(i32::try_from(count)?)
+  }
+
   pub async fn list(
     pool: &mut DbPool<'_>,
     data: GetFederatedInstances,
@@ -216,7 +227,7 @@ mod tests {
       federation_allowlist::{FederationAllowList, FederationAllowListForm},
       federation_queue_state::FederationQueueState,
       instance::Instance,
-      site::{Site, SiteInsertForm},
+      site::{Site, SiteUpsertForm},
     },
   };
   use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
@@ -232,7 +243,7 @@ mod tests {
     // insert test data
     let instance0 = Instance::read_or_create(pool, "example0.com").await?;
     let instance1 = Instance::read_or_create(pool, "example1.com").await?;
-    let site_form = SiteInsertForm::new("Example".to_string(), instance0.id);
+    let site_form = SiteUpsertForm::new("Example".to_string(), instance0.id);
     let site = Site::create(pool, &site_form).await?;
     let form = FederationAllowListForm::new(instance0.id);
     let allow = FederationAllowList::allow(pool, &form).await?;

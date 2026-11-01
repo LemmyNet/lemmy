@@ -18,7 +18,7 @@ use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_person::api::PurgePerson;
 use lemmy_db_views_site::api::SuccessResponse;
 use lemmy_diesel_utils::traits::Crud;
-use lemmy_utils::error::LemmyResult;
+use lemmy_utils::{error::LemmyResult, spawn_try_task};
 
 pub async fn purge_person(
   Json(data): Json<PurgePerson>,
@@ -53,7 +53,10 @@ pub async fn purge_person(
   )?;
 
   // Clear profile data.
-  purge_user_account(data.person_id, local_instance_id, &context).await?;
+  let context_clone = context.clone();
+  spawn_try_task(async move {
+    purge_user_account(data.person_id, local_instance_id, &context_clone).await
+  });
 
   // Keep person record, but mark as banned to prevent login or refetching from home instance.
   InstanceActions::ban(

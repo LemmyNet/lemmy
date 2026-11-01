@@ -13,8 +13,6 @@ pub mod admin;
 pub mod notifications;
 mod send;
 
-/// Avoid warnings for unused 0.19 translations
-#[expect(mismatched_lifetime_syntaxes)]
 pub mod translations {
   rosetta_i18n::include_translations!();
 }

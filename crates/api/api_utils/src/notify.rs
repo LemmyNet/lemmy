@@ -680,7 +680,7 @@ mod tests {
 
     // Test the type filter
     let sara_inbox_mentions_only = NotificationQuery {
-      type_: Some(NotificationTypeFilter::Other(NotificationType::Mention)),
+      type_: Some(NotificationTypeFilter::Mention),
       ..Default::default()
     }
     .list(pool, &data.sara.person)
@@ -754,9 +754,7 @@ mod tests {
     setup_private_messages(&data, &context).await?;
 
     let timmy_messages: Vec<_> = NotificationQuery {
-      type_: Some(NotificationTypeFilter::Other(
-        NotificationType::PrivateMessage,
-      )),
+      type_: Some(NotificationTypeFilter::PrivateMessage),
       ..NotificationQuery::default()
     }
     .list(pool, &data.timmy.person)

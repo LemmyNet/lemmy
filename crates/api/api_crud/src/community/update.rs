@@ -7,7 +7,6 @@ use lemmy_api_utils::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::{
     check_community_mod_action,
-    check_local_user_banned_or_deleted,
     check_nsfw_allowed,
     get_url_blocklist,
     process_markdown_opt,
@@ -36,7 +35,6 @@ pub async fn edit_community(
   context: Data<LemmyContext>,
   local_user_view: LocalUserView,
 ) -> LemmyResult<Json<CommunityResponse>> {
-  check_local_user_banned_or_deleted(&local_user_view)?;
   let local_site = SiteView::read_local(&mut context.pool()).await?.local_site;
 
   let slur_regex = slur_regex(&context).await?;
@@ -93,6 +91,10 @@ pub async fn edit_community(
     nsfw: data.nsfw,
     posting_restricted_to_mods: data.posting_restricted_to_mods,
     visibility: data.visibility,
+    post_upvotes: data.post_upvotes,
+    post_downvotes: data.post_downvotes,
+    comment_upvotes: data.comment_upvotes,
+    comment_downvotes: data.comment_downvotes,
     updated_at: Some(Some(Utc::now())),
     ..Default::default()
   };

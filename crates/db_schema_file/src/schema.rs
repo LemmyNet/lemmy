@@ -22,10 +22,6 @@ pub mod sql_types {
   pub struct CommunityVisibility;
 
   #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-  #[diesel(postgres_type(name = "federation_mode_enum"))]
-  pub struct FederationModeEnum;
-
-  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
   #[diesel(postgres_type(name = "image_mode_enum"))]
   pub struct ImageModeEnum;
 
@@ -64,6 +60,10 @@ pub mod sql_types {
   #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
   #[diesel(postgres_type(name = "tag_color_enum"))]
   pub struct TagColorEnum;
+
+  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+  #[diesel(postgres_type(name = "vote_settings_enum"))]
+  pub struct VoteSettingsEnum;
 
   #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
   #[diesel(postgres_type(name = "vote_show_enum"))]
@@ -125,13 +125,14 @@ diesel::table! {
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
         violates_instance_rules -> Bool,
-        resolve_reason -> Nullable<Text>,
+        conclusion -> Nullable<Text>,
     }
 }
 
 diesel::table! {
     use diesel::sql_types::*;
     use super::sql_types::CommunityVisibility;
+    use super::sql_types::VoteSettingsEnum;
 
     community (id) {
         id -> Int4,
@@ -180,6 +181,10 @@ diesel::table! {
         report_count -> Int2,
         unresolved_report_count -> Int2,
         local_removed -> Bool,
+        post_upvotes -> VoteSettingsEnum,
+        post_downvotes -> VoteSettingsEnum,
+        comment_upvotes -> VoteSettingsEnum,
+        comment_downvotes -> VoteSettingsEnum,
     }
 }
 
@@ -234,7 +239,7 @@ diesel::table! {
         resolver_id -> Nullable<Int4>,
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
-        resolve_reason -> Nullable<Text>,
+        conclusion -> Nullable<Text>,
     }
 }
 
@@ -359,6 +364,8 @@ diesel::table! {
         #[max_length = 3]
         code -> Varchar,
         name -> Text,
+        usage_in_local_posts_percent -> Int2,
+        usage_in_local_comments_percent -> Int2,
     }
 }
 
@@ -378,7 +385,7 @@ diesel::table! {
     use super::sql_types::PostListingModeEnum;
     use super::sql_types::PostSortTypeEnum;
     use super::sql_types::CommentSortTypeEnum;
-    use super::sql_types::FederationModeEnum;
+    use super::sql_types::VoteSettingsEnum;
     use super::sql_types::ImageModeEnum;
 
     local_site (id) {
@@ -404,16 +411,16 @@ diesel::table! {
         default_post_sort_type -> PostSortTypeEnum,
         default_comment_sort_type -> CommentSortTypeEnum,
         oauth_registration -> Bool,
-        post_upvotes -> FederationModeEnum,
-        post_downvotes -> FederationModeEnum,
-        comment_upvotes -> FederationModeEnum,
-        comment_downvotes -> FederationModeEnum,
+        default_post_upvotes -> VoteSettingsEnum,
+        default_post_downvotes -> VoteSettingsEnum,
+        default_comment_upvotes -> VoteSettingsEnum,
+        default_comment_downvotes -> VoteSettingsEnum,
         default_post_time_range_seconds -> Nullable<Int4>,
         nsfw_content_disallowed -> Bool,
-        users -> Int4,
-        posts -> Int4,
-        comments -> Int4,
-        communities -> Int4,
+        local_users -> Int4,
+        local_posts -> Int4,
+        local_comments -> Int4,
+        local_communities -> Int4,
         users_active_day -> Int4,
         users_active_week -> Int4,
         users_active_month -> Int4,
@@ -431,6 +438,14 @@ diesel::table! {
         image_max_upload_size -> Int4,
         image_allow_video_uploads -> Bool,
         image_upload_disabled -> Bool,
+        linked_instances -> Int4,
+        total_posts -> Int4,
+        total_comments -> Int4,
+        total_users -> Int4,
+        total_communities -> Int4,
+        user_retention_month_percent -> Int2,
+        user_retention_half_year_percent -> Int2,
+        banned_users_percent -> Int2,
         max_invites_per_user_allowed -> Int4,
     }
 }
@@ -551,6 +566,7 @@ diesel::table! {
         published_at -> Timestamptz,
         ip -> Nullable<Text>,
         user_agent -> Nullable<Text>,
+        feed_only -> Bool,
     }
 }
 
@@ -852,7 +868,7 @@ diesel::table! {
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
         violates_instance_rules -> Bool,
-        resolve_reason -> Nullable<Text>,
+        conclusion -> Nullable<Text>,
     }
 }
 
@@ -884,7 +900,7 @@ diesel::table! {
         resolver_id -> Nullable<Int4>,
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
-        resolve_reason -> Nullable<Text>,
+        conclusion -> Nullable<Text>,
     }
 }
 

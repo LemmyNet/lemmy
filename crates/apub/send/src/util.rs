@@ -4,7 +4,6 @@ use diesel_async::RunQueryDsl;
 use either::Either::*;
 use lemmy_apub_objects::objects::SiteOrMultiOrCommunityOrUser;
 use lemmy_db_schema::{
-  newtypes::ActivityId,
   source::{
     activity::SentActivity,
     community::Community,
@@ -15,7 +14,7 @@ use lemmy_db_schema::{
   },
   traits::ApubActor,
 };
-use lemmy_db_schema_file::enums::ActorType;
+use lemmy_db_schema_file::{enums::ActorType, newtypes::ActivityId};
 use lemmy_diesel_utils::connection::{DbPool, get_conn};
 use lemmy_utils::error::LemmyError;
 use moka::future::Cache;

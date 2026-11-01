@@ -1,10 +1,7 @@
-use crate::{
-  newtypes::LocalUserId,
-  source::email_verification::{EmailVerification, EmailVerificationForm},
-};
+use crate::source::email_verification::{EmailVerification, EmailVerificationForm};
 use diesel::{ExpressionMethods, QueryDsl, dsl::IntervalDsl, insert_into};
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema_file::schema::email_verification;
+use lemmy_db_schema_file::{newtypes::LocalUserId, schema::email_verification};
 use lemmy_diesel_utils::{
   connection::{DbPool, get_conn},
   utils::now,

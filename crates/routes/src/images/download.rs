@@ -35,12 +35,17 @@ pub async fn get_image(
 
   // If there are no query params, the URL is original
   let pictrs_url = context.settings().pictrs()?.url;
+  // Encode filename to avoid pictrs path/query injection
+  let encoded_name = utf8_percent_encode(&name, NON_ALPHANUMERIC).to_string();
   let processed_url = if params.file_type.is_none() && params.max_size.is_none() {
-    format!("{}image/original/{}", pictrs_url, name)
+    format!("{}image/original/{}", pictrs_url, encoded_name)
   } else {
     let file_type = file_type(params.file_type, &name).unwrap_or_default();
 
-    let mut url = format!("{}image/process.{}?src={}", pictrs_url, file_type, name);
+    let mut url = format!(
+      "{}image/process.{}?src={}",
+      pictrs_url, file_type, encoded_name
+    );
 
     if let Some(size) = params.max_size {
       url = format!("{url}&thumbnail={size}",);
@@ -63,6 +68,9 @@ pub async fn image_proxy(
   }
 
   let url = Url::parse(&params.url)?;
+  if !matches!(url.scheme(), "http" | "https") {
+    return Err(LemmyErrorType::InvalidUrlScheme.into());
+  }
   let encoded_url = utf8_percent_encode(&params.url, NON_ALPHANUMERIC).to_string();
 
   // Check that url corresponds to a federated image so that this can't be abused as a proxy

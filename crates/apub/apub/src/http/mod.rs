@@ -19,6 +19,7 @@ use lemmy_apub_objects::objects::{SiteOrMultiOrCommunityOrUser, UserOrCommunity}
 use lemmy_db_schema::source::{
   activity::{ReceivedActivity, SentActivity},
   community::Community,
+  instance::Instance,
 };
 use lemmy_db_schema_file::{InstanceId, enums::CommunityVisibility};
 use lemmy_db_views_community_follower_approval::PendingFollowerView;
@@ -65,9 +66,20 @@ impl ReceiveActivityHook<SharedInboxActivities, UserOrCommunity, LemmyContext> f
   async fn hook(
     self,
     activity: &SharedInboxActivities,
-    _actor: &UserOrCommunity,
+    actor: &UserOrCommunity,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
+    // Mark instance as alive
+    // HTTP signature has already been verified at this point, so the
+    // sending instance is authenticated and evidently online.
+    // mark_alive also uses a cache so shouldn't hit the database too
+    // often
+    let instance_id = match actor {
+      Either::Left(p) => p.instance_id,
+      Either::Right(c) => c.instance_id,
+    };
+    Instance::mark_alive(&mut context.pool(), instance_id).await?;
+
     // Store received activities in the database. This ensures that the same activity doesn't get
     // received and processed more than once, which would be a waste of resources.
     debug!("Received activity {}", activity.id().to_string());
@@ -88,6 +100,24 @@ impl ReceiveActivityHook<SharedInboxActivities, UserOrCommunity, LemmyContext> f
 struct ActivityQuery {
   type_: String,
   id: String,
+}
+
+/// Path parameter for ActivityPub actors (persons and communities), which may be qualified with a
+/// domain (e.g. `name@domain`) to reference a remote actor.
+#[derive(Deserialize, Clone)]
+pub(crate) struct ActorPath {
+  name: String,
+}
+
+impl ActorPath {
+  /// Split the actor name into its local name and optional domain.
+  pub(crate) fn split_name(&self) -> (&str, Option<&str>) {
+    if let Some((n, d)) = self.name.split_once('@') {
+      (n, Some(d))
+    } else {
+      (self.name.as_str(), None)
+    }
+  }
 }
 
 /// Return the ActivityPub json representation of a local activity over HTTP.

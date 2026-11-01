@@ -55,9 +55,9 @@ clokwerk = "0.4.0"
 prometheus = { version = "0.14.0", features = [
   "process",
 ], default-features = false }
-rss = "2.0.12"
+rss = "2.1.2"
 actix-web-prom = "0.10.0"
-actix-cors = "0.7.1"
+actix-cors = "0.7.2"
 rand = { workspace = true }
 percent-encoding = "2.3.2"
 urlencoding = { workspace = true }

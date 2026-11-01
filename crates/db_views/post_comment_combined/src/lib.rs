@@ -12,10 +12,11 @@ use lemmy_db_views_post::PostView;
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "full")]
 use {
-  diesel::{Queryable, Selectable},
+  diesel::{NullableExpressionMethods, Queryable, Selectable},
   lemmy_db_schema::traits::InternalToCombinedView,
   lemmy_db_schema::utils::queries::selects::{
     CreatorLocalHomeCommunityBanExpiresType,
+    comment_select_remove_deletes,
     creator_ban_expires_from_community,
     creator_banned_from_community,
     creator_is_admin,
@@ -24,6 +25,7 @@ use {
     creator_local_home_community_banned,
     local_user_can_mod,
     post_community_tags_fragment,
+    post_select_remove_deletes,
   },
 };
 
@@ -32,9 +34,9 @@ use {
 #[diesel(check_for_backend(diesel::pg::Pg))]
 /// A combined person_saved view
 pub struct PostCommentCombinedViewInternal {
-  #[diesel(embed)]
+  #[diesel(select_expression = comment_select_remove_deletes().nullable())]
   pub comment: Option<Comment>,
-  #[diesel(embed)]
+  #[diesel(select_expression = post_select_remove_deletes())]
   pub post: Post,
   #[diesel(embed)]
   pub item_creator: Person,

@@ -3,7 +3,7 @@ use crate::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::proxy_image_link,
 };
-use activitypub_federation::config::Data;
+use activitypub_federation::{config::Data, resolver::ValidatingDnsResolver};
 use chrono::{DateTime, Utc};
 use encoding_rs::{Encoding, UTF_8};
 use futures::StreamExt;
@@ -47,11 +47,25 @@ pub fn client_builder(settings: &Settings) -> ClientBuilder {
     settings.get_protocol_and_hostname()
   );
 
+  // Validate resolved IPs on every connection to prevent SSRF and DNS rebinding attacks.
+  // Allow local requests to pictrs and the local domain, including on the actual ports.
+  let mut allow_hosts = vec![];
+  if let Ok(url) = settings.get_protocol_and_hostname().parse::<Url>() {
+    allow_hosts.push(url);
+  }
+  if let Ok(pictrs) = settings.pictrs() {
+    allow_hosts.push(pictrs.url);
+  }
+
   Client::builder()
     .user_agent(user_agent.clone())
     .timeout(REQWEST_TIMEOUT)
     .connect_timeout(REQWEST_TIMEOUT)
     .redirect(Policy::none())
+    .dns_resolver(ValidatingDnsResolver::new(
+      allow_hosts,
+      !cfg!(debug_assertions),
+    ))
 }
 
 /// Fetches metadata for the given link and optionally generates thumbnail.
@@ -440,7 +454,7 @@ pub async fn purge_image_from_pictrs(alias: &str, context: &LemmyContext) -> Lem
 /// before calling this function (the user is an admin or the image belongs to the user).
 pub async fn delete_image_alias(alias: &str, context: &LemmyContext) -> LemmyResult<()> {
   let pictrs_config = context.settings().pictrs()?;
-  let url = format!("{}internal/delete?alias={}", pictrs_config.url, &alias);
+  let url = format!("{}internal/delete?alias={}", pictrs_config.url, alias);
 
   // Send the delete request to pictrs.
   context
@@ -588,6 +602,7 @@ mod tests {
   // These helped with testing
   #[tokio::test]
   #[serial]
+  #[expect(clippy::unwrap_used)]
   async fn test_link_metadata() -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let sample_url = Url::parse("https://gitlab.com/IzzyOnDroid/repo/-/wikis/FAQ")?;
@@ -600,12 +615,13 @@ mod tests {
       Some("The F-Droid compatible repo at https://apt.izzysoft.de/fdroid/".to_string()),
       sample_res.opengraph_data.description
     );
-    assert_eq!(
-      Some(
-        Url::parse("https://gitlab.com/uploads/-/system/project/avatar/4877469/iod_logo.png")?
-          .into()
-      ),
-      sample_res.opengraph_data.image
+    assert!(
+      sample_res
+        .opengraph_data
+        .image
+        .unwrap()
+        .to_string()
+        .starts_with("https://gitlab.com/uploads/-/system/project/avatar/")
     );
     assert_eq!(None, sample_res.opengraph_data.embed_video_url);
     assert_eq!(

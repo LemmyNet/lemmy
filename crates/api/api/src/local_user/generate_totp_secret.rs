@@ -1,7 +1,9 @@
-use crate::{build_totp_2fa, generate_totp_2fa_secret};
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
-use lemmy_api_utils::{context::LemmyContext, utils::check_local_user_banned_or_deleted};
+use lemmy_api_utils::{
+  context::LemmyContext,
+  utils::{build_totp_2fa, check_local_user_banned_or_deleted, generate_totp_2fa_secret},
+};
 use lemmy_db_schema::source::local_user::{LocalUser, LocalUserUpdateForm};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::{SiteView, api::GenerateTotpSecretResponse};
@@ -21,7 +23,7 @@ pub async fn generate_totp_secret(
   }
 
   let secret = generate_totp_2fa_secret();
-  let secret_url = build_totp_2fa(&site.name, &local_user_view.person.name, &secret)?.get_url();
+  let secret_url = build_totp_2fa(&site.name, &local_user_view.person.name, &secret)?.to_url()?;
 
   let local_user_form = LocalUserUpdateForm {
     totp_2fa_secret: Some(Some(secret)),

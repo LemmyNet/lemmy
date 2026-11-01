@@ -46,8 +46,6 @@ ALTER TABLE comment_actions
 
 -- Create new indexes, with `OR` being used to allow `IS NOT NULL` filters in queries to use either column in
 -- a group (e.g. `liked IS NOT NULL` and `vote_is_upvote IS NOT NULL` both work)
-CREATE INDEX idx_comment_actions_person ON comment_actions (person_id);
-
 CREATE INDEX idx_comment_actions_comment ON comment_actions (comment_id);
 
 CREATE INDEX idx_comment_actions_liked_not_null ON comment_actions (person_id, comment_id)
@@ -155,8 +153,6 @@ ALTER TABLE post_actions
     ADD CONSTRAINT post_actions_check_read_comments CHECK (((read_comments IS NULL) = (read_comments_amount IS NULL)));
 
 -- Create indexes
-CREATE INDEX idx_post_actions_person ON post_actions (person_id);
-
 CREATE INDEX idx_post_actions_post ON post_actions (post_id);
 
 CREATE INDEX idx_post_actions_read_not_null ON post_actions (person_id, post_id)
@@ -262,8 +258,6 @@ ALTER TABLE community_actions
     ADD CONSTRAINT community_actions_check_received_ban CHECK ((NOT ((received_ban IS NULL) AND (ban_expires IS NOT NULL))));
 
 -- Create indexes
-CREATE INDEX idx_community_actions_person ON community_actions (person_id);
-
 CREATE INDEX idx_community_actions_community ON community_actions (community_id);
 
 CREATE INDEX idx_community_actions_followed ON community_actions (followed)
@@ -311,8 +305,6 @@ ALTER TABLE instance_actions
 
 -- This index is currently redundant because instance_actions only has 1 action type, but inconsistency
 -- with other tables would make it harder to do everything correctly when adding another action type
-CREATE INDEX idx_instance_actions_person ON instance_actions (person_id);
-
 CREATE INDEX idx_instance_actions_instance ON instance_actions (instance_id);
 
 CREATE INDEX idx_instance_actions_blocked_not_null ON instance_actions (person_id, instance_id)
@@ -359,8 +351,6 @@ ALTER TABLE person_actions
     ADD CONSTRAINT person_actions_check_followed CHECK (((followed IS NULL) = (follow_pending IS NULL)));
 
 DROP TABLE person_block, person_follower;
-
-CREATE INDEX idx_person_actions_person ON person_actions (person_id);
 
 CREATE INDEX idx_person_actions_target ON person_actions (target_id);
 

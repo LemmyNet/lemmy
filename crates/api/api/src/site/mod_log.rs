@@ -61,7 +61,7 @@ mod tests {
       modlog::{Modlog, ModlogInsertForm},
       person::{Person, PersonInsertForm},
       post::{Post, PostActions, PostInsertForm, PostLikeForm},
-      site::{Site, SiteInsertForm},
+      site::{Site, SiteUpsertForm},
     },
     traits::Likeable,
   };
@@ -83,7 +83,7 @@ mod tests {
     let instance = Instance::read_or_create(pool, "my_domain.tld").await?;
     let system_acct =
       Person::create(pool, &PersonInsertForm::test_form(instance.id, "langs")).await?;
-    let site_form = SiteInsertForm::new("test site".to_string(), instance.id);
+    let site_form = SiteUpsertForm::new("test site".to_string(), instance.id);
     let site = Site::create(pool, &site_form).await?;
     let local_site_form = LocalSiteInsertForm::new(site.id, system_acct.id);
     let local_site = LocalSite::create(pool, &local_site_form).await?;
@@ -178,7 +178,7 @@ mod tests {
     // Verify that their posts and comments are removed.
     // Posts
     let post_modlog = ModlogQuery {
-      type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemovePost)),
+      type_: Some(ModlogKindFilter::ModRemovePost),
       show_bulk: Some(true),
       ..Default::default()
     }
@@ -213,7 +213,7 @@ mod tests {
 
     // Comments
     let comment_modlog = ModlogQuery {
-      type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemoveComment)),
+      type_: Some(ModlogKindFilter::ModRemoveComment),
       show_bulk: Some(true),
       ..Default::default()
     }
@@ -283,7 +283,7 @@ mod tests {
 
     // Posts
     let post_modlog = ModlogQuery {
-      type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemovePost)),
+      type_: Some(ModlogKindFilter::ModRemovePost),
       show_bulk: Some(true),
       ..Default::default()
     }
@@ -336,7 +336,7 @@ mod tests {
 
     // Comments
     let comment_modlog = ModlogQuery {
-      type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemoveComment)),
+      type_: Some(ModlogKindFilter::ModRemoveComment),
       show_bulk: Some(true),
       ..Default::default()
     }
@@ -449,7 +449,7 @@ mod tests {
     .await?;
 
     let post_modlog = ModlogQuery {
-      type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemovePost)),
+      type_: Some(ModlogKindFilter::ModRemovePost),
       show_bulk: Some(true),
       ..Default::default()
     }
@@ -465,7 +465,7 @@ mod tests {
     );
 
     let comment_modlog = ModlogQuery {
-      type_: Some(ModlogKindFilter::Other(ModlogKind::ModRemoveComment)),
+      type_: Some(ModlogKindFilter::ModRemoveComment),
       show_bulk: Some(true),
       ..Default::default()
     }

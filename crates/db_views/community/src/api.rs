@@ -3,12 +3,12 @@ use lemmy_db_schema::{
   CommunitySortType,
   MultiCommunityListingType,
   MultiCommunitySortType,
-  newtypes::{CommunityId, CommunityTagId, LanguageId, MultiCommunityId},
   source::site::Site,
 };
 use lemmy_db_schema_file::{
   PersonId,
-  enums::{CommunityNotificationsMode, CommunityVisibility, ListingType, TagColor},
+  enums::{CommunityNotificationsMode, CommunityVisibility, ListingType, TagColor, VoteSettings},
+  newtypes::{CommunityId, CommunityTagId, LanguageId, MultiCommunityId},
 };
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_diesel_utils::pagination::PaginationCursor;
@@ -108,6 +108,10 @@ pub struct CreateCommunity {
   pub posting_restricted_to_mods: Option<bool>,
   pub discussion_languages: Option<Vec<LanguageId>>,
   pub visibility: Option<CommunityVisibility>,
+  pub post_upvotes: Option<VoteSettings>,
+  pub post_downvotes: Option<VoteSettings>,
+  pub comment_upvotes: Option<VoteSettings>,
+  pub comment_downvotes: Option<VoteSettings>,
 }
 
 #[skip_serializing_none]
@@ -139,6 +143,10 @@ pub struct EditCommunity {
   pub posting_restricted_to_mods: Option<bool>,
   pub discussion_languages: Option<Vec<LanguageId>>,
   pub visibility: Option<CommunityVisibility>,
+  pub post_upvotes: Option<VoteSettings>,
+  pub post_downvotes: Option<VoteSettings>,
+  pub comment_upvotes: Option<VoteSettings>,
+  pub comment_downvotes: Option<VoteSettings>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]

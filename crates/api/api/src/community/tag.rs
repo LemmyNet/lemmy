@@ -45,7 +45,7 @@ pub async fn create_community_tag(
     check_slurs(summary, &slur_regex(&context).await?)?;
   }
 
-  let ap_id = Url::parse(&format!("{}/tag/{}", community.ap_id, &data.name))?;
+  let ap_id = Url::parse(&format!("{}/tag/{}", community.ap_id, data.name))?;
 
   // Create the tag
   let tag_form = CommunityTagInsertForm {

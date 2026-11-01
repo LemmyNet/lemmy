@@ -9,11 +9,11 @@ use diesel::{
   select,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema::newtypes::CommunityId;
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
   enums::CommunityFollowerState,
+  newtypes::CommunityId,
   schema::{community, community_actions, person},
 };
 use lemmy_diesel_utils::{

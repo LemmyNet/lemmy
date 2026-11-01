@@ -13,18 +13,15 @@ use lemmy_api_utils::{
     slur_regex,
   },
 };
-use lemmy_db_schema::{
-  newtypes::MultiCommunityId,
-  source::{
-    actor_language::SiteLanguage,
-    local_site::{LocalSite, LocalSiteUpdateForm},
-    local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitUpdateForm},
-    local_site_url_blocklist::LocalSiteUrlBlocklist,
-    local_user::LocalUser,
-    site::{Site, SiteUpdateForm},
-  },
+use lemmy_db_schema::source::{
+  actor_language::SiteLanguage,
+  local_site::{LocalSite, LocalSiteUpdateForm},
+  local_site_rate_limit::{LocalSiteRateLimit, LocalSiteRateLimitUpdateForm},
+  local_site_url_blocklist::LocalSiteUrlBlocklist,
+  local_user::LocalUser,
+  site::{Site, SiteUpdateForm},
 };
-use lemmy_db_schema_file::enums::RegistrationMode;
+use lemmy_db_schema_file::{enums::RegistrationMode, newtypes::MultiCommunityId};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::{
   SiteView,
@@ -124,10 +121,10 @@ pub async fn edit_site(
     reports_email_admins: data.reports_email_admins,
     default_post_listing_mode: data.default_post_listing_mode,
     oauth_registration: data.oauth_registration,
-    post_upvotes: data.post_upvotes,
-    post_downvotes: data.post_downvotes,
-    comment_upvotes: data.comment_upvotes,
-    comment_downvotes: data.comment_downvotes,
+    default_post_upvotes: data.default_post_upvotes,
+    default_post_downvotes: data.default_post_downvotes,
+    default_comment_upvotes: data.default_comment_upvotes,
+    default_comment_downvotes: data.default_comment_downvotes,
     nsfw_content_disallowed: data.nsfw_content_disallowed,
     email_notifications_disabled: data.email_notifications_disabled,
     suggested_multi_community_id,

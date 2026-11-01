@@ -92,6 +92,8 @@ mod internal {
       }
       LemmyPlugins {}
     }
+
+    #[expect(clippy::unused_self)]
     pub(super) fn function_exists(&self, _name: &'static str) -> bool {
       false
     }
@@ -102,6 +104,8 @@ mod internal {
       false
     }
   }
+
+  #[expect(clippy::extra_unused_lifetimes)]
   pub(super) async fn call_captcha_plugin<'a, T: Send + 'static, R: Send + 'static>(
     _name: &'static str,
     _params: T,

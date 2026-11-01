@@ -13,7 +13,6 @@ use lemmy_db_schema::{
   MultiCommunityListingType,
   MultiCommunitySortType,
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommunityId, MultiCommunityId},
   source::{
     community::{Community, community_keys as key},
     local_site::LocalSite,
@@ -32,6 +31,7 @@ use lemmy_db_schema_file::{
     my_local_user_admin_join,
     my_multi_community_follower_join,
   },
+  newtypes::{CommunityId, MultiCommunityId},
   schema::{
     community,
     community_actions,
@@ -411,7 +411,7 @@ mod tests {
       local_user::{LocalUser, LocalUserInsertForm},
       multi_community::{MultiCommunity, MultiCommunityFollowForm, MultiCommunityInsertForm},
       person::{Person, PersonInsertForm},
-      site::{Site, SiteInsertForm},
+      site::{Site, SiteUpsertForm},
     },
     traits::Followable,
   };
@@ -495,7 +495,7 @@ mod tests {
       .await?,
     ];
 
-    let site_form = SiteInsertForm::new("test site".to_string(), instance.id);
+    let site_form = SiteUpsertForm::new("test site".to_string(), instance.id);
     let site = Site::create(pool, &site_form).await?;
     let system_acct =
       Person::create(pool, &PersonInsertForm::test_form(instance.id, "langs")).await?;

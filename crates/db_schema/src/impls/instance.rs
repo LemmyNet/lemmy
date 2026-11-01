@@ -13,11 +13,14 @@ use crate::{
 use chrono::Utc;
 use diesel::{
   ExpressionMethods,
+  IntoSql,
   NullableExpressionMethods,
   OptionalExtension,
   QueryDsl,
   SelectableHelper,
-  dsl::{count_star, exists, insert_into, not, select},
+  dsl::{AsExprOf, count_star, exists, insert_into, not, select},
+  pg::data_types::PgInterval,
+  sql_types::{Interval, Timestamptz},
 };
 use diesel_async::RunQueryDsl;
 use diesel_uplete::{UpleteCount, uplete};
@@ -39,7 +42,29 @@ use lemmy_diesel_utils::{
     now,
   },
 };
-use lemmy_utils::error::{LemmyErrorExt, LemmyErrorType, LemmyResult};
+use lemmy_utils::{
+  CACHE_DURATION_FEDERATION,
+  CacheLock,
+  error::{LemmyErrorExt, LemmyErrorType, LemmyResult},
+};
+use moka::future::Cache;
+use std::{
+  collections::HashSet,
+  sync::{Arc, LazyLock},
+};
+
+/// Helper function that defines which instances are considered dead
+/// if changed: remember to change logic of mark_alive
+#[diesel::dsl::auto_type(no_type_alias)]
+fn is_dead_expr() -> _ {
+  // writing these types out to assist auto_type, which struggles
+  let last_seen: coalesce<Timestamptz, instance::updated_at, instance::published_at> =
+    coalesce(instance::updated_at, instance::published_at);
+  let today: AsExprOf<diesel::dsl::now, Timestamptz> = now();
+  let three_days: AsExprOf<PgInterval, Interval> = 3.days().into_sql::<Interval>();
+
+  last_seen.lt(today - three_days)
+}
 
 impl Instance {
   /// Attempt to read Instance column for the given domain. If it doesn't exist, insert a new one.
@@ -154,7 +179,6 @@ impl Instance {
     pool: &mut DbPool<'_>,
   ) -> LemmyResult<Vec<(Self, bool, bool)>> {
     let conn = &mut get_conn(pool).await?;
-    let is_dead_expr = coalesce(instance::updated_at, instance::published_at).lt(now() - 3.days());
     // this needs to be done in two steps because the meaning of the "blocked" column depends on the
     // existence of any value at all in the allowlist. (so a normal join wouldn't work)
     let use_allowlist = federation_allowlist::table
@@ -167,7 +191,7 @@ impl Instance {
         .select((
           Self::as_select(),
           federation_allowlist::instance_id.nullable().is_not_null(),
-          is_dead_expr,
+          is_dead_expr(),
         ))
         .order_by(instance::id)
         .get_results::<(Self, bool, bool)>(conn)
@@ -179,13 +203,56 @@ impl Instance {
         .select((
           Self::as_select(),
           federation_blocklist::instance_id.nullable().is_null(),
-          is_dead_expr,
+          is_dead_expr(),
         ))
         .order_by(instance::id)
         .get_results::<(Self, bool, bool)>(conn)
         .await
         .with_lemmy_type(LemmyErrorType::NotFound)
     }
+  }
+
+  /// return hashset of dead instance ids
+  /// (instances that have not been updated in at least 3 days)
+  async fn dead_ids(pool: &mut DbPool<'_>) -> LemmyResult<HashSet<InstanceId>> {
+    let conn = &mut get_conn(pool).await?;
+    let ids = instance::table
+      .filter(is_dead_expr())
+      .select(instance::id)
+      .load::<InstanceId>(conn)
+      .await?;
+    Ok(ids.into_iter().collect())
+  }
+
+  /// check instance ID against list of dead instance ids
+  /// if in list (dead), set the updated_at to now,
+  /// which has the effect of marking the instance as alive
+  /// Dead instances are stored in a cache, so most calls wont hit the database
+  pub async fn mark_alive(pool: &mut DbPool<'_>, instance_id: InstanceId) -> LemmyResult<()> {
+    // cache. Stores Arc so each read clones a pointer instead of full set
+    static DEAD_INSTANCES: CacheLock<Arc<HashSet<InstanceId>>> = LazyLock::new(|| {
+      Cache::builder()
+        .max_capacity(1)
+        .time_to_live(CACHE_DURATION_FEDERATION)
+        .build()
+    });
+
+    let dead = DEAD_INSTANCES
+      .try_get_with((), async { Self::dead_ids(pool).await.map(Arc::new) })
+      .await
+      .map_err(|e| anyhow::anyhow!("Failed to load dead instances: {e}"))?;
+
+    if dead.contains(&instance_id) {
+      let conn = &mut get_conn(pool).await?;
+      diesel::update(instance::table.find(instance_id))
+        .set(instance::updated_at.eq(now().nullable()))
+        .execute(conn)
+        .await
+        .with_lemmy_type(LemmyErrorType::CouldntUpdate)?;
+      DEAD_INSTANCES.invalidate(&()).await;
+    }
+
+    Ok(())
   }
 }
 

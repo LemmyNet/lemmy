@@ -3,7 +3,6 @@ use crate::{ResolveObjectView, SiteView};
 use activitypub_federation::protocol::helpers::deserialize_skip_error;
 use lemmy_db_schema::{
   SearchType,
-  newtypes::{CommunityId, LanguageId, MultiCommunityId, OAuthProviderId, TaglineId},
   source::{
     comment::Comment,
     community::Community,
@@ -24,14 +23,15 @@ use lemmy_db_schema_file::{
   PersonId,
   enums::{
     CommentSortType,
-    FederationMode,
     ImageMode,
     ListingType,
     PostListingMode,
     PostSortType,
     RegistrationMode,
+    VoteSettings,
     VoteShow,
   },
+  newtypes::{CommunityId, LanguageId, MultiCommunityId, OAuthProviderId, TaglineId},
 };
 use lemmy_db_views_comment::CommentView;
 use lemmy_db_views_community::{CommunityView, MultiCommunityView};
@@ -84,6 +84,8 @@ pub struct AuthenticateWithOauth {
   /// An answer is mandatory if require application is enabled on the server
   pub answer: Option<String>,
   pub pkce_code_verifier: Option<String>,
+  /// Required if the user has TOTP 2FA enabled.
+  pub totp_2fa_token: Option<String>,
   /// If this is true the login is valid forever, otherwise it expires after one week.
   pub stay_logged_in: Option<bool>,
 }
@@ -153,10 +155,10 @@ pub struct CreateSite {
   pub content_warning: Option<String>,
   pub reports_email_admins: Option<bool>,
   pub federation_signed_fetch: Option<bool>,
-  pub post_upvotes: Option<FederationMode>,
-  pub post_downvotes: Option<FederationMode>,
-  pub comment_upvotes: Option<FederationMode>,
-  pub comment_downvotes: Option<FederationMode>,
+  pub default_post_upvotes: Option<VoteSettings>,
+  pub default_post_downvotes: Option<VoteSettings>,
+  pub default_comment_upvotes: Option<VoteSettings>,
+  pub default_comment_downvotes: Option<VoteSettings>,
   pub nsfw_content_disallowed: Option<bool>,
   pub email_notifications_disabled: Option<bool>,
   pub suggested_multi_community_id: Option<MultiCommunityId>,
@@ -277,14 +279,14 @@ pub struct EditSite {
   pub content_warning: Option<String>,
   /// Whether or not external auth methods can auto-register users.
   pub oauth_registration: Option<bool>,
-  /// What kind of post upvotes your site allows.
-  pub post_upvotes: Option<FederationMode>,
-  /// What kind of post downvotes your site allows.
-  pub post_downvotes: Option<FederationMode>,
-  /// What kind of comment upvotes your site allows.
-  pub comment_upvotes: Option<FederationMode>,
-  /// What kind of comment downvotes your site allows.
-  pub comment_downvotes: Option<FederationMode>,
+  /// Default post upvote mode for newly created local communities.
+  pub default_post_upvotes: Option<VoteSettings>,
+  /// Default post downvote mode for newly created local communities.
+  pub default_post_downvotes: Option<VoteSettings>,
+  /// Default comment upvote mode for newly created local communities.
+  pub default_comment_upvotes: Option<VoteSettings>,
+  /// Default comment downvote mode for newly created local communities.
+  pub default_comment_downvotes: Option<VoteSettings>,
   /// Block NSFW content being created
   pub nsfw_content_disallowed: Option<bool>,
   /// Dont send email notifications to users for new replies, mentions etc
@@ -350,6 +352,8 @@ pub struct GetSiteResponse {
   pub admin_oauth_providers: Vec<AdminOAuthProvider>,
   pub blocked_urls: Vec<LocalSiteUrlBlocklist>,
   pub active_plugins: Vec<PluginMetadata>,
+  /// JWT for authenticated RSS feeds (readonly)
+  pub my_feed_token: Option<SensitiveString>,
   /// The number of seconds between the last application published, and approved / denied time.
   ///
   /// Useful for estimating when your application will be approved.

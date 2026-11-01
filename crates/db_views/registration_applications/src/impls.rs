@@ -10,7 +10,6 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  newtypes::RegistrationApplicationId,
   source::registration_application::{
     RegistrationApplication,
     registration_application_keys as key,
@@ -20,6 +19,7 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::{
   PersonId,
   aliases,
+  newtypes::RegistrationApplicationId,
   schema::{local_user, person, registration_application},
 };
 use lemmy_diesel_utils::{
@@ -141,7 +141,9 @@ impl RegistrationApplicationQuery {
     let paginated_query =
       RegistrationApplicationView::paginate(query, &self.page_cursor, SortDirection::Desc, pool)
         .await?
-        .then_order_by(key::published_at);
+        .then_order_by(key::published_at)
+        // Tie breaker
+        .then_order_by(key::id);
 
     let conn = &mut get_conn(pool).await?;
     let res = paginated_query

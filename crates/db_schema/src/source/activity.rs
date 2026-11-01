@@ -1,8 +1,8 @@
-use crate::newtypes::{ActivityId, CommunityId};
 use chrono::{DateTime, Utc};
 use diesel::Queryable;
 use lemmy_db_schema_file::{
   enums::ActorType,
+  newtypes::{ActivityId, CommunityId},
   schema::{received_activity, sent_activity},
 };
 use lemmy_diesel_utils::dburl::DbUrl;

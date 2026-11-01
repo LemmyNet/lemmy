@@ -1,5 +1,5 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_utils::{context::LemmyContext, plugins::LemmyPlugins};
+use lemmy_api_utils::{claims::Claims, context::LemmyContext, plugins::LemmyPlugins};
 use lemmy_db_schema::source::{
   actor_language::SiteLanguage,
   language::Language,
@@ -26,10 +26,17 @@ pub async fn get_site(
 
   // filter oauth_providers for public access
   if !local_user_view
+    .as_ref()
     .map(|l| l.local_user.admin)
     .unwrap_or_default()
   {
     site_response.admin_oauth_providers = vec![];
+  }
+
+  // Return the feed-only token so the frontend can generate RSS feed urls
+  if let Some(l) = &local_user_view {
+    site_response.my_feed_token =
+      Some(Claims::get_or_generate_feed_only(l.local_user.id, &context).await?);
   }
 
   Ok(Json(site_response))
@@ -62,6 +69,7 @@ async fn read_site(context: &LemmyContext) -> LemmyResult<GetSiteResponse> {
     oauth_providers,
     admin_oauth_providers,
     active_plugins: LemmyPlugins::metadata(),
+    my_feed_token: None,
     last_application_duration_seconds,
     captcha_enabled: LemmyPlugins::get_or_init().is_captcha_plugin_loaded(),
   })

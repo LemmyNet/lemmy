@@ -9,7 +9,6 @@ use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use chrono::{DateTime, Days, Local, TimeZone, Utc};
 use enum_map::{EnumMap, enum_map};
 use lemmy_db_schema::{
-  newtypes::{CommunityId, CommunityTagId, ModlogId, PostId, PostOrCommentId},
   source::{
     comment::{Comment, CommentActions, CommentLikeForm},
     community::{Community, CommunityActions, CommunityUpdateForm},
@@ -19,6 +18,7 @@ use lemmy_db_schema::{
     local_site::LocalSite,
     local_site_rate_limit::LocalSiteRateLimit,
     local_site_url_blocklist::LocalSiteUrlBlocklist,
+    login_token::LoginToken,
     modlog::{Modlog, ModlogInsertForm},
     oauth_account::OAuthAccount,
     person::{Person, PersonUpdateForm},
@@ -32,7 +32,8 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
-  enums::{FederationMode, ImageMode, RegistrationMode},
+  enums::{CommunityFollowerState, ImageMode, RegistrationMode, VoteSettings},
+  newtypes::{CommunityId, CommunityTagId, ModlogId, PostId, PostOrCommentId},
 };
 use lemmy_db_views_community_follower_approval::PendingFollowerView;
 use lemmy_db_views_community_moderator::{CommunityModeratorView, CommunityPersonBanView};
@@ -68,50 +69,11 @@ use lemmy_utils::{
 use moka::future::Cache;
 use regex::{Regex, RegexSet, escape};
 use std::{collections::HashSet, sync::LazyLock};
-use tracing::Instrument;
+use totp_rs::{Secret, Totp};
 use url::{ParseError, Url};
 use urlencoding::encode;
-use webmention::{Webmention, WebmentionError};
 
 pub const AUTH_COOKIE_NAME: &str = "jwt";
-
-pub async fn check_is_mod_or_admin(
-  pool: &mut DbPool<'_>,
-  person_id: PersonId,
-  community_id: CommunityId,
-) -> LemmyResult<()> {
-  let is_mod = CommunityModeratorView::check_is_community_moderator(pool, community_id, person_id)
-    .await
-    .is_ok();
-  let is_admin = LocalUserView::read_person(pool, person_id)
-    .await
-    .is_ok_and(|t| t.local_user.admin);
-
-  if is_mod || is_admin {
-    Ok(())
-  } else {
-    Err(LemmyErrorType::NotAModOrAdmin.into())
-  }
-}
-
-/// Checks if a person is an admin, or moderator of any community.
-pub(crate) async fn check_is_mod_of_any_or_admin(
-  pool: &mut DbPool<'_>,
-  person_id: PersonId,
-) -> LemmyResult<()> {
-  let is_mod_of_any = CommunityModeratorView::is_community_moderator_of_any(pool, person_id)
-    .await
-    .is_ok();
-  let is_admin = LocalUserView::read_person(pool, person_id)
-    .await
-    .is_ok_and(|t| t.local_user.admin);
-
-  if is_mod_of_any || is_admin {
-    Ok(())
-  } else {
-    Err(LemmyErrorType::NotAModOrAdmin.into())
-  }
-}
 
 pub async fn is_mod_or_admin(
   pool: &mut DbPool<'_>,
@@ -119,7 +81,19 @@ pub async fn is_mod_or_admin(
   community_id: CommunityId,
 ) -> LemmyResult<()> {
   check_local_user_banned_or_deleted(local_user_view)?;
-  check_is_mod_or_admin(pool, local_user_view.person.id, community_id).await
+  let is_mod = CommunityModeratorView::check_is_community_moderator(
+    pool,
+    community_id,
+    local_user_view.person.id,
+  )
+  .await
+  .is_ok();
+
+  if is_mod || local_user_view.local_user.admin {
+    Ok(())
+  } else {
+    Err(LemmyErrorType::NotAModOrAdmin.into())
+  }
 }
 
 pub async fn is_mod_or_admin_opt(
@@ -148,7 +122,15 @@ pub async fn check_community_mod_of_any_or_admin_action(
   let person = &local_user_view.person;
 
   check_local_user_banned_or_deleted(local_user_view)?;
-  check_is_mod_of_any_or_admin(pool, person.id).await
+  let is_mod_of_any = CommunityModeratorView::is_community_moderator_of_any(pool, person.id)
+    .await
+    .is_ok();
+
+  if is_mod_of_any || local_user_view.local_user.admin {
+    Ok(())
+  } else {
+    Err(LemmyErrorType::NotAModOrAdmin.into())
+  }
 }
 
 pub fn is_admin(local_user_view: &LocalUserView) -> LemmyResult<()> {
@@ -220,6 +202,48 @@ pub fn check_email_verified(
     return Err(LemmyErrorType::EmailNotVerified.into());
   }
   Ok(())
+}
+
+pub fn generate_totp_2fa_secret() -> String {
+  Secret::generate().to_string()
+}
+
+/// Check the given TOTP token against the user's secret, if they have 2FA enabled.
+pub fn check_totp_2fa_valid(
+  local_user_view: &LocalUserView,
+  totp_token: &Option<String>,
+  site_name: &str,
+) -> LemmyResult<()> {
+  // Throw an error if their token is missing
+  let token = totp_token
+    .as_deref()
+    .ok_or(LemmyErrorType::MissingTotpToken)?;
+  let secret = local_user_view
+    .local_user
+    .totp_2fa_secret
+    .as_deref()
+    .ok_or(LemmyErrorType::MissingTotpSecret)?;
+
+  let totp = build_totp_2fa(site_name, &local_user_view.person.name, secret)?;
+
+  let check_passed = totp.check_current(token).is_some();
+  if !check_passed {
+    return Err(LemmyErrorType::IncorrectTotpToken.into());
+  }
+
+  Ok(())
+}
+
+pub fn build_totp_2fa(hostname: &str, username: &str, secret: &str) -> LemmyResult<Totp> {
+  let sec = Secret::new(secret.as_bytes().into());
+  let sec_bytes = sec.as_bytes();
+
+  totp_rs::Builder::new()
+    .with_secret(sec_bytes)
+    .with_issuer(Some(hostname.to_string()))
+    .with_account_name(username.to_string())
+    .build()
+    .with_lemmy_type(LemmyErrorType::CouldntGenerateTotp)
 }
 
 pub async fn check_registration_application(
@@ -313,33 +337,56 @@ pub fn check_comment_deleted_or_removed(comment: &Comment) -> LemmyResult<()> {
   }
 }
 
-pub async fn check_local_vote_mode(
-  is_upvote: Option<bool>,
+/// Checks whether a vote is allowed according to the community's vote settings.
+/// If the vote isn't allowed, any previous vote on the item is removed and an error is returned.
+pub async fn check_vote_settings(
+  vote: Option<bool>,
   post_or_comment_id: PostOrCommentId,
-  local_site: &LocalSite,
-  person_id: PersonId,
+  community: &Community,
+  person: &Person,
   pool: &mut DbPool<'_>,
 ) -> LemmyResult<()> {
-  let (downvote_setting, upvote_setting) = match post_or_comment_id {
-    PostOrCommentId::Post(_) => (local_site.post_downvotes, local_site.post_upvotes),
-    PostOrCommentId::Comment(_) => (local_site.comment_downvotes, local_site.comment_upvotes),
+  // Vote removal with None is always allowed
+  let Some(is_upvote) = vote else {
+    return Ok(());
   };
 
-  let downvote_fail = is_upvote == Some(false) && downvote_setting == FederationMode::Disable;
-  let upvote_fail = is_upvote == Some(true) && upvote_setting == FederationMode::Disable;
+  let (downvote_mode, upvote_mode) = match post_or_comment_id {
+    PostOrCommentId::Post(_) => (community.post_downvotes, community.post_upvotes),
+    PostOrCommentId::Comment(_) => (community.comment_downvotes, community.comment_upvotes),
+  };
+
+  let mut vote_allowed = async |vote_mode: VoteSettings| {
+    Ok::<bool, LemmyError>(match vote_mode {
+      VoteSettings::All => true,
+      VoteSettings::Local => person.local,
+      VoteSettings::Subscribed => {
+        let actions = CommunityActions::read(pool, community.id, person.id).await?;
+        actions.followed_at.is_some()
+          && actions.follow_state == Some(CommunityFollowerState::Accepted)
+      }
+      VoteSettings::Disable => false,
+    })
+  };
+  let allowed = if is_upvote {
+    vote_allowed(upvote_mode).await?
+  } else {
+    vote_allowed(downvote_mode).await?
+  };
 
   // Undo previous vote for item if new vote fails
-  if downvote_fail || upvote_fail {
+  if !allowed {
     match post_or_comment_id {
       PostOrCommentId::Post(post_id) => {
-        let form = PostLikeForm::new(post_id, person_id, None);
+        let form = PostLikeForm::new(post_id, person.id, None);
         PostActions::like(pool, &form).await?;
       }
       PostOrCommentId::Comment(comment_id) => {
-        let form = CommentLikeForm::new(comment_id, person_id, None);
+        let form = CommentLikeForm::new(comment_id, person.id, None);
         CommentActions::like(pool, &form).await?;
       }
     };
+    return Err(UntranslatedError::VoteNotAllowed.into());
   }
   Ok(())
 }
@@ -775,6 +822,7 @@ pub async fn purge_user_account(
   // Delete the oauth accounts linked to the local user
   if let Ok(local_user) = LocalUserView::read_person(pool, person_id).await {
     OAuthAccount::delete_user_accounts(pool, local_user.local_user.id).await?;
+    LoginToken::invalidate_all(pool, local_user.local_user.id).await?;
   }
 
   Person::delete_account(pool, person_id, local_instance_id).await?;
@@ -855,6 +903,11 @@ pub async fn process_markdown(
 
   if local_site.image_mode == ImageMode::ProxyAllImages {
     let (text, links) = markdown_rewrite_image_links(text);
+
+    // Validate the IPs for the links before inserting to the remote image table to prevent SSRF.
+    for link in &links {
+      context.is_valid_ip(link).await?;
+    }
     RemoteImage::create(&mut context.pool(), links.clone()).await?;
 
     // Create images and image detail rows
@@ -965,8 +1018,9 @@ fn build_proxied_image_url(
 pub async fn local_user_view_from_jwt(
   jwt: &str,
   context: &LemmyContext,
+  feed_only: bool,
 ) -> LemmyResult<LocalUserView> {
-  let local_user_id = Claims::validate(jwt, context)
+  let local_user_id = Claims::validate(jwt, context, feed_only)
     .await
     .with_lemmy_type(LemmyErrorType::NotLoggedIn)?;
   let local_user_view = LocalUserView::read(&mut context.pool(), local_user_id).await?;
@@ -988,29 +1042,6 @@ pub fn read_auth_token(req: &HttpRequest) -> LemmyResult<Option<String>> {
   else {
     Ok(None)
   }
-}
-
-pub fn send_webmention(post: Post, community: &Community, context: Data<LemmyContext>) {
-  if let Some(url) = post.url.clone()
-    && community.visibility.can_view_without_login()
-  {
-    spawn_try_task(async move {
-      if context.is_valid_ip(&url).await.is_err() {
-        return Ok(());
-      }
-      let mut webmention = Webmention::new::<Url>(post.ap_id.clone().into(), url.clone().into())?;
-      webmention.set_checked(true);
-      match webmention
-        .send()
-        .instrument(tracing::info_span!("Sending webmention"))
-        .await
-      {
-        Err(WebmentionError::NoEndpointDiscovered(_)) => Ok(()),
-        Ok(_) => Ok(()),
-        Err(e) => Err(e).with_lemmy_type(UntranslatedError::CouldntSendWebmention.into()),
-      }
-    });
-  };
 }
 
 /// Returns error if new comment exceeds maximum depth.
@@ -1050,10 +1081,8 @@ pub async fn update_post_tags(
 mod tests {
   use super::*;
   use diesel_ltree::Ltree;
-  use lemmy_db_schema::{
-    newtypes::{CommentId, LanguageId},
-    test_data::TestData,
-  };
+  use lemmy_db_schema::test_data::TestData;
+  use lemmy_db_schema_file::newtypes::{CommentId, LanguageId};
   use pretty_assertions::assert_eq;
   use serial_test::serial;
 
@@ -1168,5 +1197,12 @@ mod tests {
     comment.path = Ltree(path);
     assert!(check_comment_depth(&comment).is_err());
     Ok(())
+  }
+
+  #[test]
+  fn test_build_totp() {
+    let generated_secret = generate_totp_2fa_secret();
+    let totp = build_totp_2fa("lemmy.ml", "my_name", &generated_secret);
+    assert!(totp.is_ok());
   }
 }

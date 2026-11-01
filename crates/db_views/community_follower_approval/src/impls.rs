@@ -13,7 +13,6 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
-  newtypes::CommunityId,
   source::{
     community::{Community, CommunityActions, community_actions_keys as key},
     person::Person,
@@ -25,6 +24,7 @@ use lemmy_db_schema_file::{
   PersonId,
   aliases,
   enums::{CommunityFollowerState, CommunityVisibility},
+  newtypes::CommunityId,
   schema::{community, community_actions, person},
 };
 use lemmy_diesel_utils::{

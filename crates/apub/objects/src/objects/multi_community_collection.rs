@@ -11,14 +11,13 @@ use lemmy_api_utils::{
   send_activity::{ActivityChannel, SendActivityData},
 };
 use lemmy_db_schema::{
-  newtypes::CommunityId,
   source::{
     community::{CommunityActions, CommunityFollowerForm},
     multi_community::MultiCommunity,
   },
   traits::Followable,
 };
-use lemmy_db_schema_file::enums::CommunityFollowerState;
+use lemmy_db_schema_file::{enums::CommunityFollowerState, newtypes::CommunityId};
 use lemmy_db_views_site::SiteView;
 use lemmy_utils::error::{LemmyError, LemmyResult};
 use tracing::info;

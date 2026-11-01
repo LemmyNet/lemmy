@@ -1,17 +1,22 @@
 use activitypub_federation::config::Data;
 use actix_web::web::Json;
+use chrono::Utc;
 use either::Either;
 use lemmy_api_utils::{
   context::LemmyContext,
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_community_mod_action,
 };
-use lemmy_db_schema::{source::comment_report::CommentReport, traits::Reportable};
+use lemmy_db_schema::{
+  source::comment_report::{CommentReport, UpdateCommentReportForm},
+  traits::Reportable,
+};
 use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_report_combined::{
   ReportCombinedViewInternal,
   api::{CommentReportResponse, ResolveCommentReport},
 };
+use lemmy_diesel_utils::utils::diesel_string_update;
 use lemmy_utils::error::LemmyResult;
 
 /// Resolves or unresolves a comment report and notifies the moderators of the community
@@ -34,14 +39,16 @@ pub async fn resolve_comment_report(
   )
   .await?;
 
-  CommentReport::update_resolved(
-    &mut context.pool(),
-    report_id,
-    person_id,
-    data.resolved,
-    data.resolve_reason,
-  )
-  .await?;
+  let conclusion = diesel_string_update(data.conclusion.as_deref());
+
+  let form = UpdateCommentReportForm {
+    resolver_id: Some(person_id),
+    resolved: Some(data.resolved),
+    conclusion,
+    updated_at: Some(Utc::now()),
+  };
+
+  CommentReport::update_resolved(&mut context.pool(), report_id, &form).await?;
 
   let report_id = data.report_id;
   let comment_report_view =

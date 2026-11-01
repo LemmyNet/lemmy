@@ -10,17 +10,20 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::SortDirection;
 use lemmy_db_schema::{
   NotificationTypeFilter,
-  newtypes::NotificationId,
   source::{
     notification::{Notification, notification_keys},
     person::Person,
   },
-  utils::{limit_fetch, queries::filters::filter_blocked},
+  utils::{
+    limit_fetch,
+    queries::filters::{filter_blocked, filter_private_or_followed},
+  },
 };
 use lemmy_db_schema_file::{
   PersonId,
   enums::NotificationType,
-  schema::{comment, modlog, notification, person, post, private_message},
+  newtypes::NotificationId,
+  schema::{comment, community, modlog, notification, person, post, private_message},
 };
 use lemmy_db_views_modlog::ModlogView;
 use lemmy_db_views_notification_sql::notification_joins;
@@ -56,6 +59,7 @@ impl NotificationView {
       // Filter unreads
       .filter(unread_filter)
       .filter(filter_deleted_and_removed(my_person.id))
+      .filter(community::id.is_null().or(filter_private_or_followed()))
       // Don't count replies from blocked users
       .filter(filter_blocked())
       .select(count(notification::id))
@@ -136,6 +140,7 @@ impl NotificationQuery {
         // Dont show replies from blocked users or instances
         .filter(filter_blocked())
         .filter(filter_deleted_and_removed(my_person.id))
+        .filter(community::id.is_null().or(filter_private_or_followed()))
         .limit(limit)
         .select(NotificationViewInternal::as_select())
         .into_boxed();
@@ -146,11 +151,7 @@ impl NotificationQuery {
           // The recipient filter (IE only show replies to you)
           .filter(notification::recipient_id.eq(my_person.id))
           .filter(notification::read.eq(false));
-      } else if self.type_
-        == Some(NotificationTypeFilter::Other(
-          NotificationType::PrivateMessage,
-        ))
-      {
+      } else if self.type_ == Some(NotificationTypeFilter::PrivateMessage) {
         // A special case for private messages: show messages FROM you also.
         // Use a not-null check to catch the others
         query = query.filter(
@@ -169,18 +170,14 @@ impl NotificationQuery {
       if let Some(type_) = self.type_ {
         query = match type_ {
           NotificationTypeFilter::All => query,
-          NotificationTypeFilter::Other(kind) => query.filter(notification::kind.eq(kind)),
+          _ => query.filter(notification::kind.eq(NotificationType::from(type_))),
         }
       }
 
       // The creator_id filter
       // For private messages, to create a conversation view, also include your own messages to them
       if let Some(creator_id) = self.creator_id {
-        if self.type_
-          == Some(NotificationTypeFilter::Other(
-            NotificationType::PrivateMessage,
-          ))
-        {
+        if self.type_ == Some(NotificationTypeFilter::PrivateMessage) {
           query = query.filter(
             // Them to me
             notification::recipient_id
@@ -235,6 +232,7 @@ fn map_to_enum(
   hide_modlog_name: bool,
   my_person: &Person,
 ) -> Option<NotificationView> {
+  #[expect(clippy::question_mark)]
   let data = if let Some(modlog) = v.modlog {
     let m = ModlogView {
       modlog,

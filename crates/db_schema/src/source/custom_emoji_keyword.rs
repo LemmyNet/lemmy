@@ -1,4 +1,4 @@
-use crate::newtypes::CustomEmojiId;
+use lemmy_db_schema_file::newtypes::CustomEmojiId;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::custom_emoji_keyword;
 use serde::{Deserialize, Serialize};

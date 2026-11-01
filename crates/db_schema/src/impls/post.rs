@@ -1,5 +1,4 @@
 use crate::{
-  newtypes::{CommunityId, PostId},
   source::post::{
     Post,
     PostActions,
@@ -10,6 +9,7 @@ use crate::{
     PostReadForm,
     PostSavedForm,
     PostUpdateForm,
+    PostUpsertForm,
   },
   traits::{Likeable, Saveable},
   utils::{DELETED_REPLACEMENT_TEXT, FETCH_LIMIT_MAX, SITEMAP_DAYS, SITEMAP_LIMIT},
@@ -31,7 +31,8 @@ use diesel_uplete::{UpleteCount, uplete};
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
-  enums::PostNotificationsMode,
+  enums::{CommunityVisibility, PostNotificationsMode},
+  newtypes::{CommunityId, PostId},
   schema::{community, local_user, person, post, post_actions},
 };
 use lemmy_diesel_utils::{
@@ -86,10 +87,10 @@ impl Crud for Post {
 }
 
 impl Post {
-  pub async fn insert_apub(
+  pub async fn upsert_apub(
     pool: &mut DbPool<'_>,
     timestamp: DateTime<Utc>,
-    form: &PostInsertForm,
+    form: &PostUpsertForm,
   ) -> LemmyResult<Self> {
     let conn = &mut get_conn(pool).await?;
     insert_into(post::table)
@@ -125,10 +126,18 @@ impl Post {
   ) -> LemmyResult<Vec<(DbUrl, chrono::DateTime<Utc>)>> {
     let conn = &mut get_conn(pool).await?;
     post::table
+      .inner_join(community::table)
       .select((post::ap_id, coalesce(post::updated_at, post::published_at)))
       .filter(post::local.eq(true))
       .filter(post::deleted.eq(false))
       .filter(post::removed.eq(false))
+      .filter(community::removed.eq(false))
+      .filter(community::deleted.eq(false))
+      .filter(community::visibility.eq_any([
+        CommunityVisibility::Public,
+        CommunityVisibility::Unlisted,
+        CommunityVisibility::LocalOnlyPublic,
+      ]))
       .filter(post::published_at.ge(Utc::now().naive_utc() - SITEMAP_DAYS))
       .order(post::published_at.desc())
       .limit(SITEMAP_LIMIT)

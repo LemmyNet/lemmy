@@ -3,6 +3,7 @@ use actix_web::{
   http::header::{self, CacheDirective},
   web::Data,
 };
+use jiff_chrono_conversions::TryToJiff;
 use lemmy_api_utils::{context::LemmyContext, utils::check_private_instance};
 use lemmy_db_schema::source::post::Post;
 use lemmy_db_views_site::SiteView;
@@ -15,8 +16,11 @@ fn generate_urlset(posts: Vec<(DbUrl, chrono::DateTime<chrono::Utc>)>) -> LemmyR
   let urls = posts
     .into_iter()
     .map_while(|(url, date_time)| {
+      // Convert chrono to jiff zoned time
+      let zoned_time = date_time.try_to_jiff().unwrap_or_default();
+
       Url::builder(url.to_string())
-        .last_modified(date_time.into())
+        .last_modified(zoned_time)
         .build()
         .ok()
     })

@@ -1,10 +1,12 @@
-use crate::newtypes::{CommentId, CommunityId, PersonLikedCombinedId, PostId};
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;
-use lemmy_db_schema_file::PersonId;
 #[cfg(feature = "full")]
 use lemmy_db_schema_file::schema::person_liked_combined;
+use lemmy_db_schema_file::{
+  PersonId,
+  newtypes::{CommentId, CommunityId, PersonLikedCombinedId, PostId},
+};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 

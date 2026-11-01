@@ -35,7 +35,7 @@ async fn node_info_well_known(context: web::Data<LemmyContext>) -> LemmyResult<H
       rel: Url::parse("http://nodeinfo.diaspora.software/ns/schema/2.1")?,
       href: Url::parse(&format!(
         "{}/nodeinfo/2.1",
-        &context.settings().get_protocol_and_hostname(),
+        context.settings().get_protocol_and_hostname(),
       ))?,
     }],
   };
@@ -59,12 +59,12 @@ async fn node_info(context: web::Data<LemmyContext>) -> Result<HttpResponse, Err
     protocols: Some(vec!["activitypub".to_string()]),
     usage: Some(NodeInfoUsage {
       users: Some(NodeInfoUsers {
-        total: Some(site_view.local_site.users),
+        total: Some(site_view.local_site.local_users),
         active_halfyear: Some(site_view.local_site.users_active_half_year),
         active_month: Some(site_view.local_site.users_active_month),
       }),
-      local_posts: Some(site_view.local_site.posts),
-      local_comments: Some(site_view.local_site.comments),
+      local_posts: Some(site_view.local_site.local_posts),
+      local_comments: Some(site_view.local_site.local_comments),
     }),
     open_registrations,
     services: Some(NodeInfoServices {

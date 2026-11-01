@@ -21,7 +21,8 @@ workspace = true
 full = [
   "lemmy_utils/full",
   "diesel",
-  "diesel-derive-newtype",
+  "anyhow",
+  "moka",
   "bcrypt",
   "lemmy_utils",
   "serde_json",
@@ -47,13 +48,14 @@ lemmy_db_schema_file = { workspace = true }
 lemmy_diesel_utils = { workspace = true }
 bcrypt = { workspace = true, optional = true }
 diesel = { workspace = true, optional = true }
-diesel-derive-newtype = { workspace = true, optional = true }
 diesel-async = { workspace = true, optional = true }
 diesel-uplete = { workspace = true, optional = true }
 diesel_ltree = { workspace = true, optional = true }
 ts-rs = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
 i-love-jesus = { workspace = true, optional = true }
+anyhow = { workspace = true, optional = true }
+moka = { workspace = true, optional = true }
 derive-new.workspace = true
 
 [dev-dependencies]

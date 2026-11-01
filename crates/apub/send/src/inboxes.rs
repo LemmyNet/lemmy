@@ -1,10 +1,7 @@
 use crate::util::LEMMY_TEST_FAST_FEDERATION;
 use chrono::{DateTime, TimeZone, Utc};
-use lemmy_db_schema::{
-  newtypes::CommunityId,
-  source::{activity::SentActivity, site::Site},
-};
-use lemmy_db_schema_file::InstanceId;
+use lemmy_db_schema::source::{activity::SentActivity, site::Site};
+use lemmy_db_schema_file::{InstanceId, newtypes::CommunityId};
 use lemmy_db_views_community_follower::CommunityFollowerView;
 use lemmy_diesel_utils::{
   connection::{ActualDbPool, DbPool},
@@ -223,11 +220,12 @@ impl<T: DataSource> CommunityInboxCollector<T> {
 #[expect(clippy::indexing_slicing)]
 mod tests {
   use super::*;
-  use lemmy_db_schema::{
+  use lemmy_db_schema::source::activity::SentActivity;
+  use lemmy_db_schema_file::{
+    InstanceId,
+    enums::ActorType,
     newtypes::{ActivityId, CommunityId, SiteId},
-    source::activity::SentActivity,
   };
-  use lemmy_db_schema_file::{InstanceId, enums::ActorType};
   use lemmy_utils::error::LemmyResult;
   use mockall::mock;
   use serde_json::json;

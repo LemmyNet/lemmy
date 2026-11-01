@@ -1,7 +1,4 @@
-use crate::{
-  newtypes::{CommunityId, MultiCommunityId},
-  source::placeholder_apub_url,
-};
+use crate::source::placeholder_apub_url;
 use chrono::{DateTime, Utc};
 #[cfg(feature = "full")]
 use i_love_jesus::CursorKeysModule;
@@ -11,7 +8,12 @@ use lemmy_db_schema_file::schema::{
   multi_community_entry,
   multi_community_follow,
 };
-use lemmy_db_schema_file::{InstanceId, PersonId, enums::CommunityFollowerState};
+use lemmy_db_schema_file::{
+  InstanceId,
+  PersonId,
+  enums::CommunityFollowerState,
+  newtypes::{CommunityId, MultiCommunityId},
+};
 use lemmy_diesel_utils::{dburl::DbUrl, sensitive::SensitiveString};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;

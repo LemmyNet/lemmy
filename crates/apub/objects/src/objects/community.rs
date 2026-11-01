@@ -7,6 +7,7 @@ use crate::{
       check_apub_id_valid_with_strictness,
       community_visibility,
       read_from_string_or_source_opt,
+      verify_domains_match_opt,
     },
     markdown_links::markdown_rewrite_remote_links_opt,
     protocol::{AttributedTo, ImageObject, LanguageTag, Source},
@@ -34,7 +35,7 @@ use lemmy_api_utils::{
 use lemmy_db_schema::{
   source::{
     actor_language::CommunityLanguage,
-    community::{Community, CommunityInsertForm, CommunityUpdateForm},
+    community::{Community, CommunityUpdateForm, CommunityUpsertForm},
     community_tag::CommunityTag,
   },
   traits::ApubActor,
@@ -47,7 +48,7 @@ use lemmy_utils::{
   utils::{
     markdown::markdown_to_html,
     slurs::remove_slurs,
-    validation::{SITE_SUMMARY_MAX_LENGTH, truncate_for_db},
+    validation::{DISPLAY_NAME_MAX_LENGTH, SITE_SUMMARY_MAX_LENGTH, truncate_for_db},
   },
 };
 use regex::RegexSet;
@@ -149,6 +150,10 @@ impl Object for ApubCommunity {
         .into_iter()
         .map(ApubCommunityTag::to_json)
         .collect(),
+      post_upvotes: Some(self.post_upvotes),
+      post_downvotes: Some(self.post_downvotes),
+      comment_upvotes: Some(self.comment_upvotes),
+      comment_downvotes: Some(self.comment_downvotes),
     };
     Ok(group)
   }
@@ -160,6 +165,10 @@ impl Object for ApubCommunity {
   ) -> LemmyResult<()> {
     check_apub_id_valid_with_strictness(group.id.inner(), true, context).await?;
     verify_domains_match(expected_domain, group.id.inner())?;
+    verify_domains_match(group.id.inner(), &group.outbox)?;
+    verify_domains_match(group.id.inner(), &group.inbox)?;
+    verify_domains_match_opt(group.id.inner(), &group.followers)?;
+    verify_domains_match_opt(group.id.inner(), &group.featured)?;
 
     // Doesnt call verify_is_remote_object() because the community might be edited by a
     // remote mod. This is safe as we validate `expected_domain`.
@@ -194,27 +203,31 @@ impl Object for ApubCommunity {
       .map(|s| remove_slurs(&s, &slur_regex));
 
     let name = group.preferred_username.clone();
-    let title = group.name.as_ref().map(|n| remove_slurs(n, &slur_regex));
+    let title = group
+      .name
+      .as_ref()
+      .map(|n| remove_slurs(n, &slur_regex))
+      .map(|s| truncate_for_db(&s, DISPLAY_NAME_MAX_LENGTH));
 
     // If NSFW is not allowed, then remove NSFW communities
     let removed = check_nsfw_allowed(group.sensitive, Some(&local_site))
       .err()
       .map(|_| true);
 
-    let form = CommunityInsertForm {
+    let form = CommunityUpsertForm {
       published_at: group.published,
-      updated_at: group.updated,
+      updated_at: Some(group.updated),
       deleted: Some(false),
       nsfw: Some(group.sensitive.unwrap_or(false)),
       ap_id: Some(group.id.clone().into()),
       // May be a local community which is updated by remote mod.
       local: Some(group.id.is_local(context)),
       last_refreshed_at: Some(Utc::now()),
-      icon,
-      banner,
-      sidebar,
+      icon: Some(icon),
+      banner: Some(banner),
+      sidebar: Some(sidebar),
       removed,
-      summary,
+      summary: Some(summary),
       followers_url: group.followers.clone().clone().map(Into::into),
       inbox_url: Some(
         group
@@ -224,22 +237,31 @@ impl Object for ApubCommunity {
           .unwrap_or(group.inbox.clone())
           .into(),
       ),
-      moderators_url: group
-        .attributed_to
-        .clone()
-        .clone()
-        .and_then(AttributedTo::url),
+      moderators_url: Some(
+        group
+          .attributed_to
+          .clone()
+          .clone()
+          .and_then(AttributedTo::url),
+      ),
       posting_restricted_to_mods: group.posting_restricted_to_mods,
-      featured_url: group.featured.clone().clone().map(Into::into),
-      title,
+      featured_url: Some(group.featured.clone().clone().map(Into::into)),
+      title: Some(title),
       visibility,
-      ..CommunityInsertForm::new(instance_id, name, group.public_key.public_key_pem.clone())
+      post_upvotes: Some(group.post_upvotes.unwrap_or_default()),
+      post_downvotes: Some(group.post_downvotes.unwrap_or_default()),
+      comment_upvotes: Some(group.comment_upvotes.unwrap_or_default()),
+      comment_downvotes: Some(group.comment_downvotes.unwrap_or_default()),
+      instance_id,
+      name,
+      public_key: Some(group.public_key.public_key_pem.clone()),
+      ..Default::default()
     };
     let languages =
       LanguageTag::to_language_id_multiple(group.language.clone(), &mut context.pool()).await?;
 
     let timestamp = group.updated.or(group.published).unwrap_or_else(Utc::now);
-    let community = Community::insert_apub(&mut context.pool(), timestamp, &form).await?;
+    let community = Community::upsert_apub(&mut context.pool(), timestamp, &form).await?;
     CommunityLanguage::update(&mut context.pool(), languages, community.id).await?;
 
     let new_tags = group

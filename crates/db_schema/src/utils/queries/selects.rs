@@ -5,7 +5,7 @@ use diesel::{
   NullableExpressionMethods,
   PgExpressionMethods,
   QueryDsl,
-  dsl::{case_when, exists, not},
+  dsl::{case_when, not},
   expression::SqlLiteral,
   helper_types::Nullable,
   query_source::AliasedField,
@@ -51,29 +51,6 @@ pub fn creator_is_admin() -> _ {
 #[diesel::dsl::auto_type]
 pub fn local_user_is_admin() -> _ {
   local_user::admin.nullable().is_not_distinct_from(true)
-}
-
-/// Checks to see if the comment creator is an admin.
-#[diesel::dsl::auto_type]
-pub fn comment_creator_is_admin() -> _ {
-  exists(
-    creator_local_user.filter(
-      comment::creator_id
-        .eq(creator_local_user.field(local_user::person_id))
-        .and(creator_local_user.field(local_user::admin).eq(true)),
-    ),
-  )
-}
-
-#[diesel::dsl::auto_type]
-pub fn post_creator_is_admin() -> _ {
-  exists(
-    creator_local_user.filter(
-      post::creator_id
-        .eq(creator_local_user.field(local_user::person_id))
-        .and(creator_local_user.field(local_user::admin).eq(true)),
-    ),
-  )
 }
 
 #[diesel::dsl::auto_type]
@@ -218,18 +195,6 @@ pub fn local_user_can_mod() -> _ {
   local_user_is_admin().or(not(creator_is_admin()).and(am_higher_mod()))
 }
 
-/// Checks to see if you can mod a post.
-#[diesel::dsl::auto_type]
-pub fn local_user_can_mod_post() -> _ {
-  local_user_is_admin().or(not(post_creator_is_admin()).and(am_higher_mod()))
-}
-
-/// Checks to see if you can mod a comment.
-#[diesel::dsl::auto_type]
-pub fn local_user_can_mod_comment() -> _ {
-  local_user_is_admin().or(not(comment_creator_is_admin()).and(am_higher_mod()))
-}
-
 /// A special type of can_mod for communities, which dont have creators.
 #[diesel::dsl::auto_type]
 pub fn local_user_community_can_mod() -> _ {
@@ -251,7 +216,7 @@ pub fn comment_select_remove_deletes() -> _ {
     .nullable()
     .eq(comment::creator_id.nullable());
   let can_view_content = not(deleted_or_removed)
-    .or(local_user_can_mod_comment())
+    .or(local_user_can_mod())
     .or(is_creator);
   let content = case_when(can_view_content, comment::content).otherwise("");
 
@@ -294,7 +259,7 @@ pub fn post_select_remove_deletes() -> _ {
     .nullable()
     .eq(post::creator_id.nullable());
   let can_view_content = not(deleted_or_removed)
-    .or(local_user_can_mod_post())
+    .or(local_user_can_mod())
     .or(is_creator);
   let body = case_when(can_view_content, post::body).otherwise("");
 

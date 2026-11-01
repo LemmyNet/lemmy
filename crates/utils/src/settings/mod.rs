@@ -89,27 +89,38 @@ impl Settings {
 
   /// Sets a few additional config options necessary for starting lemmy
   pub fn get_database_url_with_options(&self) -> LemmyResult<String> {
-    let mut url = Url::parse(&self.get_database_url())?;
-
-    // Set `lemmy.protocol_and_hostname` so triggers can use it
-    let lemmy_protocol_and_hostname_option =
-      "lemmy.protocol_and_hostname=".to_owned() + &self.get_protocol_and_hostname();
-    let mut options = CONNECTION_OPTIONS.to_vec();
-    options.push(&lemmy_protocol_and_hostname_option);
-
-    // Create the connection uri portion
-    let options_segments = options
-      .iter()
-      // The equal signs need to be encoded, since the url set_query doesn't do them,
-      // and postgres requires them to be %3D
-      // https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING
-      .map(|o| format!("-c {}", encode(o)))
-      .collect::<Vec<String>>()
-      .join(" ");
-
-    url.set_query(Some(&format!("options={options_segments}")));
-    Ok(url.into())
+    inject_postgres_connection_options(&self.get_database_url(), &self.get_protocol_and_hostname())
   }
+}
+
+/// Appends Lemmy's Postgres `options=` settings without replacing existing query params
+/// such as `sslmode=require`.
+fn inject_postgres_connection_options(
+  database_url: &str,
+  protocol_and_hostname: &str,
+) -> LemmyResult<String> {
+  let mut url = Url::parse(database_url)?;
+
+  // Set `lemmy.protocol_and_hostname` so triggers can use it
+  let hostname_option = format!("lemmy.protocol_and_hostname={protocol_and_hostname}");
+  // Encode each option ourselves. `Url::set_query` and `query_pairs_mut` would either drop
+  // existing params or encode `=` a second time (`%253D`), which Postgres does not decode back
+  // to `=`. libpq requires the equals signs to arrive as `%3D`.
+  // https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING
+  let options_segments = CONNECTION_OPTIONS
+    .iter()
+    .copied()
+    .chain(std::iter::once(hostname_option.as_str()))
+    .map(|o| format!("-c {}", encode(o)))
+    .collect::<Vec<_>>()
+    .join(" ");
+
+  let query = match url.query() {
+    Some(existing) => format!("{existing}&options={options_segments}"),
+    None => format!("options={options_segments}"),
+  };
+  url.set_query(Some(&query));
+  Ok(url.to_string())
 }
 #[expect(clippy::expect_used)]
 /// Necessary to avoid URL expect failures
@@ -126,6 +137,37 @@ mod tests {
   fn test_load_config() -> LemmyResult<()> {
     Settings::init()?;
 
+    Ok(())
+  }
+
+  #[test]
+  fn test_database_url_preserves_sslmode() -> LemmyResult<()> {
+    let url = inject_postgres_connection_options(
+      "postgres://lemmy:password@localhost:5432/lemmy?sslmode=require",
+      "https://example.com",
+    )?;
+    assert!(
+      url.contains("sslmode=require"),
+      "sslmode=require must survive options injection: {url}"
+    );
+    assert!(url.contains("options="), "options= must be appended: {url}");
+    assert!(url.contains("%3D"), "{url}");
+    assert!(!url.contains("%253D"), "{url}");
+    Ok(())
+  }
+
+  #[test]
+  fn test_database_url_appends_options() -> LemmyResult<()> {
+    let url = inject_postgres_connection_options(
+      "postgres://lemmy:password@localhost:5432/lemmy",
+      "https://example.com",
+    )?;
+    assert!(url.contains("options="), "{url}");
+    assert!(url.contains("geqo_threshold"), "{url}");
+    assert!(url.contains("lemmy.protocol_and_hostname"), "{url}");
+    // libpq expects a single percent-encoding of `=` inside `options`.
+    assert!(url.contains("%3D"), "{url}");
+    assert!(!url.contains("%253D"), "{url}");
     Ok(())
   }
 }

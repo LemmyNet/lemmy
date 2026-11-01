@@ -1,6 +1,5 @@
 use crate::{
   diesel::{DecoratableTarget, OptionalExtension},
-  newtypes::{CommentId, CommunityId, PostId},
   source::comment::{
     Comment,
     CommentActions,
@@ -27,6 +26,7 @@ use diesel_uplete::{UpleteCount, uplete};
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
+  newtypes::{CommentId, CommunityId, PostId},
   schema::{comment, comment_actions, community, post},
 };
 use lemmy_diesel_utils::{
@@ -163,10 +163,10 @@ impl Comment {
     comment_form: &CommentInsertForm,
     parent_path: Option<&Ltree>,
   ) -> LemmyResult<Comment> {
-    Self::insert_apub(pool, None, comment_form, parent_path).await
+    Self::upsert_apub(pool, None, comment_form, parent_path).await
   }
 
-  pub async fn insert_apub(
+  pub async fn upsert_apub(
     pool: &mut DbPool<'_>,
     timestamp: Option<DateTime<Utc>>,
     comment_form: &CommentInsertForm,
@@ -442,7 +442,6 @@ mod tests {
 
   use super::*;
   use crate::{
-    newtypes::LanguageId,
     source::{
       community::{Community, CommunityInsertForm},
       instance::Instance,
@@ -453,6 +452,7 @@ mod tests {
     utils::RANK_DEFAULT,
   };
   use diesel_ltree::Ltree;
+  use lemmy_db_schema_file::newtypes::LanguageId;
   use lemmy_diesel_utils::{connection::build_db_pool_for_tests, traits::Crud};
   use lemmy_utils::error::LemmyResult;
   use pretty_assertions::assert_eq;

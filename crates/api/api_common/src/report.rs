@@ -1,12 +1,17 @@
 pub use lemmy_db_schema::{
   ReportType,
-  newtypes::{CommentReportId, CommunityReportId, PostReportId, PrivateMessageReportId},
   source::{
     comment_report::CommentReport,
     community_report::CommunityReport,
     post_report::PostReport,
     private_message_report::PrivateMessageReport,
   },
+};
+pub use lemmy_db_schema_file::newtypes::{
+  CommentReportId,
+  CommunityReportId,
+  PostReportId,
+  PrivateMessageReportId,
 };
 pub use lemmy_db_views_report_combined::{
   CommentReportView,

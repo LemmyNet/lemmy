@@ -6,11 +6,8 @@ use activitypub_federation::{
   protocol::{tombstone::Tombstone, values::MediaTypeMarkdown},
 };
 use lemmy_api_utils::context::LemmyContext;
-use lemmy_db_schema::{
-  impls::actor_language::UNDETERMINED_ID,
-  newtypes::LanguageId,
-  source::language::Language,
-};
+use lemmy_db_schema::{impls::actor_language::UNDETERMINED_ID, source::language::Language};
+use lemmy_db_schema_file::newtypes::LanguageId;
 use lemmy_diesel_utils::{connection::DbPool, dburl::DbUrl};
 use lemmy_utils::error::LemmyResult;
 use serde::{Deserialize, Serialize};

@@ -18,7 +18,6 @@ use diesel_async::RunQueryDsl;
 use i_love_jesus::{SortDirection, asc_if};
 use lemmy_db_schema::{
   impls::local_user::LocalUserOptionHelper,
-  newtypes::{CommunityId, CommunityTagId, MultiCommunityId, PostId},
   source::{
     actor_language::LocalUserLanguage,
     community::CommunityActions,
@@ -43,6 +42,7 @@ use lemmy_db_schema_file::{
     creator_community_instance_actions_join,
     creator_home_instance_actions_join,
     creator_local_instance_actions_join,
+    creator_local_user_admin_join,
     image_details_join,
     my_community_actions_join,
     my_instance_communities_actions_join,
@@ -51,6 +51,7 @@ use lemmy_db_schema_file::{
     my_person_actions_join,
     my_post_actions_join,
   },
+  newtypes::{CommunityId, CommunityTagId, MultiCommunityId, PostId},
   schema::{community, person, post, post_actions, post_community_tag},
 };
 use lemmy_diesel_utils::{
@@ -129,6 +130,7 @@ impl PostView {
       .left_join(creator_home_instance_actions_join())
       .left_join(creator_community_instance_actions_join())
       .left_join(creator_local_instance_actions_join)
+      .left_join(creator_local_user_admin_join())
       .left_join(creator_community_actions_join())
       .left_join(my_community_actions_join)
       .left_join(my_person_actions_join)
@@ -161,6 +163,7 @@ impl PostView {
       .left_join(creator_home_instance_actions_join())
       .left_join(creator_community_instance_actions_join())
       .left_join(creator_local_instance_actions_join)
+      .left_join(creator_local_user_admin_join())
       .left_join(creator_community_actions_join())
       .left_join(my_community_actions_join)
       .left_join(my_person_actions_join)
@@ -187,6 +190,13 @@ impl PostView {
     if my_local_user.is_none() {
       query = query.filter(community::visibility.ne(CommunityVisibility::LocalOnlyPrivate));
     }
+
+    // Only the creator can see their own unpublished scheduled posts.
+    query = query.filter(
+      post::scheduled_publish_time_at
+        .is_null()
+        .or(post::creator_id.nullable().eq(my_person_id)),
+    );
 
     // Hide deleted and removed for non-admins or mods
     if !is_mod_or_admin {
@@ -567,11 +577,17 @@ impl PostQuery<'_> {
     // featured posts first
     // Don't do for new / old sorts
     if sort != PostSortType::New && sort != PostSortType::Old {
+      // Only sort by featured local if there are no communities given
       pq = if community_ids.is_none() {
         pq.then_order_by(key::featured_local)
-      } else {
+      }
+      // Only sort by featured_community if there's a single community.
+      // Multi-communities / subscribed views should not show featured communities on the top.
+      else if community_ids.as_ref().map(std::vec::Vec::len) == Some(1) {
         pq.then_order_by(key::featured_community)
-      };
+      } else {
+        pq
+      }
     }
 
     // then use the main sort

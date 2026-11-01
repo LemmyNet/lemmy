@@ -1,7 +1,5 @@
-use lemmy_db_schema::{
-  newtypes::{CommentId, PostId},
-  source::person::Person,
-};
+use lemmy_db_schema::source::person::Person;
+use lemmy_db_schema_file::newtypes::{CommentId, PostId};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 #[cfg(feature = "full")]

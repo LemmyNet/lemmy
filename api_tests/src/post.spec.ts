@@ -246,6 +246,17 @@ test("Update a post", async () => {
   expect(betaPost?.post.name).toBe(updatedName);
   await assertPostFederation(betaPost!, updatedPost.post_view);
 
+  // Make sure URL removal federates
+  const updatePost2 = await editPost(alpha, postRes.post_view.post, "").then(
+    expectSuccess,
+  );
+  expect(updatePost2.post_view.post.url).toBe(undefined);
+  const betaPost2 = await waitUntilSuccess(
+    () => getPost(beta, betaPost!.post.id),
+    p => !p.post_view.post.url,
+  );
+  expect(betaPost2.post_view.post.url).toBe(undefined);
+
   // Make sure lemmy beta cannot update the post
   await jestLemmyError(
     () => editPost(beta, betaPost!.post).then(expectFailure),
@@ -684,8 +695,9 @@ test("Enforce site ban federation for federated user", async () => {
   expect(banAlphaOnBeta.person_view.banned).toBe(true);
 
   // existing alpha post should be removed on beta
-  const betaRemovedPost = await getPost(beta, searchBeta1!.post.id).then(
-    expectSuccess,
+  const betaRemovedPost = await waitUntilSuccess(
+    () => getPost(beta, searchBeta1!.post.id),
+    s => s.post_view.post.removed,
   );
   expect(betaRemovedPost.post_view.post.removed).toBe(true);
 
@@ -1221,7 +1233,7 @@ test("Admin removes post from local user in remote community", async () => {
   );
 });
 
-test.only("Warn about a post", async () => {
+test("Warn about a post", async () => {
   // Create post from alpha
   const alphaCommunity = await resolveBetaCommunity(alpha);
   await followBeta(alpha);

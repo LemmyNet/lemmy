@@ -77,12 +77,13 @@ macro_rules! location_info {
 
 cfg_select! {
   feature = "full" => {
-    use moka::future::Cache;use std::fmt::Debug;use std::hash::Hash;
+    use moka::future::Cache;
     use serde_json::Value;
+    use std::{fmt::Debug, hash::Hash};
 
-    /// Only include a basic context to save space and bandwidth. The main context is hosted statically
-    /// on join-lemmy.org. Include activitystreams explicitly for better compat, but this could
-    /// theoretically also be moved.
+    /// Only include a basic context to save space and bandwidth. The main context is hosted
+    /// statically on join-lemmy.org. Include activitystreams explicitly for better compat, but
+    /// this could theoretically also be moved.
     pub static FEDERATION_CONTEXT: LazyLock<Value> = LazyLock::new(|| {
       Value::Array(vec![
         Value::String("https://join-lemmy.org/context.json".to_string()),
@@ -104,7 +105,7 @@ cfg_select! {
           }
         }
         .in_current_span(), /* this makes sure the inner tracing gets the same context as where
-                            * spawn was called */
+                             * spawn was called */
       );
     }
 
