@@ -886,9 +886,9 @@ dependencies = [
 
 [[package]]
 name = "clearurls"
-version = "0.0.5"
+version = "0.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b5a4273a069a3ff3c3197c7bef7f2c52d367f00ada49afb18acf09d393b5ef87"
+checksum = "2779c42fed298a00dd6b685befb66f400b3a32dae25c736c95dab6f98f551da2"
 dependencies = [
  "linkify 0.11.0",
  "percent-encoding",
@@ -4251,7 +4251,7 @@ dependencies = [
  "actix-web",
  "anyhow",
  "chrono",
- "clearurls 0.0.5",
+ "clearurls 0.0.7",
  "dashmap",
  "deser-hjson",
  "diesel",
