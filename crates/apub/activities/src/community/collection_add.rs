@@ -32,7 +32,7 @@ use lemmy_db_schema::{
     post::{Post, PostUpdateForm},
   },
 };
-use lemmy_db_schema_file::{PersonId, newtypes::CommunityId};
+use lemmy_db_schema_file::{PersonId, enums::CommunityFollowerState, newtypes::CommunityId};
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::{LemmyError, LemmyResult, UntranslatedError};
 use url::Url;
@@ -132,6 +132,24 @@ impl Activity for CollectionAdd {
         if !moderated_communities.contains(&community.id) {
           let form = CommunityModeratorForm::new(community.id, new_mod.id);
           CommunityActions::join(&mut context.pool(), &form).await?;
+
+          // Mods can view private communities without approval, so a pending follow request from
+          // a local user who becomes mod is accepted right away. Otherwise it would be counted but
+          // never listed in the pending follows.
+          if community.local && new_mod.local {
+            let actions =
+              CommunityActions::read(&mut context.pool(), community.id, new_mod.id).await?;
+            if actions.follow_state == Some(CommunityFollowerState::ApprovalRequired) {
+              CommunityActions::approve_private_community_follower(
+                &mut context.pool(),
+                community.id,
+                new_mod.id,
+                actor.id,
+                CommunityFollowerState::Accepted,
+              )
+              .await?;
+            }
+          }
 
           // write mod log
           let form =
