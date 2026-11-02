@@ -62,8 +62,9 @@ pub async fn add_mod_to_community(
   let pool = &mut context.pool();
   let conn = &mut get_conn(pool).await?;
   let tx_data = data.clone();
-  let action = conn
-    .transaction::<Vec<Modlog>, LemmyError, _>(async |conn| {
+  let (action, accept_follow) = conn
+    .transaction::<_, LemmyError, _>(async |conn| {
+      let mut accept_follow = None;
       // Update in local database
       let community_moderator_form =
         CommunityModeratorForm::new(tx_data.community_id, tx_data.person_id);
@@ -71,15 +72,14 @@ pub async fn add_mod_to_community(
         CommunityActions::join(&mut conn.into(), &community_moderator_form).await?;
 
         // Mods can view private communities without approval, so a pending follow request from a
-        // local user who becomes mod is accepted right away. Otherwise it would be counted but
-        // never listed in the pending follows.
+        // user who becomes mod is accepted right away. Otherwise it would be counted but never
+        // listed in the pending follows. A remote user's instance learns about it from the Accept.
         if community.local {
           let new_mod = Person::read(&mut conn.into(), tx_data.person_id).await?;
           let actions =
             CommunityActions::read(&mut conn.into(), tx_data.community_id, tx_data.person_id)
               .await?;
-          if new_mod.local && actions.follow_state == Some(CommunityFollowerState::ApprovalRequired)
-          {
+          if actions.follow_state == Some(CommunityFollowerState::ApprovalRequired) {
             CommunityActions::approve_private_community_follower(
               &mut conn.into(),
               tx_data.community_id,
@@ -88,6 +88,13 @@ pub async fn add_mod_to_community(
               CommunityFollowerState::Accepted,
             )
             .await?;
+            if !new_mod.local {
+              accept_follow = Some(SendActivityData::PrivateCommunityAcceptFollower {
+                community_id: tx_data.community_id,
+                person_id: tx_data.person_id,
+                follow_activity_id: actions.follow_activity_id,
+              });
+            }
           }
         }
       } else {
@@ -101,7 +108,8 @@ pub async fn add_mod_to_community(
         tx_data.person_id,
         !tx_data.added,
       );
-      Modlog::create(&mut conn.into(), &[form]).await
+      let action = Modlog::create(&mut conn.into(), &[form]).await?;
+      Ok((action, accept_follow))
     })
     .await?;
   notify_mod_action(action.clone(), &context);
@@ -120,6 +128,9 @@ pub async fn add_mod_to_community(
     },
     &context,
   )?;
+  if let Some(accept_follow) = accept_follow {
+    ActivityChannel::submit_activity(accept_follow, &context)?;
+  }
 
   Ok(Json(AddModToCommunityResponse { moderators }))
 }
@@ -130,6 +141,7 @@ mod tests {
   use lemmy_db_schema::{
     source::{
       community::{CommunityFollowerForm, CommunityInsertForm},
+      instance::Instance,
       local_site::LocalSite,
       local_user::LocalUserInsertForm,
       person::PersonInsertForm,
@@ -145,6 +157,16 @@ mod tests {
   #[tokio::test]
   #[serial]
   async fn test_add_mod_accepts_pending_follow() -> LemmyResult<()> {
+    check_add_mod_accepts_pending_follow(true).await
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_add_mod_accepts_remote_pending_follow() -> LemmyResult<()> {
+    check_add_mod_accepts_pending_follow(false).await
+  }
+
+  async fn check_add_mod_accepts_pending_follow(local_follower: bool) -> LemmyResult<()> {
     let context = LemmyContext::init_test_context().await;
     let pool = &mut context.pool();
     let data = TestData::create(pool).await?;
@@ -154,12 +176,19 @@ mod tests {
     LocalUser::create(pool, &LocalUserInsertForm::test_form(mod_person.id), vec![]).await?;
     let mod_view = LocalUserView::read_person(pool, mod_person.id).await?;
 
-    let follower = Person::create(
-      pool,
-      &PersonInsertForm::test_form(data.instance.id, "follower"),
-    )
-    .await?;
-    LocalUser::create(pool, &LocalUserInsertForm::test_form(follower.id), vec![]).await?;
+    let follower_instance_id = if local_follower {
+      data.instance.id
+    } else {
+      Instance::read_or_create(pool, "remote.tld").await?.id
+    };
+    let follower_form = PersonInsertForm {
+      local: Some(local_follower),
+      ..PersonInsertForm::test_form(follower_instance_id, "follower")
+    };
+    let follower = Person::create(pool, &follower_form).await?;
+    if local_follower {
+      LocalUser::create(pool, &LocalUserInsertForm::test_form(follower.id), vec![]).await?;
+    }
 
     let community_form = CommunityInsertForm {
       visibility: Some(CommunityVisibility::Private),
@@ -209,6 +238,9 @@ mod tests {
     );
 
     LocalSite::delete(pool).await?;
+    if !local_follower {
+      Instance::delete(pool, follower_instance_id).await?;
+    }
     data.delete(pool).await?;
 
     Ok(())
