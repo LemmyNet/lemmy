@@ -1,6 +1,7 @@
 use crate::{
   activity_lists::AnnouncableActivities,
   community::send_activity_in_community,
+  following::send_accept_or_reject_follow,
   generate_activity_id,
   protocol::community::{collection_add::CollectionAdd, collection_remove::CollectionRemove},
 };
@@ -134,9 +135,10 @@ impl Activity for CollectionAdd {
           CommunityActions::join(&mut context.pool(), &form).await?;
 
           // Mods can view private communities without approval, so a pending follow request from
-          // a local user who becomes mod is accepted right away. Otherwise it would be counted but
-          // never listed in the pending follows.
-          if community.local && new_mod.local {
+          // a user who becomes mod is accepted right away. Otherwise it would be counted but
+          // never listed in the pending follows. A remote user's instance learns about it from
+          // the Accept.
+          if community.local {
             let actions =
               CommunityActions::read(&mut context.pool(), community.id, new_mod.id).await?;
             if actions.follow_state == Some(CommunityFollowerState::ApprovalRequired) {
@@ -148,6 +150,16 @@ impl Activity for CollectionAdd {
                 CommunityFollowerState::Accepted,
               )
               .await?;
+              if !new_mod.local {
+                send_accept_or_reject_follow(
+                  community.id,
+                  new_mod.id,
+                  actions.follow_activity_id,
+                  true,
+                  context,
+                )
+                .await?;
+              }
             }
           }
 
