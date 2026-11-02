@@ -11,7 +11,9 @@ use lemmy_db_schema::source::{
   community::{Community, CommunityActions, CommunityModeratorForm},
   local_user::LocalUser,
   modlog::{Modlog, ModlogInsertForm},
+  person::Person,
 };
+use lemmy_db_schema_file::enums::CommunityFollowerState;
 use lemmy_db_views_community::api::{AddModToCommunity, AddModToCommunityResponse};
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
@@ -67,6 +69,27 @@ pub async fn add_mod_to_community(
         CommunityModeratorForm::new(tx_data.community_id, tx_data.person_id);
       if tx_data.added {
         CommunityActions::join(&mut conn.into(), &community_moderator_form).await?;
+
+        // Mods can view private communities without approval, so a pending follow request from a
+        // local user who becomes mod is accepted right away. Otherwise it would be counted but
+        // never listed in the pending follows.
+        if community.local {
+          let new_mod = Person::read(&mut conn.into(), tx_data.person_id).await?;
+          let actions =
+            CommunityActions::read(&mut conn.into(), tx_data.community_id, tx_data.person_id)
+              .await?;
+          if new_mod.local && actions.follow_state == Some(CommunityFollowerState::ApprovalRequired)
+          {
+            CommunityActions::approve_private_community_follower(
+              &mut conn.into(),
+              tx_data.community_id,
+              tx_data.person_id,
+              local_user_view.person.id,
+              CommunityFollowerState::Accepted,
+            )
+            .await?;
+          }
+        }
       } else {
         CommunityActions::leave(&mut conn.into(), &community_moderator_form).await?;
       }
@@ -99,4 +122,95 @@ pub async fn add_mod_to_community(
   )?;
 
   Ok(Json(AddModToCommunityResponse { moderators }))
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use lemmy_db_schema::{
+    source::{
+      community::{CommunityFollowerForm, CommunityInsertForm},
+      local_site::LocalSite,
+      local_user::LocalUserInsertForm,
+      person::PersonInsertForm,
+    },
+    test_data::TestData,
+    traits::Followable,
+  };
+  use lemmy_db_schema_file::enums::CommunityVisibility;
+  use lemmy_db_views_community_follower_approval::PendingFollowerView;
+  use pretty_assertions::assert_eq;
+  use serial_test::serial;
+
+  #[tokio::test]
+  #[serial]
+  async fn test_add_mod_accepts_pending_follow() -> LemmyResult<()> {
+    let context = LemmyContext::init_test_context().await;
+    let pool = &mut context.pool();
+    let data = TestData::create(pool).await?;
+
+    let mod_person =
+      Person::create(pool, &PersonInsertForm::test_form(data.instance.id, "mod")).await?;
+    LocalUser::create(pool, &LocalUserInsertForm::test_form(mod_person.id), vec![]).await?;
+    let mod_view = LocalUserView::read_person(pool, mod_person.id).await?;
+
+    let follower = Person::create(
+      pool,
+      &PersonInsertForm::test_form(data.instance.id, "follower"),
+    )
+    .await?;
+    LocalUser::create(pool, &LocalUserInsertForm::test_form(follower.id), vec![]).await?;
+
+    let community_form = CommunityInsertForm {
+      visibility: Some(CommunityVisibility::Private),
+      ..CommunityInsertForm::new(
+        data.instance.id,
+        "private_community".to_string(),
+        "pubkey".to_string(),
+      )
+    };
+    let community = Community::create(pool, &community_form).await?;
+    CommunityActions::join(
+      pool,
+      &CommunityModeratorForm::new(community.id, mod_person.id),
+    )
+    .await?;
+
+    // The follow request is made before the follower is appointed as mod
+    let follower_form = CommunityFollowerForm::new(
+      community.id,
+      follower.id,
+      CommunityFollowerState::ApprovalRequired,
+    );
+    CommunityActions::follow(pool, &follower_form).await?;
+    assert_eq!(
+      1,
+      PendingFollowerView::count_approval_required(pool, mod_person.id).await?
+    );
+
+    add_mod_to_community(
+      Json(AddModToCommunity {
+        community_id: community.id,
+        person_id: follower.id,
+        added: true,
+      }),
+      context.clone(),
+      mod_view,
+    )
+    .await?;
+
+    let actions = CommunityActions::read(pool, community.id, follower.id).await?;
+    assert_eq!(Some(CommunityFollowerState::Accepted), actions.follow_state);
+    assert_eq!(Some(mod_person.id), actions.follow_approver_id);
+    assert!(actions.became_moderator_at.is_some());
+    assert_eq!(
+      0,
+      PendingFollowerView::count_approval_required(pool, mod_person.id).await?
+    );
+
+    LocalSite::delete(pool).await?;
+    data.delete(pool).await?;
+
+    Ok(())
+  }
 }
