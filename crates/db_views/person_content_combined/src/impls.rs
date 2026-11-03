@@ -20,6 +20,7 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
+  enums::CommunityVisibility,
   joins::{
     creator_community_actions_join,
     creator_community_instance_actions_join,
@@ -153,6 +154,12 @@ impl PersonContentCombinedQuery {
       .select(PostCommentCombinedViewInternal::as_select())
       .limit(limit)
       .into_boxed();
+
+    // Local-only private communities are visible to logged-in local users, not anonymous
+    // requests (person content API and user RSS both call this with no local user).
+    if my_local_user.is_none() {
+      query = query.filter(community::visibility.ne(CommunityVisibility::LocalOnlyPrivate));
+    }
 
     if let Some(type_) = self.type_ {
       query = match type_ {
@@ -498,6 +505,56 @@ mod tests {
     .list(pool, Some(&data.timmy_view), data.instance.id)
     .await?;
     assert_eq!(5, timmy_content_after_approved.len());
+
+    cleanup(data, pool).await?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn local_only_private_hidden_from_anonymous() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    let community_form = CommunityInsertForm {
+      visibility: Some(CommunityVisibility::LocalOnlyPrivate),
+      ..CommunityInsertForm::new(
+        data.instance.id,
+        "lop_pcv".to_string(),
+        "pubkey".to_string(),
+      )
+    };
+    let community = Community::create(pool, &community_form).await?;
+    let post = Post::create(
+      pool,
+      &PostInsertForm::new("local only secret".into(), data.timmy.id, community.id),
+    )
+    .await?;
+
+    let sees_post = |items: &[PostCommentCombinedView]| {
+      items
+        .iter()
+        .any(|v| matches!(v, PostCommentCombinedView::Post(p) if p.post.id == post.id))
+    };
+
+    // Logged-out person content and user RSS both pass no local user.
+    let anonymous = PersonContentCombinedQuery {
+      creator_id: data.timmy.id,
+      ..Default::default()
+    }
+    .list(pool, None, data.instance.id)
+    .await?;
+    assert!(!sees_post(&anonymous));
+
+    let logged_in = PersonContentCombinedQuery {
+      creator_id: data.timmy.id,
+      ..Default::default()
+    }
+    .list(pool, Some(&data.timmy_view), data.instance.id)
+    .await?;
+    assert!(sees_post(&logged_in));
 
     cleanup(data, pool).await?;
 
