@@ -164,6 +164,11 @@ impl PendingFollowerView {
     let conn = &mut get_conn(pool).await?;
     Self::joins()
       .filter(community_actions::became_moderator_at.is_not_null())
+      .filter(
+        follower_community_actions
+          .field(community_actions::became_moderator_at)
+          .is_null(),
+      )
       .filter(community::visibility.eq(CommunityVisibility::Private))
       .filter(person::id.eq(mod_id))
       .filter(
@@ -413,6 +418,30 @@ mod tests {
       list_all[0].follow_state
     );
     assert!(!list_all[0].is_new_instance);
+
+    // a pending follower who becomes mod is neither counted nor listed
+    let mod_follower_form = PersonInsertForm::new(
+      "mod_follower".to_string(),
+      "pubkey".to_string(),
+      remote_instance.id,
+    );
+    let mod_follower = Person::create(pool, &mod_follower_form).await?;
+    let follower_form = CommunityFollowerForm::new(
+      community.id,
+      mod_follower.id,
+      CommunityFollowerState::ApprovalRequired,
+    );
+    CommunityActions::follow(pool, &follower_form).await?;
+    let count = PendingFollowerView::count_approval_required(pool, mod_.id).await?;
+    assert_eq!(1, count);
+
+    let moderator_form = CommunityModeratorForm::new(community.id, mod_follower.id);
+    CommunityActions::join(pool, &moderator_form).await?;
+    let count = PendingFollowerView::count_approval_required(pool, mod_.id).await?;
+    assert_eq!(0, count);
+    let list =
+      PendingFollowerView::list_approval_required(pool, mod_.id, false, true, None, None).await?;
+    assert_length!(0, list);
 
     Instance::delete(pool, local_instance.id).await?;
     Instance::delete(pool, remote_instance.id).await?;
