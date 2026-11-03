@@ -1,8 +1,15 @@
 jest.setTimeout(120000);
 
-import { FollowCommunity, LemmyError, LemmyHttp } from "lemmy-js-client";
+import {
+  AddModToCommunity,
+  Community,
+  FollowCommunity,
+  LemmyError,
+  LemmyHttp,
+} from "lemmy-js-client";
 import {
   alpha,
+  alphaUrl,
   setupLogins,
   createCommunity,
   unfollows,
@@ -15,6 +22,7 @@ import {
   createComment,
   beta,
   resolveCommunity,
+  resolvePerson,
   betaUrl,
   resolvePost,
   resolveComment,
@@ -386,6 +394,141 @@ test("Fetch remote content in private community", async () => {
     comment.comment_view.comment.ap_id,
   );
 });
+
+test("Pending follow of remote user is accepted when appointed mod by local mod", async () => {
+  const community = await createCommunity(
+    alpha,
+    randomString(10),
+    "private",
+  ).then(expectSuccess);
+  const alphaCommunityId = community.community_view.community.id;
+
+  const user = await registerUser(beta, betaUrl);
+  const betaCommunityId = (await resolveCommunity(
+    user,
+    community.community_view.community.ap_id,
+  ))!.community.id;
+  await user.followCommunity({ community_id: betaCommunityId, follow: true });
+  const pendingFollows = await waitUntilSuccess(
+    () => listCommunityPendingFollows(alpha),
+    f => f.items.length == 1,
+  );
+
+  const form: AddModToCommunity = {
+    community_id: alphaCommunityId,
+    person_id: pendingFollows.items[0].person.id,
+    added: true,
+  };
+  await alpha.addModToCommunity(form).then(expectSuccess);
+
+  // The accept is federated to the user's instance, and the follow is no longer pending
+  await waitUntilSuccess(
+    () => getCommunity(user, betaCommunityId),
+    c => c.community_view.community_actions?.follow_state == "accepted",
+  );
+  await expectNoPendingFollows();
+});
+
+test("Pending follow of local user is accepted when appointed mod by remote mod", async () => {
+  const community = await createCommunity(
+    alpha,
+    randomString(10),
+    "private",
+  ).then(expectSuccess);
+  const alphaCommunityId = community.community_view.community.id;
+  const betaCommunityId = await makeBetaMod(community.community_view.community);
+
+  const user = await registerUser(alpha, alphaUrl);
+  await user.followCommunity({ community_id: alphaCommunityId, follow: true });
+  const pendingFollows = await waitUntilSuccess(
+    () => listCommunityPendingFollows(alpha),
+    f => f.items.length == 1,
+  );
+
+  const userOnBeta = await resolvePerson(
+    beta,
+    pendingFollows.items[0].person.ap_id,
+  );
+  const form: AddModToCommunity = {
+    community_id: betaCommunityId,
+    person_id: userOnBeta!.person.id,
+    added: true,
+  };
+  await beta.addModToCommunity(form).then(expectSuccess);
+
+  await waitUntilSuccess(
+    () => getCommunity(user, alphaCommunityId),
+    c => c.community_view.community_actions?.follow_state == "accepted",
+  );
+  await expectNoPendingFollows();
+});
+
+test("Pending follow of remote user is accepted when appointed mod by remote mod", async () => {
+  const community = await createCommunity(
+    alpha,
+    randomString(10),
+    "private",
+  ).then(expectSuccess);
+  const betaCommunityId = await makeBetaMod(community.community_view.community);
+
+  const user = await registerUser(beta, betaUrl);
+  await user.followCommunity({ community_id: betaCommunityId, follow: true });
+  const pendingFollows = await waitUntilSuccess(
+    () => listCommunityPendingFollows(alpha),
+    f => f.items.length == 1,
+  );
+
+  const userOnBeta = await resolvePerson(
+    beta,
+    pendingFollows.items[0].person.ap_id,
+  );
+  const form: AddModToCommunity = {
+    community_id: betaCommunityId,
+    person_id: userOnBeta!.person.id,
+    added: true,
+  };
+  await beta.addModToCommunity(form).then(expectSuccess);
+
+  // The accept is federated back to the user's instance, and the follow is no longer pending
+  await waitUntilSuccess(
+    () => getCommunity(user, betaCommunityId),
+    c => c.community_view.community_actions?.follow_state == "accepted",
+  );
+  await expectNoPendingFollows();
+});
+
+// Makes the beta admin a mod of the alpha community, and returns the community id on beta.
+async function makeBetaMod(community: Community): Promise<number> {
+  const betaCommunityId = (await resolveCommunity(beta, community.ap_id))!
+    .community.id;
+  await beta.followCommunity({ community_id: betaCommunityId, follow: true });
+  await approveFollower(alpha, community.id);
+  await waitUntilSuccess(
+    () => getCommunity(beta, betaCommunityId),
+    c => c.community_view.community_actions?.follow_state == "accepted",
+  );
+
+  const betaOnAlpha = await resolvePerson(alpha, "lemmy_beta@lemmy-beta:8551");
+  const form: AddModToCommunity = {
+    community_id: community.id,
+    person_id: betaOnAlpha!.person.id,
+    added: true,
+  };
+  await alpha.addModToCommunity(form).then(expectSuccess);
+  await waitUntilSuccess(
+    () => getCommunity(beta, betaCommunityId),
+    c => c.moderators.length == 2,
+  );
+  return betaCommunityId;
+}
+
+async function expectNoPendingFollows() {
+  const pendingFollows =
+    await listCommunityPendingFollows(alpha).then(expectSuccess);
+  expect(pendingFollows.items.length).toBe(0);
+  const counts = await getUnreadCounts(alpha).then(expectSuccess);
+  expect(counts.pending_follow_count).toBe(0);
+}
 
 async function approveFollower(user: LemmyHttp, community_id: number) {
   const pendingFollows1 = await waitUntilSuccess(
