@@ -40,6 +40,7 @@ import {
   resolvePostFailure,
   resolveCommentFailure,
   expectFailure,
+  followCommunity,
 } from "./shared";
 
 beforeAll(setupLogins);
@@ -496,6 +497,174 @@ test("Pending follow of remote user is accepted when appointed mod by remote mod
   );
   await expectNoPendingFollows();
 });
+
+test("Remote user is followed automatically when appointed mod by local mod", async () => {
+  const community = await createCommunity(
+    alpha,
+    randomString(10),
+    "private",
+  ).then(expectSuccess);
+  const alphaCommunityId = community.community_view.community.id;
+
+  // A follower on beta, so that beta accepts activities in the community
+  const betaCommunityId = (await resolveCommunity(
+    beta,
+    community.community_view.community.ap_id,
+  ))!.community.id;
+  await beta.followCommunity({ community_id: betaCommunityId, follow: true });
+  await approveFollower(alpha, alphaCommunityId);
+
+  // The user never requests to follow
+  const username = randomString(10);
+  const user = await registerUser(beta, betaUrl, username);
+  const userOnAlpha = await resolvePerson(alpha, `${username}@lemmy-beta:8551`);
+  const form: AddModToCommunity = {
+    community_id: alphaCommunityId,
+    person_id: userOnAlpha!.person.id,
+    added: true,
+  };
+  await alpha.addModToCommunity(form).then(expectSuccess);
+
+  await waitUntilSuccess(
+    () => getCommunity(user, betaCommunityId),
+    c => c.community_view.community_actions?.follow_state == "accepted",
+  );
+  await expectNoPendingFollows();
+});
+
+test("Local user is followed automatically when appointed mod by remote mod", async () => {
+  const community = await createCommunity(
+    alpha,
+    randomString(10),
+    "private",
+  ).then(expectSuccess);
+  const alphaCommunityId = community.community_view.community.id;
+  const betaCommunityId = await makeBetaMod(community.community_view.community);
+
+  // The user never requests to follow
+  const username = randomString(10);
+  const user = await registerUser(alpha, alphaUrl, username);
+  const userOnBeta = await resolvePerson(
+    beta,
+    `http://lemmy-alpha:8541/u/${username}`,
+  );
+  const form: AddModToCommunity = {
+    community_id: betaCommunityId,
+    person_id: userOnBeta!.person.id,
+    added: true,
+  };
+  await beta.addModToCommunity(form).then(expectSuccess);
+
+  await waitUntilSuccess(
+    () => getCommunity(user, alphaCommunityId),
+    c => c.community_view.community_actions?.follow_state == "accepted",
+  );
+  await expectNoPendingFollows();
+});
+
+test("Remote user is followed automatically when appointed mod by remote mod", async () => {
+  const community = await createCommunity(
+    alpha,
+    randomString(10),
+    "private",
+  ).then(expectSuccess);
+  const betaCommunityId = await makeBetaMod(community.community_view.community);
+  const user = await appointBetaUserAsMod(betaCommunityId);
+
+  await waitUntilSuccess(
+    () => getCommunity(user, betaCommunityId),
+    c => c.community_view.community_actions?.follow_state == "accepted",
+  );
+
+  // The community only accepts posts from approved followers, so this shows that alpha also has
+  // the new mod as follower
+  const post = await createPost(user, betaCommunityId).then(expectSuccess);
+  await waitUntil(
+    () => resolvePost(alpha, post.post_view.post),
+    p => p?.post.id != undefined,
+  );
+  await expectNoPendingFollows();
+});
+
+test("Mod who unfollows and follows again is accepted without approval", async () => {
+  const community = await createCommunity(
+    alpha,
+    randomString(10),
+    "private",
+  ).then(expectSuccess);
+  const betaCommunityId = await makeBetaMod(community.community_view.community);
+  const user = await appointBetaUserAsMod(betaCommunityId);
+  await waitUntilSuccess(
+    () => getCommunity(user, betaCommunityId),
+    c => c.community_view.community_actions?.follow_state == "accepted",
+  );
+
+  await followCommunity(user, false, betaCommunityId);
+  await followCommunity(user, true, betaCommunityId);
+  await expectNoPendingFollows();
+});
+
+test("Remote user is not followed on their instance if it has no follower of the community", async () => {
+  const community = await createCommunity(
+    alpha,
+    randomString(10),
+    "private",
+  ).then(expectSuccess);
+  const alphaCommunityId = community.community_view.community.id;
+
+  // Nobody on beta follows the community, and it has no local posts or comments there
+  const username = randomString(10);
+  const user = await registerUser(beta, betaUrl, username);
+  const userOnAlpha = await resolvePerson(alpha, `${username}@lemmy-beta:8551`);
+  const form: AddModToCommunity = {
+    community_id: alphaCommunityId,
+    person_id: userOnAlpha!.person.id,
+    added: true,
+  };
+  await alpha.addModToCommunity(form).then(expectSuccess);
+
+  // Give the Add time to arrive, and be rejected
+  await new Promise(resolve => setTimeout(resolve, 10000));
+
+  const betaCommunityId = (await resolveCommunity(
+    user,
+    community.community_view.community.ap_id,
+  ))!.community.id;
+  const betaCommunity = await getCommunity(user, betaCommunityId).then(
+    expectSuccess,
+  );
+  console.log(
+    "follow_state on beta:",
+    betaCommunity.community_view.community_actions?.follow_state,
+    "moderators on beta:",
+    betaCommunity.moderators.map(m => m.moderator.name),
+  );
+  expect(
+    betaCommunity.community_view.community_actions?.follow_state,
+  ).toBeUndefined();
+
+  // alpha has the new mod as follower regardless
+  await expectNoPendingFollows();
+});
+
+// Appoints a new beta user as mod, without the user ever following the community.
+async function appointBetaUserAsMod(
+  betaCommunityId: number,
+): Promise<LemmyHttp> {
+  const username = randomString(10);
+  const user = await registerUser(beta, betaUrl, username);
+  const userOnBeta = await resolvePerson(
+    beta,
+    `http://lemmy-beta:8551/u/${username}`,
+  );
+  const form: AddModToCommunity = {
+    community_id: betaCommunityId,
+    person_id: userOnBeta!.person.id,
+    added: true,
+  };
+  await beta.addModToCommunity(form).then(expectSuccess);
+  return user;
+}
 
 // Makes the beta admin a mod of the alpha community, and returns the community id on beta.
 async function makeBetaMod(community: Community): Promise<number> {
