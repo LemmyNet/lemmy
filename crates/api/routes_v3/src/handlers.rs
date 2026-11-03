@@ -1229,5 +1229,5 @@ pub(crate) async fn redirect_with_query_string(req: HttpRequest, new_path: &str)
   } else {
     format!("{new_path}?{query}")
   };
-  Redirect::to(target)
+  Redirect::to(target).permanent()
 }

@@ -69,7 +69,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
       resource("/api/v3/image_proxy")
         .route(get().to(|req| redirect_with_query_string(req, "/api/v4/image/proxy"))),
     )
-    .service(redirect("/pictrs/healthz", "/api/v4/image/health"));
+    .service(redirect("/pictrs/healthz", "/api/v4/image/health").permanent());
 
   cfg.service(
     scope("/api/v3")
