@@ -876,7 +876,21 @@ version = "0.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e291c00af89ac0a5b400d9ba46a682e38015ae3cd8926dbbe85b3b864d550be3"
 dependencies = [
- "linkify",
+ "linkify 0.10.0",
+ "percent-encoding",
+ "regex",
+ "serde",
+ "serde_json",
+ "url",
+]
+
+[[package]]
+name = "clearurls"
+version = "0.0.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2779c42fed298a00dd6b685befb66f400b3a32dae25c736c95dab6f98f551da2"
+dependencies = [
+ "linkify 0.11.0",
  "percent-encoding",
  "regex",
  "serde",
@@ -4222,7 +4236,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ea33e747c12c515653d7a2abca96eee870a8d3023595c03aeebf7672a869f62c"
 dependencies = [
  "cfg-if",
- "clearurls",
+ "clearurls 0.0.4",
  "git-version",
  "rosetta-build",
  "serde",
@@ -4237,7 +4251,7 @@ dependencies = [
  "actix-web",
  "anyhow",
  "chrono",
- "clearurls",
+ "clearurls 0.0.7",
  "dashmap",
  "deser-hjson",
  "diesel",
@@ -4335,6 +4349,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "linkify"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "92f9ae2f3d31697697311f016320fe984127e636b45cf5eb5c175b7eb103dadb"
+dependencies = [
+ "memchr",
+]
+
+[[package]]
 name = "linux-raw-sys"
 version = "0.4.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4409,7 +4432,7 @@ dependencies = [
  "downcast-rs 1.2.1",
  "entities",
  "html-escape 0.2.15",
- "linkify",
+ "linkify 0.10.0",
  "mdurl",
  "once_cell",
  "readonly",
