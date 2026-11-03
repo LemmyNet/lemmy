@@ -39,21 +39,21 @@ CREATE INDEX idx_post_featured_community_published ON post (featured_community D
 
 CREATE INDEX idx_post_community_published ON post (published_at DESC, id DESC, community_id);
 
-CREATE INDEX idx_post_community_active ON post (featured_local DESC, hot_rank_active DESC, published_at DESC, id DESC, community_id);
+CREATE INDEX idx_post_community_active ON post (hot_rank_active DESC, published_at DESC, id DESC, community_id);
 
-CREATE INDEX idx_post_community_controversy ON post (featured_local DESC, controversy_rank DESC, id DESC, community_id);
+CREATE INDEX idx_post_community_controversy ON post (controversy_rank DESC, id DESC, community_id);
 
-CREATE INDEX idx_post_community_hot ON post (featured_local DESC, hot_rank DESC, published_at DESC, id DESC, community_id);
+CREATE INDEX idx_post_community_hot ON post (hot_rank DESC, published_at DESC, id DESC, community_id);
 
-CREATE INDEX idx_post_community_most_comments ON post (featured_local DESC, comments DESC, published_at DESC, id DESC, community_id);
+CREATE INDEX idx_post_community_most_comments ON post (comments DESC, published_at DESC, id DESC, community_id);
 
-CREATE INDEX idx_post_community_newest_comment_time ON post (featured_local DESC, coalesce(newest_comment_time_at, published_at) DESC, id DESC, community_id);
+CREATE INDEX idx_post_community_newest_comment_time ON post (coalesce(newest_comment_time_at, published_at) DESC, id DESC, community_id);
 
-CREATE INDEX idx_post_community_newest_comment_time_necro ON post (featured_local DESC, coalesce(newest_comment_time_necro_at, published_at) DESC, id DESC, community_id);
+CREATE INDEX idx_post_community_newest_comment_time_necro ON post (coalesce(newest_comment_time_necro_at, published_at) DESC, id DESC, community_id);
 
-CREATE INDEX idx_post_community_scaled ON post (featured_local DESC, scaled_rank DESC, published_at DESC, id DESC, community_id);
+CREATE INDEX idx_post_community_scaled ON post (scaled_rank DESC, published_at DESC, id DESC, community_id);
 
-CREATE INDEX idx_post_community_score ON post (featured_local DESC, score DESC, published_at DESC, id DESC, community_id);
+CREATE INDEX idx_post_community_score ON post (score DESC, published_at DESC, id DESC, community_id);
 
 CREATE INDEX idx_post_featured_community_active ON post (featured_community DESC, hot_rank_active DESC, published_at DESC, id DESC, community_id);
 
