@@ -24,7 +24,7 @@ use lemmy_db_schema::{
   traits::Followable,
 };
 use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility};
-use lemmy_db_views_community_moderator::CommunityPersonBanView;
+use lemmy_db_views_community_moderator::{CommunityModeratorView, CommunityPersonBanView};
 use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult, UntranslatedError};
 use url::Url;
 
@@ -121,8 +121,18 @@ impl Activity for Follow {
             );
           }
         }
+        // Mods can view private communities without approval, so their follow is accepted right
+        // away. Otherwise it would overwrite the follow added when they became mod.
+        let is_mod = CommunityModeratorView::check_is_community_moderator(
+          &mut context.pool(),
+          c.id,
+          person.id,
+        )
+        .await
+        .is_ok();
         let follow_state = match c.visibility {
           Public | Unlisted => CommunityFollowerState::Accepted,
+          Private if is_mod => CommunityFollowerState::Accepted,
           Private => CommunityFollowerState::ApprovalRequired,
           // Dont allow following local-only community via federation.
           LocalOnlyPrivate | LocalOnlyPublic => return Err(LemmyErrorType::NotFound.into()),
@@ -132,7 +142,9 @@ impl Activity for Follow {
           ..CommunityFollowerForm::new(c.id, person.id, follow_state)
         };
         CommunityActions::follow(&mut context.pool(), &form).await?;
-        if c.visibility == CommunityVisibility::Public {
+        if c.visibility == CommunityVisibility::Public
+          || (c.visibility == CommunityVisibility::Private && is_mod)
+        {
           AcceptFollow::send(self, context).await?;
         }
       }

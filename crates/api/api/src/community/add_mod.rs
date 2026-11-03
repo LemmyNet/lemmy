@@ -7,13 +7,16 @@ use lemmy_api_utils::{
   send_activity::{ActivityChannel, SendActivityData},
   utils::check_community_mod_action,
 };
-use lemmy_db_schema::source::{
-  community::{Community, CommunityActions, CommunityModeratorForm},
-  local_user::LocalUser,
-  modlog::{Modlog, ModlogInsertForm},
-  person::Person,
+use lemmy_db_schema::{
+  source::{
+    community::{Community, CommunityActions, CommunityFollowerForm, CommunityModeratorForm},
+    local_user::LocalUser,
+    modlog::{Modlog, ModlogInsertForm},
+    person::Person,
+  },
+  traits::Followable,
 };
-use lemmy_db_schema_file::enums::CommunityFollowerState;
+use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility};
 use lemmy_db_views_community::api::{AddModToCommunity, AddModToCommunityResponse};
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
@@ -71,29 +74,46 @@ pub async fn add_mod_to_community(
       if tx_data.added {
         CommunityActions::join(&mut conn.into(), &community_moderator_form).await?;
 
-        // Mods can view private communities without approval, so a pending follow request from a
-        // user who becomes mod is accepted right away. Otherwise it would be counted but never
-        // listed in the pending follows. A remote user's instance learns about it from the Accept.
-        if community.local {
-          let new_mod = Person::read(&mut conn.into(), tx_data.person_id).await?;
+        // Mods can view private communities without approval, so a new mod follows the community
+        // automatically. A pending follow request is approved instead, otherwise it would be
+        // counted but never listed in the pending follows. A remote user's instance learns about
+        // the approval from the Accept.
+        let new_mod = Person::read(&mut conn.into(), tx_data.person_id).await?;
+        if community.visibility == CommunityVisibility::Private
+          && (community.local || new_mod.local)
+        {
           let actions =
             CommunityActions::read(&mut conn.into(), tx_data.community_id, tx_data.person_id)
               .await?;
-          if actions.follow_state == Some(CommunityFollowerState::ApprovalRequired) {
-            CommunityActions::approve_private_community_follower(
-              &mut conn.into(),
-              tx_data.community_id,
-              tx_data.person_id,
-              local_user_view.person.id,
-              CommunityFollowerState::Accepted,
-            )
-            .await?;
-            if !new_mod.local {
-              accept_follow = Some(SendActivityData::PrivateCommunityAcceptFollower {
-                community_id: tx_data.community_id,
-                person_id: tx_data.person_id,
-                follow_activity_id: actions.follow_activity_id,
-              });
+          match actions.follow_state {
+            Some(CommunityFollowerState::Accepted) => {}
+            Some(CommunityFollowerState::ApprovalRequired) => {
+              CommunityActions::approve_private_community_follower(
+                &mut conn.into(),
+                tx_data.community_id,
+                tx_data.person_id,
+                local_user_view.person.id,
+                CommunityFollowerState::Accepted,
+              )
+              .await?;
+              if community.local && !new_mod.local {
+                accept_follow = Some(SendActivityData::PrivateCommunityAcceptFollower {
+                  community_id: tx_data.community_id,
+                  person_id: tx_data.person_id,
+                  follow_activity_id: actions.follow_activity_id,
+                });
+              }
+            }
+            _ => {
+              let follow_form = CommunityFollowerForm {
+                follow_approver_id: Some(local_user_view.person.id),
+                ..CommunityFollowerForm::new(
+                  tx_data.community_id,
+                  tx_data.person_id,
+                  CommunityFollowerState::Accepted,
+                )
+              };
+              CommunityActions::follow(&mut conn.into(), &follow_form).await?;
             }
           }
         }
@@ -147,9 +167,7 @@ mod tests {
       person::PersonInsertForm,
     },
     test_data::TestData,
-    traits::Followable,
   };
-  use lemmy_db_schema_file::enums::CommunityVisibility;
   use lemmy_db_views_community_follower_approval::PendingFollowerView;
   use pretty_assertions::assert_eq;
   use serial_test::serial;
@@ -240,6 +258,88 @@ mod tests {
     LocalSite::delete(pool).await?;
     if !local_follower {
       Instance::delete(pool, follower_instance_id).await?;
+    }
+    data.delete(pool).await?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_add_mod_follows_without_request() -> LemmyResult<()> {
+    check_add_mod_follows_without_request(true).await
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn test_add_mod_follows_remote_without_request() -> LemmyResult<()> {
+    check_add_mod_follows_without_request(false).await
+  }
+
+  async fn check_add_mod_follows_without_request(local_user: bool) -> LemmyResult<()> {
+    let context = LemmyContext::init_test_context().await;
+    let pool = &mut context.pool();
+    let data = TestData::create(pool).await?;
+
+    let mod_person =
+      Person::create(pool, &PersonInsertForm::test_form(data.instance.id, "mod")).await?;
+    LocalUser::create(pool, &LocalUserInsertForm::test_form(mod_person.id), vec![]).await?;
+    let mod_view = LocalUserView::read_person(pool, mod_person.id).await?;
+
+    let user_instance_id = if local_user {
+      data.instance.id
+    } else {
+      Instance::read_or_create(pool, "remote.tld").await?.id
+    };
+    let user_form = PersonInsertForm {
+      local: Some(local_user),
+      ..PersonInsertForm::test_form(user_instance_id, "new_mod")
+    };
+    let new_mod = Person::create(pool, &user_form).await?;
+    if local_user {
+      LocalUser::create(pool, &LocalUserInsertForm::test_form(new_mod.id), vec![]).await?;
+    }
+
+    let community_form = CommunityInsertForm {
+      visibility: Some(CommunityVisibility::Private),
+      ..CommunityInsertForm::new(
+        data.instance.id,
+        "private_community".to_string(),
+        "pubkey".to_string(),
+      )
+    };
+    let community = Community::create(pool, &community_form).await?;
+    CommunityActions::join(
+      pool,
+      &CommunityModeratorForm::new(community.id, mod_person.id),
+    )
+    .await?;
+
+    // The user never requested to follow before being appointed as mod
+    add_mod_to_community(
+      Json(AddModToCommunity {
+        community_id: community.id,
+        person_id: new_mod.id,
+        added: true,
+      }),
+      context.clone(),
+      mod_view,
+    )
+    .await?;
+
+    let actions = CommunityActions::read(pool, community.id, new_mod.id).await?;
+    assert_eq!(Some(CommunityFollowerState::Accepted), actions.follow_state);
+    assert_eq!(Some(mod_person.id), actions.follow_approver_id);
+    assert!(actions.followed_at.is_some());
+    assert!(actions.became_moderator_at.is_some());
+    assert_eq!(
+      0,
+      PendingFollowerView::count_approval_required(pool, mod_person.id).await?
+    );
+
+    LocalSite::delete(pool).await?;
+    if !local_user {
+      Instance::delete(pool, user_instance_id).await?;
     }
     data.delete(pool).await?;
 

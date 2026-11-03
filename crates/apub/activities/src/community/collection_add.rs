@@ -27,13 +27,18 @@ use lemmy_db_schema::{
   impls::community::CollectionType,
   source::{
     activity::ActivitySendTargets,
-    community::{Community, CommunityActions, CommunityModeratorForm},
+    community::{Community, CommunityActions, CommunityFollowerForm, CommunityModeratorForm},
     modlog::{Modlog, ModlogInsertForm},
     person::Person,
     post::{Post, PostUpdateForm},
   },
+  traits::Followable,
 };
-use lemmy_db_schema_file::{PersonId, enums::CommunityFollowerState, newtypes::CommunityId};
+use lemmy_db_schema_file::{
+  PersonId,
+  enums::{CommunityFollowerState, CommunityVisibility},
+  newtypes::CommunityId,
+};
 use lemmy_diesel_utils::traits::Crud;
 use lemmy_utils::error::{LemmyError, LemmyResult, UntranslatedError};
 use url::Url;
@@ -134,31 +139,47 @@ impl Activity for CollectionAdd {
           let form = CommunityModeratorForm::new(community.id, new_mod.id);
           CommunityActions::join(&mut context.pool(), &form).await?;
 
-          // Mods can view private communities without approval, so a pending follow request from
-          // a user who becomes mod is accepted right away. Otherwise it would be counted but
-          // never listed in the pending follows. A remote user's instance learns about it from
-          // the Accept.
-          if community.local {
+          // Mods can view private communities without approval, so a new mod follows the
+          // community automatically. A pending follow request is approved instead, otherwise it
+          // would be counted but never listed in the pending follows. A remote user's instance
+          // learns about the approval from the Accept.
+          if community.visibility == CommunityVisibility::Private
+            && (community.local || new_mod.local)
+          {
             let actions =
               CommunityActions::read(&mut context.pool(), community.id, new_mod.id).await?;
-            if actions.follow_state == Some(CommunityFollowerState::ApprovalRequired) {
-              CommunityActions::approve_private_community_follower(
-                &mut context.pool(),
-                community.id,
-                new_mod.id,
-                actor.id,
-                CommunityFollowerState::Accepted,
-              )
-              .await?;
-              if !new_mod.local {
-                send_accept_or_reject_follow(
+            match actions.follow_state {
+              Some(CommunityFollowerState::Accepted) => {}
+              Some(CommunityFollowerState::ApprovalRequired) => {
+                CommunityActions::approve_private_community_follower(
+                  &mut context.pool(),
                   community.id,
                   new_mod.id,
-                  actions.follow_activity_id,
-                  true,
-                  context,
+                  actor.id,
+                  CommunityFollowerState::Accepted,
                 )
                 .await?;
+                if community.local && !new_mod.local {
+                  send_accept_or_reject_follow(
+                    community.id,
+                    new_mod.id,
+                    actions.follow_activity_id,
+                    true,
+                    context,
+                  )
+                  .await?;
+                }
+              }
+              _ => {
+                let follow_form = CommunityFollowerForm {
+                  follow_approver_id: Some(actor.id),
+                  ..CommunityFollowerForm::new(
+                    community.id,
+                    new_mod.id,
+                    CommunityFollowerState::Accepted,
+                  )
+                };
+                CommunityActions::follow(&mut context.pool(), &follow_form).await?;
               }
             }
           }
