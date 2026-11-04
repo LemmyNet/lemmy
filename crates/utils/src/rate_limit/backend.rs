@@ -140,6 +140,84 @@ mod tests {
   const MINUTE_SECS: u32 = 60;
   const MINUTE: Duration = Duration::from_secs(60);
 
+  #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+  async fn verification_resends_are_atomic_and_per_account() -> LemmyResult<()> {
+    let limiter = Arc::new(crate::rate_limit::RateLimit {
+      backend: LemmyBackend::new(test_config(MINUTE_SECS, 5), false),
+    });
+    let barrier = Arc::new(tokio::sync::Barrier::new(20));
+    let requests = (0..20).map(|_| {
+      let limiter = limiter.clone();
+      let barrier = barrier.clone();
+      tokio::spawn(async move {
+        barrier.wait().await;
+        limiter.allow_verification_email(1).await
+      })
+    });
+    let results = futures::future::try_join_all(requests).await?;
+    assert_eq!(results.iter().filter(|allowed| **allowed).count(), 2);
+    assert!(limiter.allow_verification_email(2).await);
+    Ok(())
+  }
+
+  #[actix_web::test]
+  async fn verification_resends_recover_and_honor_configuration() {
+    tokio::time::pause();
+    let limiter = crate::rate_limit::RateLimit {
+      backend: LemmyBackend::new(test_config(MINUTE_SECS, 5), false),
+    };
+    assert!(limiter.allow_verification_email(1).await);
+    assert!(limiter.allow_verification_email(1).await);
+    assert!(!limiter.allow_verification_email(1).await);
+    tokio::time::advance(MINUTE).await;
+    assert!(limiter.allow_verification_email(1).await);
+
+    let mut config = test_config(MINUTE_SECS, 5);
+    config[ActionType::ResendVerificationEmailPerAccount].max_requests = 0;
+    limiter.set_config(config);
+    assert!(!limiter.allow_verification_email(2).await);
+  }
+
+  #[actix_web::test]
+  async fn verification_ip_limit_is_separate_from_registration() -> LemmyResult<()> {
+    let backend = LemmyBackend::new(test_config(MINUTE_SECS, 5), false);
+    let key = raw_ip_key(Some("127.0.0.1"));
+    assert!(
+      backend
+        .request(LemmyInput(key, ActionType::Register))
+        .await?
+        .0
+        .is_denied()
+    );
+    for _ in 0..5 {
+      assert!(
+        backend
+          .request(LemmyInput(key, ActionType::ResendVerificationEmail))
+          .await?
+          .0
+          .is_allowed()
+      );
+    }
+    assert!(
+      backend
+        .request(LemmyInput(key, ActionType::ResendVerificationEmail))
+        .await?
+        .0
+        .is_denied()
+    );
+    assert!(
+      backend
+        .request(LemmyInput(
+          raw_ip_key(Some("127.0.0.2")),
+          ActionType::ResendVerificationEmail
+        ))
+        .await?
+        .0
+        .is_allowed()
+    );
+    Ok(())
+  }
+
   fn test_config(interval: u32, max_requests: u32) -> EnumMap<ActionType, BucketConfig> {
     enum_map! {
         ActionType::Message => BucketConfig {
@@ -169,6 +247,14 @@ mod tests {
         ActionType::ImportUserSettings => BucketConfig {
           max_requests: 0,
           interval: 0,
+        },
+        ActionType::ResendVerificationEmail => BucketConfig {
+          max_requests: 5,
+          interval: 60,
+        },
+        ActionType::ResendVerificationEmailPerAccount => BucketConfig {
+          max_requests: 2,
+          interval: 60,
         },
     }
   }

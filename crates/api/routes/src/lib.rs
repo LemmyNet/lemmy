@@ -339,6 +339,11 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
       )
       // User
       .service(
+        resource("/account/auth/resend_verification_email")
+          .wrap(rate_limit.resend_verification_email())
+          .route(post().to(resend_verification_email)),
+      )
+      .service(
         scope("/account/auth")
           .wrap(rate_limit.register())
           .route("/register", post().to(register))
@@ -349,11 +354,7 @@ pub fn config(cfg: &mut ServiceConfig, rate_limit: &RateLimit) {
           .route("/change_password", put().to(change_password))
           .route("/totp/generate", post().to(generate_totp_secret))
           .route("/totp/edit", post().to(edit_totp))
-          .route("/verify_email", post().to(verify_email))
-          .route(
-            "/resend_verification_email",
-            post().to(resend_verification_email),
-          ),
+          .route("/verify_email", post().to(verify_email)),
       )
       .service(
         scope("/account")

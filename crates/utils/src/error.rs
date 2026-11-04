@@ -122,6 +122,7 @@ pub enum LemmyErrorType {
   CouldntParsePaginationToken,
   PluginError(String),
   InvalidFetchLimit,
+  InvalidRateLimit,
   EmailNotificationsDisabled,
   MultiCommunityUpdateWrongUser,
   CannotCombineCommunityIdAndMultiCommunityId,

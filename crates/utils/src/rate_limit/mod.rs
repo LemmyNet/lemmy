@@ -1,8 +1,11 @@
 use crate::rate_limit::{
   backend::LemmyBackend,
-  input::{LemmyInput, LemmyInputFuture, raw_ip_key},
+  input::{LemmyInput, LemmyInputFuture, RateLimitKey, raw_ip_key},
 };
-use actix_extensible_rate_limit::{RateLimiter, backend::SimpleOutput};
+use actix_extensible_rate_limit::{
+  RateLimiter,
+  backend::{Backend, SimpleOutput},
+};
 use actix_web::dev::ServiceRequest;
 use enum_map::{EnumMap, enum_map};
 use std::future::ready;
@@ -20,6 +23,8 @@ pub enum ActionType {
   Comment,
   Search,
   ImportUserSettings,
+  ResendVerificationEmail,
+  ResendVerificationEmailPerAccount,
 }
 
 #[derive(PartialEq, Debug, Copy, Clone)]
@@ -70,6 +75,14 @@ impl RateLimit {
         max_requests: 1,
         interval: 24 * 60 * 60,
       },
+      ActionType::ResendVerificationEmail => BucketConfig {
+        max_requests: 10,
+        interval: 3600,
+      },
+      ActionType::ResendVerificationEmailPerAccount => BucketConfig {
+        max_requests: 3,
+        interval: 3600,
+      },
     })
   }
 
@@ -111,6 +124,26 @@ impl RateLimit {
   {
     self.build_rate_limiter(ActionType::Register)
   }
+
+  pub fn resend_verification_email(
+    &self,
+  ) -> RateLimiter<LemmyBackend, SimpleOutput, impl Fn(&ServiceRequest) -> LemmyInputFuture + 'static>
+  {
+    self.build_rate_limiter(ActionType::ResendVerificationEmail)
+  }
+
+  /// Atomically reserve a resend for this account, independently of the requesting IP.
+  pub async fn allow_verification_email(&self, local_user_id: i32) -> bool {
+    let Ok((decision, _, _)) = self
+      .backend
+      .request(LemmyInput(
+        RateLimitKey::LocalUser(local_user_id),
+        ActionType::ResendVerificationEmailPerAccount,
+      ))
+      .await;
+    decision.is_allowed()
+  }
+
   pub fn post(
     &self,
   ) -> RateLimiter<LemmyBackend, SimpleOutput, impl Fn(&ServiceRequest) -> LemmyInputFuture + 'static>
