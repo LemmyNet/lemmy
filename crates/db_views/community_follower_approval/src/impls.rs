@@ -168,6 +168,11 @@ impl PendingFollowerView {
       .filter(person::id.eq(mod_id))
       .filter(
         follower_community_actions
+          .field(community_actions::became_moderator_at)
+          .is_null(),
+      )
+      .filter(
+        follower_community_actions
           .field(community_actions::follow_state)
           .eq(CommunityFollowerState::ApprovalRequired),
       )
@@ -408,6 +413,24 @@ mod tests {
     assert_length!(1, list_all);
     assert_eq!(person.id, list_all[0].person.id);
     assert_eq!(community.id, list_all[0].community.id);
+
+    // Add new moderator with pending follow request. This is excluded from approval-required
+    // list and count, because mods can view content without approval.
+    CommunityActions::join(pool, &CommunityModeratorForm::new(community.id, person.id)).await?;
+    CommunityActions::approve_private_community_follower(
+      pool,
+      community.id,
+      person.id,
+      mod_.id,
+      CommunityFollowerState::ApprovalRequired,
+    )
+    .await?;
+    let count = PendingFollowerView::count_approval_required(pool, mod_.id).await?;
+    assert_eq!(0, count);
+    let list =
+      PendingFollowerView::list_approval_required(pool, mod_.id, false, true, None, None).await?;
+    assert_length!(0, list);
+
     assert_eq!(
       Some(CommunityFollowerState::Accepted),
       list_all[0].follow_state
