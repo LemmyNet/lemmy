@@ -32,6 +32,17 @@ pub fn filter_is_subscribed() -> IsSubscribedType {
   community_actions::follow_state.eq(Some(CommunityFollowerState::Accepted))
 }
 
+type CommunityFollowersFilterType = Or<
+  Eq<community_actions::follow_state, Option<CommunityFollowerState>>,
+  Eq<community_actions::follow_state, Option<CommunityFollowerState>>,
+>;
+
+pub fn filter_community_followers() -> CommunityFollowersFilterType {
+  community_actions::follow_state
+    .eq(Some(CommunityFollowerState::Pending))
+    .or(community_actions::follow_state.eq(Some(CommunityFollowerState::Accepted)))
+}
+
 type CommunityVisibilityType = NotEq<community::visibility, CommunityVisibility>;
 
 type CommunityVisibilityNotUnlistedOrSubscribedType = Or<CommunityVisibilityType, IsSubscribedType>;

@@ -18,12 +18,15 @@ use lemmy_db_schema::{
     modlog::{Modlog, modlog_keys as key},
     multi_community::MultiCommunityEntry,
   },
-  utils::{limit_fetch, queries::filters::filter_is_subscribed},
+  utils::{
+    limit_fetch,
+    queries::filters::{filter_community_followers, filter_is_subscribed},
+  },
 };
 use lemmy_db_schema_file::{
   PersonId,
   aliases,
-  enums::{CommunityFollowerState, CommunityVisibility, ListingType, ModlogKind},
+  enums::{CommunityVisibility, ListingType, ModlogKind},
   newtypes::{CommentId, CommunityId, ModlogId, PostId},
   schema::{comment, community, community_actions, instance, modlog, person, post},
 };
@@ -161,7 +164,7 @@ impl ModlogQuery<'_> {
         community::id.is_null().or(
           community::visibility
             .ne(CommunityVisibility::Private)
-            .or(community_actions::follow_state.eq(CommunityFollowerState::Accepted)),
+            .or(filter_community_followers()),
         ),
       );
     }

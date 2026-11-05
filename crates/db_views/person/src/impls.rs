@@ -17,7 +17,7 @@ use lemmy_db_schema::{
     person::{Person, person_keys as key},
     site::Site,
   },
-  utils::limit_fetch,
+  utils::{limit_fetch, queries::filters::filter_community_followers},
 };
 use lemmy_db_schema_file::{
   InstanceId,
@@ -157,11 +157,8 @@ impl PersonQuery<'_> {
     .into_boxed();
 
     if self.community_id.is_some() {
-      query = query.filter(
-        community_actions::follow_state
-          .eq(CommunityFollowerState::Accepted)
-          .or(community_actions::received_ban_at.is_not_null()),
-      )
+      query = query
+        .filter(filter_community_followers().or(community_actions::received_ban_at.is_not_null()))
     }
 
     if let Some(listing_type) = self.listing_type {
