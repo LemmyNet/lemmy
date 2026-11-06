@@ -17,12 +17,11 @@ use lemmy_db_schema::{
     person::{Person, person_keys as key},
     site::Site,
   },
-  utils::limit_fetch,
+  utils::{limit_fetch, queries::filters::filter_is_subscribed},
 };
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
-  enums::CommunityFollowerState,
   joins::{
     creator_home_instance_actions_join,
     creator_local_instance_actions_join,
@@ -157,11 +156,8 @@ impl PersonQuery<'_> {
     .into_boxed();
 
     if self.community_id.is_some() {
-      query = query.filter(
-        community_actions::follow_state
-          .eq(CommunityFollowerState::Accepted)
-          .or(community_actions::received_ban_at.is_not_null()),
-      )
+      query =
+        query.filter(filter_is_subscribed().or(community_actions::received_ban_at.is_not_null()))
     }
 
     if let Some(listing_type) = self.listing_type {
@@ -234,6 +230,7 @@ mod tests {
     },
     traits::{Bannable, Followable, Likeable},
   };
+  use lemmy_db_schema_file::enums::CommunityFollowerState;
   use lemmy_diesel_utils::{
     connection::{DbPool, build_db_pool_for_tests},
     traits::Crud,
