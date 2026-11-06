@@ -9,7 +9,7 @@ use diesel::{
   select,
 };
 use diesel_async::RunQueryDsl;
-use lemmy_db_schema::utils::queries::filters::filter_community_followers;
+use lemmy_db_schema::utils::queries::filters::filter_is_subscribed;
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
@@ -53,7 +53,7 @@ impl CommunityFollowerView {
       // local-person+remote-community or remote-person+local-community
       .filter(not(person::local))
       .filter(community_actions::followed_at.gt(published_since.naive_utc()))
-      .filter(filter_community_followers())
+      .filter(filter_is_subscribed())
       .select((community::id, person::inbox_url))
       .distinct() // only need each community_id, inbox combination once
       .load::<(CommunityId, DbUrl)>(conn)
@@ -68,7 +68,7 @@ impl CommunityFollowerView {
     let conn = &mut get_conn(pool).await?;
     Self::joins()
       .filter(community_actions::community_id.eq(community_id))
-      .filter(filter_community_followers())
+      .filter(filter_is_subscribed())
       .select(count_star())
       .first::<i64>(conn)
       .await
@@ -83,7 +83,7 @@ impl CommunityFollowerView {
       .filter(community::deleted.eq(false))
       .filter(community::removed.eq(false))
       .filter(community::local_removed.eq(false))
-      .filter(filter_community_followers())
+      .filter(filter_is_subscribed())
       .select(Self::as_select())
       .order_by(lower(community::name))
       .load::<CommunityFollowerView>(conn)

@@ -26,18 +26,11 @@ pub fn filter_blocked() -> _ {
     )
 }
 
-type IsSubscribedType = Eq<community_actions::follow_state, Option<CommunityFollowerState>>;
-
-pub fn filter_is_subscribed() -> IsSubscribedType {
-  community_actions::follow_state.eq(Some(CommunityFollowerState::Accepted))
-}
-
-type CommunityFollowersFilterType = Or<
+type IsSubscribedType = Or<
   Eq<community_actions::follow_state, Option<CommunityFollowerState>>,
   Eq<community_actions::follow_state, Option<CommunityFollowerState>>,
 >;
-
-pub fn filter_community_followers() -> CommunityFollowersFilterType {
+pub fn filter_is_subscribed() -> IsSubscribedType {
   community_actions::follow_state
     .eq(Some(CommunityFollowerState::Pending))
     .or(community_actions::follow_state.eq(Some(CommunityFollowerState::Accepted)))

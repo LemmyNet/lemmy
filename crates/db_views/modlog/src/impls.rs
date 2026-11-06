@@ -18,10 +18,7 @@ use lemmy_db_schema::{
     modlog::{Modlog, modlog_keys as key},
     multi_community::MultiCommunityEntry,
   },
-  utils::{
-    limit_fetch,
-    queries::filters::{filter_community_followers, filter_is_subscribed},
-  },
+  utils::{limit_fetch, queries::filters::filter_is_subscribed},
 };
 use lemmy_db_schema_file::{
   PersonId,
@@ -164,7 +161,7 @@ impl ModlogQuery<'_> {
         community::id.is_null().or(
           community::visibility
             .ne(CommunityVisibility::Private)
-            .or(filter_community_followers()),
+            .or(filter_is_subscribed()),
         ),
       );
     }
