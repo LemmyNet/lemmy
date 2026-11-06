@@ -22,7 +22,6 @@ use lemmy_db_schema::{
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
-  enums::CommunityFollowerState,
   joins::{
     creator_home_instance_actions_join,
     creator_local_instance_actions_join,
