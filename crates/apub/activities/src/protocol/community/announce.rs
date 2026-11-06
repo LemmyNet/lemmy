@@ -1,4 +1,4 @@
-use crate::protocol::IdOrNestedObject;
+use crate::protocol::{IdOrNestedObject, deserialize_one_or_many_objects, serialize_one_or_many};
 use activitypub_federation::{
   fetch::object_id::ObjectId,
   kinds::activity::AnnounceType,
@@ -15,7 +15,11 @@ pub struct AnnounceActivity {
   pub(crate) actor: ObjectId<ApubCommunity>,
   #[serde(deserialize_with = "deserialize_one_or_many")]
   pub(crate) to: Vec<Url>,
-  pub object: IdOrNestedObject<RawAnnouncableActivities>,
+  #[serde(
+    deserialize_with = "deserialize_one_or_many_objects",
+    serialize_with = "serialize_one_or_many"
+  )]
+  pub object: Vec<IdOrNestedObject<RawAnnouncableActivities>>,
   #[serde(deserialize_with = "deserialize_one_or_many")]
   pub(crate) cc: Vec<Url>,
   #[serde(rename = "type")]
