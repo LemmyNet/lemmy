@@ -44,6 +44,7 @@ pub async fn resolve_comment_report(
   let form = UpdateCommentReportForm {
     resolver_id: Some(person_id),
     resolved: Some(data.resolved),
+    resolved_locally: Some(data.resolved),
     conclusion,
     updated_at: Some(Utc::now()),
   };

@@ -35,6 +35,8 @@ pub struct PrivateMessageReport {
   pub published_at: DateTime<Utc>,
   pub updated_at: Option<DateTime<Utc>>,
   pub conclusion: Option<String>,
+  /// Set only by a local admin/mod action. Incoming federation writes `resolved` but not this.
+  pub resolved_locally: bool,
 }
 
 #[derive(Clone)]
@@ -55,4 +57,5 @@ pub struct UpdatePrivateMessageReportForm {
   pub resolved: Option<bool>,
   pub conclusion: Option<Option<String>>,
   pub updated_at: Option<DateTime<Utc>>,
+  pub resolved_locally: Option<bool>,
 }

@@ -136,7 +136,7 @@ impl ReportCombinedViewInternal {
     let conn = &mut get_conn(pool).await?;
 
     let mut query = report_combined_joins(user.person.id, user.person.instance_id)
-      .filter(not(report_combined::resolved))
+      .filter(not(report_combined::resolved_locally))
       .select(count(report_combined::id))
       .into_boxed();
 
@@ -250,9 +250,11 @@ impl ReportCombinedQuery {
       }
     }
 
+    // A remote resolve sets `resolved` but leaves `resolved_locally` false, so it stays in the
+    // local queue until a local admin/mod acts.
     let unresolved_only = self.unresolved_only.unwrap_or_default();
     if unresolved_only {
-      query = query.filter(not(report_combined::resolved));
+      query = query.filter(not(report_combined::resolved_locally));
     };
 
     let sort_direction = match self.sort.unwrap_or_default() {
@@ -713,6 +715,7 @@ mod tests {
     let update_form = UpdatePostReportForm {
       resolver_id: Some(data.timmy.id),
       resolved: Some(true),
+      resolved_locally: Some(true),
       conclusion: Some(Some("This is the conclusion of the report...".to_string())),
       ..Default::default()
     };
@@ -784,6 +787,7 @@ mod tests {
     let update_form = UpdatePrivateMessageReportForm {
       resolver_id: Some(data.admin_view.person.id),
       resolved: Some(true),
+      resolved_locally: Some(true),
       conclusion: Some(Some("This is the conclusion of the report...".to_string())),
       ..Default::default()
     };
@@ -1007,6 +1011,7 @@ mod tests {
     let update_form = UpdateCommentReportForm {
       resolver_id: Some(data.timmy.id),
       resolved: Some(true),
+      resolved_locally: Some(true),
       conclusion: Some(Some("This is the conclusion of the report".to_string())),
       ..Default::default()
     };
@@ -1123,6 +1128,7 @@ mod tests {
     let update_form = UpdateCommunityReportForm {
       resolver_id: Some(data.admin_view.person.id),
       resolved: Some(true),
+      resolved_locally: Some(true),
       conclusion: Some(Some("This is the conclusion of the report".to_string())),
       ..Default::default()
     };
@@ -1326,6 +1332,125 @@ mod tests {
 
     // Make sure timmy is seen as banned.
     assert_eq!(read_sara_report_view.creator_banned, true);
+
+    cleanup(data, pool).await?;
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  #[serial]
+  async fn remote_resolve_stays_in_local_queue() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+    let data = init_data(pool).await?;
+
+    let sara_report_form = PostReportForm {
+      creator_id: data.sara.id,
+      post_id: data.post.id,
+      original_post_name: "Orig post".into(),
+      original_post_url: None,
+      original_post_body: None,
+      reason: "from sara".into(),
+      violates_instance_rules: false,
+    };
+    let sara_report = PostReport::report(pool, &sara_report_form).await?;
+
+    let jessica_report_form = CommunityReportForm {
+      creator_id: data.jessica.id,
+      community_id: data.community.id,
+      original_community_name: data.community.name.clone(),
+      original_community_title: data.community.title.clone(),
+      original_community_banner: None,
+      original_community_summary: None,
+      original_community_sidebar: None,
+      original_community_icon: None,
+      reason: "from jessica".into(),
+    };
+    CommunityReport::report(pool, &jessica_report_form).await?;
+
+    // Incoming ActivityPub resolve sets `resolved` only. The local queue is unchanged.
+    PostReport::resolve_apub(pool, data.post.id, data.sara.id, data.timmy.id).await?;
+
+    let after_remote_resolve = ReportCombinedQuery {
+      unresolved_only: Some(true),
+      show_community_rule_violations: Some(true),
+      ..Default::default()
+    }
+    .list(pool, &data.admin_view)
+    .await?;
+    assert_length!(2, after_remote_resolve);
+    let post_view =
+      ReportCombinedViewInternal::read_post_report(pool, sara_report.id, &data.timmy).await?;
+    assert!(post_view.post_report.resolved);
+    assert!(!post_view.post_report.resolved_locally);
+
+    let count_after_remote =
+      ReportCombinedViewInternal::get_report_count(pool, &data.admin_view).await?;
+    // Community reports are admin-visible, post reports are not unless they violate instance rules
+    // or are old. The post report still counts for the community mod.
+    let mod_count_after_remote =
+      ReportCombinedViewInternal::get_report_count(pool, &data.timmy_view).await?;
+    assert_eq!(1, mod_count_after_remote);
+    assert_eq!(1, count_after_remote);
+
+    // A remote remove of the community also must not clear the local queue.
+    CommunityReport::resolve_all_for_object_apub(pool, data.community.id, data.timmy.id).await?;
+    let after_remote_remove = ReportCombinedQuery {
+      unresolved_only: Some(true),
+      show_community_rule_violations: Some(true),
+      ..Default::default()
+    }
+    .list(pool, &data.admin_view)
+    .await?;
+    assert_length!(2, after_remote_remove);
+
+    // A local admin resolve sets both flags and removes it from the queue.
+    PostReport::update_resolved(
+      pool,
+      sara_report.id,
+      &UpdatePostReportForm {
+        resolver_id: Some(data.timmy.id),
+        resolved: Some(true),
+        resolved_locally: Some(true),
+        ..Default::default()
+      },
+    )
+    .await?;
+
+    let after_local_resolve = ReportCombinedQuery {
+      unresolved_only: Some(true),
+      show_community_rule_violations: Some(true),
+      ..Default::default()
+    }
+    .list(pool, &data.admin_view)
+    .await?;
+    assert_length!(1, after_local_resolve);
+    if let ReportCombinedView::Community(v) = &after_local_resolve[0] {
+      assert!(v.community_report.resolved);
+      assert!(!v.community_report.resolved_locally);
+    } else {
+      panic!("wrong type");
+    }
+
+    let mod_count_after_local =
+      ReportCombinedViewInternal::get_report_count(pool, &data.timmy_view).await?;
+    assert_eq!(0, mod_count_after_local);
+
+    // A later remote resolve must not reopen a report a local admin already closed.
+    PostReport::resolve_apub(pool, data.post.id, data.sara.id, data.jessica.id).await?;
+    let after_remote_follows_local =
+      ReportCombinedViewInternal::read_post_report(pool, sara_report.id, &data.timmy).await?;
+    assert!(after_remote_follows_local.post_report.resolved);
+    assert!(after_remote_follows_local.post_report.resolved_locally);
+    let still_closed = ReportCombinedQuery {
+      unresolved_only: Some(true),
+      show_community_rule_violations: Some(true),
+      ..Default::default()
+    }
+    .list(pool, &data.admin_view)
+    .await?;
+    assert_length!(1, still_closed);
 
     cleanup(data, pool).await?;
 
