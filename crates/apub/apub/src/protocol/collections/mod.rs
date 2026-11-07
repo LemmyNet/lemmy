@@ -11,7 +11,7 @@ mod tests {
     group_featured::GroupFeatured,
     group_followers::GroupFollowers,
     group_moderators::GroupModerators,
-    group_outbox::GroupOutbox,
+    group_outbox::{GroupOutbox, GroupOutboxPage},
     url_collection::UrlCollection,
   };
   use lemmy_apub_objects::utils::test::{test_json, test_parse_lemmy_item};
@@ -24,6 +24,12 @@ mod tests {
     let outbox =
       test_parse_lemmy_item::<GroupOutbox>("assets/lemmy/collections/group_outbox.json")?;
     assert_eq!(outbox.ordered_items.len(), outbox.total_items as usize);
+    assert!(outbox.next.is_none());
+    let outbox_page =
+      test_parse_lemmy_item::<GroupOutboxPage>("assets/lemmy/collections/group_outbox_page.json")?;
+    assert_eq!(outbox_page.ordered_items.len(), outbox.ordered_items.len());
+    assert!(outbox_page.next.is_some());
+    assert!(outbox_page.prev.is_none());
     test_parse_lemmy_item::<GroupFeatured>("assets/lemmy/collections/group_featured_posts.json")?;
     test_parse_lemmy_item::<GroupModerators>("assets/lemmy/collections/group_moderators.json")?;
     test_parse_lemmy_item::<UrlCollection>("assets/lemmy/collections/person_outbox.json")?;
