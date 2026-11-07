@@ -73,8 +73,16 @@ impl Reportable for PrivateMessageReport {
     .with_lemmy_type(LemmyErrorType::CouldntUpdate)
   }
 
-  // This is unused because private message doesn't have remove handler
+  // Unused because private messages have no remove handler.
   async fn resolve_all_for_object(
+    _pool: &mut DbPool<'_>,
+    _pm_id_: PrivateMessageId,
+    _by_resolver_id: PersonId,
+  ) -> LemmyResult<usize> {
+    Err(LemmyErrorType::NotFound.into())
+  }
+
+  async fn resolve_all_for_object_apub(
     _pool: &mut DbPool<'_>,
     _pm_id_: PrivateMessageId,
     _by_resolver_id: PersonId,

@@ -44,6 +44,7 @@ pub async fn resolve_post_report(
   let form = UpdatePostReportForm {
     resolver_id: Some(person.id),
     resolved: Some(data.resolved),
+    resolved_locally: Some(data.resolved),
     conclusion,
     updated_at: Some(Utc::now()),
   };
