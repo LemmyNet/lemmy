@@ -1,7 +1,7 @@
 use crate::{
   diesel::OptionalExtension,
   newtypes::{CommunityId, DbUrl, PersonId, PostId},
-  schema::{post, post_hide, post_like, post_read, post_saved},
+  schema::{community, post, post_hide, post_like, post_read, post_saved},
   source::post::{
     Post,
     PostHide,
@@ -26,6 +26,7 @@ use crate::{
     SITEMAP_DAYS,
     SITEMAP_LIMIT,
   },
+  CommunityVisibility,
 };
 use ::url::Url;
 use chrono::{DateTime, Utc};
@@ -98,10 +99,15 @@ impl Post {
   ) -> Result<Vec<(DbUrl, chrono::DateTime<Utc>)>, Error> {
     let conn = &mut get_conn(pool).await?;
     post::table
+      .inner_join(community::table)
       .select((post::ap_id, coalesce(post::updated, post::published)))
       .filter(post::local.eq(true))
       .filter(post::deleted.eq(false))
       .filter(post::removed.eq(false))
+      .into_boxed()
+      .filter(community::removed.eq(false))
+      .filter(community::deleted.eq(false))
+      .filter(community::visibility.eq(CommunityVisibility::Public))
       .filter(
         post::published.ge(Utc::now().naive_utc() - SITEMAP_DAYS.expect("TimeDelta out of bounds")),
       )
