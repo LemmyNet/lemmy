@@ -66,7 +66,7 @@ fn queries<'a>() -> Queries<
             .and(
               aliases::community_moderator1
                 .field(community_moderator::person_id)
-                .eq(my_person_id),
+                .eq(post::creator_id),
             ),
         ),
       )
@@ -405,7 +405,7 @@ mod tests {
       .unwrap();
 
     let read_jessica_report_view =
-      PostReportView::read(pool, inserted_jessica_report.id, inserted_timmy.id)
+      PostReportView::read(pool, inserted_jessica_report.id, inserted_jessica.id)
         .await
         .unwrap()
         .unwrap();
@@ -420,6 +420,8 @@ mod tests {
     assert_eq!(read_jessica_report_view.post_creator.id, inserted_timmy.id);
     assert_eq!(read_jessica_report_view.my_vote, None);
     assert_eq!(read_jessica_report_view.resolver, None);
+    // Make sure creator_is_moderator is true
+    assert_eq!(read_jessica_report_view.creator_is_moderator, true);
 
     // Do a batch read of timmys reports
     let reports = PostReportQuery::default()
