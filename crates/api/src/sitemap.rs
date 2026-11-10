@@ -3,9 +3,10 @@ use actix_web::{
   web::Data,
   HttpResponse,
 };
-use lemmy_api_common::context::LemmyContext;
+use lemmy_api_common::{context::LemmyContext, utils::check_private_instance};
 use lemmy_db_schema::{newtypes::DbUrl, source::post::Post};
-use lemmy_utils::error::LemmyResult;
+use lemmy_db_views::structs::SiteView;
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use sitemap_rs::{url::Url, url_set::UrlSet};
 use tracing::info;
 
@@ -26,6 +27,12 @@ async fn generate_urlset(
 }
 
 pub async fn get_sitemap(context: Data<LemmyContext>) -> LemmyResult<HttpResponse> {
+  let local_site = SiteView::read_local(&mut context.pool())
+    .await?
+    .ok_or(LemmyErrorType::LocalSiteNotSetup)?
+    .local_site;
+  check_private_instance(&None, &local_site)?;
+
   info!("Generating sitemap...",);
   let posts = Post::list_for_sitemap(&mut context.pool()).await?;
   info!("Loaded latest {} posts", posts.len());
