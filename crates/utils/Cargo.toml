@@ -30,7 +30,6 @@ full = [
   "actix-web",
   "serde_json",
   "anyhow",
-  "http",
   "deser-hjson",
   "regex",
   "urlencoding",
@@ -48,9 +47,6 @@ full = [
 ]
 ts-rs = ["dep:ts-rs"]
 
-[package.metadata.cargo-shear]
-ignored = ["http"]
-
 [dependencies]
 regex = { workspace = true, optional = true }
 tracing = { workspace = true, optional = true }
@@ -63,7 +59,6 @@ anyhow = { workspace = true, optional = true }
 strum = { workspace = true }
 futures = { workspace = true, optional = true }
 diesel = { workspace = true, optional = true }
-http = { workspace = true, optional = true }
 doku = { workspace = true, features = ["url-2"], optional = true }
 tokio = { workspace = true, optional = true }
 urlencoding = { workspace = true, optional = true }

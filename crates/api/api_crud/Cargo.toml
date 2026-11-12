@@ -49,8 +49,8 @@ chrono.workspace = true
 rand = { workspace = true }
 accept-language = "3.1.0"
 regex = { workspace = true }
-serde_json = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
 serde_with = { workspace = true }
 diesel-async = { workspace = true }
 lemmy_diesel_utils = { workspace = true }
@@ -59,10 +59,6 @@ lemmy_diesel_utils = { workspace = true }
 ignored = ["futures", "futures-util"]
 
 [dev-dependencies]
-
-[build-dependencies]
-serde = { workspace = true }
-serde_json = { workspace = true }
 
 [lib]
 doctest = false
