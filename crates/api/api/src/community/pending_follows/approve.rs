@@ -28,6 +28,7 @@ pub async fn post_pending_follows_approve(
     (
       CommunityFollowerState::Accepted,
       SendActivityData::PrivateCommunityAcceptFollower {
+        actor: local_user_view.person.clone(),
         community_id: data.community_id,
         person_id: data.follower_id,
         follow_activity_id: community_actions.follow_activity_id,
@@ -37,6 +38,7 @@ pub async fn post_pending_follows_approve(
     (
       CommunityFollowerState::Denied,
       SendActivityData::PrivateCommunityRejectFollower {
+        actor: local_user_view.person.clone(),
         community_id: data.community_id,
         person_id: data.follower_id,
         follow_activity_id: community_actions.follow_activity_id,
