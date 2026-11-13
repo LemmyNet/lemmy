@@ -12,10 +12,10 @@ pub(crate) async fn get_lang_or_negotiate(
 ) -> Result<Lang, Error> {
   let jwt = read_auth_token(req)?;
 
-  let lang = if let Some(jwt) = jwt &&
-    // The local user view is optional, since they may not be logged in.
-    // Also the All / Local type feeds don't need a login, and don't pass a jwt.
-    let Some(local_user_view) = local_user_view_from_jwt(&jwt, context, true).await.ok()
+  // The local user view is optional, since they may not be logged in.
+  // Also the All / Local type feeds don't need a login, and don't pass a jwt.
+  let lang = if let Some(jwt) = jwt
+    && let Some(local_user_view) = local_user_view_from_jwt(&jwt, context, true).await.ok()
   {
     user_language(&local_user_view.local_user)
   } else if req.headers().contains_key(ACCEPT_LANGUAGE) {
