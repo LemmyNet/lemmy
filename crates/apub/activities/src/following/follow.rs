@@ -1,6 +1,10 @@
 use crate::{
+  activity_lists::AnnouncableActivities,
   generate_activity_id,
-  protocol::following::{accept::AcceptFollow, follow::Follow},
+  protocol::{
+    community::announce::AnnounceActivity,
+    following::{accept::AcceptFollow, follow::Follow},
+  },
   send_lemmy_activity,
 };
 use activitypub_federation::{
@@ -48,9 +52,34 @@ impl Follow {
     target: &CommunityOrMulti,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    let follow = Follow::new(actor, target, context)?;
-    let inbox = ActivitySendTargets::to_inbox(target.shared_inbox_or_inbox());
-    send_lemmy_activity(context, follow, actor, inbox, true).await
+    match target {
+      // Remote mods of a local private community need to see the request
+      Left(community)
+        if community.local && community.visibility == CommunityVisibility::Private =>
+      {
+        let follow = Follow::new(actor, target, context)?;
+        let announce = AnnounceActivity::new(
+          AnnouncableActivities::Follow(follow).try_into()?,
+          community,
+          None,
+          context,
+        )?;
+        let mut inboxes = ActivitySendTargets::empty();
+        let moderators =
+          CommunityModeratorView::for_community(&mut context.pool(), community.id).await?;
+        for m in moderators {
+          inboxes.add_inbox(m.moderator.inbox_url.into());
+        }
+        send_lemmy_activity(context, announce, community, inboxes, true).await
+      }
+      // Following any other local community needs no federation
+      Left(community) if community.local => Ok(()),
+      _ => {
+        let follow = Follow::new(actor, target, context)?;
+        let inbox = ActivitySendTargets::to_inbox(target.shared_inbox_or_inbox());
+        send_lemmy_activity(context, follow, actor, inbox, true).await
+      }
+    }
   }
 }
 
@@ -84,7 +113,9 @@ impl Activity for Follow {
       Right(Left(c)) => c.local,
       Right(Right(m)) => m.local,
     };
-    if !object_local {
+
+    // A person following a remote community is allowed, so remote mods receive the request
+    if !object_local && !matches!((&actor, &object), (Left(_), Right(Left(_)))) {
       return Err(UntranslatedError::InvalidFollow("Not a local object".to_string()).into());
     }
 
@@ -147,8 +178,31 @@ impl Activity for Follow {
           ..CommunityFollowerForm::new(c.id, person.id, follow_state)
         };
         CommunityActions::follow(&mut context.pool(), &form).await?;
-        if follow_state == CommunityFollowerState::Accepted {
-          AcceptFollow::send(self, context).await?;
+
+        // Only the instance hosting the community answers the follow, or announces it to mods
+        // for approval
+        if c.local {
+          match follow_state {
+            CommunityFollowerState::Accepted => {
+              AcceptFollow::send(self, context).await?;
+            }
+            CommunityFollowerState::ApprovalRequired => {
+              let announce = AnnounceActivity::new(
+                AnnouncableActivities::Follow(self).try_into()?,
+                &c,
+                None,
+                context,
+              )?;
+              let mut inboxes = ActivitySendTargets::empty();
+              let moderators =
+                CommunityModeratorView::for_community(&mut context.pool(), c.id).await?;
+              for m in moderators {
+                inboxes.add_inbox(m.moderator.inbox_url.into());
+              }
+              send_lemmy_activity(context, announce, &c, inboxes, true).await?;
+            }
+            _ => {}
+          }
         }
       }
       Right(Right(m)) => {

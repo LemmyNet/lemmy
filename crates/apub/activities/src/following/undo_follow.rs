@@ -1,7 +1,9 @@
 use crate::{
+  activity_lists::AnnouncableActivities,
   generate_activity_id,
   protocol::{
     IdOrNestedObject,
+    community::announce::AnnounceActivity,
     following::{follow::Follow, undo_follow::UndoFollow},
   },
   send_lemmy_activity,
@@ -26,25 +28,60 @@ use lemmy_db_schema::{
   },
   traits::Followable,
 };
+use lemmy_db_schema_file::enums::CommunityVisibility;
+use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_utils::error::{LemmyError, LemmyResult, UntranslatedError};
 use url::Url;
 
 impl UndoFollow {
-  pub async fn send(
+  fn new(
     actor: &ApubPerson,
     target: &CommunityOrMulti,
     context: &Data<LemmyContext>,
-  ) -> LemmyResult<()> {
+  ) -> LemmyResult<UndoFollow> {
     let follow = Follow::new(actor, target, context)?;
-    let undo = UndoFollow {
+    Ok(UndoFollow {
       actor: actor.id().clone().into(),
       to: Some([target.id().clone().into()]),
       object: IdOrNestedObject::NestedObject(follow),
       kind: UndoType::Undo,
       id: generate_activity_id(UndoType::Undo, context)?,
-    };
-    let inbox = ActivitySendTargets::to_inbox(target.shared_inbox_or_inbox());
-    send_lemmy_activity(context, undo, actor, inbox, true).await
+    })
+  }
+
+  pub async fn send(
+    actor: &ApubPerson,
+    target: &CommunityOrMulti,
+    context: &Data<LemmyContext>,
+  ) -> LemmyResult<()> {
+    match target {
+      // Remote mods of a local private community need to unsee the follow request
+      Left(community)
+        if community.local && community.visibility == CommunityVisibility::Private =>
+      {
+        let undo = UndoFollow::new(actor, target, context)?;
+        let announce = AnnounceActivity::new(
+          AnnouncableActivities::UndoFollow(undo).try_into()?,
+          community,
+          None,
+          context,
+        )?;
+        let mut inboxes = ActivitySendTargets::empty();
+        let moderators =
+          CommunityModeratorView::for_community(&mut context.pool(), community.id).await?;
+        for m in moderators {
+          inboxes.add_inbox(m.moderator.inbox_url.into());
+        }
+        send_lemmy_activity(context, announce, community, inboxes, true).await
+      }
+      // Unfollowing any other local community needs no federation
+      Left(community) if community.local => Ok(()),
+      _ => {
+        let undo = UndoFollow::new(actor, target, context)?;
+        let inbox = ActivitySendTargets::to_inbox(target.shared_inbox_or_inbox());
+        send_lemmy_activity(context, undo, actor, inbox, true).await
+      }
+    }
   }
 }
 
@@ -94,6 +131,20 @@ impl Activity for UndoFollow {
       }
       Right(Left(c)) => {
         CommunityActions::unfollow(&mut context.pool(), person.id, c.id).await?;
+        if c.local && c.visibility == CommunityVisibility::Private {
+          let announce = AnnounceActivity::new(
+            AnnouncableActivities::UndoFollow(self).try_into()?,
+            &c,
+            None,
+            context,
+          )?;
+          let mut inboxes = ActivitySendTargets::empty();
+          let moderators = CommunityModeratorView::for_community(&mut context.pool(), c.id).await?;
+          for m in moderators {
+            inboxes.add_inbox(m.moderator.inbox_url.into());
+          }
+          send_lemmy_activity(context, announce, &c, inboxes, true).await?;
+        }
       }
       Right(Right(m)) => MultiCommunity::unfollow(&mut context.pool(), person.id, m.id).await?,
     }
