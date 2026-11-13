@@ -1,6 +1,11 @@
 jest.setTimeout(120000);
 
-import { FollowCommunity, LemmyError, LemmyHttp } from "lemmy-js-client";
+import {
+  AddModToCommunity,
+  FollowCommunity,
+  LemmyError,
+  LemmyHttp,
+} from "lemmy-js-client";
 import {
   alpha,
   setupLogins,
@@ -32,6 +37,10 @@ import {
   resolvePostFailure,
   resolveCommentFailure,
   expectFailure,
+  resolvePerson,
+  gammaUrl,
+  getMyUser,
+  alphaUrl,
 } from "./shared";
 
 beforeAll(setupLogins);
@@ -386,6 +395,174 @@ test("Fetch remote content in private community", async () => {
     comment.comment_view.comment.ap_id,
   );
 });
+
+test("Remote mod approves follower", async () => {
+  const { communityApId, betaCommunityId } =
+    await createPrivateCommunityWithRemoteMod();
+
+  // new gamma user follows
+  const user = await registerUser(gamma, gammaUrl);
+  const userApId = (await getMyUser(user).then(expectSuccess)).local_user_view
+    .person.ap_id;
+  const gammaCommunityId = (await resolveCommunity(user, communityApId))!
+    .community.id;
+  const follow = await user
+    .followCommunity({ community_id: gammaCommunityId, follow: true })
+    .then(expectSuccess);
+  expect(follow.community_view.community_actions?.follow_state).toBe(
+    "approval_required",
+  );
+
+  // follow request reaches both the local and the remote mod
+  await waitUntilSuccess(
+    () => listCommunityPendingFollows(alpha),
+    f => f.items.some(i => i.person.ap_id == userApId),
+  );
+  const betaPending = await waitUntilSuccess(
+    () => listCommunityPendingFollows(beta),
+    f => f.items.some(i => i.person.ap_id == userApId),
+  );
+  const pending = betaPending.items.find(i => i.person.ap_id == userApId)!;
+  expect(pending.community.ap_id).toBe(communityApId);
+
+  // remote mod on beta approves
+  const approve = await approveCommunityPendingFollow(
+    beta,
+    betaCommunityId,
+    pending.person.id,
+  ).then(expectSuccess);
+  expect(approve.success).toBe(true);
+
+  // follow is accepted on gamma, and no longer pending on alpha
+  await waitUntilSuccess(
+    () => getCommunity(user, gammaCommunityId),
+    c => c.community_view.community_actions?.follow_state == "accepted",
+  );
+  await waitUntilSuccess(
+    () => listCommunityPendingFollows(alpha),
+    f => !f.items.some(i => i.person.ap_id == userApId),
+  );
+});
+
+test("Remote mod rejects local follower", async () => {
+  const { alphaCommunityId, communityApId, betaCommunityId } =
+    await createPrivateCommunityWithRemoteMod();
+
+  // new alpha user follows the local community
+  const user = await registerUser(alpha, alphaUrl);
+  const userApId = (await getMyUser(user).then(expectSuccess)).local_user_view
+    .person.ap_id;
+  const follow = await user
+    .followCommunity({ community_id: alphaCommunityId, follow: true })
+    .then(expectSuccess);
+  expect(follow.community_view.community_actions?.follow_state).toBe(
+    "approval_required",
+  );
+
+  // follow request shows up for the remote mod on beta
+  const betaPending = await waitUntilSuccess(
+    () => listCommunityPendingFollows(beta),
+    f => f.items.some(i => i.person.ap_id == userApId),
+  );
+  const pending = betaPending.items.find(i => i.person.ap_id == userApId)!;
+  expect(pending.community.ap_id).toBe(communityApId);
+
+  // remote mod on beta rejects
+  const reject = await approveCommunityPendingFollow(
+    beta,
+    betaCommunityId,
+    pending.person.id,
+    false,
+  ).then(expectSuccess);
+  expect(reject.success).toBe(true);
+
+  // follow is removed on alpha
+  await waitUntilSuccess(
+    () => getCommunity(user, alphaCommunityId),
+    c => c.community_view.community_actions?.follow_state === undefined,
+  );
+  await waitUntilSuccess(
+    () => listCommunityPendingFollows(alpha),
+    f => !f.items.some(i => i.person.ap_id == userApId),
+  );
+});
+
+test("Undo follow removes pending request for local and remote mod", async () => {
+  const { communityApId } = await createPrivateCommunityWithRemoteMod();
+
+  // new gamma user follows
+  const user = await registerUser(gamma, gammaUrl);
+  const userApId = (await getMyUser(user).then(expectSuccess)).local_user_view
+    .person.ap_id;
+  const gammaCommunityId = (await resolveCommunity(user, communityApId))!
+    .community.id;
+  const follow = await user
+    .followCommunity({ community_id: gammaCommunityId, follow: true })
+    .then(expectSuccess);
+  expect(follow.community_view.community_actions?.follow_state).toBe(
+    "approval_required",
+  );
+
+  // follow request shows up for the local and the remote mod
+  await waitUntilSuccess(
+    () => listCommunityPendingFollows(alpha),
+    f => f.items.some(i => i.person.ap_id == userApId),
+  );
+  await waitUntilSuccess(
+    () => listCommunityPendingFollows(beta),
+    f => f.items.some(i => i.person.ap_id == userApId),
+  );
+
+  // gamma user undoes the follow
+  await user
+    .followCommunity({ community_id: gammaCommunityId, follow: false })
+    .then(expectSuccess);
+
+  // pending request is gone for both mods
+  await waitUntilSuccess(
+    () => listCommunityPendingFollows(alpha),
+    f => !f.items.some(i => i.person.ap_id == userApId),
+  );
+  await waitUntilSuccess(
+    () => listCommunityPendingFollows(beta),
+    f => !f.items.some(i => i.person.ap_id == userApId),
+  );
+});
+
+/// Private community on alpha, with alpha as local mod and beta as remote mod
+async function createPrivateCommunityWithRemoteMod() {
+  const community = await createCommunity(
+    alpha,
+    randomString(10),
+    "private",
+  ).then(expectSuccess);
+  const alphaCommunityId = community.community_view.community.id;
+  const communityApId = community.community_view.community.ap_id;
+
+  // beta follows, so it receives the mod list update
+  const betaCommunityId = (await resolveCommunity(beta, communityApId))!
+    .community.id;
+  await beta.followCommunity({ community_id: betaCommunityId, follow: true });
+  await approveFollower(alpha, alphaCommunityId);
+  await waitUntilSuccess(
+    () => getCommunity(beta, betaCommunityId),
+    c => c.community_view.community_actions?.follow_state == "accepted",
+  );
+
+  const betaOnAlpha = await resolvePerson(alpha, "lemmy_beta@lemmy-beta:8551");
+  const form: AddModToCommunity = {
+    community_id: alphaCommunityId,
+    person_id: betaOnAlpha!.person.id,
+    added: true,
+  };
+  await alpha.addModToCommunity(form).then(expectSuccess);
+  await waitUntilSuccess(
+    () => getCommunity(beta, betaCommunityId),
+    c => c.moderators.length == 2,
+  );
+
+  return { alphaCommunityId, communityApId, betaCommunityId };
+}
 
 async function approveFollower(user: LemmyHttp, community_id: number) {
   const pendingFollows1 = await waitUntilSuccess(
