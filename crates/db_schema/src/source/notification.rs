@@ -46,7 +46,7 @@ pub struct Notification {
   pub community_id: Option<CommunityId>,
 }
 
-#[derive(derive_new::new)]
+#[derive(derive_new::new, Clone)]
 #[cfg_attr(feature = "full", derive(Insertable))]
 #[cfg_attr(feature = "full", diesel(table_name = notification))]
 pub struct NotificationInsertForm {
