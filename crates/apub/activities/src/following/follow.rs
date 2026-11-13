@@ -125,7 +125,7 @@ impl Activity for Follow {
     {
       check_community_deleted_removed(community)?;
       CommunityCommunityFollow::follow(&mut context.pool(), community.id, follower.id).await?;
-      AcceptFollow::send(self, context).await?;
+      AcceptFollow::send(self, context, None).await?;
       return Ok(());
     }
 
@@ -138,7 +138,7 @@ impl Activity for Follow {
       Left(u) => {
         let form = PersonFollowerForm::new(u.id, person.id, false);
         PersonActions::follow(&mut context.pool(), &form).await?;
-        AcceptFollow::send(self, context).await?;
+        AcceptFollow::send(self, context, None).await?;
       }
       Right(Left(c)) => {
         check_community_deleted_removed(&c)?;
@@ -184,7 +184,7 @@ impl Activity for Follow {
         if c.local {
           match follow_state {
             CommunityFollowerState::Accepted => {
-              AcceptFollow::send(self, context).await?;
+              AcceptFollow::send(self, context, None).await?;
             }
             CommunityFollowerState::ApprovalRequired => {
               let announce = AnnounceActivity::new(
@@ -213,7 +213,7 @@ impl Activity for Follow {
         };
 
         MultiCommunity::follow(&mut context.pool(), &form).await?;
-        AcceptFollow::send(self, context).await?;
+        AcceptFollow::send(self, context, None).await?;
       }
     }
     Ok(())

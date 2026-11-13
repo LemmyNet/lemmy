@@ -39,6 +39,7 @@ pub async fn send_follow(
 }
 
 pub async fn send_accept_or_reject_follow(
+  mod_: Person,
   community_id: CommunityId,
   person_id: PersonId,
   follow_activity_id: Option<DbUrl>,
@@ -60,9 +61,9 @@ pub async fn send_accept_or_reject_follow(
     id: follow_activity_id.map(Into::into).unwrap_or(fallback_id),
   };
   if accepted {
-    AcceptFollow::send(follow, context).await
+    AcceptFollow::send(follow, context, Some(mod_)).await
   } else {
-    RejectFollow::send(follow, context).await
+    RejectFollow::send(follow, context, Some(mod_)).await
   }
 }
 

@@ -94,6 +94,7 @@ pub async fn add_mod_to_community(
                 community_id: community.id,
                 person_id: new_mod.id,
                 follow_activity_id: actions.follow_activity_id,
+                actor: local_user_view.person.clone(),
               });
             }
           }

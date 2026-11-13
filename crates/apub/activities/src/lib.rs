@@ -402,17 +402,33 @@ pub async fn match_outgoing_activities(
         community_id,
         person_id,
         follow_activity_id,
+        actor,
       } => {
-        send_accept_or_reject_follow(community_id, person_id, follow_activity_id, true, &context)
-          .await
+        send_accept_or_reject_follow(
+          actor,
+          community_id,
+          person_id,
+          follow_activity_id,
+          true,
+          &context,
+        )
+        .await
       }
       PrivateCommunityRejectFollower {
         community_id,
         person_id,
         follow_activity_id,
+        actor,
       } => {
-        send_accept_or_reject_follow(community_id, person_id, follow_activity_id, false, &context)
-          .await
+        send_accept_or_reject_follow(
+          actor,
+          community_id,
+          person_id,
+          follow_activity_id,
+          false,
+          &context,
+        )
+        .await
       }
       UpdateMultiCommunity(multi, actor) => {
         send_update_multi_community(multi, actor, context).await
