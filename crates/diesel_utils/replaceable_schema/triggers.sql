@@ -432,6 +432,7 @@ BEGIN
         report_combined
     SET
         resolved = NEW.resolved,
+        resolved_locally = NEW.resolved_locally,
         resolver_id = NEW.resolver_id
     WHERE
         post_report_id = NEW.id;
@@ -440,6 +441,7 @@ END
 $$;
 CREATE TRIGGER report_combined_post_update
     AFTER UPDATE OF resolved,
+    resolved_locally,
     resolver_id ON post_report
     FOR EACH ROW
     EXECUTE FUNCTION r.report_combined_post_update ();
@@ -479,6 +481,7 @@ BEGIN
         report_combined
     SET
         resolved = NEW.resolved,
+        resolved_locally = NEW.resolved_locally,
         resolver_id = NEW.resolver_id
     WHERE
         comment_report_id = NEW.id;
@@ -487,6 +490,7 @@ END
 $$;
 CREATE TRIGGER report_combined_comment_update
     AFTER UPDATE OF resolved,
+    resolved_locally,
     resolver_id ON comment_report
     FOR EACH ROW
     EXECUTE FUNCTION r.report_combined_comment_update ();
@@ -515,6 +519,7 @@ BEGIN
         report_combined
     SET
         resolved = NEW.resolved,
+        resolved_locally = NEW.resolved_locally,
         resolver_id = NEW.resolver_id
     WHERE
         community_report_id = NEW.id;
@@ -523,6 +528,7 @@ END
 $$;
 CREATE TRIGGER report_combined_community_update
     AFTER UPDATE OF resolved,
+    resolved_locally,
     resolver_id ON community_report
     FOR EACH ROW
     EXECUTE FUNCTION r.report_combined_community_update ();
@@ -560,6 +566,7 @@ BEGIN
         report_combined
     SET
         resolved = NEW.resolved,
+        resolved_locally = NEW.resolved_locally,
         resolver_id = NEW.resolver_id
     WHERE
         private_message_report_id = NEW.id;
@@ -568,6 +575,7 @@ END
 $$;
 CREATE TRIGGER report_combined_private_message_update
     AFTER UPDATE OF resolved,
+    resolved_locally,
     resolver_id ON private_message_report
     FOR EACH ROW
     EXECUTE FUNCTION r.report_combined_private_message_update ();
