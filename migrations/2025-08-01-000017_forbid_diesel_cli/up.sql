@@ -16,13 +16,9 @@ CREATE FUNCTION forbid_diesel_cli ()
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    IF NOT EXISTS (
-        SELECT
-        FROM
-            pg_locks
-        WHERE (locktype, pid, objid) = ('advisory', pg_backend_pid(), 0)) THEN
-RAISE 'migrations must be managed using lemmy_server instead of diesel CLI';
-END IF;
+    IF current_setting('application_name', TRUE) IS DISTINCT FROM 'lemmy' THEN
+        RAISE 'migrations must be managed using lemmy_server instead of diesel CLI';
+    END IF;
     RETURN NULL;
 END;
 $$;
