@@ -151,3 +151,43 @@ pub struct PersonView {
   pub counts: PersonAggregates,
   pub is_admin: bool,
 }
+
+#[derive(Debug, Serialize)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct VoteAnalyticsByPerson {
+  pub creator: Person,
+  pub total_votes: i64,
+  pub upvotes: i64,
+  pub downvotes: i64,
+  pub upvote_percentage: f64,
+}
+
+#[derive(Debug, Serialize)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct VoteAnalyticsByCommunity {
+  pub community: Community,
+  pub total_votes: i64,
+  pub upvotes: i64,
+  pub downvotes: i64,
+  pub upvote_percentage: f64,
+}
+
+#[derive(Debug, Serialize)]
+#[cfg_attr(feature = "full", derive(TS))]
+#[cfg_attr(feature = "full", ts(export))]
+pub struct VoteAnalyticsGivenByPersonView {
+  pub post_votes_total_votes: i64,
+  pub post_votes_total_upvotes: i64,
+  pub post_votes_total_downvotes: i64,
+  pub post_votes_total_upvote_percentage: f64,
+  pub post_votes_by_target_user: Vec<VoteAnalyticsByPerson>,
+  pub post_votes_by_target_community: Vec<VoteAnalyticsByCommunity>,
+  pub comment_votes_total_votes: i64,
+  pub comment_votes_total_upvotes: i64,
+  pub comment_votes_total_downvotes: i64,
+  pub comment_votes_total_upvote_percentage: f64,
+  pub comment_votes_by_target_user: Vec<VoteAnalyticsByPerson>,
+  pub comment_votes_by_target_community: Vec<VoteAnalyticsByCommunity>,
+}
