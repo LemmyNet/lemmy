@@ -116,6 +116,26 @@ pub enum PostListingMode {
   SmallCard,
 }
 
+#[derive(Debug, Serialize, Deserialize, Default, Clone, Copy, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "full", derive(DbEnum))]
+#[cfg_attr(
+  feature = "full",
+  ExistingTypePath = "crate::schema::sql_types::LowBandwidthModeEnum"
+)]
+#[cfg_attr(feature = "full", DbValueStyle = "verbatim")]
+#[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts-rs", ts(export))]
+/// Whether the UI should hide images and video until the user asks for them.
+/// `auto` is a client decision (for example Android data saver) and is not stored here.
+pub enum LowBandwidthMode {
+  /// Always show images and video.
+  #[default]
+  Never,
+  /// Hide images and video on first load, including in markdown.
+  Always,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default, Hash)]
 #[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "full", derive(DbEnum))]

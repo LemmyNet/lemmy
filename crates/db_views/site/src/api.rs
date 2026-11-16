@@ -25,6 +25,7 @@ use lemmy_db_schema_file::{
     CommentSortType,
     ImageMode,
     ListingType,
+    LowBandwidthMode,
     PostListingMode,
     PostSortType,
     RegistrationMode,
@@ -542,6 +543,8 @@ pub struct SaveUserSettings {
   pub show_avatars: Option<bool>,
   /// Whether to show media in the UI.
   pub show_media: Option<bool>,
+  /// Hide images and video on first load. `never` shows them, `always` hides them until requested.
+  pub low_bandwidth_mode: Option<LowBandwidthMode>,
   /// Sends notifications to your email.
   pub send_notifications_to_email: Option<bool>,
   /// Whether this account is a bot account. Users can hide these accounts easily if they wish.

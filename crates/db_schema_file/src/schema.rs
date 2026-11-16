@@ -42,6 +42,10 @@ pub mod sql_types {
   pub struct NotificationTypeEnum;
 
   #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+  #[diesel(postgres_type(name = "low_bandwidth_mode_enum"))]
+  pub struct LowBandwidthModeEnum;
+
+  #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
   #[diesel(postgres_type(name = "post_listing_mode_enum"))]
   pub struct PostListingModeEnum;
 
@@ -488,6 +492,7 @@ diesel::table! {
     use super::sql_types::PostListingModeEnum;
     use super::sql_types::CommentSortTypeEnum;
     use super::sql_types::VoteShowEnum;
+    use super::sql_types::LowBandwidthModeEnum;
 
     local_user (id) {
         id -> Int4,
@@ -529,6 +534,7 @@ diesel::table! {
         default_items_per_page -> Int4,
         invited_by_local_user_id -> Nullable<Int4>,
         show_media -> Bool,
+        low_bandwidth_mode -> LowBandwidthModeEnum,
     }
 }
 
