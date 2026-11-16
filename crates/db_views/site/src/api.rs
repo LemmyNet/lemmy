@@ -543,7 +543,8 @@ pub struct SaveUserSettings {
   pub show_avatars: Option<bool>,
   /// Whether to show media in the UI.
   pub show_media: Option<bool>,
-  /// Hide images and video on first load. `never` shows them, `always` hides them until requested.
+  /// Hide images and video on first load. `auto` follows device data saver (web treats it as
+  /// `never`), `never` shows them, `always` hides them until requested.
   pub low_bandwidth_mode: Option<LowBandwidthMode>,
   /// Sends notifications to your email.
   pub send_notifications_to_email: Option<bool>,

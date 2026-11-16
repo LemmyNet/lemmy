@@ -127,10 +127,17 @@ pub enum PostListingMode {
 #[cfg_attr(feature = "ts-rs", derive(ts_rs::TS))]
 #[cfg_attr(feature = "ts-rs", ts(export))]
 /// Whether the UI should hide images and video until the user asks for them.
-/// `auto` is a client decision (for example Android data saver) and is not stored here.
+///
+/// The backend stores this only. Clients decide what to hide:
+/// - `auto` is the default. Web UIs treat it as `never`. Android (and iOS, if it has a similar
+///   setting) should follow the device data-saver setting.
+/// - `never` always shows images and video.
+/// - `always` hides them on first load, including in markdown.
 pub enum LowBandwidthMode {
-  /// Always show images and video.
+  /// Follow the device data-saver setting. Web UIs treat this as `never`.
   #[default]
+  Auto,
+  /// Always show images and video.
   Never,
   /// Hide images and video on first load, including in markdown.
   Always,

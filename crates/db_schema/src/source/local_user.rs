@@ -89,6 +89,7 @@ pub struct LocalUser {
   /// Whether to show media in the UI.
   pub show_media: bool,
   /// Whether the UI should hide images and video until the user asks for them.
+  /// `auto` follows the device data-saver setting; web UIs treat it as `never`.
   pub low_bandwidth_mode: LowBandwidthMode,
 }
 
