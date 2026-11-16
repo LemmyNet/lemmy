@@ -250,6 +250,7 @@ async fn get_feed_community(
 
   let posts = PostQuery {
     sort: Some(info.sort_type()),
+    listing_type: Some(ListingType::All),
     community_id: Some(community.id),
     limit: Some(info.get_limit()),
     ..Default::default()
@@ -288,6 +289,7 @@ async fn get_feed_multi_community(
 
   let posts = PostQuery {
     sort: Some(info.sort_type()),
+    listing_type: Some(ListingType::All),
     multi_community_id: Some(multi_community.id),
     limit: Some(info.get_limit()),
     ..Default::default()
