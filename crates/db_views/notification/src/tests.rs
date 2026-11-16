@@ -68,7 +68,7 @@ async fn test_private_message() -> LemmyResult<()> {
   let pm = PrivateMessage::create(pool, form).await?;
   let form = NotificationInsertForm::new_private_message(&pm);
   // Created twice to make sure duplicate notifications are not created
-  Notification::create(pool, &[form.clone()]).await?;
+  Notification::create(pool, std::slice::from_ref(&form)).await?;
   Notification::create(pool, &[form]).await?;
 
   let form = &PrivateMessageInsertForm::new(
@@ -175,7 +175,7 @@ async fn test_post() -> LemmyResult<()> {
   let notif_form =
     NotificationInsertForm::new_post(&post, data.alice.id, NotificationType::Subscribed);
   // Created twice to make sure duplicate notifications are not created
-  Notification::create(pool, &[notif_form.clone()]).await?;
+  Notification::create(pool, std::slice::from_ref(&notif_form)).await?;
   Notification::create(pool, &[notif_form]).await?;
 
   let count = NotificationView::get_unread_count(pool, &data.alice, false).await?;
@@ -256,7 +256,7 @@ async fn test_modlog() -> LemmyResult<()> {
 
   let form = NotificationInsertForm::new_mod_action(modlog, data.bob.id);
   // Created twice to make sure duplicate notifications are not created
-  let notification = &Notification::create(pool, &[form.clone()]).await?[0];
+  let notification = &Notification::create(pool, std::slice::from_ref(&form)).await?[0];
   Notification::create(pool, &[form]).await?;
 
   let count = NotificationView::get_unread_count(pool, &data.bob, false).await?;

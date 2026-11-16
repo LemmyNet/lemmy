@@ -20,13 +20,13 @@ impl Notification {
     form: &[NotificationInsertForm],
   ) -> LemmyResult<Vec<Self>> {
     let conn = &mut get_conn(pool).await?;
-    let notifications = insert_into(notification::table)
+    insert_into(notification::table)
       .values(form)
       .on_conflict_do_nothing()
       .returning(notification::all_columns)
       .get_results::<Self>(conn)
-      .await?;
-    Ok(notifications)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntCreate)
   }
 
   pub async fn mark_read_by_comment_and_recipient(
