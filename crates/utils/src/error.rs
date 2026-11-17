@@ -108,6 +108,7 @@ pub enum LemmyErrorType {
   UrlLengthOverflow,
   OauthAuthorizationInvalid,
   OauthIdClaimMissing,
+  OauthUsernameClaimMissing,
   OauthTokenRequestSendFailed,
   OauthTokenRequestErrorStatus,
   OauthTokenResponseParseFailed,
