@@ -23,7 +23,6 @@ impl Notification {
     insert_into(notification::table)
       .values(form)
       .on_conflict_do_nothing()
-      .returning(notification::all_columns)
       .get_results::<Self>(conn)
       .await
       .with_lemmy_type(LemmyErrorType::CouldntCreate)
