@@ -110,6 +110,7 @@ pub struct CreateOAuthProvider {
   pub account_linking_enabled: Option<bool>,
   pub use_pkce: Option<bool>,
   pub enabled: Option<bool>,
+  pub username_claim: Option<String>,
 }
 
 #[skip_serializing_none]
@@ -201,6 +202,7 @@ pub struct EditOAuthProvider {
   pub account_linking_enabled: Option<bool>,
   pub use_pkce: Option<bool>,
   pub enabled: Option<bool>,
+  pub username_claim: Option<String>,
 }
 
 #[skip_serializing_none]

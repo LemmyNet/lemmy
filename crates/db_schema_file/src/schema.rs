@@ -692,6 +692,7 @@ diesel::table! {
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
         use_pkce -> Bool,
+        username_claim -> Nullable<Text>,
     }
 }
 
