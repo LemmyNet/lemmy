@@ -56,6 +56,9 @@ pub struct AdminOAuthProvider {
   pub updated_at: Option<DateTime<Utc>>,
   /// switch to enable or disable PKCE
   pub use_pkce: bool,
+  /// The OAuth 2.0 claim whose value becomes the username of a new user. If set, users can't
+  /// choose their own name.
+  pub username_claim: Option<String>,
 }
 
 #[skip_serializing_none]
@@ -99,6 +102,7 @@ pub struct OAuthProviderInsertForm {
   pub account_linking_enabled: Option<bool>,
   pub use_pkce: Option<bool>,
   pub enabled: Option<bool>,
+  pub username_claim: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -117,4 +121,5 @@ pub struct OAuthProviderUpdateForm {
   pub use_pkce: Option<bool>,
   pub enabled: Option<bool>,
   pub updated_at: Option<Option<DateTime<Utc>>>,
+  pub username_claim: Option<Option<String>>,
 }
