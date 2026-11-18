@@ -523,16 +523,22 @@ mod tests {
     );
     let sara_comment =
       Comment::create(pool, &sara_comment_form, Some(&data.timmy_comment.path)).await?;
-    NotifyData {
+    let notify_data = NotifyData {
       post: data.timmy_post.clone(),
       comment: Some(sara_comment.clone()),
       creator: data.sara.person.clone(),
       community: data.community.clone(),
       do_send_email: false,
       apub_mentions: None,
-    }
-    .send_internal(context.app_data().clone())
-    .await?;
+    };
+    // Sent twice to make sure duplicate notifications are not created
+    notify_data
+      .clone()
+      .send_internal(context.app_data().clone())
+      .await?;
+    notify_data
+      .send_internal(context.app_data().clone())
+      .await?;
 
     // Ensure that reply + mention only generates a single notification
     let timmy_unread_replies =
