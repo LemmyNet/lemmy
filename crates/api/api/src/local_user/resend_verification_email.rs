@@ -5,7 +5,7 @@ use lemmy_db_views_site::{
   SiteView,
   api::{ResendVerificationEmail, SuccessResponse},
 };
-use lemmy_email::account::send_verification_email_if_required;
+use lemmy_email::account::resend_verification_email as send_limited;
 use lemmy_utils::error::LemmyResult;
 
 pub async fn resend_verification_email(
@@ -31,16 +31,15 @@ async fn try_resend_verification_email(email: &str, context: &LemmyContext) -> L
   if !site_view.local_site.email_verification_required
     || local_user_view.local_user.admin
     || local_user_view.local_user.email_verified
-    || !context
-      .rate_limit_cell()
-      .allow_verification_email(local_user_view.local_user.id.0)
-      .await
   {
     return Ok(());
   }
 
-  send_verification_email_if_required(
+  // Per-account limit is enforced in the database, so it is shared by all backend processes,
+  // survives restarts and always uses the current admin setting.
+  send_limited(
     &site_view.local_site,
+    &site_view.local_site_rate_limit,
     &local_user_view,
     &mut context.pool(),
     context.settings(),

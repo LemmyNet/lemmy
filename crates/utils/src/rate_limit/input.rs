@@ -6,23 +6,22 @@ use std::{
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-pub struct LemmyInput(pub(crate) RateLimitKey, pub(crate) ActionType);
+pub struct LemmyInput(pub(crate) RateLimitIpAddr, pub(crate) ActionType);
 
 pub(crate) type LemmyInputFuture = Ready<Result<LemmyInput, actix_web::Error>>;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-pub(crate) enum RateLimitKey {
+pub(crate) enum RateLimitIpAddr {
   V4(Ipv4Addr),
   V6([u16; 4]),
-  LocalUser(i32),
 }
 
 #[expect(clippy::expect_used)]
-impl From<IpAddr> for RateLimitKey {
+impl From<IpAddr> for RateLimitIpAddr {
   fn from(value: IpAddr) -> Self {
     match value {
-      IpAddr::V4(addr) => RateLimitKey::V4(addr),
-      IpAddr::V6(addr) => RateLimitKey::V6(
+      IpAddr::V4(addr) => RateLimitIpAddr::V4(addr),
+      IpAddr::V6(addr) => RateLimitIpAddr::V6(
         addr.segments()[..4]
           .try_into()
           .expect("byte array is correct length"),
@@ -32,7 +31,7 @@ impl From<IpAddr> for RateLimitKey {
 }
 
 /// Generate a raw byte key for backend which uses less memory.
-pub(crate) fn raw_ip_key(ip_str: Option<&str>) -> RateLimitKey {
+pub(crate) fn raw_ip_key(ip_str: Option<&str>) -> RateLimitIpAddr {
   parse_ip(ip_str).into()
 }
 
@@ -62,11 +61,11 @@ mod tests {
     // Check that IPv6 addresses are grouped into /64 subnets
     assert_eq!(
       raw_ip_key(Some("2a00:1450:4009:81f::200e")),
-      RateLimitKey::V6([0x2a00, 0x1450, 0x4009, 0x81f])
+      RateLimitIpAddr::V6([0x2a00, 0x1450, 0x4009, 0x81f])
     );
     assert_eq!(
       raw_ip_key(Some("[2a00:1450:4009:81f::200e]:123")),
-      RateLimitKey::V6([0x2a00, 0x1450, 0x4009, 0x81f])
+      RateLimitIpAddr::V6([0x2a00, 0x1450, 0x4009, 0x81f])
     );
     Ok(())
   }

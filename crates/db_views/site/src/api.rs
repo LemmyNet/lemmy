@@ -153,7 +153,8 @@ pub struct CreateSite {
   pub rate_limit_resend_verification_email_max_requests: Option<i32>,
   /// Verification email request window in seconds. Must be positive.
   pub rate_limit_resend_verification_email_interval_seconds: Option<i32>,
-  /// Verification email resends per account across all IPs. Zero disables resends.
+  /// Verification emails per account within the window, including the one sent at registration.
+  /// Enforced in the database across all IPs and backend processes. Zero disables resends.
   pub rate_limit_resend_verification_email_per_account_max_requests: Option<i32>,
   /// Account resend window in seconds. Must be positive.
   pub rate_limit_resend_verification_email_per_account_interval_seconds: Option<i32>,
@@ -279,7 +280,8 @@ pub struct EditSite {
   pub rate_limit_resend_verification_email_max_requests: Option<i32>,
   /// Verification email request window in seconds. Must be positive.
   pub rate_limit_resend_verification_email_interval_seconds: Option<i32>,
-  /// Verification email resends per account across all IPs. Zero disables resends.
+  /// Verification emails per account within the window, including the one sent at registration.
+  /// Enforced in the database across all IPs and backend processes. Zero disables resends.
   pub rate_limit_resend_verification_email_per_account_max_requests: Option<i32>,
   /// Account resend window in seconds. Must be positive.
   pub rate_limit_resend_verification_email_per_account_interval_seconds: Option<i32>,
