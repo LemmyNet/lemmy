@@ -47,56 +47,11 @@ fn not_zero(val: Option<i32>) -> Option<i32> {
   }
 }
 
-fn validate_resend_verification_limits(
-  ip_max: Option<i32>,
-  ip_interval: Option<i32>,
-  account_max: Option<i32>,
-  account_interval: Option<i32>,
-) -> LemmyResult<()> {
-  let valid_counts = [ip_max, account_max]
-    .into_iter()
-    .flatten()
-    .all(|value| value >= 0);
-  let valid_intervals = [ip_interval, account_interval]
-    .into_iter()
-    .flatten()
-    .all(|value| value > 0);
-  if !valid_counts || !valid_intervals {
-    return Err(LemmyErrorType::InvalidRateLimit.into());
-  }
-  Ok(())
-}
-
 #[cfg(test)]
 mod tests {
-  use crate::site::{
-    application_question_check,
-    not_zero,
-    site_default_post_listing_type_check,
-    validate_resend_verification_limits,
-  };
-  use lemmy_db_schema_file::enums::{ListingType, RegistrationMode};
-  use lemmy_utils::error::LemmyErrorType;
 
-  #[test]
-  fn verification_email_limits_require_non_negative_counts_and_positive_windows() {
-    assert!(validate_resend_verification_limits(None, None, None, None).is_ok());
-    assert!(validate_resend_verification_limits(Some(10), Some(3600), Some(3), Some(3600)).is_ok());
-    assert!(validate_resend_verification_limits(Some(0), Some(1), Some(0), Some(1)).is_ok());
-    for (ip_max, ip_interval, account_max, account_interval) in [
-      (Some(-1), None, None, None),
-      (None, None, Some(-1), None),
-      (None, Some(0), None, None),
-      (None, Some(-1), None, None),
-      (None, None, None, Some(0)),
-      (None, None, None, Some(-1)),
-    ] {
-      assert!(matches!(
-        validate_resend_verification_limits(ip_max, ip_interval, account_max, account_interval),
-        Err(error) if error.error_type == LemmyErrorType::InvalidRateLimit
-      ));
-    }
-  }
+  use crate::site::{application_question_check, not_zero, site_default_post_listing_type_check};
+  use lemmy_db_schema_file::enums::{ListingType, RegistrationMode};
 
   #[test]
   fn test_site_default_post_listing_type_check() {

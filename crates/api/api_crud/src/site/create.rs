@@ -1,4 +1,4 @@
-use super::{not_zero, validate_resend_verification_limits};
+use super::not_zero;
 use crate::site::{application_question_check, site_default_post_listing_type_check};
 use activitypub_federation::{config::Data, http_signatures::generate_actor_keypair};
 use actix_web::web::Json;
@@ -154,12 +154,14 @@ pub async fn create_site(
       data.rate_limit_import_user_settings_interval_seconds,
     ),
     resend_verification_email_max_requests: data.rate_limit_resend_verification_email_max_requests,
-    resend_verification_email_interval_seconds: data
-      .rate_limit_resend_verification_email_interval_seconds,
+    resend_verification_email_interval_seconds: not_zero(
+      data.rate_limit_resend_verification_email_interval_seconds,
+    ),
     resend_verification_email_per_account_max_requests: data
       .rate_limit_resend_verification_email_per_account_max_requests,
-    resend_verification_email_per_account_interval_seconds: data
-      .rate_limit_resend_verification_email_per_account_interval_seconds,
+    resend_verification_email_per_account_interval_seconds: not_zero(
+      data.rate_limit_resend_verification_email_per_account_interval_seconds,
+    ),
     updated_at: Some(Some(Utc::now())),
   };
 
@@ -175,12 +177,6 @@ pub async fn create_site(
 }
 
 fn validate_create_payload(local_site: &LocalSite, create_site: &CreateSite) -> LemmyResult<()> {
-  validate_resend_verification_limits(
-    create_site.rate_limit_resend_verification_email_max_requests,
-    create_site.rate_limit_resend_verification_email_interval_seconds,
-    create_site.rate_limit_resend_verification_email_per_account_max_requests,
-    create_site.rate_limit_resend_verification_email_per_account_interval_seconds,
-  )?;
   // Make sure the site hasn't already been set up...
   if local_site.site_setup {
     return Err(LemmyErrorType::AlreadyExists.into());
