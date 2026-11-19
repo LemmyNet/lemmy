@@ -112,6 +112,7 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 ## Installation
 
 - [Lemmy Administration Docs](https://join-lemmy.org/docs/administration/administration.html)
+- Fully managed hosting: [![Deploy on Elestio](https://elest.io/images/logos/deploy-to-elestio-btn.svg)](https://dash.elest.io/deploy?soft=Lemmy&id=322)
 
 ## Lemmy Projects
 
