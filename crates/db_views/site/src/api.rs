@@ -25,6 +25,7 @@ use lemmy_db_schema_file::{
     CommentSortType,
     ImageMode,
     ListingType,
+    LowBandwidthMode,
     PostListingMode,
     PostSortType,
     RegistrationMode,
@@ -109,6 +110,7 @@ pub struct CreateOAuthProvider {
   pub account_linking_enabled: Option<bool>,
   pub use_pkce: Option<bool>,
   pub enabled: Option<bool>,
+  pub username_claim: Option<String>,
 }
 
 #[skip_serializing_none]
@@ -209,6 +211,7 @@ pub struct EditOAuthProvider {
   pub account_linking_enabled: Option<bool>,
   pub use_pkce: Option<bool>,
   pub enabled: Option<bool>,
+  pub username_claim: Option<String>,
 }
 
 #[skip_serializing_none]
@@ -560,6 +563,9 @@ pub struct SaveUserSettings {
   pub show_avatars: Option<bool>,
   /// Whether to show media in the UI.
   pub show_media: Option<bool>,
+  /// Hide images and video on first load. `auto` follows device data saver (web treats it as
+  /// `never`), `never` shows them, `always` hides them until requested.
+  pub low_bandwidth_mode: Option<LowBandwidthMode>,
   /// Sends notifications to your email.
   pub send_notifications_to_email: Option<bool>,
   /// Whether this account is a bot account. Users can hide these accounts easily if they wish.

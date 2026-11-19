@@ -17,10 +17,10 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 #[cfg_attr(feature = "full", cursor_keys_module(name = invitation_keys))]
 pub struct LocalUserInvite {
-  #[serde(skip_serializing)]
+  #[serde(skip)]
   pub id: InvitationId,
   pub token: String,
-  #[serde(skip_serializing)]
+  #[serde(skip)]
   pub local_user_id: LocalUserId,
   pub max_uses: Option<i32>,
   pub uses_count: i32,

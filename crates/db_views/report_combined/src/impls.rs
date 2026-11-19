@@ -641,6 +641,8 @@ mod tests {
       assert_eq!(data.post.id, v.post.id);
       assert_eq!(data.sara.id, v.creator.id);
       assert_eq!(data.timmy.id, v.post_creator.id);
+      // Make sure timmy is shown as a moderator
+      assert_eq!(true, v.creator_is_moderator);
     } else {
       panic!("wrong type");
     }
@@ -648,6 +650,8 @@ mod tests {
       assert_eq!(data.comment.id, v.comment.id);
       assert_eq!(data.post.id, v.post.id);
       assert_eq!(data.timmy.id, v.comment_creator.id);
+      // Make sure timmy is shown as a moderator
+      assert_eq!(true, v.creator_is_moderator);
     } else {
       panic!("wrong type");
     }

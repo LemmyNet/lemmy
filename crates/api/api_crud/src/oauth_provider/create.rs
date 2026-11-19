@@ -31,6 +31,10 @@ pub async fn create_oauth_provider(
     account_linking_enabled: data.account_linking_enabled,
     use_pkce: data.use_pkce,
     enabled: data.enabled,
+    username_claim: data
+      .username_claim
+      .clone()
+      .filter(|claim| !claim.is_empty()),
   };
   let oauth_provider =
     AdminOAuthProvider::create(&mut context.pool(), &oauth_provider_form).await?;

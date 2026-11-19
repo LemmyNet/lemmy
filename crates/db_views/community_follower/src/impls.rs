@@ -9,6 +9,7 @@ use diesel::{
   select,
 };
 use diesel_async::RunQueryDsl;
+use lemmy_db_schema::utils::queries::filters::filter_is_subscribed;
 use lemmy_db_schema_file::{
   InstanceId,
   PersonId,
@@ -52,6 +53,7 @@ impl CommunityFollowerView {
       // local-person+remote-community or remote-person+local-community
       .filter(not(person::local))
       .filter(community_actions::followed_at.gt(published_since.naive_utc()))
+      .filter(filter_is_subscribed())
       .select((community::id, person::inbox_url))
       .distinct() // only need each community_id, inbox combination once
       .load::<(CommunityId, DbUrl)>(conn)
@@ -66,6 +68,7 @@ impl CommunityFollowerView {
     let conn = &mut get_conn(pool).await?;
     Self::joins()
       .filter(community_actions::community_id.eq(community_id))
+      .filter(filter_is_subscribed())
       .select(count_star())
       .first::<i64>(conn)
       .await
@@ -80,9 +83,7 @@ impl CommunityFollowerView {
       .filter(community::deleted.eq(false))
       .filter(community::removed.eq(false))
       .filter(community::local_removed.eq(false))
-      // Exclude private community follows which still need to be approved by a mod
-      .filter(community_actions::follow_state.ne(CommunityFollowerState::ApprovalRequired))
-      .filter(community_actions::follow_state.ne(CommunityFollowerState::Denied))
+      .filter(filter_is_subscribed())
       .select(Self::as_select())
       .order_by(lower(community::name))
       .load::<CommunityFollowerView>(conn)
@@ -106,5 +107,146 @@ impl CommunityFollowerView {
     .await?
     .then_some(())
     .ok_or(LemmyErrorType::NotFound.into())
+  }
+}
+
+#[cfg(test)]
+#[expect(clippy::indexing_slicing)]
+mod tests {
+  use super::*;
+  use chrono::TimeDelta;
+  use lemmy_db_schema::{
+    source::{
+      community::{Community, CommunityActions, CommunityFollowerForm, CommunityInsertForm},
+      instance::Instance,
+      person::{Person, PersonInsertForm},
+    },
+    traits::Followable,
+  };
+  use lemmy_db_schema_file::enums::CommunityVisibility;
+  use lemmy_diesel_utils::{connection::build_db_pool_for_tests, dburl::DbUrl, traits::Crud};
+  use pretty_assertions::assert_eq;
+  use serial_test::serial;
+  use url::Url;
+
+  #[tokio::test]
+  #[serial]
+  async fn test_follower_view_functions() -> LemmyResult<()> {
+    let pool = &build_db_pool_for_tests();
+    let pool = &mut pool.into();
+
+    // local private community
+    let local_instance = Instance::read_or_create(pool, "my_domain.tld").await?;
+    let community_form = CommunityInsertForm {
+      visibility: Some(CommunityVisibility::Private),
+      ..CommunityInsertForm::new(
+        local_instance.id,
+        "test_community".to_string(),
+        "pubkey".to_string(),
+      )
+    };
+    let community = Community::create(pool, &community_form).await?;
+
+    // remote user with a known inbox url
+    let remote_instance = Instance::read_or_create(pool, "other_domain.tld").await?;
+    let remote_inbox = DbUrl(Url::parse("https://other_domain.tld/inbox")?.into());
+    let remote_person = Person::create(
+      pool,
+      &PersonInsertForm {
+        inbox_url: Some(remote_inbox.clone()),
+        local: Some(false),
+        ..PersonInsertForm::new(
+          "remote_user".to_string(),
+          "pubkey".to_string(),
+          remote_instance.id,
+        )
+      },
+    )
+    .await?;
+
+    let mut follower_form = CommunityFollowerForm::new(
+      community.id,
+      remote_person.id,
+      CommunityFollowerState::ApprovalRequired,
+    );
+    CommunityActions::follow(pool, &follower_form).await?;
+
+    // pending follow excluded
+    let inboxes = CommunityFollowerView::get_instance_followed_community_inboxes(
+      pool,
+      remote_instance.id,
+      Utc::now() - TimeDelta::days(1),
+    )
+    .await?;
+    assert!(inboxes.is_empty());
+    let follower_count =
+      CommunityFollowerView::count_community_followers(pool, community.id).await?;
+    assert_eq!(0, follower_count);
+    let followers = CommunityFollowerView::for_person(pool, remote_person.id).await?;
+    assert!(followers.is_empty());
+    assert!(
+      CommunityFollowerView::is_follower(community.id, remote_instance.id, pool)
+        .await
+        .is_err()
+    );
+
+    // denied follow also excluded
+    follower_form.follow_state = CommunityFollowerState::Denied;
+    CommunityActions::follow(pool, &follower_form).await?;
+    let inboxes = CommunityFollowerView::get_instance_followed_community_inboxes(
+      pool,
+      remote_instance.id,
+      Utc::now() - TimeDelta::days(1),
+    )
+    .await?;
+    assert!(inboxes.is_empty());
+    let follower_count =
+      CommunityFollowerView::count_community_followers(pool, community.id).await?;
+    assert_eq!(0, follower_count);
+    let followers = CommunityFollowerView::for_person(pool, remote_person.id).await?;
+    assert!(followers.is_empty());
+    assert!(
+      CommunityFollowerView::is_follower(community.id, remote_instance.id, pool)
+        .await
+        .is_err()
+    );
+
+    // accepted follow is returned
+    follower_form.follow_state = CommunityFollowerState::Accepted;
+    CommunityActions::follow(pool, &follower_form).await?;
+    let inboxes = CommunityFollowerView::get_instance_followed_community_inboxes(
+      pool,
+      remote_instance.id,
+      Utc::now() - TimeDelta::days(1),
+    )
+    .await?;
+    assert_eq!(1, inboxes.len());
+    assert_eq!(inboxes[0].0, community.id);
+    assert_eq!(inboxes[0].1, remote_inbox);
+    let follower_count =
+      CommunityFollowerView::count_community_followers(pool, community.id).await?;
+    assert_eq!(1, follower_count);
+    let followers = CommunityFollowerView::for_person(pool, remote_person.id).await?;
+    assert_eq!(1, followers.len());
+    assert_eq!(followers[0].follower.id, remote_person.id);
+    assert!(
+      CommunityFollowerView::is_follower(community.id, remote_instance.id, pool)
+        .await
+        .is_ok()
+    );
+
+    // follow newer than published_since is not returned
+    let inboxes = CommunityFollowerView::get_instance_followed_community_inboxes(
+      pool,
+      remote_instance.id,
+      Utc::now() + TimeDelta::days(1),
+    )
+    .await?;
+    assert!(inboxes.is_empty());
+
+    // cleanup
+    Instance::delete(pool, local_instance.id).await?;
+    Instance::delete(pool, remote_instance.id).await?;
+    Ok(())
   }
 }

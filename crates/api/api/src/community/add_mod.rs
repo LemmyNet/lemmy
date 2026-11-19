@@ -11,7 +11,9 @@ use lemmy_db_schema::source::{
   community::{Community, CommunityActions, CommunityModeratorForm},
   local_user::LocalUser,
   modlog::{Modlog, ModlogInsertForm},
+  person::Person,
 };
+use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility};
 use lemmy_db_views_community::api::{AddModToCommunity, AddModToCommunityResponse};
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
@@ -60,6 +62,7 @@ pub async fn add_mod_to_community(
   let pool = &mut context.pool();
   let conn = &mut get_conn(pool).await?;
   let tx_data = data.clone();
+  let mut accept_follow: Option<SendActivityData> = None;
   let action = conn
     .transaction::<Vec<Modlog>, LemmyError, _>(async |conn| {
       // Update in local database
@@ -67,6 +70,34 @@ pub async fn add_mod_to_community(
         CommunityModeratorForm::new(tx_data.community_id, tx_data.person_id);
       if tx_data.added {
         CommunityActions::join(&mut conn.into(), &community_moderator_form).await?;
+
+        // If it's a private community and there is open follow request from the new mod,
+        // auto-approve it
+        if community.visibility == CommunityVisibility::Private {
+          let actions =
+            CommunityActions::read(&mut conn.into(), tx_data.community_id, tx_data.person_id)
+              .await?;
+          if actions.follow_state == Some(CommunityFollowerState::ApprovalRequired) {
+            CommunityActions::approve_private_community_follower(
+              &mut conn.into(),
+              community.id,
+              tx_data.person_id,
+              local_user_view.person.id,
+              CommunityFollowerState::Accepted,
+            )
+            .await?;
+
+            // For remote new mod, the accept needs to be sent out over federation
+            let new_mod = Person::read(&mut conn.into(), tx_data.person_id).await?;
+            if !new_mod.local {
+              accept_follow = Some(SendActivityData::PrivateCommunityAcceptFollower {
+                community_id: community.id,
+                person_id: new_mod.id,
+                follow_activity_id: actions.follow_activity_id,
+              });
+            }
+          }
+        }
       } else {
         CommunityActions::leave(&mut conn.into(), &community_moderator_form).await?;
       }
@@ -82,6 +113,10 @@ pub async fn add_mod_to_community(
     })
     .await?;
   notify_mod_action(action.clone(), &context);
+
+  if let Some(accept_follow) = accept_follow {
+    ActivityChannel::submit_activity(accept_follow, &context)?;
+  }
 
   // Note: in case a remote mod is added, this returns the old moderators list, it will only get
   //       updated once we receive an activity from the community (like `Announce/Add/Moderator`)

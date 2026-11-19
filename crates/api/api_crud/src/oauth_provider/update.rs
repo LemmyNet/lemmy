@@ -7,7 +7,7 @@ use lemmy_db_views_local_user::LocalUserView;
 use lemmy_db_views_site::api::EditOAuthProvider;
 use lemmy_diesel_utils::{
   traits::Crud,
-  utils::{diesel_required_string_update, diesel_required_url_update},
+  utils::{diesel_required_string_update, diesel_required_url_update, diesel_string_update},
 };
 use lemmy_utils::error::LemmyError;
 
@@ -35,6 +35,7 @@ pub async fn edit_oauth_provider(
     enabled: data.enabled,
     use_pkce: data.use_pkce,
     updated_at: Some(Some(Utc::now())),
+    username_claim: diesel_string_update(data.username_claim.as_deref()),
   };
 
   let update_result =

@@ -160,6 +160,7 @@ pub async fn save_user_settings(
     email,
     show_avatars: data.show_avatars,
     show_media: data.show_media,
+    low_bandwidth_mode: data.low_bandwidth_mode,
     show_read_posts: data.show_read_posts,
     send_notifications_to_email: data.send_notifications_to_email,
     show_nsfw: data.show_nsfw,

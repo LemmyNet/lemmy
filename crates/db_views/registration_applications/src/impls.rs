@@ -267,6 +267,7 @@ mod tests {
         show_upvote_percentage: sara_local_user.show_upvote_percentage,
         show_person_votes: sara_local_user.show_person_votes,
         invited_by_local_user_id: sara_local_user.invited_by_local_user_id,
+        low_bandwidth_mode: sara_local_user.low_bandwidth_mode,
       },
       creator: Person {
         id: sara_person.id,

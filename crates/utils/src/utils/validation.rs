@@ -60,10 +60,7 @@ fn has_3_permitted_display_chars(name: &str) -> bool {
       }
     }
   }
-  if num_non_fdc >= 3 {
-    return true;
-  }
-  false
+  num_non_fdc >= 3
 }
 
 // Can't do a regex here, reverse lookarounds not supported

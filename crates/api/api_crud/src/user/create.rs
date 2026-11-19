@@ -423,6 +423,12 @@ pub async fn authenticate_with_oauth(
         return Err(LemmyErrorType::EmailRequired.into());
       }
 
+      let username = oauth_username(
+        oauth_provider.username_claim.as_deref(),
+        &user_info,
+        data.username.as_ref(),
+      )?;
+
       // make sure the registration answer is provided when the registration application is required
       validate_registration_answer(require_registration_application, &data.answer)?;
 
@@ -432,6 +438,7 @@ pub async fn authenticate_with_oauth(
       let plugin_data = AuthenticateWithOauth {
         code: String::new(),
         pkce_code_verifier: None,
+        username: username.clone(),
         ..data.clone()
       };
       plugin_hook_before("local_user_oauth_before_register", plugin_data).await?;
@@ -439,7 +446,10 @@ pub async fn authenticate_with_oauth(
       // Wrap the insert person, insert local user, and create registration,
       // in a transaction, so that if any fail, the rows aren't created.
       let conn = &mut get_conn(pool).await?;
-      let tx_data = data.clone();
+      let tx_data = AuthenticateWithOauth {
+        username,
+        ..data.clone()
+      };
       let tx_context = context.clone();
       let user = conn
         .transaction::<LocalUserView, LemmyError, _>(async |conn| {
@@ -701,6 +711,21 @@ fn read_user_info(user_info: &serde_json::Value, key: &str) -> Option<String> {
   }
 }
 
+/// The name of a new user: the value of the provider's username claim if it has one, otherwise the
+/// name the user chose.
+fn oauth_username(
+  username_claim: Option<&str>,
+  user_info: &serde_json::Value,
+  chosen: Option<&String>,
+) -> LemmyResult<Option<String>> {
+  match username_claim {
+    Some(claim) => Ok(Some(
+      read_user_info(user_info, claim).ok_or(LemmyErrorType::OauthUsernameClaimMissing)?,
+    )),
+    None => Ok(chosen.cloned()),
+  }
+}
+
 fn check_totp_2fa_if_enabled(
   user_view: &LocalUserView,
   totp_token: &Option<String>,
@@ -837,4 +862,49 @@ fn create_welcome_post(local_user: LocalUser, context: &LemmyContext) {
 
     Ok(())
   })
+}
+
+#[cfg(test)]
+mod tests {
+  use super::oauth_username;
+  use lemmy_utils::error::{LemmyErrorType, LemmyResult};
+  use serde_json::json;
+
+  #[test]
+  fn username_claim_overrides_chosen_name() -> LemmyResult<()> {
+    let user_info = json!({ "sub": "1234", "preferred_username": "alice" });
+    let chosen = "mallory".to_string();
+
+    let username = oauth_username(Some("preferred_username"), &user_info, Some(&chosen))?;
+
+    assert_eq!(Some("alice".to_string()), username);
+    Ok(())
+  }
+
+  #[test]
+  fn without_username_claim_the_user_chooses() -> LemmyResult<()> {
+    let user_info = json!({ "sub": "1234", "preferred_username": "alice" });
+    let chosen = "bob".to_string();
+
+    assert_eq!(
+      Some(chosen.clone()),
+      oauth_username(None, &user_info, Some(&chosen))?
+    );
+    assert_eq!(None, oauth_username(None, &user_info, None)?);
+    Ok(())
+  }
+
+  #[test]
+  fn missing_or_empty_username_claim_fails() {
+    let user_info = json!({ "sub": "1234", "preferred_username": "" });
+    let chosen = "bob".to_string();
+
+    for claim in ["preferred_username", "nickname"] {
+      let username = oauth_username(Some(claim), &user_info, Some(&chosen));
+      assert_eq!(
+        Some(LemmyErrorType::OauthUsernameClaimMissing),
+        username.err().map(|e| e.error_type)
+      );
+    }
+  }
 }

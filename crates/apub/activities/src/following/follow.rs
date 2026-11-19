@@ -24,7 +24,7 @@ use lemmy_db_schema::{
   traits::Followable,
 };
 use lemmy_db_schema_file::enums::{CommunityFollowerState, CommunityVisibility};
-use lemmy_db_views_community_moderator::CommunityPersonBanView;
+use lemmy_db_views_community_moderator::{CommunityModeratorView, CommunityPersonBanView};
 use lemmy_utils::error::{LemmyError, LemmyErrorType, LemmyResult, UntranslatedError};
 use url::Url;
 
@@ -121,9 +121,24 @@ impl Activity for Follow {
             );
           }
         }
+
         let follow_state = match c.visibility {
           Public | Unlisted => CommunityFollowerState::Accepted,
-          Private => CommunityFollowerState::ApprovalRequired,
+          Private => {
+            // Auto-accept follow requests from mods (e.g. when a mod unfollows and refollows)
+            if CommunityModeratorView::check_is_community_moderator(
+              &mut context.pool(),
+              c.id,
+              person.id,
+            )
+            .await
+            .is_ok()
+            {
+              CommunityFollowerState::Accepted
+            } else {
+              CommunityFollowerState::ApprovalRequired
+            }
+          }
           // Dont allow following local-only community via federation.
           LocalOnlyPrivate | LocalOnlyPublic => return Err(LemmyErrorType::NotFound.into()),
         };
@@ -132,7 +147,7 @@ impl Activity for Follow {
           ..CommunityFollowerForm::new(c.id, person.id, follow_state)
         };
         CommunityActions::follow(&mut context.pool(), &form).await?;
-        if c.visibility == CommunityVisibility::Public {
+        if follow_state == CommunityFollowerState::Accepted {
           AcceptFollow::send(self, context).await?;
         }
       }
