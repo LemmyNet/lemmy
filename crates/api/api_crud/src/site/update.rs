@@ -171,7 +171,9 @@ pub async fn edit_site(
     updated_at: Some(Some(Utc::now())),
   };
 
-  LocalSiteRateLimit::update(&mut context.pool(), &local_site_rate_limit_form).await?;
+  LocalSiteRateLimit::update(&mut context.pool(), &local_site_rate_limit_form)
+    .await
+    .ok();
 
   if let Some(url_blocklist) = data.blocked_urls.clone() {
     // If this validation changes it must be synced with
