@@ -402,7 +402,7 @@ pub async fn match_outgoing_activities(
         community_id,
         person_id,
         follow_activity_id,
-        actor,
+        moderator: actor,
       } => {
         send_accept_or_reject_follow(
           actor,
@@ -418,7 +418,7 @@ pub async fn match_outgoing_activities(
         community_id,
         person_id,
         follow_activity_id,
-        actor,
+        moderator: actor,
       } => {
         send_accept_or_reject_follow(
           actor,
