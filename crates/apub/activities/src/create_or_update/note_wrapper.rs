@@ -11,8 +11,8 @@ use lemmy_utils::error::{LemmyError, LemmyResult};
 use serde_json::{from_value, to_value};
 use url::Url;
 
-/// In Activitypub, both private messages and comments are represented by `type: Note` which
-/// makes it difficult to distinguish them. This wrapper handles receiving of both types, and
+/// In Activitypub, private messages, comments and posts can all represented by `type: Note` which
+/// makes it difficult to distinguish them. This wrapper handles receiving of all three types, and
 /// routes them to the correct handler.
 #[async_trait::async_trait]
 impl Activity for CreateOrUpdateNoteWrapper {
@@ -69,9 +69,13 @@ impl Activity for CreateOrUpdateNoteWrapper {
 
 impl InCommunity for CreateOrUpdateNoteWrapper {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
-    // Same logic as in receive. In case this is a private message, an error is returned.
+    // Same fallback order as in receive. In case this is a private message, an error is returned.
     let val = to_value(self)?;
-    let comment: CreateOrUpdateNote = from_value(val.clone())?;
-    comment.community(context).await
+    let comment = from_value::<CreateOrUpdateNote>(val.clone())?;
+    if let Ok(community) = comment.community(context).await {
+      return Ok(community);
+    }
+    let post = from_value::<CreateOrUpdatePage>(val)?;
+    post.community(context).await
   }
 }
