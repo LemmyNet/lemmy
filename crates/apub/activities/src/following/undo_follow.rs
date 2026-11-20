@@ -1,5 +1,7 @@
 use crate::{
   activity_lists::AnnouncableActivities,
+  community::mod_inboxes,
+  following::notify_remote_mods,
   generate_activity_id,
   protocol::{
     IdOrNestedObject,
@@ -54,33 +56,15 @@ impl UndoFollow {
     target: &CommunityOrMulti,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    match target {
-      // Remote mods of a local private community need to unsee the follow request
-      Left(community)
-        if community.local && community.visibility == CommunityVisibility::Private =>
-      {
-        let undo = UndoFollow::new(actor, target, context)?;
-        let announce = AnnounceActivity::new(
-          AnnouncableActivities::UndoFollow(undo).try_into()?,
-          community,
-          None,
-          context,
-        )?;
-        let mut inboxes = ActivitySendTargets::empty();
-        let moderators =
-          CommunityModeratorView::for_community(&mut context.pool(), community.id).await?;
-        for m in moderators {
-          inboxes.add_inbox(m.moderator.inbox_url.into());
-        }
-        send_lemmy_activity(context, announce, community, inboxes, true).await
-      }
-      // Unfollowing any other local community needs no federation
-      Left(community) if community.local => Ok(()),
-      _ => {
-        let undo = UndoFollow::new(actor, target, context)?;
-        let inbox = ActivitySendTargets::to_inbox(target.shared_inbox_or_inbox());
-        send_lemmy_activity(context, undo, actor, inbox, true).await
-      }
+    let undo = UndoFollow::new(actor, target, context)?;
+    // if community is local, notify remote mods of undo follow
+    if let Left(community) = target
+      && community.local
+    {
+      notify_remote_mods(Right(undo), context, community).await
+    } else {
+      let inbox = ActivitySendTargets::to_inbox(target.shared_inbox_or_inbox());
+      send_lemmy_activity(context, undo, actor, inbox, true).await
     }
   }
 }
@@ -131,19 +115,11 @@ impl Activity for UndoFollow {
       }
       Right(Left(c)) => {
         CommunityActions::unfollow(&mut context.pool(), person.id, c.id).await?;
-        if c.local && c.visibility == CommunityVisibility::Private {
-          let announce = AnnounceActivity::new(
-            AnnouncableActivities::UndoFollow(self).try_into()?,
-            &c,
-            None,
-            context,
-          )?;
-          let mut inboxes = ActivitySendTargets::empty();
-          let moderators = CommunityModeratorView::for_community(&mut context.pool(), c.id).await?;
-          for m in moderators {
-            inboxes.add_inbox(m.moderator.inbox_url.into());
-          }
-          send_lemmy_activity(context, announce, &c, inboxes, true).await?;
+
+        // If community is local, we need to notify remote mods that the user no longer wishes to
+        // follow the community
+        if c.local {
+          notify_remote_mods(Right(self), context, &c.into()).await?;
         }
       }
       Right(Right(m)) => MultiCommunity::unfollow(&mut context.pool(), person.id, m.id).await?,

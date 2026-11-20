@@ -1,9 +1,11 @@
 use crate::{
   activity_lists::AnnouncableActivities,
+  community::mod_inboxes,
+  following::notify_remote_mods,
   generate_activity_id,
   protocol::{
     community::announce::AnnounceActivity,
-    following::{accept::AcceptFollow, follow::Follow},
+    following::{accept::AcceptFollow, follow::Follow, undo_follow::UndoFollow},
   },
   send_lemmy_activity,
 };
@@ -13,9 +15,9 @@ use activitypub_federation::{
   protocol::verification::verify_urls_match,
   traits::{Activity, Actor, Object},
 };
-use either::Either::*;
+use either::Either::{self, *};
 use lemmy_api_utils::{context::LemmyContext, utils::check_community_deleted_removed};
-use lemmy_apub_objects::objects::{CommunityOrMulti, person::ApubPerson};
+use lemmy_apub_objects::objects::{CommunityOrMulti, community::ApubCommunity, person::ApubPerson};
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
@@ -52,33 +54,15 @@ impl Follow {
     target: &CommunityOrMulti,
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
-    match target {
-      // Remote mods of a local private community need to see the request
-      Left(community)
-        if community.local && community.visibility == CommunityVisibility::Private =>
-      {
-        let follow = Follow::new(actor, target, context)?;
-        let announce = AnnounceActivity::new(
-          AnnouncableActivities::Follow(follow).try_into()?,
-          community,
-          None,
-          context,
-        )?;
-        let mut inboxes = ActivitySendTargets::empty();
-        let moderators =
-          CommunityModeratorView::for_community(&mut context.pool(), community.id).await?;
-        for m in moderators {
-          inboxes.add_inbox(m.moderator.inbox_url.into());
-        }
-        send_lemmy_activity(context, announce, community, inboxes, true).await
-      }
-      // Following any other local community needs no federation
-      Left(community) if community.local => Ok(()),
-      _ => {
-        let follow = Follow::new(actor, target, context)?;
-        let inbox = ActivitySendTargets::to_inbox(target.shared_inbox_or_inbox());
-        send_lemmy_activity(context, follow, actor, inbox, true).await
-      }
+    let follow = Follow::new(actor, target, context)?;
+    // if community is local, notify remote mods of follow request
+    if let Left(community) = target
+      && community.local
+    {
+      notify_remote_mods(Left(follow), context, community).await
+    } else {
+      let inbox = ActivitySendTargets::to_inbox(target.shared_inbox_or_inbox());
+      send_lemmy_activity(context, follow, actor, inbox, true).await
     }
   }
 }
@@ -115,7 +99,12 @@ impl Activity for Follow {
     };
 
     // A person following a remote community is allowed, so remote mods receive the request
-    if !object_local && !matches!((&actor, &object), (Left(_), Right(Left(_)))) {
+    if !object_local
+      && !matches!(
+        (&actor, &object),
+        (Left(_person), Right(Left(_remote_community)))
+      )
+    {
       return Err(UntranslatedError::InvalidFollow("Not a local object".to_string()).into());
     }
 
@@ -179,30 +168,11 @@ impl Activity for Follow {
         };
         CommunityActions::follow(&mut context.pool(), &form).await?;
 
-        // Only the instance hosting the community answers the follow, or announces it to mods
-        // for approval
+        // Only the instance hosting the community answers the follow, and announces follow to
+        // remote mods
         if c.local {
-          match follow_state {
-            CommunityFollowerState::Accepted => {
-              AcceptFollow::send(self, context, None).await?;
-            }
-            CommunityFollowerState::ApprovalRequired => {
-              let announce = AnnounceActivity::new(
-                AnnouncableActivities::Follow(self).try_into()?,
-                &c,
-                None,
-                context,
-              )?;
-              let mut inboxes = ActivitySendTargets::empty();
-              let moderators =
-                CommunityModeratorView::for_community(&mut context.pool(), c.id).await?;
-              for m in moderators {
-                inboxes.add_inbox(m.moderator.inbox_url.into());
-              }
-              send_lemmy_activity(context, announce, &c, inboxes, true).await?;
-            }
-            _ => {}
-          }
+          AcceptFollow::send(self.clone(), context, None).await?;
+          notify_remote_mods(Left(self), context, &c.into()).await?;
         }
       }
       Right(Right(m)) => {

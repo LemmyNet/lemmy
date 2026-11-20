@@ -21,9 +21,10 @@ use lemmy_db_schema::source::{
   person::{Person, PersonActions},
   site::Site,
 };
+use lemmy_db_schema_file::newtypes::CommunityId;
 use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_db_views_local_user::LocalUserView;
-use lemmy_diesel_utils::traits::Crud;
+use lemmy_diesel_utils::{dburl::DbUrl, traits::Crud};
 use lemmy_utils::error::LemmyResult;
 use url::Url;
 
@@ -99,12 +100,8 @@ async fn report_inboxes(
   inboxes.add_inbox(report_creator_site.inbox_url.into());
 
   if let Some(community) = local_community(receiver) {
-    // send to all moderators
-    let moderators =
-      CommunityModeratorView::for_community(&mut context.pool(), community.id).await?;
-    for m in moderators {
-      inboxes.add_inbox(m.moderator.inbox_url.into());
-    }
+    let mod_inboxes = mod_inboxes(context, community.id).await?;
+    inboxes.add_inboxes(mod_inboxes);
 
     // also send report to user's home instance if possible
     let object_creator_id = match object_id.dereference_local(context).await? {
@@ -127,6 +124,18 @@ async fn report_inboxes(
 
 fn local_community(site_or_community: &Either<ApubSite, ApubCommunity>) -> Option<&ApubCommunity> {
   site_or_community.as_ref().right().filter(|c| c.local)
+}
+
+pub(crate) async fn mod_inboxes(
+  context: &Data<LemmyContext>,
+  community_id: CommunityId,
+) -> LemmyResult<Vec<DbUrl>> {
+  let mut inboxes = vec![];
+  let moderators = CommunityModeratorView::for_community(&mut context.pool(), community_id).await?;
+  for m in moderators {
+    inboxes.push(m.moderator.inbox_url.into());
+  }
+  Ok(inboxes)
 }
 
 async fn verify_mod_or_admin_action(
