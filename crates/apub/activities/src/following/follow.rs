@@ -1,12 +1,7 @@
 use crate::{
-  activity_lists::AnnouncableActivities,
-  community::mod_inboxes,
   following::notify_remote_mods,
   generate_activity_id,
-  protocol::{
-    community::announce::AnnounceActivity,
-    following::{accept::AcceptFollow, follow::Follow, undo_follow::UndoFollow},
-  },
+  protocol::following::{accept::AcceptFollow, follow::Follow},
   send_lemmy_activity,
 };
 use activitypub_federation::{
@@ -15,9 +10,9 @@ use activitypub_federation::{
   protocol::verification::verify_urls_match,
   traits::{Activity, Actor, Object},
 };
-use either::Either::{self, *};
+use either::Either::*;
 use lemmy_api_utils::{context::LemmyContext, utils::check_community_deleted_removed};
-use lemmy_apub_objects::objects::{CommunityOrMulti, community::ApubCommunity, person::ApubPerson};
+use lemmy_apub_objects::objects::{CommunityOrMulti, person::ApubPerson};
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
@@ -172,7 +167,7 @@ impl Activity for Follow {
         // remote mods
         if c.local {
           AcceptFollow::send(self.clone(), context, None).await?;
-          notify_remote_mods(Left(self), context, &c.into()).await?;
+          notify_remote_mods(Left(self), context, &c).await?;
         }
       }
       Right(Right(m)) => {

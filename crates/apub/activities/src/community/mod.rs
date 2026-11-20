@@ -133,7 +133,7 @@ pub(crate) async fn mod_inboxes(
   let mut inboxes = vec![];
   let moderators = CommunityModeratorView::for_community(&mut context.pool(), community_id).await?;
   for m in moderators {
-    inboxes.push(m.moderator.inbox_url.into());
+    inboxes.push(m.moderator.inbox_url);
   }
   Ok(inboxes)
 }

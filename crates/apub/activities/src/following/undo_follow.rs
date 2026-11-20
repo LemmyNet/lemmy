@@ -1,11 +1,8 @@
 use crate::{
-  activity_lists::AnnouncableActivities,
-  community::mod_inboxes,
   following::notify_remote_mods,
   generate_activity_id,
   protocol::{
     IdOrNestedObject,
-    community::announce::AnnounceActivity,
     following::{follow::Follow, undo_follow::UndoFollow},
   },
   send_lemmy_activity,
@@ -30,8 +27,6 @@ use lemmy_db_schema::{
   },
   traits::Followable,
 };
-use lemmy_db_schema_file::enums::CommunityVisibility;
-use lemmy_db_views_community_moderator::CommunityModeratorView;
 use lemmy_utils::error::{LemmyError, LemmyResult, UntranslatedError};
 use url::Url;
 
@@ -119,7 +114,7 @@ impl Activity for UndoFollow {
         // If community is local, we need to notify remote mods that the user no longer wishes to
         // follow the community
         if c.local {
-          notify_remote_mods(Right(self), context, &c.into()).await?;
+          notify_remote_mods(Right(self), context, &c).await?;
         }
       }
       Right(Right(m)) => MultiCommunity::unfollow(&mut context.pool(), person.id, m.id).await?,

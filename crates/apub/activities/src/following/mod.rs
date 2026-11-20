@@ -108,7 +108,7 @@ async fn notify_remote_mods(
       Left(follow) => AnnouncableActivities::Follow(follow).try_into()?,
       Right(undo) => AnnouncableActivities::UndoFollow(undo).try_into()?,
     },
-    &community.clone().into(),
+    &community.clone(),
     None,
     context,
   )?;
