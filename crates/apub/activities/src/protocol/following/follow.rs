@@ -1,12 +1,16 @@
 use activitypub_federation::{
+  config::Data,
   fetch::object_id::ObjectId,
   kinds::activity::FollowType,
   protocol::helpers::deserialize_skip_error,
 };
+use either::Either;
+use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
-  objects::{UserOrCommunity, UserOrCommunityOrMulti},
-  utils::protocol::Id,
+  objects::{UserOrCommunity, UserOrCommunityOrMulti, community::ApubCommunity},
+  utils::protocol::{Id, InCommunity},
 };
+use lemmy_utils::error::{LemmyErrorType, LemmyResult};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -21,6 +25,15 @@ pub struct Follow {
   #[serde(rename = "type")]
   pub(crate) kind: FollowType,
   pub(crate) id: Url,
+}
+
+impl InCommunity for Follow {
+  async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
+    match self.object.dereference(context).await? {
+      Either::Right(Either::Left(community)) => Ok(community),
+      Either::Left(_) | Either::Right(Either::Right(_)) => Err(LemmyErrorType::NotFound.into()),
+    }
+  }
 }
 
 impl Id for Follow {

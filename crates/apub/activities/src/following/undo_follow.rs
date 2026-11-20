@@ -1,4 +1,5 @@
 use crate::{
+  following::notify_remote_mods,
   generate_activity_id,
   protocol::{
     IdOrNestedObject,
@@ -30,21 +31,36 @@ use lemmy_utils::error::{LemmyError, LemmyResult, UntranslatedError};
 use url::Url;
 
 impl UndoFollow {
-  pub async fn send(
+  fn new(
     actor: &ApubPerson,
     target: &CommunityOrMulti,
     context: &Data<LemmyContext>,
-  ) -> LemmyResult<()> {
+  ) -> LemmyResult<UndoFollow> {
     let follow = Follow::new(actor, target, context)?;
-    let undo = UndoFollow {
+    Ok(UndoFollow {
       actor: actor.id().clone().into(),
       to: Some([target.id().clone().into()]),
       object: IdOrNestedObject::NestedObject(follow),
       kind: UndoType::Undo,
       id: generate_activity_id(UndoType::Undo, context)?,
-    };
-    let inbox = ActivitySendTargets::to_inbox(target.shared_inbox_or_inbox());
-    send_lemmy_activity(context, undo, actor, inbox, true).await
+    })
+  }
+
+  pub async fn send(
+    actor: &ApubPerson,
+    target: &CommunityOrMulti,
+    context: &Data<LemmyContext>,
+  ) -> LemmyResult<()> {
+    let undo = UndoFollow::new(actor, target, context)?;
+    // if community is local, notify remote mods of undo follow
+    if let Left(community) = target
+      && community.local
+    {
+      notify_remote_mods(Right(undo), context, community).await
+    } else {
+      let inbox = ActivitySendTargets::to_inbox(target.shared_inbox_or_inbox());
+      send_lemmy_activity(context, undo, actor, inbox, true).await
+    }
   }
 }
 
@@ -94,6 +110,12 @@ impl Activity for UndoFollow {
       }
       Right(Left(c)) => {
         CommunityActions::unfollow(&mut context.pool(), person.id, c.id).await?;
+
+        // If community is local, we need to notify remote mods that the user no longer wishes to
+        // follow the community
+        if c.local {
+          notify_remote_mods(Right(self), context, &c).await?;
+        }
       }
       Right(Right(m)) => MultiCommunity::unfollow(&mut context.pool(), person.id, m.id).await?,
     }

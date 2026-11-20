@@ -73,11 +73,9 @@ pub(super) async fn do_follow_community(
   }
 
   // Send the federated follow
-  if !community.local {
-    ActivityChannel::submit_activity(
-      SendActivityData::FollowCommunity(community, local_user_view.person.clone(), follow),
-      context,
-    )?;
-  }
+  ActivityChannel::submit_activity(
+    SendActivityData::FollowCommunity(community, local_user_view.person.clone(), follow),
+    context,
+  )?;
   Ok(())
 }

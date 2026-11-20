@@ -1,14 +1,26 @@
 use super::{generate_activity_id, send_lemmy_activity};
-use crate::protocol::following::{
-  accept::AcceptFollow,
-  follow::Follow,
-  reject::RejectFollow,
-  undo_follow::UndoFollow,
+use crate::{
+  activity_lists::AnnouncableActivities,
+  community::mod_inboxes,
+  protocol::{
+    community::announce::AnnounceActivity,
+    following::{
+      accept::AcceptFollow,
+      follow::Follow,
+      reject::RejectFollow,
+      undo_follow::UndoFollow,
+    },
+  },
 };
 use activitypub_federation::{config::Data, kinds::activity::FollowType, traits::Activity};
-use either::Either::*;
+use either::Either::{self, *};
 use lemmy_api_utils::context::LemmyContext;
-use lemmy_apub_objects::objects::{CommunityOrMulti, UserOrCommunityOrMulti, person::ApubPerson};
+use lemmy_apub_objects::objects::{
+  CommunityOrMulti,
+  UserOrCommunityOrMulti,
+  community::ApubCommunity,
+  person::ApubPerson,
+};
 use lemmy_db_schema::source::{
   activity::ActivitySendTargets,
   community::Community,
@@ -39,6 +51,7 @@ pub async fn send_follow(
 }
 
 pub async fn send_accept_or_reject_follow(
+  mod_: Person,
   community_id: CommunityId,
   person_id: PersonId,
   follow_activity_id: Option<DbUrl>,
@@ -60,9 +73,9 @@ pub async fn send_accept_or_reject_follow(
     id: follow_activity_id.map(Into::into).unwrap_or(fallback_id),
   };
   if accepted {
-    AcceptFollow::send(follow, context).await
+    AcceptFollow::send(follow, context, Some(mod_.into())).await
   } else {
-    RejectFollow::send(follow, context).await
+    RejectFollow::send(follow, context, mod_.into()).await
   }
 }
 
@@ -83,4 +96,26 @@ where
     }
     Right(Right(multi)) => send_lemmy_activity(context, activity, &multi, send_targets, true).await,
   }
+}
+
+async fn notify_remote_mods(
+  follow_or_undo: Either<Follow, UndoFollow>,
+  context: &Data<LemmyContext>,
+  community: &ApubCommunity,
+) -> LemmyResult<()> {
+  let announce = AnnounceActivity::new(
+    match follow_or_undo {
+      Left(follow) => AnnouncableActivities::Follow(follow).try_into()?,
+      Right(undo) => AnnouncableActivities::UndoFollow(undo).try_into()?,
+    },
+    &community.clone(),
+    None,
+    context,
+  )?;
+  let mut inboxes = ActivitySendTargets::empty();
+  let mod_inboxes = mod_inboxes(context, community.id).await?;
+  inboxes.add_inboxes(mod_inboxes);
+
+  send_lemmy_activity(context, announce, community, inboxes, true).await?;
+  Ok(())
 }

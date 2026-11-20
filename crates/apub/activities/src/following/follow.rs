@@ -1,4 +1,5 @@
 use crate::{
+  following::notify_remote_mods,
   generate_activity_id,
   protocol::following::{accept::AcceptFollow, follow::Follow},
   send_lemmy_activity,
@@ -49,8 +50,15 @@ impl Follow {
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
     let follow = Follow::new(actor, target, context)?;
-    let inbox = ActivitySendTargets::to_inbox(target.shared_inbox_or_inbox());
-    send_lemmy_activity(context, follow, actor, inbox, true).await
+    // if community is local, notify remote mods of follow request
+    if let Left(community) = target
+      && community.local
+    {
+      notify_remote_mods(Left(follow), context, community).await
+    } else {
+      let inbox = ActivitySendTargets::to_inbox(target.shared_inbox_or_inbox());
+      send_lemmy_activity(context, follow, actor, inbox, true).await
+    }
   }
 }
 
@@ -84,7 +92,14 @@ impl Activity for Follow {
       Right(Left(c)) => c.local,
       Right(Right(m)) => m.local,
     };
-    if !object_local {
+
+    // A person following a remote community is allowed, so remote mods receive the request
+    if !object_local
+      && !matches!(
+        (&actor, &object),
+        (Left(_person), Right(Left(_remote_community)))
+      )
+    {
       return Err(UntranslatedError::InvalidFollow("Not a local object".to_string()).into());
     }
 
@@ -94,7 +109,7 @@ impl Activity for Follow {
     {
       check_community_deleted_removed(community)?;
       CommunityCommunityFollow::follow(&mut context.pool(), community.id, follower.id).await?;
-      AcceptFollow::send(self, context).await?;
+      AcceptFollow::send(self, context, None).await?;
       return Ok(());
     }
 
@@ -107,7 +122,7 @@ impl Activity for Follow {
       Left(u) => {
         let form = PersonFollowerForm::new(u.id, person.id, false);
         PersonActions::follow(&mut context.pool(), &form).await?;
-        AcceptFollow::send(self, context).await?;
+        AcceptFollow::send(self, context, None).await?;
       }
       Right(Left(c)) => {
         check_community_deleted_removed(&c)?;
@@ -147,8 +162,12 @@ impl Activity for Follow {
           ..CommunityFollowerForm::new(c.id, person.id, follow_state)
         };
         CommunityActions::follow(&mut context.pool(), &form).await?;
-        if follow_state == CommunityFollowerState::Accepted {
-          AcceptFollow::send(self, context).await?;
+
+        // Only the instance hosting the community answers the follow, and announces follow to
+        // remote mods
+        if c.local {
+          AcceptFollow::send(self.clone(), context, None).await?;
+          notify_remote_mods(Left(self), context, &c).await?;
         }
       }
       Right(Right(m)) => {
@@ -159,7 +178,7 @@ impl Activity for Follow {
         };
 
         MultiCommunity::follow(&mut context.pool(), &form).await?;
-        AcceptFollow::send(self, context).await?;
+        AcceptFollow::send(self, context, None).await?;
       }
     }
     Ok(())

@@ -73,6 +73,8 @@ pub enum AnnouncableActivities {
   Warn(Warn),
   // For compatibility with Pleroma/Mastodon (send only)
   Page(Page),
+  Follow(Follow),
+  UndoFollow(UndoFollow),
 }
 
 impl InCommunity for AnnouncableActivities {
@@ -96,6 +98,8 @@ impl InCommunity for AnnouncableActivities {
       ResolveReport(a) => a.community(context).await,
       Warn(a) => a.community(context).await,
       Page(_) => Err(LemmyErrorType::NotFound.into()),
+      Follow(a) => a.community(context).await,
+      UndoFollow(a) => a.community(context).await,
     }
   }
 }
