@@ -473,6 +473,10 @@ diesel::table! {
         updated_at -> Nullable<Timestamptz>,
         import_user_settings_max_requests -> Int4,
         import_user_settings_interval_seconds -> Int4,
+        resend_verification_email_max_requests -> Int4,
+        resend_verification_email_interval_seconds -> Int4,
+        resend_verification_email_per_account_max_requests -> Int4,
+        resend_verification_email_per_account_interval_seconds -> Int4,
     }
 }
 

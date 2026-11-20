@@ -449,6 +449,7 @@ pub fn local_site_rate_limit_to_rate_limit_config(
     ActionType::Comment => (l.comment_max_requests, l.comment_interval_seconds),
     ActionType::Search => (l.search_max_requests, l.search_interval_seconds),
     ActionType::ImportUserSettings => (l.import_user_settings_max_requests, l.import_user_settings_interval_seconds),
+    ActionType::ResendVerificationEmail => (l.resend_verification_email_max_requests, l.resend_verification_email_interval_seconds),
   }
   .map(|_key, (max_requests, interval)| BucketConfig {
     max_requests: u32::try_from(max_requests).unwrap_or(0),

@@ -20,6 +20,7 @@ pub enum ActionType {
   Comment,
   Search,
   ImportUserSettings,
+  ResendVerificationEmail,
 }
 
 #[derive(PartialEq, Debug, Copy, Clone)]
@@ -70,6 +71,10 @@ impl RateLimit {
         max_requests: 1,
         interval: 24 * 60 * 60,
       },
+      ActionType::ResendVerificationEmail => BucketConfig {
+        max_requests: 10,
+        interval: 3600,
+      },
     })
   }
 
@@ -111,6 +116,14 @@ impl RateLimit {
   {
     self.build_rate_limiter(ActionType::Register)
   }
+
+  pub fn resend_verification_email(
+    &self,
+  ) -> RateLimiter<LemmyBackend, SimpleOutput, impl Fn(&ServiceRequest) -> LemmyInputFuture + 'static>
+  {
+    self.build_rate_limiter(ActionType::ResendVerificationEmail)
+  }
+
   pub fn post(
     &self,
   ) -> RateLimiter<LemmyBackend, SimpleOutput, impl Fn(&ServiceRequest) -> LemmyInputFuture + 'static>
