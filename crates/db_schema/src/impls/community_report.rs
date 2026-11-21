@@ -87,6 +87,24 @@ impl Reportable for CommunityReport {
     update(community_report::table.filter(community_report::community_id.eq(community_id_)))
       .set((
         community_report::resolved.eq(true),
+        community_report::resolved_locally.eq(true),
+        community_report::resolver_id.eq(by_resolver_id),
+        community_report::updated_at.eq(Utc::now()),
+      ))
+      .execute(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
+  }
+
+  async fn resolve_all_for_object_apub(
+    pool: &mut DbPool<'_>,
+    community_id_: Self::ObjectIdType,
+    by_resolver_id: PersonId,
+  ) -> LemmyResult<usize> {
+    let conn = &mut get_conn(pool).await?;
+    update(community_report::table.filter(community_report::community_id.eq(community_id_)))
+      .set((
+        community_report::resolved.eq(true),
         community_report::resolver_id.eq(by_resolver_id),
         community_report::updated_at.eq(Utc::now()),
       ))

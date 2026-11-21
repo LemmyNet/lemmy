@@ -130,6 +130,7 @@ diesel::table! {
         updated_at -> Nullable<Timestamptz>,
         violates_instance_rules -> Bool,
         conclusion -> Nullable<Text>,
+        resolved_locally -> Bool,
     }
 }
 
@@ -244,6 +245,7 @@ diesel::table! {
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
         conclusion -> Nullable<Text>,
+        resolved_locally -> Bool,
     }
 }
 
@@ -876,6 +878,7 @@ diesel::table! {
         updated_at -> Nullable<Timestamptz>,
         violates_instance_rules -> Bool,
         conclusion -> Nullable<Text>,
+        resolved_locally -> Bool,
     }
 }
 
@@ -908,6 +911,7 @@ diesel::table! {
         published_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
         conclusion -> Nullable<Text>,
+        resolved_locally -> Bool,
     }
 }
 
@@ -953,6 +957,7 @@ diesel::table! {
         comment_id -> Nullable<Int4>,
         community_id -> Nullable<Int4>,
         private_message_id -> Nullable<Int4>,
+        resolved_locally -> Bool,
     }
 }
 

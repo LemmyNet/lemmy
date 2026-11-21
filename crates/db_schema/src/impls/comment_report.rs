@@ -89,6 +89,24 @@ impl Reportable for CommentReport {
     update(comment_report::table.filter(comment_report::comment_id.eq(comment_id_)))
       .set((
         comment_report::resolved.eq(true),
+        comment_report::resolved_locally.eq(true),
+        comment_report::resolver_id.eq(by_resolver_id),
+        comment_report::updated_at.eq(Utc::now()),
+      ))
+      .execute(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
+  }
+
+  async fn resolve_all_for_object_apub(
+    pool: &mut DbPool<'_>,
+    comment_id_: CommentId,
+    by_resolver_id: PersonId,
+  ) -> LemmyResult<usize> {
+    let conn = &mut get_conn(pool).await?;
+    update(comment_report::table.filter(comment_report::comment_id.eq(comment_id_)))
+      .set((
+        comment_report::resolved.eq(true),
         comment_report::resolver_id.eq(by_resolver_id),
         comment_report::updated_at.eq(Utc::now()),
       ))
@@ -114,6 +132,30 @@ impl CommentReport {
     ))
     .set((
       comment_report::resolved.eq(true),
+      comment_report::resolved_locally.eq(true),
+      comment_report::resolver_id.eq(by_resolver_id),
+      comment_report::updated_at.eq(Utc::now()),
+    ))
+    .execute(conn)
+    .await
+    .with_lemmy_type(LemmyErrorType::CouldntUpdate)
+  }
+
+  pub async fn resolve_all_for_thread_apub(
+    pool: &mut DbPool<'_>,
+    comment_path: &Ltree,
+    by_resolver_id: PersonId,
+  ) -> LemmyResult<usize> {
+    let conn = &mut get_conn(pool).await?;
+    let report_alias = diesel::alias!(comment_report as cr);
+    let report_subquery = report_alias
+      .inner_join(comment::table.on(comment::id.eq(report_alias.field(comment_report::comment_id))))
+      .filter(comment::path.contained_by(comment_path));
+    update(comment_report::table.filter(
+      comment_report::id.eq_any(report_subquery.select(report_alias.field(comment_report::id))),
+    ))
+    .set((
+      comment_report::resolved.eq(true),
       comment_report::resolver_id.eq(by_resolver_id),
       comment_report::updated_at.eq(Utc::now()),
     ))
@@ -123,6 +165,30 @@ impl CommentReport {
   }
 
   pub async fn resolve_all_for_post(
+    pool: &mut DbPool<'_>,
+    post_id: PostId,
+    by_resolver_id: PersonId,
+  ) -> LemmyResult<usize> {
+    let conn = &mut get_conn(pool).await?;
+    let report_alias = diesel::alias!(comment_report as cr);
+    let report_subquery = report_alias
+      .inner_join(comment::table.on(comment::id.eq(report_alias.field(comment_report::comment_id))))
+      .filter(comment::post_id.eq(post_id));
+    update(comment_report::table.filter(
+      comment_report::id.eq_any(report_subquery.select(report_alias.field(comment_report::id))),
+    ))
+    .set((
+      comment_report::resolved.eq(true),
+      comment_report::resolved_locally.eq(true),
+      comment_report::resolver_id.eq(by_resolver_id),
+      comment_report::updated_at.eq(Utc::now()),
+    ))
+    .execute(conn)
+    .await
+    .with_lemmy_type(LemmyErrorType::CouldntUpdate)
+  }
+
+  pub async fn resolve_all_for_post_apub(
     pool: &mut DbPool<'_>,
     post_id: PostId,
     by_resolver_id: PersonId,

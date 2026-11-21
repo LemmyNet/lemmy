@@ -38,6 +38,7 @@ pub async fn resolve_pm_report(
   let form = UpdatePrivateMessageReportForm {
     resolver_id: Some(person.id),
     resolved: Some(data.resolved),
+    resolved_locally: Some(data.resolved),
     conclusion,
     updated_at: Some(Utc::now()),
   };

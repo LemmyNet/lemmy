@@ -113,9 +113,18 @@ pub trait Reportable: Sized {
     report_creator_id: PersonId,
     resolver_id: PersonId,
   ) -> impl Future<Output = LemmyResult<usize>> + Send;
+  /// Local admin/mod closed every report for this object. Sets both `resolved` and
+  /// `resolved_locally`.
   fn resolve_all_for_object(
     pool: &mut DbPool<'_>,
-    comment_id_: Self::ObjectIdType,
+    object_id: Self::ObjectIdType,
+    by_resolver_id: PersonId,
+  ) -> impl Future<Output = LemmyResult<usize>> + Send;
+  /// Incoming federation closed every report. Sets `resolved` only. Does not write
+  /// `resolved_locally`, so a local decision is left alone.
+  fn resolve_all_for_object_apub(
+    pool: &mut DbPool<'_>,
+    object_id: Self::ObjectIdType,
     by_resolver_id: PersonId,
   ) -> impl Future<Output = LemmyResult<usize>> + Send;
 }

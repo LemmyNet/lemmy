@@ -37,6 +37,7 @@ pub async fn resolve_community_report(
   let form = UpdateCommunityReportForm {
     resolver_id: Some(person.id),
     resolved: Some(data.resolved),
+    resolved_locally: Some(data.resolved),
     conclusion,
     updated_at: Some(Utc::now()),
   };
