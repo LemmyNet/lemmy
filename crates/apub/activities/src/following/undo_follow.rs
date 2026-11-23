@@ -107,7 +107,7 @@ impl Activity for UndoFollow {
         // If community is local, we need to notify remote mods that the user no longer wishes to
         // follow the community
         if c.local {
-          notify_remote_mods(Right(self), context, &c).await?;
+          notify_remote_mods(Right(self), &c, context).await?;
         }
       }
       Right(Right(m)) => MultiCommunity::unfollow(&mut context.pool(), person.id, m.id).await?,

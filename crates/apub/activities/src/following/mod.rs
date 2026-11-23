@@ -48,18 +48,6 @@ pub async fn send_follow(
 ) -> LemmyResult<()> {
   let actor: ApubPerson = person.into();
 
-  // If the community is local, notify remote mods of the follow request or undo
-  if let Left(community) = &target
-    && community.local
-  {
-    let follow_or_undo = if follow {
-      Left(Follow::new(&actor, &target, context)?)
-    } else {
-      Right(UndoFollow::new(&actor, &target, context)?)
-    };
-    return notify_remote_mods(follow_or_undo, context, community).await;
-  }
-
   if follow {
     Follow::send(&actor, &target, context).await
   } else {
@@ -139,10 +127,26 @@ where
   }
 }
 
-async fn notify_remote_mods(
-  follow_or_undo: Either<Follow, UndoFollow>,
+pub async fn send_announce_follow_to_mods(
+  community: ApubCommunity,
+  person: Person,
+  follow: bool,
   context: &Data<LemmyContext>,
+) -> LemmyResult<()> {
+  let actor: ApubPerson = person.into();
+  let target = Left(community.clone());
+  let follow_or_undo = if follow {
+    Left(Follow::new(&actor, &target, context)?)
+  } else {
+    Right(UndoFollow::new(&actor, &target, context)?)
+  };
+  notify_remote_mods(follow_or_undo, &community, context).await
+}
+
+pub async fn notify_remote_mods(
+  follow_or_undo: Either<Follow, UndoFollow>,
   community: &ApubCommunity,
+  context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let announce = AnnounceActivity::new(
     match follow_or_undo {

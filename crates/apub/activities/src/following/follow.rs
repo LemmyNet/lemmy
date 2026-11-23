@@ -150,7 +150,7 @@ impl Activity for Follow {
         if follow_state == CommunityFollowerState::Accepted {
           AcceptFollow::send(self.clone(), context).await?;
         }
-        notify_remote_mods(Left(self), context, &c).await?;
+        notify_remote_mods(Left(self), &c, context).await?;
       }
       Right(Right(m)) => {
         let form = MultiCommunityFollowForm {

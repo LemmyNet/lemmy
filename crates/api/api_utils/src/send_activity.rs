@@ -61,6 +61,7 @@ pub enum SendActivityData {
     new_is_upvote: Option<bool>,
   },
   FollowCommunity(Community, Person, bool),
+  NotifyCommunityMods(Community, Person, bool),
   FollowMultiCommunity(MultiCommunity, Person, bool),
   PrivateCommunityAcceptFollower {
     moderator: Person,

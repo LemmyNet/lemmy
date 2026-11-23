@@ -72,10 +72,19 @@ pub(super) async fn do_follow_community(
     CommunityActions::unfollow(&mut context.pool(), person_id, community.id).await?;
   }
 
-  // Send the federated follow
-  ActivityChannel::submit_activity(
-    SendActivityData::FollowCommunity(community, local_user_view.person.clone(), follow),
-    context,
-  )?;
+  // If community is remote, send the federated follow. Otherwise, notify remote mods of follow
+  // request
+  if !community.local {
+    ActivityChannel::submit_activity(
+      SendActivityData::FollowCommunity(community, local_user_view.person.clone(), follow),
+      context,
+    )?;
+  } else {
+    ActivityChannel::submit_activity(
+      SendActivityData::NotifyCommunityMods(community, local_user_view.person.clone(), follow),
+      context,
+    )?;
+  }
+
   Ok(())
 }

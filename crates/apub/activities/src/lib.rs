@@ -12,7 +12,7 @@ use crate::{
     send_apub_delete_private_message,
     send_apub_delete_user,
   },
-  following::send_follow,
+  following::{send_announce_follow_to_mods, send_follow},
   protocol::{
     CreateOrUpdateType,
     community::{report::Report, resolve_report::ResolveReport, warn::Warn},
@@ -299,6 +299,9 @@ pub async fn match_outgoing_activities(
       }
       FollowCommunity(community, person, follow) => {
         send_follow(Either::Left(community.into()), person, follow, &context).await
+      }
+      NotifyCommunityMods(community, person, follow) => {
+        send_announce_follow_to_mods(community.into(), person, follow, &context).await
       }
       FollowMultiCommunity(multi, person, follow) => {
         send_follow(Either::Right(multi.into()), person, follow, &context).await
