@@ -12,7 +12,7 @@ use crate::{
     send_apub_delete_private_message,
     send_apub_delete_user,
   },
-  following::{send_announce_follow_to_mods, send_follow},
+  following::{send_announce_follow_to_mods, send_follow, send_mod_signed_accept_or_reject_follow},
   protocol::{
     CreateOrUpdateType,
     community::{report::Report, resolve_report::ResolveReport, warn::Warn},
@@ -405,33 +405,50 @@ pub async fn match_outgoing_activities(
         community_id,
         person_id,
         follow_activity_id,
-        moderator: actor,
+        moderator,
       } => {
-        send_accept_or_reject_follow(
-          actor,
-          community_id,
-          person_id,
-          follow_activity_id,
-          true,
-          &context,
-        )
-        .await
+        let community = Community::read(&mut context.pool(), community_id).await?;
+
+        // If community is local, it can sign the accept and reply to follower's instance with an
+        // Accept. Otherwise, the community can't sign and a remote mad approved the follow, so the
+        // mod signs and forwards to the accept to the community's instance.
+        if community.local {
+          send_accept_or_reject_follow(community_id, person_id, follow_activity_id, true, &context)
+            .await
+        } else {
+          send_mod_signed_accept_or_reject_follow(
+            moderator,
+            community_id,
+            person_id,
+            follow_activity_id,
+            true,
+            &context,
+          )
+          .await
+        }
       }
       PrivateCommunityRejectFollower {
         community_id,
         person_id,
         follow_activity_id,
-        moderator: actor,
+        moderator,
       } => {
-        send_accept_or_reject_follow(
-          actor,
-          community_id,
-          person_id,
-          follow_activity_id,
-          false,
-          &context,
-        )
-        .await
+        let community = Community::read(&mut context.pool(), community_id).await?;
+
+        if community.local {
+          send_accept_or_reject_follow(community_id, person_id, follow_activity_id, false, &context)
+            .await
+        } else {
+          send_mod_signed_accept_or_reject_follow(
+            moderator,
+            community_id,
+            person_id,
+            follow_activity_id,
+            false,
+            &context,
+          )
+          .await
+        }
       }
       UpdateMultiCommunity(multi, actor) => {
         send_update_multi_community(multi, actor, context).await
