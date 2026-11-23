@@ -50,15 +50,8 @@ impl Follow {
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
     let follow = Follow::new(actor, target, context)?;
-    // if community is local, notify remote mods of follow request
-    if let Left(community) = target
-      && community.local
-    {
-      notify_remote_mods(Left(follow), context, community).await
-    } else {
-      let inbox = ActivitySendTargets::to_inbox(target.shared_inbox_or_inbox());
-      send_lemmy_activity(context, follow, actor, inbox, true).await
-    }
+    let inbox = ActivitySendTargets::to_inbox(target.shared_inbox_or_inbox());
+    send_lemmy_activity(context, follow, actor, inbox, true).await
   }
 }
 
@@ -109,7 +102,7 @@ impl Activity for Follow {
     {
       check_community_deleted_removed(community)?;
       CommunityCommunityFollow::follow(&mut context.pool(), community.id, follower.id).await?;
-      AcceptFollow::send(self, context, None).await?;
+      AcceptFollow::send(self, context).await?;
       return Ok(());
     }
 
@@ -122,7 +115,7 @@ impl Activity for Follow {
       Left(u) => {
         let form = PersonFollowerForm::new(u.id, person.id, false);
         PersonActions::follow(&mut context.pool(), &form).await?;
-        AcceptFollow::send(self, context, None).await?;
+        AcceptFollow::send(self, context).await?;
       }
       Right(Left(c)) => {
         check_community_deleted_removed(&c)?;
@@ -166,7 +159,7 @@ impl Activity for Follow {
         // Only the instance hosting the community answers the follow, and announces follow to
         // remote mods
         if c.local {
-          AcceptFollow::send(self.clone(), context, None).await?;
+          AcceptFollow::send(self.clone(), context).await?;
           notify_remote_mods(Left(self), context, &c).await?;
         }
       }
@@ -178,7 +171,7 @@ impl Activity for Follow {
         };
 
         MultiCommunity::follow(&mut context.pool(), &form).await?;
-        AcceptFollow::send(self, context, None).await?;
+        AcceptFollow::send(self, context).await?;
       }
     }
     Ok(())
