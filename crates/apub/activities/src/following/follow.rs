@@ -16,11 +16,11 @@ use lemmy_apub_objects::objects::{CommunityOrMulti, person::ApubPerson};
 use lemmy_db_schema::{
   source::{
     activity::ActivitySendTargets,
-    community::{CommunityActions, CommunityFollowerForm},
+    community::{Community, CommunityActions, CommunityFollowerForm},
     community_community_follow::CommunityCommunityFollow,
     instance::{Instance, InstanceActions},
     multi_community::{MultiCommunity, MultiCommunityFollowForm},
-    person::{PersonActions, PersonFollowerForm},
+    person::{Person, PersonActions, PersonFollowerForm},
   },
   traits::Followable,
 };
@@ -86,13 +86,23 @@ impl Activity for Follow {
       Right(Right(m)) => m.local,
     };
 
-    // A person following a remote community is allowed, so remote mods receive the request
-    if !object_local
-      && !matches!(
-        (&actor, &object),
-        (Left(_person), Right(Left(_remote_community)))
-      )
+    // We allow receiving follows to communities that are remote because this is how remote mods
+    // get notified about follow requests (via receiving Announce/Follow)
+    if let (Left(person), Right(Left(remote_community))) = (&actor, &object)
+      && !remote_community.local
     {
+      check_community_deleted_removed(remote_community)?;
+      CommunityPersonBanView::check(&mut context.pool(), person.id, remote_community.id).await?;
+
+      let follow_state = get_follow_state(remote_community, person, context).await?;
+      let form = CommunityFollowerForm {
+        follow_activity_id: Some(self.id.clone().into()),
+        ..CommunityFollowerForm::new(remote_community.id, person.id, follow_state)
+      };
+
+      CommunityActions::follow(&mut context.pool(), &form).await?;
+      return Ok(());
+    } else if !object_local {
       return Err(UntranslatedError::InvalidFollow("Not a local object".to_string()).into());
     }
 
@@ -130,38 +140,17 @@ impl Activity for Follow {
           }
         }
 
-        let follow_state = match c.visibility {
-          Public | Unlisted => CommunityFollowerState::Accepted,
-          Private => {
-            // Auto-accept follow requests from mods (e.g. when a mod unfollows and refollows)
-            if CommunityModeratorView::check_is_community_moderator(
-              &mut context.pool(),
-              c.id,
-              person.id,
-            )
-            .await
-            .is_ok()
-            {
-              CommunityFollowerState::Accepted
-            } else {
-              CommunityFollowerState::ApprovalRequired
-            }
-          }
-          // Dont allow following local-only community via federation.
-          LocalOnlyPrivate | LocalOnlyPublic => return Err(LemmyErrorType::NotFound.into()),
-        };
+        let follow_state = get_follow_state(&c, &person, context).await?;
         let form = CommunityFollowerForm {
           follow_activity_id: Some(self.id.clone().into()),
           ..CommunityFollowerForm::new(c.id, person.id, follow_state)
         };
         CommunityActions::follow(&mut context.pool(), &form).await?;
 
-        // Only the instance hosting the community answers the follow, and announces follow to
-        // remote mods
-        if c.local {
+        if follow_state == CommunityFollowerState::Accepted {
           AcceptFollow::send(self.clone(), context).await?;
-          notify_remote_mods(Left(self), context, &c).await?;
         }
+        notify_remote_mods(Left(self), context, &c).await?;
       }
       Right(Right(m)) => {
         let form = MultiCommunityFollowForm {
@@ -175,5 +164,29 @@ impl Activity for Follow {
       }
     }
     Ok(())
+  }
+}
+
+async fn get_follow_state(
+  c: &Community,
+  person: &Person,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<CommunityFollowerState> {
+  use CommunityVisibility::*;
+  match c.visibility {
+    Public | Unlisted => Ok(CommunityFollowerState::Accepted),
+    Private => {
+      // Auto-accept follow requests from mods (e.g. when a mod unfollows and refollows)
+      if CommunityModeratorView::check_is_community_moderator(&mut context.pool(), c.id, person.id)
+        .await
+        .is_ok()
+      {
+        Ok(CommunityFollowerState::Accepted)
+      } else {
+        Ok(CommunityFollowerState::ApprovalRequired)
+      }
+    }
+    // Dont allow following local-only community via federation.
+    LocalOnlyPrivate | LocalOnlyPublic => Err(LemmyErrorType::NotFound.into()),
   }
 }
