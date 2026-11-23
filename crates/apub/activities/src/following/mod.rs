@@ -12,7 +12,11 @@ use crate::{
     },
   },
 };
-use activitypub_federation::{config::Data, kinds::activity::FollowType, traits::Activity};
+use activitypub_federation::{
+  config::Data,
+  kinds::activity::FollowType,
+  traits::{Activity, Object},
+};
 use either::Either::{self, *};
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::objects::{
@@ -43,6 +47,19 @@ pub async fn send_follow(
   context: &Data<LemmyContext>,
 ) -> LemmyResult<()> {
   let actor: ApubPerson = person.into();
+
+  // If the community is local, notify remote mods of the follow request or undo
+  if let Left(community) = &target
+    && community.local
+  {
+    let follow_or_undo = if follow {
+      Left(Follow::new(&actor, &target, context)?)
+    } else {
+      Right(UndoFollow::new(&actor, &target, context)?)
+    };
+    return notify_remote_mods(follow_or_undo, context, community).await;
+  }
+
   if follow {
     Follow::send(&actor, &target, context).await
   } else {
@@ -68,14 +85,38 @@ pub async fn send_accept_or_reject_follow(
   let follow = Follow {
     actor: person.ap_id.into(),
     to: Some([community.ap_id.clone().into()]),
-    object: community.ap_id.into(),
+    object: community.ap_id.clone().into(),
     kind: FollowType::Follow,
     id: follow_activity_id.map(Into::into).unwrap_or(fallback_id),
   };
+
+  // A remote mod can't sign as the community, so they send the accept or reject to the
+  // instance hosting the community, which forwards it to the follower
+  if !community.local {
+    return send_as_mod(follow, accepted, &mod_.into(), &community.into(), context).await;
+  }
+
   if accepted {
-    AcceptFollow::send(follow, context, Some(mod_.into())).await
+    AcceptFollow::send(follow, context).await
   } else {
-    RejectFollow::send(follow, context, mod_.into()).await
+    RejectFollow::send(follow, context).await
+  }
+}
+
+async fn send_as_mod(
+  follow: Follow,
+  accepted: bool,
+  mod_: &ApubPerson,
+  community: &ApubCommunity,
+  context: &Data<LemmyContext>,
+) -> LemmyResult<()> {
+  let inbox = ActivitySendTargets::to_inbox(community.inbox_url.clone().into());
+  if accepted {
+    let accept = AcceptFollow::new(mod_.id(), follow, context)?;
+    send_lemmy_activity(context, accept, mod_, inbox, true).await
+  } else {
+    let reject = RejectFollow::new(mod_.id(), follow, context)?;
+    send_lemmy_activity(context, reject, mod_, inbox, true).await
   }
 }
 
