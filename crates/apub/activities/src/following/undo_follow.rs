@@ -31,7 +31,7 @@ use lemmy_utils::error::{LemmyError, LemmyResult, UntranslatedError};
 use url::Url;
 
 impl UndoFollow {
-  fn new(
+  pub(in crate::following) fn new(
     actor: &ApubPerson,
     target: &CommunityOrMulti,
     context: &Data<LemmyContext>,
@@ -52,15 +52,8 @@ impl UndoFollow {
     context: &Data<LemmyContext>,
   ) -> LemmyResult<()> {
     let undo = UndoFollow::new(actor, target, context)?;
-    // if community is local, notify remote mods of undo follow
-    if let Left(community) = target
-      && community.local
-    {
-      notify_remote_mods(Right(undo), context, community).await
-    } else {
-      let inbox = ActivitySendTargets::to_inbox(target.shared_inbox_or_inbox());
-      send_lemmy_activity(context, undo, actor, inbox, true).await
-    }
+    let inbox = ActivitySendTargets::to_inbox(target.shared_inbox_or_inbox());
+    send_lemmy_activity(context, undo, actor, inbox, true).await
   }
 }
 
