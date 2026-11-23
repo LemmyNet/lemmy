@@ -4,7 +4,7 @@ use activitypub_federation::{
   kinds::activity::FollowType,
   protocol::helpers::deserialize_skip_error,
 };
-use either::Either;
+use either::Either::{Left, Right};
 use lemmy_api_utils::context::LemmyContext;
 use lemmy_apub_objects::{
   objects::{UserOrCommunity, UserOrCommunityOrMulti, community::ApubCommunity},
@@ -29,9 +29,11 @@ pub struct Follow {
 
 impl InCommunity for Follow {
   async fn community(&self, context: &Data<LemmyContext>) -> LemmyResult<ApubCommunity> {
-    match self.object.dereference(context).await? {
-      Either::Right(Either::Left(community)) => Ok(community),
-      Either::Left(_) | Either::Right(Either::Right(_)) => Err(LemmyErrorType::NotFound.into()),
+    let target = self.object.dereference(context).await?;
+
+    match target {
+      Right(Left(community)) => Ok(community),
+      Left(_) | Right(Right(_)) => Err(LemmyErrorType::NotFound.into()),
     }
   }
 }
