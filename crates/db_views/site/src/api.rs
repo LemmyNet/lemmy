@@ -355,8 +355,6 @@ pub struct GetSiteResponse {
   pub admin_oauth_providers: Vec<AdminOAuthProvider>,
   pub blocked_urls: Vec<LocalSiteUrlBlocklist>,
   pub active_plugins: Vec<PluginMetadata>,
-  /// JWT for authenticated RSS feeds (readonly)
-  pub my_feed_token: Option<SensitiveString>,
   /// The number of seconds between the last application published, and approved / denied time.
   ///
   /// Useful for estimating when your application will be approved.
@@ -479,6 +477,8 @@ pub struct MyUserInfo {
   pub person_blocks: Vec<Person>,
   pub keyword_blocks: Vec<String>,
   pub discussion_languages: Vec<LanguageId>,
+  /// JWT for authenticated RSS feeds (readonly)
+  pub my_feed_token: SensitiveString,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, Hash)]
