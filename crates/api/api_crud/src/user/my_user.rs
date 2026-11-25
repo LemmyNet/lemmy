@@ -1,5 +1,5 @@
 use actix_web::web::{Data, Json};
-use lemmy_api_utils::{context::LemmyContext, utils::check_local_user_deleted};
+use lemmy_api_utils::{claims::Claims, context::LemmyContext, utils::check_local_user_deleted};
 use lemmy_db_schema::{
   MultiCommunityListingType,
   MultiCommunitySortType,
@@ -41,6 +41,7 @@ pub async fn get_my_user(
     multi_community_follows,
     keyword_blocks,
     discussion_languages,
+    my_feed_token,
   ) = lemmy_diesel_utils::try_join_with_pool!(pool => (
     |pool| CommunityFollowerView::for_person(pool, person_id),
     |pool| CommunityActions::read_blocks_for_person(pool, person_id),
@@ -57,7 +58,8 @@ pub async fn get_my_user(
     }
     .list(pool),
     |pool| LocalUserKeywordBlock::read(pool, local_user_id),
-    |pool| LocalUserLanguage::read(pool, local_user_id)
+    |pool| LocalUserLanguage::read(pool, local_user_id),
+    |_| Claims::get_or_generate_feed_only(local_user_id, &context)
   ))?;
 
   Ok(Json(MyUserInfo {
@@ -71,5 +73,6 @@ pub async fn get_my_user(
     person_blocks,
     keyword_blocks,
     discussion_languages,
+    my_feed_token,
   }))
 }
