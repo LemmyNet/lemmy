@@ -1223,11 +1223,18 @@ pub(crate) async fn redirect_pictrs_image(req: HttpRequest, path: Path<String>) 
 pub(crate) async fn redirect_with_query_string(req: HttpRequest, new_path: &str) -> Redirect {
   let query = req.query_string();
 
+  // Convert a few api v3 pictrs get params to v4
+  let rewritten_query = query
+    // Convert thumbnail -> max_size
+    .replace("thumbnail=", "max_size=")
+    // Convert filename -> file_type
+    .replace("filename=", "file_type=");
+
   // Construct target URL and append original query string
-  let target = if query.is_empty() {
+  let target = if rewritten_query.is_empty() {
     new_path.to_string()
   } else {
-    format!("{new_path}?{query}")
+    format!("{new_path}?{rewritten_query}")
   };
   Redirect::to(target).permanent()
 }
