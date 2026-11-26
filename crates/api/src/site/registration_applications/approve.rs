@@ -9,6 +9,7 @@ use lemmy_api_common::{
 use lemmy_db_schema::{
   source::{
     local_user::{LocalUser, LocalUserUpdateForm},
+    login_token::LoginToken,
     registration_application::{RegistrationApplication, RegistrationApplicationUpdateForm},
   },
   traits::Crud,
@@ -79,6 +80,11 @@ pub async fn approve_registration_application(
       )
       .await?;
     }
+  }
+
+  // A deny *can* occur after an approve, so this is necessary to log them out forcefully.
+  if !data.approve {
+    LoginToken::invalidate_all(&mut context.pool(), approved_user_id).await?;
   }
 
   // Read the view
