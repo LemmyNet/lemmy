@@ -5,6 +5,7 @@ use diesel_async::AsyncConnection;
 use lemmy_api_utils::{context::LemmyContext, utils::is_admin};
 use lemmy_db_schema::source::{
   local_user::{LocalUser, LocalUserUpdateForm},
+  login_token::LoginToken,
   registration_application::{RegistrationApplication, RegistrationApplicationUpdateForm},
 };
 use lemmy_db_schema_file::newtypes::LocalUserId;
@@ -68,6 +69,11 @@ pub async fn approve_registration_application(
         context.settings(),
       )?;
     }
+  }
+
+  // A deny *can* occur after an approve, so this is necessary to log them out forcefully.
+  if !data.approve {
+    LoginToken::invalidate_all(&mut context.pool(), approved_user_id).await?;
   }
 
   // Read the view
