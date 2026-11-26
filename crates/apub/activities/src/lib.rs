@@ -410,7 +410,7 @@ pub async fn match_outgoing_activities(
         let community = Community::read(&mut context.pool(), community_id).await?;
 
         // If community is local, it can sign the accept and reply to follower's instance with an
-        // Accept. Otherwise, the community can't sign and a remote mad approved the follow, so the
+        // Accept. Otherwise, the community can't sign and a remote mod approved the follow, so the
         // mod signs and forwards to the accept to the community's instance.
         if community.local {
           send_accept_or_reject_follow(community_id, person_id, follow_activity_id, true, &context)
