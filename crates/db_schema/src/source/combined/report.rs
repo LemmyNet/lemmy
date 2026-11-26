@@ -45,4 +45,6 @@ pub struct ReportCombined {
   pub comment_id: Option<CommentId>,
   pub community_id: Option<CommunityId>,
   pub private_message_id: Option<PrivateMessageId>,
+  /// Local queue state. A remote resolve sets `resolved` without setting this.
+  pub resolved_locally: bool,
 }

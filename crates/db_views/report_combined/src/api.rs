@@ -20,7 +20,8 @@ use serde_with::skip_serializing_none;
 #[cfg_attr(feature = "ts-rs", ts(optional_fields, export))]
 /// List reports.
 pub struct ListReports {
-  /// Only shows the unresolved reports
+  /// Only shows reports that a local admin or mod has not resolved. A remote resolve does not
+  /// clear this.
   pub unresolved_only: Option<bool>,
   /// Filter the type of report.
   pub type_: Option<ReportType>,

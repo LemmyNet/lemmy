@@ -79,6 +79,24 @@ impl Reportable for PostReport {
     update(post_report::table.filter(post_report::post_id.eq(post_id_)))
       .set((
         post_report::resolved.eq(true),
+        post_report::resolved_locally.eq(true),
+        post_report::resolver_id.eq(by_resolver_id),
+        post_report::updated_at.eq(Utc::now()),
+      ))
+      .execute(conn)
+      .await
+      .with_lemmy_type(LemmyErrorType::CouldntUpdate)
+  }
+
+  async fn resolve_all_for_object_apub(
+    pool: &mut DbPool<'_>,
+    post_id_: PostId,
+    by_resolver_id: PersonId,
+  ) -> LemmyResult<usize> {
+    let conn = &mut get_conn(pool).await?;
+    update(post_report::table.filter(post_report::post_id.eq(post_id_)))
+      .set((
+        post_report::resolved.eq(true),
         post_report::resolver_id.eq(by_resolver_id),
         post_report::updated_at.eq(Utc::now()),
       ))
@@ -153,6 +171,7 @@ mod tests {
     let update_form = UpdatePostReportForm {
       resolver_id: Some(data.person.id),
       resolved: Some(true),
+      resolved_locally: Some(true),
       ..Default::default()
     };
 
