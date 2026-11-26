@@ -151,6 +151,10 @@ pub struct CreateSite {
   pub rate_limit_search_interval_seconds: Option<i32>,
   pub rate_limit_import_user_settings_max_requests: Option<i32>,
   pub rate_limit_import_user_settings_interval_seconds: Option<i32>,
+  /// Verification email requests per IP or IPv6 /64 subnet. Zero disables requests.
+  pub rate_limit_resend_verification_email_max_requests: Option<i32>,
+  /// Verification email request window in seconds.
+  pub rate_limit_resend_verification_email_interval_seconds: Option<i32>,
   pub federation_enabled: Option<bool>,
   pub registration_mode: Option<RegistrationMode>,
   pub oauth_registration: Option<bool>,
@@ -270,6 +274,10 @@ pub struct EditSite {
   /// The number of settings imports or exports allowed in a given time frame.
   pub rate_limit_import_user_settings_max_requests: Option<i32>,
   pub rate_limit_import_user_settings_interval_seconds: Option<i32>,
+  /// Verification email requests per IP or IPv6 /64 subnet. Zero disables requests.
+  pub rate_limit_resend_verification_email_max_requests: Option<i32>,
+  /// Verification email request window in seconds.
+  pub rate_limit_resend_verification_email_interval_seconds: Option<i32>,
   /// Whether to enable federation.
   pub federation_enabled: Option<bool>,
   /// A list of blocked URLs
