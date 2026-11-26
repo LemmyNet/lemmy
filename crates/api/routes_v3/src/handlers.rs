@@ -1227,8 +1227,8 @@ pub(crate) async fn redirect_with_query_string(req: HttpRequest, new_path: &str)
   let rewritten_query = query
     // Convert thumbnail -> max_size
     .replace("thumbnail=", "max_size=")
-    // Convert filename -> file_type
-    .replace("filename=", "file_type=");
+    // Convert format -> file_type
+    .replace("format=", "file_type=");
 
   // Construct target URL and append original query string
   let target = if rewritten_query.is_empty() {
