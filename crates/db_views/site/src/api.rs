@@ -155,11 +155,6 @@ pub struct CreateSite {
   pub rate_limit_resend_verification_email_max_requests: Option<i32>,
   /// Verification email request window in seconds.
   pub rate_limit_resend_verification_email_interval_seconds: Option<i32>,
-  /// Verification emails per account within the window, including the one sent at registration.
-  /// Enforced in the database across all IPs and backend processes. Zero disables resends.
-  pub rate_limit_resend_verification_email_per_account_max_requests: Option<i32>,
-  /// Account resend window in seconds.
-  pub rate_limit_resend_verification_email_per_account_interval_seconds: Option<i32>,
   pub federation_enabled: Option<bool>,
   pub registration_mode: Option<RegistrationMode>,
   pub oauth_registration: Option<bool>,
@@ -283,11 +278,6 @@ pub struct EditSite {
   pub rate_limit_resend_verification_email_max_requests: Option<i32>,
   /// Verification email request window in seconds.
   pub rate_limit_resend_verification_email_interval_seconds: Option<i32>,
-  /// Verification emails per account within the window, including the one sent at registration.
-  /// Enforced in the database across all IPs and backend processes. Zero disables resends.
-  pub rate_limit_resend_verification_email_per_account_max_requests: Option<i32>,
-  /// Account resend window in seconds.
-  pub rate_limit_resend_verification_email_per_account_interval_seconds: Option<i32>,
   /// Whether to enable federation.
   pub federation_enabled: Option<bool>,
   /// A list of blocked URLs

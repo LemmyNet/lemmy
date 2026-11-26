@@ -2,7 +2,6 @@ use crate::{send::send_email, user_email, user_language};
 use lemmy_db_schema::source::{
   email_verification::{EmailVerification, EmailVerificationForm},
   local_site::LocalSite,
-  local_site_rate_limit::LocalSiteRateLimit,
   password_reset_request::PasswordResetRequest,
 };
 use lemmy_db_schema_file::enums::RegistrationMode;
@@ -30,8 +29,8 @@ pub async fn send_password_reset_email(
   let body = lang.password_reset_body(reset_link, &user.person.name);
   send_email(subject, email, user.person.name.clone(), body, settings);
 
-  // Store the token. Password resets have no per-account limit, only the per-IP register rate
-  // limit applies.
+  // Insert the row after successful send, to avoid using daily reset limit while
+  // email sending is broken.
   let local_user_id = user.local_user.id;
   PasswordResetRequest::create(pool, local_user_id, token.clone()).await?;
   Ok(())
@@ -45,57 +44,18 @@ pub async fn send_verification_email(
   pool: &mut DbPool<'_>,
   settings: &'static Settings,
 ) -> LemmyResult<()> {
-  let form = verification_form(user, &new_email);
-  EmailVerification::create(pool, &form).await?;
-  send_verification_link(local_site, user, new_email, &form, settings);
-  Ok(())
-}
-
-/// Resend the verification email, unless the account already received
-/// `max_requests` verification emails within `interval_seconds`. Returns true if sent.
-pub async fn resend_verification_email(
-  local_site: &LocalSite,
-  rate_limit: &LocalSiteRateLimit,
-  user: &LocalUserView,
-  pool: &mut DbPool<'_>,
-  settings: &'static Settings,
-) -> LemmyResult<bool> {
-  let email = user_email(user)?;
-  let form = verification_form(user, &email);
-  let created = EmailVerification::create_with_account_limit(
-    pool,
-    &form,
-    rate_limit.resend_verification_email_per_account_max_requests,
-    rate_limit.resend_verification_email_per_account_interval_seconds,
-  )
-  .await?;
-  if created.is_none() {
-    return Ok(false);
-  }
-  send_verification_link(local_site, user, email, &form, settings);
-  Ok(true)
-}
-
-fn verification_form(user: &LocalUserView, email: &SensitiveString) -> EmailVerificationForm {
-  EmailVerificationForm {
+  let form = EmailVerificationForm {
     local_user_id: user.local_user.id,
-    email: email.to_string(),
+    email: new_email.to_string(),
     verification_token: uuid::Uuid::new_v4().to_string(),
-  }
-}
-
-fn send_verification_link(
-  local_site: &LocalSite,
-  user: &LocalUserView,
-  email: SensitiveString,
-  form: &EmailVerificationForm,
-  settings: &'static Settings,
-) {
+  };
   let verify_link = format!(
     "{}/verify_email/{}",
     settings.get_protocol_and_hostname(),
     form.verification_token
   );
+  EmailVerification::create(pool, &form).await?;
+
   let lang = user_language(&user.local_user);
   let subject = lang.verify_email_subject(&settings.hostname);
 
@@ -106,7 +66,8 @@ fn send_verification_link(
     lang.verify_email_body(&settings.hostname, &user.person.name, verify_link)
   };
 
-  send_email(subject, email, user.person.name.clone(), body, settings);
+  send_email(subject, new_email, user.person.name.clone(), body, settings);
+  Ok(())
 }
 
 /// Returns true if email was sent.

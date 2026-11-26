@@ -38,8 +38,6 @@ pub struct LocalSiteRateLimit {
   pub import_user_settings_interval_seconds: i32,
   pub resend_verification_email_max_requests: i32,
   pub resend_verification_email_interval_seconds: i32,
-  pub resend_verification_email_per_account_max_requests: i32,
-  pub resend_verification_email_per_account_interval_seconds: i32,
 }
 
 #[derive(Clone, derive_new::new)]
@@ -79,10 +77,6 @@ pub struct LocalSiteRateLimitInsertForm {
   pub resend_verification_email_max_requests: Option<i32>,
   #[new(default)]
   pub resend_verification_email_interval_seconds: Option<i32>,
-  #[new(default)]
-  pub resend_verification_email_per_account_max_requests: Option<i32>,
-  #[new(default)]
-  pub resend_verification_email_per_account_interval_seconds: Option<i32>,
 }
 
 #[derive(Clone, Default)]
@@ -105,7 +99,5 @@ pub struct LocalSiteRateLimitUpdateForm {
   pub import_user_settings_interval_seconds: Option<i32>,
   pub resend_verification_email_max_requests: Option<i32>,
   pub resend_verification_email_interval_seconds: Option<i32>,
-  pub resend_verification_email_per_account_max_requests: Option<i32>,
-  pub resend_verification_email_per_account_interval_seconds: Option<i32>,
   pub updated_at: Option<Option<DateTime<Utc>>>,
 }

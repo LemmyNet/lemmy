@@ -157,11 +157,6 @@ pub async fn create_site(
     resend_verification_email_interval_seconds: not_zero(
       data.rate_limit_resend_verification_email_interval_seconds,
     ),
-    resend_verification_email_per_account_max_requests: data
-      .rate_limit_resend_verification_email_per_account_max_requests,
-    resend_verification_email_per_account_interval_seconds: not_zero(
-      data.rate_limit_resend_verification_email_per_account_interval_seconds,
-    ),
     updated_at: Some(Some(Utc::now())),
   };
 
