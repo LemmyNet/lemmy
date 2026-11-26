@@ -22,6 +22,8 @@
   "endpoints": {
     "sharedInbox": "https://enterprise.lemmy.ml/inbox"
   },
+  "discoverable": true,
+  "indexable": true,
   "published": "2020-01-17T01:38:22.348392Z",
   "updated": "2021-08-13T00:11:15.941990Z",
   "publicKey": {

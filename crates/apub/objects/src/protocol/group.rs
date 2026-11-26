@@ -63,6 +63,8 @@ pub struct Group {
   pub updated: Option<DateTime<Utc>>,
   /// https://docs.joinmastodon.org/spec/activitypub/#discoverable
   pub(crate) discoverable: Option<bool>,
+  /// https://docs.joinmastodon.org/spec/activitypub/#indexable
+  pub(crate) indexable: Option<bool>,
   #[serde(deserialize_with = "deserialize_skip_error", default)]
   pub(crate) tag: Vec<ApubCommunityTag>,
   // lemmy extension
