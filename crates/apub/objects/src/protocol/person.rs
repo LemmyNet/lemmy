@@ -50,4 +50,8 @@ pub struct Person {
   pub(crate) endpoints: Option<Endpoints>,
   pub(crate) published: Option<DateTime<Utc>>,
   pub(crate) updated: Option<DateTime<Utc>>,
+  /// https://docs.joinmastodon.org/spec/activitypub/#discoverable
+  pub(crate) discoverable: Option<bool>,
+  /// https://docs.joinmastodon.org/spec/activitypub/#indexable
+  pub(crate) indexable: Option<bool>,
 }

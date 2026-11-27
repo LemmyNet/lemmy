@@ -122,6 +122,8 @@ impl Object for ApubPerson {
       public_key: self.public_key(),
       updated: self.updated_at,
       inbox: self.inbox_url.clone().into(),
+      discoverable: Some(true),
+      indexable: Some(true),
     };
     Ok(person)
   }
@@ -237,6 +239,10 @@ pub(crate) mod tests {
     assert_eq!(person.display_name, Some("Jean-Luc Picard".to_string()));
     assert!(!person.local);
     assert_eq!(person.bio.as_ref().map(std::string::String::len), Some(39));
+
+    let json = person.into_json(&context).await?;
+    assert_eq!(json.discoverable, Some(true));
+    assert_eq!(json.indexable, Some(true));
 
     test_data.delete(&mut context.pool()).await?;
     Instance::delete_all(&mut context.pool()).await?;

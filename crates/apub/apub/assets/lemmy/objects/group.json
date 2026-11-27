@@ -50,6 +50,8 @@
       "preferredUsername": "news"
     }
   ],
+  "discoverable": true,
+  "indexable": true,
   "published": "2019-06-02T16:43:50.799554Z",
   "updated": "2021-03-10T17:18:10.498868Z"
 }

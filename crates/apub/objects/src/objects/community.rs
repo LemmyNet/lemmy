@@ -146,6 +146,7 @@ impl Object for ApubCommunity {
       )),
       manually_approves_followers: Some(self.visibility == CommunityVisibility::Private),
       discoverable: Some(self.visibility != CommunityVisibility::Unlisted),
+      indexable: Some(self.visibility.can_view_without_login()),
       tag: community_tags
         .into_iter()
         .map(ApubCommunityTag::to_json)
@@ -340,6 +341,10 @@ pub(crate) mod tests {
       community.summary.as_ref().map(std::string::String::len),
       Some(29)
     );
+
+    let group = community.into_json(&context).await?;
+    assert_eq!(group.discoverable, Some(true));
+    assert_eq!(group.indexable, Some(true));
 
     Instance::delete_all(&mut context.pool()).await?;
     test_data.delete(&mut context.pool()).await?;
