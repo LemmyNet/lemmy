@@ -61,13 +61,16 @@ pub enum SendActivityData {
     new_is_upvote: Option<bool>,
   },
   FollowCommunity(Community, Person, bool),
+  NotifyCommunityMods(Community, Person, bool),
   FollowMultiCommunity(MultiCommunity, Person, bool),
   PrivateCommunityAcceptFollower {
+    moderator: Person,
     community_id: CommunityId,
     person_id: PersonId,
     follow_activity_id: Option<DbUrl>,
   },
   PrivateCommunityRejectFollower {
+    moderator: Person,
     community_id: CommunityId,
     person_id: PersonId,
     follow_activity_id: Option<DbUrl>,
