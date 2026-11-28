@@ -307,6 +307,8 @@ impl MultiCommunityQuery<'_> {
   pub async fn list(self, pool: &mut DbPool<'_>) -> LemmyResult<PagedResponse<MultiCommunityView>> {
     use lemmy_db_schema::{MultiCommunityListingType::*, MultiCommunitySortType::*};
 
+    let my_person_id = self.local_user.person_id().unwrap_or(PersonId(-1));
+
     let limit = limit_fetch(self.limit, self.no_limit)?;
     let mut query = MultiCommunityView::joins(self.local_user.person_id())
       .select(MultiCommunityView::as_select())
