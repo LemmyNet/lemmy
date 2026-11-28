@@ -316,13 +316,7 @@ impl MultiCommunityQuery<'_> {
     if let Some(listing_type) = self.listing_type {
       query = match listing_type {
         All => query,
-        Subscribed => {
-          if let Some(my_person_id) = self.local_user.person_id() {
-            query.filter(multi_community_follow::person_id.eq(my_person_id))
-          } else {
-            query
-          }
-        }
+        Subscribed => query.filter(multi_community_follow::person_id.eq(my_person_id)),
         Local => query.filter(multi_community::local),
       };
     }
