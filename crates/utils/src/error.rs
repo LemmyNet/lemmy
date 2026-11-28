@@ -142,6 +142,7 @@ pub enum UntranslatedError {
   InvalidCommunity,
   CannotCreatePostOrCommentInDeletedOrRemovedCommunity,
   CannotReceivePage,
+  CannotReceiveActivityTypeInBatch(String),
   OnlyLocalAdminCanRemoveCommunity,
   OnlyLocalAdminCanRestoreCommunity,
   PostIsLocked,
